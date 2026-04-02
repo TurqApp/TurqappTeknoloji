@@ -50,37 +50,60 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         try {
           await ctrl.recoverFrozenPlayback();
         } catch (_) {}
-        try {
-          await ctrl.setVolume(volume ? 1 : 0);
-        } catch (_) {}
-        _scheduleVolumeRestore(ctrl);
+        _applySingleShortPlaybackPresentation(currentPage, ctrl);
+        _scheduleVolumeRestore(
+          ctrl,
+          preferredIndex: currentPage,
+        );
         try {
           await ctrl.play();
         } catch (_) {}
         _requestExclusivePlayback(docId);
+        _applySingleShortPlaybackPresentation(currentPage, ctrl);
       },
     );
   }
 
-  void _scheduleVolumeRestore(HLSVideoAdapter ctrl) {
-    final targetVolume = volume ? 1.0 : 0.0;
-    Future<void>.microtask(() async {
+  int? _indexForSingleShortController(
+    HLSVideoAdapter ctrl, {
+    int? preferredIndex,
+  }) {
+    if (preferredIndex != null &&
+        preferredIndex >= 0 &&
+        preferredIndex < shorts.length &&
+        identical(_videoControllers[preferredIndex], ctrl)) {
+      return preferredIndex;
+    }
+    for (final entry in _videoControllers.entries) {
+      if (identical(entry.value, ctrl)) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
+  void _scheduleVolumeRestore(
+    HLSVideoAdapter ctrl, {
+    int? preferredIndex,
+  }) {
+    void restore() {
       if (!mounted || ctrl.isDisposed) return;
-      try {
-        await ctrl.setVolume(targetVolume);
-      } catch (_) {}
+      final page = _indexForSingleShortController(
+        ctrl,
+        preferredIndex: preferredIndex,
+      );
+      if (page == null) return;
+      _applySingleShortPlaybackPresentation(page, ctrl);
+    }
+
+    Future<void>.microtask(() async {
+      restore();
     });
     Future<void>.delayed(const Duration(milliseconds: 120), () async {
-      if (!mounted || ctrl.isDisposed) return;
-      try {
-        await ctrl.setVolume(targetVolume);
-      } catch (_) {}
+      restore();
     });
     Future<void>.delayed(const Duration(milliseconds: 320), () async {
-      if (!mounted || ctrl.isDisposed) return;
-      try {
-        await ctrl.setVolume(targetVolume);
-      } catch (_) {}
+      restore();
     });
   }
 
@@ -154,8 +177,9 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       if (vp == null || vp.isDisposed || !vp.value.hasRenderedFirstFrame) {
         return;
       }
+      final decision = _singleShortPlaybackDecisionFor(page, vp.value);
       _updateTelemetryHintsForCurrentPage(
-        isAudible: volume,
+        isAudible: decision.shouldBeAudible,
         hasStableFocus: true,
       );
       final playbackKpi = maybeFindPlaybackKpiService();
@@ -165,7 +189,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           {
             'source': 'single_short_view',
             'docId': shorts[page].docID,
-            'audible': volume,
+            'audible': decision.shouldBeAudible,
             'stableFocus': true,
           },
         );
@@ -193,9 +217,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
     unawaited(_endActiveTelemetrySession());
     VideoTelemetryService.instance.startSession(post.docID, post.playbackUrl);
+    final decision = _singleShortPlaybackDecisionFor(currentPage, ctrl.value);
     VideoTelemetryService.instance.updateRuntimeHints(
       post.docID,
-      isAudible: volume,
+      isAudible: decision.shouldBeAudible,
       hasStableFocus: false,
     );
     _telemetryFirstFrame = false;
@@ -214,6 +239,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     if (shorts[currentPage].docID != docId) return;
 
     final value = adapter.value;
+    _applySingleShortPlaybackPresentation(currentPage, adapter);
+    final decision = _singleShortPlaybackDecisionFor(currentPage, value);
+    _updateTelemetryHintsForCurrentPage(
+      isAudible: decision.shouldBeAudible,
+    );
 
     if (!_telemetryFirstFrame && value.isPlaying) {
       _telemetryFirstFrame = true;
@@ -289,8 +319,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     try {
       if (ctrl.isDisposed) return;
       ctrl.setLooping(false);
-      ctrl.setVolume(volume ? 1 : 0);
-      _scheduleVolumeRestore(ctrl);
+      _applySingleShortPlaybackPresentation(currentPage, ctrl);
+      _scheduleVolumeRestore(
+        ctrl,
+        preferredIndex: currentPage,
+      );
 
       final targetPos = widget.initialPosition;
       if (targetPos != null) {

@@ -57,7 +57,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       final ctrl = widget.injectedController!;
 
       ctrl.setLooping(false);
-      ctrl.setVolume(volume ? 1 : 0);
+      _applySingleShortPlaybackPresentation(initial, ctrl);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || ctrl.isDisposed || initial >= list.length) return;
         _ensureInjectedInitialPlayback(ctrl, list[initial].docID);

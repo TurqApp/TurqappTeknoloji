@@ -3,6 +3,9 @@ part of 'agenda_controller.dart';
 extension AgendaControllerFeedPart on AgendaController {
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
+  static const Duration _startupPlaybackLockDuration =
+      Duration(milliseconds: 900);
+
   bool _reclaimFeedPlaybackFromExternalOwner(
     VideoStateManager manager, {
     required String source,
@@ -48,7 +51,16 @@ extension AgendaControllerFeedPart on AgendaController {
       return false;
     }
     final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
-    return lockedDocId.isNotEmpty;
+    final lockedAt = _startupPlaybackLockedAt;
+    if (lockedDocId.isEmpty || lockedAt == null) {
+      return false;
+    }
+    if (DateTime.now().difference(lockedAt) > _startupPlaybackLockDuration) {
+      _startupLockedFeedDocId = null;
+      _startupPlaybackLockedAt = null;
+      return false;
+    }
+    return true;
   }
 
   void _lockStartupPlaybackTargetForIndex(int index) {
@@ -58,6 +70,7 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     if (index < 0 || index >= agendaList.length) return;
     _startupLockedFeedDocId = agendaList[index].docID;
+    _startupPlaybackLockedAt = DateTime.now();
   }
 
   void _ensureFeedPlaybackForIndex(int index) {
@@ -450,10 +463,10 @@ extension AgendaControllerFeedPart on AgendaController {
     final now = DateTime.now();
     final scrollDelta = (currentOffset - lastOffset).abs();
     final startupLockActive = GetPlatform.isIOS &&
-        (_startupLockedFeedDocId?.trim().isNotEmpty ?? false);
+        _canRetainStartupPlaybackLock;
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
-    final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
+    final startupUnlockThreshold = startupLockActive ? 4.0 : 1.0;
     final hasMeaningfulScrollMovement =
         currentOffset.abs() > startupUnlockThreshold ||
             scrollDelta > startupUnlockThreshold;
@@ -463,6 +476,7 @@ extension AgendaControllerFeedPart on AgendaController {
         return;
       }
       _startupLockedFeedDocId = null;
+      _startupPlaybackLockedAt = null;
       _qaScrollStartedAt = now;
       _qaScrollStartOffset = currentOffset;
       _qaActiveScrollToken =

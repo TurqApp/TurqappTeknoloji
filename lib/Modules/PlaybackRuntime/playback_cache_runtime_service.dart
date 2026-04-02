@@ -11,6 +11,70 @@ typedef SegmentCacheProgressAction = void Function(
 typedef SegmentCacheReadySegmentsAction = void Function(
     String docId, int readySegments);
 
+enum PlaybackLifecyclePhase {
+  blocked,
+  background,
+  waitingForSegment,
+  waitingForPlayer,
+  waitingForFirstFrame,
+  waitingForVisualSync,
+  audible,
+}
+
+class PlaybackLifecycleSnapshot {
+  const PlaybackLifecycleSnapshot({
+    required this.docId,
+    required this.shouldPlay,
+    required this.isSurfacePlaybackAllowed,
+    required this.isStandalone,
+    required this.isMuted,
+    required this.requiresReadySegment,
+    required this.hasReadySegment,
+    required this.isInitialized,
+    required this.isPlaying,
+    required this.isBuffering,
+    required this.isCompleted,
+    required this.hasRenderedFirstFrame,
+    required this.position,
+    required this.duration,
+    this.visualReadyPositionThreshold = const Duration(milliseconds: 450),
+    this.playbackEndGrace = const Duration(milliseconds: 350),
+  });
+
+  final String docId;
+  final bool shouldPlay;
+  final bool isSurfacePlaybackAllowed;
+  final bool isStandalone;
+  final bool isMuted;
+  final bool requiresReadySegment;
+  final bool hasReadySegment;
+  final bool isInitialized;
+  final bool isPlaying;
+  final bool isBuffering;
+  final bool isCompleted;
+  final bool hasRenderedFirstFrame;
+  final Duration position;
+  final Duration duration;
+  final Duration visualReadyPositionThreshold;
+  final Duration playbackEndGrace;
+}
+
+class PlaybackLifecycleDecision {
+  const PlaybackLifecycleDecision({
+    required this.phase,
+    required this.isOwnerCandidate,
+    required this.hasStableVisualFrame,
+    required this.shouldHidePoster,
+    required this.shouldBeAudible,
+  });
+
+  final PlaybackLifecyclePhase phase;
+  final bool isOwnerCandidate;
+  final bool hasStableVisualFrame;
+  final bool shouldHidePoster;
+  final bool shouldBeAudible;
+}
+
 class PlaybackRuntimeService {
   const PlaybackRuntimeService({
     this.managerProvider,
@@ -73,6 +137,58 @@ class PlaybackRuntimeService {
 
   bool hasPendingPlayFor(String docId) {
     return _manager.hasPendingPlayFor(docId);
+  }
+
+  bool shouldKeepAudiblePlayback(
+    String docId, {
+    Duration grace = const Duration(milliseconds: 650),
+  }) {
+    return _manager.shouldKeepAudiblePlayback(docId, grace: grace);
+  }
+
+  PlaybackLifecycleDecision evaluateLifecycle(
+    PlaybackLifecycleSnapshot snapshot, {
+    Duration ownerGrace = const Duration(milliseconds: 650),
+  }) {
+    final trimmedDocId = snapshot.docId.trim();
+    final isOwnerCandidate = snapshot.isStandalone ||
+        shouldKeepAudiblePlayback(trimmedDocId, grace: ownerGrace);
+    final atPlaybackEnd = snapshot.isCompleted ||
+        (snapshot.duration > Duration.zero &&
+            snapshot.position >=
+                (snapshot.duration - snapshot.playbackEndGrace));
+    final reachedStablePlaybackPosition =
+        snapshot.position > snapshot.visualReadyPositionThreshold;
+    final hasStableVisualFrame = atPlaybackEnd ||
+        (snapshot.hasRenderedFirstFrame &&
+            !snapshot.isBuffering &&
+            (snapshot.isPlaying || reachedStablePlaybackPosition) &&
+            reachedStablePlaybackPosition);
+
+    final phase = !snapshot.shouldPlay || !snapshot.isSurfacePlaybackAllowed
+        ? PlaybackLifecyclePhase.blocked
+        : !isOwnerCandidate
+            ? PlaybackLifecyclePhase.background
+            : (snapshot.requiresReadySegment && !snapshot.hasReadySegment)
+                ? PlaybackLifecyclePhase.waitingForSegment
+                : !snapshot.isInitialized
+                    ? PlaybackLifecyclePhase.waitingForPlayer
+                    : (!snapshot.hasRenderedFirstFrame && !atPlaybackEnd)
+                        ? PlaybackLifecyclePhase.waitingForFirstFrame
+                        : !hasStableVisualFrame
+                            ? PlaybackLifecyclePhase.waitingForVisualSync
+                            : PlaybackLifecyclePhase.audible;
+
+    final shouldBeAudible =
+        !snapshot.isMuted && isOwnerCandidate && hasStableVisualFrame;
+
+    return PlaybackLifecycleDecision(
+      phase: phase,
+      isOwnerCandidate: isOwnerCandidate,
+      hasStableVisualFrame: hasStableVisualFrame,
+      shouldHidePoster: hasStableVisualFrame,
+      shouldBeAudible: shouldBeAudible,
+    );
   }
 
   bool resumeCurrentPlaybackIfReady(String docId) {

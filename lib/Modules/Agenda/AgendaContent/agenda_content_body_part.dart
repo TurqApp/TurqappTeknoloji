@@ -247,31 +247,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               if (widget.hideVideoPoster) {
                                                 return const SizedBox.shrink();
                                               }
-                                              final atPlaybackEnd =
-                                                  v.isCompleted ||
-                                                      (v.duration >
-                                                              Duration.zero &&
-                                                          v.position >=
-                                                              (v.duration -
-                                                                  const Duration(
-                                                                      milliseconds:
-                                                                          350)));
-                                              final reachedStablePlaybackPosition =
-                                                  v.position >
-                                                  const Duration(
-                                                    milliseconds: 450,
-                                                  );
-                                              final hasStableVideoFrame =
-                                                  atPlaybackEnd ||
-                                                      (v.hasRenderedFirstFrame &&
-                                                          !v.isBuffering &&
-                                                          (v.isPlaying ||
-                                                              reachedStablePlaybackPosition) &&
-                                                          reachedStablePlaybackPosition);
+                                              final shouldHidePoster =
+                                                  shouldHidePlaybackPoster(v);
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
-                                                  opacity: hasStableVideoFrame
+                                                  opacity: shouldHidePoster
                                                       ? 0
                                                       : 1,
                                                   duration: AppDuration

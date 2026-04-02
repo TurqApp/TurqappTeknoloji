@@ -85,6 +85,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _replayAdImpressionReceived = false;
   bool _autoplayReplayInFlight = false;
   bool _surfaceKeepAliveDebounceActive = false;
+  double? _lastAppliedPlaybackVolume;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
   Worker? _pauseAllWorker;
@@ -109,8 +110,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 950);
   static const Duration _autoplaySegmentGatePollInterval =
       Duration(milliseconds: 120);
-  static const Duration _surfaceKeepAliveDebounce =
-      Duration(milliseconds: 320);
+  static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -330,6 +330,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _initVideoController() {
     if (_videoAdapter != null) return;
+    _lastAppliedPlaybackVolume = null;
     _videoAdapter = adapterPool.acquire(
       cacheKey: playbackHandleKey,
       url: widget.model.playbackUrl,
@@ -338,6 +339,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       autoPlay: _useLegacyIosFeedBehavior ? widget.shouldPlay : false,
       loop: shouldLoopVideo,
     );
+    // Fresh adapters always start muted; lifecycle opens audio only after
+    // visual readiness is stable.
+    _videoAdapter!.setVolume(0.0);
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);
 
     _playbackRuntimeService.registerPlaybackHandle(
@@ -355,8 +359,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         _applyPlaybackVolume();
       });
     } else {
-      _videoAdapter?.setVolume(1.0);
-      _syncRuntimeHints(isAudible: true);
+      _applyPlaybackVolume();
+      _syncRuntimeHints(isAudible: _resolvedPlaybackVolume() > 0);
     }
 
     if (!isStandalonePostInstance) {
@@ -439,11 +443,43 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   void _onVideoUpdate() => _handleVideoUpdate();
 
   bool _hasStableVideoFrame(HLSVideoValue value) {
-    return value.hasRenderedFirstFrame &&
-        !value.isBuffering &&
-        (value.isPlaying ||
-            value.isCompleted ||
-            value.position > _stableFramePositionThreshold);
+    return _playbackLifecycleDecision(value).hasStableVisualFrame;
+  }
+
+  PlaybackLifecycleDecision _playbackLifecycleDecision(
+    HLSVideoValue value, {
+    Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
+  }) {
+    return _playbackRuntimeService.evaluateLifecycle(
+      PlaybackLifecycleSnapshot(
+        docId: playbackHandleKey,
+        shouldPlay: widget.shouldPlay,
+        isSurfacePlaybackAllowed: _isSurfacePlaybackAllowed,
+        isStandalone: isStandalonePostInstance,
+        isMuted: !isStandalonePostInstance && agendaController.isMuted.value,
+        requiresReadySegment: widget.model.hasPlayableVideo,
+        hasReadySegment:
+            !widget.model.hasPlayableVideo || _hasReadyAutoplaySegment,
+        isInitialized: value.isInitialized,
+        isPlaying: value.isPlaying,
+        isBuffering: value.isBuffering,
+        isCompleted: value.isCompleted,
+        hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+        position: value.position,
+        duration: value.duration,
+        visualReadyPositionThreshold: visualReadyPositionThreshold,
+      ),
+    );
+  }
+
+  bool shouldHidePlaybackPoster(
+    HLSVideoValue value, {
+    Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
+  }) {
+    return _playbackLifecycleDecision(
+      value,
+      visualReadyPositionThreshold: visualReadyPositionThreshold,
+    ).shouldHidePoster;
   }
 
   int _remainingSecondsBucket(HLSVideoValue value) {

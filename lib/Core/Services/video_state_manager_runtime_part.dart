@@ -8,6 +8,18 @@ void _handleVideoStateManagerClose(VideoStateManager manager) {
 extension VideoStateManagerRuntimePart on VideoStateManager {
   String? get currentPlayingDocID => _currentPlayingDocID;
 
+  bool shouldKeepAudiblePlayback(
+    String docID, {
+    Duration grace = const Duration(milliseconds: 650),
+  }) {
+    if (_currentPlayingDocID == docID) return true;
+    if (hasPendingPlayFor(docID)) return true;
+    if (_targetPlaybackDocID != docID) return false;
+    final updatedAt = _targetPlaybackUpdatedAt;
+    if (updatedAt == null) return false;
+    return DateTime.now().difference(updatedAt) <= grace;
+  }
+
   bool isPlaybackTargetActive(String docID) {
     if (_currentPlayingDocID != docID) return false;
     final handle = _allVideoControllers[docID];
@@ -68,6 +80,8 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       return false;
     }
     if (_currentPlayingDocID != docID) return false;
+    _targetPlaybackDocID = docID;
+    _targetPlaybackUpdatedAt = DateTime.now();
     final handle = _allVideoControllers[docID];
     if (handle == null || !handle.isInitialized) return false;
     _pendingPlayTimer?.cancel();

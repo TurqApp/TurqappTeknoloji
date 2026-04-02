@@ -1,6 +1,35 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
+  bool _retainVisibleCurrentFeedOwner({
+    required double stopThreshold,
+  }) {
+    if (!GetPlatform.isIOS) return false;
+    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+      return false;
+    }
+    final currentPlayingDocId =
+        VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    if (!currentPlayingDocId.startsWith('feed:')) return false;
+    final feedDocId = currentPlayingDocId.substring('feed:'.length);
+    if (feedDocId.isEmpty) return false;
+    final ownerIndex = agendaList.indexWhere((post) => post.docID == feedDocId);
+    if (ownerIndex < 0 || ownerIndex >= agendaList.length) return false;
+    if (!_canAutoplayVideoPost(agendaList[ownerIndex])) return false;
+    final ownerFraction = _visibleFractions[ownerIndex] ?? 0.0;
+    if (ownerFraction < stopThreshold) return false;
+    final centeredChanged = centeredIndex.value != ownerIndex;
+    if (centeredChanged) {
+      centeredIndex.value = ownerIndex;
+    }
+    lastCenteredIndex = ownerIndex;
+    if (!centeredChanged && !_isPlaybackTargetCurrent(ownerIndex)) {
+      _ensureFeedPlaybackForIndex(ownerIndex);
+    }
+    _trackPlaybackWindow();
+    return true;
+  }
+
   bool _shouldRetainStartupPlaybackTarget({
     required int current,
     required double stopThreshold,
@@ -72,6 +101,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
+    if (_retainVisibleCurrentFeedOwner(stopThreshold: stopThreshold)) {
+      return;
+    }
     if (_canRetainStartupPlaybackLock) {
       final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
       final lockedIndex =
@@ -150,6 +182,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;
+        if (GetPlatform.isIOS) {
+          _ensureFeedPlaybackForIndex(targetIndex);
+        }
       }
       lastCenteredIndex = targetIndex;
       // When centeredIndex changes, the bound listener is the single owner of

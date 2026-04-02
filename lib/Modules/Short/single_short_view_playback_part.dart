@@ -68,10 +68,14 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       _resetSingleShortAutoplaySegmentGate();
     }
 
-    ctrl.setVolume(volume ? 1 : 0);
-    _scheduleVolumeRestore(ctrl);
+    _applySingleShortPlaybackPresentation(index, ctrl);
+    _scheduleVolumeRestore(
+      ctrl,
+      preferredIndex: index,
+    );
     await ctrl.play();
     _requestExclusivePlayback(shorts[index].docID);
+    _applySingleShortPlaybackPresentation(index, ctrl);
     if (index == currentPage) {
       _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
       _beginTelemetryForCurrentPage(ctrl);
@@ -248,15 +252,16 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidStopUserGesture() {
-    final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-    if (isStillCurrent) {
+    if (_isSingleShortRoutePlaybackActive) {
       final vp = _videoControllers[currentPage];
       if (vp != null && vp.value.isInitialized) {
         try {
           if (vp.isDisposed) return;
-          vp.setVolume(volume ? 1 : 0);
+          _applySingleShortPlaybackPresentation(currentPage, vp);
+          final decision =
+              _singleShortPlaybackDecisionFor(currentPage, vp.value);
           _updateTelemetryHintsForCurrentPage(
-            isAudible: volume,
+            isAudible: decision.shouldBeAudible,
             hasStableFocus: false,
           );
           if (currentPage >= 0 && currentPage < shorts.length) {

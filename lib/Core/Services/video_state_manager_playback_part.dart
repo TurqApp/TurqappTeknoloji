@@ -3,6 +3,11 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
+  void _markTargetPlaybackDoc(String? docID) {
+    _targetPlaybackDocID = docID;
+    _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
+  }
+
   void _silenceSupersededHandle(
     String docID,
     PlaybackHandle handle,
@@ -226,6 +231,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
 
     _pauseAllExcept(docID);
+    _markTargetPlaybackDoc(docID);
     _schedulePendingPlayResume(docID, requestSeq);
   }
 
@@ -240,6 +246,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
     _pauseAllExcept(docID);
+    _markTargetPlaybackDoc(docID);
     _schedulePendingPlayResume(docID, requestSeq);
   }
 
@@ -247,6 +254,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _allVideoControllers[docID] = handle;
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
+    _markTargetPlaybackDoc(docID);
   }
 
   void _requestPlayVideoFromController(
@@ -259,6 +267,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _requestStopVideo(String docID) {
     if (_currentPlayingDocID == docID) {
       _currentPlayingDocID = null;
+    }
+    if (_targetPlaybackDocID == docID) {
+      _markTargetPlaybackDoc(null);
     }
   }
 
@@ -273,6 +284,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pendingPlayTimer = null;
     _playRequestSeq++;
     _pauseAllExcept(null);
+    _markTargetPlaybackDoc(null);
     try {
       AudioFocusCoordinator.instance.pauseAllAudioPlayers();
     } catch (_) {}
@@ -298,6 +310,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   Map<String, dynamic> debugSnapshot() {
     return <String, dynamic>{
       'currentPlayingDocID': _currentPlayingDocID ?? '',
+      'targetPlaybackDocID': _targetPlaybackDocID ?? '',
+      'targetPlaybackUpdatedAt':
+          _targetPlaybackUpdatedAt?.toIso8601String() ?? '',
       'exclusiveMode': _exclusiveMode,
       'exclusiveDocID': _exclusiveDocID ?? '',
       'registeredHandleCount': _allVideoControllers.length,

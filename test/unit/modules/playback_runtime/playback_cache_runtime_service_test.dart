@@ -61,6 +61,140 @@ void main() {
     expect(manager.isPlaybackTargetActive('doc-a'), isTrue);
   });
 
+  test('playback runtime service keeps audible ownership on latest target',
+      () async {
+    final manager = VideoStateManager();
+    final service = PlaybackRuntimeService(managerProvider: () => manager);
+    final handleA = _FakePlaybackHandle();
+    final handleB = _FakePlaybackHandle();
+
+    service.registerPlaybackHandle('doc-a', handleA);
+    service.registerPlaybackHandle('doc-b', handleB);
+
+    service.playOnlyThis('doc-a');
+    expect(service.shouldKeepAudiblePlayback('doc-a'), isTrue);
+    expect(service.shouldKeepAudiblePlayback('doc-b'), isFalse);
+
+    service.requestPlay('doc-b', handleB);
+    expect(service.shouldKeepAudiblePlayback('doc-b'), isTrue);
+    expect(service.shouldKeepAudiblePlayback('doc-a'), isFalse);
+
+    service.unregisterPlaybackHandle('doc-b');
+    expect(service.shouldKeepAudiblePlayback('doc-b'), isTrue);
+
+    service.requestStop('doc-b');
+    expect(service.shouldKeepAudiblePlayback('doc-b'), isFalse);
+  });
+
+  test('playback lifecycle keeps poster visible until visual frame is stable',
+      () async {
+    final manager = VideoStateManager();
+    final service = PlaybackRuntimeService(managerProvider: () => manager);
+    final handle = _FakePlaybackHandle();
+
+    service.registerPlaybackHandle('doc-a', handle);
+    service.playOnlyThis('doc-a');
+
+    final waitingDecision = service.evaluateLifecycle(
+      const PlaybackLifecycleSnapshot(
+        docId: 'doc-a',
+        shouldPlay: true,
+        isSurfacePlaybackAllowed: true,
+        isStandalone: false,
+        isMuted: false,
+        requiresReadySegment: true,
+        hasReadySegment: true,
+        isInitialized: true,
+        isPlaying: true,
+        isBuffering: false,
+        isCompleted: false,
+        hasRenderedFirstFrame: true,
+        position: Duration(milliseconds: 120),
+        duration: Duration(seconds: 15),
+      ),
+    );
+    expect(waitingDecision.phase, PlaybackLifecyclePhase.waitingForVisualSync);
+    expect(waitingDecision.shouldHidePoster, isFalse);
+    expect(waitingDecision.shouldBeAudible, isFalse);
+
+    final readyDecision = service.evaluateLifecycle(
+      const PlaybackLifecycleSnapshot(
+        docId: 'doc-a',
+        shouldPlay: true,
+        isSurfacePlaybackAllowed: true,
+        isStandalone: false,
+        isMuted: false,
+        requiresReadySegment: true,
+        hasReadySegment: true,
+        isInitialized: true,
+        isPlaying: true,
+        isBuffering: false,
+        isCompleted: false,
+        hasRenderedFirstFrame: true,
+        position: Duration(milliseconds: 620),
+        duration: Duration(seconds: 15),
+      ),
+    );
+    expect(readyDecision.phase, PlaybackLifecyclePhase.audible);
+    expect(readyDecision.shouldHidePoster, isTrue);
+    expect(readyDecision.shouldBeAudible, isTrue);
+  });
+
+  test(
+      'playback lifecycle keeps standalone surfaces muted until visual frame is stable',
+      () async {
+    final manager = VideoStateManager();
+    final service = PlaybackRuntimeService(managerProvider: () => manager);
+    final handle = _FakePlaybackHandle();
+
+    service.registerPlaybackHandle('doc-a', handle);
+    service.playOnlyThis('doc-a');
+
+    final waitingDecision = service.evaluateLifecycle(
+      const PlaybackLifecycleSnapshot(
+        docId: 'doc-a',
+        shouldPlay: true,
+        isSurfacePlaybackAllowed: true,
+        isStandalone: true,
+        isMuted: false,
+        requiresReadySegment: true,
+        hasReadySegment: true,
+        isInitialized: true,
+        isPlaying: true,
+        isBuffering: false,
+        isCompleted: false,
+        hasRenderedFirstFrame: true,
+        position: Duration(milliseconds: 120),
+        duration: Duration(seconds: 15),
+      ),
+    );
+    expect(waitingDecision.phase, PlaybackLifecyclePhase.waitingForVisualSync);
+    expect(waitingDecision.shouldHidePoster, isFalse);
+    expect(waitingDecision.shouldBeAudible, isFalse);
+
+    final readyDecision = service.evaluateLifecycle(
+      const PlaybackLifecycleSnapshot(
+        docId: 'doc-a',
+        shouldPlay: true,
+        isSurfacePlaybackAllowed: true,
+        isStandalone: true,
+        isMuted: false,
+        requiresReadySegment: true,
+        hasReadySegment: true,
+        isInitialized: true,
+        isPlaying: true,
+        isBuffering: false,
+        isCompleted: false,
+        hasRenderedFirstFrame: true,
+        position: Duration(milliseconds: 620),
+        duration: Duration(seconds: 15),
+      ),
+    );
+    expect(readyDecision.phase, PlaybackLifecyclePhase.audible);
+    expect(readyDecision.shouldHidePoster, isTrue);
+    expect(readyDecision.shouldBeAudible, isTrue);
+  });
+
   test('segment cache runtime service centralizes hot lifecycle helpers', () {
     final entries = <String, VideoCacheEntry>{
       'doc-a': VideoCacheEntry(

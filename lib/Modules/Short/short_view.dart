@@ -175,6 +175,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _tierReconcileDebounce;
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
+  Timer? _routeVisiblePlaybackBootstrapTimer;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
 
@@ -202,6 +203,66 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     return rawIndex.clamp(0, list.length - 1);
   }
 
+  bool get _isShortRoutePlaybackActive {
+    if (!mounted) return false;
+    return ModalRoute.of(context)?.isCurrent ?? true;
+  }
+
+  PlaybackLifecycleDecision _shortPlaybackDecisionFor(
+    int page,
+    HLSVideoValue value,
+  ) {
+    final post =
+        page >= 0 && page < _cachedShorts.length ? _cachedShorts[page] : null;
+    final docId = post?.docID.trim() ?? '';
+    if (docId.isEmpty) {
+      return const PlaybackLifecycleDecision(
+        phase: PlaybackLifecyclePhase.blocked,
+        isOwnerCandidate: false,
+        hasStableVisualFrame: false,
+        shouldHidePoster: false,
+        shouldBeAudible: false,
+      );
+    }
+    final isActivePage = page == currentPage;
+    return _playbackRuntimeService.evaluateLifecycle(
+      PlaybackLifecycleSnapshot(
+        docId: controller.playbackHandleKeyForDoc(docId),
+        shouldPlay: isActivePage && !isManuallyPaused,
+        isSurfacePlaybackAllowed: _isShortRoutePlaybackActive && isActivePage,
+        isStandalone: false,
+        isMuted: !volume,
+        requiresReadySegment: true,
+        hasReadySegment: _hasReadyShortSegment(page),
+        isInitialized: value.isInitialized,
+        isPlaying: value.isPlaying,
+        isBuffering: value.isBuffering,
+        isCompleted: value.isCompleted,
+        hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+        position: value.position,
+        duration: value.duration,
+        visualReadyPositionThreshold: const Duration(milliseconds: 180),
+      ),
+    );
+  }
+
+  void _applyShortPlaybackPresentation(int page, HLSVideoAdapter adapter) {
+    final decision = _shortPlaybackDecisionFor(page, adapter.value);
+    adapter.setVolume(decision.shouldBeAudible ? 1 : 0);
+  }
+
+  void _scheduleRouteVisiblePlaybackBootstrap({
+    Duration delay = const Duration(milliseconds: 240),
+  }) {
+    _routeVisiblePlaybackBootstrapTimer?.cancel();
+    _routeVisiblePlaybackBootstrapTimer = Timer(delay, () {
+      if (!mounted || !_isShortRoutePlaybackActive || _cachedShorts.isEmpty) {
+        return;
+      }
+      _startAutoPlayCurrentVideo();
+    });
+  }
+
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await adapter.forceSilence();
@@ -218,7 +279,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (_didPrimeInitialPlayback) return;
     _didPrimeInitialPlayback = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || !_isShortRoutePlaybackActive) return;
       _startAutoPlayCurrentVideo();
     });
   }
@@ -233,9 +294,14 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       } catch (_) {}
     }
     setState(() {});
-    if (_cachedShorts.isNotEmpty) {
+    if (_cachedShorts.isNotEmpty && _isShortRoutePlaybackActive) {
       unawaited(controller.ensureActiveAdapterReady(currentPage));
       _primeInitialPlayback();
+      _scheduleRouteVisiblePlaybackBootstrap(
+        delay: defaultTargetPlatform == TargetPlatform.iOS
+            ? const Duration(milliseconds: 320)
+            : const Duration(milliseconds: 120),
+      );
     }
   }
 
@@ -314,6 +380,14 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (route == null) return;
     routeObserver.subscribe(this, route);
     _routeObserverSubscribed = true;
+    if (route.isCurrent) {
+      _scheduleRouteVisiblePlaybackBootstrap();
+    }
+  }
+
+  @override
+  void didPush() {
+    _scheduleRouteVisiblePlaybackBootstrap();
   }
 
   @override
@@ -330,7 +404,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       maybeFindNavBarController()?.pauseGlobalTabMedia();
     } catch (_) {}
     if (_cachedShorts.isEmpty) return;
-    _startAutoPlayCurrentVideo();
+    _scheduleRouteVisiblePlaybackBootstrap(delay: Duration.zero);
   }
 
   @override
@@ -341,6 +415,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _tierReconcileDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
+    _routeVisiblePlaybackBootstrapTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _shortsWorker?.dispose();
     if (_routeObserverSubscribed) {

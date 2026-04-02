@@ -149,6 +149,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _handleVideoUpdate() {
     if (!mounted) return;
     final v = _videoAdapter!.value;
+    _applyPlaybackVolume();
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;
     const replayAdWarmupLead = Duration(seconds: 2);

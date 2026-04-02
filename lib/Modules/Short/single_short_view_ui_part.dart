@@ -26,12 +26,12 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               );
             }
             return PageView.builder(
-                controller: pageController,
-                scrollDirection: Axis.vertical,
-                physics: const MomentumPageScrollPhysics(),
-                itemCount: shorts.length,
-                onPageChanged: _handlePageChanged,
-                itemBuilder: (_, idx) => _buildShortPage(idx),
+              controller: pageController,
+              scrollDirection: Axis.vertical,
+              physics: const MomentumPageScrollPhysics(),
+              itemCount: shorts.length,
+              onPageChanged: _handlePageChanged,
+              itemBuilder: (_, idx) => _buildShortPage(idx),
             );
           }),
         ),
@@ -63,7 +63,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     if (!_videoControllers.containsKey(idx)) {
       _videoControllers[idx] = injected;
       _externallyOwned.add(idx);
-      injected.setVolume(volume ? 1 : 0);
+      _applySingleShortPlaybackPresentation(idx, injected);
     }
     final injThumb = shorts[idx].thumbnail;
     final injectedWidget = Stack(
@@ -79,9 +79,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           animation: injected,
           builder: (_, __) {
             final v = injected.value;
-            final hasStableVideoFrame = v.hasRenderedFirstFrame &&
-                !v.isBuffering &&
-                (v.isPlaying || v.position > const Duration(milliseconds: 180));
+            final decision = _singleShortPlaybackDecisionFor(idx, v);
             if (!_hasThumbCandidate(shorts[idx], overrideUrl: injThumb)) {
               return const SizedBox.shrink();
             }
@@ -95,11 +93,12 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                       child: _cachedThumb(shorts[idx], overrideUrl: injThumb),
                     ),
                   )
-                : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: injThumb));
+                : SizedBox.expand(
+                    child: _cachedThumb(shorts[idx], overrideUrl: injThumb));
             return IgnorePointer(
               ignoring: true,
               child: AnimatedOpacity(
-                opacity: hasStableVideoFrame ? 0 : 1,
+                opacity: decision.shouldHidePoster ? 0 : 1,
                 duration: AppDuration.thumbnailFadeOut,
                 curve: Curves.easeOut,
                 child: thumb,
@@ -170,10 +169,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 animation: vp,
                 builder: (_, __) {
                   final v = vp.value;
-                  final hasStableVideoFrame = v.hasRenderedFirstFrame &&
-                      !v.isBuffering &&
-                      (v.isPlaying ||
-                          v.position > const Duration(milliseconds: 180));
+                  final decision = _singleShortPlaybackDecisionFor(idx, v);
                   if (!_hasThumbCandidate(shorts[idx], overrideUrl: thumb)) {
                     return const SizedBox.shrink();
                   }
@@ -184,14 +180,16 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                             aspectRatio: shorts[idx].aspectRatio > 1.2
                                 ? shorts[idx].aspectRatio.toDouble()
                                 : 1.0,
-                            child: _cachedThumb(shorts[idx], overrideUrl: thumb),
+                            child:
+                                _cachedThumb(shorts[idx], overrideUrl: thumb),
                           ),
                         )
-                      : SizedBox.expand(child: _cachedThumb(shorts[idx], overrideUrl: thumb));
+                      : SizedBox.expand(
+                          child: _cachedThumb(shorts[idx], overrideUrl: thumb));
                   return IgnorePointer(
                     ignoring: true,
                     child: AnimatedOpacity(
-                      opacity: hasStableVideoFrame ? 0 : 1,
+                      opacity: decision.shouldHidePoster ? 0 : 1,
                       duration: AppDuration.thumbnailFadeOut,
                       curve: Curves.easeOut,
                       child: overlay,
@@ -256,8 +254,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               return;
             }
             if (idx == currentPage && idx < shorts.length) {
+              _applySingleShortPlaybackPresentation(idx, vp);
+              final decision = _singleShortPlaybackDecisionFor(idx, vp.value);
               _updateTelemetryHintsForCurrentPage(
-                isAudible: this.volume,
+                isAudible: decision.shouldBeAudible,
                 hasStableFocus: true,
               );
               _requestExclusivePlayback(shorts[idx].docID);
@@ -295,16 +295,23 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                               volume = !volume;
                               final ctrl = _videoControllers[currentPage];
                               if (ctrl != null) {
-                                ctrl.setVolume(volume ? 1 : 0);
-                                if (_externallyOwned.contains(currentPage) &&
-                                    widget.injectedController != null) {
-                                  widget.injectedController!
-                                      .setVolume(volume ? 1 : 0);
-                                }
+                                _applySingleShortPlaybackPresentation(
+                                  currentPage,
+                                  ctrl,
+                                );
+                                final decision =
+                                    _singleShortPlaybackDecisionFor(
+                                  currentPage,
+                                  ctrl.value,
+                                );
+                                _updateTelemetryHintsForCurrentPage(
+                                  isAudible: decision.shouldBeAudible,
+                                );
+                              } else {
+                                _updateTelemetryHintsForCurrentPage(
+                                  isAudible: false,
+                                );
                               }
-                              _updateTelemetryHintsForCurrentPage(
-                                isAudible: volume,
-                              );
                             }),
                           ),
                           if (shorts[idx].floodCount > 1)
@@ -334,9 +341,17 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                                 if (!mounted) return;
                                 if (idx == currentPage) {
                                   try {
-                                    vp.setVolume(volume ? 1 : 0);
+                                    _applySingleShortPlaybackPresentation(
+                                      idx,
+                                      vp,
+                                    );
+                                    final decision =
+                                        _singleShortPlaybackDecisionFor(
+                                      idx,
+                                      vp.value,
+                                    );
                                     _updateTelemetryHintsForCurrentPage(
-                                      isAudible: volume,
+                                      isAudible: decision.shouldBeAudible,
                                       hasStableFocus: false,
                                     );
                                     _requestExclusivePlayback(

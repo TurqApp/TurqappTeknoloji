@@ -204,6 +204,63 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String _playbackHandleKeyForDoc(String docId) =>
       'single_short:${docId.trim()}';
 
+  bool get _isSingleShortRoutePlaybackActive {
+    final route = ModalRoute.of(context);
+    return mounted && (route?.isCurrent ?? false);
+  }
+
+  PlaybackLifecycleDecision _singleShortPlaybackDecisionFor(
+    int page,
+    HLSVideoValue value,
+  ) {
+    if (page < 0 || page >= shorts.length) {
+      return const PlaybackLifecycleDecision(
+        phase: PlaybackLifecyclePhase.blocked,
+        isOwnerCandidate: false,
+        hasStableVisualFrame: false,
+        shouldHidePoster: false,
+        shouldBeAudible: false,
+      );
+    }
+    final docId = shorts[page].docID.trim();
+    if (docId.isEmpty) {
+      return const PlaybackLifecycleDecision(
+        phase: PlaybackLifecyclePhase.blocked,
+        isOwnerCandidate: false,
+        hasStableVisualFrame: false,
+        shouldHidePoster: false,
+        shouldBeAudible: false,
+      );
+    }
+    final isActivePage = page == currentPage;
+    return _playbackRuntimeService.evaluateLifecycle(
+      PlaybackLifecycleSnapshot(
+        docId: _playbackHandleKeyForDoc(docId),
+        shouldPlay: isActivePage,
+        isSurfacePlaybackAllowed:
+            _isSingleShortRoutePlaybackActive && isActivePage,
+        isStandalone: true,
+        isMuted: !volume,
+        requiresReadySegment: true,
+        hasReadySegment: _hasReadySingleShortSegment(page),
+        isInitialized: value.isInitialized,
+        isPlaying: value.isPlaying,
+        isBuffering: value.isBuffering,
+        isCompleted: value.isCompleted,
+        hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+        position: value.position,
+        duration: value.duration,
+        visualReadyPositionThreshold: const Duration(milliseconds: 180),
+      ),
+    );
+  }
+
+  void _applySingleShortPlaybackPresentation(
+      int page, HLSVideoAdapter adapter) {
+    final decision = _singleShortPlaybackDecisionFor(page, adapter.value);
+    adapter.setVolume(decision.shouldBeAudible ? 1 : 0);
+  }
+
   @override
   void initState() {
     super.initState();

@@ -57,6 +57,7 @@ class _AgendaControllerState {
   DateTime? lastHeadSyncAt;
   DateTime? lastDeferredInitialNetworkBootstrapAt;
   DateTime? lastPlaybackCommandAt;
+  DateTime? startupPlaybackLockedAt;
   DateTime? qaScrollStartedAt;
   double qaScrollStartOffset = 0.0;
   int qaScrollSequence = 0;
@@ -185,6 +186,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   DateTime? get _lastPlaybackCommandAt => _state.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _state.lastPlaybackCommandAt = value;
+  DateTime? get _startupPlaybackLockedAt => _state.startupPlaybackLockedAt;
+  set _startupPlaybackLockedAt(DateTime? value) =>
+      _state.startupPlaybackLockedAt = value;
   DateTime? get _qaScrollStartedAt => _state.qaScrollStartedAt;
   set _qaScrollStartedAt(DateTime? value) => _state.qaScrollStartedAt = value;
   double get _qaScrollStartOffset => _state.qaScrollStartOffset;

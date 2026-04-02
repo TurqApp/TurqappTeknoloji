@@ -37,7 +37,8 @@ extension ShortViewUiPart on _ShortViewState {
     final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
     final candidates = <String>[
       if (resolvedUrl.isNotEmpty) resolvedUrl,
-      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl) fallbackImage,
+      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl)
+        fallbackImage,
       ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
     ];
     if (candidates.isEmpty) {
@@ -198,187 +199,189 @@ extension ShortViewUiPart on _ShortViewState {
           }
 
           final pager = PageView.builder(
-              controller: pageController,
-              scrollDirection: Axis.vertical,
-              physics: const MomentumPageScrollPhysics(),
-              itemCount: list.length,
-              onPageChanged: _onPageChanged,
-              itemBuilder: (_, idx) {
-                final vp = controller.cache[idx];
-                final thumb = list[idx].thumbnail;
-                final modelAr = list[idx].aspectRatio > 0
-                    ? list[idx].aspectRatio.toDouble()
-                    : (9 / 16);
-                final isActivePage = idx == currentPage;
-                final isWarmNeighbor = (idx - currentPage).abs() <= 1;
+            controller: pageController,
+            scrollDirection: Axis.vertical,
+            physics: const MomentumPageScrollPhysics(),
+            itemCount: list.length,
+            onPageChanged: _onPageChanged,
+            itemBuilder: (_, idx) {
+              final vp = controller.cache[idx];
+              final thumb = list[idx].thumbnail;
+              final modelAr = list[idx].aspectRatio > 0
+                  ? list[idx].aspectRatio.toDouble()
+                  : (9 / 16);
+              final isActivePage = idx == currentPage;
+              final isWarmNeighbor = (idx - currentPage).abs() <= 1;
 
-                if (vp == null) {
-                  if (isActivePage) {
-                    _ensureActivePageAdapterAfterBuild(idx);
-                  }
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [_buildThumbOverlay(idx, thumb, modelAr)],
-                  );
+              if (vp == null) {
+                if (isActivePage) {
+                  _ensureActivePageAdapterAfterBuild(idx);
                 }
-
-                final videoWidget = isActivePage || isWarmNeighbor
-                    ? IgnorePointer(
-                        ignoring: !isActivePage,
-                        child: AnimatedOpacity(
-                          opacity: isActivePage ? 1 : 0.001,
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeOut,
-                          child: _buildFullscreenVideoSurface(
-                            vp,
-                            'vp-${list[idx].docID}-${vp.hashCode}',
-                            modelAspectRatio: modelAr,
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink();
-
-                return RepaintBoundary(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildThumbOverlay(idx, thumb, modelAr),
-                      if (isActivePage || isWarmNeighbor) videoWidget,
-                      if (isActivePage || isWarmNeighbor)
-                        AnimatedBuilder(
-                          animation: vp,
-                          builder: (_, __) {
-                            final value = vp.value;
-                            final hasStableVideoFrame =
-                                value.hasRenderedFirstFrame &&
-                                    !value.isBuffering &&
-                                    (value.isPlaying ||
-                                        value.position >
-                                            const Duration(
-                                              milliseconds: 180,
-                                            ));
-                            _reportStableShortFrameIfNeeded(
-                              idx,
-                              vp,
-                              hasStableVideoFrame,
-                            );
-                            if (!_hasThumbCandidate(
-                              list[idx],
-                              overrideUrl: thumb,
-                            )) {
-                              return const SizedBox.shrink();
-                            }
-                            return IgnorePointer(
-                              ignoring: true,
-                              child: AnimatedOpacity(
-                                opacity: hasStableVideoFrame ? 0 : 1,
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOutCubic,
-                                child: _buildThumbOverlay(idx, thumb, modelAr),
-                              ),
-                            );
-                          },
-                        ),
-                      if (isActivePage)
-                        AnimatedBuilder(
-                          animation: vp,
-                          builder: (_, __) {
-                            return const SizedBox.shrink();
-                          },
-                        ),
-                      if (isActivePage)
-                        ShortsContent(
-                          model: list[idx],
-                          isActive: isActivePage,
-                          showOverlayControls: _showOverlayControls,
-                          onToggleOverlay: () {
-                            if (!mounted) return;
-                            _updateShortViewState(() {
-                              _showOverlayControls = !_showOverlayControls;
-                            });
-                          },
-                          onDoubleTapLike: () async {
-                            await PostRepository.ensure().toggleLike(list[idx]);
-                          },
-                          onSwipeRight: () async {
-                            maybeFindNavBarController()?.changeIndex(0);
-                          },
-                          volumeOff: (v) {
-                            if (v) {
-                              vp.play();
-                              isManuallyPaused = false;
-                            } else {
-                              vp.pause();
-                              isManuallyPaused = true;
-                            }
-                            if (idx == currentPage) {
-                              VideoTelemetryService.instance.updateRuntimeHints(
-                                list[idx].docID,
-                                isAudible: volume,
-                                hasStableFocus: v,
-                              );
-                            }
-                          },
-                          videoPlayerController: vp,
-                          onEdited: (updatedDocId) async {
-                            await controller.updateShort(updatedDocId);
-                            await controller.refreshVideoController(idx);
-                            _updateShortViewState(() {});
-                          },
-                        ),
-                      if (_showOverlayControls && isActivePage)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _ShortProgressBar(adapter: vp),
-                        ),
-                      if (_showOverlayControls)
-                        SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const AppBackButton(
-                                      icon: CupertinoIcons.arrow_left,
-                                      key: ValueKey(
-                                        IntegrationTestKeys.actionShortBack,
-                                      ),
-                                      iconColor: Colors.white,
-                                      surfaceColor: Color(0x50000000),
-                                    ),
-                                    _buildCircleButton(
-                                      icon: volume
-                                          ? CupertinoIcons.volume_up
-                                          : CupertinoIcons.volume_off,
-                                      onTap: () {
-                                        _updateShortViewState(
-                                          () => volume = !volume,
-                                        );
-                                        vp.setVolume(volume ? 1 : 0);
-                                        if (idx == currentPage) {
-                                          VideoTelemetryService.instance
-                                              .updateRuntimeHints(
-                                            list[idx].docID,
-                                            isAudible: volume,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [_buildThumbOverlay(idx, thumb, modelAr)],
                 );
-              },
+              }
+
+              final videoWidget = isActivePage || isWarmNeighbor
+                  ? IgnorePointer(
+                      ignoring: !isActivePage,
+                      child: AnimatedOpacity(
+                        opacity: isActivePage ? 1 : 0.001,
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOut,
+                        child: _buildFullscreenVideoSurface(
+                          vp,
+                          'vp-${list[idx].docID}-${vp.hashCode}',
+                          modelAspectRatio: modelAr,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink();
+
+              return RepaintBoundary(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildThumbOverlay(idx, thumb, modelAr),
+                    if (isActivePage || isWarmNeighbor) videoWidget,
+                    if (isActivePage || isWarmNeighbor)
+                      AnimatedBuilder(
+                        animation: vp,
+                        builder: (_, __) {
+                          final value = vp.value;
+                          final decision =
+                              _shortPlaybackDecisionFor(idx, value);
+                          _reportStableShortFrameIfNeeded(
+                            idx,
+                            vp,
+                            decision.hasStableVisualFrame,
+                          );
+                          if (!_hasThumbCandidate(
+                            list[idx],
+                            overrideUrl: thumb,
+                          )) {
+                            return const SizedBox.shrink();
+                          }
+                          return IgnorePointer(
+                            ignoring: true,
+                            child: AnimatedOpacity(
+                              opacity: decision.shouldHidePoster ? 0 : 1,
+                              duration: const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              child: _buildThumbOverlay(idx, thumb, modelAr),
+                            ),
+                          );
+                        },
+                      ),
+                    if (isActivePage)
+                      AnimatedBuilder(
+                        animation: vp,
+                        builder: (_, __) {
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    if (isActivePage)
+                      ShortsContent(
+                        model: list[idx],
+                        isActive: isActivePage,
+                        showOverlayControls: _showOverlayControls,
+                        onToggleOverlay: () {
+                          if (!mounted) return;
+                          _updateShortViewState(() {
+                            _showOverlayControls = !_showOverlayControls;
+                          });
+                        },
+                        onDoubleTapLike: () async {
+                          await PostRepository.ensure().toggleLike(list[idx]);
+                        },
+                        onSwipeRight: () async {
+                          maybeFindNavBarController()?.changeIndex(0);
+                        },
+                        volumeOff: (v) {
+                          if (v) {
+                            vp.play();
+                            isManuallyPaused = false;
+                          } else {
+                            vp.pause();
+                            isManuallyPaused = true;
+                          }
+                          if (idx == currentPage) {
+                            VideoTelemetryService.instance.updateRuntimeHints(
+                              list[idx].docID,
+                              isAudible: volume,
+                              hasStableFocus: v,
+                            );
+                          }
+                        },
+                        videoPlayerController: vp,
+                        onEdited: (updatedDocId) async {
+                          await controller.updateShort(updatedDocId);
+                          await controller.refreshVideoController(idx);
+                          _updateShortViewState(() {});
+                        },
+                      ),
+                    if (_showOverlayControls && isActivePage)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: _ShortProgressBar(adapter: vp),
+                      ),
+                    if (_showOverlayControls)
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const AppBackButton(
+                                    icon: CupertinoIcons.arrow_left,
+                                    key: ValueKey(
+                                      IntegrationTestKeys.actionShortBack,
+                                    ),
+                                    iconColor: Colors.white,
+                                    surfaceColor: Color(0x50000000),
+                                  ),
+                                  _buildCircleButton(
+                                    icon: volume
+                                        ? CupertinoIcons.volume_up
+                                        : CupertinoIcons.volume_off,
+                                    onTap: () {
+                                      _updateShortViewState(
+                                        () => volume = !volume,
+                                      );
+                                      _applyShortPlaybackPresentation(
+                                        idx,
+                                        vp,
+                                      );
+                                      if (idx == currentPage) {
+                                        final decision =
+                                            _shortPlaybackDecisionFor(
+                                          idx,
+                                          vp.value,
+                                        );
+                                        VideoTelemetryService.instance
+                                            .updateRuntimeHints(
+                                          list[idx].docID,
+                                          isAudible: decision.shouldBeAudible,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           );
 
           return Stack(

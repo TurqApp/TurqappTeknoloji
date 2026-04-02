@@ -191,7 +191,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (defaultTargetPlatform == TargetPlatform.android) {
           _quietBackgroundPlayback(vc);
         } else {
-          vc.setVolume(0);
+          _applyShortPlaybackPresentation(idx, vc);
           _releasePlayback(vc);
         }
       } catch (_) {}
@@ -202,9 +202,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _tierDebounce?.cancel();
     _tierReconcileDebounce?.cancel();
     _tierDebounce = Timer(_shortTierDebounceDelay, () async {
+      if (!_isShortRoutePlaybackActive) return;
       final hadActiveAdapter = controller.cache[page] != null;
       await controller.ensureActiveAdapterReady(page);
-      if (!mounted || page != currentPage) return;
+      if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
+        return;
+      }
       _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
       _schedulePlayForPage(page);
       _scheduleTierReconcile(page);
@@ -217,12 +220,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }) {
     _tierReconcileDebounce?.cancel();
     _tierReconcileDebounce = Timer(_shortTierReconcileDelay, () async {
+      if (!_isShortRoutePlaybackActive) return;
       final hadActiveAdapter = controller.cache[page] != null;
       await controller.updateCacheTiers(
         page,
         suppressWarmPause: suppressWarmPause,
       );
-      if (!mounted || page != currentPage) return;
+      if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
+        return;
+      }
       _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
       if (!isManuallyPaused && controller.cache[page] != null) {
         _schedulePlayForPage(page);
@@ -231,7 +237,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   Future<void> _startAutoPlayCurrentVideo() async {
-    if (controller.shorts.isEmpty) return;
+    if (controller.shorts.isEmpty || !_isShortRoutePlaybackActive) return;
 
     isManuallyPaused = false;
     final hadActiveAdapter = controller.cache[currentPage] != null;
@@ -284,10 +290,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _pendingActiveAdapterEnsureToken = token;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
-        if (!mounted || page != currentPage) return;
+        if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
+          return;
+        }
         final hadActiveAdapter = controller.cache[page] != null;
         await controller.ensureActiveAdapterReady(page);
-        if (!mounted || page != currentPage) return;
+        if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
+          return;
+        }
         _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
         _scheduleTierReconcile(
           page,
@@ -311,7 +321,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? _shortPlayResumeDelayAndroid
           : _shortPlayResumeDelay,
       () {
-        if (!mounted || page != currentPage || isManuallyPaused) return;
+        if (!mounted ||
+            page != currentPage ||
+            isManuallyPaused ||
+            !_isShortRoutePlaybackActive) {
+          return;
+        }
         _enforceSingleActiveAudio(page);
         final vc = controller.cache[page];
         if (vc == null) return;
@@ -328,7 +343,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'isInitialized': vc.value.isInitialized,
           },
         );
-        vc.setVolume(volume ? 1 : 0);
+        _applyShortPlaybackPresentation(page, vc);
         _boostShortSegments(page);
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
@@ -360,6 +375,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
+          _applyShortPlaybackPresentation(page, vc);
         }
         _setupVideoEndListener(vc);
         _schedulePlaybackWatchdog(page, vc);
@@ -374,9 +390,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
           } catch (_) {}
           VideoTelemetryService.instance
               .startSession(post.docID, post.playbackUrl);
+          final decision = _shortPlaybackDecisionFor(page, vc.value);
           VideoTelemetryService.instance.updateRuntimeHints(
             post.docID,
-            isAudible: volume,
+            isAudible: decision.shouldBeAudible,
             hasStableFocus: false,
           );
           _telemetryFirstFrame = false;
@@ -411,7 +428,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (!mounted ||
           page != currentPage ||
           vc.isDisposed ||
-          isManuallyPaused) {
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive) {
         return;
       }
       final value = vc.value;
@@ -443,10 +461,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'retry': _stallWatchdogRetries,
           },
         );
-        vc.setVolume(volume ? 1 : 0);
+        _applyShortPlaybackPresentation(page, vc);
         await vc.play();
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
+          _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}
       _armStallWatchdog(page, vc);
@@ -465,7 +484,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (!mounted ||
           page != currentPage ||
           vc.isDisposed ||
-          isManuallyPaused) {
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive) {
         return;
       }
       final value = vc.value;
@@ -486,10 +506,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'retry': _playWatchdogRetries,
           },
         );
-        vc.setVolume(volume ? 1 : 0);
+        _applyShortPlaybackPresentation(page, vc);
         await vc.play();
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
+          _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}
       _armPlaybackWatchdog(page, vc);
@@ -504,14 +525,20 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _scheduleEngagementRescore(int page) {
     _engagementRescoreTimer?.cancel();
     _engagementRescoreTimer = Timer(_shortEngagementRescoreDelay, () {
-      if (!mounted || page != currentPage || isManuallyPaused) return;
+      if (!mounted ||
+          page != currentPage ||
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive) {
+        return;
+      }
       if (page < 0 || page >= _cachedShorts.length) return;
       final vc = controller.cache[page];
       if (vc == null || !vc.value.hasRenderedFirstFrame) return;
       final docId = _cachedShorts[page].docID;
+      final decision = _shortPlaybackDecisionFor(page, vc.value);
       VideoTelemetryService.instance.updateRuntimeHints(
         docId,
-        isAudible: volume,
+        isAudible: decision.shouldBeAudible,
         hasStableFocus: true,
       );
       final playbackKpi = maybeFindPlaybackKpiService();
@@ -521,7 +548,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           {
             'source': 'short_view',
             'docId': docId,
-            'audible': volume,
+            'audible': decision.shouldBeAudible,
             'stableFocus': true,
           },
         );
@@ -540,6 +567,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (vc == null || currentPage >= _cachedShorts.length) return;
     final videoId = _cachedShorts[currentPage].docID;
     final v = vc.value;
+    _applyShortPlaybackPresentation(currentPage, vc);
 
     if (!_telemetryFirstFrame && v.isPlaying) {
       _telemetryFirstFrame = true;

@@ -7,6 +7,8 @@ class _VideoStateManagerState {
   Map<String, VideoState> videoStates = <String, VideoState>{};
   Map<String, PlaybackHandle> allVideoControllers = <String, PlaybackHandle>{};
   String? currentPlayingDocID;
+  String? targetPlaybackDocID;
+  DateTime? targetPlaybackUpdatedAt;
   bool exclusiveMode = false;
   String? exclusiveDocID;
   Timer? pendingPlayTimer;
@@ -21,6 +23,13 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
 
   String? get _currentPlayingDocID => _state.currentPlayingDocID;
   set _currentPlayingDocID(String? value) => _state.currentPlayingDocID = value;
+
+  String? get _targetPlaybackDocID => _state.targetPlaybackDocID;
+  set _targetPlaybackDocID(String? value) => _state.targetPlaybackDocID = value;
+
+  DateTime? get _targetPlaybackUpdatedAt => _state.targetPlaybackUpdatedAt;
+  set _targetPlaybackUpdatedAt(DateTime? value) =>
+      _state.targetPlaybackUpdatedAt = value;
 
   bool get _exclusiveMode => _state.exclusiveMode;
   set _exclusiveMode(bool value) => _state.exclusiveMode = value;

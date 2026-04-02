@@ -93,6 +93,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     _cancelPendingPlaybackReassert();
     _pendingCenteredDocId = null;
     _startupLockedFeedDocId = null;
+    _startupPlaybackLockedAt = null;
     _lastPlaybackCommandDocId = null;
     _lastPlaybackCommandAt = null;
     lastCenteredIndex = agendaList.isEmpty ? null : 0;
@@ -606,15 +607,17 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    final existingIds = agendaList.map((post) => post.docID).toSet();
+    final currentAgenda = agendaList.toList(growable: false);
+    final existingIds = currentAgenda.map((post) => post.docID).toSet();
     final added = visibleItems
         .where((post) => !existingIds.contains(post.docID))
         .toList(growable: false);
-    final liveHeadIds = visibleItems.map((post) => post.docID).toSet();
-    final mergedAgenda = <PostsModel>[
-      ...visibleItems,
-      ...agendaList.where((post) => !liveHeadIds.contains(post.docID)),
-    ];
+    final refreshPlan = _agendaFeedApplicationService.buildRefreshPlan(
+      currentItems: currentAgenda,
+      fetchedPosts: visibleItems,
+      nowMs: nowMs,
+    );
+    final mergedAgenda = refreshPlan.replacementItems;
     agendaList.assignAll(mergedAgenda);
     _reorderAgendaForStartupPresentationIfNeeded();
     _scheduleInitialFeedVideoPosterWarmup(visibleItems);
@@ -658,6 +661,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       _feedRefreshInFlight = true;
       _pendingCenteredDocId = null;
       _startupLockedFeedDocId = null;
+      _startupPlaybackLockedAt = null;
       _lastPlaybackCommandDocId = null;
       _lastPlaybackCommandAt = null;
 
@@ -751,6 +755,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (refreshEpoch == _feedMutationEpoch) {
         _pendingCenteredDocId = refreshTargetDocId;
         _startupLockedFeedDocId = refreshTargetDocId;
+        _startupPlaybackLockedAt =
+            refreshTargetDocId == null ? null : DateTime.now();
         _lastPlaybackCommandDocId = null;
         _lastPlaybackCommandAt = null;
         _visibleFractions.clear();

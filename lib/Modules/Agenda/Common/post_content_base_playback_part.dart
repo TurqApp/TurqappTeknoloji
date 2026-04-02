@@ -98,6 +98,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
+      _lastAppliedPlaybackVolume = null;
       unawaited(v.forceSilence());
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
@@ -109,6 +110,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
+      _lastAppliedPlaybackVolume = null;
       unawaited(v.silenceAndStopPlayback());
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
@@ -121,6 +123,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     _videoAdapter = null;
+    _lastAppliedPlaybackVolume = null;
     adapter.removeListener(_onVideoUpdate);
     _hasAutoPlayed = false;
     _resetAutoplaySegmentGate();
@@ -183,23 +186,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   double _resolvedPlaybackVolume() {
-    if (isStandalonePostInstance) return 1.0;
-    if (agendaController.isMuted.value) return 0.0;
-    if (_controllerOwnsInlinePlayback) {
-      final isCurrentOwner =
-          _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
-      final hasPendingClaim = _playbackRuntimeService.hasPendingPlayFor(
-        playbackHandleKey,
-      );
-      if (!isCurrentOwner && !hasPendingClaim) {
-        return 0.0;
-      }
-    }
-    return 1.0;
+    final value = _videoAdapter?.value ?? const HLSVideoValue();
+    return _playbackLifecycleDecision(value).shouldBeAudible ? 1.0 : 0.0;
   }
 
   void _applyPlaybackVolume() {
     final volume = _resolvedPlaybackVolume();
+    if (_lastAppliedPlaybackVolume == volume) {
+      _syncRuntimeHints(isAudible: volume > 0.0);
+      return;
+    }
+    _lastAppliedPlaybackVolume = volume;
     _videoAdapter?.setVolume(volume);
     _syncRuntimeHints(isAudible: volume > 0.0);
   }
@@ -361,27 +358,34 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     );
     unawaited(adapter.setLooping(shouldLoopVideo));
     if (_controllerOwnsInlinePlayback) {
+      final currentOwner =
+          _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
+      final pendingClaim = _playbackRuntimeService.hasPendingPlayFor(
+        playbackHandleKey,
+      );
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
         _recordPlaybackDispatch(
-          'feed_card_manager_reclaim',
+          'feed_card_manager_wait',
           source: source,
           dispatchIssued: false,
-          skipReason:
-              _playbackRuntimeService.currentPlayingDocId == playbackHandleKey
-                  ? 'manager_not_ready'
-                  : 'manager_not_current',
+          skipReason: currentOwner
+              ? 'manager_not_ready'
+              : (pendingClaim
+                  ? 'manager_pending_handoff'
+                  : 'waiting_for_feed_controller_handoff'),
+          metadata: <String, dynamic>{
+            'currentOwner': currentOwner,
+            'pendingClaim': pendingClaim,
+          },
         );
-        _playbackRuntimeService.requestPlay(
-          playbackHandleKey,
-          HLSAdapterPlaybackHandle(adapter),
+        _applyPlaybackVolume();
+        _syncRuntimeHints(
+          isAudible: _resolvedPlaybackVolume() > 0.0,
+          hasStableFocus: false,
         );
-        _recordPlaybackDispatch(
-          'feed_card_adapter_play',
-          source: '$source:manager_reclaim',
-        );
-        unawaited(adapter.play());
+        return;
       } else {
         _recordPlaybackDispatch(
           'feed_card_manager_resume_current',
