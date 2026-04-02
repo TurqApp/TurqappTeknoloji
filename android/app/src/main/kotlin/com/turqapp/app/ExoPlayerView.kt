@@ -60,7 +60,7 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 10000
+    private var preferredMaxBufferMs: Long = 6000
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -213,11 +213,9 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            // iOS tarafindaki stability-first davranisa yaklasmak icin Android
-            // buffer profili biraz daha genis tutulur. Bu, TTFF'i azicik
-            // uzatabilir ama scroll gecislerinde siyah ekran/rebuffer oranini
-            // gozle gorulur sekilde azaltir.
-            val targetBufferMs = preferredMaxBufferMs.coerceIn(4500, 16000).toInt()
+            // Feed/short akışında native player'ın n+1 kuralını ezmemesi için
+            // buffer penceresini daha dar tut.
+            val targetBufferMs = preferredMaxBufferMs.coerceIn(3500, 8000).toInt()
             val minBufferMs = (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
             val playbackBufferMs = (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
             val rebufferPlaybackMs =

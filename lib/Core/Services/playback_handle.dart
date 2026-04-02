@@ -8,6 +8,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 abstract class PlaybackHandle {
   Future<void> play();
   Future<void> pause();
+  Future<void> stop();
   bool get isPlaying;
   bool get isInitialized;
   Duration get position;
@@ -28,6 +29,9 @@ class HLSPlaybackHandle implements PlaybackHandle {
 
   @override
   Future<void> pause() => controller.pause();
+
+  @override
+  Future<void> stop() => controller.stopPlayback();
 
   @override
   bool get isPlaying => controller.isPlaying;
@@ -70,6 +74,9 @@ class HLSAdapterPlaybackHandle implements PlaybackHandle {
   Future<void> pause() => adapter.pause();
 
   @override
+  Future<void> stop() => adapter.silenceAndStopPlayback();
+
+  @override
   bool get isPlaying => adapter.value.isPlaying;
 
   @override
@@ -102,6 +109,12 @@ class LegacyPlaybackHandle implements PlaybackHandle {
 
   @override
   Future<void> pause() => controller.pause();
+
+  @override
+  Future<void> stop() async {
+    await controller.pause();
+    await controller.dispose();
+  }
 
   @override
   bool get isPlaying => controller.value.isPlaying;

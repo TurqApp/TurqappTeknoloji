@@ -6,8 +6,10 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 
 import '../network_awareness_service.dart';
+import '../video_state_manager.dart';
 import 'cache_manager.dart';
 import 'hls_data_usage_probe.dart';
+import 'hls_segment_policy.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
 

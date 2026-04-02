@@ -153,6 +153,13 @@ class _BasePlaybackExecutionStrategy implements PlaybackExecutionStrategy {
       return;
     }
 
+    if (stopPlayback) {
+      try {
+        unawaited(handle.stop());
+      } catch (_) {}
+      return;
+    }
+
     try {
       unawaited(handle.setVolume(0.0));
     } catch (_) {}

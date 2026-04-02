@@ -1,6 +1,29 @@
 part of 'hls_proxy_server.dart';
 
 extension HlsProxyServerSegmentPart on HLSProxyServer {
+  bool _canFetchSegmentOnDemandForDoc(String? docID) {
+    if (!CacheNetworkPolicy.canFetchOnDemand) {
+      return false;
+    }
+    if (!CacheNetworkPolicy.isOnCellular) {
+      return true;
+    }
+
+    final requestedDocId = HlsSegmentPolicy.normalizeDocId(docID);
+    if (requestedDocId == null || requestedDocId.isEmpty) {
+      return false;
+    }
+
+    final activeOwnerDocId = HlsSegmentPolicy.normalizeDocId(
+      VideoStateManager.instance.currentPlayingDocID,
+    );
+    if (activeOwnerDocId == null || activeOwnerDocId.isEmpty) {
+      return false;
+    }
+
+    return requestedDocId == activeOwnerDocId;
+  }
+
   /// Segment isteği (.ts) — cache'den veya CDN'den.
   Future<void> _handleSegment(
       HttpRequest request, String path, String? docID) async {
@@ -42,10 +65,12 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
       }
     }
 
-    if (!CacheNetworkPolicy.canFetchOnDemand) {
+    if (!_canFetchSegmentOnDemandForDoc(docID)) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write(CacheNetworkPolicy.segmentFetchBlockedReason)
+        ..write(CacheNetworkPolicy.isOnCellular
+            ? 'On-demand segment fetch blocked for non-owner playback'
+            : CacheNetworkPolicy.segmentFetchBlockedReason)
         ..close();
       return;
     }

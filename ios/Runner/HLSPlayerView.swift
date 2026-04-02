@@ -157,9 +157,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
-            // A7: 3.0s → 10.0s — kararlı oynatma için yeterli segment önceden indirilir.
-            // Lokal proxy cache zaten hızlı segment sağlar, 10s gerçek network maliyeti taşımaz.
-            playerItem?.preferredForwardBufferDuration = 10.0
+            playerItem?.preferredForwardBufferDuration = 6.0
         }
 
         // Create player
