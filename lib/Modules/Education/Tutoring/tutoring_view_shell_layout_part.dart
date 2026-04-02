@@ -7,6 +7,14 @@ extension TutoringViewShellLayoutPart on TutoringView {
     final overlays = _buildOverlays(context);
 
     if (embedded) {
+      if (!showEmbeddedControls) {
+        return Column(
+          children: [
+            bodyContent,
+          ],
+        );
+      }
+
       return Stack(
         children: [
           Column(
