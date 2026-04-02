@@ -85,7 +85,7 @@ Her degisiklikten sonra:
 
 ## Cikti Formati Zorunlulugu
 
-Her zaman su formatta cevap ver:
+Varsayilan cevap formati, kod yazma/duzeltme turu gorevlerde sudur:
 
 1. Kok Neden
 2. Minimal Cozum
@@ -93,14 +93,85 @@ Her zaman su formatta cevap ver:
 4. Calistirma Komutu
 5. Kapsam Notu
 
-Her is kapanisinda, yukaridaki 5 ana basliga ek olarak zorunlu bir review
-ozeti de verilir. Bu review ozeti yalnizca yapilan ise odaklanir ve su sabit
-formatla yazilir:
+Her is kapanisinda, yukaridaki 5 ana basliga ek olarak kisa bir review ozeti
+de verilir. Bu ozet yalnizca yapilan ise odaklanir ve su sabit formatla
+yazilir:
 
 - Sonuc: Dogru / Kismen / Hatali
 - Bulunan sorunlar
 - Firebase maliyet etkisi
 - Merge oncesi duzeltilmesi gerekenler
+
+- Kullanici review/denetim talep ettiyse bu varsayilan 5 baslikli format yerine
+  asagidaki `Denetim ve Review Modu` formati kullanilir.
+
+## Denetim ve Review Modu Zorunlulugu
+
+- Kullanici "kontrol et", "review et", "denetle", "az once yapilan isi kontrol
+  et" veya benzeri bir talep verdiginde varsayilan calisma modu kod review'dur.
+- Bu modda:
+  - yeni ozellik yazilmaz
+  - kapsam buyutulmaz
+  - gereksiz refactor yapilmaz
+  - sadece yapilan gorevin dogrulugu, temizligi, guvenligi ve yakin etkileri
+    denetlenir
+- Review su 4 eksende zorunlu olarak yapilir:
+  - istenen gorev tam yapilmis mi
+  - Flutter tarafi
+  - Firebase tarafi
+  - kod kalitesi ve regresyon riski
+- Istenen gorev kontrolunde su sorular zorunludur:
+  - degisiklik gercekten talep edilen isi karsiliyor mu
+  - eksik senaryo kalmis mi
+  - sadece gerekli dosya ve satirlara mi dokunulmus
+  - gereksiz yerlere mudahale edilmis mi
+- Flutter kontrolunde su basliklar zorunludur:
+  - mevcut mimari bozulmus mu
+  - widget/state/async/lifecycle tarafinda bariz hata var mi
+  - null safety ve context kullanimi dogru mu
+  - controller/dispose yonetimi dogru mu
+  - stream/subscription yonetimi dogru mu
+  - gereksiz rebuild veya gereksiz karmasiklik var mi
+- Firebase kontrolunde su basliklar zorunludur:
+  - Firebase/Firestore kullanimi dogru mu
+  - gereksiz read/write ureten akis var mi
+  - gereksiz veya yanlis listener var mi
+  - tek seferlik islem icin stream acilmis mi
+  - cache ile cozulebilecek yerde tekrar sorgu var mi
+  - guvenlik riski olusturan kullanim var mi
+  - veri modeli veya sorgu tarafinda bariz hata var mi
+- Kod kalitesi kontrolunde su basliklar zorunludur:
+  - isimlendirmeler anlasilir mi
+  - kod okunabilir mi
+  - hata yonetimi yeterli mi
+  - edge case eksigi var mi
+  - mevcut akislari bozma riski var mi
+- Emin olunmayan noktalarda varsayim yapilmaz; acikca `muhtemel risk`
+  denilerek belirtilir.
+- Mumkun oldugunca dosya, sinif ve fonksiyon bazli konusulur.
+
+Review cikti formati zorunlu olarak su sekilde yazilir:
+
+1. SONUC
+- Gorev dogru tamamlanmis mi? (Evet / Kismen / Hayir)
+- Kisa ozet
+
+2. BULGULAR
+- Her bulgu icin:
+- Seviye: Kritik / Orta / Dusuk
+- Konum: dosya / sinif / fonksiyon
+- Sorun
+- Neden sorun
+- Nasil duzeltilir
+
+3. FIREBASE ETKISI
+- Ek maliyet riski var mi?
+- Gereksiz read/write/listener var mi?
+- Varsa nasil azaltilir?
+
+4. SON KARAR
+- Bu haliyle kabul edilir mi?
+- Merge oncesi duzeltilmesi gerekenler neler?
 
 ## Guvenlik ve Hata Onleme
 
@@ -117,10 +188,12 @@ formatla yazilir:
 
 ## Genel Prensip
 
+Bu bolum yeni kural getirmez; ustteki temel maddelerin kisa ozetidir:
 "Sadece isteneni yap. Minimum degistir. Tam coz. Asla varsayim yapma."
 
 ## Context-Aware Davranis Eki
 
+Bu bolum, `Proje Analizi Zorunlulugu` basliginin kisa uygulama notudur.
 - Her gorevde once proje baglamini cikar.
 - Once anlamadan asla degistirme.
 - Kodun sistem icindeki rolunu anlamadan mudahale etme.
@@ -215,9 +288,10 @@ Beklenen kapanis:
 
 ### Merkezi Budget ve Cache Ownership Kurali
 
-- Kullaniciya gorunen surface/list startup-read-warm budget'lari tek yerden
-  yonetilecek:
-  - `lib/Core/Services/read_budget_registry.dart`
+- Bu bolumdeki budget/cache guard'larinin kalici tek sahipligi
+  `SurfacePolicyRegistry`'dedir.
+- `lib/Core/Services/read_budget_registry.dart` bagimsiz karar sahibi degil;
+  runtime/uyumluluk giris noktasi olarak kalabilir.
 - Yeni bir surface icin `limit`, `pageLimit`, `warmCount`, `startupShard`
   veya `take(...)` tipi bir sayisal karar eklenecekse once registry'ye
   girilecek, sonra call-site oraya baglanacak.
@@ -229,7 +303,7 @@ Beklenen kapanis:
   - navbar arka plan warm loop'u
 - `ContentPolicy` sadece ag/davranis karari verir; sayisal budget uretmez.
 - `CacheFirstPolicyRegistry` TTL/stale/sync politikasi icin kalir; sayisal
-  budget kararlari `read_budget_registry.dart` icinde tutulur.
+  budget kararlari bagimsiz lokal kaynaklarda tutulmaz.
 - Kullaniciya gorunen listing/owner/search/answered/favorites/type/shared
   surface'leri icin tek cache omurgasi sudur:
   - `CacheFirstCoordinator`
@@ -264,7 +338,8 @@ Beklenen kapanis:
   - detail ekraninda "daha fazla goster" oncesi preview satir/adet siniri
 - Bir lokal sayi startup, cache ownership, paging, warmup, prefetch veya
   kullaniciya gorunen ana liste uzunlugunu etkiliyorsa anayasa geregi
-  `SurfacePolicyRegistry` veya `ReadBudgetRegistry` altina tasinmak zorundadir.
+  `SurfacePolicyRegistry`'ye tanimlanmak, gerekirse `ReadBudgetRegistry`
+  uzerinden tuketilmek zorundadir.
   Su legacy pattern'ler geri getirilmeyecek:
   - `fetchAnsweredByUser`
   - `fetchFavorites`
@@ -302,7 +377,9 @@ Bir sonraki lane'e gecmeden once beklenen kapanis:
 
 Cache ownership omurgasi tamamlandiktan sonra surface davranisini etkileyen
 tum ayarlar tek merkez mantigi ile yonetilecektir. Bu baslik altindaki
-kurallar, "ayar verme modu"nda alinacak her karar icin baglayicidir.
+kurallar, "ayar verme modu"nda alinacak her karar icin baglayicidir. 2026-03-29
+bolumundeki budget/cache guard'larinin kanonik sahiplik yorumu bu bolumle
+birlikte okunur.
 
 ### Tek Merkez Ayar Sahipligi
 
