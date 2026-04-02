@@ -200,7 +200,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final entryForPolicy = cacheManager.getEntry(job.docID);
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
-      final quotaFillMode = _isOnWiFi && !_mobileSeedMode;
+      final quotaFillMode = shouldUsePrefetchQuotaFillMode(
+        isOnWiFi: _isOnWiFi,
+        mobileSeedMode: _mobileSeedMode,
+        watchProgress: watchedProgress,
+      );
 
       final Iterable<String> toDownload;
       if (quotaFillMode) {

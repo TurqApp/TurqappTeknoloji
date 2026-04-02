@@ -17,7 +17,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       try {
         prefetch.boostDoc(
           model.docID,
-          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+          readySegments: 1,
         );
       } catch (_) {}
     }

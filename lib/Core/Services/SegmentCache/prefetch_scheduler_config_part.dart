@@ -29,6 +29,15 @@ int resolvePrefetchReadySegmentsForPost(
 }
 
 @visibleForTesting
+bool shouldUsePrefetchQuotaFillMode({
+  required bool isOnWiFi,
+  required bool mobileSeedMode,
+  required double watchProgress,
+}) {
+  return isOnWiFi && !mobileSeedMode && watchProgress <= 0.01;
+}
+
+@visibleForTesting
 List<int> buildQuotaFillSegmentOrder({
   required int totalSegments,
   required int desiredReadySegments,

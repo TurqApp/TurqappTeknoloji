@@ -66,4 +66,26 @@ void main() {
       expect(order, <int>[1]);
     });
   });
+
+  group('shouldUsePrefetchQuotaFillMode', () {
+    test('uses quota fill mode for unwatched wifi jobs', () {
+      final result = shouldUsePrefetchQuotaFillMode(
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        watchProgress: 0.0,
+      );
+
+      expect(result, isTrue);
+    });
+
+    test('keeps watched wifi jobs on watched-priority path', () {
+      final result = shouldUsePrefetchQuotaFillMode(
+        isOnWiFi: true,
+        mobileSeedMode: false,
+        watchProgress: 0.42,
+      );
+
+      expect(result, isFalse);
+    });
+  });
 }
