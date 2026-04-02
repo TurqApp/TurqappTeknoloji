@@ -105,27 +105,6 @@ class _HLSPlayerState extends State<HLSPlayer> {
           else
             _buildUnsupportedPlatform(),
 
-          // Loading indicator
-          if (!widget.suppressLoadingOverlay)
-            StreamBuilder<PlayerState>(
-              stream: widget.controller.onStateChanged,
-              initialData: widget.controller.state,
-              builder: (context, snapshot) {
-                final state = snapshot.data ?? PlayerState.idle;
-
-                if (state == PlayerState.loading) {
-                  return Center(
-                    child: widget.loadingWidget ??
-                        const CircularProgressIndicator(
-                          color: Colors.white,
-                        ),
-                  );
-                }
-
-                return const SizedBox.shrink();
-              },
-            ),
-
           // Error widget
           StreamBuilder<PlayerState>(
             stream: widget.controller.onStateChanged,
@@ -281,12 +260,6 @@ class _HLSPlayerControlsState extends State<_HLSPlayerControls> {
                       initialData: widget.controller.state,
                       builder: (context, snapshot) {
                         final state = snapshot.data ?? PlayerState.idle;
-
-                        if (state == PlayerState.buffering) {
-                          return const CircularProgressIndicator(
-                            color: Colors.white,
-                          );
-                        }
 
                         return IconButton(
                           icon: Icon(
