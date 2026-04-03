@@ -71,6 +71,8 @@ extension _TutoringApplicationReviewContentPart
             (profile?['avatarUrl'] as String?)?.trim().isNotEmpty == true
                 ? (profile?['avatarUrl'] as String).trim()
                 : app.tutorImage;
+        final normalizedAvatarUrl =
+            isDefaultAvatarUrl(avatarUrl) ? '' : avatarUrl;
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
@@ -92,9 +94,9 @@ extension _TutoringApplicationReviewContentPart
                       child: SizedBox(
                         width: 56,
                         height: 56,
-                        child: avatarUrl.isNotEmpty
+                        child: normalizedAvatarUrl.isNotEmpty
                             ? CachedNetworkImage(
-                                imageUrl: avatarUrl,
+                                imageUrl: normalizedAvatarUrl,
                                 fit: BoxFit.cover,
                                 errorWidget: (_, __, ___) =>
                                     _buildFallbackAvatar(),

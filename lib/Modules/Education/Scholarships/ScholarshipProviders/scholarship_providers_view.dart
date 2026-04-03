@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
@@ -125,36 +125,10 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
                                                     child: SizedBox(
                                                       width: 50,
                                                       height: 50,
-                                                      child: Stack(
-                                                        alignment:
-                                                            Alignment.center,
-                                                        children: [
-                                                          provider['avatarUrl']
-                                                                  .isNotEmpty
-                                                              ? CachedNetworkImage(
-                                                                  imageUrl:
-                                                                      provider[
-                                                                          'avatarUrl'],
-                                                                  width: 50,
-                                                                  height: 50,
-                                                                  fit: BoxFit
-                                                                      .cover,
-                                                                  placeholder: (
-                                                                    context,
-                                                                    url,
-                                                                  ) =>
-                                                                      CupertinoActivityIndicator(),
-                                                                  errorWidget: (
-                                                                    context,
-                                                                    url,
-                                                                    error,
-                                                                  ) =>
-                                                                      SizedBox
-                                                                          .shrink(),
-                                                                )
-                                                              : SizedBox
-                                                                  .shrink(),
-                                                        ],
+                                                      child: CachedUserAvatar(
+                                                        imageUrl: provider[
+                                                            'avatarUrl'],
+                                                        radius: 25,
                                                       ),
                                                     ),
                                                   ),

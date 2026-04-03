@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
 class CommentComposerBar extends StatelessWidget {
@@ -48,16 +49,10 @@ class CommentComposerBar extends StatelessWidget {
             child: SizedBox(
               width: 28,
               height: 28,
-              child: avatarUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: avatarUrl,
-                      fit: BoxFit.cover,
-                    )
-                  : const Icon(
-                      CupertinoIcons.person_fill,
-                      color: Colors.black54,
-                      size: 14,
-                    ),
+              child: CachedUserAvatar(
+                imageUrl: avatarUrl,
+                radius: 14,
+              ),
             ),
           ),
           const SizedBox(width: 8),

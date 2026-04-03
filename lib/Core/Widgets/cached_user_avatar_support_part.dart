@@ -16,8 +16,7 @@ class DefaultAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final useIconStyle =
-        padding != null || iconColor != null || backgroundColor != null;
+    final useIconStyle = padding != null || iconColor != null;
     if (useIconStyle) {
       final effectiveBackgroundColor =
           backgroundColor ?? const Color(0xFFEDF2F7);

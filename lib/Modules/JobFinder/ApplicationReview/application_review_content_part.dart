@@ -60,19 +60,10 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                         child: SizedBox(
                           width: 40,
                           height: 40,
-                          child: avatarUrl.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: avatarUrl,
-                                  fit: BoxFit.cover,
-                                )
-                              : Container(
-                                  color: Colors.grey.withAlpha(30),
-                                  child: const Icon(
-                                    CupertinoIcons.person_fill,
-                                    color: Colors.grey,
-                                    size: 20,
-                                  ),
-                                ),
+                          child: CachedUserAvatar(
+                            imageUrl: avatarUrl,
+                            radius: 20,
+                          ),
                         ),
                       ),
                     ),

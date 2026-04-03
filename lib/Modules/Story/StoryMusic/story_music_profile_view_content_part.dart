@@ -271,23 +271,7 @@ extension StoryMusicProfileViewContentPart on _StoryMusicProfileViewState {
   }
 
   Widget _buildAvatar(String avatarUrl) {
-    if (avatarUrl.trim().isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: avatarUrl,
-        cacheManager: TurqImageCacheManager.instance,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => Container(
-          color: const Color(0xFFF2F4F7),
-        ),
-        errorWidget: (_, __, ___) => Container(
-          color: const Color(0xFFF2F4F7),
-        ),
-      );
-    }
-
-    return Container(
-      color: const Color(0xFFF2F4F7),
-    );
+    return CachedUserAvatar(imageUrl: avatarUrl, radius: 14);
   }
 
   String _timeAgo(DateTime dateTime) {

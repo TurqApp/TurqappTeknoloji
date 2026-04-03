@@ -37,14 +37,13 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
                 },
               ),
               ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: user['avatarUrl'] ?? '',
+                child: SizedBox(
                   width: imageSize,
                   height: imageSize,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => CupertinoActivityIndicator(),
-                  errorWidget: (context, url, error) =>
-                      Icon(Icons.person, size: 24),
+                  child: CachedUserAvatar(
+                    imageUrl: (user['avatarUrl'] ?? '').toString(),
+                    radius: imageSize / 2,
+                  ),
                 ),
               ),
               Positioned(
@@ -153,15 +152,13 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
                   child: Row(
                     children: [
                       ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: user['avatarUrl'] ?? '',
+                        child: SizedBox(
                           width: 38,
                           height: 38,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              const CupertinoActivityIndicator(),
-                          errorWidget: (context, url, error) =>
-                              const Icon(Icons.person, size: 38),
+                          child: CachedUserAvatar(
+                            imageUrl: (user['avatarUrl'] ?? '').toString(),
+                            radius: 19,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),

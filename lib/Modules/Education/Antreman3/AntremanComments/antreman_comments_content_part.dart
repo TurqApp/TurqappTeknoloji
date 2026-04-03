@@ -73,14 +73,13 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: userImage.isNotEmpty
-                    ? CachedNetworkImageProvider(userImage)
-                    : null,
-                child: userImage.isEmpty
-                    ? const Icon(CupertinoIcons.person, size: 18)
-                    : null,
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: CachedUserAvatar(
+                  imageUrl: userImage,
+                  radius: 18,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -303,14 +302,13 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 15,
-            backgroundImage: replyUserImage.isNotEmpty
-                ? CachedNetworkImageProvider(replyUserImage)
-                : null,
-            child: replyUserImage.isEmpty
-                ? const Icon(CupertinoIcons.person, size: 15)
-                : null,
+          SizedBox(
+            width: 30,
+            height: 30,
+            child: CachedUserAvatar(
+              imageUrl: replyUserImage,
+              radius: 15,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(

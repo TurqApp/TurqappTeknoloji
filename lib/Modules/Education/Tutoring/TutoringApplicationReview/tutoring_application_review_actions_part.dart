@@ -7,14 +7,7 @@ extension _TutoringApplicationReviewActionsPart
   }
 
   Widget _buildFallbackAvatar() {
-    return Container(
-      color: Colors.grey.withAlpha(30),
-      child: const Icon(
-        CupertinoIcons.person_fill,
-        color: Colors.grey,
-        size: 20,
-      ),
-    );
+    return SvgPicture.asset(kDefaultAvatarAsset, fit: BoxFit.cover);
   }
 
   Widget _buildStatusChip(String status) {

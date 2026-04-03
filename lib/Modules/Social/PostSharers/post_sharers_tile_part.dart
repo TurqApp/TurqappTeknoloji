@@ -79,32 +79,10 @@ class _PostSharerTileState extends State<_PostSharerTile> {
         child: SizedBox(
           width: 48,
           height: 48,
-          child: avatarUrl.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: avatarUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      CupertinoIcons.person_fill,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      CupertinoIcons.person_fill,
-                      color: Colors.grey,
-                    ),
-                  ),
-                )
-              : Container(
-                  color: Colors.grey[200],
-                  child: const Icon(
-                    CupertinoIcons.person_fill,
-                    color: Colors.grey,
-                  ),
-                ),
+          child: CachedUserAvatar(
+            imageUrl: avatarUrl,
+            radius: 24,
+          ),
         ),
       ),
       title: Row(

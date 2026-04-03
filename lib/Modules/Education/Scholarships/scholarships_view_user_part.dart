@@ -75,20 +75,13 @@ extension ScholarshipsViewUserPart on _ScholarshipsViewState {
     Map<String, dynamic>? firmaData,
   ) {
     final imageUrl = (userData?['avatarUrl'] ?? '').toString();
-    return CircleAvatar(
-      radius: 15,
-      child: imageUrl.isNotEmpty
-          ? ClipOval(
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                placeholder: (context, url) => CupertinoActivityIndicator(),
-                errorWidget: (context, url, error) => Icon(Icons.error),
-                width: 30,
-                height: 30,
-                fit: BoxFit.cover,
-              ),
-            )
-          : Icon(Icons.person, size: 20),
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: CachedUserAvatar(
+        imageUrl: imageUrl,
+        radius: 15,
+      ),
     );
   }
 

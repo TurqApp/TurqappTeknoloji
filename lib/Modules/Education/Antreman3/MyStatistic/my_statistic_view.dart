@@ -1,8 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/MyStatistic/my_statistic_controller.dart';
@@ -93,16 +92,10 @@ class _MyStatisticViewState extends State<MyStatisticView> {
                                 child: SizedBox(
                                   width: 50,
                                   height: 50,
-                                  child: avatarUrl.isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: avatarUrl,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : const Center(
-                                          child: CupertinoActivityIndicator(
-                                            color: Colors.grey,
-                                          ),
-                                        ),
+                                  child: CachedUserAvatar(
+                                    imageUrl: avatarUrl,
+                                    radius: 25,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),

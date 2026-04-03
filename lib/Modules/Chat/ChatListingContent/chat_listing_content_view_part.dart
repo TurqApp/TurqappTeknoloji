@@ -45,14 +45,10 @@ extension ChatListingContentViewPart on ChatListingContent {
         child: SizedBox(
           width: isSearchResult ? 40 : 50,
           height: isSearchResult ? 40 : 50,
-          child: model.avatarUrl != ''
-              ? CachedNetworkImage(
-                  imageUrl: model.avatarUrl,
-                  fit: BoxFit.cover,
-                )
-              : const Center(
-                  child: CupertinoActivityIndicator(color: Colors.grey),
-                ),
+          child: CachedUserAvatar(
+            imageUrl: model.avatarUrl,
+            radius: isSearchResult ? 20 : 25,
+          ),
         ),
       ),
     );

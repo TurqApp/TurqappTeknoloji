@@ -68,18 +68,10 @@ class _AvatarWithRingState extends State<_AvatarWithRing> {
       placeholder: DefaultAvatar(
         radius: widget.size / 2,
         backgroundColor: Colors.transparent,
-        iconColor: widget.isSelected
-            ? Colors.black
-            : Colors.black.withValues(alpha: 0.5),
-        padding: EdgeInsets.all(widget.size * 0.18),
       ),
       errorWidget: DefaultAvatar(
         radius: widget.size / 2,
         backgroundColor: Colors.transparent,
-        iconColor: widget.isSelected
-            ? Colors.black
-            : Colors.black.withValues(alpha: 0.5),
-        padding: EdgeInsets.all(widget.size * 0.18),
       ),
     );
 

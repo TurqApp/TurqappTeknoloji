@@ -105,24 +105,14 @@ extension _AdminTaskAssignmentsViewContentPart
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundImage: (_selectedUser?['avatarUrl'] ?? '')
-                            .toString()
-                            .trim()
-                            .isNotEmpty
-                        ? NetworkImage(
-                            (_selectedUser?['avatarUrl'] ?? '')
-                                .toString()
-                                .trim(),
-                          )
-                        : null,
-                    child: (_selectedUser?['avatarUrl'] ?? '')
-                            .toString()
-                            .trim()
-                            .isEmpty
-                        ? const Icon(CupertinoIcons.person)
-                        : null,
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: CachedUserAvatar(
+                      imageUrl:
+                          (_selectedUser?['avatarUrl'] ?? '').toString().trim(),
+                      radius: 22,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -424,12 +414,13 @@ class _AssignmentCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundImage:
-                  avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-              child:
-                  avatarUrl.isEmpty ? const Icon(CupertinoIcons.person) : null,
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: CachedUserAvatar(
+                imageUrl: avatarUrl,
+                radius: 22,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(

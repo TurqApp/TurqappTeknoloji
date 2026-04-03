@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 import '../../../Models/recommended_user_model.dart';
@@ -92,16 +92,10 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                           child: SizedBox(
                             width: avatarSize,
                             height: avatarSize,
-                            child: model.avatarUrl != ""
-                                ? CachedNetworkImage(
-                                    imageUrl: model.avatarUrl,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Center(
-                                    child: Image.asset(
-                                      "assets/images/logotrans.webp",
-                                    ),
-                                  ),
+                            child: CachedUserAvatar(
+                              imageUrl: model.avatarUrl,
+                              radius: avatarSize / 2,
+                            ),
                           ),
                         ),
                       ),

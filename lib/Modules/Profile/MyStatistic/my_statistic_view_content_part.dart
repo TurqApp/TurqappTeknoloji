@@ -24,16 +24,10 @@ extension _MyStatisticViewContentPart on _MyStatisticViewState {
                   child: SizedBox(
                     width: 50,
                     height: 50,
-                    child: avatarUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: avatarUrl,
-                            fit: BoxFit.cover,
-                          )
-                        : const Center(
-                            child: CupertinoActivityIndicator(
-                              color: Colors.grey,
-                            ),
-                          ),
+                    child: CachedUserAvatar(
+                      imageUrl: avatarUrl,
+                      radius: 25,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'share_grid_controller.dart';
 
 class ShareGrid extends StatefulWidget {
@@ -126,17 +126,9 @@ class _ShareGridState extends State<ShareGrid> {
                                 child: SizedBox(
                                   width: 55,
                                   height: 55,
-                                  child: CachedNetworkImage(
+                                  child: CachedUserAvatar(
                                     imageUrl: model.avatarUrl,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => Container(
-                                      color: Colors.grey.shade200,
-                                      alignment: Alignment.center,
-                                      child: const Icon(
-                                        CupertinoIcons.person_fill,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
+                                    radius: 27.5,
                                   ),
                                 ),
                               ),

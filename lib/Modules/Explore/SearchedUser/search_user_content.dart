@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,9 +6,9 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
-import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
@@ -149,25 +148,14 @@ class SearchUserContent extends StatelessWidget {
                           border: Border.all(color: Colors.grey.withAlpha(50)),
                         ),
                         child: ClipOval(
-                          child: model.avatarUrl != ""
-                              ? SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: CachedNetworkImage(
-                                    imageUrl: resolveAvatarUrl({
-                                      'avatarUrl': model.avatarUrl,
-                                    }),
-                                    fit: BoxFit.cover,
-                                  ),
-                                )
-                              : const SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: Center(
-                                    child: CupertinoActivityIndicator(
-                                        color: Colors.grey),
-                                  ),
-                                ),
+                          child: SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CachedUserAvatar(
+                              imageUrl: model.avatarUrl,
+                              radius: 20,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 7),

@@ -31,30 +31,14 @@ extension _BlockedUsersContentPart on _BlockedUsersState {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    user.avatarUrl.isNotEmpty
-                        ? ClipOval(
-                            child: SizedBox(
-                              width: 40,
-                              height: 40,
-                              child: CachedNetworkImage(
-                                imageUrl: user.avatarUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withAlpha(50),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              CupertinoIcons.person,
-                              color: Colors.grey,
-                            ),
-                          ),
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CachedUserAvatar(
+                        imageUrl: user.avatarUrl,
+                        radius: 20,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

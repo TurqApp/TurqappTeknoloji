@@ -25,14 +25,13 @@ extension _AntremanCommentsInputPart on _AntremanCommentsState {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                CircleAvatar(
-                  radius: 15,
-                  backgroundImage: userImage.isNotEmpty
-                      ? CachedNetworkImageProvider(userImage)
-                      : null,
-                  child: userImage.isEmpty
-                      ? const Icon(CupertinoIcons.person, size: 15)
-                      : null,
+                SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CachedUserAvatar(
+                    imageUrl: userImage,
+                    radius: 15,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
