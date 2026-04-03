@@ -65,9 +65,10 @@ extension AntremanControllerActionsPart on AntremanController {
         return;
       }
 
-      final results = (result.data ?? const <QuestionBankModel>[])
+      final rawResults = (result.data ?? const <QuestionBankModel>[])
           .where((item) => item.active)
           .toList(growable: false);
+      final results = await _excludeAnsweredQuestions(rawResults);
       if (token != _searchToken || searchQuery.value.trim() != normalized) {
         return;
       }
@@ -85,6 +86,10 @@ extension AntremanControllerActionsPart on AntremanController {
   }
 
   Future<void> openSearchResult(QuestionBankModel question) async {
+    if (_answeredQuestionIds.contains(question.docID)) {
+      AppSnackbar("common.info".tr, "training.no_more_questions".tr);
+      return;
+    }
     final categoryKey = question.categoryKey.isNotEmpty
         ? question.categoryKey
         : _buildCategoryKey(
@@ -121,12 +126,13 @@ extension AntremanControllerActionsPart on AntremanController {
       _activeCategoryKey.value = categoryKey;
 
       final cachedDocs = await _loadCachedCategoryPool(categoryKey);
-      if (cachedDocs.isNotEmpty) {
+      final filteredCachedDocs = await _excludeAnsweredQuestions(cachedDocs);
+      if (filteredCachedDocs.isNotEmpty) {
         _categoryPool
           ..clear()
-          ..addAll(cachedDocs);
+          ..addAll(filteredCachedDocs);
 
-        await _appendQuestionsFromProgress(categoryKey, batchSize);
+        await _appendQuestionsFromProgress(categoryKey, initialBatchSize);
         if (questions.isNotEmpty) {
           currentQuestionIndex.value = 0;
           await addToviewers(questions[0]);
@@ -145,9 +151,10 @@ extension AntremanControllerActionsPart on AntremanController {
         ders,
         limit: ReadBudgetRegistry.antremanCategoryPoolInitialLimit,
       );
+      final filteredDocs = await _excludeAnsweredQuestions(docs);
       _categoryPool
         ..clear()
-        ..addAll(docs);
+        ..addAll(filteredDocs);
       await _saveCachedCategoryPool(categoryKey, docs);
 
       if (_categoryPool.isEmpty) {
@@ -157,7 +164,7 @@ extension AntremanControllerActionsPart on AntremanController {
       }
 
       if (questions.isEmpty) {
-        await _appendQuestionsFromProgress(categoryKey, batchSize);
+        await _appendQuestionsFromProgress(categoryKey, initialBatchSize);
       }
       if (questions.isNotEmpty && Get.currentRoute != '/QuestionContent') {
         currentQuestionIndex.value = 0;
@@ -195,9 +202,10 @@ extension AntremanControllerActionsPart on AntremanController {
       }
 
       final models = await _fetchQuestionModelsByIds(savedIds);
-      savedQuestionsList.assignAll(models);
-      await _hydrateAnswerAndSavedState(models);
-      await _prefetchAspectRatios(models.take(5).toList());
+      final filteredModels = await _excludeAnsweredQuestions(models);
+      savedQuestionsList.assignAll(filteredModels);
+      await _hydrateAnswerAndSavedState(filteredModels);
+      await _prefetchAspectRatios(filteredModels.take(5).toList());
       loadingProgress.value = 1.0;
     } catch (e) {
       log("Kaydedilen sorular çekilirken hata oluştu");
@@ -243,15 +251,23 @@ extension AntremanControllerActionsPart on AntremanController {
   }
 
   Future<void> fetchMoreQuestions() async {
+    await fetchMoreQuestionsWithCount(batchSize);
+  }
+
+  Future<void> fetchMoreQuestionsWithCount(int count) async {
     if (_activeCategoryKey.value.isEmpty || _categoryPool.isEmpty) return;
+    if (_isFetchingMore) return;
 
     try {
-      await _appendQuestionsFromProgress(_activeCategoryKey.value, batchSize);
+      _isFetchingMore = true;
+      await _appendQuestionsFromProgress(_activeCategoryKey.value, count);
       loadingProgress.value = 1.0;
     } catch (e) {
       log("Daha fazla soru çekilirken hata oluştu: $e");
       AppSnackbar("common.error".tr, "training.fetch_more_failed".tr);
       loadingProgress.value = 1.0;
+    } finally {
+      _isFetchingMore = false;
     }
   }
 
@@ -294,7 +310,7 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<List<QuestionBankModel>> _fetchCategoryPoolDocs(
       String anaBaslik, String sinavTuru, String ders,
       {int? limit}) async {
-    return _questionBankSnapshotRepository.fetchCategoryPoolDocs(
+    return _antremanRepository.fetchCategoryQuestions(
       anaBaslik,
       sinavTuru,
       ders,
@@ -312,12 +328,13 @@ extension AntremanControllerActionsPart on AntremanController {
         _buildCategoryKey(anaBaslik, sinavTuru, ders),
         all,
       );
+      final filteredAll = await _excludeAnsweredQuestions(all);
       if (_activeCategoryKey.value !=
           _buildCategoryKey(anaBaslik, sinavTuru, ders)) {
         return;
       }
       final existingIds = _categoryPool.map((e) => e.docID).toSet();
-      for (final q in all) {
+      for (final q in filteredAll) {
         if (!existingIds.contains(q.docID)) {
           _categoryPool.add(q);
           existingIds.add(q.docID);
@@ -370,7 +387,8 @@ extension AntremanControllerActionsPart on AntremanController {
       }
       final idx = (a * cursor + b) % n;
       final q = _categoryPool[idx];
-      if (!_loadedQuestionIds.contains(q.docID)) {
+      if (!_loadedQuestionIds.contains(q.docID) &&
+          !_answeredQuestionIds.contains(q.docID)) {
         appended.add(q);
         _loadedQuestionIds.add(q.docID);
       }
@@ -414,6 +432,66 @@ extension AntremanControllerActionsPart on AntremanController {
 
   Future<Map<String, String>> _fetchUserAnswers(List<String> docIds) async {
     return _antremanRepository.fetchUserAnswers(userID, docIds);
+  }
+
+  Future<List<QuestionBankModel>> _excludeAnsweredQuestions(
+    List<QuestionBankModel> models,
+  ) async {
+    if (models.isEmpty) return const <QuestionBankModel>[];
+    final ids = models.map((e) => e.docID).toList(growable: false);
+    final answersById = await _fetchUserAnswers(ids);
+    _answeredQuestionIds.addAll(answersById.keys);
+    return models
+        .where((model) => !_answeredQuestionIds.contains(model.docID))
+        .toList(growable: false);
+  }
+
+  Future<void> consumeAnsweredQuestion(String questionId) async {
+    if (questionId.isEmpty) return;
+    _answeredQuestionIds.add(questionId);
+    _categoryPool.removeWhere((question) => question.docID == questionId);
+    _loadedQuestionIds.remove(questionId);
+    searchResults.removeWhere((question) => question.docID == questionId);
+    savedQuestionsList.removeWhere((question) => question.docID == questionId);
+    selectedAnswers.remove(questionId);
+    initialAnswers.remove(questionId);
+    answerStates.remove(questionId);
+
+    final removeIndex =
+        questions.indexWhere((question) => question.docID == questionId);
+    if (removeIndex >= 0) {
+      questions.removeAt(removeIndex);
+    }
+
+    if (questions.isEmpty) {
+      currentQuestionIndex.value = 0;
+      await fetchMoreQuestionsWithCount(batchSize);
+      if (questions.isEmpty) {
+        AppSnackbar("common.info".tr, "training.no_more_questions".tr);
+        return;
+      }
+    }
+
+    final nextIndex = (removeIndex < 0
+            ? currentQuestionIndex.value.clamp(0, questions.length - 1)
+            : removeIndex.clamp(0, questions.length - 1))
+        .toInt();
+    currentQuestionIndex.value = nextIndex;
+    await addToviewers(questions[nextIndex]);
+    final nextQuestion = questions[nextIndex];
+    if (!imageAspectRatios.containsKey(nextQuestion.soru)) {
+      final aspectRatio = await getImageAspectRatio(nextQuestion.soru);
+      imageAspectRatios[nextQuestion.soru] = aspectRatio ?? 1.0;
+    }
+    await maybePrefetchMoreQuestions();
+  }
+
+  Future<void> maybePrefetchMoreQuestions() async {
+    if (_activeCategoryKey.value.isEmpty || questions.isEmpty) return;
+    final remainingAfterCurrent =
+        questions.length - (currentQuestionIndex.value + 1);
+    if (remainingAfterCurrent > prefetchRemainingThreshold) return;
+    await fetchMoreQuestionsWithCount(batchSize);
   }
 
   Future<Set<String>> _fetchSavedIds(List<String> docIds) async {

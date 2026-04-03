@@ -21,26 +21,7 @@ extension AntremanRepositoryActionPart on AntremanRepository {
   Future<void> recordQuestionView({
     required String userId,
     required String questionId,
-  }) async {
-    if (userId.isEmpty || questionId.isEmpty) return;
-    final viewRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qViews')
-        .doc(questionId);
-    final existing = await viewRef.get();
-    if (existing.exists) return;
-    final batch = _firestore.batch();
-    batch.set(viewRef, {
-      'questionId': questionId,
-      'viewedAt': DateTime.now().millisecondsSinceEpoch,
-    });
-    batch.update(
-      _firestore.collection('questionBank').doc(questionId),
-      {'viewCount': FieldValue.increment(1)},
-    );
-    await batch.commit();
-  }
+  }) async {}
 
   Future<void> toggleSavedQuestion({
     required String userId,
@@ -48,19 +29,15 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     required bool currentlySaved,
   }) async {
     if (userId.isEmpty || questionId.isEmpty) return;
-    final savedRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qSaved')
-        .doc(questionId);
+    final prefsKey = _localSavedPrefsKey(userId);
+    final savedMap = await _readPrefsJsonMap(prefsKey);
     if (currentlySaved) {
-      await savedRef.delete();
+      savedMap.remove(questionId);
+      await _writePrefsJsonMap(prefsKey, savedMap);
       return;
     }
-    await savedRef.set({
-      'questionId': questionId,
-      'savedAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    savedMap[questionId] = DateTime.now().millisecondsSinceEpoch;
+    await _writePrefsJsonMap(prefsKey, savedMap);
   }
 
   Future<void> toggleLikedQuestion({
@@ -93,68 +70,26 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     required String categoryKey,
     required Map<String, dynamic> userData,
   }) async {
-    final answerRef = _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qAnswers')
-        .doc(question.docID);
-    final existingAnswer = await answerRef.get();
-    if (existingAnswer.exists) {
+    if (userId.isEmpty || question.docID.isEmpty || selectedAnswer.isEmpty) {
+      throw Exception('invalid_answer');
+    }
+
+    final answersKey = _localAnswersPrefsKey(userId);
+    final answers = await _readPrefsJsonMap(answersKey);
+    if (answers.containsKey(question.docID)) {
       throw Exception('already_answered');
     }
 
     final isCorrect = selectedAnswer == question.dogruCevap;
-    final currentAntPoint = ((userData['antPoint'] ?? 100) as num).toInt();
+    final prefs = await SharedPreferences.getInstance();
+    final currentAntPoint = prefs.getInt(_localScorePrefsKey(userId)) ??
+        ((userData['antPoint'] ?? 100) as num).toInt();
     int newAntPoint = isCorrect ? currentAntPoint + 10 : currentAntPoint - 3;
     if (newAntPoint < 0) newAntPoint = 0;
 
-    final questionRef =
-        _firestore.collection('questionBank').doc(question.docID);
-    final userRef = _firestore.collection('users').doc(userId);
-    final scoreRef = _firestore
-        .collection(AntremanRepository._scoreCollection)
-        .doc(_monthKey())
-        .collection('items')
-        .doc(userId);
-    final profileName = (userData['displayName'] ??
-            userData['username'] ??
-            userData['nickname'] ??
-            '')
-        .toString();
-    final profileImage = (userData['avatarUrl'] ?? '').toString();
-
-    final batch = _firestore.batch();
-    batch.set(answerRef, {
-      'questionId': question.docID,
-      'answer': selectedAnswer,
-      'isCorrect': isCorrect,
-      'categoryKey': categoryKey,
-      'answeredAt': DateTime.now().millisecondsSinceEpoch,
-    });
-    batch.set(
-      questionRef,
-      {
-        isCorrect ? 'correctCount' : 'wrongCount': FieldValue.increment(1),
-      },
-      SetOptions(merge: true),
-    );
-    batch.set(userRef, {'antPoint': newAntPoint}, SetOptions(merge: true));
-    batch.set(
-      scoreRef,
-      {
-        'userID': userId,
-        'displayName': profileName,
-        'nickname': profileName,
-        'firstName': (userData['firstName'] ?? '').toString(),
-        'lastName': (userData['lastName'] ?? '').toString(),
-        'avatarUrl': profileImage,
-        'rozet': (userData['rozet'] ?? '').toString(),
-        'antPoint': newAntPoint,
-        'updatedDate': DateTime.now().millisecondsSinceEpoch,
-      },
-      SetOptions(merge: true),
-    );
-    await batch.commit();
+    answers[question.docID] = selectedAnswer;
+    await _writePrefsJsonMap(answersKey, answers);
+    await prefs.setInt(_localScorePrefsKey(userId), newAntPoint);
     return newAntPoint;
   }
 
@@ -165,12 +100,14 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     bool merge = true,
   }) async {
     if (userId.isEmpty || categoryKey.isEmpty) return;
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qProgress')
-        .doc(categoryKey)
-        .set(data, SetOptions(merge: merge));
+    final prefsKey = _localProgressPrefsKey(userId, categoryKey);
+    if (!merge) {
+      await _writePrefsJsonMap(prefsKey, data);
+      return;
+    }
+    final current = await _readPrefsJsonMap(prefsKey);
+    current.addAll(data);
+    await _writePrefsJsonMap(prefsKey, current);
   }
 
   Future<void> addComment({

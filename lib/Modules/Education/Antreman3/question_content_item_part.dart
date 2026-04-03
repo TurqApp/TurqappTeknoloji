@@ -251,7 +251,8 @@ extension QuestionContentItemPart on QuestionContent {
           child: Center(
             child: Obx(
               () => Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   IconButton(
                     onPressed:
@@ -259,14 +260,27 @@ extension QuestionContentItemPart on QuestionContent {
                                 false
                             ? null
                             : () => controller.addToSonraCoz(question),
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints.tightFor(width: 34, height: 34),
+                    visualDensity: VisualDensity.compact,
                     icon: Image.asset(
                       'assets/icons/reshare.webp',
                       color: Colors.black,
-                      width: 24,
-                      height: 24,
+                      width: 20,
+                      height: 20,
                     ),
                   ),
-                  Text('pasaj.question_bank.solve_later'.tr),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'pasaj.question_bank.solve_later'.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
                 ],
               ),
             ),

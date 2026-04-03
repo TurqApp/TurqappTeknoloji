@@ -11,7 +11,9 @@ abstract class _AntremanControllerBase extends GetxController {
   final _state = _AntremanControllerState();
 
   final String userID = CurrentUserService.instance.effectiveUserId;
+  final int initialBatchSize = 10;
   final int batchSize = 5;
+  final int prefetchRemainingThreshold = 5;
 
   @override
   void onInit() {

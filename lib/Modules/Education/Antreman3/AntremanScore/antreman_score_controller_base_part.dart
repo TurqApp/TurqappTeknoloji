@@ -5,10 +5,9 @@ abstract class _AntremanScoreControllerBase extends GetxController {
   void onInit() {
     super.onInit();
     final controller = this as AntremanScoreController;
-    if (controller._applyWarmCache()) {
-      unawaited(controller.fetchLeaderboard(showLoader: false));
-    } else
-      controller.fetchLeaderboard();
+    controller.leaderboard.clear();
+    controller.userRank.value = 0;
+    controller.isLoading.value = false;
     controller.getUserAntPoint();
   }
 }

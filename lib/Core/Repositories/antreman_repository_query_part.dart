@@ -1,44 +1,26 @@
 part of 'antreman_repository.dart';
 
 extension AntremanRepositoryQueryPart on AntremanRepository {
-  Stream<int?> scoreStream(String userId, {DateTime? now}) {
+  Stream<int?> scoreStream(String userId, {DateTime? now}) async* {
     if (userId.isEmpty) {
-      return Stream<int?>.value(null);
+      yield null;
+      return;
     }
-    return _firestore
-        .collection(AntremanRepository._scoreCollection)
-        .doc(_monthKey(now))
-        .collection('items')
-        .doc(userId)
-        .snapshots()
-        .map((snapshot) {
-      if (!snapshot.exists) return null;
-      return (snapshot.data()?['antPoint'] as num?)?.toInt();
-    });
+    final prefs = await SharedPreferences.getInstance();
+    yield prefs.getInt(_localScorePrefsKey(userId, now: now));
   }
 
   Stream<int> commentCountStream(String questionId) {
     if (questionId.isEmpty) {
       return Stream<int>.value(0);
     }
-    return _firestore
-        .collection('questionBank')
-        .doc(questionId)
-        .collection('Yorumlar')
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+    return Stream<int>.value(_commentsCache[questionId]?.length ?? 0);
   }
 
   Future<int?> getMonthlyScore(String userId, {DateTime? now}) async {
     if (userId.isEmpty) return null;
-    final doc = await _firestore
-        .collection(AntremanRepository._scoreCollection)
-        .doc(_monthKey(now))
-        .collection('items')
-        .doc(userId)
-        .get();
-    if (!doc.exists) return null;
-    return (doc.data()?['antPoint'] as num?)?.toInt();
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_localScorePrefsKey(userId, now: now));
   }
 
   Future<List<Map<String, dynamic>>> fetchLeaderboardPage({
@@ -147,14 +129,12 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
     int limit = ReadBudgetRegistry.antremanSavedQuestionInitialLimit,
   }) async {
     if (userId.isEmpty) return const <String>[];
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qSaved')
-        .orderBy('savedAt', descending: true)
-        .limit(limit)
-        .get();
-    return snapshot.docs.map((doc) => doc.id).toList(growable: false);
+    final savedMap = await _readPrefsJsonMap(_localSavedPrefsKey(userId));
+    final entries = savedMap.entries
+        .map((entry) => MapEntry(entry.key, (entry.value as num?)?.toInt() ?? 0))
+        .toList(growable: false)
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return entries.take(limit).map((entry) => entry.key).toList(growable: false);
   }
 
   Future<Map<String, String>> fetchUserAnswers(
@@ -163,20 +143,11 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
   ) async {
     final out = <String, String>{};
     if (userId.isEmpty || docIds.isEmpty) return out;
-    for (int i = 0; i < docIds.length; i += 10) {
-      final chunk =
-          docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
-      final snap = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('qAnswers')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      for (final doc in snap.docs) {
-        final answer = doc.data()['answer'] as String?;
-        if (answer != null && answer.isNotEmpty) {
-          out[doc.id] = answer;
-        }
+    final answers = await _readPrefsJsonMap(_localAnswersPrefsKey(userId));
+    for (final docId in docIds) {
+      final answer = answers[docId]?.toString() ?? '';
+      if (answer.isNotEmpty) {
+        out[docId] = answer;
       }
     }
     return out;
@@ -185,16 +156,11 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
   Future<Set<String>> fetchSavedIds(String userId, List<String> docIds) async {
     final out = <String>{};
     if (userId.isEmpty || docIds.isEmpty) return out;
-    for (int i = 0; i < docIds.length; i += 10) {
-      final chunk =
-          docIds.sublist(i, (i + 10) > docIds.length ? docIds.length : i + 10);
-      final snap = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('qSaved')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get();
-      out.addAll(snap.docs.map((d) => d.id));
+    final savedMap = await _readPrefsJsonMap(_localSavedPrefsKey(userId));
+    for (final docId in docIds) {
+      if (savedMap.containsKey(docId)) {
+        out.add(docId);
+      }
     }
     return out;
   }
@@ -224,14 +190,10 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
     String categoryKey,
   ) async {
     if (userId.isEmpty || categoryKey.isEmpty) return null;
-    final doc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('qProgress')
-        .doc(categoryKey)
-        .get();
-    if (!doc.exists) return null;
-    return Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
+    final data =
+        await _readPrefsJsonMap(_localProgressPrefsKey(userId, categoryKey));
+    if (data.isEmpty) return null;
+    return data;
   }
 
   Future<List<Comment>> fetchComments(String questionId) async {

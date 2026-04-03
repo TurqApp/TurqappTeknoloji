@@ -135,11 +135,14 @@ extension AntremanControllerQuestionActionsPart on AntremanController {
             : _activeCategoryKey.value,
         userData: userData,
       );
-      nextQuestion();
+      await Future<void>.delayed(const Duration(milliseconds: 450));
+      if (isClosed) return;
+      await consumeAnsweredQuestion(question.docID);
     } catch (e) {
       log('submitAnswer error for ${question.docID}: $e');
       if (e.toString().contains('already_answered')) {
         AppSnackbar("common.info".tr, "training.answer_saved".tr);
+        await consumeAnsweredQuestion(question.docID);
       } else {
         AppSnackbar("common.error".tr, "training.answer_save_failed".tr);
       }
@@ -173,6 +176,7 @@ extension AntremanControllerQuestionActionsPart on AntremanController {
           imageAspectRatios[nextQuestion.soru] = aspectRatio ?? 1.0;
         });
       }
+      unawaited(maybePrefetchMoreQuestions());
     } else {
       AppSnackbar("common.info".tr, "training.no_more_questions".tr);
     }
