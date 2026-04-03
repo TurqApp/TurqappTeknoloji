@@ -341,6 +341,21 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'config/test_suites/short_first_two_only_e2e.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/short_five_only_e2e.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/short_ten_only_e2e.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'config/test_suites/integration_smoke.tsv',
     origin: QALabTestOrigin.suite,
     runnableInApp: false,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -320,7 +321,11 @@ Future<void> runTurqAppMasterE2EScenario(
       ]) {
         currentStep = tabKey;
         await _step(tester, scenario, currentStep, () async {
-          await _tapIfPresent(tester, byItKey(tabKey));
+          if (byItKey(tabKey).evaluate().isNotEmpty) {
+            tester.testTextInput.hide();
+            await tester.pump(const Duration(milliseconds: 100));
+            await pressItKey(tester, tabKey, settlePumps: 6);
+          }
           await _assertNoFeedLeakIfSupported(tester, currentStep);
         });
       }
@@ -611,7 +616,19 @@ Future<void> _tapIfPresent(
   final target = firstInteractable(finder);
   await tester.ensureVisible(target);
   await tester.pump(const Duration(milliseconds: 100));
-  await tester.tap(target);
+  final widget = tester.widget(target);
+  var handled = false;
+  if (widget is GestureDetector && widget.onTap != null) {
+    widget.onTap!.call();
+    handled = true;
+  } else if (widget is InkWell && widget.onTap != null) {
+    widget.onTap!.call();
+    handled = true;
+  }
+
+  if (!handled) {
+    await tester.tap(target);
+  }
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 200));
   }

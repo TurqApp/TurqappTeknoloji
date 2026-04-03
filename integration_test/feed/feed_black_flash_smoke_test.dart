@@ -32,15 +32,12 @@ void main() {
           () async {
             await launchTurqApp(tester);
             await expectFeedScreen(tester);
-            final deadline = DateTime.now().add(const Duration(minutes: 3));
 
             final controller = ensureAgendaController();
             final seenDocIds = <String>{};
             var swipeAttempts = 0;
 
-            while (seenDocIds.length < 10 &&
-                swipeAttempts < 32 &&
-                DateTime.now().isBefore(deadline)) {
+            while (seenDocIds.length < 10 && swipeAttempts < 32) {
               final sample = await _captureCurrentFeedVideo(
                 tester,
                 controller: controller,

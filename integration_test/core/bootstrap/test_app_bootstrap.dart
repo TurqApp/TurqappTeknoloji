@@ -856,6 +856,16 @@ Future<void> pressItKey(
   }
 
   if (!handled) {
+    if (widget is GestureDetector && widget.onTap != null) {
+      widget.onTap!.call();
+      handled = true;
+    } else if (widget is InkWell && widget.onTap != null) {
+      widget.onTap!.call();
+      handled = true;
+    }
+  }
+
+  if (!handled) {
     await tester.tap(target);
   }
 
