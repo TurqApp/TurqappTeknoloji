@@ -36,8 +36,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       final sameUser =
           (oldWidget.userId ?? '').trim() == (widget.userId ?? '').trim();
       final shouldPreserveResolvedUrl =
-          sameUser && nextResolved.isEmpty && _resolvedUrl.isNotEmpty;
+          sameUser && widget.imageUrl == null && _resolvedUrl.isNotEmpty;
       _resolvedUrl = shouldPreserveResolvedUrl ? _resolvedUrl : nextResolved;
+      if (!shouldPreserveResolvedUrl && nextResolved.isEmpty) {
+        _resolvedFilePath = '';
+      }
       _didBootstrap = false;
       unawaited(_bootstrap());
     }
@@ -56,9 +59,9 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     final currentUser = CurrentUserService.instance;
     if (uid == currentUser.effectiveUserId) {
       final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
-      if (currentAvatar.isNotEmpty) {
-        _resolvedUrl = currentAvatar;
-        await _resolveLocalFile(currentAvatar, allowNetwork: true);
+      _resolvedUrl = currentAvatar;
+      await _resolveLocalFile(currentAvatar, allowNetwork: true);
+      if (currentUser.currentUser != null) {
         return;
       }
 
@@ -198,10 +201,14 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         builder: (context, snapshot) {
           final currentUserImage =
               _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
-          if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
+          if (currentUserImage != _resolvedUrl) {
             _resolvedUrl = currentUserImage;
-            _didBootstrap = false;
-            unawaited(_bootstrap());
+            if (currentUserImage.isEmpty) {
+              _resolvedFilePath = '';
+            } else {
+              _didBootstrap = false;
+              unawaited(_bootstrap());
+            }
           }
           return _buildAvatar(
             currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl,
