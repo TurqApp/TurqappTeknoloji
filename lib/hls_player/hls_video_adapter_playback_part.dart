@@ -122,9 +122,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSetVolume(double v) {
     if (_disposed) return Future.value();
-    if (_viewReady) return _hls.setVolume(v);
     _pendingVolume = v;
     _hasPendingVolume = true;
+    if (_viewReady) return _hls.setVolume(v);
     return Future.value();
   }
 
