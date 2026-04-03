@@ -97,4 +97,15 @@ extension AgendaControllerFacadePart on AgendaController {
 
   AgendaShuffleCacheService get _shuffleCache =>
       ensureAgendaShuffleCacheService();
+
+  void promoteUploadedPosts(
+    List<PostsModel> posts, {
+    bool scrollToTop = false,
+  }) {
+    if (posts.isEmpty) return;
+    addUploadedPostsAtTop(posts);
+    if (scrollToTop && scrollController.hasClients) {
+      scrollController.jumpTo(0);
+    }
+  }
 }

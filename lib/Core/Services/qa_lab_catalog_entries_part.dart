@@ -198,6 +198,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: true,
   ),
   QALabCatalogEntry(
+    path: 'integration_test/shorts/short_offline_cache_fallback_test.dart',
+    origin: QALabTestOrigin.integration,
+    runnableInApp: true,
+  ),
+  QALabCatalogEntry(
     path: 'integration_test/feed/feed_normal_scroll_playback_smoke_test.dart',
     origin: QALabTestOrigin.integration,
     runnableInApp: true,
@@ -317,6 +322,21 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
   ),
   QALabCatalogEntry(
     path: 'config/test_suites/extended_smoke.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/feed_black_flash_only_e2e.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/feed_playback_gate_e2e.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'config/test_suites/feed_seed_focus_e2e.txt',
     origin: QALabTestOrigin.suite,
     runnableInApp: false,
   ),
@@ -662,6 +682,26 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'config/test_suites/rules_runtime_regression.txt',
+    origin: QALabTestOrigin.suite,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/core/blocked_texts_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/core/services/feed_render_coordinator_build_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/core/services/prefetch_scheduler_policy_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/unit/core/services/feed_playback_selection_policy_test.dart',
     origin: QALabTestOrigin.unit,
     runnableInApp: false,
@@ -688,6 +728,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'test/unit/modules/post_creator/post_creator_flood_identity_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/unit/modules/runtime_feature_services_test.dart',
     origin: QALabTestOrigin.unit,
     runnableInApp: false,
@@ -708,7 +753,17 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'test/unit/modules/splash/startup_route_hint_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/unit/modules/story/story_row_application_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/modules/story/story_video_prefetch_wiring_test.dart',
     origin: QALabTestOrigin.unit,
     runnableInApp: false,
   ),
@@ -728,8 +783,28 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'test/unit/services/cache_invalidation_service_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/services/segment_cache_models_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'test/unit/services/video_state_manager_on_demand_fetch_test.dart',
+    origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/unit/utils/stored_account_reauth_policy_test.dart',
     origin: QALabTestOrigin.unit,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
+    path: 'functions/tests/unit/marketCounters.test.js',
+    origin: QALabTestOrigin.backend,
     runnableInApp: false,
   ),
   QALabCatalogEntry(

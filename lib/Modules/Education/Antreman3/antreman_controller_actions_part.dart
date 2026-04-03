@@ -449,10 +449,6 @@ extension AntremanControllerActionsPart on AntremanController {
     }
   }
 
-  Future<Map<String, String>> _fetchUserAnswers(List<String> docIds) async {
-    return _antremanRepository.fetchUserAnswers(userID, docIds);
-  }
-
   Future<Set<String>> _fetchAnsweredIds(List<String> docIds) async {
     return _antremanRepository.fetchAnsweredIds(userID, docIds);
   }

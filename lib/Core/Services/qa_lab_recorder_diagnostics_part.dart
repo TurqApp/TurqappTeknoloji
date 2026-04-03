@@ -33,7 +33,30 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
     final report = TelemetryThresholdPolicyAdapter.evaluateKpiService(
       playbackKpi,
     );
+    final currentSnapshot = IntegrationTestStateProbe.snapshot();
+    final currentRoute = (currentSnapshot['currentRoute'] ?? '').toString();
     return report.issues
+        .where((issue) {
+          if (issue.surface == 'feed') {
+            return _isPrimaryFeedSelected(
+              currentSnapshot,
+              route: currentRoute,
+            );
+          }
+          if (issue.surface == 'explore') {
+            return _isPrimaryExploreSelected(
+              currentSnapshot,
+              route: currentRoute,
+            );
+          }
+          if (issue.surface == 'short') {
+            return _isPrimaryShortSelected(
+              currentSnapshot,
+              route: currentRoute,
+            );
+          }
+          return true;
+        })
         .map(
           (issue) => QALabPinpointFinding(
             severity: issue.severity.name == 'blocking'
@@ -59,7 +82,7 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
     final started = startedAt.value;
     if (started == null) return false;
     final ageMs = referenceTime.difference(started).inMilliseconds;
-    if (ageMs < 0 || ageMs > 9000) return false;
+    if (ageMs < 0 || ageMs > 30000) return false;
 
     final normalizedRoute = route.trim().toLowerCase();
     if (normalizedRoute.contains('qa_lab') ||

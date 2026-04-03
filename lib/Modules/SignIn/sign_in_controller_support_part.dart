@@ -24,8 +24,3 @@ String _formatSeconds(int seconds) {
   final s = (safe % 60).toString().padLeft(2, '0');
   return '$m:$s';
 }
-
-Future<void> _clearSessionCachesAfterAccountSwitch() async {
-  // User switch should preserve global content caches.
-  // Warmup methods refresh user-scoped overlays and controllers afterward.
-}

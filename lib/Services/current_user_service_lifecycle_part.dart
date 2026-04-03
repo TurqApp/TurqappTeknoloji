@@ -66,20 +66,26 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
   }) async {
     await logout();
     await signOutAuth();
-    if (Get.key.currentContext == null) return;
-    await Get.offAll(
-      () => SignIn(
-        initialIdentifier: initialIdentifier,
-      ),
+    await AppRootNavigationService.offAllToSignIn(
+      initialIdentifier: initialIdentifier,
     );
   }
 
   Future<void> _performLogout() async {
+    final previousUid = authUserId.trim();
     try {
       await _stopFirebaseSync();
+      maybeFindUnreadMessagesController()?.stopListeners();
       await _clearActiveCachePointer();
       await maybeFindFollowRepository()?.clearAll();
       _silentLogAt.clear();
+      if (previousUid.isNotEmpty) {
+        _purgeUserScopedCaches(previousUid);
+        await invalidateUserProfileCacheIfRegistered(previousUid);
+        await ViewerSurfaceInvalidationService.invalidateForViewer(
+          previousUid,
+        );
+      }
 
       _cacheSaveTimer?.cancel();
       _cacheSaveTimer = null;

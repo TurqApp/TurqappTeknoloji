@@ -28,6 +28,7 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
     if (surface != 'feed' && surface != 'short') {
       return null;
     }
+    final surfaceIssues = _surfaceIssues(surface);
     if (surfaceCheckpoints.isEmpty) {
       return null;
     }
@@ -49,6 +50,13 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
       return null;
     }
     if (surface == 'feed') {
+      if (_isQALabAutostartWarmup(
+        surface: surface,
+        route: route,
+        referenceTime: referenceTime,
+      )) {
+        return null;
+      }
       if (!_isPrimaryFeedSelected(latestCheckpoint.probe, route: route)) {
         return null;
       }
@@ -72,6 +80,9 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
           !centeredHasPlayableVideo) {
         return null;
       }
+      if (!centeredHasRenderableVideoCard) {
+        return null;
+      }
     } else {
       final activeIndex = _asInt(surfaceProbe['activeIndex']);
       if (activeIndex < 0 || activeIndex >= count) {
@@ -79,7 +90,7 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
       }
     }
 
-    final observedSince = _playbackObservationStart(
+    var observedSince = _playbackObservationStart(
       surfaceCheckpoints: surfaceCheckpoints,
       route: route,
       surface: surface,
@@ -89,10 +100,33 @@ extension QALabRecorderDiagnosticsAutoplayPart on QALabRecorder {
     if (elapsedMs < QALabMode.autoplayDetectionGraceMs) {
       return null;
     }
+    if (_hasRecentUnresolvedLifecycleInterruption(
+          surfaceIssues: surfaceIssues,
+          referenceTime: referenceTime,
+        ) ||
+        _hasUnresolvedLifecycleInterruptionAfter(
+          surfaceIssues: surfaceIssues,
+          timestamp: observedSince,
+        )) {
+      return null;
+    }
 
     final playbackProbe =
         latestCheckpoint.probe['videoPlayback'] as Map<String, dynamic>? ??
             const <String, dynamic>{};
+    final targetPlaybackDocId =
+        (playbackProbe['targetPlaybackDocID'] ?? '').toString();
+    final targetPlaybackUpdatedAt =
+        _parseTimestamp(playbackProbe['targetPlaybackUpdatedAt']);
+    if (_matchesPlaybackTargetForSurface(
+          surface: surface,
+          expectedDocId: expectedDocId,
+          currentPlayingDocId: targetPlaybackDocId,
+        ) &&
+        targetPlaybackUpdatedAt != null &&
+        targetPlaybackUpdatedAt.isAfter(observedSince)) {
+      observedSince = targetPlaybackUpdatedAt;
+    }
     final currentPlayingDocId =
         (playbackProbe['currentPlayingDocID'] ?? '').toString();
     if (_matchesPlaybackTargetForSurface(

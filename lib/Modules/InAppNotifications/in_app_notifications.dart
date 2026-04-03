@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/notification_model.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_content.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 
 import 'in_app_notifications_controller.dart';
@@ -37,6 +38,9 @@ class _InAppNotificationsState extends State<InAppNotifications> {
     super.initState();
     _controllerTag = 'in_app_notifications_${identityHashCode(this)}';
     _pageLineBarTag = '${kNotificationsPageLineBarTag}_$_controllerTag';
+    try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+    } catch (_) {}
     controller = InAppNotificationsController.ensure();
     final existingRecommended = maybeFindRecommendedUserListController();
     if (existingRecommended != null) {
@@ -58,6 +62,9 @@ class _InAppNotificationsState extends State<InAppNotifications> {
             maybeFindRecommendedUserListController(), recommendedController)) {
       Get.delete<RecommendedUserListController>();
     }
+    try {
+      maybeFindNavBarController()?.popMediaOverlayLock();
+    } catch (_) {}
     super.dispose();
   }
 

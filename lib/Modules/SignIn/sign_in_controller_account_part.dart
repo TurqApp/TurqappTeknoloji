@@ -1,22 +1,10 @@
 part of 'sign_in_controller.dart';
 
 extension SignInControllerAccountPart on SignInController {
-  Future<void> _trackCurrentAccountForDevice() async {
-    await _signInApplicationService.trackCurrentAccountForDevice();
-  }
-
   String _resolvedSignInEmail() {
     final raw = emailcontroller.text.trim();
     if (raw.contains('@')) return normalizeEmailAddress(raw);
     return normalizeEmailAddress(signInEmail.value);
-  }
-
-  Future<void> _persistStoredSessionHint({
-    String? email,
-  }) async {
-    await _signInApplicationService.persistStoredSessionHint(
-      email: email,
-    );
   }
 
   Future<String> preferredIdentifierForStoredAccount(

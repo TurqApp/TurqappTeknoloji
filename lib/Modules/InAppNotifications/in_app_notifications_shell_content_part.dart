@@ -50,31 +50,38 @@ extension InAppNotificationsShellContentPart on _InAppNotificationsState {
   }
 
   Future<void> _showNotificationActions(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return SafeArea(
-          top: false,
-          child: Obx(() {
-            return NotificationActionsSheetContent(
-              unreadCount: controller.unreadCount,
-              busyMarkAllRead: controller.busyMarkAllRead.value,
-              onMarkAllRead: () {
-                Navigator.of(ctx).pop();
-                controller.markAllAsRead();
-              },
-              onDeleteAll: () {
-                Navigator.of(ctx).pop();
-                controller.list.clear();
-                controller.bildirimleriTopluSil();
-              },
-            );
-          }),
-        );
-      },
-    );
+    try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+      await showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (ctx) {
+          return SafeArea(
+            top: false,
+            child: Obx(() {
+              return NotificationActionsSheetContent(
+                unreadCount: controller.unreadCount,
+                busyMarkAllRead: controller.busyMarkAllRead.value,
+                onMarkAllRead: () {
+                  Navigator.of(ctx).pop();
+                  controller.markAllAsRead();
+                },
+                onDeleteAll: () {
+                  Navigator.of(ctx).pop();
+                  controller.list.clear();
+                  controller.bildirimleriTopluSil();
+                },
+              );
+            }),
+          );
+        },
+      );
+    } finally {
+      try {
+        maybeFindNavBarController()?.popMediaOverlayLock();
+      } catch (_) {}
+    }
   }
 
   Widget _buildTabs() {

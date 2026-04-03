@@ -23,27 +23,13 @@ extension ApplicantProfileWidgetsPart on _ApplicantProfileState {
           children: [
             Row(
               children: [
-                ClipOval(
-                  child: SizedBox(
-                    width: 60,
-                    height: 60,
-                    child: controller.avatarUrl.value.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: controller.avatarUrl.value,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                const CupertinoActivityIndicator(radius: 12),
-                            errorWidget: (context, url, error) {
-                              return Container(
-                                color: Colors.grey.withAlpha(50),
-                                child: const Icon(Icons.person, size: 30),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey.withAlpha(50),
-                            child: const Icon(Icons.person, size: 30),
-                          ),
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: CachedUserAvatar(
+                    userId: controller.userID,
+                    imageUrl: controller.avatarUrl.value,
+                    radius: 30,
                   ),
                 ),
                 16.pw,

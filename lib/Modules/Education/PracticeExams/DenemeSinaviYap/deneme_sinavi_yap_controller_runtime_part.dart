@@ -188,8 +188,12 @@ class _DenemeSinaviYapControllerRuntimePart {
           'timeStamp': now,
         },
       );
-      await maybeFindPracticeExamSnapshotRepository()
-          ?.invalidateAnsweredSurface(_controller._currentUserId);
+      await _controller._practiceExamRepository.invalidateAnswerCaches(
+        examId: _controller.model.docID,
+        userId: _controller._currentUserId,
+        answerDocId: docID,
+        lessons: _controller.model.dersler,
+      );
 
       Get.back();
       _controller.sinaviBitir();

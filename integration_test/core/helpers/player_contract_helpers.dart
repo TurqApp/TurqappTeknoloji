@@ -170,6 +170,60 @@ Future<HLSVideoAdapter> waitForPlayerFirstFrame(
   );
 }
 
+Future<HLSVideoAdapter> waitForPlayerPlayable(
+  WidgetTester tester, {
+  required String cacheKey,
+  required String label,
+  Duration timeout = const Duration(seconds: 8),
+  Duration step = const Duration(milliseconds: 200),
+  int maxRecoveryAttempts = 3,
+}) async {
+  final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
+  var recoveryAttempts = 0;
+
+  for (var i = 0; i < maxTicks; i++) {
+    await tester.pump(step);
+    final adapter = findPlayerAdapterForTesting(cacheKey);
+    final value = adapter?.value;
+    final playable = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        (value.isPlaying || value.position > Duration.zero);
+    if (playable) {
+      return adapter;
+    }
+
+    final stalledReadyAdapter = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        value.position == Duration.zero;
+    if (stalledReadyAdapter && recoveryAttempts < maxRecoveryAttempts) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
+    }
+  }
+
+  final adapter = findPlayerAdapterForTesting(cacheKey);
+  final value = adapter?.value;
+  throw TestFailure(
+    '$label did not reach playable adapter state '
+    '(cacheKey=$cacheKey, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
+    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
+    'playing=${value?.isPlaying}, position=${value?.position}, '
+    'feed=${readSurfaceProbe('feed')}, videoPlayback=${readSurfaceProbe('videoPlayback')}).',
+  );
+}
+
 Future<void> waitForPlayerPositionAdvanced(
   WidgetTester tester, {
   required String cacheKey,
@@ -257,7 +311,8 @@ bool _matchesPlaybackKey(String cacheKey, String candidate) {
   if (candidate.isEmpty) return false;
   if (candidate == cacheKey) return true;
   if (candidate.startsWith('${cacheKey}_')) return true;
-  return _stripPlaybackNamespace(candidate) == _stripPlaybackNamespace(cacheKey);
+  return _stripPlaybackNamespace(candidate) ==
+      _stripPlaybackNamespace(cacheKey);
 }
 
 String _stripPlaybackNamespace(String value) {
@@ -268,10 +323,13 @@ String _stripPlaybackNamespace(String value) {
   return value.substring(colonIndex + 1);
 }
 
+HLSVideoAdapter? findPlayerAdapterForTesting(String cacheKey) {
+  return _adapterForCandidates(_resolvePlaybackCacheKeyCandidates(cacheKey));
+}
+
 HLSVideoAdapter? _adapterForCandidates(List<String> candidates) {
   for (final candidate in candidates) {
-    final adapter =
-        ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
+    final adapter = ensureGlobalVideoAdapterPool().adapterForTesting(candidate);
     if (adapter != null) {
       return adapter;
     }

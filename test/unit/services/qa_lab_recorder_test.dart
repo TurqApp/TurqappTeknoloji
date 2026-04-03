@@ -24,10 +24,17 @@ void main() {
         route: '/NavBar',
         timestamp: now,
         probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
           'feed': <String, dynamic>{
             'registered': true,
             'count': 1,
             'centeredIndex': 0,
+            'centeredDocId': 'video-1',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
             'playbackSuspended': false,
             'pauseAll': false,
             'canClaimPlaybackNow': true,
@@ -36,6 +43,11 @@ void main() {
             'currentUid': 'user-1',
             'isFirebaseSignedIn': true,
             'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'feed:video-1',
+            'targetPlaybackDocID': 'feed:video-1',
           },
         },
       ),
@@ -61,6 +73,87 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_first_frame_timeout'),
       isTrue,
+    );
+  });
+
+  test('qa recorder suppresses stale feed playback timeout findings', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_stale_feed_timeout',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 2,
+            'centeredDocId': 'video-2',
+            'centeredHasPlayableVideo': false,
+            'centeredHasRenderableVideoCard': false,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': const <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': '',
+            'targetPlaybackDocID': '',
+          },
+        },
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'stale_issue_started',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_started',
+        message: 'Video session started',
+        timestamp: now.subtract(const Duration(seconds: 10)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'video-1',
+        },
+      ),
+      QALabIssue(
+        id: 'stale_issue_buffering',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_buffering_started',
+        message: 'Video buffering started',
+        timestamp: now.subtract(const Duration(seconds: 8)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'video-1',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_first_frame_timeout'),
+      isFalse,
+    );
+    expect(
+      findings.any((item) => item.code == 'feed_buffer_stall'),
+      isFalse,
     );
   });
 
@@ -242,6 +335,8 @@ void main() {
         'count': 2,
         'centeredIndex': 0,
         'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
         'playbackSuspended': false,
         'pauseAll': false,
         'canClaimPlaybackNow': true,
@@ -283,6 +378,85 @@ void main() {
     expect(
       findings.any((item) => item.code == 'feed_autoplay_missing'),
       isTrue,
+    );
+  });
+
+  test(
+      'qa recorder suppresses feed autoplay missing after unresolved lifecycle interruption',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': '',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_feed_autoplay_interrupted_1',
+        label: 'feed_visible',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_feed_autoplay_interrupted_2',
+        label: 'feed_watchdog',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'issue_lifecycle_inactive_autoplay',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_inactive',
+        message: 'Application lifecycle changed to inactive.',
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        route: '/NavBar',
+        surface: 'feed',
+      ),
+      QALabIssue(
+        id: 'issue_lifecycle_pause_autoplay',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_pause',
+        message: 'Application lifecycle changed to pause.',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        route: '/NavBar',
+        surface: 'feed',
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_autoplay_missing'),
+      isFalse,
     );
   });
 
@@ -332,7 +506,7 @@ void main() {
   test('qa recorder still flags feed playback gate after warmup', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
-    recorder.startedAt.value = now.subtract(const Duration(seconds: 12));
+    recorder.startedAt.value = now.subtract(const Duration(seconds: 35));
 
     recorder.checkpoints.add(
       QALabCheckpoint(
@@ -385,6 +559,8 @@ void main() {
         'count': 2,
         'centeredIndex': 0,
         'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
         'playbackSuspended': false,
         'pauseAll': false,
         'canClaimPlaybackNow': true,
@@ -473,6 +649,60 @@ void main() {
     );
   });
 
+  test(
+    'qa recorder suppresses invalid centered feed state after recent lifecycle interruption',
+    () {
+      final recorder = QALabRecorder();
+      final now = DateTime.now();
+
+      recorder.checkpoints.add(
+        QALabCheckpoint(
+          id: 'cp_feed_recent_lifecycle_state',
+          label: 'feed_recent_lifecycle',
+          surface: 'feed',
+          route: '/NavBarView',
+          timestamp: now,
+          probe: <String, dynamic>{
+            'navBar': <String, dynamic>{
+              'registered': true,
+              'selectedIndex': 0,
+            },
+            'feed': <String, dynamic>{
+              'registered': true,
+              'count': 2,
+              'centeredIndex': -1,
+              'centeredDocId': '',
+            },
+            'auth': <String, dynamic>{
+              'currentUid': 'user-1',
+              'isFirebaseSignedIn': true,
+              'currentUserLoaded': true,
+            },
+          },
+        ),
+      );
+      recorder.issues.add(
+        QALabIssue(
+          id: 'issue_recent_lifecycle_pause',
+          source: QALabIssueSource.lifecycle,
+          severity: QALabIssueSeverity.info,
+          code: 'lifecycle_pause',
+          message: 'Application lifecycle changed to pause.',
+          timestamp: now.subtract(const Duration(seconds: 4)),
+          route: '/NavBarView',
+          surface: 'feed',
+        ),
+      );
+
+      final findings = recorder.buildPinpointFindings();
+
+      expect(
+        findings.any((item) => item.code == 'feed_centered_index_invalid'),
+        isFalse,
+      );
+    },
+  );
+
   test('qa recorder builds surface alert summaries with blockers first', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -552,6 +782,8 @@ void main() {
         'count': 2,
         'centeredIndex': 0,
         'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
         'playbackSuspended': false,
         'pauseAll': false,
         'canClaimPlaybackNow': true,
@@ -787,6 +1019,133 @@ void main() {
     );
   });
 
+  test(
+      'qa recorder suppresses native first-frame timeout while background recovery is pending',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_native_background_wait',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'FIRST_FRAME_TIMEOUT|PLAYBACK_NOT_STARTED',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 0,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+        'awaitingBackgroundRecovery': true,
+        'snapshot': <String, dynamic>{
+          'awaitingBackgroundRecovery': true,
+          'appBackgroundedAt': 100,
+          'appForegroundedAt': 0,
+          'appDidEnterBackgroundAt': 100,
+          'appWillEnterForegroundAt': 0,
+        },
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder suppresses native short timeout off the short tab', () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_short_off_tab',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/SignIn',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'short': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'activeIndex': 0,
+            'activeDocId': 'short-1',
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'FIRST_FRAME_TIMEOUT|PLAYBACK_NOT_STARTED',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'PLAYBACK_NOT_STARTED'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': false,
+        'stallCount': 0,
+        'layerAttachCount': 0,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_native_first_frame_timeout'),
+      isFalse,
+    );
+  });
+
   test('qa recorder suppresses feed thumbnail runtime loss off the feed tab',
       () {
     final recorder = QALabRecorder();
@@ -866,6 +1225,228 @@ void main() {
 
     final findings = recorder.buildPinpointFindings();
 
+    expect(
+      findings.any((item) => item.code == 'feed_thumbnail_only_runtime_loss'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder suppresses feed playback timeout and stall after unresolved lifecycle interruption',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'navBar': <String, dynamic>{
+        'registered': true,
+        'selectedIndex': 0,
+      },
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'feed:post-1',
+        'targetPlaybackDocID': 'feed:post-1',
+      },
+    };
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_feed_lifecycle_interrupted',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: probe,
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'issue_session_started',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_started',
+        message: 'Video session started',
+        timestamp: now.subtract(const Duration(seconds: 12)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+      QALabIssue(
+        id: 'issue_buffering_started',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_buffering_started',
+        message: 'Video buffering started',
+        timestamp: now.subtract(const Duration(seconds: 11)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+      QALabIssue(
+        id: 'issue_lifecycle_inactive',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_inactive',
+        message: 'Application lifecycle changed to inactive.',
+        timestamp: now.subtract(const Duration(seconds: 10)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+      QALabIssue(
+        id: 'issue_lifecycle_pause',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_pause',
+        message: 'Application lifecycle changed to pause.',
+        timestamp: now.subtract(const Duration(seconds: 9)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_first_frame_timeout'),
+      isFalse,
+    );
+    expect(
+      findings.any((item) => item.code == 'feed_buffer_stall'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder suppresses native feed runtime findings after recent unresolved lifecycle interruption',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final probe = <String, dynamic>{
+      'navBar': <String, dynamic>{
+        'registered': true,
+        'selectedIndex': 0,
+      },
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'centeredHasPlayableVideo': true,
+        'centeredHasRenderableVideoCard': true,
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'feed:post-1',
+        'targetPlaybackDocID': 'feed:post-1',
+      },
+    };
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp_feed_native_interrupted',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBarView',
+        timestamp: now,
+        probe: probe,
+      ),
+    );
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'ff_native_1',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_first_frame',
+        message: 'first frame',
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+      QALabIssue(
+        id: 'ff_native_2',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_first_frame',
+        message: 'first frame',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        route: '/NavBarView',
+        surface: 'feed',
+        metadata: const <String, dynamic>{'videoId': 'post-1'},
+      ),
+      QALabIssue(
+        id: 'issue_lifecycle_inactive_native',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_inactive',
+        message: 'Application lifecycle changed to inactive.',
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+      QALabIssue(
+        id: 'issue_lifecycle_pause_native',
+        source: QALabIssueSource.lifecycle,
+        severity: QALabIssueSeverity.info,
+        code: 'lifecycle_pause',
+        message: 'Application lifecycle changed to pause.',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        route: '/NavBarView',
+        surface: 'feed',
+      ),
+    ]);
+    recorder.lastNativePlaybackSnapshot
+      ..clear()
+      ..addAll(<String, dynamic>{
+        'platform': 'android',
+        'status': 'READY_WITHOUT_FRAME',
+        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'EXCESSIVE_REBUFFERING'],
+        'active': true,
+        'firstFrameRendered': false,
+        'isPlaybackExpected': true,
+        'isPlaying': false,
+        'isBuffering': true,
+        'stallCount': 3,
+        'layerAttachCount': 1,
+        'lastKnownPlaybackTime': 0.0,
+        'sampledAt': now.toUtc().toIso8601String(),
+        'trigger': 'test',
+        'supported': true,
+      });
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_native_first_frame_timeout'),
+      isFalse,
+    );
+    expect(
+      findings.any((item) => item.code == 'feed_native_buffer_stall'),
+      isFalse,
+    );
     expect(
       findings.any((item) => item.code == 'feed_thumbnail_only_runtime_loss'),
       isFalse,
@@ -1461,6 +2042,285 @@ void main() {
     expect(finding.context['lastCallerSignature'], 'nav_selection_changed');
   });
 
+  test(
+      'qa recorder suppresses stale feed scroll dispatch timeout when centered doc moved',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15b',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 1,
+            'centeredDocId': 'post-2',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'ts2b',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 70)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'scrollToken': 'feed-scroll-stale',
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder suppresses feed scroll dispatch timeout when centered item is no longer autoplay eligible',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15c',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': false,
+            'centeredHasRenderableVideoCard': false,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'ts2c',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 70)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'scrollToken': 'feed-scroll-non-playable',
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder treats manager resume current as satisfied feed scroll dispatch',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15d',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 1,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts2d',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'scrollToken': 'feed-scroll-resume-current',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp4d',
+        category: 'playback_dispatch',
+        code: 'feed_card_manager_resume_current',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 2)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'video_initialized',
+          'callerSignature': 'video_initialized',
+          'skipReason': '',
+          'scrollToken': 'feed-scroll-resume-current',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
+  test(
+      'qa recorder suppresses feed scroll dispatch timeout when playback already targets settled doc',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15e',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 3,
+            'centeredIndex': 2,
+            'centeredDocId': 'post-3',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+          'videoPlayback': <String, dynamic>{
+            'registered': true,
+            'currentPlayingDocID': 'feed:post-3',
+            'targetPlaybackDocID': 'feed:post-3',
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.add(
+      QALabTimelineEvent(
+        id: 'ts2e',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        metadata: <String, dynamic>{
+          'docId': 'post-3',
+          'scrollToken': 'feed-scroll-pretargeted',
+          'probe': <String, dynamic>{
+            'feed': <String, dynamic>{
+              'registered': true,
+              'count': 3,
+              'centeredIndex': 2,
+              'centeredDocId': 'post-3',
+              'centeredHasPlayableVideo': true,
+              'centeredHasRenderableVideoCard': true,
+              'playbackSuspended': false,
+              'pauseAll': false,
+              'canClaimPlaybackNow': true,
+            },
+            'videoPlayback': <String, dynamic>{
+              'registered': true,
+              'currentPlayingDocID': 'feed:post-3',
+              'targetPlaybackDocID': 'feed:post-3',
+            },
+          },
+        },
+      ),
+    );
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
   test('qa recorder ignores deferred init requests for duplicate dispatches',
       () {
     final recorder = QALabRecorder();
@@ -1730,7 +2590,7 @@ void main() {
         label: 'feed_runtime',
         surface: 'feed',
         route: '/NavBar',
-        timestamp: now.subtract(const Duration(seconds: 5)),
+        timestamp: now.subtract(const Duration(seconds: 10)),
         probe: feedProbe,
       ),
       QALabCheckpoint(
@@ -1741,6 +2601,22 @@ void main() {
         timestamp: now,
         probe: feedProbe,
       ),
+    ]);
+    recorder.issues.addAll(<QALabIssue>[
+      for (var i = 0; i < 3; i += 1)
+        QALabIssue(
+          id: 'feed_noise_$i',
+          source: QALabIssueSource.platform,
+          severity: QALabIssueSeverity.info,
+          code: 'platform_suppressed',
+          message: 'suppressed noise',
+          timestamp: now.subtract(Duration(seconds: i + 1)),
+          route: '/NavBar',
+          surface: 'feed',
+          metadata: <String, dynamic>{
+            'errorType': 'SocketException',
+          },
+        ),
     ]);
 
     final occurrences = recorder.buildRemoteIssueOccurrences(

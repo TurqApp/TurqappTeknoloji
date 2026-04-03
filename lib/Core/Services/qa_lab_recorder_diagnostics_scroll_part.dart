@@ -5,6 +5,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     required String surface,
     required List<QALabTimelineEvent> surfaceTimeline,
     required List<QALabIssue> surfaceIssues,
+    required Map<String, dynamic> latestProbe,
+    required Map<String, dynamic> rootProbe,
     required DateTime referenceTime,
     required String route,
   }) {
@@ -19,6 +21,15 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     if (expectedDocId.isEmpty) {
       return const <QALabPinpointFinding>[];
     }
+    if (!_isScrollSettleStillRelevant(
+      surface: surface,
+      expectedDocId: expectedDocId,
+      latestProbe: latestProbe,
+      rootProbe: rootProbe,
+      route: route,
+    )) {
+      return const <QALabPinpointFinding>[];
+    }
 
     final findings = <QALabPinpointFinding>[];
     final dispatch = _firstPlaybackDispatchAfter(
@@ -30,6 +41,13 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       surfaceTimeline: surfaceTimeline,
       after: latestSettle.timestamp,
       docId: expectedDocId,
+    );
+    final playbackAlreadyTargetedAtSettle =
+        _isPlaybackAlreadyTargetedAtScrollSettle(
+      surface: surface,
+      expectedDocId: expectedDocId,
+      settleEvent: latestSettle,
+      rootProbe: rootProbe,
     );
     final nextScrollStart = _firstScrollStartAfter(
       surfaceTimeline: surfaceTimeline,
@@ -54,6 +72,7 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
                 .inMilliseconds <
             QALabMode.scrollAutoplayDispatchBlockingMs;
     if (!supersededByNextScroll &&
+        !playbackAlreadyTargetedAtSettle &&
         dispatch == null &&
         dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchBlockingMs) {
       findings.add(
@@ -69,6 +88,7 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             'docId': expectedDocId,
             'dispatchLatencyMs': dispatchLatencyMs,
             'scrollToken': scrollToken,
+            'playbackAlreadyTargetedAtSettle': playbackAlreadyTargetedAtSettle,
             if (latestSkip != null) 'lastSkipStage': latestSkip.code,
             if (latestSkip != null)
               'lastSkipReason':
@@ -124,12 +144,11 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     if (dispatch != null &&
         (nextScrollStart == null ||
             !nextScrollStart.timestamp.isBefore(
-              latestSettle.timestamp
-                  .add(
-                    Duration(
-                      milliseconds: QALabMode.scrollFirstFrameBlockingMs,
-                    ),
-                  ),
+              latestSettle.timestamp.add(
+                Duration(
+                  milliseconds: QALabMode.scrollFirstFrameBlockingMs,
+                ),
+              ),
             )) &&
         firstFrameIssue == null &&
         firstFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs) {
@@ -197,11 +216,10 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           stableFrameLatencyMs >= QALabMode.shortVisualStableFrameWarningMs) {
         findings.add(
           QALabPinpointFinding(
-            severity:
-                stableFrameLatencyMs >=
-                        QALabMode.shortVisualStableFrameBlockingMs
-                    ? QALabIssueSeverity.error
-                    : QALabIssueSeverity.warning,
+            severity: stableFrameLatencyMs >=
+                    QALabMode.shortVisualStableFrameBlockingMs
+                ? QALabIssueSeverity.error
+                : QALabIssueSeverity.warning,
             code: 'short_transition_visual_slow',
             message:
                 'Short transition reached a visually stable frame too late after scroll settle.',

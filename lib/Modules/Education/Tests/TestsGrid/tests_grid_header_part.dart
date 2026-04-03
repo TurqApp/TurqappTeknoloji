@@ -39,14 +39,11 @@ extension TestsGridHeaderPart on _TestsGridState {
                         width: 23,
                         height: 23,
                         child: Obx(
-                          () => controller.avatarUrl.value.isNotEmpty
-                              ? CachedNetworkImage(
-                                  imageUrl: controller.avatarUrl.value,
-                                  fit: BoxFit.cover,
-                                )
-                              : Center(
-                                  child: CupertinoActivityIndicator(),
-                                ),
+                          () => CachedUserAvatar(
+                            userId: model.userID,
+                            imageUrl: controller.avatarUrl.value,
+                            radius: 11.5,
+                          ),
                         ),
                       ),
                     ),

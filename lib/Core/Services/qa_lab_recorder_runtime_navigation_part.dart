@@ -32,14 +32,21 @@ extension QALabRecorderRuntimeNavigationPart on QALabRecorder {
     String route = '',
   }) {
     final normalizedRoute = route.trim().toLowerCase();
+    final usesDirectFeedRoute = normalizedRoute.contains('feedview') ||
+        normalizedRoute.contains('agendaview') ||
+        normalizedRoute == '/feed' ||
+        normalizedRoute == 'feed';
     final usesPrimaryNavRoute = normalizedRoute.isEmpty ||
         normalizedRoute == '/' ||
         normalizedRoute == '/navbar' ||
         normalizedRoute == 'navbar' ||
         normalizedRoute == '/navbarview' ||
         normalizedRoute == 'navbarview';
-    if (!usesPrimaryNavRoute) {
+    if (!usesPrimaryNavRoute && !usesDirectFeedRoute) {
       return false;
+    }
+    if (usesDirectFeedRoute) {
+      return true;
     }
     final primaryNavSurface = _inferPrimaryNavSurface(snapshot);
     if (primaryNavSurface.isNotEmpty) {
@@ -56,6 +63,97 @@ extension QALabRecorderRuntimeNavigationPart on QALabRecorder {
         !registered('short') &&
         !registered('education') &&
         !registered('profile');
+  }
+
+  bool _isPrimaryShortSelected(
+    Map<String, dynamic> snapshot, {
+    String route = '',
+  }) {
+    final normalizedRoute = route.trim().toLowerCase();
+    final usesDirectShortRoute = normalizedRoute.contains('shortview') ||
+        normalizedRoute == '/short' ||
+        normalizedRoute == 'short';
+    final usesPrimaryNavRoute = normalizedRoute.isEmpty ||
+        normalizedRoute == '/' ||
+        normalizedRoute == '/navbar' ||
+        normalizedRoute == 'navbar' ||
+        normalizedRoute == '/navbarview' ||
+        normalizedRoute == 'navbarview';
+    if (!usesPrimaryNavRoute && !usesDirectShortRoute) {
+      return false;
+    }
+    if (usesDirectShortRoute) {
+      return true;
+    }
+    final primaryNavSurface = _inferPrimaryNavSurface(snapshot);
+    if (primaryNavSurface.isNotEmpty) {
+      return primaryNavSurface == 'short';
+    }
+
+    bool registered(String key) =>
+        (snapshot[key] as Map<String, dynamic>? ??
+            const <String, dynamic>{})['registered'] ==
+        true;
+
+    return registered('short') &&
+        !registered('feed') &&
+        !registered('explore') &&
+        !registered('education') &&
+        !registered('profile');
+  }
+
+  bool _isPrimaryExploreSelected(
+    Map<String, dynamic> snapshot, {
+    String route = '',
+  }) {
+    final normalizedRoute = route.trim().toLowerCase();
+    final usesDirectExploreRoute = normalizedRoute.contains('exploreview') ||
+        normalizedRoute == '/explore' ||
+        normalizedRoute == 'explore';
+    final usesPrimaryNavRoute = normalizedRoute.isEmpty ||
+        normalizedRoute == '/' ||
+        normalizedRoute == '/navbar' ||
+        normalizedRoute == 'navbar' ||
+        normalizedRoute == '/navbarview' ||
+        normalizedRoute == 'navbarview';
+    if (!usesPrimaryNavRoute && !usesDirectExploreRoute) {
+      return false;
+    }
+    if (usesDirectExploreRoute) {
+      return true;
+    }
+    final primaryNavSurface = _inferPrimaryNavSurface(snapshot);
+    if (primaryNavSurface.isNotEmpty) {
+      return primaryNavSurface == 'explore';
+    }
+
+    bool registered(String key) =>
+        (snapshot[key] as Map<String, dynamic>? ??
+            const <String, dynamic>{})['registered'] ==
+        true;
+
+    return registered('explore') &&
+        !registered('feed') &&
+        !registered('short') &&
+        !registered('education') &&
+        !registered('profile');
+  }
+
+  Map<String, dynamic> _resolveVisibilitySnapshot(
+    Map<String, dynamic> fallback, {
+    required String surface,
+  }) {
+    final current = IntegrationTestStateProbe.snapshot();
+    final currentNavBar =
+        current['navBar'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final currentSurface =
+        current[surface] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final currentRoute = (current['currentRoute'] ?? '').toString().trim();
+    final hasLiveContext =
+        currentNavBar['registered'] == true ||
+        currentSurface['registered'] == true ||
+        currentRoute.isNotEmpty;
+    return hasLiveContext ? current : fallback;
   }
 
   String _inferSurfaceFromSnapshot(Map<String, dynamic> snapshot) {

@@ -1,6 +1,24 @@
 part of 'scholarship_repository.dart';
 
 extension ScholarshipRepositoryActionPart on ScholarshipRepository {
+  Future<void> _invalidateSnapshotSurfacesForUsers(
+    Iterable<String> userIds,
+  ) async {
+    final snapshotRepository = maybeFindScholarshipSnapshotRepository();
+    if (snapshotRepository == null) return;
+    final normalizedUserIds = userIds
+        .map((userId) => userId.trim())
+        .where((userId) => userId.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (normalizedUserIds.isEmpty) return;
+    await Future.wait(
+      normalizedUserIds.map(
+        snapshotRepository.invalidateUserScopedSurfaces,
+      ),
+    );
+  }
+
   List<String> _asNormalizedStringList(dynamic value) {
     if (value is! List) return const <String>[];
     return value
@@ -108,6 +126,7 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
       await _store(cleanId, updated);
     }
     await _invalidateQueryPrefix('query:membership:$field:$cleanUserId:');
+    await _invalidateSnapshotSurfacesForUsers(<String>[cleanUserId]);
     return !contains;
   }
 
@@ -132,8 +151,7 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
       cleanUserId,
       applied: true,
     );
-    await maybeFindScholarshipSnapshotRepository()
-        ?.invalidateUserScopedSurfaces(cleanUserId);
+    await _invalidateSnapshotSurfacesForUsers(<String>[cleanUserId]);
   }
 
   Future<void> cancelScholarshipApplication({
@@ -155,8 +173,7 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
       cleanUserId,
       applied: false,
     );
-    await maybeFindScholarshipSnapshotRepository()
-        ?.invalidateUserScopedSurfaces(cleanUserId);
+    await _invalidateSnapshotSurfacesForUsers(<String>[cleanUserId]);
   }
 
   Future<void> deleteScholarship({
@@ -201,10 +218,13 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
       await _invalidateQueryPrefix('query:membership:kaydedenler:$userId:');
     }
 
-    if (cleanActorUserId.isNotEmpty) {
-      await maybeFindScholarshipSnapshotRepository()
-          ?.invalidateUserScopedSurfaces(cleanActorUserId);
-    }
+    await _invalidateSnapshotSurfacesForUsers(<String>[
+      cleanActorUserId,
+      ownerUserId,
+      ...appliedUserIds,
+      ...likedUserIds,
+      ...savedUserIds,
+    ]);
 
     await TypesenseEducationSearchService.instance.invalidateEntity(
       EducationTypesenseEntity.scholarship,

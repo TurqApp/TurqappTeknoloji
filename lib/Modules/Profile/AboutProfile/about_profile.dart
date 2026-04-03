@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile_controller.dart';
 
 class AboutProfile extends StatefulWidget {
@@ -74,20 +74,13 @@ class _AboutProfileState extends State<AboutProfile> {
             Stack(
               alignment: Alignment.bottomRight,
               children: [
-                ClipOval(
-                  child: SizedBox(
-                    width: 70,
-                    height: 70,
-                    child: controller.avatarUrl.value != ""
-                        ? CachedNetworkImage(
-                            imageUrl: controller.avatarUrl.value,
-                            fit: BoxFit.cover,
-                          )
-                        : Center(
-                            child: CupertinoActivityIndicator(
-                              color: Colors.grey,
-                            ),
-                          ),
+                SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: CachedUserAvatar(
+                    userId: widget.userID,
+                    imageUrl: controller.avatarUrl.value,
+                    radius: 35,
                   ),
                 ),
                 RozetContent(size: 20, userID: widget.userID)

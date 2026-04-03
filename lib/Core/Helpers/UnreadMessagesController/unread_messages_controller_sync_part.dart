@@ -27,6 +27,12 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
     unawaited(_startAfterReadStateHydrated(uid));
   }
 
+  void stopListeners() {
+    _lastServerSyncAt = null;
+    _isSyncing = false;
+    _cancelAllSubscriptions();
+  }
+
   // Firestore read tetiklemeden, tek konuşmanın unread durumunu localde günceller.
   void updateConversationUnreadLocal({
     required String otherUid,

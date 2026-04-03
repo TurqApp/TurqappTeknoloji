@@ -1,6 +1,111 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderDiagnosticsScrollHelpersPart on QALabRecorder {
+  Map<String, dynamic> _timelineProbeSnapshot(QALabTimelineEvent event) {
+    final raw = event.metadata['probe'];
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    if (raw is Map) {
+      return raw.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    }
+    return const <String, dynamic>{};
+  }
+
+  bool _isPlaybackAlreadyTargetedAtScrollSettle({
+    required String surface,
+    required String expectedDocId,
+    required QALabTimelineEvent settleEvent,
+    required Map<String, dynamic> rootProbe,
+  }) {
+    final settleProbe = _timelineProbeSnapshot(settleEvent);
+    final effectiveRootProbe = settleProbe.isNotEmpty ? settleProbe : rootProbe;
+    final playbackProbe =
+        effectiveRootProbe['videoPlayback'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final currentPlayingDocId =
+        (playbackProbe['currentPlayingDocID'] ?? '').toString().trim();
+    final targetPlaybackDocId =
+        (playbackProbe['targetPlaybackDocID'] ?? '').toString().trim();
+    if (_matchesPlaybackDocForSurface(
+          surface: surface,
+          expectedDocId: expectedDocId,
+          currentDocId: currentPlayingDocId,
+        ) ||
+        _matchesPlaybackDocForSurface(
+          surface: surface,
+          expectedDocId: expectedDocId,
+          currentDocId: targetPlaybackDocId,
+        )) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _isScrollSettleStillRelevant({
+    required String surface,
+    required String expectedDocId,
+    required Map<String, dynamic> latestProbe,
+    required Map<String, dynamic> rootProbe,
+    required String route,
+  }) {
+    final docId = expectedDocId.trim();
+    if (docId.isEmpty) return false;
+    if (surface == 'feed') {
+      if (!_isPrimaryFeedSelected(rootProbe, route: route)) {
+        return false;
+      }
+      final count = _asInt(latestProbe['count']);
+      final centeredIndex = _asInt(latestProbe['centeredIndex']);
+      final centeredDocId =
+          (latestProbe['centeredDocId'] ?? '').toString().trim();
+      final centeredHasPlayableVideo = _surfaceProbeAsBool(
+        latestProbe['centeredHasPlayableVideo'],
+        fallback: centeredDocId.isNotEmpty,
+      );
+      final centeredHasRenderableVideoCard = _surfaceProbeAsBool(
+        latestProbe['centeredHasRenderableVideoCard'],
+        fallback: centeredHasPlayableVideo,
+      );
+      final playbackSuspended = _surfaceProbeAsBool(
+        latestProbe['playbackSuspended'],
+        fallback: false,
+      );
+      final pauseAll = _surfaceProbeAsBool(
+        latestProbe['pauseAll'],
+        fallback: false,
+      );
+      final canClaimPlaybackNow = _surfaceProbeAsBool(
+        latestProbe['canClaimPlaybackNow'],
+        fallback: false,
+      );
+      return count > 0 &&
+          centeredIndex >= 0 &&
+          centeredIndex < count &&
+          centeredDocId == docId &&
+          centeredHasPlayableVideo &&
+          centeredHasRenderableVideoCard &&
+          !playbackSuspended &&
+          !pauseAll &&
+          canClaimPlaybackNow;
+    }
+    if (surface == 'short') {
+      if (!_isPrimaryShortSelected(rootProbe, route: route)) {
+        return false;
+      }
+      final count = _asInt(latestProbe['count']);
+      final activeIndex = _asInt(latestProbe['activeIndex']);
+      final activeDocId = (latestProbe['activeDocId'] ?? '').toString().trim();
+      return count > 0 &&
+          activeIndex >= 0 &&
+          activeIndex < count &&
+          activeDocId == docId;
+    }
+    return true;
+  }
+
   QALabTimelineEvent? _latestScrollSettleEvent(
     List<QALabTimelineEvent> surfaceTimeline,
   ) {

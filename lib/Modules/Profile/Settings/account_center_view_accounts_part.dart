@@ -188,7 +188,7 @@ extension AccountCenterViewActionsPart on AccountCenterView {
 
         try {
           await CurrentUserService.instance.logout();
-          await FirebaseAuth.instance.signOut();
+          await CurrentUserService.instance.signOutAuth();
         } catch (_) {}
       }
 
@@ -197,11 +197,9 @@ extension AccountCenterViewActionsPart on AccountCenterView {
         isSessionValid: false,
         requiresReauth: true,
       );
-      await Get.offAll(
-        () => SignIn(
-          initialIdentifier: identifier,
-          storedAccountUid: account.uid,
-        ),
+      await AppRootNavigationService.offAllToSignIn(
+        initialIdentifier: identifier,
+        storedAccountUid: account.uid,
       );
       AppSnackbar(
         'account_center.reauth_title'.tr,
@@ -222,15 +220,13 @@ extension AccountCenterViewActionsPart on AccountCenterView {
 
       try {
         await CurrentUserService.instance.logout();
-        await FirebaseAuth.instance.signOut();
+        await CurrentUserService.instance.signOutAuth();
       } catch (_) {}
     }
 
-    await Get.offAll(
-      () => SignIn(
-        initialIdentifier: account.username,
-        storedAccountUid: account.uid,
-      ),
+    await AppRootNavigationService.offAllToSignIn(
+      initialIdentifier: account.username,
+      storedAccountUid: account.uid,
     );
   }
 }

@@ -1,0 +1,7 @@
+integration_test/turqapp_complete_e2e_test.dart
+integration_test/feed/feed_black_flash_smoke_test.dart
+integration_test/feed/feed_first_video_autoplay_test.dart
+integration_test/feed/feed_first_video_playback_test.dart
+integration_test/feed/feed_fullscreen_audio_smoke_test.dart
+integration_test/feed/feed_network_resilience_smoke_test.dart
+integration_test/feed/feed_normal_scroll_playback_smoke_test.dart

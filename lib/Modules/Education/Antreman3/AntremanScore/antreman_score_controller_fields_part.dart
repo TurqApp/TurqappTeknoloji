@@ -8,7 +8,6 @@ class _AntremanScoreControllerState {
   final now = DateTime.now();
   final antremanRepository = AntremanRepository.ensure();
   final userRepository = UserRepository.ensure();
-  final userSummaryResolver = UserSummaryResolver.ensure();
 }
 
 extension AntremanScoreControllerFieldsPart on AntremanScoreController {
@@ -19,15 +18,8 @@ extension AntremanScoreControllerFieldsPart on AntremanScoreController {
   DateTime get now => _state.now;
   AntremanRepository get _antremanRepository => _state.antremanRepository;
   UserRepository get _userRepository => _state.userRepository;
-  UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
 
   String get monthName => _monthKeyFor(DateTime.now().month).tr;
-
-  String get _monthKey {
-    final current = DateTime.now();
-    final month = current.month.toString().padLeft(2, '0');
-    return '${current.year}-$month';
-  }
 
   String _monthKeyFor(int month) {
     switch (month) {

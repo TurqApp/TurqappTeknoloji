@@ -47,24 +47,11 @@ extension NotificationContentBodyPart on _NotificationContentState {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.grey.withAlpha(50)),
             ),
-            child: controller.avatarUrl.value != ""
-                ? ClipOval(
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: CachedNetworkImage(
-                        imageUrl: controller.avatarUrl.value,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  )
-                : const Center(
-                    child: Icon(
-                      CupertinoIcons.person_fill,
-                      size: 20,
-                      color: Colors.black45,
-                    ),
-                  ),
+            child: CachedUserAvatar(
+              userId: controller.userID,
+              imageUrl: controller.avatarUrl.value,
+              radius: 20,
+            ),
           ),
           if (!model.isRead)
             Positioned(

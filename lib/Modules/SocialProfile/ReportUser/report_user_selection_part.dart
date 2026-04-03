@@ -86,19 +86,13 @@ extension ReportUserSelectionPart on _ReportUserState {
               padding: const EdgeInsets.all(15),
               child: Row(
                 children: [
-                  ClipOval(
-                    child: SizedBox(
-                      width: 55,
-                      height: 55,
-                      child: controller.avatarUrl.value != ''
-                          ? CachedNetworkImage(
-                              imageUrl: controller.avatarUrl.value,
-                              fit: BoxFit.cover,
-                            )
-                          : const Center(
-                              child: CupertinoActivityIndicator(
-                                  color: Colors.black),
-                            ),
+                  SizedBox(
+                    width: 55,
+                    height: 55,
+                    child: CachedUserAvatar(
+                      userId: controller.userID,
+                      imageUrl: controller.avatarUrl.value,
+                      radius: 27.5,
                     ),
                   ),
                   const SizedBox(width: 12),

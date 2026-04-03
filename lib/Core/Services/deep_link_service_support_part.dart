@@ -6,6 +6,12 @@ DeepLinkService _ensureDeepLinkService() {
   return Get.put(DeepLinkService(), permanent: true);
 }
 
+DeepLinkService _ensureDeepLinkServiceStarted() {
+  final service = _ensureDeepLinkService();
+  _DeepLinkServiceRuntimeX(service).start();
+  return service;
+}
+
 DeepLinkService? _maybeFindDeepLinkService() {
   final isRegistered = Get.isRegistered<DeepLinkService>();
   if (!isRegistered) return null;

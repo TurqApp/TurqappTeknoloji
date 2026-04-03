@@ -86,7 +86,8 @@ void main() {
       'lib/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller_runtime_part.dart',
     );
     final practiceExamRepoSource =
-        _read('lib/Core/Repositories/practice_exam_repository_query_part.dart');
+        _read(
+            'lib/Core/Repositories/practice_exam_snapshot_repository_runtime_part.dart');
     final postRepositorySharingSource =
         _read('lib/Core/Repositories/post_repository_sharing_part.dart');
     final reshareControllerSource =
@@ -149,7 +150,10 @@ void main() {
       practiceExamRepoSource,
       contains('ReadBudgetRegistry.practiceExamTypeInitialLimit'),
     );
-    expect(practiceExamRepoSource, contains('.limit(limit)'));
+    expect(
+      practiceExamRepoSource,
+      contains('.limit(ReadBudgetRegistry.practiceExamTypeInitialLimit)'),
+    );
 
     expect(
       postRepositorySharingSource,

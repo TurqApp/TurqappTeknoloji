@@ -2,6 +2,9 @@ part of 'deep_link_service.dart';
 
 DeepLinkService ensureDeepLinkService() => _ensureDeepLinkService();
 
+DeepLinkService ensureDeepLinkServiceStarted() =>
+    _ensureDeepLinkServiceStarted();
+
 DeepLinkService? maybeFindDeepLinkService() => _maybeFindDeepLinkService();
 
 extension DeepLinkServiceFacadePart on DeepLinkService {

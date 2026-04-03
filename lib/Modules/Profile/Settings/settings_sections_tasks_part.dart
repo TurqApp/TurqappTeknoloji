@@ -127,8 +127,8 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
 
         try {
           await CurrentUserService.instance.logout();
-          await FirebaseAuth.instance.signOut();
-          await Get.offAll(() => SignIn());
+          await CurrentUserService.instance.signOutAuth();
+          await AppRootNavigationService.offAllToSignIn();
         } catch (e) {
           print("Sign out failed: $e");
         }

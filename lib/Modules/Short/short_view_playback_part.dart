@@ -75,6 +75,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final remappedPage =
         _initialDisplayIndex(_cachedShorts, update.remappedIndex);
     currentPage = remappedPage;
+    controller.lastIndex.value = currentPage;
 
     _updateShortViewState(() {});
 
@@ -91,6 +92,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
     if (page == currentPage) return;
+    _playDebounce?.cancel();
+    _tierDebounce?.cancel();
+    _tierReconcileDebounce?.cancel();
+    _playbackWatchdogTimer?.cancel();
+    _stallWatchdogTimer?.cancel();
     final nextDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID
         : '';
@@ -128,6 +134,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     _updateShortViewState(() {
       currentPage = page;
+      controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
     _resetShortAutoplaySegmentGate();
@@ -360,7 +367,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         if (isManuallyPaused) return;
         if (!vc.value.isPlaying) {
-          _playbackExecutionService.playAdapter(vc);
+          final shouldRecoverExistingPlayback = vc.value.hasRenderedFirstFrame &&
+              vc.value.position > Duration.zero &&
+              !vc.value.isBuffering &&
+              !vc.isStopped;
+          if (shouldRecoverExistingPlayback) {
+            vc.recoverFrozenPlayback();
+          } else {
+            _playbackExecutionService.playAdapter(vc);
+          }
         }
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
@@ -407,6 +422,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _scheduleStallWatchdog(int page, HLSVideoAdapter vc) {
     _stallWatchdogTimer?.cancel();
     _stallWatchdogRetries = 0;
+    _stallWatchdogBufferingCycles = 0;
     _stallWatchdogLastPosition = vc.value.position;
     _armStallWatchdog(page, vc);
   }
@@ -423,12 +439,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
       }
       final value = vc.value;
       if (!value.isInitialized || !value.hasRenderedFirstFrame) {
+        _stallWatchdogBufferingCycles = 0;
         _stallWatchdogLastPosition = value.position;
         _armStallWatchdog(page, vc);
         return;
       }
       final progressed = value.position > _stallWatchdogLastPosition;
-      final healthy = progressed || value.isBuffering || value.isCompleted;
+      final prolongedBuffering = value.isBuffering &&
+          value.position >= const Duration(milliseconds: 800) &&
+          !progressed;
+      if (prolongedBuffering) {
+        _stallWatchdogBufferingCycles++;
+      } else {
+        _stallWatchdogBufferingCycles = 0;
+      }
+      final bufferingHealthy =
+          value.isBuffering && _stallWatchdogBufferingCycles < 2;
+      final healthy = progressed || bufferingHealthy || value.isCompleted;
       _stallWatchdogLastPosition = value.position;
       if (healthy) {
         _stallWatchdogRetries = 0;
@@ -441,6 +468,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
+        final shouldRecoverFrozenPlayback = value.hasRenderedFirstFrame &&
+            value.position >= const Duration(milliseconds: 800) &&
+            !value.isBuffering;
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_stall_recovery_play',
@@ -448,10 +478,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'docId': docId,
             'page': page,
             'retry': _stallWatchdogRetries,
+            'bufferingCycles': _stallWatchdogBufferingCycles,
+            'mode': shouldRecoverFrozenPlayback ? 'recover' : 'play',
           },
         );
         _applyShortPlaybackPresentation(page, vc);
-        await _playbackExecutionService.playAdapter(vc);
+        if (shouldRecoverFrozenPlayback) {
+          await vc.recoverFrozenPlayback();
+        } else {
+          await _playbackExecutionService.playAdapter(vc);
+        }
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId);
           _applyShortPlaybackPresentation(page, vc);

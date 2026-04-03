@@ -87,7 +87,7 @@ class PlaybackRuntimeService {
       (managerProvider ?? _defaultManagerProvider).call();
 
   static VideoStateManager _defaultManagerProvider() {
-    return VideoStateManager.instance;
+    return resolveDefaultVideoStateManager();
   }
 
   String? get currentPlayingDocId => _manager.currentPlayingDocID;

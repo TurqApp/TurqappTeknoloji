@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
@@ -17,8 +17,6 @@ import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
-import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
-import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 
 import '../../Core/Repositories/feed_snapshot_repository.dart';

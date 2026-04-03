@@ -58,8 +58,13 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
     if ((surface == 'feed' || surface == 'short') &&
         _hasAuthenticatedUser(authProbe)) {
       final count = _asInt(latestProbe['count']);
+      final rootProbe = latestCheckpoint?.probe ?? const <String, dynamic>{};
+      final isForegroundSurface = surface == 'feed'
+          ? _isPrimaryFeedSelected(rootProbe, route: route)
+          : _isPrimaryShortSelected(rootProbe, route: route);
       if (count == 0 &&
           latestProbe['registered'] == true &&
+          isForegroundSurface &&
           !_isTransientBlankSurfaceWarmup(
             surface: surface,
             surfaceCheckpoints: surfaceCheckpoints,
@@ -97,6 +102,7 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
         surface: surface,
         latestProbe: latestProbe,
         latestCheckpoint: latestCheckpoint,
+        surfaceIssues: surfaceIssues,
         surfaceCheckpoints: surfaceCheckpoints,
         referenceTime: referenceTime,
         route: route,

@@ -1,17 +1,9 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
 import '../core/helpers/deep_flow_helpers.dart';
 import '../core/helpers/smoke_artifact_collector.dart';
-
-Finder _storyCircleFinder() {
-  return find.byWidgetPredicate((widget) {
-    final key = widget.key;
-    return key is ValueKey<String> && key.value.startsWith('circle_');
-  });
-}
 
 void main() {
   ensureIntegrationBinding();
@@ -26,22 +18,14 @@ void main() {
           await launchTurqApp(tester);
           await expectFeedScreen(tester);
 
-          if (byItKey(IntegrationTestKeys.storyRow).evaluate().isEmpty) {
-            return;
-          }
-          final storyCircle = _storyCircleFinder();
-          if (storyCircle.evaluate().isEmpty) {
-            return;
-          }
-
-          await tester.ensureVisible(storyCircle.first);
-          await tester.pump(const Duration(milliseconds: 100));
-          await tester.tap(storyCircle.first);
-          await pumpForAppStartup(
+          final openedViewer = await openAnyStoryViewerIfAvailable(
             tester,
             step: const Duration(milliseconds: 200),
             maxPumps: 10,
           );
+          if (!openedViewer) {
+            return;
+          }
           expect(
               byItKey(IntegrationTestKeys.screenStoryViewer), findsOneWidget);
 

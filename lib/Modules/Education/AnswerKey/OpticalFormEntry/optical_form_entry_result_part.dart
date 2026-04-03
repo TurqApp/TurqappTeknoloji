@@ -102,23 +102,11 @@ extension _OpticalFormEntryResultPart on _OpticalFormEntryState {
         padding: const EdgeInsets.all(20),
         child: Row(
           children: [
-            if (controller.avatarUrl.value.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(40)),
-                child: SizedBox(
-                  width: 50,
-                  height: 50,
-                  child: CachedNetworkImage(
-                    imageUrl: controller.avatarUrl.value,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    errorWidget: (context, url, error) =>
-                        const Icon(Icons.person),
-                  ),
-                ),
-              ),
+            CachedUserAvatar(
+              userId: controller.model.value?.userID,
+              imageUrl: controller.avatarUrl.value,
+              radius: 25,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

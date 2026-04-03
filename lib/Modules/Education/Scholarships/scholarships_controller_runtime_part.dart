@@ -13,10 +13,6 @@ extension ScholarshipsControllerRuntimeX on ScholarshipsController {
   bool get hasActiveSearch => _scholarshipsHasActiveSearch(this);
 
   void _handleOnInit() {
-    FirebaseFirestore.instance.settings = Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-    );
     unawaited(_restoreListingSelection());
     unawaited(_bootstrapScholarships());
   }

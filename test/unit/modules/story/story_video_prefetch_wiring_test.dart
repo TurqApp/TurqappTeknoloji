@@ -21,8 +21,11 @@ void main() {
       contains('_prefetchNextStoryVideoWithinCurrentUser'),
     );
     expect(storyContentSource, contains('boostDoc('));
-    expect(storyVideoSource, contains('claimExternalOnDemandFetch('));
-    expect(storyVideoSource, contains('releaseExternalOnDemandFetch('));
+    expect(storyVideoSource, contains('claimExternalOnDemandFetchForDoc('));
+    expect(
+      storyVideoSource,
+      contains('releaseExternalOnDemandFetchForDoc('),
+    );
     expect(storyVideoSource, contains('resolveUrl('));
   });
 }

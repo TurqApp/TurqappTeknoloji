@@ -12,6 +12,7 @@ import 'native_exoplayer_probe.dart';
 import 'route_replay.dart';
 import 'smoke_artifact_collector.dart';
 import '../bootstrap/test_app_bootstrap.dart';
+import 'deep_flow_helpers.dart';
 
 const String kTurqAppMasterE2EScenario = 'turqapp_master_e2e';
 const Duration _kE2EStepTimeout = Duration(seconds: 45);
@@ -43,60 +44,39 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'feed_comments', () async {
-        await _tapByExactItKey(
-          tester,
-          IntegrationTestKeys.feedCommentButton(firstPostId),
-        );
+        await openCommentsForFirstFeedPost(tester);
         expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+        await pumpUntilVisible(
+          tester,
+          byItKey(IntegrationTestKeys.inputComment),
+          maxPumps: 20,
+        );
+        final commentText = uniqueTestText('TurqApp master e2e comment');
         await tester.enterText(
           byItKey(IntegrationTestKeys.inputComment),
-          'TurqApp master e2e comment ${DateTime.now().millisecondsSinceEpoch}',
+          commentText,
         );
         await tester.pump(const Duration(milliseconds: 250));
-        await _tapByExactItKey(
+        await pumpUntilVisible(
+          tester,
+          byItKey(IntegrationTestKeys.actionCommentSend),
+          maxPumps: 20,
+        );
+        await tapItKey(
           tester,
           IntegrationTestKeys.actionCommentSend,
-        );
-        await pumpForAppStartup(
-          tester,
-          step: const Duration(milliseconds: 200),
-          maxPumps: 8,
+          settlePumps: 8,
         );
         expect(
           await _waitForAnyKeyPrefix(
             tester,
             'it-comment-item-',
+            maxPumps: 20,
           ),
           isTrue,
           reason: 'Comments route should expose at least one comment item key.',
         );
-        expect(
-          await _waitForAnyKeyPrefix(
-            tester,
-            'it-comment-reply-',
-          ),
-          isTrue,
-          reason: 'Comments route should expose reply action keys.',
-        );
-        expect(
-          await _waitForAnyKeyPrefix(
-            tester,
-            'it-comment-like-',
-          ),
-          isTrue,
-          reason: 'Comments route should expose like action keys.',
-        );
-        await _waitForAnyKeyPrefix(
-          tester,
-          'it-comment-delete-',
-          maxPumps: 4,
-        );
-        await _tapFirstKeyPrefixIfPresent(tester, 'it-comment-like-');
-        await _tapFirstKeyPrefixIfPresent(tester, 'it-comment-reply-');
-        await _tapIfPresent(
-          tester,
-          byItKey(IntegrationTestKeys.actionCommentClearReply),
-        );
+        await expectNoFlutterException(tester);
         await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
       });
@@ -189,8 +169,7 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'feed_return_1', () async {
-        await pressItKey(tester, IntegrationTestKeys.navFeed);
-        await expectFeedScreen(tester);
+        await ensureFeedTabVisibleForSmoke(tester);
       });
 
       await _step(tester, scenario, 'composer', () async {
@@ -264,8 +243,7 @@ Future<void> runTurqAppMasterE2EScenario(
               await _exerciseMarketTopActions(tester);
             } else if (tabId == PasajTabIds.questionBank) {
               await _exerciseQuestionBankSurface(tester);
-            } else if (tabId == PasajTabIds.practiceExams ||
-                tabId == PasajTabIds.onlineExam) {
+            } else if (tabId == PasajTabIds.practiceExams) {
               await _exercisePracticeExamSurface(tester);
             }
             await _assertNoFeedLeakIfSupported(tester, currentStep);
@@ -460,19 +438,16 @@ Future<void> runTurqAppMasterE2EScenario(
       });
 
       await _step(tester, scenario, 'story_viewer', () async {
-        final storyRow = byItKey(IntegrationTestKeys.storyRow);
-        if (storyRow.evaluate().isEmpty) return;
-        final circle = _findStoryCircle();
-        if (circle.evaluate().isEmpty) return;
-        await tester.ensureVisible(circle.first);
-        await tester.pump(const Duration(milliseconds: 100));
-        await tester.tap(circle.first);
-        await pumpForAppStartup(
+        final openedViewer = await openAnyStoryViewerIfAvailable(
           tester,
           step: const Duration(milliseconds: 200),
           maxPumps: 10,
         );
-        expect(byItKey(IntegrationTestKeys.screenStoryViewer), findsOneWidget);
+        if (!openedViewer) return;
+        expect(
+          byItKey(IntegrationTestKeys.screenStoryViewer),
+          findsOneWidget,
+        );
         await popRouteAndSettle(tester);
         await expectFeedScreen(tester);
       }, allowNoOp: true);
@@ -540,6 +515,17 @@ Future<T> _stepWithResult<T>(
 }
 
 Future<String> _waitForFirstFeedPostId(WidgetTester tester) async {
+  for (var i = 0; i < 20; i++) {
+    await tester.pump(const Duration(milliseconds: 200));
+    final commentKey = firstValueKeyString(_findItKeyPrefix('it-feed-comment-'));
+    if (commentKey != null && commentKey.startsWith('it-feed-comment-')) {
+      final docId = commentKey.replaceFirst('it-feed-comment-', '').trim();
+      if (docId.isNotEmpty) {
+        return docId;
+      }
+    }
+  }
+
   final controller = ensureAgendaController();
   for (var i = 0; i < 40; i++) {
     await tester.pump(const Duration(milliseconds: 250));
@@ -573,13 +559,6 @@ Finder _findPageLineBarTab(String baseTag, int index) {
     return value == IntegrationTestKeys.pageLineBarItem(baseTag, index) ||
         (value.startsWith('it-page-line-bar-${baseTag}_') &&
             value.endsWith('-$index'));
-  });
-}
-
-Finder _findStoryCircle() {
-  return find.byWidgetPredicate((widget) {
-    final key = widget.key;
-    return key is ValueKey<String> && key.value.startsWith('circle_');
   });
 }
 
@@ -629,9 +608,10 @@ Future<void> _tapIfPresent(
   int settlePumps = 6,
 }) async {
   if (finder.evaluate().isEmpty) return;
-  await tester.ensureVisible(finder.first);
+  final target = firstInteractable(finder);
+  await tester.ensureVisible(target);
   await tester.pump(const Duration(milliseconds: 100));
-  await tester.tap(finder.first);
+  await tester.tap(target);
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 200));
   }

@@ -102,28 +102,17 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ClipOval(
+                                  GestureDetector(
+                                    onTap: _openAvatarStoryOrProfile,
                                     child: SizedBox(
                                       width: 35,
                                       height: 35,
                                       child: Obx(
-                                        () => controller.avatarUrl.value != ""
-                                            ? GestureDetector(
-                                                onTap:
-                                                    _openAvatarStoryOrProfile,
-                                                child: CachedNetworkImage(
-                                                  imageUrl:
-                                                      controller.avatarUrl.value,
-                                                  fit: BoxFit.cover,
-                                                  memCacheHeight: 100,
-                                                ),
-                                              )
-                                            : const Center(
-                                                child:
-                                                    CupertinoActivityIndicator(
-                                                  color: Colors.white,
-                                                ),
-                                              ),
+                                        () => CachedUserAvatar(
+                                          userId: widget.model.userID,
+                                          imageUrl: controller.avatarUrl.value,
+                                          radius: 17.5,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -171,8 +160,7 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                   ),
                                   SizedBox(width: 7),
                                   if (!controller.takipEdiyorum.value &&
-                                      widget.model.userID != _currentUserId &&
-                                      controller.avatarUrl.value != "")
+                                      widget.model.userID != _currentUserId)
                                     Transform.translate(
                                       offset: Offset(15, 0),
                                       child: Obx(() {

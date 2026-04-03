@@ -48,6 +48,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     if (widget.injectedController != null &&
         widget.injectedController!.value.isInitialized) {
       usesInjectedInitialPlayback = true;
+      _suspendInjectedFeedPlaybackHandle(list[initial].docID);
       _videoControllers[initial] = widget.injectedController!;
       _externallyOwned.add(initial);
       _playbackRuntimeService.registerPlaybackHandle(

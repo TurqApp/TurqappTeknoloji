@@ -19,6 +19,7 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
     required String surface,
     required Map<String, dynamic> latestProbe,
     required QALabCheckpoint? latestCheckpoint,
+    required List<QALabIssue> surfaceIssues,
     required List<QALabCheckpoint> surfaceCheckpoints,
     required DateTime referenceTime,
     required String route,
@@ -33,7 +34,22 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
         rootProbe,
         route: route,
       );
+      final isAutostartWarmup = _isQALabAutostartWarmup(
+        surface: surface,
+        route: route,
+        referenceTime: referenceTime,
+      );
+      final hasRecentLifecycleInterruption = surfaceIssues.any(
+        (issue) =>
+            issue.source == QALabIssueSource.lifecycle &&
+            issue.code != 'lifecycle_resume' &&
+            !referenceTime.isBefore(issue.timestamp) &&
+            referenceTime.difference(issue.timestamp) <=
+                const Duration(seconds: 12),
+      );
       if (isFeedForeground &&
+          !isAutostartWarmup &&
+          !hasRecentLifecycleInterruption &&
           count > 0 &&
           (centeredIndex < 0 || centeredIndex >= count)) {
         findings.add(
@@ -65,12 +81,28 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
           centeredDocId.isNotEmpty &&
           centeredHasRenderableVideoCard &&
           !centeredHasPlayableVideo) {
-        final observedSince = _playbackObservationStart(
+        var observedSince = _playbackObservationStart(
           surfaceCheckpoints: surfaceCheckpoints,
           route: route,
           surface: surface,
           expectedDocId: centeredDocId,
         );
+        final playbackProbe =
+            latestCheckpoint?.probe['videoPlayback'] as Map<String, dynamic>? ??
+                const <String, dynamic>{};
+        final targetPlaybackDocId =
+            (playbackProbe['targetPlaybackDocID'] ?? '').toString();
+        final targetPlaybackUpdatedAt =
+            _parseTimestamp(playbackProbe['targetPlaybackUpdatedAt']);
+        if (_matchesPlaybackDocForSurface(
+              surface: surface,
+              expectedDocId: centeredDocId,
+              currentDocId: targetPlaybackDocId,
+            ) &&
+            targetPlaybackUpdatedAt != null &&
+            targetPlaybackUpdatedAt.isAfter(observedSince)) {
+          observedSince = targetPlaybackUpdatedAt;
+        }
         final elapsedMs =
             referenceTime.difference(observedSince).inMilliseconds;
         if (elapsedMs >= QALabMode.autoplayDetectionGraceMs) {
@@ -107,11 +139,7 @@ extension QALabRecorderDiagnosticsStateFeedPart on QALabRecorder {
       );
       if (isFeedForeground &&
           count > 0 &&
-          !_isQALabAutostartWarmup(
-            surface: surface,
-            route: route,
-            referenceTime: referenceTime,
-          ) &&
+          !isAutostartWarmup &&
           (playbackSuspended || pauseAll || !canClaimPlaybackNow)) {
         findings.add(
           QALabPinpointFinding(

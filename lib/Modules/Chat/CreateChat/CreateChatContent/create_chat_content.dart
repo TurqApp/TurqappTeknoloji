@@ -1,6 +1,5 @@
-import "package:cached_network_image/cached_network_image.dart";
-import "package:flutter/cupertino.dart";
 import "package:flutter/material.dart";
+import "package:turqappv2/Core/Widgets/cached_user_avatar.dart";
 import "package:turqappv2/Modules/Chat/CreateChat/CreateChatContent/create_chat_content_controller.dart";
 import 'package:get/get.dart';
 import "package:turqappv2/Modules/Chat/CreateChat/create_chat_controller.dart";
@@ -44,6 +43,7 @@ class _CreateChatContentState extends State<CreateChatContent> {
   Widget build(BuildContext context) {
     return Obx(() {
       return Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -68,16 +68,11 @@ class _CreateChatContentState extends State<CreateChatContent> {
                 child: SizedBox(
                   width: 72,
                   height: 72,
-                  child: controller.avatarUrl.value != ""
-                      ? CachedNetworkImage(
-                          imageUrl: controller.avatarUrl.value,
-                          fit: BoxFit.cover,
-                        )
-                      : Center(
-                          child: CupertinoActivityIndicator(
-                            color: Colors.grey,
-                          ),
-                        ),
+                  child: CachedUserAvatar(
+                    userId: widget.userID,
+                    imageUrl: controller.avatarUrl.value,
+                    radius: 36,
+                  ),
                 ),
               ),
             ),
@@ -85,14 +80,20 @@ class _CreateChatContentState extends State<CreateChatContent> {
           SizedBox(
             height: 7,
           ),
-          Text(
-            controller.nickname.value,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: "MontserratMedium",
+          SizedBox(
+            width: 76,
+            child: Text(
+              controller.nickname.value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 14,
+                fontFamily: "MontserratMedium",
+              ),
             ),
-          )
+          ),
         ],
       );
     });

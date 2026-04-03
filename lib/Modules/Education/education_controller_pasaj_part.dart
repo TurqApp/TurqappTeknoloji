@@ -45,21 +45,15 @@ extension EducationControllerPasajPart on EducationController {
     _pasajConfigSub =
         ensureConfigRepository().watchAdminConfigDoc('pasaj').listen(
       (snap) {
-        final data = snap;
         _adminPasajVisibility.clear();
-        for (var i = 0; i < titles.length; i++) {
-          final title = titles[i];
-          final raw = data[pasajAdminConfigKey(title)];
-          final isVisible = raw is bool ? raw : true;
-          _adminPasajVisibility[title] = isVisible;
-        }
+        _adminPasajVisibility.addAll(readPasajAdminVisibilitySnapshot(snap));
         pasajConfigLoaded.value = true;
         _recomputeVisibleTabs();
       },
       onError: (_) {
         _adminPasajVisibility
           ..clear()
-          ..addEntries(titles.map((title) => MapEntry(title, true)));
+          ..addAll(normalizePasajVisibilitySnapshot(null));
         pasajConfigLoaded.value = true;
         _recomputeVisibleTabs();
       },
@@ -67,11 +61,13 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void _recomputeVisibleTabs() {
+    final effectiveVisibility = resolveEffectivePasajVisibilitySnapshot(
+      localVisibility: settingsController.pasajVisibility,
+      adminVisibility: _adminPasajVisibility,
+    );
     final nextVisible = <int>[];
     for (final title in titles) {
-      final adminVisible = _adminPasajVisibility[title] ?? true;
-      final localVisible = settingsController.pasajVisibility[title] ?? true;
-      if (adminVisible && localVisible) {
+      if (effectiveVisibility[title] ?? true) {
         nextVisible.add(titles.indexOf(title));
       }
     }

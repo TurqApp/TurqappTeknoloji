@@ -5,13 +5,36 @@ import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
-bool _readPasajAdminVisibility(
+Map<String, bool> normalizePasajVisibilitySnapshot(
+  Map<String, bool>? source, {
+  bool defaultValue = true,
+}) {
+  return <String, bool>{
+    for (final tabId in pasajTabs) tabId: source?[tabId] ?? defaultValue,
+  };
+}
+
+Map<String, bool> readPasajAdminVisibilitySnapshot(
   Map<String, dynamic>? data,
-  String tabId,
 ) {
-  if (data == null || data.isEmpty) return true;
-  final raw = data[pasajAdminConfigKey(tabId)];
-  return raw is bool ? raw : true;
+  return <String, bool>{
+    for (final tabId in pasajTabs)
+      tabId: data?[pasajAdminConfigKey(tabId)] is bool
+          ? data![pasajAdminConfigKey(tabId)] as bool
+          : true,
+  };
+}
+
+Map<String, bool> resolveEffectivePasajVisibilitySnapshot({
+  Map<String, bool>? localVisibility,
+  Map<String, bool>? adminVisibility,
+}) {
+  final normalizedLocal = normalizePasajVisibilitySnapshot(localVisibility);
+  final normalizedAdmin = normalizePasajVisibilitySnapshot(adminVisibility);
+  return <String, bool>{
+    for (final tabId in pasajTabs)
+      tabId: normalizedLocal[tabId]! && normalizedAdmin[tabId]!,
+  };
 }
 
 Future<Map<String, bool>> loadEffectivePasajVisibility({
@@ -24,10 +47,10 @@ Future<Map<String, bool>> loadEffectivePasajVisibility({
     preferCache: preferCache,
     forceRefresh: forceRefresh,
   );
-  return <String, bool>{
-    for (final tabId in pasajTabs)
-      tabId: (local[tabId] ?? true) && _readPasajAdminVisibility(data, tabId),
-  };
+  return resolveEffectivePasajVisibilitySnapshot(
+    localVisibility: local,
+    adminVisibility: readPasajAdminVisibilitySnapshot(data),
+  );
 }
 
 Future<bool> isPasajTabEnabled(
@@ -43,7 +66,8 @@ Future<bool> isPasajTabEnabled(
     preferCache: preferCache,
     forceRefresh: forceRefresh,
   );
-  return _readPasajAdminVisibility(data, tabId);
+  final adminVisibility = readPasajAdminVisibilitySnapshot(data);
+  return adminVisibility[tabId] ?? true;
 }
 
 CachedResource<T> pasajDisabledResource<T>(T data) {

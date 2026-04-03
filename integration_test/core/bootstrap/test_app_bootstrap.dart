@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
+import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/notifications_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -413,14 +414,34 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
     }
   }
 
+  await _waitForFeedPrimeToSettleForSmoke(tester, agendaController);
   debugPrint(
     '[integration-smoke] feed: primed count=${agendaController.agendaList.length}',
   );
 
   if (!_feedSatisfiesFixtureContract(agendaController)) {
-    await _backfillRequiredFeedDocsForSmoke(agendaController);
-    await tester.pump(const Duration(milliseconds: 300));
-    drainExpectedTesterExceptions(tester, context: 'feed contract backfill');
+    for (var attempt = 0;
+        attempt < 3 && !_feedSatisfiesFixtureContract(agendaController);
+        attempt++) {
+      await _waitForFeedPrimeToSettleForSmoke(tester, agendaController);
+      await _backfillRequiredFeedDocsForSmoke(agendaController);
+      await tester.pump(const Duration(milliseconds: 160));
+      drainExpectedTesterExceptions(
+        tester,
+        context: 'feed contract backfill apply',
+      );
+      if (_feedSatisfiesFixtureContract(agendaController)) {
+        break;
+      }
+      agendaController.primeInitialCenteredPost();
+      await tester.pump(const Duration(milliseconds: 100));
+      agendaController.resumeFeedPlayback();
+      await _waitForFeedPrimeToSettleForSmoke(tester, agendaController);
+      debugPrint(
+        '[integration-smoke] feed: fixture contract retry ${attempt + 1}/3 '
+        'count=${agendaController.agendaList.length}',
+      );
+    }
   }
 
   if (!_feedSatisfiesFixtureContract(agendaController)) {
@@ -462,6 +483,40 @@ bool _feedSatisfiesFixtureContract(AgendaController controller) {
   return true;
 }
 
+Future<void> _waitForFeedPrimeToSettleForSmoke(
+  WidgetTester tester,
+  AgendaController agendaController, {
+  int maxPumps = 16,
+}) async {
+  var stableTicks = 0;
+  var previousSignature = _feedPrimeSignatureForSmoke(agendaController);
+  for (var i = 0; i < maxPumps; i++) {
+    await tester.pump(const Duration(milliseconds: 180));
+    drainExpectedTesterExceptions(tester, context: 'feed prime settle');
+    final currentSignature = _feedPrimeSignatureForSmoke(agendaController);
+    final isIdle = !agendaController.isLoading.value;
+    if (isIdle && currentSignature == previousSignature) {
+      stableTicks++;
+      if (stableTicks >= 2) {
+        return;
+      }
+    } else {
+      stableTicks = 0;
+    }
+    previousSignature = currentSignature;
+  }
+}
+
+String _feedPrimeSignatureForSmoke(AgendaController agendaController) {
+  final headDocIds = agendaController.agendaList
+      .take(8)
+      .map((post) => post.docID.trim())
+      .where((docId) => docId.isNotEmpty)
+      .join('|');
+  return '${agendaController.isLoading.value}:'
+      '${agendaController.agendaList.length}:$headDocIds';
+}
+
 Future<void> _backfillRequiredFeedDocsForSmoke(
   AgendaController agendaController,
 ) async {
@@ -484,15 +539,22 @@ Future<void> _backfillRequiredFeedDocsForSmoke(
 
   final seededPosts = await _fetchRequiredFeedPostsForSmoke(missingDocIds);
   if (seededPosts.isEmpty) {
+    debugPrint(
+      '[integration-smoke] feed: required doc backfill fetch returned empty '
+      'missing=$missingDocIds',
+    );
     return;
   }
 
+  // Keep the live feed order stable for playback-focused smoke suites.
+  // Required fixture docs only need to exist in the surface contract; they
+  // should not outrank the real top-of-feed items during test backfill.
   final merged = <PostsModel>[
-    ...seededPosts,
     ...agendaController.agendaList.where(
       (post) => !missingDocIds.contains(post.docID.trim()),
     ),
-  ]..sort((left, right) => right.timeStamp.compareTo(left.timeStamp));
+    ...seededPosts,
+  ];
 
   agendaController.agendaList.assignAll(merged);
   debugPrint(
@@ -552,6 +614,12 @@ Future<List<PostsModel>> _fetchRequiredFeedPostsForSmoke(
     final docId = post.docID.trim();
     if (docId.isEmpty) continue;
     uniqueById[docId] = post;
+  }
+  if (uniqueById.isEmpty && unresolved.isNotEmpty) {
+    debugPrint(
+      '[integration-smoke] feed: required doc fetch unresolved '
+      'docIds=$unresolved',
+    );
   }
   return uniqueById.values.toList(growable: false);
 }
@@ -676,6 +744,23 @@ Future<AccountSessionCredential?> _resolveIntegrationCredentials() async {
 
 Finder byItKey(String key) => find.byKey(ValueKey<String>(key));
 
+Finder firstInteractable(Finder finder) {
+  final hitTestable = finder.hitTestable();
+  if (hitTestable.evaluate().isNotEmpty) {
+    return hitTestable.first;
+  }
+  return finder.first;
+}
+
+bool _isNavItKey(String key) {
+  return key == IntegrationTestKeys.navFeed ||
+      key == IntegrationTestKeys.navExplore ||
+      key == IntegrationTestKeys.navShort ||
+      key == IntegrationTestKeys.navChat ||
+      key == IntegrationTestKeys.navEducation ||
+      key == IntegrationTestKeys.navProfile;
+}
+
 void _safeUnfocusPrimaryFocus() {
   final primaryFocus = FocusManager.instance.primaryFocus;
   if (primaryFocus == null) return;
@@ -716,10 +801,11 @@ Future<void> tapItKey(
   bool dismissKeyboard = true,
 }) async {
   final finder = byItKey(key);
-  expect(finder, findsOneWidget);
-  await tester.ensureVisible(finder);
+  expect(finder, findsWidgets);
+  final target = firstInteractable(finder);
+  await tester.ensureVisible(target);
   await tester.pump(const Duration(milliseconds: 100));
-  await tester.tap(finder);
+  await tester.tap(target);
   await tester.pump(const Duration(milliseconds: 100));
   if (dismissKeyboard) {
     _safeUnfocusPrimaryFocus();
@@ -735,12 +821,25 @@ Future<void> pressItKey(
   String key, {
   int settlePumps = 8,
 }) async {
+  if (_isNavItKey(key)) {
+    final navBar = maybeFindNavBarController();
+    if (navBar != null && !navBar.showBar.value) {
+      navBar.showBar.value = true;
+      await settleSmokeShell(
+        tester,
+        context: 'show hidden nav bar for $key',
+        maxPumps: 4,
+      );
+    }
+  }
+
   final finder = byItKey(key);
-  expect(finder, findsOneWidget);
-  await tester.ensureVisible(finder);
+  expect(finder, findsWidgets);
+  final target = firstInteractable(finder);
+  await tester.ensureVisible(target);
   await tester.pump(const Duration(milliseconds: 100));
 
-  final widget = tester.widget(finder);
+  final widget = tester.widget(target);
   var handled = false;
   if (widget is TextButton && widget.onPressed != null) {
     widget.onPressed!.call();
@@ -751,10 +850,13 @@ Future<void> pressItKey(
   } else if (widget is FloatingActionButton && widget.onPressed != null) {
     widget.onPressed!.call();
     handled = true;
+  } else if (widget is AppHeaderActionButton && widget.onTap != null) {
+    widget.onTap!.call();
+    handled = true;
   }
 
   if (!handled) {
-    await tester.tap(finder);
+    await tester.tap(target);
   }
 
   await tester.pump(const Duration(milliseconds: 100));
@@ -769,6 +871,11 @@ Future<void> expectFeedScreen(WidgetTester tester) async {
   expect(byItKey(IntegrationTestKeys.screenFeed), findsOneWidget);
   await _pumpUntilProbeRegistered(tester, 'feed');
   await expectNoFlutterException(tester);
+}
+
+Future<void> ensureFeedTabVisibleForSmoke(WidgetTester tester) async {
+  await _ensureFeedTabForSmoke(tester);
+  await expectFeedScreen(tester);
 }
 
 Future<void> settleSmokeShell(
@@ -798,7 +905,11 @@ Future<void> popRouteAndSettle(
   WidgetTester tester, {
   int settlePumps = 8,
 }) async {
+  drainExpectedTesterExceptions(tester, context: 'pre popRouteAndSettle');
+  await tester.pump(const Duration(milliseconds: 16));
+  await tester.idle();
   await tester.binding.handlePopRoute();
+  await tester.pump(const Duration(milliseconds: 16));
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 250));
   }

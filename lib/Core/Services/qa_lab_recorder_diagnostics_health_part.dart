@@ -37,6 +37,7 @@ extension QALabRecorderDiagnosticsHealthPart on QALabRecorder {
       _buildVideoSurfaceFindings(
         surface: surface,
         surfaceIssues: surfaceIssues,
+        rootProbe: latestCheckpoint?.probe ?? const <String, dynamic>{},
         referenceTime: referenceTime,
         route: route,
       ),
@@ -80,6 +81,8 @@ extension QALabRecorderDiagnosticsHealthPart on QALabRecorder {
         surface: surface,
         surfaceTimeline: surfaceTimeline,
         surfaceIssues: surfaceIssues,
+        latestProbe: latestProbe,
+        rootProbe: latestCheckpoint?.probe ?? const <String, dynamic>{},
         referenceTime: referenceTime,
         route: route,
       ),

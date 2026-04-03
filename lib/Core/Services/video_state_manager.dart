@@ -12,3 +12,15 @@ part 'video_state_manager_playback_part.dart';
 part 'video_state_manager_fields_part.dart';
 part 'video_state_manager_models_part.dart';
 part 'video_state_manager_runtime_part.dart';
+
+VideoStateManager resolveDefaultVideoStateManager() {
+  return VideoStateManager.instance;
+}
+
+void claimExternalOnDemandFetchForDoc(String docId) {
+  resolveDefaultVideoStateManager().claimExternalOnDemandFetch(docId);
+}
+
+void releaseExternalOnDemandFetchForDoc(String docId) {
+  maybeFindVideoStateManager()?.releaseExternalOnDemandFetch(docId);
+}

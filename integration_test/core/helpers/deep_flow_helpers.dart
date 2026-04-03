@@ -13,6 +13,15 @@ Finder findItKeyPrefix(String prefix) {
   });
 }
 
+List<String> _valueKeysWithPrefix(String prefix) {
+  return findItKeyPrefix(prefix)
+      .evaluate()
+      .map((element) => element.widget.key)
+      .whereType<ValueKey<String>>()
+      .map((key) => key.value)
+      .toList(growable: false);
+}
+
 Future<String> _waitForVisibleFeedCommentKey(
   WidgetTester tester, {
   int maxScrolls = 8,
@@ -73,6 +82,51 @@ Future<void> tapFirstKeyPrefix(
 }) async {
   final key = await waitForKeyPrefix(tester, prefix);
   await tapItKey(tester, key, settlePumps: settlePumps);
+}
+
+Future<bool> openAnyStoryViewerIfAvailable(
+  WidgetTester tester, {
+  Duration step = const Duration(milliseconds: 200),
+  int maxPumps = 10,
+}) async {
+  if (byItKey(IntegrationTestKeys.storyRow).evaluate().isEmpty) {
+    return false;
+  }
+
+  final storyCircleKeys = _valueKeysWithPrefix('circle_');
+  if (storyCircleKeys.isEmpty) {
+    return false;
+  }
+
+  final orderedKeys = storyCircleKeys.length <= 1
+      ? storyCircleKeys
+      : <String>[
+          ...storyCircleKeys.skip(1),
+          storyCircleKeys.first,
+        ];
+
+  for (final key in orderedKeys) {
+    final finder = find.byKey(ValueKey<String>(key));
+    if (finder.evaluate().isEmpty) continue;
+    await tester.ensureVisible(finder.first);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(finder.first);
+    await pumpForAppStartup(tester, step: step, maxPumps: maxPumps);
+
+    if (byItKey(IntegrationTestKeys.screenStoryViewer).evaluate().isNotEmpty) {
+      return true;
+    }
+
+    final route =
+        (readIntegrationProbe()['currentRoute'] as String? ?? '').trim();
+    final shouldPop = route.isNotEmpty && route != '/NavBarView';
+    if (shouldPop) {
+      await popRouteAndSettle(tester, settlePumps: 6);
+      await pumpForAppStartup(tester, step: step, maxPumps: 4);
+    }
+  }
+
+  return false;
 }
 
 Future<Map<String, dynamic>> waitForSurfaceProbe(

@@ -103,23 +103,15 @@ extension _FollowerContentViewPart on _FollowerContentState {
         children: [
           GestureDetector(
             onTap: _openProfile,
-            child: ClipOval(
-              child: SizedBox(
-                width: 50,
-                height: 50,
-                child: Obx(() {
-                  final avatarUrl = controller.avatarUrl.value;
-                  if (avatarUrl.isEmpty) {
-                    return const Center(
-                      child: CupertinoActivityIndicator(color: Colors.grey),
-                    );
-                  }
-                  return CachedNetworkImage(
-                    imageUrl: avatarUrl,
-                    fit: BoxFit.cover,
-                    memCacheHeight: 400,
-                  );
-                }),
+            child: SizedBox(
+              width: 50,
+              height: 50,
+              child: Obx(
+                () => CachedUserAvatar(
+                  userId: widget.userID,
+                  imageUrl: controller.avatarUrl.value,
+                  radius: 25,
+                ),
               ),
             ),
           ),

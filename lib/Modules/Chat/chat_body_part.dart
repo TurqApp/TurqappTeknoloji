@@ -411,18 +411,13 @@ extension ChatBodyPart on ChatView {
         Stack(
           alignment: Alignment.bottomRight,
           children: [
-            ClipOval(
-              child: SizedBox(
-                width: 70,
-                height: 70,
-                child: controller.avatarUrl.value != ""
-                    ? CachedNetworkImage(
-                        imageUrl: controller.avatarUrl.value,
-                        fit: BoxFit.cover,
-                      )
-                    : const Center(
-                        child: CupertinoActivityIndicator(color: Colors.grey),
-                      ),
+            SizedBox(
+              width: 70,
+              height: 70,
+              child: CachedUserAvatar(
+                userId: userID,
+                imageUrl: controller.avatarUrl.value,
+                radius: 35,
               ),
             ),
             RozetContent(size: 20, userID: userID),
@@ -538,16 +533,11 @@ extension ChatBodyPart on ChatView {
                         child: SizedBox(
                           width: 34,
                           height: 34,
-                          child: controller.avatarUrl.value != ""
-                              ? CachedNetworkImage(
-                                  imageUrl: controller.avatarUrl.value,
-                                  fit: BoxFit.cover,
-                                )
-                              : const Center(
-                                  child: CupertinoActivityIndicator(
-                                    color: Colors.grey,
-                                  ),
-                                ),
+                          child: CachedUserAvatar(
+                            userId: userID,
+                            imageUrl: controller.avatarUrl.value,
+                            radius: 17,
+                          ),
                         ),
                       ),
                       8.pw,

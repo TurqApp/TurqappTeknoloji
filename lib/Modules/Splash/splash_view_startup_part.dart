@@ -1,5 +1,24 @@
 part of 'splash_view.dart';
 
+String resolveStartupManifestRouteHint({
+  required int? manifestAgeMs,
+  required int freshWindowMs,
+  required String routeHint,
+}) {
+  if (manifestAgeMs == null || manifestAgeMs < 0) return 'unknown';
+  if (manifestAgeMs > freshWindowMs) return 'unknown';
+  switch (routeHint.trim()) {
+    case 'nav_feed':
+    case 'nav_home':
+    case 'nav_explore':
+    case 'nav_profile':
+    case 'nav_education':
+      return routeHint.trim();
+    default:
+      return 'unknown';
+  }
+}
+
 extension _SplashViewStartupPart on _SplashViewState {
   int? _asNullableManifestInt(Object? value) {
     if (value == null) return null;
@@ -197,12 +216,11 @@ extension _SplashViewStartupPart on _SplashViewState {
   }
 
   String _requestedStartupRouteHint() {
-    final ageMs = _previousStartupManifestAgeMs;
-    if (ageMs == null || ageMs < 0) return 'unknown';
-    if (ageMs > _SplashViewState._startupManifestFreshWindow.inMilliseconds) {
-      return 'unknown';
-    }
-    return 'nav_feed';
+    return resolveStartupManifestRouteHint(
+      manifestAgeMs: _previousStartupManifestAgeMs,
+      freshWindowMs: _SplashViewState._startupManifestFreshWindow.inMilliseconds,
+      routeHint: _previousStartupRouteHint,
+    );
   }
 
   String _effectiveStartupRouteHint() {
@@ -657,10 +675,10 @@ extension _SplashViewStartupPart on _SplashViewState {
       if (preferredIndex != null) {
         ensureNavBarController().selectedIndex.value = preferredIndex;
       }
-      Get.offAll(() => NavBarView());
+      await AppRootNavigationService.offAllToAuthenticatedHome();
       return;
     }
-    Get.offAll(() => SignIn());
+    await AppRootNavigationService.offAllToSignIn();
   }
 
   int? _preferredStartupNavIndex() {
@@ -679,26 +697,6 @@ extension _SplashViewStartupPart on _SplashViewState {
         return profileIndex;
       default:
         return null;
-    }
-  }
-
-  bool _isStartupNavIndexWarm(
-    int navIndex, {
-    required bool hasEducation,
-  }) {
-    switch (navIndex) {
-      case 0:
-        return true;
-      case 1:
-        return _isStartupRouteWarm('nav_explore');
-      case 3:
-        return hasEducation
-            ? _isStartupRouteWarm('nav_education')
-            : _isStartupRouteWarm('nav_profile');
-      case 4:
-        return _isStartupRouteWarm('nav_profile');
-      default:
-        return false;
     }
   }
 

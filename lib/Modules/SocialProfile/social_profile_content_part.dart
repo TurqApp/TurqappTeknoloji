@@ -307,13 +307,9 @@ extension _SocialProfileContentPart on _SocialProfileState {
   }
 
   Widget _buildAvatarFallback() {
-    return Container(
-      color: Colors.grey[300],
-      child: Icon(
-        Icons.person,
-        size: 100,
-        color: Colors.grey[600],
-      ),
+    return SvgPicture.asset(
+      kDefaultAvatarAsset,
+      fit: BoxFit.cover,
     );
   }
 

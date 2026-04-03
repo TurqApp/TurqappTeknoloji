@@ -14,7 +14,6 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
-import 'package:turqappv2/Core/Services/deep_link_service.dart';
 import '../Agenda/agenda_view.dart';
 import '../Explore/explore_view.dart';
 import '../Profile/MyProfile/profile_view.dart';
@@ -33,14 +32,12 @@ part 'nav_bar_view_avatar_part.dart';
 
 class NavBarView extends StatelessWidget {
   final selection = 0;
-  static bool _controllersPrepared = false;
 
   NavBarView({super.key}) {
     _ensureControllersReady();
   }
   final NavBarController controller = ensureNavBarController();
   final SettingsController settingController = ensureSettingsController();
-  final DeepLinkService? deepLinkService = maybeFindDeepLinkService();
 
   // Ensure controllers are available
   void _ensureControllersReady() {
@@ -50,28 +47,7 @@ class NavBarView extends StatelessWidget {
       ensureStoryRowController();
     }
 
-    // Deep link çözümleme her NavBar açılışında tetiklensin.
-    // (Yeniden login senaryosunda _controllersPrepared true kalsa bile)
-    if (!isIOS) {
-      maybeFindDeepLinkService()?.start();
-    }
-
-    // Controller registration should always be enforced (Android lifecycle can dispose lazies).
-    // Keep one-time side effects below behind static guard.
-    if (_controllersPrepared) return;
-
-    // ⚠️ CRITICAL FIX: Start UnreadMessagesController listeners after user is logged in
-    // Note: startListeners() has internal guard against multiple calls
-    if (!isIOS) {
-      final unreadController = maybeFindUnreadMessagesController();
-      if (unreadController == null) {
-        _controllersPrepared = true;
-        return;
-      }
-      unreadController.startListeners();
-    }
-
-    _controllersPrepared = true;
+    ensureUnreadMessagesControllerStarted();
   }
 
   late final AnimationController animationController;

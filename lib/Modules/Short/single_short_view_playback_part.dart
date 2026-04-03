@@ -172,10 +172,13 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _disposeSingleShortView() {
-    try {
-      final route = ModalRoute.of(context);
-      if (route != null) routeObserver.unsubscribe(this);
-    } catch (_) {}
+    _restoreInjectedFeedPlaybackHandleIfNeeded();
+    if (_routeObserverSubscribed) {
+      try {
+        routeObserver.unsubscribe(this);
+      } catch (_) {}
+      _routeObserverSubscribed = false;
+    }
     pageController.dispose();
     unawaited(_endActiveTelemetrySession());
     _fullscreenPlaybackGuardTimer?.cancel();
@@ -213,6 +216,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     try {
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
+    _restoreInjectedFeedPlaybackHandleIfNeeded();
   }
 
   void _handleDidPushNext() {
@@ -221,8 +225,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidPopNext() {
-    final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
-    if (!isStillCurrent) return;
+    if (!_isSingleShortRoutePlaybackActive) return;
     if (currentPage < 0 || currentPage >= shorts.length) return;
 
     final vp = _videoControllers[currentPage];

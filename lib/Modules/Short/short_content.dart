@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +25,7 @@ import '../../Core/Helpers/clickable_text_content.dart';
 import '../../Core/redirection_link.dart';
 import '../../Core/rozet_content.dart';
 import '../../Core/sizes.dart';
+import '../../Core/Widgets/cached_user_avatar.dart';
 import '../../Themes/app_fonts.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
 import '../Social/PostSharers/post_sharers.dart';

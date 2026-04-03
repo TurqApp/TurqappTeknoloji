@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
+import '../core/helpers/player_contract_helpers.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
 
 void main() {
@@ -51,9 +51,6 @@ void main() {
                   sample: sample,
                   label: 'feed flash video ${seenDocIds.length + 1}',
                 );
-
-                final initialStalls = adapter.rendererStallCount;
-                final initialRebinds = adapter.surfaceRebindCount;
                 await _watchStableStartupWindow(
                   tester,
                   adapter: adapter,
@@ -61,20 +58,6 @@ void main() {
                   window: const Duration(seconds: 4),
                   label: 'feed flash video ${seenDocIds.length + 1}',
                 );
-
-                if (adapter.rendererStallCount != initialStalls) {
-                  throw TestFailure(
-                    'feed flash video ${seenDocIds.length + 1} triggered renderer stall during startup '
-                    '(doc=${sample.docId}, before=$initialStalls, after=${adapter.rendererStallCount}).',
-                  );
-                }
-
-                if (adapter.surfaceRebindCount != initialRebinds) {
-                  throw TestFailure(
-                    'feed flash video ${seenDocIds.length + 1} triggered surface rebind during startup '
-                    '(doc=${sample.docId}, before=$initialRebinds, after=${adapter.surfaceRebindCount}).',
-                  );
-                }
 
                 seenDocIds.add(sample.docId);
               }
@@ -127,6 +110,16 @@ class _FeedVideoSample {
   final PostsModel model;
 }
 
+class _AdapterCounterBaseline {
+  const _AdapterCounterBaseline({
+    required this.rendererStallCount,
+    required this.surfaceRebindCount,
+  });
+
+  final int rendererStallCount;
+  final int surfaceRebindCount;
+}
+
 Future<_FeedVideoSample?> _captureCurrentFeedVideo(
   WidgetTester tester, {
   required AgendaController controller,
@@ -157,53 +150,10 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   required _FeedVideoSample sample,
   required String label,
 }) async {
-  const timeout = Duration(seconds: 8);
-  const step = Duration(milliseconds: 200);
-  final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
-  var recoveryAttempts = 0;
-
-  for (var i = 0; i < maxTicks; i++) {
-    await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
-      sample.docId,
-    );
-    final value = adapter?.value;
-    final playable = adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame &&
-        (value.isPlaying || value.position > Duration.zero);
-    if (playable) {
-      return adapter;
-    }
-    final stalledReadyAdapter = adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame &&
-        !value.isPlaying &&
-        !value.isBuffering &&
-        value.position == Duration.zero;
-    if (stalledReadyAdapter && recoveryAttempts < 3) {
-      recoveryAttempts += 1;
-      await adapter.play();
-      await tester.pump(const Duration(milliseconds: 220));
-      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
-        await adapter.recoverFrozenPlayback();
-      }
-    }
-  }
-
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
-    sample.docId,
-  );
-  final value = adapter?.value;
-  throw TestFailure(
-    '$label did not reach playable adapter state '
-    '(doc=${sample.docId}, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
-    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
-    'playing=${value?.isPlaying}, position=${value?.position}).',
+  return waitForPlayerPlayable(
+    tester,
+    cacheKey: sample.docId,
+    label: label,
   );
 }
 
@@ -218,13 +168,31 @@ Future<void> _watchStableStartupWindow(
   final maxTicks = window.inMilliseconds ~/ step.inMilliseconds;
   Duration? baseline;
   var activeAdapter = adapter;
+  var lastObservedAdapter = adapter;
   var missingTicks = 0;
+  final baselines = <HLSVideoAdapter, _AdapterCounterBaseline>{
+    adapter: _AdapterCounterBaseline(
+      rendererStallCount: adapter.rendererStallCount,
+      surfaceRebindCount: adapter.surfaceRebindCount,
+    ),
+  };
 
   for (var i = 0; i < maxTicks; i++) {
     await tester.pump(step);
-    final candidate = GlobalVideoAdapterPool.ensure().adapterForTesting(docId);
+    final candidate = findPlayerAdapterForTesting(docId);
     if (candidate != null && !candidate.isDisposed) {
       activeAdapter = candidate;
+      baselines.putIfAbsent(
+        activeAdapter,
+        () => _AdapterCounterBaseline(
+          rendererStallCount: activeAdapter.rendererStallCount,
+          surfaceRebindCount: activeAdapter.surfaceRebindCount,
+        ),
+      );
+    }
+    if (!identical(lastObservedAdapter, activeAdapter)) {
+      baseline = null;
+      lastObservedAdapter = activeAdapter;
     }
     final value = activeAdapter.value;
     if (activeAdapter.isDisposed || !value.isInitialized) {
@@ -242,6 +210,19 @@ Future<void> _watchStableStartupWindow(
       throw TestFailure('$label lost adapter initialization during startup.');
     }
     missingTicks = 0;
+    final counters = baselines[activeAdapter]!;
+    if (activeAdapter.rendererStallCount > counters.rendererStallCount) {
+      throw TestFailure(
+        '$label triggered renderer stall during startup '
+        '(doc=$docId, before=${counters.rendererStallCount}, after=${activeAdapter.rendererStallCount}).',
+      );
+    }
+    if (activeAdapter.surfaceRebindCount > counters.surfaceRebindCount) {
+      throw TestFailure(
+        '$label triggered surface rebind during startup '
+        '(doc=$docId, before=${counters.surfaceRebindCount}, after=${activeAdapter.surfaceRebindCount}).',
+      );
+    }
     if (baseline == null) {
       if (value.position > Duration.zero) {
         baseline = value.position;

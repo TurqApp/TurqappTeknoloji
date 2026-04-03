@@ -4,7 +4,7 @@ extension SignInControllerAuthPart on SignInController {
   void _finalizeSuccessfulSignInNavigation() {
     wait.value = false;
     _ensureFeedTabSelected();
-    Get.offAll(() => NavBarView());
+    unawaited(AppRootNavigationService.offAllToAuthenticatedHome());
   }
 
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
@@ -189,53 +189,11 @@ extension SignInControllerAuthPart on SignInController {
         TextInput.finishAutofillContext(shouldSave: true);
       } catch (_) {}
 
-      await CurrentUserService.instance.initialize();
-      await NotificationService.instance.initialize();
-      await _clearSessionCachesAfterAccountSwitch();
-      await CurrentUserService.instance.ensureResolvedCurrentUser(
-        expectedUid: signedUid,
-        reloadEmailVerification: true,
-      );
-      await _trackCurrentAccountForDevice();
-      await ensureAccountCenterService()
-          .registerCurrentDeviceSessionIfEnabled();
-      await _persistStoredSessionHint(
+      await _signInApplicationService.runForegroundPostAuthBootstrap(
         email: resetMail.value,
+        expectedUid: signedUid,
+        registerCurrentDeviceSession: true,
       );
-
-      try {
-        final storyController = maybeFindStoryRowController();
-        if (storyController == null) return;
-        await storyController.loadStories(
-          limit: storyController.initialLimit,
-          cacheFirst: false,
-        );
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-      } catch (_) {}
-
-      late AgendaController agendaController;
-      try {
-        agendaController = ensureAgendaController();
-
-        await agendaController.refreshAgenda();
-
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-      } catch (_) {
-        agendaController = ensureAgendaController();
-      }
-
-      try {
-        maybeFindUnreadMessagesController()?.startListeners();
-      } catch (_) {}
 
       wait.value = false;
 
@@ -246,7 +204,7 @@ extension SignInControllerAuthPart on SignInController {
       } catch (_) {}
 
       _ensureFeedTabSelected();
-      Get.offAll(() => const SplashView());
+      await AppRootNavigationService.offAllToSplash();
       AppSnackbar(
         'sign_in.password_changed_title'.tr,
         'sign_in.password_changed_body'.tr,

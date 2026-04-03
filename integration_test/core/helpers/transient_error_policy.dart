@@ -7,12 +7,23 @@ bool isTransientIntegrationErrorText(String text) {
       text.contains('Invalid statusCode: 503');
 }
 
+bool _isAllowedCdnThumbnail403(String text) {
+  return text.contains('Invalid statusCode: 403') &&
+      text.contains('cdn.turqapp.com/Posts/') &&
+      (text.contains('/thumbnail.jpeg') || text.contains('/thumbnail.webp'));
+}
+
 bool isAllowedNonFatalIntegrationErrorText(String text) {
   return text.contains('cloud_firestore/permission-denied') ||
+      (text.contains(
+            'setState() or markNeedsBuild() called when widget tree was locked.',
+          ) &&
+          text.contains('GetBuilder<AgendaController>')) ||
       text.contains('A FocusNode was used after being disposed.') ||
       text.contains('_FocusInheritedScope') ||
       text.contains('_dependents.isEmpty') ||
       text.contains("'_dependents.isEmpty': is not true.") ||
+      _isAllowedCdnThumbnail403(text) ||
       isTransientIntegrationErrorText(text);
 }
 

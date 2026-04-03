@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
+import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
 import 'package:turqappv2/Modules/Market/market_detail_view.dart';

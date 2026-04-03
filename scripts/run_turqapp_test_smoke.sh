@@ -28,6 +28,7 @@ ANDROID_ADB_BIN="${ANDROID_ADB_BIN:-/Users/turqapp/Library/Android/sdk/platform-
 ANDROID_PACKAGE="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 ANDROID_REMOTE_ARTIFACT_DIR="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 ANDROID_EXPORT_POLL_SECONDS="${INTEGRATION_SMOKE_ANDROID_EXPORT_POLL_SECONDS:-0.25}"
+ANDROID_CLEAR_APP_DATA_BETWEEN_SUITES="${INTEGRATION_SMOKE_CLEAR_APP_DATA_BETWEEN_SUITES:-1}"
 android_original_stay_on=""
 android_awake_watchdog_pid=""
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
@@ -113,6 +114,34 @@ if (screenshotPath) {
 }
 fs.writeFileSync(artifactPath, JSON.stringify(raw, null, 2));
 " "$artifact_file" "$screenshot_path"
+}
+
+materialize_scenario_artifact_alias() {
+  local scenario_name="$1"
+  local exact_json="$ARTIFACT_DIR/${scenario_name}.json"
+  if [[ -f "$exact_json" ]]; then
+    return 0
+  fi
+
+  local normalized_name="${scenario_name%_test}"
+  if [[ "$normalized_name" == "$scenario_name" ]]; then
+    return 1
+  fi
+
+  local source_json="$ARTIFACT_DIR/${normalized_name}.json"
+  if [[ ! -f "$source_json" ]]; then
+    return 1
+  fi
+
+  cp "$source_json" "$exact_json"
+
+  local source_png="$ARTIFACT_DIR/${normalized_name}.png"
+  local exact_png="$ARTIFACT_DIR/${scenario_name}.png"
+  if [[ -f "$source_png" && ! -f "$exact_png" ]]; then
+    cp "$source_png" "$exact_png"
+  fi
+
+  return 0
 }
 
 is_valid_json_file() {
@@ -317,6 +346,11 @@ reset_android_suite_state() {
   if is_android_package_installed "$DEVICE_ID"; then
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell am force-stop "$ANDROID_PACKAGE" >/dev/null 2>&1 || true
+    if [[ "$ANDROID_CLEAR_APP_DATA_BETWEEN_SUITES" == "1" ]]; then
+      "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
+        shell pm clear "$ANDROID_PACKAGE" >/dev/null 2>&1 || true
+      sleep 1
+    fi
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
       shell run-as "$ANDROID_PACKAGE" rm -rf "$ANDROID_REMOTE_ARTIFACT_DIR" >/dev/null 2>&1 || true
     "$ANDROID_ADB_BIN" -s "$DEVICE_ID" \
@@ -353,6 +387,7 @@ for test_file in "${suite_tests[@]}"; do
   if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
     sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
   fi
+  materialize_scenario_artifact_alias "$scenario_name" || true
   if [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
     write_host_stub_artifact \
       "$scenario_name" \

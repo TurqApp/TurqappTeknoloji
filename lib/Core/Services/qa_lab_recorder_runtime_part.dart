@@ -15,6 +15,17 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     if (!_hasAuthenticatedUser(authProbe)) {
       return const <QALabPinpointFinding>[];
     }
+    final visibilitySnapshot = _resolveVisibilitySnapshot(
+      rootProbe,
+      surface: surface,
+    );
+    final surfaceIssues = _surfaceIssues(surface);
+    final isForegroundSurface = surface == 'feed'
+        ? _isPrimaryFeedSelected(visibilitySnapshot, route: route)
+        : _isPrimaryShortSelected(visibilitySnapshot, route: route);
+    if (!isForegroundSurface) {
+      return const <QALabPinpointFinding>[];
+    }
     if (lastNativePlaybackSnapshot.isEmpty ||
         lastNativePlaybackSnapshot['supported'] == false) {
       return const <QALabPinpointFinding>[];
@@ -59,12 +70,21 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'READY_WITHOUT_FRAME',
       'PLAYBACK_NOT_STARTED',
     };
+    final hasRecentUnresolvedLifecycleInterruption =
+        _hasRecentUnresolvedLifecycleInterruption(
+      surfaceIssues: surfaceIssues,
+      referenceTime: referenceTime,
+    );
+    final backgroundRecoveryPending =
+        _nativePlaybackAwaitingBackgroundRecovery(lastNativePlaybackSnapshot);
     final suppressStartupFirstFrameTimeout = _isQALabAutostartWarmup(
       surface: surface,
       route: route,
       referenceTime: referenceTime,
     );
     if (!suppressStartupFirstFrameTimeout &&
+        !backgroundRecoveryPending &&
+        !hasRecentUnresolvedLifecycleInterruption &&
         errors.any(firstFrameCodes.contains)) {
       findings.add(
         QALabPinpointFinding(
@@ -100,20 +120,22 @@ extension QALabRecorderRuntimePart on QALabRecorder {
 
     if (errors.contains('EXCESSIVE_REBUFFERING') ||
         (isBuffering && stallCount >= 2)) {
-      findings.add(
-        QALabPinpointFinding(
-          severity: stallCount >= 4
-              ? QALabIssueSeverity.blocking
-              : QALabIssueSeverity.error,
-          code: '${surface}_native_buffer_stall',
-          message:
-              'Native playback health on $surface detected prolonged buffering or excessive rebuffering.',
-          route: route,
-          surface: surface,
-          timestamp: sampledAt,
-          context: snapshotContext,
-        ),
-      );
+      if (!hasRecentUnresolvedLifecycleInterruption) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: stallCount >= 4
+                ? QALabIssueSeverity.blocking
+                : QALabIssueSeverity.error,
+            code: '${surface}_native_buffer_stall',
+            message:
+                'Native playback health on $surface detected prolonged buffering or excessive rebuffering.',
+            route: route,
+            surface: surface,
+            timestamp: sampledAt,
+            context: snapshotContext,
+          ),
+        );
+      }
     }
 
     if (errors.contains('VIDEO_FREEZE') ||
@@ -159,6 +181,55 @@ extension QALabRecorderRuntimePart on QALabRecorder {
                 .where((issue) => issue.code == 'video_first_frame')
                 .length >=
             2) {
+      final feedProbe = rootProbe['feed'] as Map<String, dynamic>? ??
+          const <String, dynamic>{};
+      final feedCount = _asInt(feedProbe['count']);
+      final centeredIndex = _asInt(feedProbe['centeredIndex']);
+      final centeredDocId =
+          (feedProbe['centeredDocId'] ?? '').toString().trim();
+      final playbackSuspended = feedProbe['playbackSuspended'] == true;
+      final pauseAll = feedProbe['pauseAll'] == true;
+      final canClaimPlaybackNow = feedProbe['canClaimPlaybackNow'] == true;
+      if (feedCount <= 0 ||
+          centeredDocId.isEmpty ||
+          centeredIndex < 0 ||
+          centeredIndex >= feedCount ||
+          playbackSuspended ||
+          pauseAll ||
+          !canClaimPlaybackNow) {
+        return findings;
+      }
+      if (_isQALabAutostartWarmup(
+        surface: surface,
+        route: route,
+        referenceTime: referenceTime,
+      )) {
+        return findings;
+      }
+      final playbackProbe =
+          rootProbe['videoPlayback'] as Map<String, dynamic>? ??
+              const <String, dynamic>{};
+      final expectedDocId = centeredDocId;
+      final targetPlaybackDocId =
+          (playbackProbe['targetPlaybackDocID'] ?? '').toString();
+      final targetPlaybackUpdatedAt =
+          _parseTimestamp(playbackProbe['targetPlaybackUpdatedAt']);
+      final targetGracePending = _matchesPlaybackDocForSurface(
+            surface: surface,
+            expectedDocId: expectedDocId,
+            currentDocId: targetPlaybackDocId,
+          ) &&
+          targetPlaybackUpdatedAt != null &&
+          referenceTime.difference(targetPlaybackUpdatedAt).inMilliseconds <
+              QALabMode.autoplayDetectionGraceMs;
+      final hasNativeTroubleSignal = errors.isNotEmpty ||
+          stallCount > 0 ||
+          lastNativePlaybackSnapshot['active'] != true;
+      if (targetGracePending ||
+          !hasNativeTroubleSignal ||
+          hasRecentUnresolvedLifecycleInterruption) {
+        return findings;
+      }
       findings.add(
         QALabPinpointFinding(
           severity: QALabIssueSeverity.error,

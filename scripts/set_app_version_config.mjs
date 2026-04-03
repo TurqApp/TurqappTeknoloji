@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 const admin = require('../functions/node_modules/firebase-admin');
 
 const args = process.argv.slice(2);
+const verifyOnly = readBoolArg('verify-only', false);
 
 function readArg(name, fallback = '') {
   const prefix = `--${name}=`;
@@ -60,8 +61,34 @@ const payload = {
   updatedAt: Date.now(),
 };
 
+function requireNonEmptyString(data, key) {
+  const value = `${data?.[key] ?? ''}`.trim();
+  if (!value) {
+    throw new Error(`adminConfig/appVersion missing required field: ${key}`);
+  }
+  return value;
+}
+
 async function main() {
   const db = admin.firestore();
+  if (verifyOnly) {
+    const snapshot = await db.doc('adminConfig/appVersion').get();
+    if (!snapshot.exists) {
+      throw new Error('adminConfig/appVersion document is missing');
+    }
+    const data = snapshot.data() ?? {};
+    const verifiedPayload = {
+      androidMinVersion: requireNonEmptyString(data, 'androidMinVersion'),
+      iosMinVersion: requireNonEmptyString(data, 'iosMinVersion'),
+      androidStoreUrl: requireNonEmptyString(data, 'androidStoreUrl'),
+      iosStoreUrl: requireNonEmptyString(data, 'iosStoreUrl'),
+      updateTitle: requireNonEmptyString(data, 'updateTitle'),
+      updateBody: requireNonEmptyString(data, 'updateBody'),
+    };
+    console.log('adminConfig/appVersion verified');
+    console.log(JSON.stringify(verifiedPayload, null, 2));
+    return;
+  }
   await db.doc('adminConfig/appVersion').set(payload, { merge: true });
   console.log('adminConfig/appVersion updated');
   console.log(JSON.stringify(payload, null, 2));

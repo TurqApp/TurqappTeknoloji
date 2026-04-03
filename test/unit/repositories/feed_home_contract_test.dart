@@ -47,7 +47,7 @@ void main() {
 
     test('repository is bound to the canonical home feed contract', () {
       final repositorySource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_class_part.dart',
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository.dart',
       ).readAsStringSync();
       final fetchSource = File(
         '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',

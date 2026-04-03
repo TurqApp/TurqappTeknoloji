@@ -3,6 +3,28 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  void _suspendInjectedFeedPlaybackHandle(String docId) {
+    final injected = widget.injectedController;
+    if (injected == null || injected.isDisposed) return;
+    final handleKey = _feedPlaybackHandleKeyForDoc(docId);
+    _playbackRuntimeService.unregisterPlaybackHandle(handleKey);
+    _suspendedFeedPlaybackHandleKey = handleKey;
+  }
+
+  void _restoreInjectedFeedPlaybackHandleIfNeeded() {
+    final handleKey = _suspendedFeedPlaybackHandleKey;
+    final injected = widget.injectedController;
+    if (handleKey == null || injected == null || injected.isDisposed) return;
+    if (!injected.value.isInitialized) return;
+    try {
+      _playbackRuntimeService.registerPlaybackHandle(
+        handleKey,
+        HLSAdapterPlaybackHandle(injected),
+      );
+    } catch (_) {}
+    _suspendedFeedPlaybackHandleKey = null;
+  }
+
   bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
     final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';

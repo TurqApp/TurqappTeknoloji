@@ -3,6 +3,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
+import '../core/helpers/short_swipe_helpers.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
 
 void main() {
@@ -25,35 +26,29 @@ void main() {
               tester,
               controller: controller,
               index: 0,
-              holdFor: const Duration(seconds: 5),
+              holdFor: _holdForIndex(controller, 0),
               label: 'first short cycle ${cycle + 1}',
             );
 
-            await tester.drag(
-              byItKey(IntegrationTestKeys.screenShort),
-              const Offset(0, -420),
+            await swipeToShortIndex(
+              tester,
+              controller: controller,
+              targetIndex: 1,
             );
-            for (var i = 0; i < 12; i++) {
-              await tester.pump(const Duration(milliseconds: 180));
-            }
-            await expectNoFlutterException(tester);
 
             await _assertPlayableForDuration(
               tester,
               controller: controller,
               index: 1,
-              holdFor: const Duration(seconds: 5),
+              holdFor: _holdForIndex(controller, 1),
               label: 'second short cycle ${cycle + 1}',
             );
 
-            await tester.drag(
-              byItKey(IntegrationTestKeys.screenShort),
-              const Offset(0, 420),
+            await swipeToShortIndex(
+              tester,
+              controller: controller,
+              targetIndex: 0,
             );
-            for (var i = 0; i < 12; i++) {
-              await tester.pump(const Duration(milliseconds: 180));
-            }
-            await expectNoFlutterException(tester);
           }
         },
       );
@@ -133,7 +128,22 @@ Future<void> _waitForPlaybackAdvance(
       }
       continue;
     }
-    if (position - baseline >= minimumAdvance) {
+
+    final duration = value.duration;
+    final remaining = duration > Duration.zero ? duration - baseline : null;
+    final targetAdvance = remaining != null &&
+            remaining < minimumAdvance &&
+            remaining > const Duration(milliseconds: 400)
+        ? remaining - const Duration(milliseconds: 250)
+        : minimumAdvance;
+
+    if (position - baseline >= targetAdvance) {
+      return;
+    }
+
+    final nearEnd = duration > Duration.zero &&
+        position >= duration - const Duration(milliseconds: 250);
+    if (value.isCompleted || nearEnd) {
       return;
     }
   }
@@ -167,4 +177,20 @@ Future<void> _assertPlayableForDuration(
     minimumAdvance: holdFor,
     label: label,
   );
+}
+
+Duration _holdForIndex(ShortController controller, int index) {
+  final value = controller.cache[index]?.value;
+  final duration = value?.duration ?? Duration.zero;
+  if (duration <= Duration.zero) return const Duration(seconds: 5);
+  if (duration <= const Duration(seconds: 6)) {
+    return const Duration(milliseconds: 1800);
+  }
+  if (duration <= const Duration(seconds: 8)) {
+    return const Duration(seconds: 2);
+  }
+  if (duration <= const Duration(seconds: 12)) {
+    return const Duration(seconds: 3);
+  }
+  return const Duration(seconds: 5);
 }

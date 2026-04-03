@@ -6,7 +6,7 @@
     "NOTIFICATION_ID": "it_notification_follow_profile",
     "COMMENT_ID": "it_seed_comment_1",
     "POST_ID": "it_seed_feed_post_1",
-    "POST_VIDEO_URL": "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
+    "POST_VIDEO_URL": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     "POST_THUMBNAIL_URL": "https://storage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"
   },
   "apply": [

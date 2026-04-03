@@ -242,7 +242,7 @@ extension CreateScholarshipControllerSubmissionPart
     scholarshipsController.fetchScholarships();
 
     try {
-      Get.offAll(() => NavBarView());
+      await AppRootNavigationService.offAllToAuthenticatedHome();
       maybeFindNavBarController()?.changeIndex(3);
     } catch (_) {}
 

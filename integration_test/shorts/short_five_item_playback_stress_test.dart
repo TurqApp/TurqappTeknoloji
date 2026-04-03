@@ -5,6 +5,7 @@ import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
+import '../core/helpers/short_swipe_helpers.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
 
 void main() {
@@ -53,7 +54,11 @@ void main() {
             );
 
             for (var index = 1; index < 5; index++) {
-              await _swipeToNext(tester);
+              await swipeToShortIndex(
+                tester,
+                controller: controller,
+                targetIndex: index,
+              );
               await _assertPlayableForDuration(
                 tester,
                 controller: controller,
@@ -70,7 +75,11 @@ void main() {
             }
 
             for (var index = 3; index >= 0; index--) {
-              await _swipeToPrevious(tester);
+              await swipeToShortIndex(
+                tester,
+                controller: controller,
+                targetIndex: index,
+              );
               await _assertPlayableForDuration(
                 tester,
                 controller: controller,
@@ -87,28 +96,6 @@ void main() {
     },
     skip: !kRunIntegrationSmoke,
   );
-}
-
-Future<void> _swipeToNext(WidgetTester tester) async {
-  await tester.drag(
-    byItKey(IntegrationTestKeys.screenShort),
-    const Offset(0, -420),
-  );
-  for (var i = 0; i < 12; i++) {
-    await tester.pump(const Duration(milliseconds: 180));
-  }
-  await expectNoFlutterException(tester);
-}
-
-Future<void> _swipeToPrevious(WidgetTester tester) async {
-  await tester.drag(
-    byItKey(IntegrationTestKeys.screenShort),
-    const Offset(0, 420),
-  );
-  for (var i = 0; i < 12; i++) {
-    await tester.pump(const Duration(milliseconds: 180));
-  }
-  await expectNoFlutterException(tester);
 }
 
 Future<void> _waitForPlayableFrame(

@@ -292,6 +292,28 @@ class SignInApplicationService {
     );
   }
 
+  Future<void> runForegroundPostAuthBootstrap({
+    required String email,
+    required String expectedUid,
+    bool registerCurrentDeviceSession = false,
+  }) async {
+    await _ensureCurrentUserService().initialize();
+    await NotificationService.instance.initialize();
+    await _clearSessionCachesAfterAccountSwitch();
+    await _ensureCurrentUserService().ensureResolvedCurrentUser(
+      expectedUid: expectedUid,
+      reloadEmailVerification: true,
+    );
+    await trackCurrentAccountForDevice();
+    if (registerCurrentDeviceSession) {
+      await _registerCurrentDeviceSession();
+    }
+    await persistStoredSessionHint(email: email);
+    await _warmStoryRowAfterAuth();
+    await _warmAgendaAfterAuth(retryUntilFilled: true);
+    _startUnreadListenersAfterAuth();
+  }
+
   static Future<void> _defaultPasswordSignIn({
     required String email,
     required String password,
@@ -340,13 +362,7 @@ class SignInApplicationService {
         timeout: const Duration(seconds: 3),
       );
 
-      try {
-        maybeFindUnreadMessagesController()?.startListeners();
-      } catch (error) {
-        if (kDebugMode) {
-          debugPrint('[SignIn] unread listener skipped: $error');
-        }
-      }
+      _startUnreadListenersAfterAuth();
     }());
   }
 
@@ -364,34 +380,76 @@ class SignInApplicationService {
           reloadEmailVerification: true,
         ),
       );
-
-      try {
-        final storyController = maybeFindStoryRowController();
-        if (storyController == null) return;
-        await Future.any([
-          storyController.loadStories(
-            limit: storyController.initialLimit,
-            cacheFirst: false,
-          ),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-      } catch (_) {}
-
-      try {
-        final agendaController =
-            maybeFindAgendaController() ?? ensureAgendaController();
-        await Future.any([
-          agendaController.refreshAgenda(),
-          Future.delayed(const Duration(seconds: 3)),
-        ]);
-        if (agendaController.agendaList.isEmpty) {
-          unawaited(agendaController.fetchAgendaBigData(initial: true));
-        }
-      } catch (_) {}
+      await _warmStoryRowAfterAuth(timeout: const Duration(seconds: 3));
+      await _warmAgendaAfterAuth(timeout: const Duration(seconds: 3));
     } catch (_) {}
+  }
+
+  Future<void> _warmStoryRowAfterAuth({
+    Duration? timeout,
+  }) async {
+    try {
+      final storyController = maybeFindStoryRowController();
+      if (storyController == null) return;
+      final loadStoriesFuture = storyController.loadStories(
+        limit: storyController.initialLimit,
+        cacheFirst: false,
+      );
+      if (timeout == null) {
+        await loadStoriesFuture;
+      } else {
+        await Future.any([
+          loadStoriesFuture,
+          Future.delayed(timeout),
+        ]);
+      }
+      if (storyController.users.isEmpty) {
+        await storyController.addMyUserImmediately();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmAgendaAfterAuth({
+    Duration? timeout,
+    bool retryUntilFilled = false,
+  }) async {
+    try {
+      final agendaController =
+          maybeFindAgendaController() ?? ensureAgendaController();
+      final refreshFuture = agendaController.refreshAgenda();
+      if (timeout == null) {
+        await refreshFuture;
+      } else {
+        await Future.any([
+          refreshFuture,
+          Future.delayed(timeout),
+        ]);
+      }
+      if (retryUntilFilled) {
+        var retries = 0;
+        while (agendaController.agendaList.isEmpty && retries < 3) {
+          await agendaController.fetchAgendaBigData(initial: true);
+          if (agendaController.agendaList.isEmpty && retries < 2) {
+            await Future<void>.delayed(const Duration(milliseconds: 500));
+          }
+          retries++;
+        }
+        return;
+      }
+      if (agendaController.agendaList.isEmpty) {
+        unawaited(agendaController.fetchAgendaBigData(initial: true));
+      }
+    } catch (_) {}
+  }
+
+  void _startUnreadListenersAfterAuth() {
+    try {
+      ensureUnreadMessagesControllerStarted();
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('[SignIn] unread listener skipped: $error');
+      }
+    }
   }
 
   Future<void> _clearSessionCachesAfterAccountSwitch() async {

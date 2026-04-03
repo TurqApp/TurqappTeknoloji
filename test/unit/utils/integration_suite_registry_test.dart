@@ -59,13 +59,29 @@ void main() {
     );
   });
 
-  test('release gate suite keeps the official 8-entry contract', () {
+  test('release gate suite keeps the official launch contract', () {
     final releaseEntries = File('config/test_suites/release_gate_e2e.txt')
         .readAsLinesSync()
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty && !line.startsWith('#'))
         .toList();
 
-    expect(releaseEntries, hasLength(8));
+    expect(
+      releaseEntries,
+      <String>[
+        'integration_test/turqapp_complete_e2e_test.dart',
+        'integration_test/feed/feed_black_flash_smoke_test.dart',
+        'integration_test/feed/feed_fullscreen_audio_smoke_test.dart',
+        'integration_test/feed/feed_first_video_autoplay_test.dart',
+        'integration_test/feed/feed_first_video_playback_test.dart',
+        'integration_test/feed/feed_network_resilience_smoke_test.dart',
+        'integration_test/feed/feed_normal_scroll_playback_smoke_test.dart',
+        'integration_test/shorts/short_first_two_playback_test.dart',
+        'integration_test/notifications/notification_deeplink_route_e2e_test.dart',
+        'integration_test/education/education_detail_flow_e2e_test.dart',
+        'integration_test/feed/turqapp_audio_ownership_e2e_test.dart',
+        'integration_test/feed/hls_data_usage_suite_test.dart',
+      ],
+    );
   });
 }

@@ -152,6 +152,6 @@ extension NotifyReaderControllerNavigationPart on NotifyReaderController {
   }
 
   void toNavbar() {
-    Get.offAll<NavBarView>(() => NavBarView());
+    unawaited(AppRootNavigationService.offAllToAuthenticatedHome());
   }
 }

@@ -108,17 +108,13 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
 
   void _claimFetchOwnership([String? storyId]) {
     if (_fetchOwnershipClaimed) return;
-    VideoStateManager.instance.claimExternalOnDemandFetch(
-      storyId ?? widget.storyId,
-    );
+    claimExternalOnDemandFetchForDoc(storyId ?? widget.storyId);
     _fetchOwnershipClaimed = true;
   }
 
   void _releaseFetchOwnership([String? storyId]) {
     if (!_fetchOwnershipClaimed) return;
-    maybeFindVideoStateManager()?.releaseExternalOnDemandFetch(
-      storyId ?? widget.storyId,
-    );
+    releaseExternalOnDemandFetchForDoc(storyId ?? widget.storyId);
     _fetchOwnershipClaimed = false;
   }
 

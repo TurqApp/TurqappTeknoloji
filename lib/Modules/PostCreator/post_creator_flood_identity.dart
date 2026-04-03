@@ -3,5 +3,5 @@ String resolvePostCreatorFloodRootDocId(String docId) {
   if (lastUnderscore <= 0) return docId;
   final index = int.tryParse(docId.substring(lastUnderscore + 1)) ?? 0;
   if (index == 0) return docId;
-  return '${docId.substring(0, lastUnderscore)}_0';
+  return '${docId}_0';
 }

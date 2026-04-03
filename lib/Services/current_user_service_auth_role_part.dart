@@ -1,5 +1,27 @@
 part of 'current_user_service.dart';
 
+User? _safeCurrentAuthUser() {
+  try {
+    return FirebaseAuth.instance.currentUser;
+  } catch (_) {
+    return null;
+  }
+}
+
+Stream<User?> _safeAuthStateChanges() {
+  try {
+    return FirebaseAuth.instance.authStateChanges();
+  } catch (_) {
+    return const Stream<User?>.empty();
+  }
+}
+
+Future<void> _safeSignOutAuth() async {
+  try {
+    await FirebaseAuth.instance.signOut();
+  } catch (_) {}
+}
+
 class CurrentUserAuthRole {
   CurrentUserAuthRole(
     this.service, {
@@ -7,9 +29,9 @@ class CurrentUserAuthRole {
     Stream<User?> Function()? authStateChangesProvider,
     StartupSessionFailureReporter? failureReporter,
   })  : _currentAuthUserProvider =
-            currentAuthUserProvider ?? (() => FirebaseAuth.instance.currentUser),
-        _authStateChangesProvider = authStateChangesProvider ??
-            (() => FirebaseAuth.instance.authStateChanges()),
+            currentAuthUserProvider ?? _safeCurrentAuthUser,
+        _authStateChangesProvider =
+            authStateChangesProvider ?? _safeAuthStateChanges,
         _failureReporter =
             failureReporter ?? StartupSessionFailureReporter.defaultReporter;
 
@@ -24,7 +46,13 @@ class CurrentUserAuthRole {
     return authUserId();
   }
 
-  User? currentAuthUser() => _currentAuthUserProvider();
+  User? currentAuthUser() {
+    try {
+      return _currentAuthUserProvider();
+    } catch (_) {
+      return null;
+    }
+  }
 
   bool hasAuthUser() => currentAuthUser() != null;
 
@@ -54,7 +82,13 @@ class CurrentUserAuthRole {
     return authDisplayName();
   }
 
-  Stream<User?> authStateChanges() => _authStateChangesProvider();
+  Stream<User?> authStateChanges() {
+    try {
+      return _authStateChangesProvider();
+    } catch (_) {
+      return const Stream<User?>.empty();
+    }
+  }
 
   Future<User?> resolveAuthUser({
     bool waitForAuthState = false,
@@ -130,7 +164,7 @@ class CurrentUserAuthRole {
   }
 
   Future<void> signOutAuth() async {
-    await FirebaseAuth.instance.signOut();
+    await _safeSignOutAuth();
   }
 
   Future<void> deleteAuthUserIfPresent() async {

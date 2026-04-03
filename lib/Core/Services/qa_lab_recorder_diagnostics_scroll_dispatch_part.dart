@@ -8,7 +8,7 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
   }) {
     return surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
-        .where(_isIssuedPlaybackDispatch)
+        .where(_isEffectivePlaybackDispatchForScroll)
         .where((event) => (event.metadata['docId'] ?? '').toString() == docId)
         .where((event) => !event.timestamp.isBefore(after))
         .toList(growable: false)
@@ -22,7 +22,7 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
   }) {
     return surfaceTimeline
         .where((event) => event.category == 'playback_dispatch')
-        .where((event) => !_isIssuedPlaybackDispatch(event))
+        .where((event) => !_isEffectivePlaybackDispatchForScroll(event))
         .where((event) => (event.metadata['docId'] ?? '').toString() == docId)
         .where((event) => !event.timestamp.isBefore(after))
         .toList(growable: false)
@@ -116,6 +116,20 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
       return raw.toLowerCase() != 'false';
     }
     return true;
+  }
+
+  bool _isEffectivePlaybackDispatchForScroll(QALabTimelineEvent event) {
+    if (_isIssuedPlaybackDispatch(event)) return true;
+    final code = event.code.trim();
+    final skipReason = (event.metadata['skipReason'] ?? '').toString().trim();
+    if (code == 'feed_card_manager_resume_current') {
+      return true;
+    }
+    if (code == 'feed_card_adapter_play_skipped' &&
+        skipReason == 'already_playing') {
+      return true;
+    }
+    return false;
   }
 
   int _countDuplicatePlaybackDispatchBursts({

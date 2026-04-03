@@ -15,16 +15,24 @@ class ViewerSurfaceInvalidationService {
     final normalized = uid.trim();
     if (normalized.isEmpty) return;
     await Future.wait(<Future<void>>[
-      ensureFeedSnapshotRepository().clearUserSnapshots(userId: normalized),
-      ensureShortSnapshotRepository().clearUserSnapshots(userId: normalized),
-      ProfilePostsSnapshotRepository.ensure().clearUserSnapshots(
-        userId: normalized,
-      ),
-      ensureRecommendedUsersRepository().invalidate(),
-      StoryRepository.ensure().invalidateStoryCachesForUser(
-        normalized,
-        clearDeletedStories: clearDeletedStories,
-      ),
+      maybeFindFeedSnapshotRepository()
+              ?.clearUserSnapshots(userId: normalized) ??
+          Future<void>.value(),
+      maybeFindShortSnapshotRepository()?.clearUserSnapshots(
+            userId: normalized,
+          ) ??
+          Future<void>.value(),
+      ProfilePostsSnapshotRepository.maybeFind()?.clearUserSnapshots(
+            userId: normalized,
+          ) ??
+          Future<void>.value(),
+      maybeFindRecommendedUsersRepository()?.invalidate() ??
+          Future<void>.value(),
+      StoryRepository.maybeFind()?.invalidateStoryCachesForUser(
+            normalized,
+            clearDeletedStories: clearDeletedStories,
+          ) ??
+          Future<void>.value(),
       maybeFindExploreController()?.invalidateViewerScopedContent(
             viewerUserId: normalized,
           ) ??

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -8,6 +7,7 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
+import '../core/helpers/player_contract_helpers.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
 
 void main() {
@@ -135,53 +135,10 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   required _FeedVideoSample sample,
   required String label,
 }) async {
-  const timeout = Duration(seconds: 8);
-  const step = Duration(milliseconds: 200);
-  final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
-  var recoveryAttempts = 0;
-
-  for (var i = 0; i < maxTicks; i++) {
-    await tester.pump(step);
-    final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
-      sample.docId,
-    );
-    final value = adapter?.value;
-    final playable = adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame &&
-        (value.isPlaying || value.position > Duration.zero);
-    if (playable) {
-      return adapter;
-    }
-    final stalledReadyAdapter = adapter != null &&
-        !adapter.isDisposed &&
-        value != null &&
-        value.isInitialized &&
-        value.hasRenderedFirstFrame &&
-        !value.isPlaying &&
-        !value.isBuffering &&
-        value.position == Duration.zero;
-    if (stalledReadyAdapter && recoveryAttempts < 3) {
-      recoveryAttempts += 1;
-      await adapter.play();
-      await tester.pump(const Duration(milliseconds: 220));
-      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
-        await adapter.recoverFrozenPlayback();
-      }
-    }
-  }
-
-  final adapter = GlobalVideoAdapterPool.ensure().adapterForTesting(
-    sample.docId,
-  );
-  final value = adapter?.value;
-  throw TestFailure(
-    '$label did not reach playable adapter state '
-    '(doc=${sample.docId}, exists=${adapter != null}, disposed=${adapter?.isDisposed}, '
-    'initialized=${value?.isInitialized}, firstFrame=${value?.hasRenderedFirstFrame}, '
-    'playing=${value?.isPlaying}, position=${value?.position}).',
+  return waitForPlayerPlayable(
+    tester,
+    cacheKey: sample.docId,
+    label: label,
   );
 }
 

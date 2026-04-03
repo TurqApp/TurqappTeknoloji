@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -76,20 +76,13 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
                     left: 15, right: 15, top: 4, bottom: 4),
                 child: Row(
                   children: [
-                    ClipOval(
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: controller.avatarUrl.value != ""
-                            ? CachedNetworkImage(
-                                imageUrl: controller.avatarUrl.value,
-                                fit: BoxFit.cover,
-                              )
-                            : Center(
-                                child: CupertinoActivityIndicator(
-                                  color: Colors.grey,
-                                ),
-                              ),
+                    SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CachedUserAvatar(
+                        userId: widget.userID,
+                        imageUrl: controller.avatarUrl.value,
+                        radius: 20,
                       ),
                     ),
                     SizedBox(

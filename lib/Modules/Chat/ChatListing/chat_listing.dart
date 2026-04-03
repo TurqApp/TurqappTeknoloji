@@ -9,8 +9,6 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Models/chat_listing_model.dart';
 import 'package:turqappv2/Modules/Chat/ChatListingContent/chat_listing_content.dart';
-import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
-import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'chat_search_field.dart';
 import 'chat_listing_controller.dart';
@@ -28,12 +26,8 @@ class ChatListing extends StatefulWidget {
 
 class _ChatListingState extends State<ChatListing> {
   late final ChatListingController controller;
-  final ConversationRepository _conversationRepository =
-      ConversationRepository.ensure();
   final ValueNotifier<String?> _openedChatId = ValueNotifier<String?>(null);
   bool _ownsController = false;
-
-  String get _uid => CurrentUserService.instance.effectiveUserId;
 
   @override
   void initState() {

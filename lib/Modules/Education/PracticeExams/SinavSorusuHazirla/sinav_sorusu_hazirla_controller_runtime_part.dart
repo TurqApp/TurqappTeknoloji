@@ -47,7 +47,15 @@ extension SinavSorusuHazirlaControllerRuntimePart
           SetOptions(merge: true);
         }
       }
-      await getSorular();
+      await _practiceExamRepository.invalidateQuestionCaches(examId: docID);
+      final questions = await _practiceExamRepository.fetchQuestions(
+        docID,
+        preferCache: false,
+        forceRefresh: true,
+      );
+      if (questions.isNotEmpty) {
+        list.assignAll(questions);
+      }
     } catch (_) {
       AppSnackbar('common.error'.tr, 'tests.questions_create_failed'.tr);
     }
@@ -61,6 +69,9 @@ extension SinavSorusuHazirlaControllerRuntimePart
           .set({
         'taslak': false,
       }, SetOptions(merge: true));
+      await ensurePracticeExamRepository().invalidateExamListingCaches(
+        examId: docID,
+      );
       complated();
       Get.back();
     } catch (_) {

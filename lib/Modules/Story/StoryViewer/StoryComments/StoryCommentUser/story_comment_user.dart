@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -89,20 +90,13 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                             () => SocialProfile(userID: widget.model.userID));
                       }
                     },
-                    child: ClipOval(
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: controller.avatarUrl.value != ""
-                            ? CachedNetworkImage(
-                                imageUrl: controller.avatarUrl.value,
-                                fit: BoxFit.cover,
-                              )
-                            : Center(
-                                child: CupertinoActivityIndicator(
-                                  color: Colors.grey,
-                                ),
-                              ),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CachedUserAvatar(
+                        userId: widget.model.userID,
+                        imageUrl: controller.avatarUrl.value,
+                        radius: 20,
                       ),
                     ),
                   ),

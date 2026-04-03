@@ -411,6 +411,13 @@ class _FakePlaybackHandle implements PlaybackHandle {
   }
 
   @override
+  Future<void> stop() async {
+    pauseCount++;
+    isPlaying = false;
+    position = Duration.zero;
+  }
+
+  @override
   Future<void> play() async {
     playCount++;
     isPlaying = true;

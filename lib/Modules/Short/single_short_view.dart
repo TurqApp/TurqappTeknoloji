@@ -203,14 +203,17 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   HLSVideoAdapter? _fullscreenReturnPreservedController;
+  bool _routeObserverSubscribed = false;
+  bool _routePlaybackActive = true;
+  String? _suspendedFeedPlaybackHandleKey;
 
   String _playbackHandleKeyForDoc(String docId) =>
       'single_short:${docId.trim()}';
 
-  bool get _isSingleShortRoutePlaybackActive {
-    final route = ModalRoute.of(context);
-    return mounted && (route?.isCurrent ?? false);
-  }
+  String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
+
+  bool get _isSingleShortRoutePlaybackActive =>
+      mounted && _routePlaybackActive;
 
   PlaybackLifecycleDecision _singleShortPlaybackDecisionFor(
     int page,
@@ -282,24 +285,34 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_routeObserverSubscribed) return;
     final route = ModalRoute.of(context);
-    if (route != null) {
-      routeObserver.subscribe(this, route);
-    }
+    if (route == null) return;
+    routeObserver.subscribe(this, route);
+    _routeObserverSubscribed = true;
+    _routePlaybackActive = route.isCurrent;
+  }
+
+  @override
+  void didPush() {
+    _routePlaybackActive = true;
   }
 
   @override
   void didPop() {
+    _routePlaybackActive = false;
     _handleDidPop();
   }
 
   @override
   void didPushNext() {
+    _routePlaybackActive = false;
     _handleDidPushNext();
   }
 
   @override
   void didPopNext() {
+    _routePlaybackActive = true;
     _handleDidPopNext();
   }
 

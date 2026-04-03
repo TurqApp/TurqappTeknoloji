@@ -192,6 +192,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _stallWatchdogTimer;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
+  int _stallWatchdogBufferingCycles = 0;
   bool _routeObserverSubscribed = false;
   static const Duration _shortAutoplaySegmentGateTimeout =
       Duration(milliseconds: 950);
@@ -294,6 +295,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (!mounted) return;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+    controller.lastIndex.value = currentPage;
     if (pageController.hasClients) {
       try {
         pageController.jumpToPage(currentPage);
@@ -361,6 +363,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
             controller.lastIndex.value,
           );
     currentPage = initialIndex;
+    controller.lastIndex.value = currentPage;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     pageController = PageController(initialPage: initialIndex);
 

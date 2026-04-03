@@ -101,6 +101,10 @@ extension SinavHazirlaControllerSubmissionPart on SinavHazirlaController {
         await uploadImage(cover.value!, docID.value);
       }
 
+      await ensurePracticeExamRepository().invalidateExamListingCaches(
+        examId: docID.value,
+      );
+
       Get.to(
         () => SinavSorusuHazirla(
           docID: docID.value,

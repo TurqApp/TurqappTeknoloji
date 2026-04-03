@@ -77,51 +77,10 @@ extension SignInControllerSignupPart on SignInController {
       accountProvisioned = true;
 
       try {
-        await CurrentUserService.instance.initialize();
-        await NotificationService.instance.initialize();
-        await _clearSessionCachesAfterAccountSwitch();
-        await CurrentUserService.instance.ensureResolvedCurrentUser(
-          expectedUid: uid,
-          reloadEmailVerification: true,
-        );
-        await _trackCurrentAccountForDevice();
-        await _persistStoredSessionHint(
+        await _signInApplicationService.runForegroundPostAuthBootstrap(
           email: email.value,
+          expectedUid: uid,
         );
-      } catch (_) {}
-
-      try {
-        final storyController = maybeFindStoryRowController();
-        if (storyController == null) return;
-        await storyController.loadStories(
-          limit: storyController.initialLimit,
-          cacheFirst: false,
-        );
-        if (storyController.users.isEmpty) {
-          await storyController.addMyUserImmediately();
-        }
-      } catch (_) {}
-
-      late AgendaController agendaController;
-      try {
-        agendaController = ensureAgendaController();
-
-        await agendaController.refreshAgenda();
-
-        int retries = 0;
-        while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
-          if (agendaController.agendaList.isEmpty && retries < 2) {
-            await Future.delayed(const Duration(milliseconds: 500));
-          }
-          retries++;
-        }
-      } catch (_) {
-        agendaController = ensureAgendaController();
-      }
-
-      try {
-        maybeFindUnreadMessagesController()?.startListeners();
       } catch (_) {}
 
       wait.value = false;
@@ -129,7 +88,7 @@ extension SignInControllerSignupPart on SignInController {
       await Future.delayed(const Duration(milliseconds: 300));
 
       _ensureFeedTabSelected();
-      Get.off(() => NavBarView());
+      await AppRootNavigationService.offToAuthenticatedHome();
     } on PhoneAccountLimitReached catch (e) {
       try {
         await CurrentUserService.instance.deleteAuthUserIfPresent();
@@ -152,7 +111,7 @@ extension SignInControllerSignupPart on SignInController {
       wait.value = false;
       if (accountProvisioned) {
         _ensureFeedTabSelected();
-        Get.off(() => NavBarView());
+        await AppRootNavigationService.offToAuthenticatedHome();
         return;
       }
       try {

@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader_controller.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
@@ -60,9 +58,7 @@ class DependencyRegistrar {
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController(), fenix: true);
     const UploadQueueRuntimeService().ensureReady(permanent: true);
-    if (!Platform.isIOS) {
-      ensureDeepLinkService();
-    }
+    ensureDeepLinkServiceStarted();
     IndexPoolStore.ensure(permanent: true);
     ensureUserProfileCacheService();
     StorageBudgetManager.ensure();

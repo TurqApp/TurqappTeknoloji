@@ -159,21 +159,13 @@ extension ShortsContentBodyPart on _ShortsContentState {
                           children: [
                             GestureDetector(
                               onTap: _openAvatarStoryOrProfile,
-                              child: ClipOval(
-                                child: SizedBox(
-                                  width: 35,
-                                  height: 35,
-                                  child: controller.avatarUrl.value != ""
-                                      ? CachedNetworkImage(
-                                          imageUrl: controller.avatarUrl.value,
-                                          fit: BoxFit.cover,
-                                          memCacheHeight: 100,
-                                        )
-                                      : const Center(
-                                          child: CupertinoActivityIndicator(
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                              child: SizedBox(
+                                width: 35,
+                                height: 35,
+                                child: CachedUserAvatar(
+                                  userId: model.userID,
+                                  imageUrl: controller.avatarUrl.value,
+                                  radius: 17.5,
                                 ),
                               ),
                             ),
@@ -224,8 +216,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
                             ),
                             SizedBox(width: 7),
                             if (!controller.takipEdiyorum.value &&
-                                model.userID != _currentUserId &&
-                                controller.avatarUrl.value != "")
+                                model.userID != _currentUserId)
                               Transform.translate(
                                 offset: Offset(20, 0),
                                 child: Obx(() {

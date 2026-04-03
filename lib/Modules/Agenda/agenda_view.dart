@@ -41,7 +41,6 @@ class AgendaView extends StatelessWidget {
   static bool _androidVisibilityTuned = false;
   static bool _feedEntryWarmQueued = false;
   static bool _primarySurfaceBootstrapQueued = false;
-  static bool _unreadListenersStarted = false;
 
   AgendaController get controller {
     return ensureAgendaController();
@@ -51,13 +50,12 @@ class AgendaView extends StatelessWidget {
     return GlobalLoaderController.ensure();
   }
 
-  // ⚠️ CRITICAL FIX: Safe lazy loading for UnreadMessagesController
-  UnreadMessagesController get unreadController {
-    return ensureUnreadMessagesController();
-  }
-
   RecommendedUserListController get recommendedController {
     return ensureRecommendedUserListController();
+  }
+
+  UnreadMessagesController get unreadController {
+    return ensureUnreadMessagesController();
   }
 
   InAppNotificationsController get notificationsController {
@@ -84,11 +82,6 @@ class AgendaView extends StatelessWidget {
       _androidVisibilityTuned = true;
     }
 
-    // Feed açıldığında unread listener kesin aktif olsun (idempotent guard var)
-    if (!_unreadListenersStarted) {
-      _unreadListenersStarted = true;
-      unreadController.startListeners();
-    }
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenFeed),

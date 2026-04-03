@@ -39,23 +39,20 @@ extension _SplashViewWarmPart on _SplashViewState {
           preferCache: true,
           forceRefresh: forceRefresh,
         );
-        final normalized = <String, bool>{
-          for (final tabId in pasajTabs) tabId: resolved[tabId] ?? true,
-        };
+        final normalized = normalizePasajVisibilitySnapshot(resolved);
         _pasajVisibilitySnapshot = normalized;
         return normalized;
       } catch (_) {
         try {
           final local = await loadPasajVisibilitySnapshot();
-          final normalized = <String, bool>{
-            for (final tabId in pasajTabs) tabId: local[tabId] ?? true,
-          };
+          final normalized = normalizePasajVisibilitySnapshot(local);
           _pasajVisibilitySnapshot = normalized;
           return normalized;
         } catch (_) {
-          final fallback = <String, bool>{
-            for (final tabId in pasajTabs) tabId: false,
-          };
+          final fallback = normalizePasajVisibilitySnapshot(
+            null,
+            defaultValue: false,
+          );
           _pasajVisibilitySnapshot = fallback;
           return fallback;
         }

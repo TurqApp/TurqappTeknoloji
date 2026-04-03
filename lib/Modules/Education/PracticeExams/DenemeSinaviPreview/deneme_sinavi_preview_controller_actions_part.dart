@@ -187,7 +187,14 @@ extension DenemeSinaviPreviewControllerActionsPart
         });
       });
 
+      await _practiceExamRepository.invalidateExamListingCaches(
+        examId: model.docID,
+        userId: currentUid,
+      );
+
       if (alreadyApplied) {
+        dahaOnceBasvurdu.value = true;
+        await basvuruKontrol();
         AppSnackbar(
           'practice.applied_title'.tr,
           'practice.applied_body'.tr,

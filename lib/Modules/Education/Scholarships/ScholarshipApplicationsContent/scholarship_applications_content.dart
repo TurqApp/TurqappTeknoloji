@@ -1,9 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/applicant_profile.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -83,33 +83,13 @@ class _ScholarshipApplicationsContentState
                 )),
             child: Row(
               children: [
-                ClipOval(
-                  child: SizedBox(
-                    width: 50,
-                    height: 50,
-                    child: controller.avatarUrl.value.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: controller.avatarUrl.value,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                CupertinoActivityIndicator(
-                              radius: 8,
-                            ),
-                            errorWidget: (
-                              context,
-                              url,
-                              error,
-                            ) {
-                              return Container(
-                                color: Colors.grey.withAlpha(50),
-                                child: Icon(Icons.person, size: 20),
-                              );
-                            },
-                          )
-                        : Container(
-                            color: Colors.grey.withAlpha(50),
-                            child: Icon(Icons.person, size: 20),
-                          ),
+                SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: CachedUserAvatar(
+                    userId: userID,
+                    imageUrl: controller.avatarUrl.value,
+                    radius: 25,
                   ),
                 ),
                 SizedBox(width: 12),

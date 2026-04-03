@@ -1,6 +1,12 @@
 part of 'post_content_controller.dart';
 
 extension PostContentControllerProfilePart on PostContentController {
+  void _clearResharePreviewState() {
+    reSharedUsers.clear();
+    reShareUserUserID.value = '';
+    reShareUserNickname.value = '';
+  }
+
   Future<void> followCheck() async {
     final currentUid = _currentUid;
     if (model.userID != currentUid) {
@@ -206,6 +212,11 @@ extension PostContentControllerProfilePart on PostContentController {
   }
 
   Future<void> getReSharedUsers(String docID) async {
+    if (_currentUid.isEmpty) {
+      _clearResharePreviewState();
+      return;
+    }
+
     final cached = _reshareUsersCache[docID];
     if (cached != null &&
         DateTime.now().difference(cached.updatedAt) < _reshareUsersCacheTtl) {
@@ -215,10 +226,19 @@ extension PostContentControllerProfilePart on PostContentController {
       return;
     }
 
-    final reshareEntries = await _postRepository.fetchAllReshareEntries(
-      docID,
-      limit: ReadBudgetRegistry.reshareUserPreviewInitialLimit,
-    );
+    List<PostReshareEntry> reshareEntries;
+    try {
+      reshareEntries = await _postRepository.fetchAllReshareEntries(
+        docID,
+        limit: ReadBudgetRegistry.reshareUserPreviewInitialLimit,
+      );
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        _clearResharePreviewState();
+        return;
+      }
+      rethrow;
+    }
     final entries =
         reshareEntries.map((e) => MapEntry(e.userId, e.timeStamp)).toList();
     final list = entries.map((e) => e.key).toList();

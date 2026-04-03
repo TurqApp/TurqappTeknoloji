@@ -106,7 +106,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                     ),
                     if (controller.isFollowing.value == false &&
                         widget.model.userID != _currentUid &&
-                        controller.avatarUrl.value != "" &&
                         !shouldHideFollow)
                       Obx(() => TextButton(
                             onPressed: controller.followLoading.value

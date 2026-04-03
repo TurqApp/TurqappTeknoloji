@@ -311,46 +311,26 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
             shape: BoxShape.circle,
             color: Colors.white,
           ),
-          child: ClipOval(
-            child: SizedBox(
-              width: 85,
-              height: 85,
-              child: CachedNetworkImage(
-                imageUrl: controller.avatarUrl.value,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => const Center(
-                    child: CupertinoActivityIndicator(color: Colors.black)),
-              ),
+          child: SizedBox(
+            width: 85,
+            height: 85,
+            child: CachedUserAvatar(
+              userId: widget.userID,
+              imageUrl: controller.avatarUrl.value,
+              radius: 42.5,
             ),
           ),
         ),
       );
     }
 
-    return ClipOval(
-      child: SizedBox(
-        width: 85,
-        height: 85,
-        child: CachedNetworkImage(
-          imageUrl: controller.avatarUrl.value,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => const Center(
-            child: SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-          errorWidget: (context, url, error) => const Center(
-              child: CupertinoActivityIndicator(color: Colors.black)),
-        ),
+    return SizedBox(
+      width: 85,
+      height: 85,
+      child: CachedUserAvatar(
+        userId: widget.userID,
+        imageUrl: controller.avatarUrl.value,
+        radius: 42.5,
       ),
     );
   }

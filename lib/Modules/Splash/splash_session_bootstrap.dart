@@ -116,8 +116,8 @@ class SessionBootstrap {
         stackTrace: stackTrace,
       );
       try {
-        await FirebaseAuth.instance.signOut();
         await CurrentUserService.instance.logout();
+        await CurrentUserService.instance.signOutAuth();
         await ensureAccountCenterService().signOutAllLocal();
       } catch (recoveryError, recoveryStackTrace) {
         _failureReporter.record(
@@ -162,8 +162,8 @@ class SessionBootstrap {
     final firebaseUser = FirebaseAuth.instance.currentUser;
 
     if (!hasLaunchedBefore && firebaseUser != null) {
-      await FirebaseAuth.instance.signOut();
       await CurrentUserService.instance.logout();
+      await CurrentUserService.instance.signOutAuth();
       await ensureAccountCenterService().signOutAllLocal();
     }
 
