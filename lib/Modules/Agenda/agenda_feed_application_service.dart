@@ -146,9 +146,15 @@ class AgendaFeedApplicationService {
     required List<PostsModel> cacheCandidates,
     required int targetCount,
     int? startupVariantOverride,
+    Set<String>? cacheReadyVideoDocIds,
   }) {
     if (targetCount <= 0) return const <PostsModel>[];
 
+    final split = _splitStartupCandidates(
+      liveCandidates: liveCandidates,
+      cacheCandidates: cacheCandidates,
+      cacheReadyVideoDocIds: cacheReadyVideoDocIds,
+    );
     final startupVariant = startupVariantOverride ??
         startupVariantIndexForSurface(
           surfaceKey: 'feed_visible_startup_head',
@@ -156,12 +162,12 @@ class AgendaFeedApplicationService {
           variantCount: 10,
         );
     final normalizedLive = reorderForStartupSurface(
-      _dedupePosts(liveCandidates),
+      _dedupePosts(split.liveCandidates),
       surfaceKey: 'feed_startup_live_pool_v$startupVariant',
       sessionNamespace: 'feed',
-      maxShuffleWindow: liveCandidates.length,
+      maxShuffleWindow: split.liveCandidates.length,
     );
-    final normalizedCache = _dedupePosts(cacheCandidates);
+    final normalizedCache = _dedupePosts(split.cacheCandidates);
     final orderedCache = reorderForStartupSurface(
       normalizedCache,
       surfaceKey: 'feed_startup_cache_pool_v$startupVariant',
@@ -260,6 +266,7 @@ class AgendaFeedApplicationService {
     required int targetCount,
     required int nowMs,
     int? startupVariantOverride,
+    Set<String>? cacheReadyVideoDocIds,
   }) {
     final refreshPlan = buildRefreshPlan(
       currentItems: currentItems,
@@ -277,6 +284,7 @@ class AgendaFeedApplicationService {
       cacheCandidates: updatedCurrentItems,
       targetCount: targetCount,
       startupVariantOverride: startupVariantOverride,
+      cacheReadyVideoDocIds: cacheReadyVideoDocIds,
     );
     final startupHeadIds = startupHead.map((post) => post.docID).toSet();
     return <PostsModel>[
@@ -399,11 +407,11 @@ class AgendaFeedApplicationService {
   }
 
   _AgendaStartupBucket? _selectStartupBucketForSlot(
-    _AgendaStartupSlotKind desiredSlot,
-    Map<_AgendaStartupBucket, List<PostsModel>> buckets,
-    Map<_AgendaStartupBucket, int> cursorByBucket,
-    {required int videoSelectionCount, required int startupVariant}
-  ) {
+      _AgendaStartupSlotKind desiredSlot,
+      Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+      Map<_AgendaStartupBucket, int> cursorByBucket,
+      {required int videoSelectionCount,
+      required int startupVariant}) {
     for (final bucket in _startupSlotFallbackOrder(
       desiredSlot,
       videoSelectionCount: videoSelectionCount,
@@ -419,10 +427,10 @@ class AgendaFeedApplicationService {
   }
 
   _AgendaStartupBucket? _selectFallbackStartupBucket(
-    Map<_AgendaStartupBucket, List<PostsModel>> buckets,
-    Map<_AgendaStartupBucket, int> cursorByBucket,
-    {required int videoSelectionCount, required int startupVariant}
-  ) {
+      Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+      Map<_AgendaStartupBucket, int> cursorByBucket,
+      {required int videoSelectionCount,
+      required int startupVariant}) {
     final preferredVideoOrder = _preferredVideoBucketOrder(
       videoSelectionCount,
       startupVariant,
@@ -594,4 +602,50 @@ class AgendaFeedApplicationService {
     }
     return output;
   }
+
+  _AgendaStartupCandidateSplit _splitStartupCandidates({
+    required List<PostsModel> liveCandidates,
+    required List<PostsModel> cacheCandidates,
+    required Set<String>? cacheReadyVideoDocIds,
+  }) {
+    if (cacheCandidates.isEmpty || cacheReadyVideoDocIds == null) {
+      return _AgendaStartupCandidateSplit(
+        cacheCandidates: cacheCandidates,
+        liveCandidates: liveCandidates,
+      );
+    }
+
+    final normalizedCache = <PostsModel>[];
+    final normalizedLive = <PostsModel>[
+      ...liveCandidates,
+    ];
+    final normalizedReadyIds = cacheReadyVideoDocIds
+        .map((docId) => docId.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toSet();
+
+    for (final post in cacheCandidates) {
+      final docId = post.docID.trim();
+      if (!post.hasPlayableVideo || normalizedReadyIds.contains(docId)) {
+        normalizedCache.add(post);
+      } else {
+        normalizedLive.add(post);
+      }
+    }
+
+    return _AgendaStartupCandidateSplit(
+      cacheCandidates: normalizedCache,
+      liveCandidates: normalizedLive,
+    );
+  }
+}
+
+class _AgendaStartupCandidateSplit {
+  const _AgendaStartupCandidateSplit({
+    required this.cacheCandidates,
+    required this.liveCandidates,
+  });
+
+  final List<PostsModel> cacheCandidates;
+  final List<PostsModel> liveCandidates;
 }

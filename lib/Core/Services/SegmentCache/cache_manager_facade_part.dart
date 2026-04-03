@@ -40,6 +40,12 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   void cachePostCards(Iterable<PostsModel> posts) =>
       _SegmentCacheManagerRuntimeX(this).cachePostCards(posts);
 
+  void cacheHlsEntry(String docID, String masterPlaylistUrl) =>
+      _SegmentCacheManagerRuntimeX(this).cacheHlsEntry(
+        docID,
+        masterPlaylistUrl,
+      );
+
   List<String> getOfflineReadyDocIds({int limit = 0}) {
     final entries = _index.entries.values
         .where((entry) => entry.isFullyCached)

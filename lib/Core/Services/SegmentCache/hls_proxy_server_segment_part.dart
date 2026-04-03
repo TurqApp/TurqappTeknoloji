@@ -13,16 +13,9 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     if (requestedDocId == null || requestedDocId.isEmpty) {
       return false;
     }
-
-    final activeOwnerDocId = HlsSegmentPolicy.normalizeDocId(
-      VideoStateManager.instance.currentPlayingDocID,
+    return VideoStateManager.instance.allowsOnDemandSegmentFetchFor(
+      requestedDocId,
     );
-    final targetOwnerDocId = HlsSegmentPolicy.normalizeDocId(
-      VideoStateManager.instance.targetPlaybackDocID,
-    );
-
-    return requestedDocId == activeOwnerDocId ||
-        requestedDocId == targetOwnerDocId;
   }
 
   /// Segment isteği (.ts) — cache'den veya CDN'den.

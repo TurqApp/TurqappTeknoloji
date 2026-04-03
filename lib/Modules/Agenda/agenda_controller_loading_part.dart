@@ -407,8 +407,7 @@ extension AgendaControllerLoadingPart on AgendaController {
               keepFor: const Duration(milliseconds: 900));
         }
         if (shouldRecomposeStartupHead) {
-          final recomposedAgenda = _agendaFeedApplicationService
-              .mergeStartupHeadWithCurrentItems(
+          final recomposedAgenda = _mergeStartupHeadWithCurrentItems(
             currentItems: currentAgenda,
             liveItems: visibleItems,
             targetCount: FeedSnapshotRepository.startupHomeLimitValue,
@@ -756,8 +755,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         fetchedPosts: page.items,
         nowMs: nowMs,
       );
-      final mergedAgenda =
-          _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
+      final mergedAgenda = _mergeStartupHeadWithCurrentItems(
         currentItems: previousAgenda,
         liveItems: page.items,
         targetCount: FeedSnapshotRepository.startupHomeLimitValue,

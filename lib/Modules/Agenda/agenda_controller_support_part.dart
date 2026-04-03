@@ -397,8 +397,7 @@ extension AgendaControllerOverlayReturnPart on AgendaController {
         unawaited(deviceSession.warmDeviceKey());
       }
 
-      final recomposedHead =
-          _agendaFeedApplicationService.composeStartupFeedItems(
+      final recomposedHead = _composeStartupFeedItems(
         liveCandidates: const <PostsModel>[],
         cacheCandidates: currentHead,
         targetCount: currentHead.length,

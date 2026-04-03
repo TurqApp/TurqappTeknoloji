@@ -3,11 +3,45 @@ part of 'video_state_manager.dart';
 void _handleVideoStateManagerClose(VideoStateManager manager) {
   manager._pendingPlayTimer?.cancel();
   manager._pendingPlayTimer = null;
+  manager._externalOnDemandFetchClaims.clear();
 }
 
 extension VideoStateManagerRuntimePart on VideoStateManager {
   String? get currentPlayingDocID => _currentPlayingDocID;
   String? get targetPlaybackDocID => _targetPlaybackDocID;
+
+  void claimExternalOnDemandFetch(String docID) {
+    final normalizedDocID = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalizedDocID == null || normalizedDocID.isEmpty) return;
+    final currentCount = _externalOnDemandFetchClaims[normalizedDocID] ?? 0;
+    _externalOnDemandFetchClaims[normalizedDocID] = currentCount + 1;
+  }
+
+  void releaseExternalOnDemandFetch(String docID) {
+    final normalizedDocID = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalizedDocID == null || normalizedDocID.isEmpty) return;
+    final currentCount = _externalOnDemandFetchClaims[normalizedDocID];
+    if (currentCount == null) return;
+    if (currentCount <= 1) {
+      _externalOnDemandFetchClaims.remove(normalizedDocID);
+      return;
+    }
+    _externalOnDemandFetchClaims[normalizedDocID] = currentCount - 1;
+  }
+
+  bool allowsOnDemandSegmentFetchFor(String? docID) {
+    final requestedDocID = HlsSegmentPolicy.normalizeDocId(docID);
+    if (requestedDocID == null || requestedDocID.isEmpty) {
+      return false;
+    }
+    final activeOwnerDocID =
+        HlsSegmentPolicy.normalizeDocId(_currentPlayingDocID);
+    if (requestedDocID == activeOwnerDocID) return true;
+    final targetOwnerDocID =
+        HlsSegmentPolicy.normalizeDocId(_targetPlaybackDocID);
+    if (requestedDocID == targetOwnerDocID) return true;
+    return _externalOnDemandFetchClaims.containsKey(requestedDocID);
+  }
 
   bool shouldKeepAudiblePlayback(
     String docID, {

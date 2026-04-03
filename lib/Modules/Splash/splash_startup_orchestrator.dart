@@ -64,6 +64,8 @@ class SplashStartupOrchestrator {
   final StartupSessionFailureReporter _failureReporter;
 
   Future<void> initializeApp() async {
+    var shouldScheduleBackgroundInit = false;
+    var scheduledBackgroundInitFirstLaunch = false;
     try {
       final prefs = await _startupBootstrap.run();
       final sessionResult = await _bootstrapSession(prefs: prefs);
@@ -77,9 +79,8 @@ class SplashStartupOrchestrator {
         isFirstLaunch: sessionResult.isFirstLaunch,
         effectiveUserId: CurrentUserService.instance.effectiveUserId,
       );
-      _postLoginWarmup.scheduleBackgroundInit(
-        isFirstLaunch: sessionResult.isFirstLaunch,
-      );
+      shouldScheduleBackgroundInit = true;
+      scheduledBackgroundInitFirstLaunch = sessionResult.isFirstLaunch;
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.startupOrchestration,
@@ -91,6 +92,11 @@ class SplashStartupOrchestrator {
 
     if (!isMounted()) return;
     await navigateToPrimaryRoute();
+    if (shouldScheduleBackgroundInit) {
+      _postLoginWarmup.scheduleBackgroundInit(
+        isFirstLaunch: scheduledBackgroundInitFirstLaunch,
+      );
+    }
   }
 
   Future<void> runBackgroundInit({required bool isFirstLaunch}) {

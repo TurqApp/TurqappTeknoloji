@@ -3,6 +3,43 @@
 part of 'user_story_content.dart';
 
 extension UserStoryContentPlaybackPart on _UserStoryContentState {
+  void _prefetchNextStoryVideoWithinCurrentUser() {
+    try {
+      final nextIndex = storyIndex + 1;
+      if (nextIndex < 0 || nextIndex >= widget.user.stories.length) return;
+
+      final nextStory = widget.user.stories[nextIndex];
+      StoryElement? nextVideo;
+      for (final element in nextStory.elements) {
+        if (element.type == StoryElementType.video &&
+            element.content.trim().isNotEmpty) {
+          nextVideo = element;
+          break;
+        }
+      }
+      if (nextVideo == null) return;
+
+      final cacheManager = maybeFindSegmentCacheManager();
+      final prefetch = maybeFindPrefetchScheduler();
+      if (cacheManager == null || !cacheManager.isReady || prefetch == null) {
+        return;
+      }
+
+      final storyId = nextStory.id.trim();
+      final playbackUrl = canonicalizeHlsCdnUrl(nextVideo.content);
+      if (storyId.isEmpty ||
+          hlsRelativePathFromUrlOrPath(playbackUrl) == null) {
+        return;
+      }
+
+      cacheManager.cacheHlsEntry(storyId, playbackUrl);
+      prefetch.boostDoc(
+        storyId,
+        readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+      );
+    } catch (_) {}
+  }
+
   Future<void> _pauseStoryAudio() async {
     try {
       await _audioPlayer.pause();
@@ -84,6 +121,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     });
 
     final currentStory = widget.user.stories[storyIndex];
+    unawaited(Future<void>.microtask(_prefetchNextStoryVideoWithinCurrentUser));
 
     controller.getLikes(currentStory.id);
     controller.setSeen(currentStory.id);

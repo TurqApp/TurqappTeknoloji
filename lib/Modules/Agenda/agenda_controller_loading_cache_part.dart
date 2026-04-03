@@ -6,6 +6,23 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return 210;
   }
 
+  Set<String> _startupCacheReadyVideoDocIds(Iterable<PostsModel> posts) {
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null) return const <String>{};
+    final readyDocIds = <String>{};
+    for (final post in posts) {
+      if (!post.hasPlayableVideo) continue;
+      final docId = post.docID.trim();
+      if (docId.isEmpty) continue;
+      final isFullyCached =
+          cacheManager.getEntry(docId)?.isFullyCached ?? false;
+      if (isFullyCached) {
+        readyDocIds.add(docId);
+      }
+    }
+    return readyDocIds;
+  }
+
   List<PostsModel> _composeStartupFeedItems({
     required List<PostsModel> cacheCandidates,
     List<PostsModel> liveCandidates = const <PostsModel>[],
@@ -20,6 +37,27 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       liveCandidates: liveCandidates,
       cacheCandidates: cacheCandidates,
       targetCount: targetCount,
+      cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(<PostsModel>[
+        ...cacheCandidates,
+        ...liveCandidates,
+      ]),
+    );
+  }
+
+  List<PostsModel> _mergeStartupHeadWithCurrentItems({
+    required List<PostsModel> currentItems,
+    required List<PostsModel> liveItems,
+    required int targetCount,
+    required int nowMs,
+    int? startupVariantOverride,
+  }) {
+    return _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
+      currentItems: currentItems,
+      liveItems: liveItems,
+      targetCount: targetCount,
+      nowMs: nowMs,
+      startupVariantOverride: startupVariantOverride,
+      cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(currentItems),
     );
   }
 

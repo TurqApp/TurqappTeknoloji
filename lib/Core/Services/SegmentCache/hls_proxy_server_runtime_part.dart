@@ -80,15 +80,13 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
       };
 
   String? _extractDocID(String path) {
-    final match = RegExp(r'/Posts/([^/]+)/hls/').firstMatch(path);
-    return match?.group(1);
+    return hlsDocIdFromUrlOrPath(path);
   }
 
   String? _extractSegmentKey(String path, String docID) {
-    final prefix = '/Posts/$docID/hls/';
-    final idx = path.indexOf(prefix);
-    if (idx < 0) return null;
-    return path.substring(idx + prefix.length);
+    final resolvedDocId = hlsDocIdFromUrlOrPath(path);
+    if (resolvedDocId == null || resolvedDocId != docID) return null;
+    return hlsSegmentKeyFromUrlOrPath(path);
   }
 
   bool _isPlaylistRequest(String path) => path.endsWith('.m3u8');

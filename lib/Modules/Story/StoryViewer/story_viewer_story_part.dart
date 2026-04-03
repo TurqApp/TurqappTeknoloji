@@ -49,6 +49,9 @@ extension StoryViewerStoryPart on _StoryViewerState {
 
   Future<void> _prefetchNext(int index) async {
     try {
+      final cacheManager = maybeFindSegmentCacheManager();
+      final prefetch = maybeFindPrefetchScheduler();
+      final queuedVideoStoryDocIds = <String>[];
       final isWifi = await ConnectivityHelper.isWifi();
       final count = isWifi ? 3 : 1;
       for (int i = 1; i <= count; i++) {
@@ -57,6 +60,25 @@ extension StoryViewerStoryPart on _StoryViewerState {
         final nextUser = widget.storyOwnerUsers[next];
         if (nextUser.stories.isEmpty) continue;
         final firstStory = nextUser.stories.first;
+        StoryElement? firstVideo;
+        for (final element in firstStory.elements) {
+          if (element.type == StoryElementType.video &&
+              element.content.trim().isNotEmpty) {
+            firstVideo = element;
+            break;
+          }
+        }
+        if (firstVideo != null &&
+            cacheManager != null &&
+            cacheManager.isReady) {
+          final storyId = firstStory.id.trim();
+          final playbackUrl = canonicalizeHlsCdnUrl(firstVideo.content);
+          if (storyId.isNotEmpty &&
+              hlsRelativePathFromUrlOrPath(playbackUrl) != null) {
+            cacheManager.cacheHlsEntry(storyId, playbackUrl);
+            queuedVideoStoryDocIds.add(storyId);
+          }
+        }
         final firstImage = firstStory.elements.firstWhere(
           (e) =>
               e.type == StoryElementType.image ||
@@ -77,6 +99,14 @@ extension StoryViewerStoryPart on _StoryViewerState {
               .getSingleFile(firstImage.content);
           final provider = FileImage(File(file.path));
           precacheImage(provider, context).catchError((_) {});
+        }
+      }
+      if (prefetch != null && queuedVideoStoryDocIds.isNotEmpty) {
+        for (final docId in queuedVideoStoryDocIds) {
+          prefetch.boostDoc(
+            docId,
+            readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+          );
         }
       }
     } catch (_) {}

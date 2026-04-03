@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 import 'cache_metrics.dart';
+import 'hls_cache_path.dart';
 import 'models.dart';
 
 part 'cache_manager_eviction_part.dart';

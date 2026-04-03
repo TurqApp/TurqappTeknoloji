@@ -106,7 +106,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
     try {
       final probe = ensureHlsDataUsageProbe();
-      final masterPath = 'Posts/${job.docID}/hls/master.m3u8';
+      final masterPath = _resolveMasterPlaylistPath(job.docID, cacheManager);
       String? masterContent;
 
       final cachedMaster = cacheManager.getPlaylistFile(masterPath);
@@ -179,6 +179,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       if (variantContent == null) return;
 
       final segmentUris = M3U8Parser.segmentUris(variantContent);
+      final hlsRoot = _resolveHlsRoot(masterPath);
 
       cacheManager.updateEntryMeta(
         job.docID,
@@ -190,8 +191,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           variantPath.substring(0, variantPath.lastIndexOf('/') + 1);
       final uncached = <String>[];
       for (final uri in segmentUris) {
-        final segmentKey =
-            '$variantDir$uri'.replaceFirst('Posts/${job.docID}/hls/', '');
+        final segmentKey = '$variantDir$uri'.replaceFirst(hlsRoot, '');
         if (cacheManager.getSegmentFile(job.docID, segmentKey) == null) {
           uncached.add(uri);
         }
@@ -273,8 +273,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
-        final segmentKey =
-            '${variantDir.replaceFirst('Posts/${job.docID}/hls/', '')}$segUri';
+        final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
 
         _activeDownloads++;
         _resetWatchdog();
@@ -307,6 +306,27 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  String _resolveMasterPlaylistPath(
+    String docId,
+    SegmentCacheManager cacheManager,
+  ) {
+    final entry = cacheManager.getEntry(docId);
+    final seededPath =
+        hlsRelativePathFromUrlOrPath(entry?.masterPlaylistUrl ?? '');
+    if (seededPath != null && seededPath.isNotEmpty) {
+      return seededPath;
+    }
+    return 'Posts/$docId/hls/master.m3u8';
+  }
+
+  String _resolveHlsRoot(String masterPath) {
+    final hlsIndex = masterPath.indexOf('/hls/');
+    if (hlsIndex < 0) {
+      return masterPath.substring(0, masterPath.lastIndexOf('/') + 1);
+    }
+    return masterPath.substring(0, hlsIndex + '/hls/'.length);
   }
 
   void _onDownloadResult(DownloadResult result) {
@@ -402,8 +422,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         docID: docID,
         cacheManager: cacheManager,
       );
-      if (entry != null &&
-          entry.cachedSegmentCount >= readySegments) {
+      if (entry != null && entry.cachedSegmentCount >= readySegments) {
         ready++;
       }
     }

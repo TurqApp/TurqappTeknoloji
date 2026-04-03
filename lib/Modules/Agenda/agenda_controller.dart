@@ -26,6 +26,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/device_session_service.dart';
 import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/audio_focus_coordinator.dart';
+import '../../Core/Services/SegmentCache/cache_manager.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';

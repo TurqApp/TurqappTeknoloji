@@ -98,6 +98,45 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     }
   }
 
+  void cacheHlsEntry(String docID, String masterPlaylistUrl) {
+    final normalizedDocId = docID.trim();
+    final normalizedUrl = canonicalizeHlsCdnUrl(masterPlaylistUrl);
+    final relativePath = hlsRelativePathFromUrlOrPath(normalizedUrl);
+    if (normalizedDocId.isEmpty ||
+        normalizedUrl.isEmpty ||
+        relativePath == null) {
+      return;
+    }
+
+    final existing = _index.entries[normalizedDocId];
+    if (existing == null) {
+      _index.entries[normalizedDocId] = VideoCacheEntry(
+        docID: normalizedDocId,
+        masterPlaylistUrl: normalizedUrl,
+      );
+      _markDirty();
+      return;
+    }
+
+    if (existing.masterPlaylistUrl == normalizedUrl) {
+      return;
+    }
+
+    _index.entries[normalizedDocId] = VideoCacheEntry(
+      docID: normalizedDocId,
+      masterPlaylistUrl: normalizedUrl,
+      segments: existing.segments,
+      cardData: existing.cardData,
+      totalSegmentCount: existing.totalSegmentCount,
+      totalSizeBytes: existing.totalSizeBytes,
+      lastAccessedAt: existing.lastAccessedAt,
+      lastUserInteractionAt: existing.lastUserInteractionAt,
+      watchProgress: existing.watchProgress,
+      state: existing.state,
+    );
+    _markDirty();
+  }
+
   void markPlaying(String docID) {
     final entry = _index.entries[docID];
     if (entry == null) return;

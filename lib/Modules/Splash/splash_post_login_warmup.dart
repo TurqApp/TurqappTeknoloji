@@ -88,12 +88,6 @@ class PostLoginWarmup {
     if (_skipBackgroundStartupWork()) {
       return;
     }
-    if (_isIOS()) {
-      Future.delayed(const Duration(seconds: 3), () {
-        unawaited(runBackgroundInit(isFirstLaunch: isFirstLaunch));
-      });
-      return;
-    }
     unawaited(runBackgroundInit(isFirstLaunch: isFirstLaunch));
   }
 
@@ -123,9 +117,8 @@ class PostLoginWarmup {
         final onWiFi = _isOnWiFiNow();
         Future.delayed(
           Duration(
-            milliseconds: isFirstLaunch
-                ? (onWiFi ? 900 : 1200)
-                : (onWiFi ? 1400 : 1800),
+            milliseconds:
+                isFirstLaunch ? (onWiFi ? 900 : 1200) : (onWiFi ? 1400 : 1800),
           ),
           () {
             unawaited(runWarmStartLoads(isFirstLaunch: isFirstLaunch));

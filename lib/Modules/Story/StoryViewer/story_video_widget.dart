@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_cache_path.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'package:turqappv2/hls_player/hls_player_module.dart'; // ✅ HLS PLAYER
 import '../StoryMaker/story_maker_controller.dart';
@@ -41,12 +45,21 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   StreamSubscription? _hlsStateSub;
   StreamSubscription<Duration>? _hlsPositionSub;
   double? _offscreenResumePositionSeconds;
+  bool _fetchOwnershipClaimed = false;
 
   bool get _effectivePaused => widget.paused || _routePaused;
+  String get _playbackUrl {
+    final canonicalUrl = canonicalizeHlsCdnUrl(widget.element.content);
+    final proxy = maybeFindHlsProxyServer();
+    if (proxy == null) return canonicalUrl;
+    return proxy.resolveUrl(canonicalUrl);
+  }
 
   @override
   void initState() {
     super.initState();
+    _seedStoryCacheEntry();
+    _syncFetchOwnership();
     // ✅ HLS Player event listener
     _hlsStateSub = _hlsController.onStateChanged.listen((state) {
       if (!mounted) return;
@@ -85,6 +98,38 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     });
   }
 
+  void _seedStoryCacheEntry() {
+    try {
+      final cache = maybeFindSegmentCacheManager();
+      if (cache == null || !cache.isReady) return;
+      cache.cacheHlsEntry(widget.storyId, widget.element.content);
+    } catch (_) {}
+  }
+
+  void _claimFetchOwnership([String? storyId]) {
+    if (_fetchOwnershipClaimed) return;
+    VideoStateManager.instance.claimExternalOnDemandFetch(
+      storyId ?? widget.storyId,
+    );
+    _fetchOwnershipClaimed = true;
+  }
+
+  void _releaseFetchOwnership([String? storyId]) {
+    if (!_fetchOwnershipClaimed) return;
+    maybeFindVideoStateManager()?.releaseExternalOnDemandFetch(
+      storyId ?? widget.storyId,
+    );
+    _fetchOwnershipClaimed = false;
+  }
+
+  void _syncFetchOwnership() {
+    if (_effectivePaused || _notifiedEnded) {
+      _releaseFetchOwnership();
+      return;
+    }
+    _claimFetchOwnership();
+  }
+
   void _notifyStarted(Duration actualDuration) {
     if (_notifiedStarted) return;
     _notifiedStarted = true;
@@ -108,6 +153,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     if (_notifiedEnded) return;
     _notifiedEnded = true;
     _maxTimer?.cancel();
+    _releaseFetchOwnership();
     widget.onEnded();
   }
 
@@ -121,6 +167,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   }
 
   Future<void> _stopForOffscreen() async {
+    _releaseFetchOwnership();
     _offscreenResumePositionSeconds = _hlsController.currentPosition;
     if (_hlsReady && mounted) {
       setState(() {
@@ -133,6 +180,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   }
 
   Future<void> _restartAfterOffscreen() async {
+    _syncFetchOwnership();
     final resumeAt = _offscreenResumePositionSeconds;
     _offscreenResumePositionSeconds = null;
     _hlsReady = false;
@@ -140,7 +188,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       setState(() {});
     }
     await _hlsController.loadVideo(
-      widget.element.content,
+      _playbackUrl,
       autoPlay: false,
       loop: false,
     );
@@ -163,6 +211,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     routeObserver.unsubscribe(this);
     _hlsStateSub?.cancel();
     _hlsPositionSub?.cancel();
+    _releaseFetchOwnership();
     _hlsController.dispose();
     _maxTimer?.cancel();
     super.dispose();
@@ -171,6 +220,13 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   @override
   void didUpdateWidget(covariant StoryVideoWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.element.content != widget.element.content ||
+        oldWidget.storyId != widget.storyId) {
+      if (oldWidget.storyId != widget.storyId) {
+        _releaseFetchOwnership(oldWidget.storyId);
+      }
+      _seedStoryCacheEntry();
+    }
     if (oldWidget.element.isMuted != widget.element.isMuted) {
       _hlsController.setMuted(widget.element.isMuted);
     }
@@ -181,6 +237,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
         _hlsController.play();
       }
     }
+    _syncFetchOwnership();
   }
 
   @override
@@ -192,6 +249,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   @override
   void didPopNext() {
     _routePaused = false;
+    _syncFetchOwnership();
     if (!_effectivePaused && !_notifiedEnded) {
       unawaited(_restartAfterOffscreen());
     }
@@ -207,7 +265,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       children: [
         // ✅ HLS PLAYER
         HLSPlayer(
-          url: widget.element.content,
+          url: _playbackUrl,
           controller: _hlsController,
           autoPlay: !_effectivePaused,
           loop: false,
