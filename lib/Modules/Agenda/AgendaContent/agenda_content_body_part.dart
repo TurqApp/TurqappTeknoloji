@@ -293,6 +293,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       final safeRemaining = remaining.isNegative
                                           ? Duration.zero
                                           : remaining;
+                                      final countdownColor =
+                                          isStartupCacheOriginVideo
+                                          ? const Color(0xFF61E37A)
+                                          : Colors.white;
                                       return Positioned(
                                         top: 8,
                                         right: 8,
@@ -306,8 +310,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           ),
                                           child: Text(
                                             _formatDuration(safeRemaining),
-                                            style: const TextStyle(
-                                              color: Colors.white,
+                                            style: TextStyle(
+                                              color: countdownColor,
                                               fontSize: 12,
                                               fontFamily: "Montserrat",
                                             ),

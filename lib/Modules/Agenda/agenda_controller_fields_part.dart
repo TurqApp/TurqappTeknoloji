@@ -70,6 +70,7 @@ class _AgendaControllerState {
   bool feedRefreshInFlight = false;
   bool startupPresentationApplied = false;
   bool startupLiveHeadApplied = false;
+  final startupCacheOriginVideoDocIds = <String>{};
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -219,4 +220,12 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupLiveHeadApplied => _state.startupLiveHeadApplied;
   set _startupLiveHeadApplied(bool value) =>
       _state.startupLiveHeadApplied = value;
+  Set<String> get _startupCacheOriginVideoDocIds =>
+      _state.startupCacheOriginVideoDocIds;
+
+  bool isStartupCacheOriginVideoDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return false;
+    return _startupCacheOriginVideoDocIds.contains(normalized);
+  }
 }

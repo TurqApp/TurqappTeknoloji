@@ -130,6 +130,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
   }
 
+  bool get isVideoFullyCached {
+    if (!widget.model.hasPlayableVideo) return false;
+    try {
+      return _segmentCacheRuntimeService.isFullyCached(widget.model.docID);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool get isStartupCacheOriginVideo {
+    if (!_isPrimaryFeedSurfaceInstance || !widget.model.hasPlayableVideo) {
+      return false;
+    }
+    return agendaController.isStartupCacheOriginVideoDoc(widget.model.docID);
+  }
+
   int get cachedSegmentCountForCurrentVideo {
     if (!widget.model.hasPlayableVideo) return 0;
     try {

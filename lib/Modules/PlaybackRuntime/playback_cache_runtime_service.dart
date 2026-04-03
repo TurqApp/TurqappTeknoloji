@@ -278,6 +278,10 @@ class SegmentCacheRuntimeService {
     return _readEntry(docId)?.cachedSegmentCount ?? 0;
   }
 
+  bool isFullyCached(String docId) {
+    return _readEntry(docId)?.isFullyCached ?? false;
+  }
+
   bool hasReadySegment(
     String docId, {
     int minimumSegmentCount = 1,

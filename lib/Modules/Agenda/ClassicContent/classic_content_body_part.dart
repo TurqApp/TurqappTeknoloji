@@ -709,6 +709,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       final remaining = v.duration - v.position;
                       final safeRemaining =
                           remaining.isNegative ? Duration.zero : remaining;
+                      final countdownColor = isStartupCacheOriginVideo
+                          ? const Color(0xFF61E37A)
+                          : Colors.white;
                       return Positioned(
                         top: 40,
                         right: 12,
@@ -723,8 +726,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           ),
                           child: Text(
                             _formatDuration(safeRemaining),
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: countdownColor,
                               fontSize: 12,
                               fontFamily: "Montserrat",
                             ),

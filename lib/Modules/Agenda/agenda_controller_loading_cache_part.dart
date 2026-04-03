@@ -23,6 +23,29 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return readyDocIds;
   }
 
+  Set<String> _startupCacheOriginVideoDocIdsForShownItems({
+    required Iterable<PostsModel> shownItems,
+    required Iterable<PostsModel> cacheCandidates,
+    Iterable<PostsModel> liveCandidates = const <PostsModel>[],
+  }) {
+    final liveDocIds = <String>{
+      for (final post in liveCandidates)
+        if (post.docID.trim().isNotEmpty) post.docID.trim(),
+    };
+    final cacheDocIds = <String>{
+      for (final post in cacheCandidates)
+        if (post.hasPlayableVideo &&
+            post.docID.trim().isNotEmpty &&
+            !liveDocIds.contains(post.docID.trim()))
+          post.docID.trim(),
+    };
+    return <String>{
+      for (final post in shownItems)
+        if (post.hasPlayableVideo && cacheDocIds.contains(post.docID.trim()))
+          post.docID.trim(),
+    };
+  }
+
   List<PostsModel> _composeStartupFeedItems({
     required List<PostsModel> cacheCandidates,
     List<PostsModel> liveCandidates = const <PostsModel>[],
@@ -30,10 +53,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }) {
     if ((cacheCandidates.isEmpty && liveCandidates.isEmpty) ||
         targetCount <= 0) {
+      _startupCacheOriginVideoDocIds.clear();
       return const <PostsModel>[];
     }
     _startupPresentationApplied = true;
-    return _agendaFeedApplicationService.composeStartupFeedItems(
+    final shownItems = _agendaFeedApplicationService.composeStartupFeedItems(
       liveCandidates: liveCandidates,
       cacheCandidates: cacheCandidates,
       targetCount: targetCount,
@@ -42,6 +66,16 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         ...liveCandidates,
       ]),
     );
+    _startupCacheOriginVideoDocIds
+      ..clear()
+      ..addAll(
+        _startupCacheOriginVideoDocIdsForShownItems(
+          shownItems: shownItems,
+          cacheCandidates: cacheCandidates,
+          liveCandidates: liveCandidates,
+        ),
+      );
+    return shownItems;
   }
 
   List<PostsModel> _mergeStartupHeadWithCurrentItems({
@@ -51,7 +85,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int nowMs,
     int? startupVariantOverride,
   }) {
-    return _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
+    final shownItems = _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
       currentItems: currentItems,
       liveItems: liveItems,
       targetCount: targetCount,
@@ -59,6 +93,16 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       startupVariantOverride: startupVariantOverride,
       cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(currentItems),
     );
+    _startupCacheOriginVideoDocIds
+      ..clear()
+      ..addAll(
+        _startupCacheOriginVideoDocIdsForShownItems(
+          shownItems: shownItems,
+          cacheCandidates: currentItems,
+          liveCandidates: liveItems,
+        ),
+      );
+    return shownItems;
   }
 
   List<PostsModel> _applyStartupFeedPresentationOrder(
