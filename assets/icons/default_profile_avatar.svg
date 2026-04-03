@@ -9,6 +9,6 @@
 
   <circle cx="256" cy="256" r="256" fill="#FCFBFC"/>
 
-  <circle cx="256" cy="172" r="72" fill="url(#avatarGradient)"/>
-  <path d="M86 392C86 315.785 147.785 254 224 254H288C364.215 254 426 315.785 426 392C426 409.673 411.673 424 394 424H118C100.327 424 86 409.673 86 392Z" fill="url(#avatarGradient)"/>
+  <circle cx="256" cy="160" r="88" fill="url(#avatarGradient)"/>
+  <path d="M52 394C52 305.634 123.634 234 212 234H300C388.366 234 460 305.634 460 394C460 416.091 442.091 434 420 434H92C69.9086 434 52 416.091 52 394Z" fill="url(#avatarGradient)"/>
 </svg>

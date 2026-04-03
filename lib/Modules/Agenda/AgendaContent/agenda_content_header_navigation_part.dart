@@ -295,39 +295,28 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
             Color(0xFF0E5BFF),
           ];
 
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 650),
-      curve: Curves.easeOutBack,
-      tween: Tween<double>(begin: 0, end: hasStory ? 0.018 : 0),
-      child: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomRight,
-            colors: ringColors,
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(1.5),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: CachedUserAvatar(
-            userId: userId,
-            imageUrl: imageUrl,
-            radius: radius,
-          ),
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomRight,
+          colors: ringColors,
         ),
       ),
-      builder: (context, turns, child) {
-        return Transform.rotate(
-          angle: turns * 2 * 3.141592653589793,
-          child: child,
-        );
-      },
+      child: Container(
+        padding: const EdgeInsets.all(1.5),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: CachedUserAvatar(
+          userId: userId,
+          imageUrl: imageUrl,
+          radius: radius,
+        ),
+      ),
     );
   }
 }
