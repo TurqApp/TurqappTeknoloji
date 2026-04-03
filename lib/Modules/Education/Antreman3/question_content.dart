@@ -23,7 +23,7 @@ part 'question_content_item_part.dart';
 
 const _antremanLgsType = 'LGS';
 
-class QuestionContent extends StatelessWidget {
+class QuestionContent extends StatefulWidget {
   QuestionContent({super.key});
 
   final AntremanController controller = ensureAntremanController();
@@ -31,5 +31,54 @@ class QuestionContent extends StatelessWidget {
   final ScrollController _scrollController = ScrollController();
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  State<QuestionContent> createState() => _QuestionContentState();
+}
+
+class _QuestionContentState extends State<QuestionContent> {
+  late final VoidCallback _scrollListener;
+
+  void _scheduleScreenReEnter() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.controller.onScreenReEnter();
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollListener = () {
+      if (!widget._scrollController.hasClients) return;
+      final position = widget._scrollController.position;
+      if (position.pixels >= position.maxScrollExtent * 0.8 &&
+          widget.controller.loadingProgress.value >= 1.0) {
+        widget.controller.fetchMoreQuestions();
+      }
+    };
+    widget._scrollController.addListener(_scrollListener);
+    _scheduleScreenReEnter();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuestionContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget._scrollController, widget._scrollController)) {
+      oldWidget._scrollController.removeListener(_scrollListener);
+      oldWidget._scrollController.dispose();
+      widget._scrollController.addListener(_scrollListener);
+    }
+    if (!identical(oldWidget.controller, widget.controller)) {
+      _scheduleScreenReEnter();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget._scrollController.removeListener(_scrollListener);
+    widget._scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget._buildPage(context);
 }

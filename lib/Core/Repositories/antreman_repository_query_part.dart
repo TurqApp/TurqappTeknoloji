@@ -131,23 +131,31 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
     if (userId.isEmpty) return const <String>[];
     final savedMap = await _readPrefsJsonMap(_localSavedPrefsKey(userId));
     final entries = savedMap.entries
-        .map((entry) => MapEntry(entry.key, (entry.value as num?)?.toInt() ?? 0))
+        .map(
+            (entry) => MapEntry(entry.key, (entry.value as num?)?.toInt() ?? 0))
         .toList(growable: false)
       ..sort((a, b) => b.value.compareTo(a.value));
-    return entries.take(limit).map((entry) => entry.key).toList(growable: false);
+    return entries
+        .take(limit)
+        .map((entry) => entry.key)
+        .toList(growable: false);
   }
 
   Future<Map<String, String>> fetchUserAnswers(
     String userId,
     List<String> docIds,
   ) async {
-    final out = <String, String>{};
+    return const <String, String>{};
+  }
+
+  Future<Set<String>> fetchAnsweredIds(
+      String userId, List<String> docIds) async {
+    final out = <String>{};
     if (userId.isEmpty || docIds.isEmpty) return out;
-    final answers = await _readPrefsJsonMap(_localAnswersPrefsKey(userId));
+    final answered = await _readPrefsJsonMap(_localAnswersPrefsKey(userId));
     for (final docId in docIds) {
-      final answer = answers[docId]?.toString() ?? '';
-      if (answer.isNotEmpty) {
-        out[docId] = answer;
+      if (answered.containsKey(docId)) {
+        out.add(docId);
       }
     }
     return out;

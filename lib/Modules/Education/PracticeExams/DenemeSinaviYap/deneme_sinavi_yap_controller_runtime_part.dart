@@ -7,14 +7,29 @@ class _DenemeSinaviYapControllerRuntimePart {
 
   void handleOnInit() {
     _controller.selection.value = _controller.uyariAtla ? 0 : 1;
-    _controller.fetchUserData();
-    _controller.getSorular();
+    _controller.isLoading.value = true;
+    _controller.isInitialized.value = false;
+    unawaited(_bootstrapInitialData());
     _controller.checkInternetConnection();
     WidgetsBinding.instance.addObserver(_controller);
   }
 
   void handleOnClose() {
+    _controller._connectivitySubscription?.cancel();
+    _controller._connectivitySubscription = null;
     WidgetsBinding.instance.removeObserver(_controller);
+  }
+
+  Future<void> _bootstrapInitialData() async {
+    try {
+      await Future.wait(<Future<void>>[
+        fetchUserData(),
+        getSorular(),
+      ]);
+    } finally {
+      _controller.isLoading.value = false;
+      _controller.isInitialized.value = true;
+    }
   }
 
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -47,9 +62,6 @@ class _DenemeSinaviYapControllerRuntimePart {
       _controller.fullName.value = data?.displayName.trim() ?? '';
     } catch (_) {
       AppSnackbar('common.error'.tr, 'practice.user_load_failed'.tr);
-    } finally {
-      _controller.isLoading.value = false;
-      _controller.isInitialized.value = true;
     }
   }
 
@@ -65,14 +77,19 @@ class _DenemeSinaviYapControllerRuntimePart {
           List<String>.filled(questions.length, '');
     } catch (_) {
       AppSnackbar('common.error'.tr, 'practice.questions_load_failed'.tr);
-    } finally {
-      _controller.isLoading.value = false;
-      _controller.isInitialized.value = true;
     }
   }
 
   void checkInternetConnection() {
-    Connectivity().onConnectivityChanged.listen((results) {
+    _controller._connectivitySubscription?.cancel();
+    unawaited(
+      Connectivity().checkConnectivity().then((results) {
+        _controller.isConnected.value =
+            results.any((r) => r != ConnectivityResult.none);
+      }),
+    );
+    _controller._connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) {
       _controller.isConnected.value =
           results.any((r) => r != ConnectivityResult.none);
       print(
@@ -97,7 +114,12 @@ class _DenemeSinaviYapControllerRuntimePart {
   }
 
   Future<void> setData() async {
-    final docID = DateTime.now().millisecondsSinceEpoch.toString();
+    final userId = _controller._currentUserId.trim();
+    if (userId.isEmpty) {
+      AppSnackbar('common.error'.tr, 'practice.answers_save_failed'.tr);
+      return;
+    }
+    final docID = userId;
     final now = DateTime.now().millisecondsSinceEpoch.toInt();
     try {
       await FirebaseFirestore.instance
@@ -177,7 +199,15 @@ class _DenemeSinaviYapControllerRuntimePart {
   }
 
   Future<void> refreshData() async {
-    await fetchUserData();
-    await getSorular();
+    _controller.isLoading.value = true;
+    try {
+      await Future.wait(<Future<void>>[
+        fetchUserData(),
+        getSorular(),
+      ]);
+    } finally {
+      _controller.isLoading.value = false;
+      _controller.isInitialized.value = true;
+    }
   }
 }

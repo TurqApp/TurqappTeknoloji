@@ -9,9 +9,11 @@ extension SinavSonuclariPreviewControllerRuntimePart
   Future<void> _loadAnswers() async {
     isLoading.value = true;
     try {
+      final currentUserId = CurrentUserService.instance.effectiveUserId.trim();
       final snapshot = await _practiceExamRepository.fetchAnswers(
         model.docID,
         preferCache: true,
+        userId: currentUserId.isEmpty ? null : currentUserId,
       );
 
       if (snapshot.isNotEmpty) {

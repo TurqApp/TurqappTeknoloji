@@ -87,7 +87,9 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     int newAntPoint = isCorrect ? currentAntPoint + 10 : currentAntPoint - 3;
     if (newAntPoint < 0) newAntPoint = 0;
 
-    answers[question.docID] = selectedAnswer;
+    // Persist only the answered question id so we can filter it on the next
+    // launch without storing the selected choice itself.
+    answers[question.docID] = DateTime.now().millisecondsSinceEpoch;
     await _writePrefsJsonMap(answersKey, answers);
     await prefs.setInt(_localScorePrefsKey(userId), newAntPoint);
     return newAntPoint;

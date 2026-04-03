@@ -1624,15 +1624,17 @@ service cloud.firestore {
     // Soru Bankası (yeni)
     match /questionBank/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      // Sahip tüm alanları düzenleyebilir; diğer kullanıcılar sadece
-      // counter/beğeni alanlarını güncelleyebilir
+      allow create: if canManageAdminPanels() || isDocOwnerFromRequest();
       allow update: if isAuth() && (
-        resource.data.userID == request.auth.uid
+        (
+          resource.data.userID == request.auth.uid
+          && request.resource.data.userID == resource.data.userID
+        )
         || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['viewCount', 'correctCount', 'wrongCount', 'begeniler'])
+           .hasOnly(['begeniler', 'paylasanlar'])
       );
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow delete: if canManageAdminPanels()
+        || (isAuth() && resource.data.userID == request.auth.uid);
 
       match /Yorumlar/{commentId} {
         allow read: if isAuth();
@@ -1739,8 +1741,15 @@ service cloud.firestore {
       // Sınav yanıtları - kullanıcı kendi yanıtını yazar
       match /Yanitlar/{userId} {
         allow read: if isAuth();
-        allow create, update: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userID == request.auth.uid;
         allow delete: if false;
+
+        match /{lesson}/{resultId} {
+          allow read: if isAuth();
+          allow create, update: if isOwner(userId);
+          allow delete: if false;
+        }
       }
 
       match /SinaviBitenler/{entryId} {

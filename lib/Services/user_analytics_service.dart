@@ -23,9 +23,10 @@ class UserAnalyticsService {
   String get _currentUid => _userService.effectiveUserId;
 
   bool get _canWrite {
-    // Debug log temizliği için analytics write'larını kapat.
+    // Client-side Firestore analytics writes are intentionally disabled.
     if (kDebugMode) return false;
-    return !_writesDisabledByPermission;
+    if (_writesDisabledByPermission) return false;
+    return false;
   }
 
   /// Track cache hit/miss

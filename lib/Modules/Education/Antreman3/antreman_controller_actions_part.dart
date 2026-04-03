@@ -240,6 +240,27 @@ extension AntremanControllerActionsPart on AntremanController {
     }
   }
 
+  void onQuestionScreenExit() {
+    if (_pendingAnsweredQuestionIds.isNotEmpty) {
+      final pendingIds = _pendingAnsweredQuestionIds.toList(growable: false);
+      for (final questionId in pendingIds) {
+        _consumeAnsweredQuestionForExit(questionId);
+      }
+      _pendingAnsweredQuestionIds.clear();
+    }
+
+    if (questions.isEmpty) {
+      currentQuestionIndex.value = 0;
+      justAnswered.value = '';
+      return;
+    }
+
+    currentQuestionIndex.value =
+        currentQuestionIndex.value.clamp(0, questions.length - 1).toInt();
+    sortQuestions();
+    justAnswered.value = '';
+  }
+
   Future<void> fetchUniqueFields() async {
     final payload = await _antremanRepository.fetchUniqueFields(
       preferCache: true,
@@ -416,15 +437,13 @@ extension AntremanControllerActionsPart on AntremanController {
       List<QuestionBankModel> models) async {
     if (models.isEmpty) return;
     final ids = models.map((e) => e.docID).toList();
-    final answersById = await _fetchUserAnswers(ids);
     final savedSet = await _fetchSavedIds(ids);
 
     for (final q in models) {
       final key = q.docID;
-      final answer = answersById[key];
-      selectedAnswers[key] = answer ?? '';
-      initialAnswers[key] = answer ?? '';
-      answerStates[key] = answer != null && answer == q.dogruCevap;
+      selectedAnswers[key] = selectedAnswers[key] ?? '';
+      initialAnswers[key] = initialAnswers[key] ?? '';
+      answerStates[key] = answerStates[key] ?? false;
       likedQuestions[key] = q.begeniler.contains(userID);
       savedQuestions[key] = savedSet.contains(key);
     }
@@ -434,21 +453,23 @@ extension AntremanControllerActionsPart on AntremanController {
     return _antremanRepository.fetchUserAnswers(userID, docIds);
   }
 
+  Future<Set<String>> _fetchAnsweredIds(List<String> docIds) async {
+    return _antremanRepository.fetchAnsweredIds(userID, docIds);
+  }
+
   Future<List<QuestionBankModel>> _excludeAnsweredQuestions(
     List<QuestionBankModel> models,
   ) async {
     if (models.isEmpty) return const <QuestionBankModel>[];
     final ids = models.map((e) => e.docID).toList(growable: false);
-    final answersById = await _fetchUserAnswers(ids);
-    _answeredQuestionIds.addAll(answersById.keys);
+    final answeredIds = await _fetchAnsweredIds(ids);
+    _answeredQuestionIds.addAll(answeredIds);
     return models
         .where((model) => !_answeredQuestionIds.contains(model.docID))
         .toList(growable: false);
   }
 
-  Future<void> consumeAnsweredQuestion(String questionId) async {
-    if (questionId.isEmpty) return;
-    _answeredQuestionIds.add(questionId);
+  int _removeAnsweredQuestionFromLocalState(String questionId) {
     _categoryPool.removeWhere((question) => question.docID == questionId);
     _loadedQuestionIds.remove(questionId);
     searchResults.removeWhere((question) => question.docID == questionId);
@@ -462,6 +483,13 @@ extension AntremanControllerActionsPart on AntremanController {
     if (removeIndex >= 0) {
       questions.removeAt(removeIndex);
     }
+    return removeIndex;
+  }
+
+  Future<void> consumeAnsweredQuestion(String questionId) async {
+    if (questionId.isEmpty) return;
+    _answeredQuestionIds.add(questionId);
+    final removeIndex = _removeAnsweredQuestionFromLocalState(questionId);
 
     if (questions.isEmpty) {
       currentQuestionIndex.value = 0;
@@ -484,6 +512,12 @@ extension AntremanControllerActionsPart on AntremanController {
       imageAspectRatios[nextQuestion.soru] = aspectRatio ?? 1.0;
     }
     await maybePrefetchMoreQuestions();
+  }
+
+  void _consumeAnsweredQuestionForExit(String questionId) {
+    if (questionId.isEmpty) return;
+    _answeredQuestionIds.add(questionId);
+    _removeAnsweredQuestionFromLocalState(questionId);
   }
 
   Future<void> maybePrefetchMoreQuestions() async {

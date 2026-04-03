@@ -10,6 +10,7 @@ class _DenemeSinaviYapControllerState {
   final hataCount = 0.obs;
   final isLoading = true.obs;
   final isInitialized = false.obs;
+  StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
 }
 
 extension DenemeSinaviYapControllerFieldsPart on DenemeSinaviYapController {
@@ -22,4 +23,10 @@ extension DenemeSinaviYapControllerFieldsPart on DenemeSinaviYapController {
   RxInt get hataCount => _state.hataCount;
   RxBool get isLoading => _state.isLoading;
   RxBool get isInitialized => _state.isInitialized;
+  StreamSubscription<List<ConnectivityResult>>? get _connectivitySubscription =>
+      _state.connectivitySubscription;
+  set _connectivitySubscription(
+    StreamSubscription<List<ConnectivityResult>>? value,
+  ) =>
+      _state.connectivitySubscription = value;
 }

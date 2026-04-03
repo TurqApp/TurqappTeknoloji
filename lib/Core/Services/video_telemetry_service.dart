@@ -119,7 +119,8 @@ class VideoTelemetryService {
 
   bool get _canWrite {
     if (kDebugMode) return false;
-    return !_writesDisabled;
+    if (_writesDisabled) return false;
+    return false;
   }
 
   /// Start tracking a video session.

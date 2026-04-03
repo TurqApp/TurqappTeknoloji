@@ -9,6 +9,7 @@ extension DenemeSinaviPreviewControllerActionsPart
       final answers = await _practiceExamRepository.fetchAnswers(
         model.docID,
         preferCache: true,
+        userId: uid,
       );
       final userAnswers = answers
           .where((doc) => (doc["userID"] ?? "").toString() == uid)

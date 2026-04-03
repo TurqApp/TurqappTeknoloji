@@ -8,7 +8,7 @@ extension QuestionContentShellContentPart on QuestionContent {
         Expanded(
           child: GestureDetector(
             onTap: () {
-              controller.onScreenReEnter();
+              controller.onQuestionScreenExit();
               Get.back();
             },
             child: BackButtons(text: 'training.question_bank_title'.tr),
@@ -16,6 +16,7 @@ extension QuestionContentShellContentPart on QuestionContent {
         ),
         IconButton(
           onPressed: () {
+            controller.onQuestionScreenExit();
             controller.savedQuestionsList.clear();
             controller.fetchSavedQuestions();
             Get.to(() => ThenSolve());

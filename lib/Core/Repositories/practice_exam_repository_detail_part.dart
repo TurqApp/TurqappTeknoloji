@@ -51,24 +51,55 @@ extension PracticeExamRepositoryDetailPart on PracticeExamRepository {
     String docId, {
     bool preferCache = true,
     bool forceRefresh = false,
+    String? userId,
   }) async {
-    final cacheKey = 'answers:$docId';
+    final normalizedUserId = userId?.trim() ?? '';
+    final cacheKey = normalizedUserId.isEmpty
+        ? 'answers:$docId'
+        : 'answers:$docId:$normalizedUserId';
     if (!forceRefresh && preferCache) {
       final cached = await _getRawList(cacheKey);
       if (cached != null) return cached;
     }
 
-    final snap = await _firestore
+    final answersRef = _firestore
         .collection('practiceExams')
         .doc(docId)
-        .collection('Yanitlar')
-        .get();
-    final items = snap.docs
-        .map((doc) => <String, dynamic>{
-              '_docId': doc.id,
-              ...doc.data(),
-            })
-        .toList(growable: false);
+        .collection('Yanitlar');
+
+    List<Map<String, dynamic>> items;
+    if (normalizedUserId.isNotEmpty) {
+      final directDoc = await answersRef
+          .doc(normalizedUserId)
+          .get(const GetOptions(source: Source.serverAndCache));
+      if (directDoc.exists) {
+        items = <Map<String, dynamic>>[
+          <String, dynamic>{
+            '_docId': directDoc.id,
+            ...?directDoc.data(),
+          },
+        ];
+      } else {
+        final snap = await answersRef
+            .where('userID', isEqualTo: normalizedUserId)
+            .get(const GetOptions(source: Source.serverAndCache));
+        items = snap.docs
+            .map((doc) => <String, dynamic>{
+                  '_docId': doc.id,
+                  ...doc.data(),
+                })
+            .toList(growable: false);
+      }
+    } else {
+      final snap =
+          await answersRef.get(const GetOptions(source: Source.serverAndCache));
+      items = snap.docs
+          .map((doc) => <String, dynamic>{
+                '_docId': doc.id,
+                ...doc.data(),
+              })
+          .toList(growable: false);
+    }
     await _storeRawList(cacheKey, items);
     return items;
   }

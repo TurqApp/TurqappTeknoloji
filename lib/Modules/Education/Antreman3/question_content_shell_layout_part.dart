@@ -2,23 +2,11 @@ part of 'question_content.dart';
 
 extension QuestionContentShellLayoutPart on QuestionContent {
   Widget _buildPageLayout(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      controller.onScreenReEnter();
-    });
-
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-              _scrollController.position.maxScrollExtent * 0.8 &&
-          controller.loadingProgress.value >= 1.0) {
-        controller.fetchMoreQuestions();
-      }
-    });
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        controller.onScreenReEnter();
+        controller.onQuestionScreenExit();
         Get.back();
       },
       child: Scaffold(

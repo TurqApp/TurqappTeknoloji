@@ -26,6 +26,7 @@ class _AntremanControllerState {
   final categoryPool = <QuestionBankModel>[];
   final loadedQuestionIds = <String>{};
   final answeredQuestionIds = <String>{};
+  final pendingAnsweredQuestionIds = <String>{};
   final activeCategoryKey = ''.obs;
   bool isFetchingMore = false;
   bool mainCategoryPromptShown = false;
@@ -59,6 +60,8 @@ extension AntremanControllerFieldsPart on AntremanController {
   List<QuestionBankModel> get _categoryPool => _state.categoryPool;
   Set<String> get _loadedQuestionIds => _state.loadedQuestionIds;
   Set<String> get _answeredQuestionIds => _state.answeredQuestionIds;
+  Set<String> get _pendingAnsweredQuestionIds =>
+      _state.pendingAnsweredQuestionIds;
   RxString get _activeCategoryKey => _state.activeCategoryKey;
   bool get _isFetchingMore => _state.isFetchingMore;
   set _isFetchingMore(bool value) => _state.isFetchingMore = value;
