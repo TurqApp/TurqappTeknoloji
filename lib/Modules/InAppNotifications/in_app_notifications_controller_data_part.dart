@@ -205,14 +205,14 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
   }
 
   void _applyFilters() {
-    list.value = _allNotifications
-        .where((notification) => NotificationPreferencesService.isTypeEnabled(
-              notification.type.isEmpty
-                  ? notification.postType
-                  : notification.type,
-              _preferences,
-            ))
-        .toList(growable: false);
+    list.value = List<NotificationModel>.from(
+      _allNotifications.where(
+        (notification) => NotificationPreferencesService.isTypeEnabled(
+          notification.type.isEmpty ? notification.postType : notification.type,
+          _preferences,
+        ),
+      ),
+    );
     _refreshUnreadTotal();
   }
 
@@ -222,7 +222,7 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
 
   void _clearNotificationState() {
     _allNotifications.clear();
-    list.clear();
+    list.value = <NotificationModel>[];
     unreadTotal.value = 0;
     complatedDataFetch.value = true;
   }
