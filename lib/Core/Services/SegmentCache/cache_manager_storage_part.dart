@@ -141,7 +141,15 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     await for (final entity in root.list(recursive: true, followLinks: false)) {
       if (entity is! File) continue;
       final path = entity.path;
-      final length = await entity.length();
+      if (path.endsWith('.tmp')) {
+        continue;
+      }
+      int length;
+      try {
+        length = await entity.length();
+      } on FileSystemException {
+        continue;
+      }
       if (path.endsWith('/index.json')) {
         indexBytes += length;
         continue;
