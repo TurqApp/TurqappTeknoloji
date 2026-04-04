@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -141,6 +143,35 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didUpdateWidget(covariant SmartMiniVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final sourceChanged = oldWidget.videoUrl != widget.videoUrl ||
+        oldWidget.visibilityKey != widget.visibilityKey;
+    if (sourceChanged) {
+      final previousAdapter = _adapter;
+      _adapter = null;
+      if (previousAdapter != null) {
+        previousAdapter.removeListener(_onAdapterTick);
+        unawaited(
+          VideoControllerPool.release(
+            oldWidget.videoUrl,
+            coordinateAudioFocus: false,
+          ),
+        );
+      }
+      if (isVisible) {
+        _initController();
+      } else if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
+    if (oldWidget.muted != widget.muted && _adapter != null) {
+      _adapter?.setVolume(widget.muted ? 0.0 : 1.0);
+    }
   }
 
   @override

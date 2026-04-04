@@ -206,10 +206,10 @@ extension _ExploreViewTabsPart on _ExploreViewState {
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          controller.explorePosts.clear();
-          controller.lastExploreDoc = null;
-          controller.exploreHasMore.value = true;
-          await controller.fetchExplorePosts(forceRefresh: true);
+          controller.suspendExplorePreview();
+          await VideoControllerPool.pauseAll();
+          controller.shuffleExplorePosts();
+          controller.resumeExplorePreview();
         },
         child: list.isEmpty && !controller.exploreIsLoading.value
             ? Center(child: EmptyRow(text: 'explore.no_results'.tr))
@@ -263,6 +263,9 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                             aspectRatio: _safeAspectRatio(model.aspectRatio),
                             child: shouldPlayPreview
                                 ? SmartMiniVideoPlayer(
+                                    key: ValueKey(
+                                      'explore_preview_${model.docID}_${model.playbackUrl}',
+                                    ),
                                     videoUrl: model.playbackUrl,
                                     thumbnailUrl: model.thumbnail,
                                     visibilityKey: "${model.docID}_$i",
