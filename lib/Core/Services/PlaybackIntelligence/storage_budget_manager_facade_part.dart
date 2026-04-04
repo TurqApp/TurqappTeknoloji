@@ -45,7 +45,7 @@ Future<StorageBudgetProfile> _applyStorageBudgetPlanGb(
   StorageBudgetManager controller,
   int gb,
 ) async {
-  final normalized = gb.clamp(4, 7);
+  final normalized = gb.clamp(3, 6);
   controller._selectedPlanGb.value = normalized;
   return storageBudgetProfileForPlanGb(normalized);
 }

@@ -16,8 +16,6 @@ const int _prefetchSchedulerWifiMinMaxConcurrent = 4;
 const int _prefetchSchedulerWifiMinFeedFullWindow = 15;
 const int _prefetchSchedulerWifiMinFeedPrepWindow = 20;
 const int _prefetchSchedulerFeedBankBatchSize = 20;
-const double _prefetchSchedulerWifiQuotaFillRatio = 0.70;
-const double _prefetchSchedulerWifiQuotaFillToleranceRatio = 0.75;
 
 @visibleForTesting
 int resolvePrefetchReadySegmentsForPost(

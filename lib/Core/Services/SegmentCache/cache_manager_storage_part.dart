@@ -242,7 +242,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     _userSoftLimitBytes = profile.streamCacheSoftStopBytes;
 
     if (_SegmentCacheManagerRuntimeX(this).totalTrackedUsageBytes >
-        profile.streamCacheSoftStopBytes) {
+        profile.streamCacheHardStopBytes) {
       await evictIfNeeded(
         targetBytes: _segmentTargetBytesForQuota(
           profile.streamCacheSoftStopBytes,

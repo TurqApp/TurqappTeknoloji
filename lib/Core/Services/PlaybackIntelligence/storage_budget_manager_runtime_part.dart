@@ -64,15 +64,15 @@ int _storageRecentProtectionWindowForUsage(
 }
 
 StorageBudgetProfile _storageProfileForPlanGb(int gb) {
-  final normalized = gb.clamp(4, 7);
+  final normalized = gb.clamp(3, 6);
   final template = _storageTemplateFor(normalized);
+  final mediaSoftStopBytes = template.mediaQuotaBytes;
   final mediaHardStopBytes =
-      template.mediaQuotaBytes + template.reserveQuotaBytes;
-  final mediaSoftStopBytes = (mediaHardStopBytes * 0.90).round();
+      mediaSoftStopBytes + (template.mediaQuotaBytes ~/ 10);
 
   return StorageBudgetProfile(
     planGb: normalized,
-    totalPlanBytes: normalized * 1024 * 1024 * 1024,
+    totalPlanBytes: (normalized + 1) * 1024 * 1024 * 1024,
     mediaQuotaBytes: template.mediaQuotaBytes,
     imageQuotaBytes: template.imageQuotaBytes,
     metadataQuotaBytes: template.metadataQuotaBytes,
@@ -84,12 +84,12 @@ StorageBudgetProfile _storageProfileForPlanGb(int gb) {
 }
 
 int _storageBaseRecentProtectionWindow(int planGb) {
-  switch (planGb.clamp(4, 7)) {
-    case 4:
+  switch (planGb.clamp(3, 6)) {
+    case 3:
       return 32;
-    case 5:
+    case 4:
       return 42;
-    case 6:
+    case 5:
       return 46;
     default:
       return StorageBudgetManager._maxRecentProtectionWindow;
@@ -104,37 +104,37 @@ int _storageScaledWindow(int base, double factor, int minWindow) {
 
 _BudgetTemplate _storageTemplateFor(int planGb) {
   switch (planGb) {
+    case 3:
+      return const _BudgetTemplate(
+        mediaQuotaBytes: 3072 * StorageBudgetManager._mb,
+        imageQuotaBytes: 512 * StorageBudgetManager._mb,
+        metadataQuotaBytes: 0,
+        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
+        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
+      );
     case 4:
       return const _BudgetTemplate(
-        mediaQuotaBytes: 3000 * StorageBudgetManager._mb,
-        imageQuotaBytes: 420 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 220 * StorageBudgetManager._mb,
-        reserveQuotaBytes: 160 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 200 * StorageBudgetManager._mb,
+        mediaQuotaBytes: 4096 * StorageBudgetManager._mb,
+        imageQuotaBytes: 512 * StorageBudgetManager._mb,
+        metadataQuotaBytes: 0,
+        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
+        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
       );
     case 5:
       return const _BudgetTemplate(
-        mediaQuotaBytes: 3950 * StorageBudgetManager._mb,
-        imageQuotaBytes: 480 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 250 * StorageBudgetManager._mb,
-        reserveQuotaBytes: 170 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 150 * StorageBudgetManager._mb,
-      );
-    case 6:
-      return const _BudgetTemplate(
-        mediaQuotaBytes: 4900 * StorageBudgetManager._mb,
-        imageQuotaBytes: 560 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 280 * StorageBudgetManager._mb,
-        reserveQuotaBytes: 190 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 170 * StorageBudgetManager._mb,
+        mediaQuotaBytes: 5120 * StorageBudgetManager._mb,
+        imageQuotaBytes: 512 * StorageBudgetManager._mb,
+        metadataQuotaBytes: 0,
+        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
+        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
       );
     default:
       return const _BudgetTemplate(
-        mediaQuotaBytes: 5850 * StorageBudgetManager._mb,
-        imageQuotaBytes: 640 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 320 * StorageBudgetManager._mb,
-        reserveQuotaBytes: 210 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 180 * StorageBudgetManager._mb,
+        mediaQuotaBytes: 6144 * StorageBudgetManager._mb,
+        imageQuotaBytes: 512 * StorageBudgetManager._mb,
+        metadataQuotaBytes: 0,
+        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
+        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
       );
   }
 }

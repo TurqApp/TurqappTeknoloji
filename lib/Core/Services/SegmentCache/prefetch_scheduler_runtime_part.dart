@@ -77,19 +77,15 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   int get _wifiQuotaFillTargetBytes {
-    if (!_isOnWiFi) return 0;
     final profile = _storageBudgetProfile;
     if (profile == null) return 0;
-    return (profile.totalPlanBytes * _prefetchSchedulerWifiQuotaFillRatio)
-        .round();
+    return profile.streamCacheSoftStopBytes;
   }
 
   int get _wifiQuotaFillStopBytes {
-    if (!_isOnWiFi) return 0;
     final profile = _storageBudgetProfile;
     if (profile == null) return 0;
-    return (profile.totalPlanBytes * _prefetchSchedulerWifiQuotaFillToleranceRatio)
-        .round();
+    return profile.streamCacheHardStopBytes;
   }
 
   bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {

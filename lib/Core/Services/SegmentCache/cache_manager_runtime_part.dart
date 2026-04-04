@@ -196,12 +196,10 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   void _scheduleEvictionIfNeeded() {
-    if (totalTrackedUsageBytes <= _softLimitBytes) return;
+    if (totalTrackedUsageBytes <= _hardLimitBytes) return;
     if (_evictionInFlight != null) return;
 
-    final quotaTarget =
-        totalTrackedUsageBytes > _hardLimitBytes ? _hardLimitBytes : _softLimitBytes;
-    final target = _segmentTargetBytesForQuota(quotaTarget);
+    final target = _segmentTargetBytesForQuota(_softLimitBytes);
 
     _evictionInFlight = evictIfNeeded(targetBytes: target).whenComplete(() {
       _evictionInFlight = null;

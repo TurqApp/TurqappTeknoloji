@@ -6,28 +6,23 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
         _PermissionsViewState._maxDisplayQuotaGb,
       );
 
-  int _effectiveQuotaGb(int displayGb) =>
-      (_normalizeDisplayQuota(displayGb) + 1).clamp(4, 7);
-
   Future<void> _loadQuota() async {
     final prefs = await SharedPreferences.getInstance();
     final saved = _normalizeDisplayQuota(
       prefs.getInt(_PermissionsViewState._quotaKey) ?? 3,
     );
-    final effectiveQuota = _effectiveQuotaGb(saved);
-    await StorageBudgetManager.maybeFind()?.applyPlanGb(effectiveQuota);
-    await SegmentCacheManager.maybeFind()?.setUserLimitGB(effectiveQuota);
+    await StorageBudgetManager.maybeFind()?.applyPlanGb(saved);
+    await SegmentCacheManager.maybeFind()?.setUserLimitGB(saved);
     _updatePermissionsViewState(() => _selectedQuota = saved);
   }
 
   Future<void> _setQuota(int gb) async {
     final displayQuota = _normalizeDisplayQuota(gb);
-    final effectiveQuota = _effectiveQuotaGb(displayQuota);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_PermissionsViewState._quotaKey, displayQuota);
     try {
-      await StorageBudgetManager.maybeFind()?.applyPlanGb(effectiveQuota);
-      await SegmentCacheManager.maybeFind()?.setUserLimitGB(effectiveQuota);
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(displayQuota);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(displayQuota);
     } catch (_) {}
     _updatePermissionsViewState(() => _selectedQuota = displayQuota);
   }
@@ -71,9 +66,8 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
   }
 
   Widget _buildQuotaBreakdown() {
-    final profile = storageBudgetProfileForPlanGb(
-      _effectiveQuotaGb(_selectedQuota),
-    );
+    final profile = storageBudgetProfileForPlanGb(_selectedQuota);
+    final otherDataBytes = profile.totalPlanBytes - profile.mediaQuotaBytes;
     final cacheManager = SegmentCacheManager.maybeFind();
     final usage = cacheManager == null
         ? null
@@ -88,9 +82,10 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
     final rows = <MapEntry<String, int>>[
       MapEntry('permissions.quota.media_cache'.tr, profile.mediaQuotaBytes),
       MapEntry('permissions.quota.image_cache'.tr, profile.imageQuotaBytes),
-      MapEntry('permissions.quota.metadata'.tr, profile.metadataQuotaBytes),
       MapEntry('permissions.quota.reserve'.tr, profile.reserveQuotaBytes),
       MapEntry('permissions.quota.os_safety'.tr, profile.osSafetyMarginBytes),
+      if (profile.metadataQuotaBytes > 0)
+        MapEntry('permissions.quota.metadata'.tr, profile.metadataQuotaBytes),
     ];
 
     return Container(
@@ -105,8 +100,8 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'permissions.quota.plan_distribution'
-                .trParams(<String, String>{'gb': '$_selectedQuota'}),
+            '$_selectedQuota GB video cache + '
+            '${CacheMetrics.formatBytes(otherDataBytes)} diger veri',
             style: const TextStyle(
               color: Colors.black,
               fontSize: 14,

@@ -200,8 +200,7 @@ class PostLoginWarmup {
   Future<void> _applyGlobalMediaCacheQuota() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
-      final quotaGb = (savedGb + 1).clamp(4, 7);
+      final quotaGb = (prefs.getInt('offline_cache_quota_gb') ?? 3).clamp(3, 6);
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       final cache = SegmentCacheManager.maybeFind();
       if (cache == null) return;

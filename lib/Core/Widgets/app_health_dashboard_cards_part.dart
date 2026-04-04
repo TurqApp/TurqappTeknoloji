@@ -75,6 +75,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
                 : usage.softUsageRatio >= 0.75
                     ? 'approaching_soft_stop'
                     : 'healthy';
+    final otherDataBytes = profile.totalPlanBytes - profile.mediaQuotaBytes;
 
     return Card(
       elevation: 2,
@@ -91,15 +92,18 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
               ),
             ),
             const SizedBox(height: 12),
-            Text('app_health.plan_gb'
-                .trParams({'gb': profile.planGb.toString()})),
+            Text(
+              '${profile.planGb} GB video cache + '
+              '${CacheMetrics.formatBytes(otherDataBytes)} diger veri',
+            ),
             Text('app_health.media_quota'.trParams(
                 {'value': CacheMetrics.formatBytes(profile.mediaQuotaBytes)})),
             Text('app_health.image_quota'.trParams(
                 {'value': CacheMetrics.formatBytes(profile.imageQuotaBytes)})),
-            Text('app_health.metadata_quota'.trParams({
-              'value': CacheMetrics.formatBytes(profile.metadataQuotaBytes)
-            })),
+            if (profile.metadataQuotaBytes > 0)
+              Text('app_health.metadata_quota'.trParams({
+                'value': CacheMetrics.formatBytes(profile.metadataQuotaBytes)
+              })),
             Text('app_health.soft_hard_stop'.trParams({
               'soft':
                   CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes),
