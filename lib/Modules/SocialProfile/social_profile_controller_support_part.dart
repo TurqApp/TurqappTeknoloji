@@ -12,6 +12,7 @@ final UserPostLinkService _linkService = UserPostLinkService.ensure();
 final ProfileRepository _profileRepository = ensureProfileRepository();
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 const int _socialProfilePageSize = 10;
+const int _socialProfileSecondaryPageSize = 12;
 const int _socialProfileFeedLoadTriggerRemaining = 5;
 
 const Duration _followCheckCacheTtl = Duration(seconds: 20);
@@ -40,8 +41,8 @@ String _resolveNickname(
 
 extension SocialProfileControllerSupportPart on SocialProfileController {
   int get pageSize => _socialProfilePageSize;
-  int get pageSizePhoto => _socialProfilePageSize;
-  int get pageSizeScheduled => _socialProfilePageSize;
+  int get pageSizePhoto => _socialProfileSecondaryPageSize;
+  int get pageSizeScheduled => _socialProfileSecondaryPageSize;
   int get feedLoadTriggerRemaining => _socialProfileFeedLoadTriggerRemaining;
 
   int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();

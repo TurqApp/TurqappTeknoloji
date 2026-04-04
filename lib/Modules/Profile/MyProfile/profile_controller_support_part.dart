@@ -16,13 +16,14 @@ final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
 const int _profilePageLimit = 10;
+const int _profileSecondaryPageLimit = 20;
 const int _profileFeedLoadTriggerRemaining = 5;
 
 extension ProfileControllerSupportPart on ProfileController {
   int get postLimit => _profilePageLimit;
-  int get scheduledLimit => _profilePageLimit;
-  int get postLimitPhotos => _profilePageLimit;
-  int get postLimitVideos => _profilePageLimit;
+  int get scheduledLimit => _profileSecondaryPageLimit;
+  int get postLimitPhotos => _profileSecondaryPageLimit;
+  int get postLimitVideos => _profileSecondaryPageLimit;
   int get feedLoadTriggerRemaining => _profileFeedLoadTriggerRemaining;
 
   Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(

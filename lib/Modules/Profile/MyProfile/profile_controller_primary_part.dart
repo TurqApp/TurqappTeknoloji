@@ -77,28 +77,44 @@ extension ProfileControllerPrimaryPart on ProfileController {
     bool isInitial = false,
     bool force = false,
   }) async {
-    await _fetchPrimaryBuckets(initial: isInitial, force: force);
+    await _fetchPrimaryBuckets(
+      initial: isInitial,
+      force: force,
+      limitOverride: postLimit,
+    );
   }
 
   Future<void> _performFetchPhotos({
     bool isInitial = false,
     bool force = false,
   }) async {
-    await _fetchPrimaryBuckets(initial: isInitial, force: force);
+    await _fetchPrimaryBuckets(
+      initial: isInitial,
+      force: force,
+      limitOverride: postLimitPhotos,
+    );
   }
 
   Future<void> _performFetchVideos({
     bool isInitial = false,
     bool force = false,
   }) async {
-    await _fetchPrimaryBuckets(initial: isInitial, force: force);
+    await _fetchPrimaryBuckets(
+      initial: isInitial,
+      force: force,
+      limitOverride: postLimitVideos,
+    );
   }
 
   Future<void> _performFetchScheduledPosts({
     bool isInitial = false,
     bool force = false,
   }) async {
-    await _fetchPrimaryBuckets(initial: isInitial, force: force);
+    await _fetchPrimaryBuckets(
+      initial: isInitial,
+      force: force,
+      limitOverride: scheduledLimit,
+    );
   }
 
   Future<void> _performGetLastPostAndAddToAllPosts() async {
@@ -153,6 +169,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
   Future<void> _performFetchPrimaryBuckets({
     required bool initial,
     bool force = false,
+    int? limitOverride,
   }) async {
     final uid = _resolvedActiveUid;
     if (uid == null) return;
@@ -171,10 +188,11 @@ extension ProfileControllerPrimaryPart on ProfileController {
         _hasMorePrimary = true;
       }
 
+      final limit = limitOverride ?? postLimit;
       final page = await _profileRepository.fetchPrimaryPage(
         uid: uid,
         startAfter: initial ? null : _lastPrimaryDoc,
-        limit: postLimit,
+        limit: limit,
       );
 
       final shouldPreserveExistingBuckets = initial &&

@@ -2,11 +2,11 @@ part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedPart on SocialProfileController {
   Future<void> _performGetPosts({bool initial = false}) async {
-    await _fetchPrimaryBuckets(initial: initial);
+    await _fetchPrimaryBuckets(initial: initial, limitOverride: pageSize);
   }
 
   Future<void> _performGetPhotos({bool initial = false}) async {
-    await _fetchPrimaryBuckets(initial: initial);
+    await _fetchPrimaryBuckets(initial: initial, limitOverride: pageSizePhoto);
   }
 
   Future<void> _performSetPostSelection(int index) async {
@@ -24,7 +24,10 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
   }
 
   Future<void> _performFetchScheduledPosts({bool initial = false}) async {
-    await _fetchPrimaryBuckets(initial: initial);
+    await _fetchPrimaryBuckets(
+      initial: initial,
+      limitOverride: pageSizeScheduled,
+    );
   }
 
   Future<void> _performRefreshAll() async {
@@ -68,6 +71,7 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
   Future<void> _performFetchPrimaryBuckets({
     required bool initial,
     bool force = false,
+    int? limitOverride,
   }) async {
     if (_isLoadingPrimary && !force) return;
     if (!initial && !_hasMorePrimary) return;
@@ -82,11 +86,12 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
         _hasMorePrimary = true;
       }
 
+      final limit = limitOverride ?? pageSize;
       final page = await PerformanceService.traceFeedLoad(
         () => _profileRepository.fetchPrimaryPage(
           uid: userID,
           startAfter: initial ? null : _lastPrimaryDoc,
-          limit: pageSize,
+          limit: limit,
         ),
         postCount: allPosts.length,
         feedMode: 'profile_primary',

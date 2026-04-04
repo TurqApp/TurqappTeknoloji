@@ -226,10 +226,12 @@ extension ProfileControllerRuntimePart on ProfileController {
   Future<void> _fetchPrimaryBuckets({
     required bool initial,
     bool force = false,
+    int? limitOverride,
   }) =>
       _performFetchPrimaryBuckets(
         initial: initial,
         force: force,
+        limitOverride: limitOverride,
       );
 
   List<PostsModel> _dedupePosts(
