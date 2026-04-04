@@ -8,14 +8,7 @@ extension ShortControllerLoadingPart on ShortController {
       return posts;
     }
     _startupPresentationApplied = true;
-    return reorderForStartupSurface(
-      posts,
-      surfaceKey: 'short_startup',
-      sessionNamespace: 'short',
-      maxShuffleWindow: ContentPolicy.initialPoolLimit(
-        ContentScreenKind.shorts,
-      ),
-    );
+    return posts;
   }
 
   bool get _shouldPreferOfflineCache =>
@@ -256,6 +249,8 @@ extension ShortControllerLoadingPart on ShortController {
     List<PostsModel> posts,
   ) async {
     if (posts.isEmpty) return const <PostsModel>[];
+    final warmFeedVisibleVideoDocIds =
+        await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId);
     final authorIds =
         posts.map((e) => e.userID).toSet().toList(growable: false);
     final userSummaries = await _fetchUserSummaries(authorIds);
@@ -285,7 +280,12 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
-    return filtered;
+    final deduped =
+        excludeFeedVisibleShortConflicts(filtered, warmFeedVisibleVideoDocIds);
+    return mixShortPresentationPosts(
+      deduped,
+      sessionNamespace: 'short',
+    );
   }
 
   Future<List<PostsModel>> _loadOfflineCachedShorts({

@@ -31,6 +31,8 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
       .toList(growable: false);
   if (normalized.isEmpty) return const <PostsModel>[];
 
+  final warmFeedVisibleVideoDocIds =
+      await loadWarmFeedVisibleVideoDocIdsForShort(currentUserId);
   final authorIds = normalized
       .map((post) => post.userID)
       .where((id) => id.isNotEmpty)
@@ -69,18 +71,24 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
       ),
     );
   }
+  final deduped =
+      excludeFeedVisibleShortConflicts(visible, warmFeedVisibleVideoDocIds);
+  final mixed = mixShortPresentationPosts(
+    deduped,
+    sessionNamespace: 'short',
+  );
   repository._invariantGuard.assertNotEmptyAfterRefresh(
     surface: 'short',
     invariantKey: 'eligible_visible_after_filter',
     hadSnapshot: normalized.isNotEmpty,
     previousCount: normalized.length,
-    nextCount: visible.length,
+    nextCount: mixed.length,
     payload: <String, dynamic>{
       'currentUserId': currentUserId,
       'followingCount': followingIds.length,
     },
   );
-  return visible;
+  return mixed;
 }
 
 List<PostsModel> _performNormalizePosts(List<PostsModel> posts) {
