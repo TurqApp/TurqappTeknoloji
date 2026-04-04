@@ -334,6 +334,17 @@ Beklenen kapanis:
   - related/similar surface fetch ve visible limitleri
   - personalized/vitrin/bootstrap/home seed limitleri
   - feed/short/explore prefetch ve candidate havuz limitleri
+- Media prefetch ve offline cache scheduling mimarisi tek merkezli
+  ownership ile calisacak:
+  - `PrefetchScheduler` tek aktif scheduler olarak kalacak
+  - ayni anda ikinci aktif scheduling context olusturulmayacak
+  - `splash`, `warmup`, `feed bank`, `quota fill`, `feed`, `short` ve
+    benzeri akislar bagimsiz ikinci queue/scheduler acmayacak
+  - bu akislar mevcut scheduler uzerinden calisacak; feed surface state'ini,
+    bank state'ini veya aktif owner baglamini yan etkili sekilde ezmeyecek
+  - yeni bir feature, performans veya cache ihtiyaci icin paralel scheduler,
+    surface-bagli ikinci queue veya repo-local prefetch omurgasi kurmak
+    anayasa ihlalidir
 - Su sayilar surface policy omurgasina dahil degildir; ancak sadece kendi
   dar rolunde lokal kalabilir:
   - diagnostic sample sayilari
