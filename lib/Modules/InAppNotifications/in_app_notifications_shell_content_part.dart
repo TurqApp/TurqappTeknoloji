@@ -69,7 +69,6 @@ extension InAppNotificationsShellContentPart on _InAppNotificationsState {
                 },
                 onDeleteAll: () {
                   Navigator.of(ctx).pop();
-                  controller.list.clear();
                   controller.bildirimleriTopluSil();
                 },
               );

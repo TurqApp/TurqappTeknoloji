@@ -64,6 +64,7 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
     _notificationSub = _notificationsRepository
         .watchCachedNotifications(uid)
         .listen((snapshot) {
+      if (_suppressRemoteInboxSync) return;
       _applyNotificationDocs(snapshot.docs, replace: true);
     }, onError: (error) {
       complatedDataFetch.value = true;
@@ -77,6 +78,7 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
   void _bindNewNotificationHeadStream(String uid) {
     _newNotificationHeadSub =
         _notificationsRepository.watchNotificationHead(uid).listen((snapshot) {
+      if (_suppressRemoteInboxSync) return;
       if (snapshot.docs.isEmpty) return;
       final headData = snapshot.docs.first.data();
       final headTs = _asInt(headData['timeStamp']);
@@ -87,12 +89,14 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
   }
 
   Future<void> _fetchOnlyNewNotifications(String uid) async {
+    if (_suppressRemoteInboxSync) return;
     try {
       final latestTs = _latestLoadedNotificationTs();
       final snapshot = await _notificationsRepository.fetchOnlyNewNotifications(
         uid,
         latestTs: latestTs,
       );
+      if (_suppressRemoteInboxSync) return;
       _applyNotificationDocs(snapshot.docs, replace: false);
     } catch (_) {}
   }
@@ -152,6 +156,7 @@ extension InAppNotificationsControllerDataPart on InAppNotificationsController {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
     required bool replace,
   }) {
+    if (_suppressRemoteInboxSync) return;
     final mapped = _mapNotificationDocs(docs);
     if (replace) {
       _allNotifications

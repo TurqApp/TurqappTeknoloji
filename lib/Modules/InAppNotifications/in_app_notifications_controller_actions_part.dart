@@ -209,8 +209,9 @@ extension InAppNotificationsControllerActionsPart
 
   Future<void> bildirimleriTopluSil() async {
     final uid = _currentUid;
-    if (uid.isEmpty) return;
+    if (uid.isEmpty || _suppressRemoteInboxSync) return;
     final previousAll = List<NotificationModel>.from(_allNotifications);
+    _suppressRemoteInboxSync = true;
     _clearNotificationState();
     await _notificationsSnapshotRepository.persistInboxSnapshot(
       userId: uid,
@@ -219,6 +220,7 @@ extension InAppNotificationsControllerActionsPart
     );
     try {
       await _notificationsRepository.deleteAll(uid);
+      await _refreshNotificationsSnapshot(uid);
     } catch (_) {
       _allNotifications
         ..clear()
@@ -231,6 +233,8 @@ extension InAppNotificationsControllerActionsPart
         source: CachedResourceSource.scopedDisk,
       ));
       rethrow;
+    } finally {
+      _suppressRemoteInboxSync = false;
     }
   }
 

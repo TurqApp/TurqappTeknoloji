@@ -6,6 +6,7 @@ class _InAppNotificationsControllerState {
   final list = <NotificationModel>[].obs;
   final complatedDataFetch = false.obs;
   final busyMarkAllRead = false.obs;
+  bool suppressRemoteInboxSync = false;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? notificationSub;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       newNotificationHeadSub;
@@ -27,6 +28,9 @@ extension InAppNotificationsControllerFieldsPart
   RxList<NotificationModel> get list => _state.list;
   RxBool get complatedDataFetch => _state.complatedDataFetch;
   RxBool get busyMarkAllRead => _state.busyMarkAllRead;
+  bool get _suppressRemoteInboxSync => _state.suppressRemoteInboxSync;
+  set _suppressRemoteInboxSync(bool value) =>
+      _state.suppressRemoteInboxSync = value;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       get _notificationSub => _state.notificationSub;
   set _notificationSub(
