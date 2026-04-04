@@ -18,10 +18,36 @@ service firebase.storage {
         && request.resource.metadata.keys().hasAll(['uploaderUid'])
         && request.resource.metadata.uploaderUid == request.auth.uid;
     }
+    function isUidTokenInChatId(chatId) {
+      return isAuth()
+        && (
+          chatId == request.auth.uid
+          || chatId.matches(request.auth.uid + '_.*')
+          || chatId.matches('.*_' + request.auth.uid)
+        );
+    }
     function isConversationParticipant(chatId) {
       return isAuth()
-        && firestore.exists(/databases/(default)/documents/conversations/$(chatId))
-        && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.participants;
+        && (
+          isUidTokenInChatId(chatId)
+          || (
+            firestore.exists(/databases/(default)/documents/conversations/$(chatId))
+            && (
+              (
+                firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.participants is list
+                && request.auth.uid in firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.participants
+              )
+              || (
+                firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.userID1 is string
+                && request.auth.uid == firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.userID1
+              )
+              || (
+                firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.userID2 is string
+                && request.auth.uid == firestore.get(/databases/(default)/documents/conversations/$(chatId)).data.userID2
+              )
+            )
+          )
+        );
     }
 
     // User profile images
