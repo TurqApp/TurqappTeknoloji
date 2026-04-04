@@ -13,11 +13,13 @@ enum ShortMixBucket {
 
 class _ShortPresentationSignal {
   const _ShortPresentationSignal({
+    required this.activelyDownloading,
     required this.readinessTier,
     required this.queuePosition,
     required this.cachedSegments,
   });
 
+  final bool activelyDownloading;
   final int readinessTier;
   final int queuePosition;
   final int cachedSegments;
@@ -30,8 +32,14 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(String userId) async 
   }
 
   final feedRepository = maybeFindFeedSnapshotRepository();
+  final schedulerDocIds = maybeFindPrefetchScheduler()
+          ?.currentFeedDocIds()
+          .map((docId) => docId.trim())
+          .where((docId) => docId.isNotEmpty)
+          .toSet() ??
+      <String>{};
   if (feedRepository == null) {
-    return const <String>{};
+    return schedulerDocIds;
   }
 
   final resource = await feedRepository.inspectWarmHome(
@@ -40,14 +48,17 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(String userId) async 
   );
   final posts = resource.data ?? const <PostsModel>[];
   if (posts.isEmpty) {
-    return const <String>{};
+    return schedulerDocIds;
   }
 
-  return posts
+  return <String>{
+    ...schedulerDocIds,
+    ...posts
       .where((post) => post.hasPlayableVideo)
       .map((post) => post.docID.trim())
       .where((docId) => docId.isNotEmpty)
-      .toSet();
+      .toSet(),
+  };
 }
 
 List<PostsModel> excludeFeedVisibleShortConflicts(
@@ -222,6 +233,11 @@ List<PostsModel> _reorderBucketForPresentation(
       )
       .toList(growable: true)
     ..sort((left, right) {
+      final activeCompare =
+          (right.value.activelyDownloading ? 1 : 0) -
+          (left.value.activelyDownloading ? 1 : 0);
+      if (activeCompare != 0) return activeCompare;
+
       final tierCompare =
           right.value.readinessTier.compareTo(left.value.readinessTier);
       if (tierCompare != 0) return tierCompare;
@@ -278,10 +294,13 @@ _ShortPresentationSignal _resolveShortPresentationSignal(PostsModel post) {
   final scheduler = maybeFindPrefetchScheduler();
   final entry = cacheManager?.getEntry(docId);
   final cachedSegments = entry?.cachedSegmentCount ?? 0;
+  final activelyDownloading =
+      scheduler?.isActivelyDownloadingDoc(docId) ?? false;
   final queuePosition = scheduler?.queuePositionForDoc(docId) ?? -1;
   final hasPendingPrefetch =
       scheduler?.hasPendingPrefetchForDoc(docId) ?? false;
-  final isQueued = queuePosition >= 0 || hasPendingPrefetch;
+  final isQueued =
+      activelyDownloading || queuePosition >= 0 || hasPendingPrefetch;
 
   final readinessTier = switch ((entry?.isFullyCached ?? false, cachedSegments, isQueued)) {
     (true, _, _) => 5,
@@ -294,6 +313,7 @@ _ShortPresentationSignal _resolveShortPresentationSignal(PostsModel post) {
   };
 
   return _ShortPresentationSignal(
+    activelyDownloading: activelyDownloading,
     readinessTier: readinessTier,
     queuePosition: queuePosition,
     cachedSegments: cachedSegments,

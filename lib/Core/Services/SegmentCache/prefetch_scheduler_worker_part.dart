@@ -60,6 +60,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _queue.clear();
     _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
+    _activeDocRefCounts.clear();
     _activeBankDownloads = 0;
     _activeBankDocIDs.clear();
 
@@ -310,6 +311,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
 
+        _activeDocRefCounts.update(
+          job.docID,
+          (value) => value + 1,
+          ifAbsent: () => 1,
+        );
         if (_isBankDocId(job.docID) && _activeBankDocIDs.add(job.docID)) {
           _activeBankDownloads++;
         }
@@ -369,6 +375,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   void _onDownloadResult(DownloadResult result) {
     _activeDownloads = (_activeDownloads - 1).clamp(0, _maxConcurrent * 2);
+    final remainingActiveRefs = (_activeDocRefCounts[result.docID] ?? 0) - 1;
+    if (remainingActiveRefs > 0) {
+      _activeDocRefCounts[result.docID] = remainingActiveRefs;
+    } else {
+      _activeDocRefCounts.remove(result.docID);
+    }
     if (_activeBankDocIDs.remove(result.docID)) {
       _activeBankDownloads = (_activeBankDownloads - 1).clamp(0, _maxConcurrent);
     }
@@ -484,6 +496,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             '[Prefetch] Watchdog: $_activeDownloads stuck downloads, resetting worker',
           );
           _activeDownloads = 0;
+          _activeDocRefCounts.clear();
           _activeBankDownloads = 0;
           _activeBankDocIDs.clear();
           _workerSub?.cancel();
