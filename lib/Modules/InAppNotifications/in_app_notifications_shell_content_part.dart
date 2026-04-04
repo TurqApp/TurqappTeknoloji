@@ -30,15 +30,25 @@ extension InAppNotificationsShellContentPart on _InAppNotificationsState {
               }
               return Align(
                 alignment: Alignment.centerRight,
-                child: IconButton(
-                  key: const ValueKey(
-                    IntegrationTestKeys.actionNotificationsMore,
-                  ),
-                  onPressed: () => _showNotificationActions(context),
-                  icon: const Icon(
-                    Icons.more_horiz,
-                    color: Colors.black87,
-                    size: 22,
+                child: PullDownButton(
+                  itemBuilder: (context) => [
+                    PullDownMenuItem(
+                      title: 'notifications.delete_all'.tr,
+                      icon: CupertinoIcons.delete,
+                      isDestructive: true,
+                      onTap: controller.bildirimleriTopluSil,
+                    ),
+                  ],
+                  buttonBuilder: (context, showMenu) => IconButton(
+                    key: const ValueKey(
+                      IntegrationTestKeys.actionNotificationsMore,
+                    ),
+                    onPressed: showMenu,
+                    icon: const Icon(
+                      Icons.more_horiz,
+                      color: Colors.black87,
+                      size: 22,
+                    ),
                   ),
                 ),
               );
@@ -47,40 +57,6 @@ extension InAppNotificationsShellContentPart on _InAppNotificationsState {
         ],
       ),
     );
-  }
-
-  Future<void> _showNotificationActions(BuildContext context) async {
-    try {
-      maybeFindNavBarController()?.pushMediaOverlayLock();
-      await showModalBottomSheet<void>(
-        context: context,
-        backgroundColor: Colors.transparent,
-        isScrollControlled: true,
-        builder: (ctx) {
-          return SafeArea(
-            top: false,
-            child: Obx(() {
-              return NotificationActionsSheetContent(
-                unreadCount: controller.unreadCount,
-                busyMarkAllRead: controller.busyMarkAllRead.value,
-                onMarkAllRead: () {
-                  Navigator.of(ctx).pop();
-                  controller.markAllAsRead();
-                },
-                onDeleteAll: () {
-                  Navigator.of(ctx).pop();
-                  controller.bildirimleriTopluSil();
-                },
-              );
-            }),
-          );
-        },
-      );
-    } finally {
-      try {
-        maybeFindNavBarController()?.popMediaOverlayLock();
-      } catch (_) {}
-    }
   }
 
   Widget _buildTabs() {

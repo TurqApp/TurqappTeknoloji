@@ -223,10 +223,7 @@ extension _StoryCircleContentPart on _StoryCircleState {
         imageUrl: imageUrl,
         radius: _StoryCircleState._storyAvatarRadius,
         backgroundColor: Colors.transparent,
-        placeholder: const DefaultAvatar(
-          radius: _StoryCircleState._storyAvatarRadius,
-          backgroundColor: Colors.transparent,
-        ),
+        placeholder: const SizedBox.expand(),
       ),
     );
   }

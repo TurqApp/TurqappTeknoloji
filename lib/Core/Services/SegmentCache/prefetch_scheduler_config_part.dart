@@ -16,6 +16,11 @@ const int _prefetchSchedulerWifiMinMaxConcurrent = 4;
 const int _prefetchSchedulerWifiMinFeedFullWindow = 15;
 const int _prefetchSchedulerWifiMinFeedPrepWindow = 20;
 const int _prefetchSchedulerFeedBankBatchSize = 20;
+const int _prefetchSchedulerQuotaFillBurstSegments = 2;
+const int _prefetchSchedulerQuotaFillBoostReadySegments = 8;
+const int _prefetchSchedulerQuotaFillRemotePageLimit = 40;
+const int _prefetchSchedulerQuotaFillPlanningDocLimit = 180;
+const int _prefetchSchedulerQuotaFillLowWatermark = 8;
 
 @visibleForTesting
 int resolvePrefetchReadySegmentsForPost(
@@ -104,8 +109,14 @@ List<int> buildQuotaFillSegmentOrder({
           ? totalSegments
           : desiredReadySegments);
   final ordered = <int>[];
+  final seen = <int>{};
   for (var index = 0; index < normalizedDesired; index++) {
-    if (!cachedSegmentIndices.contains(index)) {
+    if (seen.add(index) && !cachedSegmentIndices.contains(index)) {
+      ordered.add(index);
+    }
+  }
+  for (var index = normalizedDesired; index < totalSegments; index++) {
+    if (seen.add(index) && !cachedSegmentIndices.contains(index)) {
       ordered.add(index);
     }
   }

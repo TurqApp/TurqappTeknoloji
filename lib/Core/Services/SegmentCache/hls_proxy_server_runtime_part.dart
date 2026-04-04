@@ -34,6 +34,7 @@ extension HLSProxyServerRuntimeX on HLSProxyServer {
   }
 
   String resolveUrl(String originalUrl) {
+    if (Platform.isIOS) return originalUrl;
     if (!_started) return originalUrl;
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
     if (_getCacheManager() == null) return originalUrl;

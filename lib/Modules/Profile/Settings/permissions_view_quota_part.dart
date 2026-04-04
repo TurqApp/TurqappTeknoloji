@@ -1,10 +1,7 @@
 part of 'permissions_view.dart';
 
 extension _PermissionsViewQuotaPart on _PermissionsViewState {
-  int _normalizeDisplayQuota(int gb) => gb.clamp(
-        _PermissionsViewState._minDisplayQuotaGb,
-        _PermissionsViewState._maxDisplayQuotaGb,
-      );
+  int _normalizeDisplayQuota(int gb) => normalizeStorageBudgetPlanGb(gb);
 
   Future<void> _loadQuota() async {
     final prefs = await SharedPreferences.getInstance();
@@ -23,8 +20,16 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
     try {
       await StorageBudgetManager.maybeFind()?.applyPlanGb(displayQuota);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(displayQuota);
+      await _restartQuotaFillPlan();
     } catch (_) {}
     _updatePermissionsViewState(() => _selectedQuota = displayQuota);
+  }
+
+  Future<void> _restartQuotaFillPlan() async {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    prefetch.resetWifiQuotaFillPlan();
+    await prefetch.ensureWifiQuotaFillPlan();
   }
 
   Widget _buildQuotaButton(int gb) {
@@ -67,128 +72,181 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
 
   Widget _buildQuotaBreakdown() {
     final profile = storageBudgetProfileForPlanGb(_selectedQuota);
-    final otherDataBytes = profile.totalPlanBytes - profile.mediaQuotaBytes;
     final cacheManager = SegmentCacheManager.maybeFind();
-    final usage = cacheManager == null
-        ? null
-        : storageBudgetUsageSnapshotForProfile(
-            profile,
-            streamUsageBytes: cacheManager.totalTrackedUsageBytes,
-          );
-    final recentProtectionWindow = storageBudgetRecentProtectionWindowForUsage(
-      profile,
-      streamUsageBytes: usage?.streamUsageBytes ?? 0,
-    );
-    final rows = <MapEntry<String, int>>[
-      MapEntry('permissions.quota.media_cache'.tr, profile.mediaQuotaBytes),
-      MapEntry('permissions.quota.image_cache'.tr, profile.imageQuotaBytes),
-      MapEntry('permissions.quota.reserve'.tr, profile.reserveQuotaBytes),
-      MapEntry('permissions.quota.os_safety'.tr, profile.osSafetyMarginBytes),
-      if (profile.metadataQuotaBytes > 0)
-        MapEntry('permissions.quota.metadata'.tr, profile.metadataQuotaBytes),
-    ];
+    final capacityBytes = profile.streamCacheSoftStopBytes;
+    final rawUsedBytes = cacheManager?.totalTrackedUsageBytes ?? 0;
+    final usedBytes = rawUsedBytes.clamp(0, capacityBytes);
+    final fillRatio = capacityBytes <= 0
+        ? 0.0
+        : (usedBytes / capacityBytes).clamp(0.0, 1.0);
+    final visibleRatio = usedBytes > 0
+        ? fillRatio.clamp(0.01, 1.0)
+        : 0.0;
+    final percent = usedBytes > 0
+        ? (fillRatio * 100).round().clamp(1, 100)
+        : 0;
+    final isLowUsage = fillRatio <= 0.25;
+    final fillStartColor = isLowUsage
+        ? const Color(0xFFFF5A5F)
+        : const Color(0xFF34C759);
+    final fillEndColor = isLowUsage
+        ? const Color(0xFFD92D20)
+        : const Color(0xFF0E9F3E);
+    final badgeBackground = isLowUsage
+        ? const Color(0xFFFFE3E3)
+        : const Color(0xFFE8F7EC);
+    final badgeTextColor = isLowUsage
+        ? const Color(0xFFD92D20)
+        : const Color(0xFF15803D);
 
     return Container(
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F6F6),
-        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFFF8F8F8),
+            Color(0xFFF1F1F1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black12),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$_selectedQuota GB video cache + '
-            '${CacheMetrics.formatBytes(otherDataBytes)} diger veri',
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontFamily: 'MontserratSemiBold',
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${CacheMetrics.formatBytes(usedBytes)} / ${CacheMetrics.formatBytes(capacityBytes)}',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontFamily: 'MontserratSemiBold',
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeBackground,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '%$percent',
+                  style: TextStyle(
+                    color: badgeTextColor,
+                    fontSize: 13,
+                    fontFamily: 'MontserratBold',
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          ...rows.map(
-            (row) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      row.key,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                        fontFamily: 'MontserratMedium',
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 30,
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.black12),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
                       ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: Stack(
+                      children: [
+                        TweenAnimationBuilder<double>(
+                          tween: Tween<double>(end: visibleRatio),
+                          duration: const Duration(milliseconds: 520),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, animatedRatio, child) {
+                            return FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: animatedRatio,
+                              child: child,
+                            );
+                          },
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: <Color>[
+                                  fillStartColor,
+                                  fillEndColor,
+                                ],
+                              ),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: fillEndColor.withAlpha(110),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              children: [
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: Container(
+                                    height: 8,
+                                    margin: const EdgeInsets.only(
+                                      left: 10,
+                                      right: 10,
+                                      top: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withAlpha(70),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    CacheMetrics.formatBytes(row.value),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 13,
-                      fontFamily: 'MontserratSemiBold',
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${'permissions.quota.soft_stop'.tr}: ${CacheMetrics.formatBytes(profile.streamCacheSoftStopBytes)}',
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 12,
-              fontFamily: 'MontserratMedium',
-            ),
-          ),
-          Text(
-            '${'permissions.quota.hard_stop'.tr}: ${CacheMetrics.formatBytes(profile.streamCacheHardStopBytes)}',
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 12,
-              fontFamily: 'MontserratMedium',
-            ),
-          ),
-          Text(
-            'permissions.quota.recent_window'
-                .trParams(<String, String>{'count': '$recentProtectionWindow'}),
-            style: const TextStyle(
-              color: Colors.black45,
-              fontSize: 12,
-              fontFamily: 'MontserratMedium',
-            ),
-          ),
-          if (usage != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              '${'permissions.quota.active_stream'.tr}: ${CacheMetrics.formatBytes(usage.streamUsageBytes)}',
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 12,
-                fontFamily: 'MontserratSemiBold',
+              const SizedBox(width: 6),
+              Container(
+                width: 7,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-            ),
-            Text(
-              '${'permissions.quota.soft_remaining'.tr}: ${CacheMetrics.formatBytes(usage.remainingBeforeSoftStopBytes)}',
-              style: const TextStyle(
-                color: Colors.black45,
-                fontSize: 12,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-            Text(
-              '${'permissions.quota.hard_remaining'.tr}: ${CacheMetrics.formatBytes(usage.remainingBeforeHardStopBytes)}',
-              style: const TextStyle(
-                color: Colors.black45,
-                fontSize: 12,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );

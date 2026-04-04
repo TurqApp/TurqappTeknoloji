@@ -81,6 +81,42 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
     return posts.take(limit).toList(growable: false);
   }
 
+  List<PostsModel> getQuotaFillCandidatePosts({int limit = 0}) {
+    final entries = _index.entries.values
+        .where((entry) => !entry.isFullyCached)
+        .where((entry) => entry.cachedPostModel != null)
+        .toList(growable: false)
+      ..sort((a, b) {
+        final unwatchedCompare = (a.watchProgress <= 0.01 ? 0 : 1).compareTo(
+          b.watchProgress <= 0.01 ? 0 : 1,
+        );
+        if (unwatchedCompare != 0) return unwatchedCompare;
+
+        final cachedSegmentsCompare =
+            a.cachedSegmentCount.compareTo(b.cachedSegmentCount);
+        if (cachedSegmentsCompare != 0) return cachedSegmentsCompare;
+
+        final aInteraction =
+            a.lastUserInteractionAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bInteraction =
+            b.lastUserInteractionAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final interactionCompare = bInteraction.compareTo(aInteraction);
+        if (interactionCompare != 0) return interactionCompare;
+
+        return b.lastAccessedAt.compareTo(a.lastAccessedAt);
+      });
+
+    final posts = entries
+        .map((entry) => entry.cachedPostModel)
+        .whereType<PostsModel>()
+        .where((post) => post.docID.trim().isNotEmpty && post.hasPlayableVideo)
+        .toList(growable: false);
+    if (limit <= 0 || posts.length <= limit) {
+      return posts;
+    }
+    return posts.take(limit).toList(growable: false);
+  }
+
   void markPlaying(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markPlaying(docID);
 

@@ -1,6 +1,185 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  void _resetWifiQuotaFillPlanState() {
+    _quotaFillRemoteInFlight = false;
+    _quotaFillRemoteHasMore = true;
+    _quotaFillRemoteCursor = null;
+    _quotaFillRemoteExhaustedUsageBytes = 0;
+    _quotaFillRemoteExhaustedTargetBytes = 0;
+  }
+
+  void _markWifiQuotaFillExhausted(SegmentCacheManager cacheManager) {
+    _quotaFillRemoteHasMore = false;
+    _quotaFillRemoteExhaustedUsageBytes = cacheManager.totalTrackedUsageBytes;
+    _quotaFillRemoteExhaustedTargetBytes = _wifiQuotaFillTargetBytes;
+  }
+
+  void _resetWifiQuotaFillPlanIfNeeded(SegmentCacheManager cacheManager) {
+    if (_quotaFillRemoteHasMore) return;
+    final targetBytes = _wifiQuotaFillTargetBytes;
+    if (targetBytes <= 0) {
+      _resetWifiQuotaFillPlanState();
+      return;
+    }
+    if (_quotaFillRemoteExhaustedTargetBytes != targetBytes) {
+      _resetWifiQuotaFillPlanState();
+      return;
+    }
+    final usageDropThreshold =
+        ((targetBytes * 0.15).round()).clamp(32 * 1024 * 1024, 256 * 1024 * 1024);
+    final currentUsageBytes = cacheManager.totalTrackedUsageBytes;
+    if (currentUsageBytes + usageDropThreshold <
+        _quotaFillRemoteExhaustedUsageBytes) {
+      _resetWifiQuotaFillPlanState();
+    }
+  }
+
+  void _appendQuotaFillJobs(
+    _ResolvedPrefetchQueue resolved,
+    SegmentCacheManager cacheManager,
+  ) {
+    if (resolved.docIDs.isEmpty) return;
+    final safeCurrent = resolved.currentIndex.clamp(0, resolved.docIDs.length - 1);
+    final currentDocId = resolved.docIDs[safeCurrent];
+    final queuedDocIds = _queue.map((job) => job.docID).toSet()
+      ..addAll(_pendingFollowUpJobs.keys)
+      ..addAll(_activeDocRefCounts.keys);
+
+    var addedJobs = 0;
+    for (var index = 0; index < resolved.docIDs.length; index++) {
+      final docID = resolved.docIDs[index];
+      if (!queuedDocIds.add(docID)) continue;
+      final entry = cacheManager.getEntry(docID);
+      if (entry != null && entry.isFullyCached) continue;
+      final readySegments = _resolvedReadySegmentTarget(
+        docID: docID,
+        cacheManager: cacheManager,
+      );
+      _queue.add(
+        _PrefetchJob(
+          docID,
+          readySegments,
+          2,
+          _buildJobScore(
+            currentIndex: safeCurrent,
+            currentDocId: currentDocId,
+            targetIndex: index,
+            priority: 2,
+            watchProgress: entry?.watchProgress ?? 0.0,
+            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+            totalSegmentCount: entry?.totalSegmentCount ?? 0,
+          ),
+        ),
+      );
+      _jobEnqueuedAt[docID] = DateTime.now();
+      addedJobs++;
+    }
+
+    if (addedJobs <= 0) return;
+    _paused = false;
+    _queue.sort(_compareJobs);
+    _publishPrefetchHealthIfNeeded();
+  }
+
+  Future<void> _appendQuotaFillQueueForPosts(
+    List<PostsModel> posts,
+    int currentIndex, {
+    int? maxDocs,
+  }) async {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    final resolved = _resolveOfflineCandidateQueue(
+      posts,
+      currentIndex: currentIndex,
+      maxDocs: maxDocs,
+    );
+    if (resolved == null) return;
+    cacheManager.cachePostCards(resolved.posts);
+    _appendQuotaFillJobs(resolved, cacheManager);
+  }
+
+  Future<void> _ensureWifiQuotaFillPlan() async {
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null || _paused) return;
+    if (!_isOnWiFi || _mobileSeedMode) return;
+    if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
+    _resetWifiQuotaFillPlanIfNeeded(cacheManager);
+
+    Future<void> seedFromLocalCandidates() async {
+      final localCandidates = cacheManager.getQuotaFillCandidatePosts(
+        limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+      );
+      if (localCandidates.isEmpty) return;
+      await _appendQuotaFillQueueForPosts(
+        localCandidates,
+        0,
+        maxDocs: localCandidates.length,
+      );
+      for (final post in localCandidates.take(2)) {
+        boostDoc(
+          post.docID,
+          readySegments: _prefetchSchedulerQuotaFillBoostReadySegments,
+        );
+      }
+    }
+
+    final backlogCount = _queue.length +
+        _pendingFollowUpJobs.length +
+        _lastFeedBankDocIDs.length +
+        _activeDocRefCounts.length;
+    if (backlogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
+      return;
+    }
+
+    await seedFromLocalCandidates();
+
+    final refreshedBacklogCount = _queue.length +
+        _pendingFollowUpJobs.length +
+        _lastFeedBankDocIDs.length +
+        _activeDocRefCounts.length;
+    if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
+      return;
+    }
+
+    if (_quotaFillRemoteInFlight || !_quotaFillRemoteHasMore) return;
+    _quotaFillRemoteInFlight = true;
+    try {
+      final page = await ExploreRepository.ensure().fetchVideoReadyPage(
+        startAfter: _quotaFillRemoteCursor,
+        pageLimit: _prefetchSchedulerQuotaFillRemotePageLimit,
+      );
+      _quotaFillRemoteCursor = page.lastDoc;
+      _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
+      if (!_quotaFillRemoteHasMore) {
+        _markWifiQuotaFillExhausted(cacheManager);
+      }
+      if (page.items.isEmpty) return;
+
+      cacheManager.cachePostCards(page.items);
+      final remoteCandidates = cacheManager.getQuotaFillCandidatePosts(
+        limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+      );
+      if (remoteCandidates.isEmpty) return;
+
+      await _appendQuotaFillQueueForPosts(
+        remoteCandidates,
+        0,
+        maxDocs: remoteCandidates.length,
+      );
+      for (final post in remoteCandidates.take(2)) {
+        boostDoc(
+          post.docID,
+          readySegments: _prefetchSchedulerQuotaFillBoostReadySegments,
+        );
+      }
+    } catch (e) {
+      debugPrint('[Prefetch] Remote quota fill plan failed: $e');
+    } finally {
+      _quotaFillRemoteInFlight = false;
+    }
+  }
+
   void updatePriorityWindowContext(List<String> docIDs, int currentIndex) {
     if (docIDs.isEmpty) {
       _lastPriorityDocIDs = const <String>[];

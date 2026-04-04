@@ -37,4 +37,8 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     if (_pendingFollowUpJobs.containsKey(normalized)) return true;
     return _queue.any((job) => job.docID == normalized);
   }
+
+  Future<void> ensureWifiQuotaFillPlan() => _ensureWifiQuotaFillPlan();
+
+  void resetWifiQuotaFillPlan() => _resetWifiQuotaFillPlanState();
 }

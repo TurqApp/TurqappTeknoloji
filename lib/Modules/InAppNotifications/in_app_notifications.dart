@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
@@ -12,7 +13,6 @@ import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 
 import 'in_app_notifications_controller.dart';
-import 'notification_actions_sheet_content.dart';
 
 part 'in_app_notifications_shell_part.dart';
 part 'in_app_notifications_scaffold_part.dart';

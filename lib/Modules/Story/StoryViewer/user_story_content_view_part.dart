@@ -239,7 +239,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
               userId: currentUser.userID,
               imageUrl: currentUser.avatarUrl,
               radius: 16.5,
-              placeholder: const DefaultAvatar(radius: 16.5),
+              placeholder: const SizedBox.expand(),
               errorWidget: const DefaultAvatar(radius: 16.5),
             ),
           ),

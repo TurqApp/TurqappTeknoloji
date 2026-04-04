@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,6 +13,7 @@ import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 
@@ -32,15 +35,14 @@ class PermissionsView extends StatefulWidget {
 
 class _PermissionsViewState extends State<PermissionsView> {
   static const String _quotaKey = 'offline_cache_quota_gb';
-  static const List<int> _quotaOptions = [3, 4, 5, 6];
-  static const int _minDisplayQuotaGb = 3;
-  static const int _maxDisplayQuotaGb = 6;
+  static const List<int> _quotaOptions = storageBudgetPlanOptionsGb;
 
   final Map<String, PermissionStatus> _statuses = {};
   bool _loading = true;
   int _selectedQuota = 3;
   bool _showPlaybackPreferences = false;
   NetworkSettings _networkSettings = NetworkSettings();
+  Timer? _quotaRefreshTimer;
 
   @override
   void initState() {
@@ -50,6 +52,7 @@ class _PermissionsViewState extends State<PermissionsView> {
 
   @override
   void dispose() {
+    _quotaRefreshTimer?.cancel();
     IntegrationTestStateProbe.clearPermissionStatuses();
     super.dispose();
   }
@@ -60,10 +63,19 @@ class _PermissionsViewState extends State<PermissionsView> {
   }
 
   void _initializePermissionsView() {
+    _startQuotaRefreshTimer();
     _loadQuota();
     _loadAdminVisibility();
     _loadNetworkSettings();
     _refreshStatuses();
+  }
+
+  void _startQuotaRefreshTimer() {
+    _quotaRefreshTimer?.cancel();
+    _quotaRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
   }
 
   Future<void> _loadAdminVisibility() async {

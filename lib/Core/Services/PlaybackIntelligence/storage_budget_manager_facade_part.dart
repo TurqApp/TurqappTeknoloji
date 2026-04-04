@@ -1,5 +1,14 @@
 part of 'storage_budget_manager.dart';
 
+const List<int> storageBudgetPlanOptionsGb = <int>[3, 5, 7, 9];
+
+int normalizeStorageBudgetPlanGb(int gb) {
+  for (final option in storageBudgetPlanOptionsGb) {
+    if (gb <= option) return option;
+  }
+  return storageBudgetPlanOptionsGb.last;
+}
+
 StorageBudgetManager? maybeFindStorageBudgetManager() =>
     _maybeFindStorageBudgetManager();
 
@@ -45,7 +54,7 @@ Future<StorageBudgetProfile> _applyStorageBudgetPlanGb(
   StorageBudgetManager controller,
   int gb,
 ) async {
-  final normalized = gb.clamp(3, 6);
+  final normalized = normalizeStorageBudgetPlanGb(gb);
   controller._selectedPlanGb.value = normalized;
   return storageBudgetProfileForPlanGb(normalized);
 }

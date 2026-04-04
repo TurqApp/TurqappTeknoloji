@@ -64,7 +64,7 @@ int _storageRecentProtectionWindowForUsage(
 }
 
 StorageBudgetProfile _storageProfileForPlanGb(int gb) {
-  final normalized = gb.clamp(3, 6);
+  final normalized = normalizeStorageBudgetPlanGb(gb);
   final template = _storageTemplateFor(normalized);
   final mediaSoftStopBytes = template.mediaQuotaBytes;
   final mediaHardStopBytes =
@@ -84,13 +84,13 @@ StorageBudgetProfile _storageProfileForPlanGb(int gb) {
 }
 
 int _storageBaseRecentProtectionWindow(int planGb) {
-  switch (planGb.clamp(3, 6)) {
+  switch (normalizeStorageBudgetPlanGb(planGb)) {
     case 3:
       return 32;
-    case 4:
-      return 42;
     case 5:
       return 46;
+    case 7:
+      return 50;
     default:
       return StorageBudgetManager._maxRecentProtectionWindow;
   }
@@ -112,14 +112,6 @@ _BudgetTemplate _storageTemplateFor(int planGb) {
         reserveQuotaBytes: 256 * StorageBudgetManager._mb,
         osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
       );
-    case 4:
-      return const _BudgetTemplate(
-        mediaQuotaBytes: 4096 * StorageBudgetManager._mb,
-        imageQuotaBytes: 512 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 0,
-        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
-      );
     case 5:
       return const _BudgetTemplate(
         mediaQuotaBytes: 5120 * StorageBudgetManager._mb,
@@ -128,9 +120,17 @@ _BudgetTemplate _storageTemplateFor(int planGb) {
         reserveQuotaBytes: 256 * StorageBudgetManager._mb,
         osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
       );
+    case 7:
+      return const _BudgetTemplate(
+        mediaQuotaBytes: 7168 * StorageBudgetManager._mb,
+        imageQuotaBytes: 512 * StorageBudgetManager._mb,
+        metadataQuotaBytes: 0,
+        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
+        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
+      );
     default:
       return const _BudgetTemplate(
-        mediaQuotaBytes: 6144 * StorageBudgetManager._mb,
+        mediaQuotaBytes: 9216 * StorageBudgetManager._mb,
         imageQuotaBytes: 512 * StorageBudgetManager._mb,
         metadataQuotaBytes: 0,
         reserveQuotaBytes: 256 * StorageBudgetManager._mb,

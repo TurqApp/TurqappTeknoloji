@@ -1,25 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Modules/InAppNotifications/notification_actions_sheet_content.dart';
 
 import '../../helpers/pump_app.dart';
-
-Finder _actionTileByText(String text) {
-  return find.ancestor(
-    of: find.text(text),
-    matching: find.byType(InkWell),
-  );
-}
 
 class _NotificationsMenuHarness extends StatefulWidget {
   const _NotificationsMenuHarness({
     this.initialCount = 2,
-    this.initialUnreadCount = 1,
   });
 
   final int initialCount;
-  final int initialUnreadCount;
 
   @override
   State<_NotificationsMenuHarness> createState() =>
@@ -28,42 +19,12 @@ class _NotificationsMenuHarness extends StatefulWidget {
 
 class _NotificationsMenuHarnessState extends State<_NotificationsMenuHarness> {
   late int _notificationCount;
-  late int _unreadCount;
-  int _markAllReadCalls = 0;
   int _deleteAllCalls = 0;
 
   @override
   void initState() {
     super.initState();
     _notificationCount = widget.initialCount;
-    _unreadCount = widget.initialUnreadCount;
-  }
-
-  Future<void> _showActions(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      builder: (_) {
-        return NotificationActionsSheetContent(
-          unreadCount: _unreadCount,
-          busyMarkAllRead: false,
-          onMarkAllRead: () {
-            setState(() {
-              _markAllReadCalls += 1;
-              _unreadCount = 0;
-            });
-            Navigator.of(context).pop();
-          },
-          onDeleteAll: () {
-            setState(() {
-              _deleteAllCalls += 1;
-              _notificationCount = 0;
-              _unreadCount = 0;
-            });
-            Navigator.of(context).pop();
-          },
-        );
-      },
-    );
   }
 
   @override
@@ -72,14 +33,26 @@ class _NotificationsMenuHarnessState extends State<_NotificationsMenuHarness> {
       body: Column(
         children: [
           if (_notificationCount > 0)
-            IconButton(
-              key: const ValueKey(IntegrationTestKeys.actionNotificationsMore),
-              onPressed: () => _showActions(context),
-              icon: const Icon(Icons.more_horiz),
+            PullDownButton(
+              itemBuilder: (context) => [
+                PullDownMenuItem(
+                  title: 'notifications.delete_all',
+                  isDestructive: true,
+                  onTap: () {
+                    setState(() {
+                      _deleteAllCalls += 1;
+                      _notificationCount = 0;
+                    });
+                  },
+                ),
+              ],
+              buttonBuilder: (context, showMenu) => IconButton(
+                key: const ValueKey(IntegrationTestKeys.actionNotificationsMore),
+                onPressed: showMenu,
+                icon: const Icon(Icons.more_horiz),
+              ),
             ),
           Text('count=$_notificationCount'),
-          Text('unread=$_unreadCount'),
-          Text('markAll=$_markAllReadCalls'),
           Text('deleteAll=$_deleteAllCalls'),
         ],
       ),
@@ -93,7 +66,7 @@ void main() {
   ) async {
     await pumpApp(
       tester,
-      const _NotificationsMenuHarness(initialCount: 0, initialUnreadCount: 0),
+      const _NotificationsMenuHarness(initialCount: 0),
     );
 
     expect(
@@ -112,25 +85,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('notifications.mark_all_read'), findsOneWidget);
     expect(find.text('notifications.delete_all'), findsOneWidget);
   });
 
-  testWidgets('mark all read respects unread availability', (tester) async {
-    await pumpApp(
-      tester,
-      const _NotificationsMenuHarness(initialCount: 2, initialUnreadCount: 0),
-    );
+  testWidgets('delete all action clears the list', (tester) async {
+    await pumpApp(tester, const _NotificationsMenuHarness(initialCount: 2));
 
     await tester.tap(
       find.byKey(const ValueKey(IntegrationTestKeys.actionNotificationsMore)),
     );
     await tester.pumpAndSettle();
-
-    final markAll = tester.widget<InkWell>(
-      _actionTileByText('notifications.mark_all_read'),
-    );
-    expect(markAll.onTap, isNull);
 
     await tester.tap(
       find.text('notifications.delete_all'),

@@ -103,6 +103,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
+    if (_activeDownloads == 0 &&
+        (_queue.isEmpty ||
+            (_queue.length + _pendingFollowUpJobs.length) <=
+                _prefetchSchedulerQuotaFillLowWatermark)) {
+      await _ensureWifiQuotaFillPlan();
+    }
     _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
     if (_paused || _queue.isEmpty) return;
     if (_activeDownloads >= _maxConcurrent) return;
@@ -308,9 +314,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       }
 
       final seedNextSegmentLater = !startupBurstMode &&
-          (quotaFillMode || (isUnwatched && !_mobileSeedMode));
+          !quotaFillMode &&
+          (isUnwatched && !_mobileSeedMode);
       final dispatchLimit = seedNextSegmentLater
           ? 1
+          : quotaFillMode
+              ? availableSlots < _prefetchSchedulerQuotaFillBurstSegments
+                  ? availableSlots
+                  : _prefetchSchedulerQuotaFillBurstSegments
           : startupBurstMode
               ? availableSlots < desiredReadySegments
                   ? availableSlots

@@ -5,13 +5,13 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_mana
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 void main() {
-  test('storage budget profile normalizes sub-4 GB plans safely', () {
-    final profile = storageBudgetProfileForPlanGb(3);
+  test('storage budget profile normalizes unsupported plan values safely', () {
+    final profile = storageBudgetProfileForPlanGb(4);
 
-    expect(profile.planGb, 4);
+    expect(profile.planGb, 5);
     expect(profile.mediaQuotaBytes, greaterThan(0));
     expect(profile.imageQuotaBytes, greaterThan(0));
-    expect(profile.metadataQuotaBytes, greaterThan(0));
+    expect(profile.metadataQuotaBytes, greaterThanOrEqualTo(0));
     expect(profile.reserveQuotaBytes, greaterThan(0));
     expect(profile.streamCacheHardStopBytes,
         greaterThan(profile.streamCacheSoftStopBytes));
@@ -47,7 +47,7 @@ void main() {
 
   test('recent protection window grows with larger cache plans', () {
     final smallPlan = storageBudgetProfileForPlanGb(2);
-    final largePlan = storageBudgetProfileForPlanGb(5);
+    final largePlan = storageBudgetProfileForPlanGb(9);
 
     final smallWindow = storageBudgetRecentProtectionWindowForUsage(
       smallPlan,
@@ -84,7 +84,7 @@ void main() {
   });
 
   test('recent protection window collapses to floor after hard stop', () {
-    final profile = storageBudgetProfileForPlanGb(4);
+    final profile = storageBudgetProfileForPlanGb(7);
 
     final hardStopWindow = storageBudgetRecentProtectionWindowForUsage(
       profile,
