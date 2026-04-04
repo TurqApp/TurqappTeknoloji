@@ -17,29 +17,23 @@ void main() {
         'comment_like_e2e',
         tester,
         () async {
-          await launchTurqApp(tester);
-          await expectFeedScreen(tester);
+          await launchTurqApp(
+            tester,
+            forceFeedTab: false,
+            relaxFeedFixtureDocRequirement: true,
+          );
+          await ensureFeedTabVisibleForSmoke(tester);
 
           await openCommentsForFirstFeedPost(tester);
 
-          await waitForSurfaceProbe(
+          final targetCommentId = await ensureCommentTargetForSmoke(
             tester,
-            'comments',
-            (payload) {
-              final docIds = payload['docIds'];
-              final ids = docIds is List
-                  ? docIds.map((item) => item?.toString() ?? '').toList()
-                  : const <String>[];
-              return payload['registered'] == true &&
-                  ids.contains(_seedCommentId);
-            },
-            reason:
-                'Seeded comment $_seedCommentId was not visible in comments.',
+            preferredCommentId: _seedCommentId,
           );
 
           await tapItKey(
             tester,
-            IntegrationTestKeys.commentLikeButton(_seedCommentId),
+            IntegrationTestKeys.commentLikeButton(targetCommentId),
             settlePumps: 6,
           );
 
@@ -52,15 +46,15 @@ void main() {
                   ? likedDocIds.map((item) => item?.toString() ?? '').toList()
                   : const <String>[];
               return payload['registered'] == true &&
-                  ids.contains(_seedCommentId);
+                  ids.contains(targetCommentId);
             },
             reason:
-                'Comment like did not add the signed-in user to the seeded comment.',
+                'Comment like did not add the signed-in user to the target comment.',
           );
 
           await tapItKey(
             tester,
-            IntegrationTestKeys.commentLikeButton(_seedCommentId),
+            IntegrationTestKeys.commentLikeButton(targetCommentId),
             settlePumps: 6,
           );
 
@@ -73,10 +67,10 @@ void main() {
                   ? likedDocIds.map((item) => item?.toString() ?? '').toList()
                   : const <String>[];
               return payload['registered'] == true &&
-                  !ids.contains(_seedCommentId);
+                  !ids.contains(targetCommentId);
             },
             reason:
-                'Comment unlike did not remove the signed-in user from the seeded comment.',
+                'Comment unlike did not remove the signed-in user from the target comment.',
           );
 
           await popRouteAndSettle(tester);

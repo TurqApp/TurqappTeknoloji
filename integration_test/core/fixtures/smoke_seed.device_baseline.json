@@ -61,7 +61,7 @@
         "izBirakYayinTarihi": 0,
         "konum": "",
         "locationCity": "",
-        "mainFlood": "{{POST_ID}}",
+        "mainFlood": "",
         "metin": "Integration seeded smoke post",
         "originalPostID": "",
         "originalUserID": "",

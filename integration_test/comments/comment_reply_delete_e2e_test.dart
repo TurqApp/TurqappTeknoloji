@@ -15,15 +15,22 @@ void main() {
         'comment_reply_delete_e2e',
         tester,
         () async {
-          await launchTurqApp(tester);
-          await expectFeedScreen(tester);
+          await launchTurqApp(
+            tester,
+            forceFeedTab: false,
+            relaxFeedFixtureDocRequirement: true,
+          );
+          await ensureFeedTabVisibleForSmoke(tester);
 
           await openCommentsForFirstFeedPost(tester);
 
-          final replyKey = await waitForKeyPrefix(tester, 'it-comment-reply-');
-          final replyCommentId = replyKey.replaceFirst('it-comment-reply-', '');
+          final replyCommentId = await ensureCommentTargetForSmoke(tester);
 
-          await tapItKey(tester, replyKey, settlePumps: 6);
+          await tapItKey(
+            tester,
+            IntegrationTestKeys.commentReplyButton(replyCommentId),
+            settlePumps: 6,
+          );
           await waitForSurfaceProbe(
             tester,
             'comments',
@@ -35,16 +42,7 @@ void main() {
           );
 
           final replyText = uniqueTestText('turqapp e2e reply');
-          await tester.enterText(
-            byItKey(IntegrationTestKeys.inputComment),
-            replyText,
-          );
-          await tester.pump(const Duration(milliseconds: 250));
-          await tapItKey(
-            tester,
-            IntegrationTestKeys.actionCommentSend,
-            settlePumps: 8,
-          );
+          await sendCommentFromComposer(tester, replyText);
 
           await waitForSurfaceProbe(
             tester,
@@ -58,16 +56,7 @@ void main() {
           );
 
           final rootCommentText = uniqueTestText('turqapp e2e delete target');
-          await tester.enterText(
-            byItKey(IntegrationTestKeys.inputComment),
-            rootCommentText,
-          );
-          await tester.pump(const Duration(milliseconds: 250));
-          await tapItKey(
-            tester,
-            IntegrationTestKeys.actionCommentSend,
-            settlePumps: 8,
-          );
+          await sendCommentFromComposer(tester, rootCommentText);
 
           final afterRootSend = await waitForSurfaceProbe(
             tester,

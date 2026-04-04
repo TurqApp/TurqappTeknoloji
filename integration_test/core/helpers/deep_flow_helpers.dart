@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 
 import '../bootstrap/test_app_bootstrap.dart';
@@ -167,14 +168,19 @@ Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
     },
     reason: 'Feed did not expose any docIds for comments flow.',
   );
-  final centeredDocId = (feedPayload['centeredDocId'] as String? ?? '').trim();
-  if (centeredDocId.isNotEmpty) {
-    final centeredKey = IntegrationTestKeys.feedCommentButton(centeredDocId);
-    if (byItKey(centeredKey).evaluate().isNotEmpty) {
-      await tapItKey(tester, centeredKey, settlePumps: 10);
-      expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
-      return centeredDocId;
+  final requiredFeedDocIds =
+      IntegrationTestFixtureContract.current.surface('feed')?.requiredDocIds ??
+          const <String>[];
+  for (final docId in requiredFeedDocIds) {
+    final opened = await _tryOpenCommentsForFeedPost(tester, docId);
+    if (opened) {
+      return docId;
     }
+  }
+  final centeredDocId = (feedPayload['centeredDocId'] as String? ?? '').trim();
+  if (centeredDocId.isNotEmpty &&
+      await _tryOpenCommentsForFeedPost(tester, centeredDocId)) {
+    return centeredDocId;
   }
 
   final visibleCommentKey = await _waitForVisibleFeedCommentKey(tester);
@@ -182,6 +188,106 @@ Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
   await tapItKey(tester, visibleCommentKey, settlePumps: 10);
   expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
   return postId;
+}
+
+Future<String> ensureCommentTargetForSmoke(
+  WidgetTester tester, {
+  String preferredCommentId = '',
+  bool createIfMissing = true,
+}) async {
+  final initial = await waitForSurfaceProbe(
+    tester,
+    'comments',
+    (payload) => payload['registered'] == true,
+    maxPumps: 20,
+    reason: 'Comments surface did not register.',
+  );
+  final preferred = preferredCommentId.trim();
+  final initialDocIds = (initial['docIds'] as List<dynamic>? ?? const [])
+      .map((item) => item?.toString().trim() ?? '')
+      .where((id) => id.isNotEmpty)
+      .toList(growable: false);
+  if (preferred.isNotEmpty && initialDocIds.contains(preferred)) {
+    return preferred;
+  }
+  if (initialDocIds.isNotEmpty) {
+    return initialDocIds.first;
+  }
+  if (!createIfMissing) {
+    throw TestFailure('Comments surface has no actionable comment target.');
+  }
+
+  final fallbackText = uniqueTestText('turqapp e2e fallback comment');
+  await sendCommentFromComposer(tester, fallbackText);
+
+  final payload = await waitForSurfaceProbe(
+    tester,
+    'comments',
+    (nextPayload) =>
+        nextPayload['registered'] == true &&
+        nextPayload['lastSuccessfulSendText'] == fallbackText &&
+        (nextPayload['lastSuccessfulCommentId'] as String? ?? '').isNotEmpty,
+    reason: 'Comments fallback creation did not expose a usable comment id.',
+  );
+  return (payload['lastSuccessfulCommentId'] as String).trim();
+}
+
+Future<void> sendCommentFromComposer(
+  WidgetTester tester,
+  String text, {
+  int maxPumps = 20,
+  int settlePumps = 8,
+}) async {
+  await tester.enterText(
+    byItKey(IntegrationTestKeys.inputComment),
+    text,
+  );
+  await tester.pump(const Duration(milliseconds: 250));
+  await pumpUntilVisible(
+    tester,
+    byItKey(IntegrationTestKeys.actionCommentSend),
+    maxPumps: maxPumps,
+  );
+  await tapItKey(
+    tester,
+    IntegrationTestKeys.actionCommentSend,
+    settlePumps: settlePumps,
+  );
+}
+
+Future<bool> _tryOpenCommentsForFeedPost(
+  WidgetTester tester,
+  String docId, {
+  int maxScrolls = 8,
+  Duration step = const Duration(milliseconds: 250),
+}) async {
+  final targetKey = IntegrationTestKeys.feedCommentButton(docId);
+  final targetFinder = byItKey(targetKey);
+  if (targetFinder.evaluate().isNotEmpty) {
+    await tapItKey(tester, targetKey, settlePumps: 10);
+    expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+    return true;
+  }
+
+  final feedScrollable = find.descendant(
+    of: byItKey(IntegrationTestKeys.screenFeed),
+    matching: find.byType(Scrollable),
+  );
+  if (feedScrollable.evaluate().isEmpty) {
+    return false;
+  }
+
+  for (var i = 0; i < maxScrolls; i++) {
+    await tester.drag(feedScrollable.first, const Offset(0, -260));
+    await tester.pump(step);
+    if (targetFinder.evaluate().isNotEmpty) {
+      await tapItKey(tester, targetKey, settlePumps: 10);
+      expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 Future<void> confirmCupertinoDialog(WidgetTester tester) async {

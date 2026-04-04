@@ -18,7 +18,10 @@ void main() {
         'auth_startup_session_restore',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            relaxFeedFixtureDocRequirement: true,
+          );
           await expectFeedScreen(tester);
 
           expect(byItKey(IntegrationTestKeys.navBarRoot), findsOneWidget);

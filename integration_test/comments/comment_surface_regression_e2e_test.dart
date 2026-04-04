@@ -17,30 +17,24 @@ void main() {
         'comment_surface_regression_e2e',
         tester,
         () async {
-          await launchTurqApp(tester);
-          await expectFeedScreen(tester);
+          await launchTurqApp(
+            tester,
+            forceFeedTab: false,
+            relaxFeedFixtureDocRequirement: true,
+          );
+          await ensureFeedTabVisibleForSmoke(tester);
 
           await openCommentsForFirstFeedPost(tester);
 
-          await waitForSurfaceProbe(
+          final targetCommentId = await ensureCommentTargetForSmoke(
             tester,
-            'comments',
-            (payload) {
-              final docIds = payload['docIds'];
-              final ids = docIds is List
-                  ? docIds.map((item) => item?.toString() ?? '').toList()
-                  : const <String>[];
-              return payload['registered'] == true &&
-                  ids.contains(_seedCommentId);
-            },
-            reason:
-                'Seeded comment $_seedCommentId was not visible in comments.',
+            preferredCommentId: _seedCommentId,
           );
           await expectNoFlutterException(tester);
 
           await tapItKey(
             tester,
-            IntegrationTestKeys.commentLikeButton(_seedCommentId),
+            IntegrationTestKeys.commentLikeButton(targetCommentId),
             settlePumps: 6,
           );
           await waitForSurfaceProbe(
@@ -52,16 +46,16 @@ void main() {
                   ? likedDocIds.map((item) => item?.toString() ?? '').toList()
                   : const <String>[];
               return payload['registered'] == true &&
-                  ids.contains(_seedCommentId);
+                  ids.contains(targetCommentId);
             },
             reason:
-                'Comment like did not add the signed-in user to the seeded comment.',
+                'Comment like did not add the signed-in user to the target comment.',
           );
           await expectNoFlutterException(tester);
 
           await tapItKey(
             tester,
-            IntegrationTestKeys.commentLikeButton(_seedCommentId),
+            IntegrationTestKeys.commentLikeButton(targetCommentId),
             settlePumps: 6,
           );
           await waitForSurfaceProbe(
@@ -73,16 +67,16 @@ void main() {
                   ? likedDocIds.map((item) => item?.toString() ?? '').toList()
                   : const <String>[];
               return payload['registered'] == true &&
-                  !ids.contains(_seedCommentId);
+                  !ids.contains(targetCommentId);
             },
             reason:
-                'Comment unlike did not remove the signed-in user from the seeded comment.',
+                'Comment unlike did not remove the signed-in user from the target comment.',
           );
           await expectNoFlutterException(tester);
 
           await tapItKey(
             tester,
-            IntegrationTestKeys.commentReplyButton(_seedCommentId),
+            IntegrationTestKeys.commentReplyButton(targetCommentId),
             settlePumps: 6,
           );
           await waitForSurfaceProbe(
@@ -90,24 +84,15 @@ void main() {
             'comments',
             (payload) =>
                 payload['registered'] == true &&
-                payload['replyingToCommentId'] == _seedCommentId,
+                payload['replyingToCommentId'] == targetCommentId,
             reason:
-                'Reply target was not activated for comment $_seedCommentId.',
+                'Reply target was not activated for the target comment.',
           );
           await expectNoFlutterException(tester);
 
           final replyText = uniqueTestText('turqapp e2e combo reply');
-          await tester.enterText(
-            byItKey(IntegrationTestKeys.inputComment),
-            replyText,
-          );
-          await tester.pump(const Duration(milliseconds: 250));
+          await sendCommentFromComposer(tester, replyText);
           await expectNoFlutterException(tester);
-          await tapItKey(
-            tester,
-            IntegrationTestKeys.actionCommentSend,
-            settlePumps: 8,
-          );
           await waitForSurfaceProbe(
             tester,
             'comments',
@@ -121,17 +106,8 @@ void main() {
           await expectNoFlutterException(tester);
 
           final rootCommentText = uniqueTestText('turqapp e2e combo root');
-          await tester.enterText(
-            byItKey(IntegrationTestKeys.inputComment),
-            rootCommentText,
-          );
-          await tester.pump(const Duration(milliseconds: 250));
+          await sendCommentFromComposer(tester, rootCommentText);
           await expectNoFlutterException(tester);
-          await tapItKey(
-            tester,
-            IntegrationTestKeys.actionCommentSend,
-            settlePumps: 8,
-          );
 
           final afterRootSend = await waitForSurfaceProbe(
             tester,

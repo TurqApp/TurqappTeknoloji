@@ -166,6 +166,11 @@ void main() {
           );
 
           final selected = candidate!;
+          await pumpUntilVisible(
+            tester,
+            byItKey(IntegrationTestKeys.notificationItem(selected.docId)),
+            maxPumps: 20,
+          );
           await tapItKey(
             tester,
             IntegrationTestKeys.notificationItemOpen(selected.docId),

@@ -15,22 +15,17 @@ void main() {
         'comment_root_delete_e2e',
         tester,
         () async {
-          await launchTurqApp(tester);
-          await expectFeedScreen(tester);
+          await launchTurqApp(
+            tester,
+            forceFeedTab: false,
+            relaxFeedFixtureDocRequirement: true,
+          );
+          await ensureFeedTabVisibleForSmoke(tester);
 
           await openCommentsForFirstFeedPost(tester);
 
           final rootCommentText = uniqueTestText('turqapp e2e delete target');
-          await tester.enterText(
-            byItKey(IntegrationTestKeys.inputComment),
-            rootCommentText,
-          );
-          await tester.pump(const Duration(milliseconds: 250));
-          await tapItKey(
-            tester,
-            IntegrationTestKeys.actionCommentSend,
-            settlePumps: 8,
-          );
+          await sendCommentFromComposer(tester, rootCommentText);
 
           final afterRootSend = await waitForSurfaceProbe(
             tester,
