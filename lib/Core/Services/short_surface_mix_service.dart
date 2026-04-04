@@ -79,7 +79,9 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
 
 List<PostsModel> excludeFeedVisibleShortConflicts(
   List<PostsModel> posts,
-  Set<String> feedVisibleVideoDocIds,
+  Set<String> feedVisibleVideoDocIds, {
+  bool fallbackToOriginalWhenEmpty = true,
+}
 ) {
   if (posts.isEmpty || feedVisibleVideoDocIds.isEmpty) {
     return posts;
@@ -87,7 +89,7 @@ List<PostsModel> excludeFeedVisibleShortConflicts(
   final filtered = posts
       .where((post) => !feedVisibleVideoDocIds.contains(post.docID.trim()))
       .toList(growable: false);
-  return filtered.isEmpty ? posts : filtered;
+  return filtered.isEmpty && fallbackToOriginalWhenEmpty ? posts : filtered;
 }
 
 ShortMixBucket resolveShortMixBucket(PostsModel post) {

@@ -14,6 +14,22 @@ extension ShortControllerLoadingPart on ShortController {
   bool get _shouldPreferOfflineCache =>
       NetworkAwarenessService.maybeFind()?.isConnected == false;
 
+  Future<List<PostsModel>> _excludeFeedVisibleSnapshotConflicts(
+    List<PostsModel> posts,
+  ) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    final warmFeedVisibleVideoDocIds =
+        await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId);
+    if (warmFeedVisibleVideoDocIds.isEmpty) {
+      return posts;
+    }
+    return posts
+        .where(
+          (post) => !warmFeedVisibleVideoDocIds.contains(post.docID.trim()),
+        )
+        .toList(growable: false);
+  }
+
   Future<bool> _tryRestoreVisibleSnapshotIfCurrentListCollapsed({
     required int limit,
     required String trigger,
@@ -28,9 +44,11 @@ extension ShortControllerLoadingPart on ShortController {
       userId: _currentUserId,
       limit: limit,
     );
-    final snapshotPosts = (snapshot.data ?? const <PostsModel>[])
-        .where(_isEligibleShortPost)
-        .toList(growable: false);
+    final snapshotPosts = await _excludeFeedVisibleSnapshotConflicts(
+      (snapshot.data ?? const <PostsModel>[])
+          .where(_isEligibleShortPost)
+          .toList(growable: false),
+    );
     if (snapshotPosts.length <= maxCollapsedCount) {
       final liveResult = await _fetchPage(
         pageSizeOverride: limit,
@@ -166,6 +184,7 @@ extension ShortControllerLoadingPart on ShortController {
     final effectivePageSize = pageSizeOverride ?? pageSize;
     final collected = <PostsModel>[];
     final seenDocIds = <String>{};
+    List<PostsModel>? fallbackPosts;
 
     for (int attempt = 0; attempt < maxPageScans; attempt++) {
       final page = await _shortRepository.fetchReadyPage(
@@ -229,6 +248,14 @@ extension ShortControllerLoadingPart on ShortController {
               );
             }
           }
+        } else if (fallbackPosts == null) {
+          final fallback = await _filterVisibleShortPosts(
+            finalFiltered,
+            enforceFeedConflictExclusion: false,
+          );
+          if (fallback.isNotEmpty) {
+            fallbackPosts = fallback;
+          }
         }
       }
 
@@ -236,6 +263,14 @@ extension ShortControllerLoadingPart on ShortController {
         break;
       }
       cursor = page.lastDoc;
+    }
+
+    if (collected.isEmpty && fallbackPosts != null) {
+      return _ShortPageResult(
+        fallbackPosts.take(effectivePageSize).toList(growable: false),
+        lastDoc,
+        hasMoreDocs,
+      );
     }
 
     return _ShortPageResult(
@@ -247,10 +282,13 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<List<PostsModel>> _filterVisibleShortPosts(
     List<PostsModel> posts,
-  ) async {
+    {
+    bool enforceFeedConflictExclusion = true,
+  }) async {
     if (posts.isEmpty) return const <PostsModel>[];
-    final warmFeedVisibleVideoDocIds =
-        await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId);
+    final warmFeedVisibleVideoDocIds = enforceFeedConflictExclusion
+        ? await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId)
+        : const <String>{};
     final authorIds =
         posts.map((e) => e.userID).toSet().toList(growable: false);
     final userSummaries = await _fetchUserSummaries(authorIds);
@@ -281,7 +319,11 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     final deduped =
-        excludeFeedVisibleShortConflicts(filtered, warmFeedVisibleVideoDocIds);
+        excludeFeedVisibleShortConflicts(
+      filtered,
+      warmFeedVisibleVideoDocIds,
+      fallbackToOriginalWhenEmpty: !enforceFeedConflictExclusion,
+    );
     return mixShortPresentationPosts(
       deduped,
       sessionNamespace: 'short',
@@ -429,9 +471,14 @@ extension ShortControllerLoadingPart on ShortController {
         userId: _currentUserId,
         limit: initialLimit,
       );
+      final visibleSnapshotPosts = await _excludeFeedVisibleSnapshotConflicts(
+        (snapshot.data ?? const <PostsModel>[])
+            .where(_isEligibleShortPost)
+            .toList(growable: false),
+      );
       final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
         currentShorts: shorts.toList(growable: false),
-        snapshotPosts: snapshot.data ?? const <PostsModel>[],
+        snapshotPosts: visibleSnapshotPosts,
         isEligiblePost: _isEligibleShortPost,
       );
       if (initialPlan.replacementItems != null) {
@@ -469,7 +516,13 @@ extension ShortControllerLoadingPart on ShortController {
         isEligiblePost: _isEligibleShortPost,
       );
       if (initialPlan.replacementItems != null) {
-        _replaceShorts(initialPlan.replacementItems!, remapCache: true);
+        final conflictFreeCurrentShorts =
+            await _excludeFeedVisibleSnapshotConflicts(
+          initialPlan.replacementItems!,
+        );
+        if (conflictFreeCurrentShorts.isNotEmpty) {
+          _replaceShorts(conflictFreeCurrentShorts, remapCache: true);
+        }
       }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
       await preloadRange(0, range: 0);

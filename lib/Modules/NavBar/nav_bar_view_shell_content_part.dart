@@ -153,6 +153,8 @@ extension _NavBarViewShellContentPart on NavBarView {
     try {
       await shortController.prepareStartupSurface(
         allowBackgroundRefresh: false,
+      ).timeout(
+        const Duration(milliseconds: 350),
       );
     } catch (_) {}
 
