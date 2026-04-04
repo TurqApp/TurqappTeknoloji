@@ -34,9 +34,6 @@ class CommentComposerBar extends StatelessWidget {
   final VoidCallback onClearGif;
   final VoidCallback onSend;
 
-  bool get _showSendButton =>
-      textController.text.trim().isNotEmpty || selectedGifUrl.trim().isNotEmpty;
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -222,31 +219,41 @@ class CommentComposerBar extends StatelessWidget {
               ),
             ),
           ),
-          if (_showSendButton)
-            Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: GestureDetector(
-                key: const ValueKey(IntegrationTestKeys.actionCommentSend),
-                onTap: onSend,
-                child: Semantics(
-                  button: true,
-                  label: 'Send comment',
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Colors.black,
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    child: const Icon(
-                      Icons.send,
-                      color: Colors.white,
-                      size: 16,
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: textController,
+            builder: (context, value, _) {
+              final showSendButton =
+                  value.text.trim().isNotEmpty ||
+                  selectedGifUrl.trim().isNotEmpty;
+              if (!showSendButton) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: GestureDetector(
+                  key: const ValueKey(IntegrationTestKeys.actionCommentSend),
+                  onTap: onSend,
+                  child: Semantics(
+                    button: true,
+                    label: 'Send comment',
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(50),
+                      ),
+                      child: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 16,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
+          ),
         ],
       ),
     );

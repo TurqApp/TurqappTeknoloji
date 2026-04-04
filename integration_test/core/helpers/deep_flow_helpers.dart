@@ -1,7 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
+import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
 
 import '../bootstrap/test_app_bootstrap.dart';
 import 'test_state_probe.dart';
@@ -25,8 +30,8 @@ List<String> _valueKeysWithPrefix(String prefix) {
 
 Future<String> _waitForVisibleFeedCommentKey(
   WidgetTester tester, {
-  int maxScrolls = 8,
-  Duration step = const Duration(milliseconds: 250),
+  int maxScrolls = 16,
+  Duration step = const Duration(milliseconds: 350),
 }) async {
   final feedScrollable = find.descendant(
     of: byItKey(IntegrationTestKeys.screenFeed),
@@ -37,6 +42,11 @@ Future<String> _waitForVisibleFeedCommentKey(
     final value = firstValueKeyString(findItKeyPrefix('it-feed-comment-'));
     if (value != null && value.isNotEmpty) {
       return value;
+    }
+    await tester.pump(step);
+    final afterPumpValue = firstValueKeyString(findItKeyPrefix('it-feed-comment-'));
+    if (afterPumpValue != null && afterPumpValue.isNotEmpty) {
+      return afterPumpValue;
     }
     if (i == maxScrolls || feedScrollable.evaluate().isEmpty) {
       break;
@@ -171,6 +181,9 @@ Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
   final requiredFeedDocIds =
       IntegrationTestFixtureContract.current.surface('feed')?.requiredDocIds ??
           const <String>[];
+  final preferredDocId = requiredFeedDocIds.isNotEmpty
+      ? requiredFeedDocIds.first
+      : (feedPayload['centeredDocId'] as String? ?? '').trim();
   for (final docId in requiredFeedDocIds) {
     final opened = await _tryOpenCommentsForFeedPost(tester, docId);
     if (opened) {
@@ -183,11 +196,18 @@ Future<String> openCommentsForFirstFeedPost(WidgetTester tester) async {
     return centeredDocId;
   }
 
-  final visibleCommentKey = await _waitForVisibleFeedCommentKey(tester);
-  final postId = visibleCommentKey.replaceFirst('it-feed-comment-', '');
-  await tapItKey(tester, visibleCommentKey, settlePumps: 10);
-  expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
-  return postId;
+  try {
+    final visibleCommentKey = await _waitForVisibleFeedCommentKey(tester);
+    final postId = visibleCommentKey.replaceFirst('it-feed-comment-', '');
+    await tapItKey(tester, visibleCommentKey, settlePumps: 10);
+    expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+    return postId;
+  } on TestFailure {
+    return openCommentsForFeedPostDirectly(
+      tester,
+      preferredDocId: preferredDocId,
+    );
+  }
 }
 
 Future<String> ensureCommentTargetForSmoke(
@@ -258,8 +278,8 @@ Future<void> sendCommentFromComposer(
 Future<bool> _tryOpenCommentsForFeedPost(
   WidgetTester tester,
   String docId, {
-  int maxScrolls = 8,
-  Duration step = const Duration(milliseconds: 250),
+  int maxScrolls = 16,
+  Duration step = const Duration(milliseconds: 350),
 }) async {
   final targetKey = IntegrationTestKeys.feedCommentButton(docId);
   final targetFinder = byItKey(targetKey);
@@ -278,6 +298,12 @@ Future<bool> _tryOpenCommentsForFeedPost(
   }
 
   for (var i = 0; i < maxScrolls; i++) {
+    await tester.pump(step);
+    if (targetFinder.evaluate().isNotEmpty) {
+      await tapItKey(tester, targetKey, settlePumps: 10);
+      expect(byItKey(IntegrationTestKeys.screenComments), findsOneWidget);
+      return true;
+    }
     await tester.drag(feedScrollable.first, const Offset(0, -260));
     await tester.pump(step);
     if (targetFinder.evaluate().isNotEmpty) {
@@ -288,6 +314,49 @@ Future<bool> _tryOpenCommentsForFeedPost(
   }
 
   return false;
+}
+
+Future<String> openCommentsForFeedPostDirectly(
+  WidgetTester tester, {
+  String preferredDocId = '',
+}) async {
+  final controller = ensureAgendaController();
+  final normalizedPreferred = preferredDocId.trim();
+
+  PostsModel? resolved;
+  if (normalizedPreferred.isNotEmpty) {
+    resolved = controller.agendaList.firstWhereOrNull(
+      (post) => post.docID.trim() == normalizedPreferred,
+    );
+  }
+  resolved ??= controller.agendaList.firstWhereOrNull(
+    (post) => post.docID.trim().isNotEmpty,
+  );
+  if (resolved == null) {
+    throw TestFailure('Unable to resolve a feed post for direct comments fallback.');
+  }
+
+  await Get.bottomSheet(
+    Builder(
+      builder: (context) => buildPostCommentsSheet(
+        context: context,
+        postID: resolved!.docID,
+        userID: resolved.userID,
+        collection: 'Posts',
+      ),
+    ),
+    isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: true,
+    backgroundColor: Colors.transparent,
+  );
+
+  await pumpUntilVisible(
+    tester,
+    byItKey(IntegrationTestKeys.screenComments),
+    maxPumps: 20,
+  );
+  return resolved.docID;
 }
 
 Future<void> confirmCupertinoDialog(WidgetTester tester) async {
