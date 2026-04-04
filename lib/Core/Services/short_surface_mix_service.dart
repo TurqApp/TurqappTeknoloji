@@ -3,6 +3,7 @@ import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 enum ShortMixBucket {
@@ -25,19 +26,34 @@ class _ShortPresentationSignal {
   final int cachedSegments;
 }
 
-Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(String userId) async {
+Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
+    String userId) async {
   final normalizedUserId = userId.trim();
   if (normalizedUserId.isEmpty) {
     return const <String>{};
   }
 
   final feedRepository = maybeFindFeedSnapshotRepository();
-  final schedulerDocIds = maybeFindPrefetchScheduler()
-          ?.currentFeedDocIds()
-          .map((docId) => docId.trim())
-          .where((docId) => docId.isNotEmpty)
-          .toSet() ??
-      <String>{};
+  final scheduler = maybeFindPrefetchScheduler();
+  final agendaController = maybeFindAgendaController();
+  final liveFeedSurfaceDocIds = agendaController?.agendaList
+          .where((post) => post.hasPlayableVideo)
+          .map((post) => post.docID.trim())
+          .where((docId) => docId.isNotEmpty) ??
+      const Iterable<String>.empty();
+  final schedulerDocIds = <String>{
+    ...liveFeedSurfaceDocIds,
+    ...(scheduler
+            ?.currentFeedSurfaceVideoDocIds()
+            .map((docId) => docId.trim())
+            .where((docId) => docId.isNotEmpty) ??
+        const Iterable<String>.empty()),
+    ...(scheduler
+            ?.currentFeedDocIds()
+            .map((docId) => docId.trim())
+            .where((docId) => docId.isNotEmpty) ??
+        const Iterable<String>.empty()),
+  };
   if (feedRepository == null) {
     return schedulerDocIds;
   }
@@ -54,10 +70,10 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(String userId) async 
   return <String>{
     ...schedulerDocIds,
     ...posts
-      .where((post) => post.hasPlayableVideo)
-      .map((post) => post.docID.trim())
-      .where((docId) => docId.isNotEmpty)
-      .toSet(),
+        .where((post) => post.hasPlayableVideo)
+        .map((post) => post.docID.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toSet(),
   };
 }
 
@@ -233,8 +249,7 @@ List<PostsModel> _reorderBucketForPresentation(
       )
       .toList(growable: true)
     ..sort((left, right) {
-      final activeCompare =
-          (right.value.activelyDownloading ? 1 : 0) -
+      final activeCompare = (right.value.activelyDownloading ? 1 : 0) -
           (left.value.activelyDownloading ? 1 : 0);
       if (activeCompare != 0) return activeCompare;
 
@@ -242,12 +257,10 @@ List<PostsModel> _reorderBucketForPresentation(
           right.value.readinessTier.compareTo(left.value.readinessTier);
       if (tierCompare != 0) return tierCompare;
 
-      final leftQueue = left.value.queuePosition < 0
-          ? 1 << 20
-          : left.value.queuePosition;
-      final rightQueue = right.value.queuePosition < 0
-          ? 1 << 20
-          : right.value.queuePosition;
+      final leftQueue =
+          left.value.queuePosition < 0 ? 1 << 20 : left.value.queuePosition;
+      final rightQueue =
+          right.value.queuePosition < 0 ? 1 << 20 : right.value.queuePosition;
       final queueCompare = leftQueue.compareTo(rightQueue);
       if (queueCompare != 0) return queueCompare;
 
@@ -302,7 +315,8 @@ _ShortPresentationSignal _resolveShortPresentationSignal(PostsModel post) {
   final isQueued =
       activelyDownloading || queuePosition >= 0 || hasPendingPrefetch;
 
-  final readinessTier = switch ((entry?.isFullyCached ?? false, cachedSegments, isQueued)) {
+  final readinessTier =
+      switch ((entry?.isFullyCached ?? false, cachedSegments, isQueued)) {
     (true, _, _) => 5,
     (false, >= 2, true) => 4,
     (false, >= 2, false) => 3,

@@ -15,6 +15,7 @@ class _PrefetchSchedulerState {
   List<String> lastPriorityDocIDs = const <String>[];
   int lastPriorityCurrentIndex = 0;
   List<String> lastFeedDocIDs = const <String>[];
+  List<String> lastFeedSurfaceVideoDocIDs = const <String>[];
   List<String> lastFeedBankDocIDs = const <String>[];
   String? focusedDocID;
   bool restrictToFocusedDoc = false;
@@ -56,6 +57,10 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
       _state.lastPriorityCurrentIndex = value;
   List<String> get _lastFeedDocIDs => _state.lastFeedDocIDs;
   set _lastFeedDocIDs(List<String> value) => _state.lastFeedDocIDs = value;
+  List<String> get _lastFeedSurfaceVideoDocIDs =>
+      _state.lastFeedSurfaceVideoDocIDs;
+  set _lastFeedSurfaceVideoDocIDs(List<String> value) =>
+      _state.lastFeedSurfaceVideoDocIDs = value;
   List<String> get _lastFeedBankDocIDs => _state.lastFeedBankDocIDs;
   set _lastFeedBankDocIDs(List<String> value) =>
       _state.lastFeedBankDocIDs = value;

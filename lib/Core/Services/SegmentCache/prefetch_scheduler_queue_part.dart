@@ -82,6 +82,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     int currentIndex, {
     int? maxDocs,
   }) async {
+    final seenSurfaceDocIds = <String>{};
+    _lastFeedSurfaceVideoDocIDs = posts
+        .map((post) => post.docID.trim())
+        .where((docId) => docId.isNotEmpty && seenSurfaceDocIds.add(docId))
+        .toList(growable: false);
     seedFeedBankCandidates(posts, currentIndex: currentIndex);
     final resolved = _resolveOfflineCandidateQueue(
       posts,
@@ -435,8 +440,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (_activeBankDownloads > 0) return false;
     if (_queue.any((job) => _isBankDocId(job.docID))) return false;
 
-    final safeCurrent = _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final queued = _queue.map((job) => job.docID).toSet()..addAll(_activeBankDocIDs);
+    final safeCurrent =
+        _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final queued = _queue.map((job) => job.docID).toSet()
+      ..addAll(_activeBankDocIDs);
     final beforeCount = _queue.length;
 
     _appendFeedBankBatchJobs(

@@ -13,6 +13,9 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
   List<String> currentFeedDocIds() =>
       List<String>.from(_lastFeedDocIDs, growable: false);
 
+  List<String> currentFeedSurfaceVideoDocIds() =>
+      List<String>.from(_lastFeedSurfaceVideoDocIDs, growable: false);
+
   List<String> currentFeedBankDocIds() =>
       List<String>.from(_lastFeedBankDocIDs, growable: false);
 

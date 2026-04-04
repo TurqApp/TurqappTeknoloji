@@ -288,6 +288,29 @@ extension ShortControllerLoadingPart on ShortController {
     );
   }
 
+  Future<void> reconcileVisibleShortSurface({
+    required String trigger,
+  }) async {
+    final currentShorts = shorts.toList(growable: false);
+    if (currentShorts.isEmpty) return;
+
+    final reconciled = await _filterVisibleShortPosts(currentShorts);
+    if (reconciled.isEmpty || _hasSameRenderOrder(currentShorts, reconciled)) {
+      return;
+    }
+
+    _recordShortFetchEvent(
+      stage: 'visible_reconcile',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'beforeCount': currentShorts.length,
+        'afterCount': reconciled.length,
+      },
+    );
+    _replaceShorts(reconciled, remapCache: true);
+    unawaited(_persistVisibleSnapshot());
+  }
+
   Future<List<PostsModel>> _loadOfflineCachedShorts({
     required int limit,
     required String trigger,

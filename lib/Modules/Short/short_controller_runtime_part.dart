@@ -127,6 +127,9 @@ extension ShortControllerPublicApiPart on ShortController {
         await _runInitialLoadOnce();
       }
     }
+    await reconcileVisibleShortSurface(
+      trigger: 'primary_surface_visible_reconcile',
+    );
     if (shorts.isNotEmpty) {
       await preloadRange(0, range: 0);
     }
