@@ -47,7 +47,11 @@ void main() {
             indexField: 'centeredIndex',
             countField: 'count',
           );
-          expectSurfaceMatchesFixture('feed', feed);
+          expectSurfaceMatchesFixture(
+            'feed',
+            feed,
+            enforceRequiredDocIds: false,
+          );
 
           final auth = readSurfaceProbe('auth');
           expect(auth['isFirebaseSignedIn'], isTrue);

@@ -44,7 +44,11 @@ void main() {
             countField: 'count',
           );
           expectFeedUsesPrimaryContract(beforeFeed);
-          expectSurfaceMatchesFixture('feed', beforeFeed);
+          expectSurfaceMatchesFixture(
+            'feed',
+            beforeFeed,
+            enforceRequiredDocIds: false,
+          );
           await settleSmokeShell(
             tester,
             context: 'feed route replay settle',

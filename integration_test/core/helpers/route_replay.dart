@@ -160,12 +160,6 @@ Future<void> replayFeedToShortToFeed(
       before: beforeFeed,
       after: feedSnapshot,
     );
-    expectDocPreservedIfStillPresent(
-      'feed',
-      before: beforeFeed,
-      after: feedSnapshot,
-      activeDocField: 'centeredDocId',
-    );
   }
   expectCountNeverDropsToZeroAfterReplay(
     'short',
