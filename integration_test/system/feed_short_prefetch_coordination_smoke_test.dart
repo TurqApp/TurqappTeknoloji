@@ -40,7 +40,7 @@ void main() {
 
           final shortController = await _waitForShortSurface(tester);
           _expectShortSurfaceExcludesCurrentFeedVideos(
-            feedDocIds: feedSnapshot.feedDocIds,
+            feedDocIds: feedSnapshot.surfaceFeedVideoDocIds,
             controller: shortController,
           );
 
@@ -57,11 +57,13 @@ void main() {
 
 class _FeedPrefetchSnapshot {
   const _FeedPrefetchSnapshot({
+    required this.surfaceFeedVideoDocIds,
     required this.feedDocIds,
     required this.bankDocIds,
     required this.bankQueued,
   });
 
+  final List<String> surfaceFeedVideoDocIds;
   final List<String> feedDocIds;
   final List<String> bankDocIds;
   final bool bankQueued;
@@ -72,6 +74,34 @@ Future<_FeedPrefetchSnapshot> _waitForFeedPrefetchSnapshot(
 ) async {
   final controller = ensureAgendaController();
   final scheduler = ensurePrefetchScheduler();
+  final cacheManager = ensureSegmentCacheManager();
+  if (!cacheManager.isReady) {
+    await cacheManager.init();
+  }
+
+  final surfaceFeedVideoDocIds = controller.agendaList
+      .where((post) => post.hasPlayableVideo)
+      .map((post) => post.docID.trim())
+      .where((docId) => docId.isNotEmpty)
+      .take(24)
+      .toList(growable: false);
+  expect(
+    surfaceFeedVideoDocIds,
+    isNotEmpty,
+    reason: 'feed surface has no playable video candidates',
+  );
+
+  final syntheticSchedulerPosts = _buildSyntheticEligibleFeedPrefetchPosts(
+    controller.agendaList.where((post) => post.hasPlayableVideo).toList(),
+  );
+  expect(
+    syntheticSchedulerPosts.length,
+    greaterThanOrEqualTo(12),
+    reason:
+        'not enough feed video seeds for deterministic prefetch smoke phase',
+  );
+
+  await scheduler.updateFeedQueueForPosts(syntheticSchedulerPosts, 0);
 
   for (var attempt = 0; attempt < 48; attempt++) {
     await tester.pump(const Duration(milliseconds: 250));
@@ -94,6 +124,7 @@ Future<_FeedPrefetchSnapshot> _waitForFeedPrefetchSnapshot(
     if (feedDocIds.isNotEmpty && bankDocIds.isNotEmpty && bankQueued) {
       await expectNoFlutterException(tester);
       return _FeedPrefetchSnapshot(
+        surfaceFeedVideoDocIds: surfaceFeedVideoDocIds,
         feedDocIds: feedDocIds,
         bankDocIds: bankDocIds,
         bankQueued: bankQueued,
@@ -101,12 +132,12 @@ Future<_FeedPrefetchSnapshot> _waitForFeedPrefetchSnapshot(
     }
   }
 
-  final playableFeedCount = controller.agendaList
-      .where((post) => post.hasPlayableVideo)
-      .length;
+  final playableFeedCount =
+      controller.agendaList.where((post) => post.hasPlayableVideo).length;
   throw TestFailure(
     'feed prefetch state did not stabilize '
     '(playableFeedCount=$playableFeedCount, '
+    'surfaceFeedVideoCount=${surfaceFeedVideoDocIds.length}, '
     'feedDocIds=${scheduler.currentFeedDocIds().length}, '
     'bankDocIds=${scheduler.currentFeedBankDocIds().length}, '
     'queueSize=${scheduler.queueSize}, '
@@ -127,7 +158,8 @@ Future<ShortController> _waitForShortSurface(WidgetTester tester) async {
   for (var attempt = 0; attempt < 40; attempt++) {
     await tester.pump(const Duration(milliseconds: 250));
     final payload = maybeReadSurfaceProbe('short');
-    final count = (payload?['count'] as num?)?.toInt() ?? controller.shorts.length;
+    final count =
+        (payload?['count'] as num?)?.toInt() ?? controller.shorts.length;
     if (count >= 4 && controller.shorts.length >= 4) {
       await expectNoFlutterException(tester);
       return controller;
@@ -162,6 +194,27 @@ void _expectShortSurfaceExcludesCurrentFeedVideos({
     reason:
         'feed-visible video doc ids leaked into short surface: ${overlap.toList()}',
   );
+}
+
+List<PostsModel> _buildSyntheticEligibleFeedPrefetchPosts(
+  List<PostsModel> playableFeedPosts,
+) {
+  final seeds = playableFeedPosts
+      .where((post) => post.docID.trim().isNotEmpty)
+      .take(28)
+      .toList(growable: false);
+  return List<PostsModel>.generate(seeds.length, (index) {
+    final seed = seeds[index];
+    final syntheticId = 'it_feed_prefetch_${index.toString()}_${seed.docID}';
+    return seed.copyWith(
+      docID: syntheticId,
+      shortId: syntheticId,
+      shortUrl: seed.shortUrl.isEmpty
+          ? syntheticId
+          : '${seed.shortUrl}_${index.toString()}',
+      rozet: seed.rozet.trim().isEmpty ? 'mavi' : seed.rozet,
+    );
+  }, growable: false);
 }
 
 Future<void> _expectShortRankingUsesCacheAndQueueSignals(
