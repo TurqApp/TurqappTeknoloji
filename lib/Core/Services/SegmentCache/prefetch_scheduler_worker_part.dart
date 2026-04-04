@@ -1,6 +1,8 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  bool _isBankDocId(String docID) => _lastFeedBankDocIDs.contains(docID);
+
   int _followUpPriorityForJob(_PrefetchJob job) {
     final targetIndex = _lastPriorityDocIDs.indexOf(job.docID);
     if (targetIndex < 0) {
@@ -58,6 +60,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _queue.clear();
     _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
+    _activeBankDownloads = 0;
+    _activeBankDocIDs.clear();
 
     if (_activeDownloads > 0) {
       _workerSub?.cancel();
@@ -89,6 +93,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
+    _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
     if (_paused || _queue.isEmpty) return;
     if (_activeDownloads >= _maxConcurrent) return;
 
@@ -103,10 +108,26 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         _publishPrefetchHealthIfNeeded(force: true);
         return;
       }
-      final job = _queue.removeAt(0);
+      final job = _takeNextQueuedJob();
       _trackQueueDispatchLatency(job.docID);
       await _processJob(job);
     }
+  }
+
+  _PrefetchJob _takeNextQueuedJob() {
+    if (!_isOnWiFi || _activeBankDownloads > 0 || _queue.length <= 1) {
+      return _queue.removeAt(0);
+    }
+
+    if (_activeDownloads <= 0) {
+      return _queue.removeAt(0);
+    }
+
+    final bankIndex = _queue.indexWhere((job) => _isBankDocId(job.docID));
+    if (bankIndex <= 0) {
+      return _queue.removeAt(0);
+    }
+    return _queue.removeAt(bankIndex);
   }
 
   Future<void> _processJob(_PrefetchJob job) async {
@@ -289,6 +310,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
 
+        if (_isBankDocId(job.docID) && _activeBankDocIDs.add(job.docID)) {
+          _activeBankDownloads++;
+        }
         _activeDownloads++;
         _resetWatchdog();
         probe.recordSegmentStart(
@@ -345,6 +369,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   void _onDownloadResult(DownloadResult result) {
     _activeDownloads = (_activeDownloads - 1).clamp(0, _maxConcurrent * 2);
+    if (_activeBankDocIDs.remove(result.docID)) {
+      _activeBankDownloads = (_activeBankDownloads - 1).clamp(0, _maxConcurrent);
+    }
     _resetWatchdog();
 
     if (result.success) {
@@ -457,6 +484,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             '[Prefetch] Watchdog: $_activeDownloads stuck downloads, resetting worker',
           );
           _activeDownloads = 0;
+          _activeBankDownloads = 0;
+          _activeBankDocIDs.clear();
           _workerSub?.cancel();
           _workerSub = null;
           _worker?.stop();

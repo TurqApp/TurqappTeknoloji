@@ -5,6 +5,8 @@ class _SegmentCacheManagerState {
   bool ready = false;
   CacheIndex index = CacheIndex();
   final metrics = CacheMetrics();
+  int playlistMetadataBytes = 0;
+  int indexMetadataBytes = 0;
   int? userHardLimitBytes;
   int? userSoftLimitBytes;
   Timer? persistTimer;
@@ -25,6 +27,10 @@ extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
   CacheIndex get _index => _state.index;
   set _index(CacheIndex value) => _state.index = value;
   CacheMetrics get metrics => _state.metrics;
+  int get _playlistMetadataBytes => _state.playlistMetadataBytes;
+  set _playlistMetadataBytes(int value) => _state.playlistMetadataBytes = value;
+  int get _indexMetadataBytes => _state.indexMetadataBytes;
+  set _indexMetadataBytes(int value) => _state.indexMetadataBytes = value;
   int? get _userHardLimitBytes => _state.userHardLimitBytes;
   set _userHardLimitBytes(int? value) => _state.userHardLimitBytes = value;
   int? get _userSoftLimitBytes => _state.userSoftLimitBytes;

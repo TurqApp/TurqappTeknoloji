@@ -15,8 +15,9 @@ const int _prefetchSchedulerWifiMinDepthCount = 7;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 4;
 const int _prefetchSchedulerWifiMinFeedFullWindow = 15;
 const int _prefetchSchedulerWifiMinFeedPrepWindow = 20;
+const int _prefetchSchedulerFeedBankBatchSize = 20;
 const double _prefetchSchedulerWifiQuotaFillRatio = 0.70;
-const int _prefetchSchedulerFeedBankMaxDocs = 200;
+const double _prefetchSchedulerWifiQuotaFillToleranceRatio = 0.75;
 
 @visibleForTesting
 int resolvePrefetchReadySegmentsForPost(
@@ -97,9 +98,9 @@ List<String> buildFeedBankDocIds({
   required List<PostsModel> posts,
   required int currentIndex,
   int unseenHeadWindow = ReadBudgetRegistry.feedReadyForNavCount,
-  int maxDocs = _prefetchSchedulerFeedBankMaxDocs,
+  int? maxDocs,
 }) {
-  if (posts.isEmpty || maxDocs <= 0) {
+  if (posts.isEmpty) {
     return const <String>[];
   }
 
@@ -113,7 +114,9 @@ List<String> buildFeedBankDocIds({
     if (!post.hasPlayableVideo) continue;
     if (normalizeRozetValue(post.rozet).isEmpty) continue;
     docIds.add(docId);
-    if (docIds.length >= maxDocs) break;
+    if (maxDocs != null && maxDocs > 0 && docIds.length >= maxDocs) {
+      break;
+    }
   }
   return docIds;
 }
@@ -146,19 +149,17 @@ List<String> pruneSeenFeedBankDocIds({
 List<String> mergeFeedBankDocIds({
   required List<String> existingDocIds,
   required List<String> incomingDocIds,
-  int maxDocs = _prefetchSchedulerFeedBankMaxDocs,
+  int? maxDocs,
 }) {
-  if (maxDocs <= 0) {
-    return const <String>[];
-  }
-
   final merged = <String>[];
   final seen = <String>{};
   for (final docId in incomingDocIds.followedBy(existingDocIds)) {
     final trimmed = docId.trim();
     if (trimmed.isEmpty || !seen.add(trimmed)) continue;
     merged.add(trimmed);
-    if (merged.length >= maxDocs) break;
+    if (maxDocs != null && maxDocs > 0 && merged.length >= maxDocs) {
+      break;
+    }
   }
   return merged;
 }

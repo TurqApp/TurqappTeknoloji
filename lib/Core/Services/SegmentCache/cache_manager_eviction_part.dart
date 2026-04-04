@@ -84,6 +84,7 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
 
     _index.totalSizeBytes -= entry.totalSizeBytes;
     _index.entries.remove(entry.docID);
+    await _refreshMetadataUsage();
     metrics.recordEviction();
     _markDirty();
 

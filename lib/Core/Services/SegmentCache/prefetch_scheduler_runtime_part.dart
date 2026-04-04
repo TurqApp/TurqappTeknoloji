@@ -80,21 +80,28 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     if (!_isOnWiFi) return 0;
     final profile = _storageBudgetProfile;
     if (profile == null) return 0;
-    return (profile.streamCacheHardStopBytes *
-            _prefetchSchedulerWifiQuotaFillRatio)
+    return (profile.totalPlanBytes * _prefetchSchedulerWifiQuotaFillRatio)
+        .round();
+  }
+
+  int get _wifiQuotaFillStopBytes {
+    if (!_isOnWiFi) return 0;
+    final profile = _storageBudgetProfile;
+    if (profile == null) return 0;
+    return (profile.totalPlanBytes * _prefetchSchedulerWifiQuotaFillToleranceRatio)
         .round();
   }
 
   bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {
-    final targetBytes = _wifiQuotaFillTargetBytes;
-    if (targetBytes <= 0) return false;
-    return cacheManager.totalSizeBytes >= targetBytes;
+    final stopBytes = _wifiQuotaFillStopBytes;
+    if (stopBytes <= 0) return false;
+    return cacheManager.totalTrackedUsageBytes >= stopBytes;
   }
 
   double _wifiQuotaFillRatio(SegmentCacheManager cacheManager) {
     final targetBytes = _wifiQuotaFillTargetBytes;
     if (targetBytes <= 0) return 0.0;
-    return (cacheManager.totalSizeBytes / targetBytes).clamp(0.0, 1.0);
+    return (cacheManager.totalTrackedUsageBytes / targetBytes).clamp(0.0, 1.0);
   }
 
   void _handlePrefetchSchedulerClose() {

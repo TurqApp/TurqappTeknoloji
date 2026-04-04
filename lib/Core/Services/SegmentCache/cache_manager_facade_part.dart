@@ -19,6 +19,10 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   String get cacheDir => _SegmentCacheManagerRuntimeX(this).cacheDir;
   int get entryCount => _SegmentCacheManagerRuntimeX(this).entryCount;
   int get totalSizeBytes => _SegmentCacheManagerRuntimeX(this).totalSizeBytes;
+  int get metadataUsageBytes =>
+      _SegmentCacheManagerRuntimeX(this).metadataUsageBytes;
+  int get totalTrackedUsageBytes =>
+      _SegmentCacheManagerRuntimeX(this).totalTrackedUsageBytes;
   int get cachedVideoCount =>
       _SegmentCacheManagerRuntimeX(this).cachedVideoCount;
   int get totalSegmentCount =>

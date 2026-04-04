@@ -96,7 +96,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   void seedFeedBankCandidates(
     List<PostsModel> posts, {
     required int currentIndex,
-    int maxDocs = _prefetchSchedulerFeedBankMaxDocs,
+    int? maxDocs,
   }) {
     final prunedExisting = pruneSeenFeedBankDocIds(
       bankDocIds: _lastFeedBankDocIDs,
@@ -127,6 +127,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (docIDs.isEmpty) return;
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
     final currentDocId = docIDs[safeCurrent];
+    _lastFeedDocIDs = const <String>[];
+    _lastFeedCurrentIndex = 0;
+    _lastFeedReadyCount = 0;
+    _lastFeedWindowCount = 0;
+    _lastFeedReadyRatio = 0.0;
     updatePriorityWindowContext(docIDs, safeCurrent);
 
     _mobileSeedMode =
@@ -314,33 +319,31 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       addJob(i, 1);
     }
 
-    int bankOffset = 0;
-    for (final docID in _lastFeedBankDocIDs) {
-      if (!queued.add(docID)) continue;
-      final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
-      final readySegments = _resolvedReadySegmentTarget(
-        docID: docID,
-        cacheManager: cacheManager,
-      );
-      final targetIndex = docIDs.length + bankOffset;
-      _queue.add(_PrefetchJob(
-        docID,
-        readySegments,
-        3,
-        _buildJobScore(
-          currentIndex: safeCurrent,
-          currentDocId: docIDs[safeCurrent],
-          targetIndex: targetIndex,
-          priority: 3,
-          watchProgress: entry?.watchProgress ?? 0.0,
-          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-          totalSegmentCount: entry?.totalSegmentCount ?? 0,
-        ),
-      ));
-      _jobEnqueuedAt[docID] = DateTime.now();
-      bankOffset++;
-    }
+    _appendFeedBankBatchJobs(
+      cacheManager: cacheManager,
+      currentDocId: docIDs[safeCurrent],
+      currentIndex: safeCurrent,
+      queued: queued,
+      addBankJob: (docID, readySegments, priority, bankOffset) {
+        final entry = cacheManager.getEntry(docID);
+        final targetIndex = docIDs.length + bankOffset;
+        _queue.add(_PrefetchJob(
+          docID,
+          readySegments,
+          priority,
+          _buildJobScore(
+            currentIndex: safeCurrent,
+            currentDocId: docIDs[safeCurrent],
+            targetIndex: targetIndex,
+            priority: priority,
+            watchProgress: entry?.watchProgress ?? 0.0,
+            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+            totalSegmentCount: entry?.totalSegmentCount ?? 0,
+          ),
+        ));
+        _jobEnqueuedAt[docID] = DateTime.now();
+      },
+    );
 
     for (var i = 1; i <= 5; i++) {
       final idx = safeCurrent - i;
@@ -354,6 +357,129 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _updateFeedReadyRatio();
     _publishPrefetchHealthIfNeeded();
     _processQueue();
+  }
+
+  void _appendFeedBankBatchJobs({
+    required SegmentCacheManager cacheManager,
+    required String currentDocId,
+    required int currentIndex,
+    required Set<String> queued,
+    required void Function(
+      String docID,
+      int readySegments,
+      int priority,
+      int bankOffset,
+    ) addBankJob,
+  }) {
+    if (_lastFeedBankDocIDs.isEmpty) return;
+
+    final pendingBankDocIds = <String>[];
+    for (final docID in _lastFeedBankDocIDs) {
+      final trimmed = docID.trim();
+      if (trimmed.isEmpty) continue;
+      final entry = cacheManager.getEntry(trimmed);
+      final cachedPost = entry?.cachedPostModel;
+      if (!_isEligibleBankQueuePost(cachedPost)) {
+        continue;
+      }
+      final targetSegments = _resolvedFeedBankReadySegments(
+        docID: trimmed,
+        cacheManager: cacheManager,
+      );
+      if ((entry?.cachedSegmentCount ?? 0) >= targetSegments) {
+        continue;
+      }
+      pendingBankDocIds.add(trimmed);
+    }
+    if (pendingBankDocIds.isEmpty) return;
+
+    final batchDocIds = pendingBankDocIds
+        .take(_prefetchSchedulerFeedBankBatchSize)
+        .toList(growable: false);
+    final firstSegmentStage = <String>[];
+    final secondSegmentStage = <String>[];
+    for (final docID in batchDocIds) {
+      final entry = cacheManager.getEntry(docID);
+      final cachedSegments = entry?.cachedSegmentCount ?? 0;
+      final targetSegments = _resolvedFeedBankReadySegments(
+        docID: docID,
+        cacheManager: cacheManager,
+      );
+      if (cachedSegments < 1) {
+        firstSegmentStage.add(docID);
+        continue;
+      }
+      if (targetSegments > 1 && cachedSegments < targetSegments) {
+        secondSegmentStage.add(docID);
+      }
+    }
+
+    final stageDocIds =
+        firstSegmentStage.isNotEmpty ? firstSegmentStage : secondSegmentStage;
+    if (stageDocIds.isEmpty) return;
+
+    final stageReadySegments = firstSegmentStage.isNotEmpty ? 1 : 2;
+    final stagePriority = firstSegmentStage.isNotEmpty ? 3 : 4;
+    var bankOffset = 0;
+    for (final docID in stageDocIds) {
+      if (!queued.add(docID)) continue;
+      addBankJob(docID, stageReadySegments, stagePriority, bankOffset);
+      bankOffset++;
+    }
+  }
+
+  bool _ensureFeedBankBatchQueuedIfNeeded(SegmentCacheManager cacheManager) {
+    if (_lastFeedDocIDs.isEmpty || _lastFeedBankDocIDs.isEmpty) {
+      return false;
+    }
+    if (_activeBankDownloads > 0) return false;
+    if (_queue.any((job) => _isBankDocId(job.docID))) return false;
+
+    final safeCurrent = _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final queued = _queue.map((job) => job.docID).toSet()..addAll(_activeBankDocIDs);
+    final beforeCount = _queue.length;
+
+    _appendFeedBankBatchJobs(
+      cacheManager: cacheManager,
+      currentDocId: _lastFeedDocIDs[safeCurrent],
+      currentIndex: safeCurrent,
+      queued: queued,
+      addBankJob: (docID, readySegments, priority, bankOffset) {
+        final entry = cacheManager.getEntry(docID);
+        final targetIndex = _lastFeedDocIDs.length + bankOffset;
+        _queue.add(_PrefetchJob(
+          docID,
+          readySegments,
+          priority,
+          _buildJobScore(
+            currentIndex: safeCurrent,
+            currentDocId: _lastFeedDocIDs[safeCurrent],
+            targetIndex: targetIndex,
+            priority: priority,
+            watchProgress: entry?.watchProgress ?? 0.0,
+            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+            totalSegmentCount: entry?.totalSegmentCount ?? 0,
+          ),
+        ));
+        _jobEnqueuedAt[docID] = DateTime.now();
+      },
+    );
+
+    if (_queue.length == beforeCount) return false;
+    _queue.sort(_compareJobs);
+    return true;
+  }
+
+  int _resolvedFeedBankReadySegments({
+    required String docID,
+    required SegmentCacheManager cacheManager,
+  }) {
+    final target = _resolvedReadySegmentTarget(
+      docID: docID,
+      cacheManager: cacheManager,
+    );
+    if (target <= 1) return 1;
+    return 2;
   }
 
   void boostDoc(
@@ -447,6 +573,12 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   }
 
   bool _isEligibleOfflineCandidatePost(PostsModel post) {
+    if (!post.hasPlayableVideo) return false;
+    return normalizeRozetValue(post.rozet).isNotEmpty;
+  }
+
+  bool _isEligibleBankQueuePost(PostsModel? post) {
+    if (post == null) return false;
     if (!post.hasPlayableVideo) return false;
     return normalizeRozetValue(post.rozet).isNotEmpty;
   }

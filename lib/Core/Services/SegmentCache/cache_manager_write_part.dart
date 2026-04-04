@@ -81,6 +81,7 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
   Future<File> writePlaylist(String relativePath, String content) async {
     final file = File('$_cacheDir/$relativePath');
     await file.parent.create(recursive: true);
+    final previousLength = await file.exists() ? await file.length() : 0;
     final tmpFile = File('${file.path}.tmp');
     await tmpFile.writeAsString(content, flush: false);
     try {
@@ -92,6 +93,10 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
         await tmpFile.delete();
       }
     }
+    final nextLength = await file.exists() ? await file.length() : 0;
+    final delta = nextLength - previousLength;
+    _playlistMetadataBytes = (_playlistMetadataBytes + delta).clamp(0, 1 << 62);
+    _scheduleEvictionIfNeeded();
     return file;
   }
 

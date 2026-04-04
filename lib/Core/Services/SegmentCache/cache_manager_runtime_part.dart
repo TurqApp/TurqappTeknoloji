@@ -19,6 +19,8 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   String get cacheDir => _cacheDir;
   int get entryCount => _index.entries.length;
   int get totalSizeBytes => _index.totalSizeBytes;
+  int get metadataUsageBytes => _playlistMetadataBytes + _indexMetadataBytes;
+  int get totalTrackedUsageBytes => totalSizeBytes + metadataUsageBytes;
   int get cachedVideoCount =>
       _index.entries.values.where((e) => e.cachedSegmentCount > 0).length;
   int get totalSegmentCount =>
@@ -36,7 +38,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     final budgetManager = StorageBudgetManager.maybeFind();
     if (budgetManager == null) return remoteFloor;
     return budgetManager.recentProtectionWindow(
-      streamUsageBytes: _index.totalSizeBytes,
+      streamUsageBytes: totalTrackedUsageBytes,
       remoteFloor: remoteFloor,
     );
   }
@@ -194,16 +196,22 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   void _scheduleEvictionIfNeeded() {
-    if (_index.totalSizeBytes <= _softLimitBytes) return;
+    if (totalTrackedUsageBytes <= _softLimitBytes) return;
     if (_evictionInFlight != null) return;
 
-    final target = _index.totalSizeBytes > _hardLimitBytes
-        ? _hardLimitBytes
-        : _softLimitBytes;
+    final quotaTarget =
+        totalTrackedUsageBytes > _hardLimitBytes ? _hardLimitBytes : _softLimitBytes;
+    final target = _segmentTargetBytesForQuota(quotaTarget);
 
     _evictionInFlight = evictIfNeeded(targetBytes: target).whenComplete(() {
       _evictionInFlight = null;
     });
+  }
+
+  int _segmentTargetBytesForQuota(int quotaBytes) {
+    final metadataBytes = metadataUsageBytes;
+    final target = quotaBytes - metadataBytes;
+    return target < 0 ? 0 : target;
   }
 
   Future<void> disposeRuntime() async {

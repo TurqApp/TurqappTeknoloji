@@ -28,6 +28,8 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
           await tmpFile.delete();
         }
       }
+      final nextLength = await file.exists() ? await file.length() : 0;
+      _indexMetadataBytes = nextLength;
     } catch (e) {
       debugPrint('[CacheManager] Index persist error: $e');
     }
@@ -54,6 +56,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         _markDirty();
       }
       _reconcileTotalSize();
+      await _refreshMetadataUsage();
       debugPrint(
           '[CacheManager] Index loaded: ${_index.entries.length} entries, '
           '${CacheMetrics.formatBytes(_index.totalSizeBytes)}');
@@ -65,6 +68,8 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         }
       } catch (_) {}
       _index = CacheIndex();
+      _playlistMetadataBytes = 0;
+      _indexMetadataBytes = 0;
     }
   }
 
@@ -121,6 +126,32 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
           '[CacheManager] Recovery: removed ${toRemove.length} stale + ${emptyEntries.length} empty entries');
       _markDirty();
     }
+    await _refreshMetadataUsage();
+  }
+
+  Future<void> _refreshMetadataUsage() async {
+    var playlistBytes = 0;
+    var indexBytes = 0;
+    final root = Directory(_cacheDir);
+    if (!await root.exists()) {
+      _playlistMetadataBytes = 0;
+      _indexMetadataBytes = 0;
+      return;
+    }
+    await for (final entity in root.list(recursive: true, followLinks: false)) {
+      if (entity is! File) continue;
+      final path = entity.path;
+      final length = await entity.length();
+      if (path.endsWith('/index.json')) {
+        indexBytes += length;
+        continue;
+      }
+      if (path.endsWith('.m3u8')) {
+        playlistBytes += length;
+      }
+    }
+    _playlistMetadataBytes = playlistBytes;
+    _indexMetadataBytes = indexBytes;
   }
 
   /// totalSizeBytes'ı tüm segment boyutlarından yeniden hesaplar.
@@ -170,6 +201,8 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
 
     _index = CacheIndex();
     _recentlyPlayed.clear();
+    _playlistMetadataBytes = 0;
+    _indexMetadataBytes = 0;
     metrics.reset();
     await persistIndex();
     debugPrint('[CacheManager] All cache cleared');
@@ -208,8 +241,13 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     _userHardLimitBytes = profile.streamCacheHardStopBytes;
     _userSoftLimitBytes = profile.streamCacheSoftStopBytes;
 
-    if (_index.totalSizeBytes > profile.streamCacheSoftStopBytes) {
-      await evictIfNeeded(targetBytes: profile.streamCacheSoftStopBytes);
+    if (_SegmentCacheManagerRuntimeX(this).totalTrackedUsageBytes >
+        profile.streamCacheSoftStopBytes) {
+      await evictIfNeeded(
+        targetBytes: _segmentTargetBytesForQuota(
+          profile.streamCacheSoftStopBytes,
+        ),
+      );
     }
 
     debugPrint(

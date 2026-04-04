@@ -20,7 +20,7 @@ extension _AppHealthDashboardCardsPart on _AppHealthDashboardState {
     final usage = cacheManager != null
         ? storageBudgetUsageSnapshotForProfile(
             profile,
-            streamUsageBytes: cacheManager.totalSizeBytes,
+            streamUsageBytes: cacheManager.totalTrackedUsageBytes,
           )
         : null;
     final recentProtectionWindow = storageBudgetRecentProtectionWindowForUsage(

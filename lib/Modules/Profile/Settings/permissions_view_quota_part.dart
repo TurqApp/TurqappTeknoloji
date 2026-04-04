@@ -79,7 +79,7 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
         ? null
         : storageBudgetUsageSnapshotForProfile(
             profile,
-            streamUsageBytes: cacheManager.totalSizeBytes,
+            streamUsageBytes: cacheManager.totalTrackedUsageBytes,
           );
     final recentProtectionWindow = storageBudgetRecentProtectionWindowForUsage(
       profile,
