@@ -144,7 +144,7 @@ extension SignInSignupProfilePart on _SignInState {
                               );
                             },
                             decoration: InputDecoration(
-                              hintText: 'signup.last_name_optional'.tr,
+                              hintText: 'edit_profile.last_name_hint'.tr,
                               hintStyle: TextStyle(
                                 color: Colors.grey,
                                 fontFamily: "MontserratMedium",

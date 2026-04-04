@@ -361,14 +361,13 @@ extension SignInControllerSignupPart on SignInController {
         default:
           message = 'signup.code_send_failed'.tr;
       }
-      AppSnackbar('sign_in.code_send_failed_title'.tr, message);
+      AppSnackbar('', message);
     } catch (e, st) {
       _logSignupOtp('unexpected_error', {
         'error': e.toString(),
         'stack': st.toString().split('\n').take(3).join(' | '),
       });
-      AppSnackbar(
-          'sign_in.code_send_failed_title'.tr, 'sign_in.sms_send_failed'.tr);
+      AppSnackbar('', 'sign_in.sms_send_failed'.tr);
     } finally {
       _logSignupOtp('finish', {
         'selection': selection.value,

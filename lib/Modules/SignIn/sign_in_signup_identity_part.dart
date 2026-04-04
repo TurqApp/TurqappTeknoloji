@@ -32,51 +32,52 @@ extension SignInSignupIdentityPart on _SignInState {
                 ],
               ),
               const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F1EA),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.black12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () => controller.signupPoliciesAccepted.value =
-                          !controller.signupPoliciesAccepted.value,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 22,
-                            height: 22,
-                            margin: const EdgeInsets.only(top: 1),
-                            decoration: BoxDecoration(
-                              color: controller.signupPoliciesAccepted.value
-                                  ? Colors.black
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.black),
-                            ),
-                            child: controller.signupPoliciesAccepted.value
-                                ? const Icon(
-                                    CupertinoIcons.check_mark,
-                                    color: Colors.white,
-                                    size: 14,
-                                  )
-                                : null,
+              GestureDetector(
+                onTap: () => controller.signupPoliciesAccepted.value =
+                    !controller.signupPoliciesAccepted.value,
+                child: Container(
+                  height: 50,
+                  alignment: Alignment.centerLeft,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(20),
+                    borderRadius: const BorderRadius.all(Radius.circular(12)),
+                    border: Border.all(color: Colors.transparent),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: controller.signupPoliciesAccepted.value
+                                ? Colors.black
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Colors.black),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          child: controller.signupPoliciesAccepted.value
+                              ? const Icon(
+                                  CupertinoIcons.check_mark,
+                                  color: Colors.white,
+                                  size: 12,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Transform.translate(
+                            offset: const Offset(0, 1),
                             child: RichText(
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               text: TextSpan(
                                 style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 12,
-                                  height: 1.55,
-                                  fontFamily: 'Montserrat',
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  height: 1.2,
+                                  fontFamily: 'MontserratMedium',
                                 ),
                                 children: [
                                   _policyCenterTextSpan(
@@ -86,10 +87,10 @@ extension SignInSignupIdentityPart on _SignInState {
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),

@@ -733,7 +733,7 @@ class AppTranslations extends Translations {
         'signup.username_help':
             'Kullanıcı adı size özel, özgün ve yanıltıcı olmayan şekilde oluşturulmalıdır. Türkçe karakterler otomatik dönüştürülür.',
         'signup.password': 'Şifre',
-        'signup.phone_hint': '(555)xxxxxxx',
+        'signup.phone_hint': '5XX XXX XX XX',
         'signup.password_help':
             'Şifre (En az bir harf, bir sayı, bir noktalama; min 6 karakter)',
         'signup.personal_info': 'Kişisel Bilgiler',
@@ -4580,7 +4580,7 @@ class AppTranslations extends Translations {
         'signup.username_help':
             'Your username should be unique, clear, and not misleading. Turkish characters are converted automatically.',
         'signup.password': 'Password',
-        'signup.phone_hint': '(555)xxxxxxx',
+        'signup.phone_hint': '5XX XXX XX XX',
         'signup.password_help':
             'Password (At least one letter, one number, one punctuation mark; min 6 characters)',
         'signup.personal_info': 'Personal Information',
@@ -8499,7 +8499,7 @@ class AppTranslations extends Translations {
         'signup.username_help':
             'Dein Benutzername sollte eindeutig, klar und nicht irreführend sein. Türkische Zeichen werden automatisch umgewandelt.',
         'signup.password': 'Passwort',
-        'signup.phone_hint': '(555)xxxxxxx',
+        'signup.phone_hint': '5XX XXX XX XX',
         'signup.password_help':
             'Passwort (Mindestens ein Buchstabe, eine Zahl, ein Satzzeichen; mindestens 6 Zeichen)',
         'signup.personal_info': 'Persönliche Daten',
