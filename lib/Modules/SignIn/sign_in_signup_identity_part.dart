@@ -9,8 +9,9 @@ extension SignInSignupIdentityPart on _SignInState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'signup.step'.tr.replaceAll(
-                    '{current}', '${controller.selection.value - 1}'),
+                'signup.step'.trParams({
+                  'current': '${controller.selection.value - 1}',
+                }),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15,

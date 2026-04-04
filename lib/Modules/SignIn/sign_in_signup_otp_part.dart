@@ -9,8 +9,9 @@ extension SignInSignupOtpPart on _SignInState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'signup.step'.tr.replaceAll(
-                    '{current}', '${controller.selection.value - 1}'),
+                'signup.step'.trParams({
+                  'current': '${controller.selection.value - 1}',
+                }),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 15,
@@ -32,9 +33,9 @@ extension SignInSignupOtpPart on _SignInState {
               ),
               const SizedBox(height: 7),
               Text(
-                'signup.verification_message'
-                    .tr
-                    .replaceAll('{phone}', controller.phoneNumber.value),
+                'signup.verification_message'.trParams({
+                  'phone': controller.phoneNumber.value,
+                }),
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 15,
