@@ -120,12 +120,13 @@ extension StoryRepositoryCachePart on StoryRepository {
         rawData ?? _fallbackUserData(userId, current),
       );
 
-      final isPrivate = _storyRowCacheAsBool(data['isPrivate']);
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeAuthorFromSummary(
+      final canSeeAuthor = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: userId,
         followingIds: followingIds,
-        isPrivate: isPrivate,
-        isDeleted: false,
+        rozet: (data['rozet'] ?? '').toString(),
+        isApproved: _storyRowCacheAsBool(data['isApproved']),
+        isDeleted: _storyRowCacheAsBool(data['isDeleted']),
+        viewerUserId: currentUid,
       );
       if (!canSeeAuthor) continue;
 

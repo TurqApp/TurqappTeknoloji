@@ -46,6 +46,14 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
     if (summary?.isDeleted == true) {
       continue;
     }
+    final rozet = post.rozet.isNotEmpty ? post.rozet : (summary?.rozet ?? '');
+    final isApproved = summary?.isApproved == true;
+    if (!isDiscoveryPublicAuthor(
+      rozet: rozet,
+      isApproved: isApproved,
+    )) {
+      continue;
+    }
     visible.add(
       post.copyWith(
         authorNickname: post.authorNickname.isNotEmpty
@@ -57,7 +65,7 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
         authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
             ? post.authorAvatarUrl
             : (summary?.avatarUrl ?? ''),
-        rozet: post.rozet.isNotEmpty ? post.rozet : (summary?.rozet ?? ''),
+        rozet: rozet,
       ),
     );
   }
