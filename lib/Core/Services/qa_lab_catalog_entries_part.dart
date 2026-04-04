@@ -597,6 +597,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: false,
   ),
   QALabCatalogEntry(
+    path: 'test/widget/integration/press_it_key_gesture_detector_test.dart',
+    origin: QALabTestOrigin.widget,
+    runnableInApp: false,
+  ),
+  QALabCatalogEntry(
     path: 'test/widget/components/comments_input_widget_test.dart',
     origin: QALabTestOrigin.widget,
     runnableInApp: false,

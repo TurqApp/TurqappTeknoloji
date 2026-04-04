@@ -39,4 +39,48 @@ void main() {
     expect(payload['thresholdReport'], isA<Map<String, dynamic>>());
     expect(payload['recentEvents'], isA<List<dynamic>>());
   });
+
+  test('filters background short cache-only blockers during integration launch',
+      () async {
+    final service = PlaybackKpiService();
+    for (var i = 0; i < 2; i++) {
+      service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+        'surfaceKey': 'short_home_snapshot',
+        'event': 'liveSyncStarted',
+      });
+      service.track(PlaybackKpiEventType.cacheFirstLifecycle, <String, dynamic>{
+        'surfaceKey': 'short_home_snapshot',
+        'event': 'liveSyncFailed',
+      });
+    }
+
+    await Future<void>.delayed(Duration.zero);
+
+    final payload = RuntimeHealthExporter.exportFromKpiService(
+      service,
+      integrationMode: true,
+      probeSnapshot: const <String, dynamic>{
+        'navBar': <String, dynamic>{
+          'registered': true,
+          'selectedIndex': 0,
+        },
+        'currentRoute': '/NavBarView',
+      },
+    );
+    final thresholdReport =
+        payload['thresholdReport'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final issues =
+        thresholdReport['issues'] as List<dynamic>? ?? const <dynamic>[];
+
+    expect(thresholdReport['hasBlocking'], isFalse);
+    expect(
+      issues.any((issue) {
+        final issueMap = issue as Map<String, dynamic>;
+        return issueMap['surface'] == 'short' &&
+            issueMap['code'] == 'local_hit_ratio_critical';
+      }),
+      isFalse,
+    );
+  });
 }

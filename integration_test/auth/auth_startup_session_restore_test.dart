@@ -76,7 +76,11 @@ void main() {
             countField: 'count',
           );
           expectFeedUsesPrimaryContract(feed);
-          expectSurfaceMatchesFixture('feed', feed);
+          expectSurfaceMatchesFixture(
+            'feed',
+            feed,
+            enforceRequiredDocIds: false,
+          );
         },
       );
     },

@@ -29,6 +29,9 @@ ANDROID_PACKAGE="${INTEGRATION_SMOKE_ANDROID_PACKAGE:-com.turqapp.app}"
 ANDROID_REMOTE_ARTIFACT_DIR="${INTEGRATION_SMOKE_ANDROID_REMOTE_ARTIFACT_DIR:-files/integration_smoke}"
 ANDROID_EXPORT_POLL_SECONDS="${INTEGRATION_SMOKE_ANDROID_EXPORT_POLL_SECONDS:-0.25}"
 ANDROID_CLEAR_APP_DATA_BETWEEN_SUITES="${INTEGRATION_SMOKE_CLEAR_APP_DATA_BETWEEN_SUITES:-1}"
+ANDROID_PACKAGE_SYNC_RETRY_COUNT="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY_COUNT:-12}"
+ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS:-0.5}"
+INTEGRATION_SUITE_RETRY_COUNT="${INTEGRATION_SMOKE_SUITE_RETRY_COUNT:-2}"
 android_original_stay_on=""
 android_awake_watchdog_pid=""
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
@@ -249,6 +252,43 @@ is_android_package_installed() {
     shell pm path "$ANDROID_PACKAGE" >/dev/null 2>&1
 }
 
+wait_for_android_package_install() {
+  local target_device="$1"
+  local retry_count="$ANDROID_PACKAGE_SYNC_RETRY_COUNT"
+  local retry_sleep="$ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS"
+
+  if [[ -z "$target_device" ]]; then
+    return 1
+  fi
+
+  if is_android_package_installed "$target_device"; then
+    return 0
+  fi
+
+  local attempt=0
+  while [[ "$attempt" -lt "$retry_count" ]]; do
+    sleep "$retry_sleep"
+    if is_android_package_installed "$target_device"; then
+      return 0
+    fi
+    attempt=$((attempt + 1))
+  done
+
+  return 1
+}
+
+should_retry_host_stub_reason() {
+  local reason="${1:-}"
+  case "$reason" in
+    package_not_installed|remote_artifact_missing|remote_artifact_copy_failed|scenario_artifact_missing)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 sync_android_remote_artifacts() {
   local target_device="$1"
   last_artifact_export_reason=""
@@ -257,7 +297,7 @@ sync_android_remote_artifacts() {
     last_artifact_export_reason="no_device"
     return 1
   fi
-  if ! is_android_package_installed "$target_device"; then
+  if ! wait_for_android_package_install "$target_device"; then
     last_artifact_export_reason="package_not_installed"
     return 1
   fi
@@ -367,34 +407,54 @@ fi
 for test_file in "${suite_tests[@]}"; do
   echo "[turqapp-test] suite=$(basename "$test_file" .dart)"
   scenario_name="$(basename "$test_file" .dart)"
-  watcher_handle=""
-  if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-    reset_android_suite_state
-    android_prepare_awake_device
-    android_start_awake_watchdog
-    watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
-  fi
-  test_status=0
-  if ! flutter "${COMMON_ARGS[@]}" "$test_file"; then
-    test_status=1
-  fi
-  if [[ -n "$watcher_handle" ]]; then
-    stop_android_artifact_mirror "$watcher_handle"
-  fi
-  if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-    android_stop_awake_watchdog
-  fi
-  if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
-    sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
-  fi
-  materialize_scenario_artifact_alias "$scenario_name" || true
-  if [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
-    write_host_stub_artifact \
-      "$scenario_name" \
-      "$test_status" \
-      "${last_artifact_export_reason:-scenario_artifact_missing}"
-  fi
-  if [[ "$test_status" -ne 0 ]]; then
+  suite_attempt=1
+  final_test_status=1
+  while true; do
+    watcher_handle=""
+    rm -f \
+      "$ARTIFACT_DIR/${scenario_name}.json" \
+      "$ARTIFACT_DIR/${scenario_name}.png" \
+      "$ARTIFACT_DIR/${scenario_name}_test.json" \
+      "$ARTIFACT_DIR/${scenario_name}_test.png"
+    if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+      reset_android_suite_state
+      android_prepare_awake_device
+      android_start_awake_watchdog
+      watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
+    fi
+    test_status=0
+    if ! flutter "${COMMON_ARGS[@]}" "$test_file"; then
+      test_status=1
+    fi
+    if [[ -n "$watcher_handle" ]]; then
+      stop_android_artifact_mirror "$watcher_handle"
+    fi
+    if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
+      android_stop_awake_watchdog
+      sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
+    fi
+    materialize_scenario_artifact_alias "$scenario_name" || true
+    if [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
+      write_host_stub_artifact \
+        "$scenario_name" \
+        "$test_status" \
+        "${last_artifact_export_reason:-scenario_artifact_missing}"
+    fi
+
+    final_test_status="$test_status"
+    if [[ "$test_status" -eq 0 ]]; then
+      break
+    fi
+
+    if [[ "$suite_attempt" -ge "$INTEGRATION_SUITE_RETRY_COUNT" ]] || \
+      ! should_retry_host_stub_reason "${last_artifact_export_reason:-}"; then
+      break
+    fi
+
+    echo "[turqapp-test] retrying suite=${scenario_name} attempt=$((suite_attempt + 1)) reason=${last_artifact_export_reason:-unknown}"
+    suite_attempt=$((suite_attempt + 1))
+  done
+  if [[ "$final_test_status" -ne 0 ]]; then
     if [[ -d "$ARTIFACT_DIR" ]]; then
       echo "[turqapp-test] failure artifacts:"
       find "$ARTIFACT_DIR" -maxdepth 1 -type f \

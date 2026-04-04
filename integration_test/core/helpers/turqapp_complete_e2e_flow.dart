@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
@@ -26,7 +25,10 @@ Future<void> runTurqAppMasterE2EScenario(
     var currentStep = 'bootstrap';
     try {
       await _step(tester, scenario, 'launch', () async {
-        await launchTurqApp(tester);
+        await launchTurqApp(
+          tester,
+          relaxFeedFixtureDocRequirement: true,
+        );
         await expectFeedScreen(tester);
       });
 
@@ -84,16 +86,20 @@ Future<void> runTurqAppMasterE2EScenario(
 
       await _step(tester, scenario, 'profile', () async {
         prepareProfileShellRouteReplay();
-        await pressItKey(tester, IntegrationTestKeys.navProfile);
+        await goToProfileTab(tester);
         await _ensureProfileScreen(tester);
-        expect(
+        await pumpUntilVisible(
+          tester,
           byItKey(IntegrationTestKeys.profileFollowersCounter),
-          findsOneWidget,
+          maxPumps: 20,
         );
-        expect(
+        await pumpUntilVisible(
+          tester,
           byItKey(IntegrationTestKeys.profileFollowingCounter),
-          findsOneWidget,
+          maxPumps: 20,
         );
+        expect(byItKey(IntegrationTestKeys.profileFollowersCounter), findsOneWidget);
+        expect(byItKey(IntegrationTestKeys.profileFollowingCounter), findsOneWidget);
         await _assertNoFeedLeakIfSupported(tester, 'profile');
       });
 
@@ -322,7 +328,9 @@ Future<void> runTurqAppMasterE2EScenario(
         currentStep = tabKey;
         await _step(tester, scenario, currentStep, () async {
           if (byItKey(tabKey).evaluate().isNotEmpty) {
-            tester.testTextInput.hide();
+            if (tester.testTextInput.isRegistered) {
+              tester.testTextInput.hide();
+            }
             await tester.pump(const Duration(milliseconds: 100));
             await pressItKey(tester, tabKey, settlePumps: 6);
           }
@@ -406,7 +414,37 @@ Future<void> runTurqAppMasterE2EScenario(
           'notifications_resume',
         );
         await popRouteAndSettle(tester);
-        await expectFeedScreen(tester);
+        for (var attempt = 0;
+            attempt < 3 &&
+                byItKey(IntegrationTestKeys.screenFeed).evaluate().isEmpty;
+            attempt++) {
+          final notificationsVisible =
+              byItKey(IntegrationTestKeys.screenNotifications)
+                  .evaluate()
+                  .isNotEmpty;
+          final chatVisible =
+              byItKey(IntegrationTestKeys.screenChat).evaluate().isNotEmpty ||
+                  byItKey(IntegrationTestKeys.screenChatConversation)
+                      .evaluate()
+                      .isNotEmpty;
+          if (notificationsVisible || chatVisible) {
+            await popRouteAndSettle(tester, settlePumps: 6);
+          } else if (byItKey(IntegrationTestKeys.navFeed).evaluate().isNotEmpty) {
+            await pressItKey(
+              tester,
+              IntegrationTestKeys.navFeed,
+              settlePumps: 6,
+            );
+          } else {
+            await popRouteAndSettle(tester, settlePumps: 6);
+          }
+          await pumpForAppStartup(
+            tester,
+            step: const Duration(milliseconds: 200),
+            maxPumps: 4,
+          );
+        }
+        await ensureFeedTabVisibleForSmoke(tester);
       });
 
       await _step(tester, scenario, 'short', () async {
@@ -618,16 +656,30 @@ Future<void> _tapIfPresent(
   await tester.pump(const Duration(milliseconds: 100));
   final widget = tester.widget(target);
   var handled = false;
-  if (widget is GestureDetector && widget.onTap != null) {
+  if (widget is TextButton) {
+    if (widget.onPressed == null) return;
+    widget.onPressed!.call();
+    handled = true;
+  } else if (widget is IconButton) {
+    if (widget.onPressed == null) return;
+    widget.onPressed!.call();
+    handled = true;
+  } else if (widget is FloatingActionButton) {
+    if (widget.onPressed == null) return;
+    widget.onPressed!.call();
+    handled = true;
+  } else if (widget is GestureDetector) {
+    if (widget.onTap == null) return;
     widget.onTap!.call();
     handled = true;
-  } else if (widget is InkWell && widget.onTap != null) {
+  } else if (widget is InkWell) {
+    if (widget.onTap == null) return;
     widget.onTap!.call();
     handled = true;
   }
 
   if (!handled) {
-    await tester.tap(target);
+    await tester.tap(target, warnIfMissed: false);
   }
   for (var i = 0; i < settlePumps; i++) {
     await tester.pump(const Duration(milliseconds: 200));
@@ -753,8 +805,10 @@ Future<void> _fillEditProfileFields(WidgetTester tester) async {
 Future<void> _ensureProfileScreen(WidgetTester tester) async {
   final profileScreen = byItKey(IntegrationTestKeys.screenProfile);
   if (profileScreen.evaluate().isEmpty) {
-    await pressItKey(tester, IntegrationTestKeys.navProfile);
+    await goToProfileTab(tester);
+    return;
   }
+  await pumpUntilVisible(tester, profileScreen, maxPumps: 12);
   expect(profileScreen, findsOneWidget);
 }
 

@@ -50,6 +50,7 @@ Future<void> launchTurqApp(
   WidgetTester tester, {
   bool forceFeedTab = true,
   int? restoredNavIndex,
+  bool relaxFeedFixtureDocRequirement = false,
 }) async {
   debugPrint('[integration-smoke] launch: app.main start');
   final originalFlutterOnError = FlutterError.onError;
@@ -64,6 +65,7 @@ Future<void> launchTurqApp(
     tester,
     forceFeedTab: forceFeedTab,
     restoredNavIndex: restoredNavIndex,
+    relaxFeedFixtureDocRequirement: relaxFeedFixtureDocRequirement,
   );
   debugPrint('[integration-smoke] launch: signed-in gate passed');
 }
@@ -104,6 +106,7 @@ Future<void> ensureSignedInForSmoke(
   WidgetTester tester, {
   bool forceFeedTab = true,
   int? restoredNavIndex,
+  bool relaxFeedFixtureDocRequirement = false,
 }) async {
   if (!kRunIntegrationSmoke) return;
   final credentials =
@@ -194,7 +197,10 @@ Future<void> ensureSignedInForSmoke(
 
   if (forceFeedTab) {
     await _ensureFeedTabForSmoke(tester);
-    await _primeFeedForSmoke(tester);
+    await _primeFeedForSmoke(
+      tester,
+      relaxFixtureDocRequirement: relaxFeedFixtureDocRequirement,
+    );
   }
 }
 
@@ -357,11 +363,17 @@ Future<void> _refreshAccountCenterMetadataForSmoke(
   }
 }
 
-Future<void> _primeFeedForSmoke(WidgetTester tester) async {
+Future<void> _primeFeedForSmoke(
+  WidgetTester tester, {
+  bool relaxFixtureDocRequirement = false,
+}) async {
   final agendaController =
       maybeFindAgendaController() ?? ensureAgendaController();
   agendaController.setFeedViewMode(FeedViewMode.forYou);
-  if (_feedSatisfiesFixtureContract(agendaController)) {
+  if (_feedSatisfiesFixtureContract(
+    agendaController,
+    ignoreRequiredDocIds: relaxFixtureDocRequirement,
+  )) {
     debugPrint(
       '[integration-smoke] feed: already primed '
       '(count=${agendaController.agendaList.length})',
@@ -372,7 +384,10 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   for (var i = 0; i < 6; i++) {
     await tester.pump(const Duration(milliseconds: 250));
     drainExpectedTesterExceptions(tester, context: 'feed settle');
-    if (_feedSatisfiesFixtureContract(agendaController)) {
+    if (_feedSatisfiesFixtureContract(
+      agendaController,
+      ignoreRequiredDocIds: relaxFixtureDocRequirement,
+    )) {
       debugPrint(
         '[integration-smoke] feed: primed after settle '
         '(count=${agendaController.agendaList.length})',
@@ -391,7 +406,12 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   }
 
   int retries = 0;
-  while (!_feedSatisfiesFixtureContract(agendaController) && retries < 5) {
+  while (
+      !_feedSatisfiesFixtureContract(
+        agendaController,
+        ignoreRequiredDocIds: relaxFixtureDocRequirement,
+      ) &&
+      retries < 5) {
     try {
       if (retries == 0) {
         await agendaController.refreshAgenda();
@@ -405,7 +425,10 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
     }
     await tester.pump(const Duration(milliseconds: 300));
     drainExpectedTesterExceptions(tester, context: 'feed prime');
-    if (_feedSatisfiesFixtureContract(agendaController)) {
+    if (_feedSatisfiesFixtureContract(
+      agendaController,
+      ignoreRequiredDocIds: relaxFixtureDocRequirement,
+    )) {
       break;
     }
     retries++;
@@ -419,9 +442,16 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
     '[integration-smoke] feed: primed count=${agendaController.agendaList.length}',
   );
 
-  if (!_feedSatisfiesFixtureContract(agendaController)) {
+  if (!_feedSatisfiesFixtureContract(
+    agendaController,
+    ignoreRequiredDocIds: relaxFixtureDocRequirement,
+  )) {
     for (var attempt = 0;
-        attempt < 3 && !_feedSatisfiesFixtureContract(agendaController);
+        attempt < 3 &&
+            !_feedSatisfiesFixtureContract(
+              agendaController,
+              ignoreRequiredDocIds: relaxFixtureDocRequirement,
+            );
         attempt++) {
       await _waitForFeedPrimeToSettleForSmoke(tester, agendaController);
       await _backfillRequiredFeedDocsForSmoke(agendaController);
@@ -430,7 +460,10 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
         tester,
         context: 'feed contract backfill apply',
       );
-      if (_feedSatisfiesFixtureContract(agendaController)) {
+      if (_feedSatisfiesFixtureContract(
+        agendaController,
+        ignoreRequiredDocIds: relaxFixtureDocRequirement,
+      )) {
         break;
       }
       agendaController.primeInitialCenteredPost();
@@ -444,7 +477,10 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
     }
   }
 
-  if (!_feedSatisfiesFixtureContract(agendaController)) {
+  if (!_feedSatisfiesFixtureContract(
+    agendaController,
+    ignoreRequiredDocIds: relaxFixtureDocRequirement,
+  )) {
     final contract = IntegrationTestFixtureContract.current.surface('feed');
     final requiredDocIds = contract?.requiredDocIds ?? const <String>[];
     final actualDocIds = agendaController.agendaList
@@ -459,7 +495,10 @@ Future<void> _primeFeedForSmoke(WidgetTester tester) async {
   }
 }
 
-bool _feedSatisfiesFixtureContract(AgendaController controller) {
+bool _feedSatisfiesFixtureContract(
+  AgendaController controller, {
+  bool ignoreRequiredDocIds = false,
+}) {
   final posts = controller.agendaList;
   final contract = IntegrationTestFixtureContract.current.surface('feed');
   if (contract == null || !contract.isConfigured) {
@@ -470,7 +509,7 @@ bool _feedSatisfiesFixtureContract(AgendaController controller) {
     return false;
   }
 
-  if (contract.requiredDocIds.isEmpty) {
+  if (ignoreRequiredDocIds || contract.requiredDocIds.isEmpty) {
     return posts.isNotEmpty;
   }
 
@@ -916,6 +955,7 @@ Future<void> popRouteAndSettle(
   int settlePumps = 8,
 }) async {
   drainExpectedTesterExceptions(tester, context: 'pre popRouteAndSettle');
+  _safeUnfocusPrimaryFocus();
   await tester.pump(const Duration(milliseconds: 16));
   await tester.idle();
   await tester.binding.handlePopRoute();

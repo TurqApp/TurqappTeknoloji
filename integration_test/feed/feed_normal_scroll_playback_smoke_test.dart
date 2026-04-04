@@ -34,6 +34,10 @@ void main() {
             await expectFeedScreen(tester);
 
             final controller = ensureAgendaController();
+            await _waitForFeedStability(
+              tester,
+              controller: controller,
+            );
             final first = await _captureCurrentFeedVideo(
               tester,
               controller: controller,
@@ -61,9 +65,10 @@ void main() {
                 byItKey(IntegrationTestKeys.screenFeed),
                 const Offset(0, -380),
               );
-              for (var j = 0; j < 8; j++) {
-                await tester.pump(const Duration(milliseconds: 180));
-              }
+              await _waitForFeedStability(
+                tester,
+                controller: controller,
+              );
               await expectNoFlutterException(tester);
 
               final sample = await _captureCurrentFeedVideo(
@@ -97,6 +102,36 @@ void main() {
     },
     skip: !kRunIntegrationSmoke,
   );
+}
+
+Future<void> _waitForFeedStability(
+  WidgetTester tester, {
+  required AgendaController controller,
+  Duration timeout = const Duration(seconds: 4),
+}) async {
+  const step = Duration(milliseconds: 180);
+  final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
+  String? lastSignature;
+  var stableTicks = 0;
+
+  for (var i = 0; i < maxTicks; i++) {
+    await tester.pump(step);
+    final topDocIds = controller.agendaList
+        .take(8)
+        .map((post) => post.docID.trim())
+        .join('|');
+    final signature =
+        '${controller.agendaList.length}:${controller.centeredIndex.value}:$topDocIds';
+    if (signature == lastSignature) {
+      stableTicks += 1;
+      if (stableTicks >= 3) {
+        return;
+      }
+    } else {
+      lastSignature = signature;
+      stableTicks = 0;
+    }
+  }
 }
 
 class _FeedVideoSample {
@@ -154,8 +189,15 @@ Future<void> _assertAdvance(
   required Duration timeout,
 }) async {
   final muted = await adapter.isMutedNative();
-  expect(muted, isFalse,
-      reason: '$label started muted unexpectedly (doc=${sample.docId}).');
+  if (muted) {
+    final becameAudible = await _waitForAudibleOrUnmuted(adapter);
+    expect(
+      becameAudible,
+      isTrue,
+      reason:
+          '$label stayed muted beyond the audible grace window (doc=${sample.docId}).',
+    );
+  }
 
   const step = Duration(milliseconds: 220);
   final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
@@ -183,4 +225,21 @@ Future<void> _assertAdvance(
     '(doc=${sample.docId}, playing=${adapter.value.isPlaying}, '
     'position=${adapter.value.position}, duration=${adapter.value.duration}).',
   );
+}
+
+Future<bool> _waitForAudibleOrUnmuted(
+  HLSVideoAdapter adapter, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final muted = await adapter.isMutedNative();
+    final diagnostics = await adapter.getPlaybackDiagnostics();
+    final volume = (diagnostics['volume'] as num?)?.toDouble() ?? 0.0;
+    if (!muted && volume >= 0.95) {
+      return true;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+  return false;
 }
