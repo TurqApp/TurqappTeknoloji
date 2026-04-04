@@ -7,6 +7,7 @@ class _FloodListingControllerState {
   final RxInt currentVisibleIndex = RxInt(-1);
   final RxInt centeredIndex = 0.obs;
   final Map<int, double> visibleFractions = <int, double>{};
+  final Set<int> promotedSecondSegmentBatchStarts = <int>{};
   Timer? visibilityDebounce;
   int? lastCenteredIndex;
   String? pendingCenteredDocId;
@@ -20,6 +21,8 @@ extension FloodListingControllerFieldsPart on FloodListingController {
   RxInt get currentVisibleIndex => _state.currentVisibleIndex;
   RxInt get centeredIndex => _state.centeredIndex;
   Map<int, double> get _visibleFractions => _state.visibleFractions;
+  Set<int> get _promotedSecondSegmentBatchStarts =>
+      _state.promotedSecondSegmentBatchStarts;
   Timer? get _visibilityDebounce => _state.visibilityDebounce;
   set _visibilityDebounce(Timer? value) => _state.visibilityDebounce = value;
   int? get lastCenteredIndex => _state.lastCenteredIndex;

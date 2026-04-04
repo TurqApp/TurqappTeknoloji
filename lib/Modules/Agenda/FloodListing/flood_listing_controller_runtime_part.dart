@@ -1,6 +1,9 @@
 part of 'flood_listing_controller.dart';
 
 extension FloodListingControllerRuntimePart on FloodListingController {
+  static const int _floodPriorityBatchSize = 5;
+  static const int _floodNextBatchPromotionTriggerOffset = 2;
+
   void _scheduleFloodSegmentWarmup({
     int? preferredIndex,
     int readySegments = 2,
@@ -30,6 +33,67 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     }
   }
 
+  void _scheduleFloodSegmentWarmupFrom({
+    required int startIndex,
+    required int readySegments,
+    int? windowCount,
+  }) {
+    if (startIndex < 0 || startIndex >= floods.length) return;
+    _scheduleFloodSegmentWarmup(
+      preferredIndex: startIndex,
+      readySegments: readySegments,
+      windowCount: windowCount,
+    );
+  }
+
+  void _resetFloodSegmentPriorityPlan() {
+    _promotedSecondSegmentBatchStarts.clear();
+  }
+
+  void _scheduleInitialFloodSegmentPriorityPlan() {
+    if (floods.isEmpty) return;
+    _resetFloodSegmentPriorityPlan();
+
+    final initialWindowCount = _floodPriorityBatchSize.clamp(1, floods.length);
+    _scheduleFloodSegmentWarmupFrom(
+      startIndex: 0,
+      readySegments: 2,
+      windowCount: initialWindowCount,
+    );
+    _promotedSecondSegmentBatchStarts.add(0);
+
+    final remainingStart = initialWindowCount;
+    if (remainingStart >= floods.length) return;
+    _scheduleFloodSegmentWarmupFrom(
+      startIndex: remainingStart,
+      readySegments: 1,
+      windowCount: floods.length - remainingStart,
+    );
+  }
+
+  void _promoteNextFloodSegmentBatchIfNeeded(int focusedIndex) {
+    if (focusedIndex < 0 || focusedIndex >= floods.length) return;
+
+    final currentBatchStart =
+        (focusedIndex ~/ _floodPriorityBatchSize) * _floodPriorityBatchSize;
+    final promotionThreshold =
+        currentBatchStart + _floodNextBatchPromotionTriggerOffset;
+    if (focusedIndex < promotionThreshold) return;
+
+    final nextBatchStart = currentBatchStart + _floodPriorityBatchSize;
+    if (nextBatchStart >= floods.length) return;
+    if (!_promotedSecondSegmentBatchStarts.add(nextBatchStart)) return;
+
+    final nextWindowCount =
+        (floods.length - nextBatchStart).clamp(0, _floodPriorityBatchSize);
+    if (nextWindowCount <= 0) return;
+    _scheduleFloodSegmentWarmupFrom(
+      startIndex: nextBatchStart,
+      readySegments: 2,
+      windowCount: nextWindowCount,
+    );
+  }
+
   void _handleOnInit() {
     scrollController.addListener(_onScroll);
   }
@@ -37,6 +101,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   void _handleOnClose() {
     _visibilityDebounce?.cancel();
     _visibleFractions.clear();
+    _promotedSecondSegmentBatchStarts.clear();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
   }
@@ -56,7 +121,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     if (position.pixels <= 0 && _visibleFractions.isEmpty) {
       currentVisibleIndex.value = 0;
       capturePendingCenteredEntry(preferredIndex: 0);
-      _scheduleFloodSegmentWarmup(preferredIndex: 0, readySegments: 2);
+      _scheduleInitialFloodSegmentPriorityPlan();
     }
   }
 
@@ -86,6 +151,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
         readySegments: 2,
         windowCount: 1,
       );
+      _promoteNextFloodSegmentBatchIfNeeded(modelIndex);
     }
 
     _visibilityDebounce?.cancel();
@@ -132,6 +198,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       readySegments: 2,
       windowCount: 1,
     );
+    _promoteNextFloodSegmentBatchIfNeeded(nextIndex);
   }
 
   void disposeAgendaContentController(String docID) {
@@ -172,6 +239,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       readySegments: 2,
       windowCount: 1,
     );
+    _promoteNextFloodSegmentBatchIfNeeded(target);
   }
 
   void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
