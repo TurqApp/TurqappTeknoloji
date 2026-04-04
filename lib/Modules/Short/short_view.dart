@@ -166,6 +166,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   bool _isTransitioning = false;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
+  String? _lastPrimaryPlayDocId;
+  DateTime? _lastPrimaryPlayAt;
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
@@ -321,6 +323,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
+    _lastPrimaryPlayDocId = null;
+    _lastPrimaryPlayAt = null;
     final vc = controller.cache[currentPage];
     if (vc != null) {
       _persistShortPlaybackState(currentPage, vc);

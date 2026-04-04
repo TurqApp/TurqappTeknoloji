@@ -16,7 +16,11 @@ void main() {
         'short_first_two_playback',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            relaxFeedFixtureDocRequirement: true,
+            primeShortSnapshot: true,
+          );
           await tapItKey(tester, IntegrationTestKeys.navShort, settlePumps: 12);
           expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
 

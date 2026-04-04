@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
@@ -51,6 +52,7 @@ Future<void> launchTurqApp(
   bool forceFeedTab = true,
   int? restoredNavIndex,
   bool relaxFeedFixtureDocRequirement = false,
+  bool primeShortSnapshot = false,
 }) async {
   debugPrint('[integration-smoke] launch: app.main start');
   final originalFlutterOnError = FlutterError.onError;
@@ -66,6 +68,7 @@ Future<void> launchTurqApp(
     forceFeedTab: forceFeedTab,
     restoredNavIndex: restoredNavIndex,
     relaxFeedFixtureDocRequirement: relaxFeedFixtureDocRequirement,
+    primeShortSnapshot: primeShortSnapshot,
   );
   debugPrint('[integration-smoke] launch: signed-in gate passed');
 }
@@ -107,6 +110,7 @@ Future<void> ensureSignedInForSmoke(
   bool forceFeedTab = true,
   int? restoredNavIndex,
   bool relaxFeedFixtureDocRequirement = false,
+  bool primeShortSnapshot = false,
 }) async {
   if (!kRunIntegrationSmoke) return;
   final credentials =
@@ -182,6 +186,9 @@ Future<void> ensureSignedInForSmoke(
   debugPrint('[integration-smoke] auth: account center synced');
   await _primeNotificationsForSmoke(tester);
   await _primeFeedSnapshotForSmoke(tester);
+  if (primeShortSnapshot) {
+    await _primeShortSnapshotForSmoke(tester);
+  }
   await _primeMarketForSmoke(tester);
 
   if (Get.currentRoute != '/NavBarView') {
@@ -713,6 +720,24 @@ Future<void> _primeMarketForSmoke(WidgetTester tester) async {
     drainExpectedTesterExceptions(tester, context: 'market snapshot prime');
   } catch (error) {
     debugPrint('[integration-smoke] market snapshot prime skipped: $error');
+  }
+}
+
+Future<void> _primeShortSnapshotForSmoke(WidgetTester tester) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+  if (uid.isEmpty) return;
+
+  final repository = ensureShortSnapshotRepository();
+  try {
+    await repository.loadHome(
+      userId: uid,
+      forceSync: true,
+    );
+    await repository.bootstrapHome(userId: uid);
+    await tester.pump(const Duration(milliseconds: 250));
+    drainExpectedTesterExceptions(tester, context: 'short snapshot prime');
+  } catch (error) {
+    debugPrint('[integration-smoke] short snapshot prime skipped: $error');
   }
 }
 

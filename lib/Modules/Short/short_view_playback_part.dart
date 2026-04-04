@@ -1,6 +1,23 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  bool _shouldSuppressDuplicatePrimaryPlay(
+    String docId,
+    HLSVideoAdapter adapter, {
+    Duration minSpacing = const Duration(milliseconds: 450),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return false;
+    final lastDocId = _lastPrimaryPlayDocId;
+    final lastAt = _lastPrimaryPlayAt;
+    if (lastDocId != trimmed || lastAt == null) {
+      return false;
+    }
+    final isRecent = DateTime.now().difference(lastAt) < minSpacing;
+    if (!isRecent) return false;
+    return true;
+  }
+
   void _requestExclusivePlayback(
     String docId, {
     Duration minSpacing = const Duration(milliseconds: 220),
@@ -137,6 +154,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    _lastPrimaryPlayDocId = null;
+    _lastPrimaryPlayAt = null;
     _resetShortAutoplaySegmentGate();
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       try {
@@ -330,16 +349,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
-        recordQALabPlaybackDispatch(
-          surface: 'short',
-          stage: 'short_page_play',
-          metadata: <String, dynamic>{
-            'docId': docId,
-            'page': page,
-            'isPlaying': vc.value.isPlaying,
-            'isInitialized': vc.value.isInitialized,
-          },
-        );
+        if (_shouldSuppressDuplicatePrimaryPlay(docId, vc)) {
+          _applyShortPlaybackPresentation(page, vc);
+          return;
+        }
         _applyShortPlaybackPresentation(page, vc);
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
@@ -366,6 +379,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
           _resetShortAutoplaySegmentGate();
         }
         if (isManuallyPaused) return;
+        _lastPrimaryPlayDocId = docId.trim().isEmpty ? null : docId.trim();
+        _lastPrimaryPlayAt = DateTime.now();
+        recordQALabPlaybackDispatch(
+          surface: 'short',
+          stage: 'short_page_play',
+          metadata: <String, dynamic>{
+            'docId': docId,
+            'page': page,
+            'isPlaying': vc.value.isPlaying,
+            'isInitialized': vc.value.isInitialized,
+          },
+        );
         if (!vc.value.isPlaying) {
           final shouldRecoverExistingPlayback = vc.value.hasRenderedFirstFrame &&
               vc.value.position > Duration.zero &&
