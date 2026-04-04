@@ -13,11 +13,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
             ? widget.model.izBirakYayinTarihi
             : widget.model.timeStamp);
-    final displayTime = buildDisplayTime();
-    final shouldHideFollow = primaryName.length +
-            controller.nickname.value.length +
-            displayTime.length >
-        28;
     void openProfile() {
       if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
@@ -104,47 +99,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                         ),
                       ),
                     ),
-                    if (controller.isFollowing.value == false &&
-                        widget.model.userID != _currentUid &&
-                        !shouldHideFollow)
-                      Obx(() => TextButton(
-                            onPressed: controller.followLoading.value
-                                ? null
-                                : () {
-                                    controller.followUser();
-                                  },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            child: controller.followLoading.value
-                                ? Container(
-                                    height: 20,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                        color: Colors.transparent,
-                                        borderRadius: const BorderRadius.all(
-                                            Radius.circular(12)),
-                                        border:
-                                            Border.all(color: Colors.black)),
-                                    child: const Padding(
-                                      padding:
-                                          EdgeInsets.symmetric(horizontal: 15),
-                                      child: SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  Colors.black),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : Texts.followMeButtonBlack,
-                          )),
                     const SizedBox(width: 7),
                     pulldownmenu(),
                   ],
