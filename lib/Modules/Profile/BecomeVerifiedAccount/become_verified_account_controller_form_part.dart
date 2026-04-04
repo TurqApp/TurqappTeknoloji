@@ -48,30 +48,31 @@ extension BecomeVerifiedAccountControllerFormPart
     _updateCanSubmit();
   }
 
+  String _selectedBadgeColorForTitle(String title) {
+    switch (title.trim().toLowerCase()) {
+      case 'mavi':
+        return "2196F3";
+      case 'kırmızı':
+      case 'kirmizi':
+        return "F44336";
+      case 'sarı':
+      case 'sari':
+        return "FFEB3B";
+      case 'turkuaz':
+        return "40E0D0";
+      case 'gri':
+        return "9E9E9E";
+      case 'siyah':
+        return "000000";
+      default:
+        return "2196F3";
+    }
+  }
+
   void selectItem(VerifiedAccountModel item, int index) {
     selected.value = item;
     selectedInt.value = index;
-
-    switch (index) {
-      case 0:
-        selectedColor.value = "2196F3";
-        break;
-      case 1:
-        selectedColor.value = "F44336";
-        break;
-      case 2:
-        selectedColor.value = "FFEB3B";
-        break;
-      case 3:
-        selectedColor.value = "40E0D0";
-        break;
-      case 4:
-        selectedColor.value = "9E9E9E";
-        break;
-      default:
-        selectedColor.value = "000000";
-        break;
-    }
+    selectedColor.value = _selectedBadgeColorForTitle(item.title);
     _updateCanSubmit();
   }
 

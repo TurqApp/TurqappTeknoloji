@@ -118,6 +118,10 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
                                         ),
                                     ],
                                   ),
+                                  if (isSelected &&
+                                      (secondaryDetail.isNotEmpty ||
+                                          _requiresAnnualRenewal(item.title)))
+                                    const SizedBox(height: 8),
                                   if (isSelected && secondaryDetail.isNotEmpty)
                                     Text(
                                       secondaryDetail,
@@ -125,11 +129,16 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
                                         color: Colors.black,
                                         fontSize: 15,
                                         fontFamily: 'Montserrat',
+                                        height: 1.3,
                                       ),
                                     ),
                                   if (isSelected &&
+                                      secondaryDetail.isNotEmpty &&
+                                      _requiresAnnualRenewal(item.title))
+                                    const SizedBox(height: 8),
+                                  if (isSelected &&
                                       _requiresAnnualRenewal(
-                                        controller.selectedInt.value,
+                                        item.title,
                                       ))
                                     Text(
                                       'become_verified.annual_renewal'.tr,
@@ -137,6 +146,7 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
                                         color: Colors.black,
                                         fontSize: 15,
                                         fontFamily: 'MontserratBold',
+                                        height: 1.3,
                                       ),
                                     ),
                                 ],
@@ -434,7 +444,7 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
           ),
         ),
         const SizedBox(height: 6),
-        if (controller.selectedInt.value == 1)
+        if (controller.selectedColor.value == "F44336")
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -453,32 +463,42 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
               ),
             ],
           ),
-        if (controller.canSubmitApplication.value)
-          GestureDetector(
-            onTap: () async {
-              final ok = await controller.submitApplication();
-              if (ok) {
-                controller.bodySelection.value++;
-              }
-            },
-            child: Container(
-              height: 50,
-              margin: const EdgeInsets.only(top: 25),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'become_verified.submit'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'MontserratBold',
-                  fontSize: 15,
+        Obx(() {
+          final canSubmit = controller.canSubmitApplication.value;
+          final isSubmitting = controller.isSubmitting.value;
+          final isEnabled = canSubmit && !isSubmitting;
+          return GestureDetector(
+            onTap: isEnabled
+                ? () async {
+                    final ok = await controller.submitApplication();
+                    if (ok) {
+                      controller.bodySelection.value++;
+                    }
+                  }
+                : null,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: isEnabled ? 1 : 0.55,
+              child: Container(
+                height: 50,
+                margin: const EdgeInsets.only(top: 25),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'become_verified.submit'.tr,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'MontserratBold',
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
-          ),
+          );
+        }),
       ],
     );
   }
@@ -563,13 +583,48 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
   }
 
   Widget _socialLinkIcon(String assetPath, Uri url) {
+    final iconSize = _socialLinkSize(assetPath);
     return GestureDetector(
       onTap: () => confirmAndLaunchExternalUrl(url),
-      child: Image.asset(
-        assetPath,
-        height: 40,
+      child: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.22),
+          ),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: iconSize,
+            height: iconSize,
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
       ),
     );
+  }
+
+  double _socialLinkSize(String assetPath) {
+    switch (assetPath) {
+      case 'assets/icons/twitterx.webp':
+        return 24;
+      case 'assets/icons/instagram.webp':
+        return 26;
+      case 'assets/icons/tiktokx.webp':
+        return 24;
+      case 'assets/icons/linkedin.webp':
+        return 24;
+      case 'assets/icons/facebook.webp':
+        return 24;
+      default:
+        return 24;
+    }
   }
 
   Widget _featureRow(

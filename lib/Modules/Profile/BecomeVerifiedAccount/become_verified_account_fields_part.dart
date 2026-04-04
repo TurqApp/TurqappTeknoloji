@@ -1,6 +1,31 @@
 part of 'become_verified_account.dart';
 
 extension _BecomeVerifiedAccountFieldsPart on _BecomeVerifiedAccountState {
+  Widget _buildSizedAssetIcon(
+    String assetPath, {
+    double boxSize = 45,
+    double iconSize = 30,
+    double radius = 8,
+  }) {
+    return SizedBox(
+      width: boxSize,
+      height: boxSize,
+      child: Center(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(radius),
+          child: SizedBox(
+            width: iconSize,
+            height: iconSize,
+            child: Image.asset(
+              assetPath,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Widget> _buildSocialField(
     TextEditingController ctrl,
     String hint,
@@ -12,10 +37,7 @@ extension _BecomeVerifiedAccountFieldsPart on _BecomeVerifiedAccountState {
       Row(
         children: [
           iconPath != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(iconPath, width: 45, height: 45),
-                )
+              ? _buildSizedAssetIcon(iconPath)
               : Container(
                   width: 45,
                   height: 45,
@@ -166,6 +188,8 @@ extension _BecomeVerifiedAccountFieldsPart on _BecomeVerifiedAccountState {
 
   String _localizedBadgeDesc(String title) => _badgeDescKey(title).tr;
 
-  bool _requiresAnnualRenewal(int selectedIndex) =>
-      selectedIndex != 3 && selectedIndex != 4;
+  bool _requiresAnnualRenewal(String title) {
+    final normalized = normalizeRozetValue(title);
+    return normalized != 'gri' && normalized != 'siyah';
+  }
 }
