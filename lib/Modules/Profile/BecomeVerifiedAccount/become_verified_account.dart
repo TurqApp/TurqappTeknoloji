@@ -49,38 +49,59 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
   }
 
   Widget _buildVerifiedScaffold(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            Row(
+    return Obx(
+      () => PopScope(
+        canPop: controller.bodySelection.value == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          final step = controller.bodySelection.value;
+          if (step > 0 && step < 3) {
+            controller.bodySelection.value--;
+          }
+        },
+        child: Scaffold(
+          body: SafeArea(
+            bottom: false,
+            child: Column(
               children: [
-                AppBackButton(
-                  onTap: () {
-                    if (controller.bodySelection.value != 0) {
-                      controller.bodySelection.value--;
-                    } else {
-                      Get.back();
-                    }
-                  },
-                  icon: CupertinoIcons.arrow_left,
-                  iconSize: 20,
+                Row(
+                  children: [
+                    IgnorePointer(
+                      ignoring: controller.bodySelection.value == 3,
+                      child: Opacity(
+                        opacity: controller.bodySelection.value == 3 ? 0.35 : 1,
+                        child: AppBackButton(
+                          onTap: () {
+                            final step = controller.bodySelection.value;
+                            if (step == 3) return;
+                            if (step != 0) {
+                              controller.bodySelection.value--;
+                            } else {
+                              Get.back();
+                            }
+                          },
+                          icon: CupertinoIcons.arrow_left,
+                          iconSize: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: 15,
+                        right: 15,
+                        bottom: 15,
+                      ),
+                      child: _buildStepBody(),
+                    ),
+                  ),
                 ),
               ],
             ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Obx(
-                  () => Padding(
-                    padding:
-                        const EdgeInsets.only(left: 15, right: 15, bottom: 15),
-                    child: _buildStepBody(),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
