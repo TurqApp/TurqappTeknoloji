@@ -40,7 +40,9 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
     if (posts.isEmpty) return;
-    unawaited(_warmInitialFeedVideoPosters(posts));
+    final warmupWindow = _initialVisibleVideoWarmupWindow(posts);
+    if (warmupWindow.isEmpty) return;
+    unawaited(_warmInitialFeedVideoPosters(warmupWindow));
   }
 
   void _resumeFeedPlaybackAfterRefresh({
