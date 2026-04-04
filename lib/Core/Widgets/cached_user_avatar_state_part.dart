@@ -6,6 +6,25 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   bool _didBootstrap = false;
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 
+  String _initialResolvedUrl() {
+    final direct = _normalizeUrl(widget.imageUrl);
+    if (direct.isNotEmpty) return direct;
+
+    final uid = (widget.userId ?? '').trim();
+    if (uid.isEmpty) return '';
+
+    final currentUser = CurrentUserService.instance;
+    if (uid == currentUser.effectiveUserId) {
+      final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
+      if (currentAvatar.isNotEmpty) return currentAvatar;
+      final streamAvatar =
+          _normalizeUrl((currentUser.currentUser?.avatarUrl ?? '').trim());
+      if (streamAvatar.isNotEmpty) return streamAvatar;
+    }
+
+    return '';
+  }
+
   String _pickAvatarUrl(Map<String, dynamic>? raw) {
     if (raw == null || raw.isEmpty) return '';
     Map<String, dynamic>? nestedProfile;
@@ -23,14 +42,14 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   @override
   void initState() {
     super.initState();
-    _resolvedUrl = _normalizeUrl(widget.imageUrl);
+    _resolvedUrl = _initialResolvedUrl();
     unawaited(_bootstrap());
   }
 
   @override
   void didUpdateWidget(covariant CachedUserAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final nextResolved = _normalizeUrl(widget.imageUrl);
+    final nextResolved = _initialResolvedUrl();
     if (oldWidget.userId != widget.userId ||
         oldWidget.imageUrl != widget.imageUrl) {
       final sameUser =
@@ -201,14 +220,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         builder: (context, snapshot) {
           final currentUserImage =
               _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
-          if (currentUserImage != _resolvedUrl) {
+          if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
             _resolvedUrl = currentUserImage;
-            if (currentUserImage.isEmpty) {
-              _resolvedFilePath = '';
-            } else {
-              _didBootstrap = false;
-              unawaited(_bootstrap());
-            }
+            _didBootstrap = false;
+            unawaited(_bootstrap());
           }
           return _buildAvatar(
             currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl,
