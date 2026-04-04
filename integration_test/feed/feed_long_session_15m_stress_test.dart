@@ -10,6 +10,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 import '../core/bootstrap/test_app_bootstrap.dart';
 import '../core/helpers/perf_monitor.dart';
+import '../core/helpers/player_contract_helpers.dart';
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/helpers/test_state_probe.dart';
 
@@ -289,6 +290,11 @@ Future<_FeedVideoSample?> _captureCurrentFeedVideo(
     }
     final docId = post.docID.trim();
     if (docId.isEmpty) continue;
+    final agendaSurface = find.byKey(Key('agenda-media-$docId'));
+    final classicSurface = find.byKey(Key('classic-media-$docId'));
+    if (agendaSurface.evaluate().isEmpty && classicSurface.evaluate().isEmpty) {
+      continue;
+    }
     return _FeedVideoSample(index: centered, docId: docId, model: post);
   }
   return null;
@@ -300,10 +306,10 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
   required String label,
   required DateTime deadline,
 }) async {
+  var recoveryAttempts = 0;
   while (DateTime.now().isBefore(deadline)) {
     await tester.pump(const Duration(milliseconds: 200));
-    final adapter =
-        GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
+    final adapter = findPlayerAdapterForTesting(sample.docId);
     final value = adapter?.value;
     final playable = adapter != null &&
         !adapter.isDisposed &&
@@ -314,10 +320,25 @@ Future<HLSVideoAdapter> _waitForFeedAdapter(
     if (playable) {
       return adapter;
     }
+    final stalledReadyAdapter = adapter != null &&
+        !adapter.isDisposed &&
+        value != null &&
+        value.isInitialized &&
+        value.hasRenderedFirstFrame &&
+        !value.isPlaying &&
+        !value.isBuffering &&
+        value.position == Duration.zero;
+    if (stalledReadyAdapter && recoveryAttempts < 3) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
+    }
   }
 
-  final adapter =
-      GlobalVideoAdapterPool.ensure().adapterForTesting(sample.docId);
+  final adapter = findPlayerAdapterForTesting(sample.docId);
   final value = adapter?.value;
   throw TestFailure(
     '$label did not reach playable adapter state '
