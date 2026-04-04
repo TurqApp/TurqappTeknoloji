@@ -73,6 +73,7 @@ extension NotificationContentBodyPart on _NotificationContentState {
 
   Widget _buildBody() {
     return GestureDetector(
+      key: ValueKey(IntegrationTestKeys.notificationItemOpen(model.docID)),
       onTap: _handleNotificationTap,
       child: Container(
         color: Colors.white.withAlpha(1),

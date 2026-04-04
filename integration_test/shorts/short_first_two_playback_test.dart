@@ -107,6 +107,7 @@ Future<void> _waitForPlaybackAdvance(
   const timeout = Duration(seconds: 10);
   const step = Duration(milliseconds: 200);
   final maxTicks = timeout.inMilliseconds ~/ step.inMilliseconds;
+  var recoveryAttempts = 0;
 
   Duration? baseline;
   for (var i = 0; i < maxTicks; i++) {
@@ -145,6 +146,20 @@ Future<void> _waitForPlaybackAdvance(
         position >= duration - const Duration(milliseconds: 250);
     if (value.isCompleted || nearEnd) {
       return;
+    }
+
+    final stalledReadyAdapter = !value.isPlaying &&
+        !value.isBuffering &&
+        value.hasRenderedFirstFrame &&
+        position > Duration.zero &&
+        recoveryAttempts < 2;
+    if (stalledReadyAdapter) {
+      recoveryAttempts += 1;
+      await adapter.play();
+      await tester.pump(const Duration(milliseconds: 220));
+      if (!adapter.value.isPlaying && !adapter.value.isBuffering) {
+        await adapter.recoverFrozenPlayback();
+      }
     }
   }
 

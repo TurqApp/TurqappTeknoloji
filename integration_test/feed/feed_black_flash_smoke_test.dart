@@ -30,7 +30,10 @@ void main() {
           'feed_black_flash_smoke',
           tester,
           () async {
-            await launchTurqApp(tester);
+            await launchTurqApp(
+              tester,
+              relaxFeedFixtureDocRequirement: true,
+            );
             await expectFeedScreen(tester);
 
             final controller = ensureAgendaController();

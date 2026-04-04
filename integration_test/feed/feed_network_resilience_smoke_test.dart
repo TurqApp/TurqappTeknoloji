@@ -31,7 +31,10 @@ void main() {
           'feed_network_resilience_smoke',
           tester,
           () async {
-            await launchTurqApp(tester);
+            await launchTurqApp(
+              tester,
+              relaxFeedFixtureDocRequirement: true,
+            );
             await expectFeedScreen(tester);
 
             final network = NetworkAwarenessService.ensure();

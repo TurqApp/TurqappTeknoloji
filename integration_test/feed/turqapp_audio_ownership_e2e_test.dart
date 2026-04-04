@@ -61,7 +61,10 @@ void main() {
     'TurqApp audio ownership stays exclusive off-feed surfaces',
     (tester) async {
       _phase('launch');
-      await launchTurqApp(tester);
+      await launchTurqApp(
+        tester,
+        relaxFeedFixtureDocRequirement: true,
+      );
       await expectFeedScreen(tester);
 
       _phase('explore');

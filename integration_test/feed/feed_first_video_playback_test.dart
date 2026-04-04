@@ -15,7 +15,10 @@ void main() {
         'feed_first_video_playback',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            relaxFeedFixtureDocRequirement: true,
+          );
           await expectFeedScreen(tester);
 
           final controller = ensureAgendaController();

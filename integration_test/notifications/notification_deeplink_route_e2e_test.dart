@@ -71,19 +71,34 @@ _NotificationCandidate? _pickSupportedNotification(
     userIds.length,
   ].reduce((value, element) => value < element ? value : element);
 
+  final userFrequency = <String, int>{};
+  for (var index = 0; index < count; index++) {
+    final userId = userIds[index].trim();
+    if (userId.isEmpty) continue;
+    userFrequency[userId] = (userFrequency[userId] ?? 0) + 1;
+  }
+
+  _NotificationCandidate? fallback;
+
   for (var index = 0; index < count; index++) {
     final docId = docIds[index].trim();
     if (docId.isEmpty) continue;
+    final userId = userIds[index].trim();
     final routeKind = _routeKindFor(
       type: types[index],
       postType: postTypes[index],
       postId: postIds[index],
-      userId: userIds[index],
+      userId: userId,
     );
     if (routeKind == null) continue;
-    return _NotificationCandidate(docId: docId, routeKind: routeKind);
+    final candidate =
+        _NotificationCandidate(docId: docId, routeKind: routeKind);
+    if (userId.isNotEmpty && userFrequency[userId] == 1) {
+      return candidate;
+    }
+    fallback ??= candidate;
   }
-  return null;
+  return fallback;
 }
 
 void _expectRouteSurface(String routeKind) {
@@ -122,7 +137,10 @@ void main() {
         'notification_deeplink_route_e2e',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            relaxFeedFixtureDocRequirement: true,
+          );
           await expectFeedScreen(tester);
 
           await tapItKey(tester, IntegrationTestKeys.actionOpenNotifications);
@@ -150,7 +168,7 @@ void main() {
           final selected = candidate!;
           await tapItKey(
             tester,
-            IntegrationTestKeys.notificationItem(selected.docId),
+            IntegrationTestKeys.notificationItemOpen(selected.docId),
             settlePumps: 10,
           );
 

@@ -12,7 +12,7 @@ Future<void> swipeToShortIndex(
 }) async {
   final screen = byItKey(IntegrationTestKeys.screenShort);
   final seenIndices = <int>[];
-  final offsets = <double>[300, 360, 420];
+  final offsets = <double>[260, 300, 340, 380];
 
   for (var attempt = 0; attempt < 8; attempt++) {
     final currentIndex = _readShortActiveIndex(controller);
@@ -28,8 +28,19 @@ Future<void> swipeToShortIndex(
       Offset(0, direction * distance),
       const Duration(milliseconds: 420),
     );
-    for (var i = 0; i < 10; i++) {
-      await tester.pump(const Duration(milliseconds: 160));
+    var stableTargetHits = 0;
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 140));
+      final settledIndex = _readShortActiveIndex(controller);
+      seenIndices.add(settledIndex);
+      if (settledIndex == targetIndex) {
+        stableTargetHits += 1;
+        if (stableTargetHits >= 3) {
+          return;
+        }
+      } else {
+        stableTargetHits = 0;
+      }
     }
     await expectNoFlutterException(tester);
     if (_readShortActiveIndex(controller) == targetIndex) {

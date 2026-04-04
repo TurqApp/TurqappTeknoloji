@@ -132,6 +132,8 @@ class IntegrationTestKeys {
   static String chatTile(String chatId) => 'it-chat-tile-$chatId';
   static String notificationItem(String notificationId) =>
       'it-notification-item-$notificationId';
+  static String notificationItemOpen(String notificationId) =>
+      'it-notification-open-$notificationId';
   static String storyReaction(int index) => 'it-story-reaction-$index';
   static String marketItem(String itemId) => 'it-market-item-$itemId';
   static String jobItem(String jobId) => 'it-job-item-$jobId';
