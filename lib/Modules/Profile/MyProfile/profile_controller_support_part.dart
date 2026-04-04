@@ -15,13 +15,15 @@ final RuntimeInvariantGuard _invariantGuard = ensureRuntimeInvariantGuard();
 final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
-const int _profilePageLimit = 20;
+const int _profilePageLimit = 10;
+const int _profileFeedLoadTriggerRemaining = 5;
 
 extension ProfileControllerSupportPart on ProfileController {
   int get postLimit => _profilePageLimit;
   int get scheduledLimit => _profilePageLimit;
   int get postLimitPhotos => _profilePageLimit;
   int get postLimitVideos => _profilePageLimit;
+  int get feedLoadTriggerRemaining => _profileFeedLoadTriggerRemaining;
 
   Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
         allowBackgroundRefresh:

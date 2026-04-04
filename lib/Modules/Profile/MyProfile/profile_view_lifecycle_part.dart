@@ -223,7 +223,21 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller.markStartupScrollBegan();
     }
     controller.lastObservedScrollOffset = currentOffset;
-    if (position.pixels >= position.maxScrollExtent - 300) {
+    final activeFeedLength = controller.postSelection.value == 0
+        ? controller.mergedPosts.length
+        : controller.allPosts.length;
+    final anchorIndex = controller.currentVisibleIndex.value >= 0
+        ? controller.currentVisibleIndex.value
+        : controller.centeredIndex.value;
+    final shouldFetchMoreFeedItems = controller.postSelection.value == 0 &&
+        activeFeedLength > 0 &&
+        anchorIndex >= 0 &&
+        activeFeedLength - (anchorIndex + 1) <=
+            controller.feedLoadTriggerRemaining;
+
+    if (shouldFetchMoreFeedItems) {
+      controller.fetchPosts();
+    } else if (position.pixels >= position.maxScrollExtent - 300) {
       controller.fetchPosts();
       controller.fetchPhotos();
       controller.fetchVideos();

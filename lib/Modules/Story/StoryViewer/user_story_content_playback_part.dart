@@ -3,8 +3,241 @@
 part of 'user_story_content.dart';
 
 extension UserStoryContentPlaybackPart on _UserStoryContentState {
+  static const int _storyPriorityBatchSize = 5;
+  static const int _storyNextBatchPromotionTriggerOffset = 2;
+  static const Duration _storyPriorityPlanTick = Duration(milliseconds: 900);
+
+  bool _storyHasPlayableVideo(StoryModel story) {
+    for (final element in story.elements) {
+      if (element.type == StoryElementType.video &&
+          element.content.trim().isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  StoryElement? _firstPlayableVideoElement(StoryModel story) {
+    for (final element in story.elements) {
+      if (element.type == StoryElementType.video &&
+          element.content.trim().isNotEmpty) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  List<StoryModel> _videoStoriesForCurrentUser() {
+    return widget.user.stories
+        .where(_storyHasPlayableVideo)
+        .toList(growable: false);
+  }
+
+  int _resolveCurrentVideoStoryOrder(List<StoryModel> videoStories) {
+    if (videoStories.isEmpty) return 0;
+    for (var order = 0; order < videoStories.length; order++) {
+      final story = videoStories[order];
+      final sourceIndex = widget.user.stories.indexWhere((s) => s.id == story.id);
+      if (sourceIndex >= storyIndex) {
+        return order;
+      }
+    }
+    return videoStories.length - 1;
+  }
+
+  void _cacheStoryVideoIfNeeded(StoryModel story) {
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null || !cacheManager.isReady) return;
+    final video = _firstPlayableVideoElement(story);
+    if (video == null) return;
+    final storyId = story.id.trim();
+    final playbackUrl = canonicalizeHlsCdnUrl(video.content);
+    if (storyId.isEmpty || hlsRelativePathFromUrlOrPath(playbackUrl) == null) {
+      return;
+    }
+    cacheManager.cacheHlsEntry(storyId, playbackUrl);
+  }
+
+  void _updateStoryPrefetchPriorityContext([List<StoryModel>? seededStories]) {
+    try {
+      final prefetch = maybeFindPrefetchScheduler();
+      if (prefetch == null) return;
+      final videoStories = seededStories ?? _videoStoriesForCurrentUser();
+      if (videoStories.isEmpty) return;
+      final videoStoryDocIds = <String>[];
+      for (final story in videoStories) {
+        final storyId = story.id.trim();
+        if (storyId.isEmpty) continue;
+        videoStoryDocIds.add(storyId);
+      }
+      if (videoStoryDocIds.isEmpty) return;
+      final currentVideoOrder = _resolveCurrentVideoStoryOrder(videoStories)
+          .clamp(0, videoStoryDocIds.length - 1);
+      final safeCurrent =
+          currentVideoOrder.clamp(0, videoStoryDocIds.length - 1);
+      prefetch.updatePriorityWindowContext(videoStoryDocIds, safeCurrent);
+    } catch (_) {}
+  }
+
+  void _scheduleStoryVideoWarmupFromOrder({
+    required int startOrder,
+    required int readySegments,
+    int? windowCount,
+  }) {
+    final videoStories = _videoStoriesForCurrentUser();
+    if (videoStories.isEmpty) return;
+    if (startOrder < 0 || startOrder >= videoStories.length) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+
+    _updateStoryPrefetchPriorityContext(videoStories);
+    final endExclusive = (startOrder + (windowCount ?? videoStories.length))
+        .clamp(0, videoStories.length);
+    for (var order = startOrder; order < endExclusive; order++) {
+      final story = videoStories[order];
+      final storyId = story.id.trim();
+      if (storyId.isEmpty) continue;
+      _cacheStoryVideoIfNeeded(story);
+      try {
+        prefetch.boostDoc(
+          storyId,
+          readySegments: readySegments,
+        );
+      } catch (_) {}
+    }
+  }
+
+  bool _allStoryVideoSegmentsReady(int segmentCount) {
+    if (segmentCount <= 0) return true;
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager == null || !cacheManager.isReady) return false;
+    for (final story in _videoStoriesForCurrentUser()) {
+      final storyId = story.id.trim();
+      if (storyId.isEmpty) continue;
+      final entry = cacheManager.getEntry(storyId);
+      if ((entry?.cachedSegmentCount ?? 0) < segmentCount) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _resetStorySegmentPriorityPlan() {
+    _promotedStorySecondSegmentBatchStarts.clear();
+  }
+
+  void _scheduleStorySegmentPriorityPlanForCurrentPosition() {
+    final videoStories = _videoStoriesForCurrentUser();
+    if (videoStories.isEmpty) return;
+    _resetStorySegmentPriorityPlan();
+    _updateStoryPrefetchPriorityContext(videoStories);
+
+    final currentOrder = _resolveCurrentVideoStoryOrder(videoStories);
+    final currentBatchStart =
+        (currentOrder ~/ _storyPriorityBatchSize) * _storyPriorityBatchSize;
+    final currentBatchCount =
+        (videoStories.length - currentBatchStart).clamp(0, _storyPriorityBatchSize);
+    if (currentBatchCount <= 0) return;
+
+    _scheduleStoryVideoWarmupFromOrder(
+      startOrder: currentBatchStart,
+      readySegments: 2,
+      windowCount: currentBatchCount,
+    );
+    _promotedStorySecondSegmentBatchStarts.add(currentBatchStart);
+
+    if (currentBatchStart > 0) {
+      _scheduleStoryVideoWarmupFromOrder(
+        startOrder: 0,
+        readySegments: 1,
+        windowCount: currentBatchStart,
+      );
+    }
+
+    final trailingStart = currentBatchStart + currentBatchCount;
+    if (trailingStart < videoStories.length) {
+      _scheduleStoryVideoWarmupFromOrder(
+        startOrder: trailingStart,
+        readySegments: 1,
+        windowCount: videoStories.length - trailingStart,
+      );
+    }
+  }
+
+  void _promoteNextStorySegmentBatchIfNeeded() {
+    final videoStories = _videoStoriesForCurrentUser();
+    if (videoStories.isEmpty) return;
+    final currentOrder = _resolveCurrentVideoStoryOrder(videoStories);
+    final currentBatchStart =
+        (currentOrder ~/ _storyPriorityBatchSize) * _storyPriorityBatchSize;
+    final promotionThreshold =
+        currentBatchStart + _storyNextBatchPromotionTriggerOffset;
+    if (currentOrder < promotionThreshold) return;
+
+    final nextBatchStart = currentBatchStart + _storyPriorityBatchSize;
+    if (nextBatchStart >= videoStories.length) return;
+    if (!_promotedStorySecondSegmentBatchStarts.add(nextBatchStart)) return;
+
+    final nextBatchCount =
+        (videoStories.length - nextBatchStart).clamp(0, _storyPriorityBatchSize);
+    if (nextBatchCount <= 0) return;
+    _scheduleStoryVideoWarmupFromOrder(
+      startOrder: nextBatchStart,
+      readySegments: 2,
+      windowCount: nextBatchCount,
+    );
+  }
+
+  void _promoteStorySecondSegmentSweepIfNeeded() {
+    final videoStories = _videoStoriesForCurrentUser();
+    if (videoStories.isEmpty) return;
+    if (!_allStoryVideoSegmentsReady(1)) return;
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager == null || !cacheManager.isReady) return;
+
+    for (var batchStart = 0;
+        batchStart < videoStories.length;
+        batchStart += _storyPriorityBatchSize) {
+      final batchCount =
+          (videoStories.length - batchStart).clamp(0, _storyPriorityBatchSize);
+      if (batchCount <= 0) return;
+
+      var needsSecondSegment = false;
+      for (var order = batchStart; order < batchStart + batchCount; order++) {
+        final storyId = videoStories[order].id.trim();
+        if (storyId.isEmpty) continue;
+        final entry = cacheManager.getEntry(storyId);
+        if ((entry?.cachedSegmentCount ?? 0) < 2) {
+          needsSecondSegment = true;
+          break;
+        }
+      }
+
+      if (!needsSecondSegment) {
+        continue;
+      }
+
+      if (_promotedStorySecondSegmentBatchStarts.add(batchStart)) {
+        _scheduleStoryVideoWarmupFromOrder(
+          startOrder: batchStart,
+          readySegments: 2,
+          windowCount: batchCount,
+        );
+      }
+      return;
+    }
+  }
+
+  void _startStoryPriorityPlanTicker() {
+    _storyPriorityPlanTimer?.cancel();
+    _storyPriorityPlanTimer = Timer.periodic(_storyPriorityPlanTick, (_) {
+      _promoteStorySecondSegmentSweepIfNeeded();
+    });
+  }
+
   void _prefetchNextStoryVideoWithinCurrentUser() {
     try {
+      _updateStoryPrefetchPriorityContext();
       final nextIndex = storyIndex + 1;
       if (nextIndex < 0 || nextIndex >= widget.user.stories.length) return;
 
@@ -121,6 +354,9 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     });
 
     final currentStory = widget.user.stories[storyIndex];
+    _updateStoryPrefetchPriorityContext();
+    _scheduleStorySegmentPriorityPlanForCurrentPosition();
+    _promoteNextStorySegmentBatchIfNeeded();
     unawaited(Future<void>.microtask(_prefetchNextStoryVideoWithinCurrentUser));
 
     controller.getLikes(currentStory.id);
@@ -260,6 +496,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       _updateController(); // Controller'ı güncelle
       await Future.delayed(const Duration(
           milliseconds: 50)); // UI güncellemesi için kısa bekleme
+      _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {
       _timer?.cancel();
@@ -282,6 +519,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       _updateController(); // Controller'ı güncelle
       await Future.delayed(const Duration(
           milliseconds: 50)); // UI güncellemesi için kısa bekleme
+      _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {
       widget.onPrevUserRequested?.call();

@@ -9,6 +9,8 @@ class _PrefetchSchedulerState {
   int activeDownloads = 0;
   int pendingDownloadBytes = 0;
   final Map<String, DateTime> jobEnqueuedAt = <String, DateTime>{};
+  List<String> lastPriorityDocIDs = const <String>[];
+  int lastPriorityCurrentIndex = 0;
   List<String> lastFeedDocIDs = const <String>[];
   List<String> lastFeedBankDocIDs = const <String>[];
   String? focusedDocID;
@@ -39,6 +41,12 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   int get _pendingDownloadBytes => _state.pendingDownloadBytes;
   set _pendingDownloadBytes(int value) => _state.pendingDownloadBytes = value;
   Map<String, DateTime> get _jobEnqueuedAt => _state.jobEnqueuedAt;
+  List<String> get _lastPriorityDocIDs => _state.lastPriorityDocIDs;
+  set _lastPriorityDocIDs(List<String> value) =>
+      _state.lastPriorityDocIDs = value;
+  int get _lastPriorityCurrentIndex => _state.lastPriorityCurrentIndex;
+  set _lastPriorityCurrentIndex(int value) =>
+      _state.lastPriorityCurrentIndex = value;
   List<String> get _lastFeedDocIDs => _state.lastFeedDocIDs;
   set _lastFeedDocIDs(List<String> value) => _state.lastFeedDocIDs = value;
   List<String> get _lastFeedBankDocIDs => _state.lastFeedBankDocIDs;

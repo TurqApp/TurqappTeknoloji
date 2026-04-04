@@ -3,6 +3,79 @@ part of 'flood_listing_controller.dart';
 extension FloodListingControllerRuntimePart on FloodListingController {
   static const int _floodPriorityBatchSize = 5;
   static const int _floodNextBatchPromotionTriggerOffset = 2;
+  static const Duration _floodPriorityPlanTick = Duration(milliseconds: 900);
+
+  int _playableFloodCachedSegmentCount(int index) {
+    if (index < 0 || index >= floods.length) return 0;
+    final model = floods[index];
+    if (!model.hasPlayableVideo) return 0;
+    final entry = SegmentCacheManager.maybeFind()?.getEntry(model.docID);
+    return entry?.cachedSegmentCount ?? 0;
+  }
+
+  bool _allPlayableFloodsReadyForSegments(int segmentCount) {
+    if (segmentCount <= 0) return true;
+    for (var i = 0; i < floods.length; i++) {
+      final model = floods[i];
+      if (!model.hasPlayableVideo) continue;
+      if (_playableFloodCachedSegmentCount(i) < segmentCount) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _promoteNextFloodBatchForSecondSegmentSweepIfNeeded() {
+    if (!_allPlayableFloodsReadyForSegments(1)) return;
+
+    for (var batchStart = 0;
+        batchStart < floods.length;
+        batchStart += _floodPriorityBatchSize) {
+      final batchCount =
+          (floods.length - batchStart).clamp(0, _floodPriorityBatchSize);
+      if (batchCount <= 0) return;
+
+      var batchNeedsSecondSegment = false;
+      for (var i = batchStart; i < batchStart + batchCount; i++) {
+        final model = floods[i];
+        if (!model.hasPlayableVideo) continue;
+        if (_playableFloodCachedSegmentCount(i) < 2) {
+          batchNeedsSecondSegment = true;
+          break;
+        }
+      }
+
+      if (!batchNeedsSecondSegment) {
+        continue;
+      }
+
+      if (_promotedSecondSegmentBatchStarts.add(batchStart)) {
+        _scheduleFloodSegmentWarmupFrom(
+          startIndex: batchStart,
+          readySegments: 2,
+          windowCount: batchCount,
+        );
+      }
+      return;
+    }
+  }
+
+  void _startFloodPriorityPlanTicker() {
+    _priorityPlanTimer?.cancel();
+    _priorityPlanTimer = Timer.periodic(_floodPriorityPlanTick, (_) {
+      _promoteNextFloodBatchForSecondSegmentSweepIfNeeded();
+    });
+  }
+
+  void _updateFloodPrefetchPriorityContext(int focusedIndex) {
+    if (floods.isEmpty) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final docIds = floods.map((post) => post.docID.trim()).toList(growable: false);
+    if (docIds.isEmpty) return;
+    final safeFocusedIndex = focusedIndex.clamp(0, docIds.length - 1);
+    prefetch.updatePriorityWindowContext(docIds, safeFocusedIndex);
+  }
 
   void _scheduleFloodSegmentWarmup({
     int? preferredIndex,
@@ -53,6 +126,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   void _scheduleInitialFloodSegmentPriorityPlan() {
     if (floods.isEmpty) return;
     _resetFloodSegmentPriorityPlan();
+    _updateFloodPrefetchPriorityContext(0);
 
     final initialWindowCount = _floodPriorityBatchSize.clamp(1, floods.length);
     _scheduleFloodSegmentWarmupFrom(
@@ -95,10 +169,12 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   }
 
   void _handleOnInit() {
+    _startFloodPriorityPlanTicker();
     scrollController.addListener(_onScroll);
   }
 
   void _handleOnClose() {
+    _priorityPlanTimer?.cancel();
     _visibilityDebounce?.cancel();
     _visibleFractions.clear();
     _promotedSecondSegmentBatchStarts.clear();
@@ -146,6 +222,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       _visibleFractions[modelIndex] = visibleFraction;
       currentVisibleIndex.value = modelIndex;
       capturePendingCenteredEntry(preferredIndex: modelIndex);
+      _updateFloodPrefetchPriorityContext(modelIndex);
       _scheduleFloodSegmentWarmup(
         preferredIndex: modelIndex,
         readySegments: 2,
@@ -193,6 +270,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
     capturePendingCenteredEntry(preferredIndex: nextIndex);
+    _updateFloodPrefetchPriorityContext(nextIndex);
     _scheduleFloodSegmentWarmup(
       preferredIndex: nextIndex,
       readySegments: 2,
@@ -234,6 +312,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     currentVisibleIndex.value = target;
     lastCenteredIndex = target;
     capturePendingCenteredEntry(preferredIndex: target);
+    _updateFloodPrefetchPriorityContext(target);
     _scheduleFloodSegmentWarmup(
       preferredIndex: target,
       readySegments: 2,

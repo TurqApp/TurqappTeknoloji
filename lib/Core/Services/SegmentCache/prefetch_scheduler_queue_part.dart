@@ -1,6 +1,17 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  void updatePriorityWindowContext(List<String> docIDs, int currentIndex) {
+    if (docIDs.isEmpty) {
+      _lastPriorityDocIDs = const <String>[];
+      _lastPriorityCurrentIndex = 0;
+      return;
+    }
+    final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+    _lastPriorityDocIDs = List<String>.from(docIDs);
+    _lastPriorityCurrentIndex = safeCurrent;
+  }
+
   void focusDoc(String? docID) {
     final normalized = HlsSegmentPolicy.normalizeDocId(docID);
     _restrictToFocusedDoc = true;
@@ -116,6 +127,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (docIDs.isEmpty) return;
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
     final currentDocId = docIDs[safeCurrent];
+    updatePriorityWindowContext(docIDs, safeCurrent);
 
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
@@ -251,6 +263,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _jobEnqueuedAt.clear();
 
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+    updatePriorityWindowContext(docIDs, safeCurrent);
     _lastFeedDocIDs = List<String>.from(docIDs);
     _lastFeedCurrentIndex = safeCurrent;
     final aroundStart = (safeCurrent - 5).clamp(0, docIDs.length - 1);

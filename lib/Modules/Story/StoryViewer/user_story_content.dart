@@ -21,6 +21,7 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories_controller.dart';
+import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/user_story_content_controller.dart';
 import 'package:turqappv2/Services/story_interaction_optimizer.dart';
 import '../StoryMaker/story_maker_controller.dart';
@@ -103,6 +104,8 @@ class _UserStoryContentState extends State<UserStoryContent>
   bool _waitingForMusic = false; // ek: müzik başlaması bekleniyor
   late UserStoryContentController controller;
   Timer? _musicStartFallbackTimer;
+  Timer? _storyPriorityPlanTimer;
+  final Set<int> _promotedStorySecondSegmentBatchStarts = <int>{};
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
@@ -117,6 +120,7 @@ class _UserStoryContentState extends State<UserStoryContent>
         ? widget.initialStoryIndex
         : 0;
     _initializeController();
+    _startStoryPriorityPlanTicker();
     _musicStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {
       // Mevcut startOrWait logic burada zaten var
       if (state == PlayerState.playing && _waitingForMusic) {
@@ -171,6 +175,7 @@ class _UserStoryContentState extends State<UserStoryContent>
     _timer?.cancel();
     _musicStateSubscription?.cancel();
     _musicStartFallbackTimer?.cancel();
+    _storyPriorityPlanTimer?.cancel();
     AudioFocusCoordinator.instance.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     final tag = _controllerTagFor(storyIndex);

@@ -11,7 +11,8 @@ final UserSubcollectionRepository _userSubcollectionRepository =
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
 final ProfileRepository _profileRepository = ensureProfileRepository();
 final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
-const int _socialProfilePageSize = 12;
+const int _socialProfilePageSize = 10;
+const int _socialProfileFeedLoadTriggerRemaining = 5;
 
 const Duration _followCheckCacheTtl = Duration(seconds: 20);
 const Duration _counterCacheTtl = Duration(seconds: 30);
@@ -41,6 +42,7 @@ extension SocialProfileControllerSupportPart on SocialProfileController {
   int get pageSize => _socialProfilePageSize;
   int get pageSizePhoto => _socialProfilePageSize;
   int get pageSizeScheduled => _socialProfilePageSize;
+  int get feedLoadTriggerRemaining => _socialProfileFeedLoadTriggerRemaining;
 
   int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
 

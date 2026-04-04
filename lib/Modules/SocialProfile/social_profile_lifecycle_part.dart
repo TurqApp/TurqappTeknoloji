@@ -94,15 +94,26 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       controller.showScrollToTop.value = shouldShowScrollToTop;
     }
 
-    if (scrollController.position.pixels >=
+    final activeFeedLength = controller.postSelection.value == 0
+        ? controller.combinedFeedEntries.length
+        : controller.allPosts.length;
+    final anchorIndex = controller.currentVisibleIndex.value >= 0
+        ? controller.currentVisibleIndex.value
+        : controller.centeredIndex.value;
+    final shouldFetchMoreFeedItems = controller.postSelection.value == 0 &&
+        activeFeedLength > 0 &&
+        anchorIndex >= 0 &&
+        activeFeedLength - (anchorIndex + 1) <=
+            controller.feedLoadTriggerRemaining;
+
+    if (shouldFetchMoreFeedItems) {
+      controller.getPosts(initial: false);
+    } else if (scrollController.position.pixels >=
         scrollController.position.maxScrollExtent - 200) {
       controller.getPosts(initial: false);
       controller.getPhotos(initial: false);
     }
 
-    final activeFeedLength = controller.postSelection.value == 0
-        ? controller.combinedFeedEntries.length
-        : controller.allPosts.length;
     if (activeFeedLength == 0) return;
 
     if (scrollController.offset <= 0) {

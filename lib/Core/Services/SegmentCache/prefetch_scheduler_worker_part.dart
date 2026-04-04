@@ -1,11 +1,25 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  int _followUpPriorityForJob(_PrefetchJob job) {
+    final targetIndex = _lastPriorityDocIDs.indexOf(job.docID);
+    if (targetIndex < 0) {
+      return job.priority + 1;
+    }
+    if (isPriorityWindowTargetIndex(
+      currentIndex: _lastPriorityCurrentIndex,
+      targetIndex: targetIndex,
+    )) {
+      return job.priority;
+    }
+    return job.priority + 1;
+  }
+
   _PrefetchJob _buildFollowUpJob(_PrefetchJob job) {
     return _PrefetchJob(
       job.docID,
       job.maxSegments,
-      job.priority + 1,
+      _followUpPriorityForJob(job),
       -1000000.0,
     );
   }

@@ -6,6 +6,8 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'Referer': '$_prefetchSchedulerCdnOrigin/',
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
+const int _prefetchSchedulerPriorityWindowSize = 5;
+const int _prefetchSchedulerPriorityPromotionOffset = 2;
 const int _prefetchSchedulerFallbackFeedFullWindow = 15;
 const int _prefetchSchedulerFallbackFeedPrepWindow = 8;
 const int _prefetchSchedulerWifiMinBreadthCount = 12;
@@ -27,6 +29,35 @@ int resolvePrefetchReadySegmentsForPost(
     return 1;
   }
   return normalizedFallback;
+}
+
+@visibleForTesting
+bool isPriorityWindowTargetIndex({
+  required int currentIndex,
+  required int targetIndex,
+}) {
+  final batchStart =
+      (currentIndex ~/ _prefetchSchedulerPriorityWindowSize) *
+          _prefetchSchedulerPriorityWindowSize;
+  final currentBatchEnd = batchStart + _prefetchSchedulerPriorityWindowSize;
+  final nextBatchStart = currentBatchEnd;
+  final nextBatchEnd = nextBatchStart + _prefetchSchedulerPriorityWindowSize;
+
+  final isInCurrentBatch =
+      targetIndex >= batchStart && targetIndex < currentBatchEnd;
+  if (isInCurrentBatch) {
+    return true;
+  }
+
+  final shouldPromoteNextBatch =
+      currentIndex >= batchStart + _prefetchSchedulerPriorityPromotionOffset;
+  final isInNextBatch =
+      targetIndex >= nextBatchStart && targetIndex < nextBatchEnd;
+  if (shouldPromoteNextBatch && isInNextBatch) {
+    return true;
+  }
+
+  return false;
 }
 
 @visibleForTesting
