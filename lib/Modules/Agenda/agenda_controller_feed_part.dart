@@ -218,6 +218,9 @@ extension AgendaControllerFeedPart on AgendaController {
 
     final videoPosts =
         agendaList.where((p) => _canAutoplayVideoPost(p)).toList();
+    FeedSurfaceRegistry.recordVideoDocIds(
+      videoPosts.map((post) => post.docID),
+    );
     if (videoPosts.isEmpty) return;
 
     int safeCurrent = 0;

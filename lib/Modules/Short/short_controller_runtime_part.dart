@@ -132,6 +132,14 @@ extension ShortControllerPublicApiPart on ShortController {
     );
     if (shorts.isNotEmpty) {
       await preloadRange(0, range: 0);
+      unawaited(
+        Future<void>.delayed(const Duration(milliseconds: 700)).then((_) async {
+          if (shorts.isEmpty) return;
+          await reconcileVisibleShortSurface(
+            trigger: 'primary_surface_visible_follow_up_reconcile',
+          );
+        }),
+      );
     }
     await _recordShortStartupSurface(
       source: 'short_surface_ready',

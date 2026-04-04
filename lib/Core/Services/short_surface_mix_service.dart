@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/feed_surface_registry.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -28,11 +29,6 @@ class _ShortPresentationSignal {
 
 Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
     String userId) async {
-  final normalizedUserId = userId.trim();
-  if (normalizedUserId.isEmpty) {
-    return const <String>{};
-  }
-
   final feedRepository = maybeFindFeedSnapshotRepository();
   final scheduler = maybeFindPrefetchScheduler();
   final agendaController = maybeFindAgendaController();
@@ -42,6 +38,9 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
           .where((docId) => docId.isNotEmpty) ??
       const Iterable<String>.empty();
   final schedulerDocIds = <String>{
+    ...FeedSurfaceRegistry.currentVideoDocIds()
+        .map((docId) => docId.trim())
+        .where((docId) => docId.isNotEmpty),
     ...liveFeedSurfaceDocIds,
     ...(scheduler
             ?.currentFeedSurfaceVideoDocIds()
@@ -54,6 +53,10 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
             .where((docId) => docId.isNotEmpty) ??
         const Iterable<String>.empty()),
   };
+  final normalizedUserId = userId.trim();
+  if (normalizedUserId.isEmpty) {
+    return schedulerDocIds;
+  }
   if (feedRepository == null) {
     return schedulerDocIds;
   }

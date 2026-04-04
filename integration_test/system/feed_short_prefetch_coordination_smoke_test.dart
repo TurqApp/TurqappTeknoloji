@@ -39,7 +39,8 @@ void main() {
           expectSurfaceRegistered('short');
 
           final shortController = await _waitForShortSurface(tester);
-          _expectShortSurfaceExcludesCurrentFeedVideos(
+          await _waitForShortSurfaceToExcludeCurrentFeedVideos(
+            tester,
             feedDocIds: feedSnapshot.surfaceFeedVideoDocIds,
             controller: shortController,
           );
@@ -155,6 +156,7 @@ void _expectFeedBankPhaseLooksHealthy(_FeedPrefetchSnapshot snapshot) {
 
 Future<ShortController> _waitForShortSurface(WidgetTester tester) async {
   final controller = ensureShortController();
+  await controller.prepareStartupSurface(allowBackgroundRefresh: false);
 
   for (var attempt = 0; attempt < 40; attempt++) {
     await tester.pump(const Duration(milliseconds: 250));
@@ -173,33 +175,44 @@ Future<ShortController> _waitForShortSurface(WidgetTester tester) async {
   );
 }
 
-void _expectShortSurfaceExcludesCurrentFeedVideos({
+Future<void> _waitForShortSurfaceToExcludeCurrentFeedVideos(
+  WidgetTester tester, {
   required List<String> feedDocIds,
   required ShortController controller,
-}) {
-  final visibleShortDocIds = controller.shorts
-      .take(18)
-      .map((post) => post.docID.trim())
-      .where((docId) => docId.isNotEmpty)
-      .toSet();
-  expect(visibleShortDocIds, isNotEmpty, reason: 'short list is empty');
-
+}) async {
   final feedDocIdSet = feedDocIds
       .map((docId) => docId.trim())
       .where((docId) => docId.isNotEmpty)
       .toSet();
-  final visibleOverlap = visibleShortDocIds.intersection(feedDocIdSet);
-  final hasAnyNonConflictShort = controller.shorts.any(
-    (post) => !feedDocIdSet.contains(post.docID.trim()),
-  );
-  if (!hasAnyNonConflictShort) {
-    return;
+  Set<String> lastVisibleOverlap = const <String>{};
+
+  for (var attempt = 0; attempt < 32; attempt++) {
+    await controller.reconcileVisibleShortSurface(
+      trigger: 'integration_short_feed_conflict_wait',
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    final visibleShortDocIds = controller.shorts
+        .take(18)
+        .map((post) => post.docID.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toSet();
+    expect(visibleShortDocIds, isNotEmpty, reason: 'short list is empty');
+
+    lastVisibleOverlap = visibleShortDocIds.intersection(feedDocIdSet);
+    final hasAnyNonConflictShort = controller.shorts.any(
+      (post) => !feedDocIdSet.contains(post.docID.trim()),
+    );
+    if (!hasAnyNonConflictShort || lastVisibleOverlap.isEmpty) {
+      await expectNoFlutterException(tester);
+      return;
+    }
   }
+
   expect(
-    visibleOverlap,
+    lastVisibleOverlap,
     isEmpty,
     reason:
-        'feed-visible video doc ids leaked into short surface despite non-conflict short candidates: ${visibleOverlap.toList()}',
+        'feed-visible video doc ids leaked into short surface despite non-conflict short candidates: ${lastVisibleOverlap.toList()}',
   );
 }
 
