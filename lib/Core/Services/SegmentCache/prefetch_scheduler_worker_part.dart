@@ -3,6 +3,15 @@ part of 'prefetch_scheduler.dart';
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   bool _isBankDocId(String docID) => _lastFeedBankDocIDs.contains(docID);
 
+  bool _isCurrentPriorityDoc(String docID) {
+    if (_lastPriorityDocIDs.isEmpty) return false;
+    final safeCurrent = _lastPriorityCurrentIndex.clamp(
+      0,
+      _lastPriorityDocIDs.length - 1,
+    );
+    return _lastPriorityDocIDs[safeCurrent] == docID;
+  }
+
   int _followUpPriorityForJob(_PrefetchJob job) {
     final targetIndex = _lastPriorityDocIDs.indexOf(job.docID);
     if (targetIndex < 0) {
@@ -236,23 +245,31 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final entryForPolicy = cacheManager.getEntry(job.docID);
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
+      final desiredReadySegments = job.maxSegments > 0
+          ? job.maxSegments
+          : _prefetchSchedulerTargetReadySegments;
       final quotaFillMode = shouldUsePrefetchQuotaFillMode(
         isOnWiFi: _isOnWiFi,
         mobileSeedMode: _mobileSeedMode,
         watchProgress: watchedProgress,
       );
+      final startupBurstMode = shouldUseStartupBurstPrefetch(
+        isFocusedDoc: _focusedDocID == job.docID,
+        isCurrentDoc: _isCurrentPriorityDoc(job.docID),
+        watchProgress: watchedProgress,
+        cachedSegmentCount: entryForPolicy?.cachedSegmentCount ?? 0,
+        desiredReadySegments: desiredReadySegments,
+        totalSegments: segmentUris.length,
+      );
 
       final Iterable<String> toDownload;
       if (quotaFillMode) {
-        final readyCap = job.maxSegments > 0
-            ? job.maxSegments
-            : _prefetchSchedulerTargetReadySegments;
         toDownload = _pickQuotaFillPrioritySegments(
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
           cacheManager: cacheManager,
-          desiredReadySegments: readyCap,
+          desiredReadySegments: desiredReadySegments,
         );
       } else if (_mobileSeedMode && isUnwatched) {
         final mobileOrdered = _pickMobileSeedSegments(
@@ -265,10 +282,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             job.maxSegments > 0 ? job.maxSegments : mobileOrdered.length;
         toDownload = mobileOrdered.take(mobileCap);
       } else if (isUnwatched) {
-        final readyCap = job.maxSegments > 0
-            ? job.maxSegments
-            : _prefetchSchedulerTargetReadySegments;
-        toDownload = uncached.take(readyCap);
+        toDownload = uncached.take(desiredReadySegments);
       } else {
         final preferred = _pickWatchedPrioritySegments(
           docID: job.docID,
@@ -293,9 +307,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         return;
       }
 
-      final seedNextSegmentLater =
-          quotaFillMode || (isUnwatched && !_mobileSeedMode);
-      final dispatchLimit = seedNextSegmentLater ? 1 : availableSlots;
+      final seedNextSegmentLater = !startupBurstMode &&
+          (quotaFillMode || (isUnwatched && !_mobileSeedMode));
+      final dispatchLimit = seedNextSegmentLater
+          ? 1
+          : startupBurstMode
+              ? availableSlots < desiredReadySegments
+                  ? availableSlots
+                  : desiredReadySegments
+              : availableSlots;
       final dispatchNow =
           orderedDownloads.take(dispatchLimit).toList(growable: false);
       final hasRemaining = orderedDownloads.length > dispatchNow.length;
@@ -382,7 +402,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _activeDocRefCounts.remove(result.docID);
     }
     if (_activeBankDocIDs.remove(result.docID)) {
-      _activeBankDownloads = (_activeBankDownloads - 1).clamp(0, _maxConcurrent);
+      _activeBankDownloads =
+          (_activeBankDownloads - 1).clamp(0, _maxConcurrent);
     }
     _resetWatchdog();
 

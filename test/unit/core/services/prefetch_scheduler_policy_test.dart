@@ -89,8 +89,50 @@ void main() {
     });
   });
 
+  group('shouldUseStartupBurstPrefetch', () {
+    test('enables startup burst for the active first-segment doc', () {
+      final result = shouldUseStartupBurstPrefetch(
+        isFocusedDoc: true,
+        isCurrentDoc: true,
+        watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        desiredReadySegments: 2,
+        totalSegments: 4,
+      );
+
+      expect(result, isTrue);
+    });
+
+    test('disables startup burst after the first segment window', () {
+      final result = shouldUseStartupBurstPrefetch(
+        isFocusedDoc: true,
+        isCurrentDoc: true,
+        watchProgress: 0.45,
+        cachedSegmentCount: 1,
+        desiredReadySegments: 2,
+        totalSegments: 4,
+      );
+
+      expect(result, isFalse);
+    });
+
+    test('disables startup burst for non-active docs', () {
+      final result = shouldUseStartupBurstPrefetch(
+        isFocusedDoc: false,
+        isCurrentDoc: false,
+        watchProgress: 0.0,
+        cachedSegmentCount: 0,
+        desiredReadySegments: 2,
+        totalSegments: 4,
+      );
+
+      expect(result, isFalse);
+    });
+  });
+
   group('feed bank helpers', () {
-    test('buildFeedBankDocIds skips the visible head and keeps unseen video docs',
+    test(
+        'buildFeedBankDocIds skips the visible head and keeps unseen video docs',
         () {
       final posts = <PostsModel>[
         _readyPost('p1'),

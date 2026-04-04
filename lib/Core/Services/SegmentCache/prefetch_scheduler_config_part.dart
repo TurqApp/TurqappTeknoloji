@@ -35,9 +35,8 @@ bool isPriorityWindowTargetIndex({
   required int currentIndex,
   required int targetIndex,
 }) {
-  final batchStart =
-      (currentIndex ~/ _prefetchSchedulerPriorityWindowSize) *
-          _prefetchSchedulerPriorityWindowSize;
+  final batchStart = (currentIndex ~/ _prefetchSchedulerPriorityWindowSize) *
+      _prefetchSchedulerPriorityWindowSize;
   final currentBatchEnd = batchStart + _prefetchSchedulerPriorityWindowSize;
   final nextBatchStart = currentBatchEnd;
   final nextBatchEnd = nextBatchStart + _prefetchSchedulerPriorityWindowSize;
@@ -66,6 +65,28 @@ bool shouldUsePrefetchQuotaFillMode({
   required double watchProgress,
 }) {
   return isOnWiFi && !mobileSeedMode && watchProgress <= 0.01;
+}
+
+@visibleForTesting
+bool shouldUseStartupBurstPrefetch({
+  required bool isFocusedDoc,
+  required bool isCurrentDoc,
+  required double watchProgress,
+  required int cachedSegmentCount,
+  required int desiredReadySegments,
+  required int totalSegments,
+}) {
+  if ((!isFocusedDoc && !isCurrentDoc) ||
+      desiredReadySegments < 2 ||
+      totalSegments < 2 ||
+      cachedSegmentCount >= desiredReadySegments) {
+    return false;
+  }
+  final currentSegment = HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
+    progress: watchProgress,
+    totalSegments: totalSegments,
+  );
+  return currentSegment <= 1;
 }
 
 @visibleForTesting
