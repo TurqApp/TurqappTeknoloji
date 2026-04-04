@@ -32,6 +32,8 @@ extension _ExploreControllerSupportX on ExploreController {
 
   void restoreFloodSeriesFocus() => _performRestoreFloodSeriesFocus();
 
+  void resetFloodChildPrefetchPlan() => _performResetFloodChildPrefetchPlan();
+
   void suspendExplorePreview({int focusIndex = -1}) =>
       _performSuspendExplorePreview(focusIndex: focusIndex);
 
@@ -46,8 +48,16 @@ extension ExploreControllerPublicPart on ExploreController {
   void resumeExplorePreview() =>
       _ExploreControllerSupportX(this).resumeExplorePreview();
 
+  void shuffleExplorePosts() => _performShuffleExplorePosts();
+
   int resolveFloodSeriesFocusIndex() =>
       _ExploreControllerSupportX(this).resolveFloodSeriesFocusIndex();
+
+  void restoreFloodSeriesFocus() =>
+      _ExploreControllerSupportX(this).restoreFloodSeriesFocus();
+
+  void resetFloodChildPrefetchPlan() =>
+      _ExploreControllerSupportX(this).resetFloodChildPrefetchPlan();
 
   void goToPage(int index) => _handleGoToPage(index);
 

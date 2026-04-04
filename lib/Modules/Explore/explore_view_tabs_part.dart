@@ -1,6 +1,125 @@
 part of 'explore_view.dart';
 
 extension _ExploreViewTabsPart on _ExploreViewState {
+  Future<List<String>> _loadFloodRotationHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored =
+          prefs.getStringList(_ExploreViewState._floodRotationPrefsKey) ??
+              const [];
+      return stored
+          .map((id) => id.trim())
+          .where((id) => id.isNotEmpty)
+          .take(_ExploreViewState._floodRotationMemoryCount)
+          .toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> _persistFloodRotationHistory(List<PostsModel> ordered) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final topIds = ordered
+          .map((post) => post.docID.trim())
+          .where((id) => id.isNotEmpty)
+          .take(_ExploreViewState._floodRotationMemoryCount)
+          .toList(growable: false);
+      await prefs.setStringList(
+        _ExploreViewState._floodRotationPrefsKey,
+        topIds,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _shuffleFloodsForRefresh() async {
+    final list = controller.exploreFloods;
+    if (list.length < 2) return;
+
+    final recentTopIds = await _loadFloodRotationHistory();
+    final recentTopIdSet = recentTopIds.toSet();
+    final shuffled = List<PostsModel>.from(list)..shuffle();
+    final fresh = <PostsModel>[];
+    final deferred = <PostsModel>[];
+    for (final post in shuffled) {
+      if (recentTopIdSet.contains(post.docID.trim())) {
+        deferred.add(post);
+      } else {
+        fresh.add(post);
+      }
+    }
+    final ordered = <PostsModel>[...fresh, ...deferred];
+    controller.exploreFloods.assignAll(ordered);
+    controller.floodsVisibleIndex.value = 0;
+    controller.lastFloodVisibleIndex = 0;
+    controller.capturePendingFloodEntry(preferredIndex: 0);
+    controller.resetFloodChildPrefetchPlan();
+    controller.restoreFloodSeriesFocus();
+    await _persistFloodRotationHistory(ordered);
+  }
+
+  Future<void> _ensureSessionFloodOrder({
+    bool force = false,
+  }) async {
+    if (!mounted) return;
+    final list = controller.exploreFloods;
+    if (list.length < 2) {
+      if (force) {
+        _didApplyFloodSessionOrder = true;
+      }
+      return;
+    }
+    if (!force && _didApplyFloodSessionOrder) return;
+
+    final recentTopIds = await _loadFloodRotationHistory();
+    final recentTopIdSet = recentTopIds.toSet();
+    final shuffled = List<PostsModel>.from(list)
+      ..shuffle(Random(_floodSessionShuffleSeed));
+    final fresh = <PostsModel>[];
+    final deferred = <PostsModel>[];
+    for (final post in shuffled) {
+      if (recentTopIdSet.contains(post.docID.trim())) {
+        deferred.add(post);
+      } else {
+        fresh.add(post);
+      }
+    }
+    final ordered = <PostsModel>[...fresh, ...deferred];
+
+    var changed = force;
+    if (!changed && ordered.length == list.length) {
+      for (int i = 0; i < list.length; i++) {
+        if (list[i].docID != ordered[i].docID) {
+          changed = true;
+          break;
+        }
+      }
+    }
+
+    _didApplyFloodSessionOrder = true;
+    if (!changed) {
+      controller.resetFloodChildPrefetchPlan();
+      controller.restoreFloodSeriesFocus();
+      await _persistFloodRotationHistory(ordered);
+      return;
+    }
+
+    controller.exploreFloods.assignAll(ordered);
+    controller.floodsVisibleIndex.value = 0;
+    controller.lastFloodVisibleIndex = 0;
+    controller.capturePendingFloodEntry(preferredIndex: 0);
+    controller.resetFloodChildPrefetchPlan();
+    controller.restoreFloodSeriesFocus();
+    await _persistFloodRotationHistory(ordered);
+  }
+
+  Future<void> _handleSeriesTabActivated() async {
+    if (controller.exploreFloods.isEmpty && !controller.floodsIsLoading.value) {
+      await controller.fetchFloods();
+    }
+    await _ensureSessionFloodOrder();
+  }
+
   double _safeAspectRatio(num ratio, {double fallback = 9 / 16}) {
     final value = ratio.toDouble();
     if (!value.isFinite || value <= 0) return fallback;
@@ -70,10 +189,8 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                     controller.explorePosts.isEmpty &&
                     !controller.exploreIsLoading.value) {
                   controller.fetchExplorePosts();
-                } else if (idx == 2 &&
-                    controller.exploreFloods.isEmpty &&
-                    !controller.floodsIsLoading.value) {
-                  controller.fetchFloods();
+                } else if (idx == 2) {
+                  unawaited(_handleSeriesTabActivated());
                 }
               },
               children: [
@@ -339,10 +456,14 @@ extension _ExploreViewTabsPart on _ExploreViewState {
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          controller.exploreFloods.clear();
-          controller.lastFloodsDoc = null;
-          controller.floodsHasMore.value = true;
-          await controller.fetchFloods();
+          if (controller.exploreFloods.isEmpty) {
+            controller.lastFloodsDoc = null;
+            controller.floodsHasMore.value = true;
+            await controller.fetchFloods();
+            await _ensureSessionFloodOrder(force: true);
+            return;
+          }
+          await _shuffleFloodsForRefresh();
         },
         child: ListView.builder(
           key: const PageStorageKey('Explore_Floods'),

@@ -146,21 +146,28 @@ extension ExploreControllerFeedPart on ExploreController {
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
-    final focusIndex =
-        (preferredIndex ?? _performResolveFloodSeriesFocusIndex())
-            .clamp(0, exploreFloods.length - 1);
-    final visibleWindow = ReadBudgetRegistry.exploreFloodInitialBatch
-        .clamp(1, exploreFloods.length);
-    final start = focusIndex.clamp(0, exploreFloods.length - 1);
-    final endExclusive = (start + visibleWindow).clamp(0, exploreFloods.length);
-    final windowedPosts = exploreFloods.sublist(start, endExclusive);
-    if (windowedPosts.isEmpty) return;
+    final focusIndex = (preferredIndex ?? _performResolveFloodSeriesFocusIndex())
+        .clamp(0, exploreFloods.length - 1);
+    final maxPreparedStart = (((focusIndex + 1) ~/ _exploreFloodPrefetchChunkSize)
+            * _exploreFloodPrefetchChunkSize)
+        .clamp(0, exploreFloods.length - 1);
 
-    unawaited(prefetch.updateQueueForPosts(
-      windowedPosts,
-      0,
-      maxDocs: visibleWindow,
-    ));
+    for (var chunkStart = 0;
+        chunkStart <= maxPreparedStart;
+        chunkStart += _exploreFloodPrefetchChunkSize) {
+      if (!_preparedFloodChildChunkStarts.add(chunkStart)) {
+        continue;
+      }
+      final endExclusive = (chunkStart + _exploreFloodPrefetchChunkSize)
+          .clamp(0, exploreFloods.length);
+      final windowedPosts = exploreFloods.sublist(chunkStart, endExclusive);
+      for (final post in windowedPosts) {
+        _performBoostFloodChildFirstSegments(
+          post,
+          prefetch: prefetch,
+        );
+      }
+    }
   }
 
   void _performFetchFloodsIfNearVisibleEnd({
@@ -171,16 +178,39 @@ extension ExploreControllerFeedPart on ExploreController {
         exploreFloods.isEmpty) {
       return;
     }
+    if (exploreFloods.length >= _exploreFloodListMaxItems) {
+      floodsHasMore.value = false;
+      return;
+    }
     final focusIndex = preferredIndex ?? _performResolveFloodSeriesFocusIndex();
     if (focusIndex < 0 || focusIndex >= exploreFloods.length) return;
 
     final remainingAfterVisible = exploreFloods.length - focusIndex - 1;
-    if (remainingAfterVisible >
-        ReadBudgetRegistry.exploreFloodTriggerRemaining) {
+    if (remainingAfterVisible > _exploreFloodFetchTriggerTailCount) {
       return;
     }
 
     unawaited(fetchFloods());
+  }
+
+  void _performBoostFloodChildFirstSegments(
+    PostsModel rootPost, {
+    required PrefetchScheduler prefetch,
+  }) {
+    final floodCount = rootPost.floodCount.toInt();
+    if (floodCount <= 1) {
+      prefetch.boostDoc(rootPost.docID, readySegments: 1);
+      return;
+    }
+
+    final baseId = rootPost.docID.replaceFirst(RegExp(r'_\d+$'), '');
+    for (var i = 0; i < floodCount; i++) {
+      prefetch.boostDoc('${baseId}_$i', readySegments: 1);
+    }
+  }
+
+  void _performResetFloodChildPrefetchPlan() {
+    _preparedFloodChildChunkStarts.clear();
   }
 
   void _performCapturePendingFloodEntry({
@@ -213,6 +243,13 @@ extension ExploreControllerFeedPart on ExploreController {
 
   void _performResumeExplorePreview() {
     explorePreviewSuspended.value = false;
+  }
+
+  void _performShuffleExplorePosts() {
+    if (explorePosts.length < 2) return;
+    final shuffled = List<PostsModel>.from(explorePosts)..shuffle();
+    explorePreviewFocusIndex.value = -1;
+    explorePosts.assignAll(shuffled);
   }
 
   void _performBindFollowingListener() {
@@ -888,18 +925,29 @@ extension ExploreControllerFeedPart on ExploreController {
 
   Future<void> _performFetchFloods() async {
     if (floodsIsLoading.value || !floodsHasMore.value) return;
+    if (exploreFloods.length >= _exploreFloodListMaxItems) {
+      floodsHasMore.value = false;
+      return;
+    }
     floodsIsLoading.value = true;
     capturePendingFloodEntry();
     try {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
       int pagesFetched = 0;
       const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
-      const int pageLimit = ReadBudgetRegistry.exploreFloodBufferedFetchLimit;
-      const int targetBatch = ReadBudgetRegistry.exploreFloodBufferedFetchLimit;
+      const int pageLimit = _exploreFloodListBatchSize;
+      const int targetBatch = _exploreFloodListBatchSize;
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       List<PostsModel> accumulated = [];
       bool noMoreServerPages = false;
       final existingIDs = exploreFloods.map((e) => e.docID).toSet();
+      final int remainingSlots =
+          (_exploreFloodListMaxItems - exploreFloods.length)
+              .clamp(0, targetBatch);
+      if (remainingSlots <= 0) {
+        floodsHasMore.value = false;
+        return;
+      }
 
       while (pagesFetched < maxPages && !noMoreServerPages) {
         ExploreQueryPage page;
@@ -942,7 +990,7 @@ extension ExploreControllerFeedPart on ExploreController {
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
           accumulated.addAll(batch);
-          if (accumulated.length >= targetBatch) {
+          if (accumulated.length >= remainingSlots) {
             break;
           }
         }
@@ -950,12 +998,19 @@ extension ExploreControllerFeedPart on ExploreController {
       }
 
       if (accumulated.isNotEmpty) {
-        final prioritized = _prioritizeCachedVideos(accumulated);
+        final boundedAccumulated = accumulated.length > remainingSlots
+            ? accumulated.take(remainingSlots).toList(growable: false)
+            : accumulated;
+        final prioritized = _prioritizeCachedVideos(boundedAccumulated);
+        if (exploreFloods.isEmpty) {
+          _performResetFloodChildPrefetchPlan();
+        }
         exploreFloods.addAll(prioritized);
-        restoreFloodSeriesFocus();
+        _performRestoreFloodSeriesFocus();
         _performScheduleExploreFloodPrefetchFromVisible();
         _floodsEmptyScans = 0;
-        floodsHasMore.value = !noMoreServerPages;
+        floodsHasMore.value = !noMoreServerPages &&
+            exploreFloods.length < _exploreFloodListMaxItems;
       } else {
         _floodsEmptyScans++;
         if (_floodsEmptyScans >= 2 || noMoreServerPages) {

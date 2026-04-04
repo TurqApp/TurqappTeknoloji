@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
@@ -16,6 +18,7 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
+import 'package:turqappv2/Models/posts_model.dart';
 import '../../Core/empty_row.dart';
 import '../../Core/Helpers/RoadToTop/road_to_top.dart';
 import '../Agenda/TagPosts/tag_media_widgets.dart';
@@ -71,8 +74,13 @@ class ExploreView extends StatefulWidget {
 }
 
 class _ExploreViewState extends State<ExploreView> {
+  static const String _floodRotationPrefsKey = 'explore_flood_rotation_v1';
+  static const int _floodRotationMemoryCount = 8;
+
   late final ExploreController controller;
   bool _ownsController = false;
+  final int _floodSessionShuffleSeed = Random().nextInt(1 << 30);
+  bool _didApplyFloodSessionOrder = false;
 
   @override
   void initState() {

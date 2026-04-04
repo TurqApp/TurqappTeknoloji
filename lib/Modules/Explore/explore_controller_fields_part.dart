@@ -1,5 +1,10 @@
 part of 'explore_controller.dart';
 
+const int _exploreFloodListBatchSize = 15;
+const int _exploreFloodListMaxItems = 105;
+const int _exploreFloodPrefetchChunkSize = 5;
+const int _exploreFloodFetchTriggerTailCount = 2;
+
 class _ExploreControllerState {
   final selection = 0.obs;
   final pageController = PageController(initialPage: 0);
@@ -40,6 +45,7 @@ class _ExploreControllerState {
   final floodsVisibleIndex = (-1).obs;
   int? lastFloodVisibleIndex;
   String? pendingFloodDocId;
+  final Set<int> preparedFloodChildChunkStarts = <int>{};
   final showScrollToTop = false.obs;
   final followingIDs = <String>{}.obs;
   int exploreEmptyScans = 0;
@@ -102,6 +108,8 @@ extension ExploreControllerFieldsPart on ExploreController {
   set lastFloodVisibleIndex(int? value) => _state.lastFloodVisibleIndex = value;
   String? get _pendingFloodDocId => _state.pendingFloodDocId;
   set _pendingFloodDocId(String? value) => _state.pendingFloodDocId = value;
+  Set<int> get _preparedFloodChildChunkStarts =>
+      _state.preparedFloodChildChunkStarts;
   RxBool get showScrollToTop => _state.showScrollToTop;
   RxSet<String> get followingIDs => _state.followingIDs;
   int get _exploreEmptyScans => _state.exploreEmptyScans;

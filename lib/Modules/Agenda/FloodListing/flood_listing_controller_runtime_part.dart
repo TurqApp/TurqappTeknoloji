@@ -1,23 +1,30 @@
 part of 'flood_listing_controller.dart';
 
 extension FloodListingControllerRuntimePart on FloodListingController {
-  void _scheduleFloodSegmentWarmup({int? preferredIndex}) {
+  void _scheduleFloodSegmentWarmup({
+    int? preferredIndex,
+    int readySegments = 2,
+    int? windowCount,
+  }) {
     if (floods.isEmpty) return;
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
     final focusIndex = (preferredIndex ?? resolveResumeCenteredIndex())
         .clamp(0, floods.length - 1);
-    final windowCount =
-        ReadBudgetRegistry.exploreFloodInitialBatch.clamp(1, floods.length);
-    final endExclusive = (focusIndex + windowCount).clamp(0, floods.length);
+    final resolvedWindowCount = (windowCount ?? floods.length).clamp(
+      1,
+      floods.length,
+    );
+    final endExclusive =
+        (focusIndex + resolvedWindowCount).clamp(0, floods.length);
     for (var i = focusIndex; i < endExclusive; i++) {
       final model = floods[i];
       if (!model.hasPlayableVideo) continue;
       try {
         prefetch.boostDoc(
           model.docID,
-          readySegments: 1,
+          readySegments: readySegments,
         );
       } catch (_) {}
     }
@@ -49,7 +56,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     if (position.pixels <= 0 && _visibleFractions.isEmpty) {
       currentVisibleIndex.value = 0;
       capturePendingCenteredEntry(preferredIndex: 0);
-      _scheduleFloodSegmentWarmup(preferredIndex: 0);
+      _scheduleFloodSegmentWarmup(preferredIndex: 0, readySegments: 2);
     }
   }
 
@@ -67,11 +74,18 @@ extension FloodListingControllerRuntimePart on FloodListingController {
 
     if (visibleFraction <= 0.01) {
       _visibleFractions.remove(modelIndex);
+      if (modelIndex != centeredIndex.value) {
+        disposeAgendaContentController(floods[modelIndex].docID);
+      }
     } else {
       _visibleFractions[modelIndex] = visibleFraction;
       currentVisibleIndex.value = modelIndex;
       capturePendingCenteredEntry(preferredIndex: modelIndex);
-      _scheduleFloodSegmentWarmup(preferredIndex: modelIndex);
+      _scheduleFloodSegmentWarmup(
+        preferredIndex: modelIndex,
+        readySegments: 2,
+        windowCount: 1,
+      );
     }
 
     _visibilityDebounce?.cancel();
@@ -113,7 +127,11 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
     capturePendingCenteredEntry(preferredIndex: nextIndex);
-    _scheduleFloodSegmentWarmup(preferredIndex: nextIndex);
+    _scheduleFloodSegmentWarmup(
+      preferredIndex: nextIndex,
+      readySegments: 2,
+      windowCount: 1,
+    );
   }
 
   void disposeAgendaContentController(String docID) {
@@ -149,7 +167,11 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     currentVisibleIndex.value = target;
     lastCenteredIndex = target;
     capturePendingCenteredEntry(preferredIndex: target);
-    _scheduleFloodSegmentWarmup(preferredIndex: target);
+    _scheduleFloodSegmentWarmup(
+      preferredIndex: target,
+      readySegments: 2,
+      windowCount: 1,
+    );
   }
 
   void capturePendingCenteredEntry({int? preferredIndex, PostsModel? model}) {
