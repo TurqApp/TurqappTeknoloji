@@ -28,6 +28,10 @@ Bu dosya TurqApp icin kalici ajan anayasasidir. Bu repo uzerinde calisan her Cod
 6. Kapsam disina cikma.
    - Istenmeyen hicbir gelistirme yapma.
    - "Bunu da duzeltmisken..." yaklasimi yasak.
+7. Basarisiz patch birakma.
+   - Istenen sonucu vermeyen veya yan etki ureten patch'ler temizlenmeden yeni
+     patch yazma.
+   - Duzeltmeyi temiz bir diff uzerinden tamamla.
 
 ## Proje Analizi Zorunlulugu
 
