@@ -5,6 +5,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   static const Duration _startupPlaybackLockDuration =
       Duration(milliseconds: 900);
+  static const int _feedPlaybackBoostReadySegments = 2;
+  static const int _feedPlaybackBoostLookAhead = 2;
 
   bool _reclaimFeedPlaybackFromExternalOwner(
     VideoStateManager manager, {
@@ -78,6 +80,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (index < 0 || index >= agendaList.length) return;
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
+    _boostFeedPlaybackHorizon(index);
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
     final manager = VideoStateManager.instance;
     _reclaimFeedPlaybackFromExternalOwner(
@@ -192,10 +195,32 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchCurrentPoster();
     _prefetchUpcomingImages();
     _prefetchThumbnailBatches();
+    final centered = centeredIndex.value;
+    if (centered >= 0 && centered < agendaList.length) {
+      _boostFeedPlaybackHorizon(centered);
+    }
     _feedPrefetchDebounce?.cancel();
     _feedPrefetchDebounce = Timer(const Duration(milliseconds: 240), () {
       _updateFeedPrefetchQueue();
     });
+  }
+
+  void _boostFeedPlaybackHorizon(int centered) {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null || agendaList.isEmpty) return;
+    var boosted = 0;
+    for (int i = centered; i < agendaList.length; i++) {
+      final post = agendaList[i];
+      if (!_canAutoplayVideoPost(post)) continue;
+      prefetch.boostDoc(
+        post.docID,
+        readySegments: _feedPlaybackBoostReadySegments,
+      );
+      boosted++;
+      if (boosted > _feedPlaybackBoostLookAhead) {
+        break;
+      }
+    }
   }
 
   void _prefetchCurrentPoster() {
