@@ -211,22 +211,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return startupItems.length >= minReadyCount;
   }
 
-  void _applyQuickFilledAgenda(
-    List<PostsModel> quickFiltered, {
-    bool deferPosterWarmupUntilFirstFrame = false,
-  }) {
+  void _applyQuickFilledAgenda(List<PostsModel> quickFiltered) {
     if (quickFiltered.isEmpty) return;
 
     _addUniqueToAgenda(quickFiltered);
     _reorderAgendaForStartupPresentationIfNeeded();
-    if (deferPosterWarmupUntilFirstFrame) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (isClosed || quickFiltered.isEmpty) return;
-        _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
-      });
-    } else {
-      _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
-    }
+    _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -309,10 +299,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       targetCount: effectiveLimit,
     )) {
       _startupLiveHeadApplied = false;
-      _applyQuickFilledAgenda(
-        warmOnlyQuickFiltered,
-        deferPosterWarmupUntilFirstFrame: true,
-      );
+      _applyQuickFilledAgenda(warmOnlyQuickFiltered);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_revalidateQuickFilledAgenda(warmOnlyQuickFiltered));
       });
