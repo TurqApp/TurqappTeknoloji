@@ -75,6 +75,12 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     required DateTime? lastCommandAt,
     Duration minInterval = const Duration(milliseconds: 180),
   }) {
+    final pendingTimer = _pendingPlayTimer;
+    if (_targetPlaybackDocID == docID &&
+        pendingTimer != null &&
+        pendingTimer.isActive) {
+      return null;
+    }
     final now = DateTime.now();
     final shouldIssueCommand = lastCommandDocId != docID ||
         lastCommandAt == null ||

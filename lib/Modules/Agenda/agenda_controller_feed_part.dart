@@ -315,7 +315,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
     if (target < 0 || target >= agendaList.length) return;
     lastCenteredIndex = target;
-    if (centeredIndex.value != target) {
+    final centeredChanged = centeredIndex.value != target;
+    if (centeredChanged) {
       centeredIndex.value = target;
     }
     _lockStartupPlaybackTargetForIndex(target);
@@ -331,7 +332,9 @@ extension AgendaControllerFeedPart on AgendaController {
       },
     );
 
-    _ensureFeedPlaybackForIndex(target);
+    if (!centeredChanged) {
+      _ensureFeedPlaybackForIndex(target);
+    }
   }
 
   void _prefetchUpcomingImages() {

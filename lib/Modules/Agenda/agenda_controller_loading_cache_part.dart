@@ -85,7 +85,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int nowMs,
     int? startupVariantOverride,
   }) {
-    final shownItems = _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
+    final shownItems =
+        _agendaFeedApplicationService.mergeStartupHeadWithCurrentItems(
       currentItems: currentItems,
       liveItems: liveItems,
       targetCount: targetCount,
