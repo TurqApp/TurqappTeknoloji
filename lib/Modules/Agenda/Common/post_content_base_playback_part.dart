@@ -9,7 +9,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _autoplaySegmentGateTimedOut = false;
   }
 
-  bool get _hasReadyAutoplaySegment => cachedSegmentCountForCurrentVideo >= 1;
+  int get _requiredAutoplaySegmentCount {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        isStartupCacheOriginVideo) {
+      return SegmentCacheRuntimeService.globalReadySegmentCount;
+    }
+    return 1;
+  }
+
+  bool get _hasReadyAutoplaySegment =>
+      cachedSegmentCountForCurrentVideo >= _requiredAutoplaySegmentCount;
 
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
@@ -38,6 +48,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    if (_requiredAutoplaySegmentCount > 1) {
+      try {
+        _segmentCacheRuntimeService.ensureMinimumReadySegments(
+          widget.model.docID,
+          minimumSegmentCount: _requiredAutoplaySegmentCount,
+        );
+      } catch (_) {}
+    }
     if (!_shouldDelayAutoplayForSegments(adapter)) {
       _resetAutoplaySegmentGate();
       _startPlayback(source: source);
@@ -55,6 +73,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         skipReason: 'segment_gate_timeout',
         metadata: <String, dynamic>{
           'cachedSegmentCount': cachedSegmentCountForCurrentVideo,
+          'requiredSegmentCount': _requiredAutoplaySegmentCount,
         },
       );
       _startPlayback(source: '$source:segment_gate_timeout');
@@ -69,6 +88,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       skipReason: 'waiting_for_first_segment',
       metadata: <String, dynamic>{
         'cachedSegmentCount': cachedSegmentCountForCurrentVideo,
+        'requiredSegmentCount': _requiredAutoplaySegmentCount,
       },
     );
     _autoplaySegmentGateTimer = Timer(

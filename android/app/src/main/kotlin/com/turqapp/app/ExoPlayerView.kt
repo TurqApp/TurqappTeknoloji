@@ -21,7 +21,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.video.VideoFrameMetadataListener
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -92,6 +91,8 @@ class ExoPlayerView(
     private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
     private var isSmokeRegistryActive = false
+
+    private fun shouldUseStartupRecoveryWatchdog(): Boolean = forceFullscreen
 
     init {
         smokeMonitor.stateListener = monitor@{
@@ -244,12 +245,6 @@ class ExoPlayerView(
                     // Audio focus'u native katmanda zorla alma.
                     // Feed/SinglePost geçişinde focus churn sesi sıfırlayabiliyor.
                     setAudioAttributes(audioAttributes, false)
-                    setVideoFrameMetadataListener(
-                        VideoFrameMetadataListener { _, _, _, _ ->
-                            lastVideoFrameAtMs = System.currentTimeMillis()
-                            smokeMonitor.onFrameRenderedSample()
-                        }
-                    )
                 }
         } else {
             existing
@@ -288,7 +283,7 @@ class ExoPlayerView(
         selectedVideoHeight = 0
         selectedVideoWidth = 0
         resetSurfaceVisibility(preserveLastFrame = preserveVisibleFrameOnReset)
-        if (autoPlay) {
+        if (autoPlay && shouldUseStartupRecoveryWatchdog()) {
             startStartupRecoveryWatchdog()
         } else {
             stopStartupRecoveryWatchdog()
@@ -459,7 +454,7 @@ class ExoPlayerView(
                 isSoftHeld = false
             }
             p.play()
-            if (!didRenderFirstFrame) {
+            if (!didRenderFirstFrame && shouldUseStartupRecoveryWatchdog()) {
                 startStartupRecoveryWatchdog()
             }
             startStallWatchdog()
