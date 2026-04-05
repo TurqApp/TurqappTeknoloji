@@ -48,7 +48,9 @@ class MarketView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    controller.primePrimarySurfaceOnce();
+    if (!embedded) {
+      controller.primePrimarySurfaceOnce();
+    }
     return _buildView(context);
   }
 }

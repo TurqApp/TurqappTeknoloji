@@ -342,6 +342,12 @@ extension EducationControllerPasajPart on EducationController {
     if (actualIndex < 0 || actualIndex >= titles.length) return;
     final tabId = titles[actualIndex];
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = maybeFindNavBarController();
+      final hasEducation = settingsController.educationScreenIsOn.value;
+      final educationIndex = hasEducation ? 3 : -1;
+      if (nav?.selectedIndex.value != educationIndex) {
+        return;
+      }
       switch (tabId) {
         case PasajTabIds.market:
           unawaited(maybeFindMarketController()?.onPrimarySurfaceVisible());

@@ -103,10 +103,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
+    final hasFeedWindowContext = _lastFeedWindowCount > 0;
     if (_activeDownloads == 0 &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
-                _prefetchSchedulerQuotaFillLowWatermark)) {
+                _prefetchSchedulerQuotaFillLowWatermark) &&
+        hasFeedWindowContext) {
       await _ensureWifiQuotaFillPlan();
     }
     _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
@@ -322,11 +324,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
               ? availableSlots < _prefetchSchedulerQuotaFillBurstSegments
                   ? availableSlots
                   : _prefetchSchedulerQuotaFillBurstSegments
-          : startupBurstMode
-              ? availableSlots < desiredReadySegments
-                  ? availableSlots
-                  : desiredReadySegments
-              : availableSlots;
+              : startupBurstMode
+                  ? availableSlots < desiredReadySegments
+                      ? availableSlots
+                      : desiredReadySegments
+                  : availableSlots;
       final dispatchNow =
           orderedDownloads.take(dispatchLimit).toList(growable: false);
       final hasRemaining = orderedDownloads.length > dispatchNow.length;

@@ -294,11 +294,20 @@ class _DeferredNotificationInboxActionsState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future<void>.delayed(const Duration(milliseconds: 650), () {
-        if (!mounted) return;
-        setState(() {
-          _notificationsController = InAppNotificationsController.ensure();
-        });
+      _bindNotificationsControllerWhenFeedReady();
+    });
+  }
+
+  void _bindNotificationsControllerWhenFeedReady() {
+    Future<void>.delayed(const Duration(milliseconds: 650), () {
+      if (!mounted || _notificationsController != null) return;
+      if (widget.agendaController.renderFeedEntries.isEmpty ||
+          widget.agendaController.centeredIndex.value < 0) {
+        _bindNotificationsControllerWhenFeedReady();
+        return;
+      }
+      setState(() {
+        _notificationsController = InAppNotificationsController.ensure();
       });
     });
   }

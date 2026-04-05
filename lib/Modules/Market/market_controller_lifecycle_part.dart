@@ -4,7 +4,6 @@ extension _MarketControllerLifecyclePart on MarketController {
   void _handleLifecycleInit() {
     scrollController.addListener(_onScroll);
     unawaited(_loadRecentSearches());
-    unawaited(_performPrepareStartupSurface());
   }
 
   void _handleLifecycleClose() {
