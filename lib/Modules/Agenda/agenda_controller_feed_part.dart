@@ -128,11 +128,13 @@ extension AgendaControllerFeedPart on AgendaController {
         _lastPlaybackCommandAt = issuedAt;
       }
     }
-    _schedulePlaybackReassert(
-      index: index,
-      docId: post.docID,
-      manager: manager,
-    );
+    if (needsCurrentRecovery) {
+      _schedulePlaybackReassert(
+        index: index,
+        docId: post.docID,
+        manager: manager,
+      );
+    }
   }
 
   void _bindCenteredIndexListener() {
@@ -610,9 +612,7 @@ extension AgendaControllerFeedPart on AgendaController {
         _qaScrollStartedAt = null;
         _qaScrollStartOffset = 0.0;
         _qaActiveScrollToken = '';
-        if (centered >= 0 && centered < agendaList.length) {
-          _ensureFeedPlaybackForIndex(centered);
-        } else {
+        if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();
         }
       },
