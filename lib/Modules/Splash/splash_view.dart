@@ -16,6 +16,7 @@ import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
+import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 

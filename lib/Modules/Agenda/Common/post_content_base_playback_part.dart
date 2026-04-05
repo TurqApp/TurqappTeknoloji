@@ -405,6 +405,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 (!adapter.value.isInitialized &&
                     adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
+          final savedState =
+              VideoStateManager.instance.getVideoState(playbackHandleKey);
+          final savedPosition = savedState?.position ?? Duration.zero;
+          if (savedPosition > Duration.zero) {
+            adapter.queueSeekAndPlay(savedPosition);
+          }
           _recordPlaybackDispatch(
             'feed_card_adapter_restart_stopped',
             source: source,

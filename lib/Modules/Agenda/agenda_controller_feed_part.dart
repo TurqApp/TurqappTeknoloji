@@ -91,12 +91,10 @@ extension AgendaControllerFeedPart on AgendaController {
     );
     final now = DateTime.now();
     final pendingPlay = manager.hasPendingPlayFor(playbackKey);
-    final canAttemptCurrentRecovery =
-        !GetPlatform.isAndroid ||
+    final canAttemptCurrentRecovery = !GetPlatform.isAndroid ||
         _lastPlaybackCommandDocId != playbackKey ||
         _lastPlaybackCommandAt == null ||
-        now.difference(_lastPlaybackCommandAt!) >
-            _androidCurrentRecoveryGrace;
+        now.difference(_lastPlaybackCommandAt!) > _androidCurrentRecoveryGrace;
     final needsCurrentRecovery = !pendingPlay &&
         canAttemptCurrentRecovery &&
         manager.currentPlayingDocID == playbackKey &&
@@ -504,8 +502,8 @@ extension AgendaControllerFeedPart on AgendaController {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
     final scrollDelta = (currentOffset - lastOffset).abs();
-    final startupLockActive = GetPlatform.isIOS &&
-        _canRetainStartupPlaybackLock;
+    final startupLockActive =
+        GetPlatform.isIOS && _canRetainStartupPlaybackLock;
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
     final startupUnlockThreshold = startupLockActive ? 4.0 : 1.0;

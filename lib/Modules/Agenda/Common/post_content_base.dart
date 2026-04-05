@@ -12,6 +12,7 @@ import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/playback_execution_service.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
+import '../../../Core/Services/video_state_manager.dart';
 import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
 import '../../Explore/explore_controller.dart';

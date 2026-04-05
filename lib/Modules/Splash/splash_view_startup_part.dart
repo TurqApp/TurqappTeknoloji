@@ -224,6 +224,9 @@ extension _SplashViewStartupPart on _SplashViewState {
   }
 
   String _effectiveStartupRouteHint() {
+    if (QALabMode.enabled) {
+      return 'nav_feed';
+    }
     final requested = _requestedStartupRouteHint();
     switch (requested) {
       case 'nav_explore':

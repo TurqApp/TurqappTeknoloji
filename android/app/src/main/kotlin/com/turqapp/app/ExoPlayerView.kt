@@ -94,26 +94,39 @@ class ExoPlayerView(
 
     private fun shouldUseStartupRecoveryWatchdog(): Boolean = forceFullscreen
 
+    private fun publishSmokeSnapshot(monitor: PlaybackHealthMonitor) {
+        if (!isSmokeRegistryActive) {
+            return
+        }
+        val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
+        val runtimeSnapshot = mapOf(
+            "viewId" to viewId,
+            "currentUrl" to (currentUrl ?: ""),
+            "isSoftHeld" to isSoftHeld,
+            "heldVolume" to heldVolume.toDouble(),
+            "playerVolume" to (player?.volume ?: 0f).toDouble(),
+            "isMuted" to ((player?.volume ?: 1f) == 0f),
+            "isPlayingRuntime" to (player?.isPlaying ?: false),
+        )
+        ExoPlayerSmokeRegistry.publish(
+            context,
+            monitor,
+            probeSnapshot + runtimeSnapshot,
+        )
+    }
+
     init {
         smokeMonitor.stateListener = monitor@{
             if (!isSmokeRegistryActive) {
                 return@monitor
             }
-            val probeSnapshot = smokeProbe?.debugSnapshot().orEmpty()
-            val runtimeSnapshot = mapOf(
-                "viewId" to viewId,
-                "currentUrl" to (currentUrl ?: ""),
-                "isSoftHeld" to isSoftHeld,
-                "heldVolume" to heldVolume.toDouble(),
-                "playerVolume" to (player?.volume ?: 0f).toDouble(),
-                "isMuted" to ((player?.volume ?: 1f) == 0f),
-                "isPlayingRuntime" to (player?.isPlaying ?: false),
-            )
-            ExoPlayerSmokeRegistry.publish(
-                context,
-                it,
-                probeSnapshot + runtimeSnapshot,
-            )
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                handler.post {
+                    publishSmokeSnapshot(it)
+                }
+                return@monitor
+            }
+            publishSmokeSnapshot(it)
         }
         val layoutRes = R.layout.turq_texture_player_view
         playerView = (LayoutInflater.from(context)
