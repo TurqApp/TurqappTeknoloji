@@ -28,6 +28,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       try {
         final shortsController = maybeFindShortController();
         if (shortsController != null &&
+            selectedIndex.value == 1 &&
             shortsController.shorts.length <
                 ReadBudgetRegistry.shortBackgroundWarmTargetCount) {
           shortsController.warmStart(
@@ -40,8 +41,8 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       try {
         final storyController = maybeFindStoryRowController();
         if (storyController != null &&
-            storyController.users.length <
-                ReadBudgetRegistry.storyInitialLimit) {
+            selectedIndex.value == 0 &&
+            storyController.users.isEmpty) {
           await storyController.loadStories(
             limit: ReadBudgetRegistry.storyInitialLimit,
             cacheFirst: true,

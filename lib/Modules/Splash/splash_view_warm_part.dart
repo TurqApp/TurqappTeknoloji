@@ -144,25 +144,21 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationMarketWarmups();
       final prioritizeEducationJobWarmups =
           _shouldPrioritizeEducationJobWarmups();
+      final deferShortCriticalWarmup =
+          Platform.isAndroid && prioritizeHomeWarmups;
       final criticalSlices = <Future<void> Function()>[];
 
       if (prioritizeHomeWarmups) {
         criticalSlices.add(() async {
-          final shorts = maybeFindShortController();
-          if (shorts == null) return;
-          await _warmShortSnapshotForStartup(
+          await _warmFeedSnapshotForStartup(
             onWiFi: onWiFi,
             isFirstLaunch: isFirstLaunch,
           );
-          await shorts
+          await agendaController
               .prepareStartupSurface(
                 allowBackgroundRefresh: false,
               )
-              .timeout(
-                Duration(seconds: onWiFi ? 4 : 2),
-                onTimeout: () {},
-              );
-          _primeShortVideoSegments(shorts);
+              .timeout(const Duration(seconds: 3), onTimeout: () {});
         });
         if (storyController != null) {
           criticalSlices.add(() async {
@@ -175,18 +171,25 @@ extension _SplashViewWarmPart on _SplashViewState {
             );
           });
         }
-        criticalSlices.add(() async {
-          await _warmFeedSnapshotForStartup(
-            onWiFi: onWiFi,
-            isFirstLaunch: isFirstLaunch,
-          );
-          await agendaController
-              .prepareStartupSurface(
-                allowBackgroundRefresh: false,
-              )
-              .timeout(const Duration(seconds: 3), onTimeout: () {});
-          _primeFeedVideoSegments(agendaController);
-        });
+        if (!deferShortCriticalWarmup) {
+          criticalSlices.add(() async {
+            final shorts = maybeFindShortController();
+            if (shorts == null) return;
+            await _warmShortSnapshotForStartup(
+              onWiFi: onWiFi,
+              isFirstLaunch: isFirstLaunch,
+            );
+            await shorts
+                .prepareStartupSurface(
+                  allowBackgroundRefresh: false,
+                )
+                .timeout(
+                  Duration(seconds: onWiFi ? 4 : 2),
+                  onTimeout: () {},
+                );
+            _primeShortVideoSegments(shorts);
+          });
+        }
         criticalSlices.add(() async {
           await recommendedController
               .ensureLoaded(limit: recommendedController.usersWarmCount)
@@ -320,10 +323,14 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
+      final startupWindow = shorts.shorts
+          .take(ReadBudgetRegistry.shortReadyForNavCount)
+          .toList(growable: false);
+      if (startupWindow.isEmpty) return;
       unawaited(prefetch.updateQueueForPosts(
-        shorts.shorts,
+        startupWindow,
         0,
-        maxDocs: ReadBudgetRegistry.startupShortPrefetchDocLimit,
+        maxDocs: startupWindow.length,
       ));
       _primeShortStartupSegments(shorts, prefetch);
     } catch (_) {}
@@ -336,67 +343,12 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final startupWindow = shorts.shorts
           .where((post) => post.hasPlayableVideo)
-          .take(3)
+          .take(ReadBudgetRegistry.shortReadyForNavCount)
           .toList(growable: false);
       for (final post in startupWindow) {
         prefetch.boostDoc(
           post.docID,
           readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
-        );
-      }
-    } catch (_) {}
-  }
-
-  void _primeFeedVideoSegments(AgendaController agendaController) {
-    try {
-      final prefetch = maybeFindPrefetchScheduler();
-      if (prefetch == null) return;
-      unawaited(prefetch.updateFeedQueueForPosts(
-        agendaController.agendaList,
-        0,
-        maxDocs: ReadBudgetRegistry.startupFeedPrefetchDocLimit,
-      ));
-      _primeFeedFloodSeriesRoots(agendaController, prefetch);
-      _primeFeedFloodSeriesMembers(agendaController, prefetch);
-    } catch (_) {}
-  }
-
-  void _primeFeedFloodSeriesRoots(
-    AgendaController agendaController,
-    PrefetchScheduler prefetch,
-  ) {
-    try {
-      final roots = agendaController.agendaList
-          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
-          .where(
-            (post) =>
-                post.hasPlayableVideo &&
-                post.isFloodSeriesRoot &&
-                post.docID.trim().endsWith('_0'),
-          )
-          .toList(growable: false);
-      for (final root in roots) {
-        prefetch.boostDoc(
-          root.docID,
-          readySegments: 1,
-        );
-      }
-    } catch (_) {}
-  }
-
-  void _primeFeedFloodSeriesMembers(
-    AgendaController agendaController,
-    PrefetchScheduler prefetch,
-  ) {
-    try {
-      final members = agendaController.agendaList
-          .take(ReadBudgetRegistry.startupFeedPrefetchDocLimit)
-          .where((post) => post.hasPlayableVideo && post.isFloodMember)
-          .toList(growable: false);
-      for (final member in members) {
-        prefetch.boostDoc(
-          member.docID,
-          readySegments: 1,
         );
       }
     } catch (_) {}
@@ -412,17 +364,19 @@ extension _SplashViewWarmPart on _SplashViewState {
       );
       final storyTarget =
           ReadBudgetRegistry.storyWarmReadyTarget(onWiFi: onWiFi);
-
+      final deferShortWarmStart = _shouldRequireFeedReadiness();
       final warmSlices = <Future<void> Function()>[];
 
-      warmSlices.add(() async {
-        final shorts = maybeFindShortController();
-        if (shorts == null || shorts.shorts.length >= shortTarget) return;
-        await shorts.warmStart(
-          targetCount: shortTarget,
-          maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
-        );
-      });
+      if (!deferShortWarmStart) {
+        warmSlices.add(() async {
+          final shorts = maybeFindShortController();
+          if (shorts == null || shorts.shorts.length >= shortTarget) return;
+          await shorts.warmStart(
+            targetCount: shortTarget,
+            maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
+          );
+        });
+      }
 
       if (storyController != null) {
         warmSlices.add(() async {
@@ -438,17 +392,19 @@ extension _SplashViewWarmPart on _SplashViewState {
         });
       }
 
-      final orderedListingTabs = await _orderedWarmPasajListingTabs();
-      for (final tabId in orderedListingTabs) {
-        warmSlices.add(() async {
-          await _warmPasajListingSurface(
-            tabId,
-            onWiFi: onWiFi,
-          ).timeout(
-            const Duration(milliseconds: 1400),
-            onTimeout: () {},
-          );
-        });
+      if (!_shouldRequireFeedReadiness()) {
+        final orderedListingTabs = await _orderedWarmPasajListingTabs();
+        for (final tabId in orderedListingTabs) {
+          warmSlices.add(() async {
+            await _warmPasajListingSurface(
+              tabId,
+              onWiFi: onWiFi,
+            ).timeout(
+              const Duration(milliseconds: 1400),
+              onTimeout: () {},
+            );
+          });
+        }
       }
 
       await _runWarmSlices(warmSlices);
@@ -1015,7 +971,7 @@ extension _SplashViewWarmPart on _SplashViewState {
   }) async {
     try {
       if (storyController.users.length >= limit ||
-          storyController.isLoading.value) {
+          storyController.isLoadingAny) {
         if (storyController.users.isEmpty) {
           await storyController.addMyUserImmediately();
         }

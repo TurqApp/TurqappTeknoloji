@@ -1,6 +1,36 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
+  void _scheduleStartupPromoReveal({int attempt = 0}) {
+    if (_startupPromoRevealQueued ||
+        _startupPromoRevealTimer?.isActive == true) {
+      return;
+    }
+    _startupPromoRevealQueued = true;
+    final delay = attempt == 0
+        ? const Duration(milliseconds: 450)
+        : const Duration(milliseconds: 700);
+    _startupPromoRevealTimer = Timer(delay, () {
+      _startupPromoRevealTimer = null;
+      _startupPromoRevealQueued = false;
+      if (isClosed ||
+          filteredFeedEntries.isEmpty ||
+          renderFeedEntries.isEmpty) {
+        return;
+      }
+      final prefetch = maybeFindPrefetchScheduler();
+      final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+      final waitingForStartupPromoWindow = prefetch == null ||
+          prefetch.feedWindowCount < readyThreshold ||
+          prefetch.feedReadyCount < readyThreshold;
+      if (attempt < 8 && waitingForStartupPromoWindow) {
+        _scheduleStartupPromoReveal(attempt: attempt + 1);
+        return;
+      }
+      _rebuildRenderFeedEntries();
+    });
+  }
+
   void _performBindMergedFeedEntries() {
     _mergedFeedWorker?.dispose();
     _mergedFeedWorker = everAll(
@@ -94,11 +124,17 @@ extension AgendaControllerRenderPart on AgendaController {
       if (isLoading.value && renderFeedEntries.isNotEmpty) {
         return;
       }
+      _startupPromoRevealTimer?.cancel();
+      _startupPromoRevealTimer = null;
+      _startupPromoRevealQueued = false;
       renderFeedEntries.clear();
       return;
     }
+    final shouldDeferStartupPromos =
+        _startupPresentationApplied && renderFeedEntries.isEmpty;
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
+      includePromos: !shouldDeferStartupPromos,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: renderFeedEntries.toList(growable: false),
@@ -106,6 +142,9 @@ extension AgendaControllerRenderPart on AgendaController {
       reason: 'render_feed_rebuild',
     );
     _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
+    if (shouldDeferStartupPromos) {
+      _scheduleStartupPromoReveal();
+    }
   }
 
   void _queueFeedModeFallbackToForYou() {

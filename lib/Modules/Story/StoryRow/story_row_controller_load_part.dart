@@ -32,8 +32,13 @@ extension StoryRowControllerLoadPart on StoryRowController {
       users.clear();
       return;
     }
+    if (silentLoad && _isSilentRefreshInFlight) {
+      return;
+    }
     try {
-      if (!silentLoad) {
+      if (silentLoad) {
+        _isSilentRefreshInFlight = true;
+      } else {
         isLoading.value = true;
       }
       if (!ContentPolicy.isConnected) {
@@ -138,7 +143,9 @@ extension StoryRowControllerLoadPart on StoryRowController {
           loadTimeMs: loadWatch.elapsedMilliseconds,
         ));
       }
-      if (!silentLoad) {
+      if (silentLoad) {
+        _isSilentRefreshInFlight = false;
+      } else {
         isLoading.value = false;
       }
     }

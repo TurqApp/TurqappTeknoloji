@@ -15,6 +15,7 @@ class _StoryRowControllerState {
   final int fullLimit = ReadBudgetRegistry.storyFullLimit;
   int currentLimit = ReadBudgetRegistry.storyInitialLimit;
   bool isLoadingMore = false;
+  bool isSilentRefreshInFlight = false;
   final RxBool isLoading = false.obs;
   DateTime? lastExpireCleanupAt;
   final StoryRepository storyRepository = StoryRepository.ensure();
@@ -33,7 +34,11 @@ extension StoryRowControllerFieldsPart on StoryRowController {
   set _currentLimit(int value) => _state.currentLimit = value;
   bool get _isLoadingMore => _state.isLoadingMore;
   set _isLoadingMore(bool value) => _state.isLoadingMore = value;
+  bool get _isSilentRefreshInFlight => _state.isSilentRefreshInFlight;
+  set _isSilentRefreshInFlight(bool value) =>
+      _state.isSilentRefreshInFlight = value;
   RxBool get isLoading => _state.isLoading;
+  bool get isLoadingAny => isLoading.value || _isSilentRefreshInFlight;
   DateTime? get _lastExpireCleanupAt => _state.lastExpireCleanupAt;
   set _lastExpireCleanupAt(DateTime? value) =>
       _state.lastExpireCleanupAt = value;
