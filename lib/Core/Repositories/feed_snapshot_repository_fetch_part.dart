@@ -83,6 +83,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     bool preferCache = true,
     bool cacheOnly = false,
     bool usePrimaryFeedPaging = true,
+    bool refreshNonPublicCachedSummaries = true,
   }) async {
     const contract = FeedSnapshotRepository._homeContract;
     final normalizedUserId = userId.trim();
@@ -250,6 +251,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         limit: limit,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
+        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
       );
       if (personalFallback.items.isNotEmpty) {
         return personalFallback;
@@ -280,6 +282,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
+      summaryCacheOnly: cacheOnly,
+      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
     );
 
     if (_shouldLogDiagnostics) {
@@ -305,6 +309,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         limit: limit,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
+        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
       );
       if (personalFallback.items.isNotEmpty) {
         return personalFallback;
@@ -359,6 +364,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     required int limit,
     required bool preferCache,
     required bool cacheOnly,
+    bool refreshNonPublicCachedSummaries = true,
   }) async {
     if (currentUserId.isEmpty) {
       return const FeedSourcePage(
@@ -438,6 +444,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
+      summaryCacheOnly: cacheOnly,
+      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
     );
 
     if (_shouldLogDiagnostics) {
@@ -511,6 +519,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       preferCache: true,
       cacheOnly: false,
       usePrimaryFeedPaging: true,
+      refreshNonPublicCachedSummaries: false,
     );
     return page.items;
   }
@@ -532,6 +541,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nowMs: DateTime.now().millisecondsSinceEpoch,
       cutoffMs: 0,
       limit: query.effectiveLimit,
+      summaryCacheOnly: true,
+      refreshNonPublicCachedSummaries: false,
     );
     if (visible.isEmpty) return null;
 
@@ -673,6 +684,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
+      summaryCacheOnly: cacheOnly,
     );
     return FeedSourcePage(
       items: visible,

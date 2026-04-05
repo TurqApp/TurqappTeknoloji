@@ -9,6 +9,8 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     required int nowMs,
     required int cutoffMs,
     required int limit,
+    bool summaryCacheOnly = false,
+    bool refreshNonPublicCachedSummaries = true,
   }) async {
     if (items.isEmpty) return const <PostsModel>[];
     final normalized = _normalizePosts(items)
@@ -21,6 +23,8 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       authorIds: authorIds,
       currentUserId: currentUserId,
       followingIds: followingIds,
+      cacheOnly: summaryCacheOnly,
+      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
     );
 
     final visible = <PostsModel>[];
@@ -121,12 +125,16 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     required Set<String> authorIds,
     required String currentUserId,
     required Set<String> followingIds,
+    required bool cacheOnly,
+    required bool refreshNonPublicCachedSummaries,
   }) async {
     if (authorIds.isEmpty) return const <String, UserSummary>{};
     final cached = await _userSummaryResolver.resolveMany(
       authorIds.toList(growable: false),
       preferCache: true,
+      cacheOnly: cacheOnly,
     );
+    if (cacheOnly) return cached;
     final viewerUid = currentUserId.trim();
     final refreshIds = authorIds.where((authorId) {
       final uid = authorId.trim();
@@ -135,6 +143,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       if (followingIds.contains(uid)) return false;
       final summary = cached[uid];
       if (summary == null) return true;
+      if (!refreshNonPublicCachedSummaries) return false;
       if (summary.isDeleted) return false;
       return !isDiscoveryPublicAuthor(
         rozet: summary.rozet,
