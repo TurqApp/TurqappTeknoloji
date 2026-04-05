@@ -1,5 +1,10 @@
 part of 'short_controller.dart';
 
+int _currentVisibleShortIndex(ShortController controller) {
+  if (controller.shorts.isEmpty) return 0;
+  return controller.lastIndex.value.clamp(0, controller.shorts.length - 1);
+}
+
 extension ShortControllerLoadingPart on ShortController {
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
@@ -123,7 +128,7 @@ extension ShortControllerLoadingPart on ShortController {
         source: CachedResourceSource.scopedDisk,
       );
     }
-    await preloadRange(0, range: 0);
+    await preloadRange(_currentVisibleShortIndex(this), range: 0);
     return true;
   }
 
@@ -473,7 +478,7 @@ extension ShortControllerLoadingPart on ShortController {
         _replaceShorts(
           _applyStartupShortPresentationOrder(initialPlan.replacementItems!),
         );
-        await preloadRange(0, range: 0);
+        await preloadRange(_currentVisibleShortIndex(this), range: 0);
         if (initialPlan.shouldScheduleBackgroundRefresh &&
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
           unawaited(_loadNextPage(trigger: 'background_refresh'));
@@ -513,7 +518,7 @@ extension ShortControllerLoadingPart on ShortController {
         }
       }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
-      await preloadRange(0, range: 0);
+      await preloadRange(_currentVisibleShortIndex(this), range: 0);
     }
 
     _log(
@@ -658,7 +663,7 @@ extension ShortControllerLoadingPart on ShortController {
         }
       }
       if (shorts.isNotEmpty) {
-        await updateCacheTiers(0);
+        await updateCacheTiers(_currentVisibleShortIndex(this));
       }
       int loops = 0;
       while (shorts.length < targetCount && hasMore.value && loops < maxPages) {

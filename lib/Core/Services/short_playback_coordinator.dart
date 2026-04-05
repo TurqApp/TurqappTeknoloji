@@ -85,20 +85,6 @@ class ShortPlaybackCoordinator {
       warmIndices.add(i);
     }
 
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        items.length > 1 &&
-        currentIndex == 0) {
-      // Android'de sadece ilk short'ta 0,1,2'yi ayni anda hot tutmak
-      // renderer churn uretmeye basliyordu. Ilk geciste pencereyi dar tut,
-      // ama ikinci short'tan itibaren n+1 yeniden sicak kalabilsin.
-      hotIndices
-        ..clear()
-        ..add(0)
-        ..add(1);
-      warmIndices.remove(0);
-      warmIndices.remove(1);
-    }
-
     _syncStates(
       items,
       currentIndex: currentIndex,
@@ -116,11 +102,7 @@ class ShortPlaybackCoordinator {
       activeIndex: currentIndex,
       hotIndices: hotIndices,
       warmIndices: warmIndices,
-      maxAttachedPlayers: defaultTargetPlatform == TargetPlatform.android &&
-              items.length > 1 &&
-              currentIndex == 0
-          ? (maxAttachedPlayers < 4 ? 4 : maxAttachedPlayers)
-          : maxAttachedPlayers,
+      maxAttachedPlayers: maxAttachedPlayers,
     );
   }
 

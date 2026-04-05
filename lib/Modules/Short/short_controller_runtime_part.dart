@@ -133,7 +133,7 @@ extension ShortControllerPublicApiPart on ShortController {
       trigger: 'primary_surface_visible_reconcile',
     );
     if (shorts.isNotEmpty) {
-      await preloadRange(0, range: 0);
+      await preloadRange(_currentVisibleShortIndex(this), range: 0);
       unawaited(
         Future<void>.delayed(const Duration(milliseconds: 700)).then((_) async {
           if (shorts.isEmpty) return;

@@ -208,11 +208,6 @@ extension ShortControllerCachePart on ShortController {
   }
 
   void _enforceMaxPlayers(int currentIndex, int maxAttachedPlayers) {
-    final pinnedKeys = <int>{};
-    if (defaultTargetPlatform == TargetPlatform.android && currentIndex <= 1) {
-      if (cache.containsKey(0)) pinnedKeys.add(0);
-      if (cache.containsKey(1)) pinnedKeys.add(1);
-    }
     final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList()
       ..sort(
         (a, b) => (a - currentIndex).abs().compareTo((b - currentIndex).abs()),
@@ -231,14 +226,8 @@ extension ShortControllerCachePart on ShortController {
     );
 
     if (activeKeys.length > maxAttachedPlayers) {
-      final trimmableKeys = activeKeys
-          .where((k) => !pinnedKeys.contains(k))
-          .toList(growable: false);
-      final allowedTrimCount = maxAttachedPlayers - pinnedKeys.length < 0
-          ? 0
-          : maxAttachedPlayers - pinnedKeys.length;
-      for (int i = allowedTrimCount; i < trimmableKeys.length; i++) {
-        final k = trimmableKeys[i];
+      for (int i = maxAttachedPlayers; i < activeKeys.length; i++) {
+        final k = activeKeys[i];
         final adapter = cache[k];
         cache.remove(k);
         _tiers.remove(k);
