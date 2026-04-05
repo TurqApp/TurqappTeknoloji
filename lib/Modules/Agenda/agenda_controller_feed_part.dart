@@ -202,8 +202,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final post = agendaList[current];
-    final posterUrl = post.preferredVideoPosterUrl;
-    if (posterUrl.isNotEmpty) {
+    for (final posterUrl in post.preferredVideoPosterUrls) {
       TurqImageCacheManager.warmUrl(posterUrl).ignore();
     }
     if (post.img.isNotEmpty) {
@@ -320,8 +319,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (post.img.isNotEmpty) {
         TurqImageCacheManager.warmUrl(post.img.first).ignore();
       }
-      final posterUrl = post.preferredVideoPosterUrl;
-      if (posterUrl.isNotEmpty) {
+      for (final posterUrl in post.preferredVideoPosterUrls) {
         TurqImageCacheManager.warmUrl(posterUrl).ignore();
       }
     }
@@ -344,8 +342,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (post.img.isNotEmpty) {
         TurqImageCacheManager.warmUrl(post.img.first).ignore();
       }
-      final previewUrl = post.preferredVideoPosterUrl;
-      if (previewUrl.isNotEmpty) {
+      for (final previewUrl in post.preferredVideoPosterUrls) {
         TurqImageCacheManager.warmUrl(previewUrl).ignore();
       }
     }

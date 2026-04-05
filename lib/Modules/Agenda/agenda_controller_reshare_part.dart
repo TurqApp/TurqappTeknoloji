@@ -151,16 +151,7 @@ extension AgendaControllerResharePart on AgendaController {
     }
     if (unique.isNotEmpty) {
       agendaList.addAll(unique);
-      if (centeredIndex.value == -1) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (isClosed || agendaList.isEmpty || centeredIndex.value == -1) {
-            return;
-          }
-          _scheduleFeedPrefetch();
-        });
-      } else {
-        _scheduleFeedPrefetch();
-      }
+      _scheduleFeedPrefetch();
     }
   }
 

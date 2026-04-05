@@ -65,6 +65,9 @@ extension AgendaControllerLoadingPart on AgendaController {
   }) {
     if (agendaList.isEmpty) return;
 
+    _prefetchThumbnailBatches();
+    _prefetchUpcomingImages();
+
     if (centeredIndex.value == -1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (agendaList.isNotEmpty && centeredIndex.value == -1) {
@@ -85,12 +88,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (IntegrationTestMode.skipBackgroundStartupWork) {
       return;
     }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed || agendaList.isEmpty) return;
-      _prefetchThumbnailBatches();
-      _prefetchUpcomingImages();
-    });
   }
 
   bool _shouldRecomposeStartupHeadOnInitialBootstrap(
