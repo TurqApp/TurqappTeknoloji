@@ -82,8 +82,10 @@ class AgendaView extends StatelessWidget {
         final renderReady = controller.renderFeedEntries.isNotEmpty;
         final startupReady =
             prefetch != null && prefetch.feedReadyCount >= readyThreshold;
-        if ((!renderReady || !startupReady) && attempt < 8) {
-          attemptWarm(attempt: attempt + 1);
+        if (!renderReady || !startupReady) {
+          if (attempt < 8) {
+            attemptWarm(attempt: attempt + 1);
+          }
           return;
         }
         unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());

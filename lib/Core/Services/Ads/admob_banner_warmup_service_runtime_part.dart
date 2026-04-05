@@ -1,7 +1,7 @@
 part of 'admob_banner_warmup_service.dart';
 
 extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
-  Future<void> _waitForStartupFeedReady() async {
+  Future<bool> _waitForStartupFeedReady() async {
     final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
     for (int attempt = 0; attempt < 10; attempt++) {
       final agenda = maybeFindAgendaController();
@@ -11,7 +11,7 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
           prefetch != null &&
           prefetch.feedReadyCount >= readyThreshold;
       if (startupReady) {
-        return;
+        return true;
       }
       await Future<void>.delayed(
         attempt == 0
@@ -19,6 +19,7 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
             : const Duration(milliseconds: 900),
       );
     }
+    return false;
   }
 
   Future<void> ensureInitialized() async {
@@ -94,10 +95,9 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
             AdmobBannerWarmupService._entryWarmupMinInterval) {
       return;
     }
-    _lastWarmupAtBySurface[surfaceKey] = now;
-
     await ensureInitialized();
     if (!_sdkReady) return;
+    _lastWarmupAtBySurface[surfaceKey] = now;
     await AdmobKare.warmupPool(
       targetCount: targetCount,
       maxRequestCount: targetCount,
@@ -107,7 +107,11 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
 
   Future<void> _initializeInternal() async {
     try {
-      await _waitForStartupFeedReady();
+      final startupReady = await _waitForStartupFeedReady();
+      if (!startupReady) {
+        _sdkReady = false;
+        return;
+      }
       await MobileAds.instance.initialize();
       _sdkReady = true;
     } catch (error) {

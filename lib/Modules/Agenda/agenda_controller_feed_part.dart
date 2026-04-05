@@ -200,7 +200,20 @@ extension AgendaControllerFeedPart on AgendaController {
     });
   }
 
-  void _scheduleFeedPrefetch() {
+  void _scheduleFeedPrefetch({int attempt = 0}) {
+    final readyForFeedPrefetch = !isLoading.value &&
+        lastCenteredIndex != null &&
+        renderFeedEntries.isNotEmpty &&
+        centeredIndex.value >= 0;
+    _feedPrefetchDebounce?.cancel();
+    if (!readyForFeedPrefetch) {
+      if (attempt >= 8) return;
+      _feedPrefetchDebounce = Timer(const Duration(milliseconds: 320), () {
+        _scheduleFeedPrefetch(attempt: attempt + 1);
+      });
+      return;
+    }
+
     _prefetchCurrentPoster();
     _prefetchUpcomingImages();
     _prefetchThumbnailBatches();
@@ -208,7 +221,6 @@ extension AgendaControllerFeedPart on AgendaController {
     if (centered >= 0 && centered < agendaList.length) {
       _boostFeedPlaybackHorizon(centered);
     }
-    _feedPrefetchDebounce?.cancel();
     _feedPrefetchDebounce = Timer(const Duration(milliseconds: 240), () {
       _updateFeedPrefetchQueue();
     });
@@ -272,10 +284,19 @@ extension AgendaControllerFeedPart on AgendaController {
         safeCurrent = beforeCount.clamp(0, videoPosts.length - 1);
       }
     }
+    final prefetch = maybeFindPrefetchScheduler();
+    final startupReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 10
+        ? ReadBudgetRegistry.feedReadyForNavCount
+        : 10;
+    final startupMaxDocs =
+        prefetch == null || prefetch.feedReadyCount < startupReadyThreshold
+            ? 10
+            : null;
     try {
-      maybeFindPrefetchScheduler()?.updateFeedQueueForPosts(
+      prefetch?.updateFeedQueueForPosts(
         videoPosts,
         safeCurrent,
+        maxDocs: startupMaxDocs,
       );
     } catch (_) {}
   }
@@ -390,6 +411,11 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
     if (preparedPostCount <= 0) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+    final startupWindowStabilizing =
+        prefetch == null || prefetch.feedReadyCount < readyThreshold;
+    if (startupWindowStabilizing) return;
     final targetAds = min(4, max(2, (preparedPostCount / 12).ceil()));
     unawaited(
       ensureAdmobBannerWarmupService().warmForSurfaceEntry(

@@ -167,8 +167,10 @@ class PostLoginWarmup {
         final startupReady = feedRendered &&
             prefetch != null &&
             prefetch.feedReadyCount >= readyThreshold;
-        if (!startupReady && attemptIndex < 12) {
-          scheduleAttempt(attemptIndex: attemptIndex + 1);
+        if (!startupReady) {
+          if (attemptIndex < 12) {
+            scheduleAttempt(attemptIndex: attemptIndex + 1);
+          }
           return;
         }
         unawaited(_initializeAdMob(isFirstLaunch: isFirstLaunch));

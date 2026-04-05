@@ -302,8 +302,11 @@ class _DeferredNotificationInboxActionsState
     Future<void>.delayed(const Duration(milliseconds: 650), () {
       if (!mounted || _notificationsController != null) return;
       final prefetch = maybeFindPrefetchScheduler();
-      final feedReadyEnough = prefetch == null ||
-          prefetch.feedReadyCount >= ReadBudgetRegistry.feedReadyForNavCount;
+      final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 10
+          ? ReadBudgetRegistry.feedReadyForNavCount
+          : 10;
+      final feedReadyEnough =
+          prefetch == null || prefetch.feedReadyCount >= readyThreshold;
       if (widget.agendaController.renderFeedEntries.isEmpty ||
           widget.agendaController.centeredIndex.value < 0 ||
           !feedReadyEnough) {
