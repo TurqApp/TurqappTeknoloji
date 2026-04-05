@@ -615,11 +615,7 @@ extension ShortControllerLoadingPart on ShortController {
       );
       final newList = refreshPlan.replacementItems;
 
-      _replaceShorts(newList, remapCache: false);
-      await _remapCacheForNewList(
-        previous: previousShorts,
-        next: newList,
-      );
+      _replaceShorts(newList, remapCache: true);
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
@@ -859,13 +855,13 @@ extension ShortControllerLoadingPart on ShortController {
       return;
     }
     final previous = shorts.toList(growable: false);
-    shorts.assignAll(newItems);
     if (remapCache) {
       unawaited(_remapCacheForNewList(
         previous: previous,
         next: newItems,
       ));
     }
+    shorts.assignAll(newItems);
   }
 
   bool _hasSameRenderOrder(

@@ -193,7 +193,7 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchUpcomingImages();
     _prefetchThumbnailBatches();
     _feedPrefetchDebounce?.cancel();
-    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 1400), () {
+    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 240), () {
       _updateFeedPrefetchQueue();
     });
   }

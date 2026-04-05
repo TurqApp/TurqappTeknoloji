@@ -147,6 +147,15 @@ extension ShortControllerPublicApiPart on ShortController {
       source: 'short_surface_ready',
     );
     if (!allowRefresh || shorts.isEmpty) return;
+    if (restoredSnapshot && shorts.length < initialLimit) {
+      unawaited(
+        warmStart(
+          targetCount: initialLimit,
+          maxPages: 2,
+        ),
+      );
+      return;
+    }
     unawaited(backgroundPreload());
   }
 
