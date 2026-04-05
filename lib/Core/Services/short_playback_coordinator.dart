@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/playback_state_machine.dart';
 import 'package:turqappv2/Core/Services/player_budget_policy.dart';
@@ -28,17 +27,13 @@ class ShortPlaybackCoordinator {
   });
 
   factory ShortPlaybackCoordinator.forCurrentPlatform() {
-    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
     return ShortPlaybackCoordinator(
-      // Android'de agresif hot pencere codec churn uretip ilk acilista
-      // stop/play/pause dalgasi olusturuyordu. Pencereyi butceye yaklastir.
-      hotAhead: isAndroid ? 1 : 6,
-      hotBehind: isAndroid ? 0 : 3,
-      warmBehind: isAndroid ? 1 : 6,
-      maxAttachedPlayers: isAndroid ? 3 : 12,
+      hotAhead: 6,
+      hotBehind: 3,
+      warmBehind: 6,
+      maxAttachedPlayers: 12,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
         PlayerSurfaceKind.shortFullscreen,
-        lowMemoryDevice: isAndroid,
       ),
     );
   }
