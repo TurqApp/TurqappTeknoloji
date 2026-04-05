@@ -16,6 +16,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     required String url,
     bool autoPlay = false,
     bool loop = true,
+    bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
   }) {
     final warmEntry = _warmAdapters.remove(cacheKey);
@@ -23,13 +24,19 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     HLSVideoAdapter adapter;
     if (warmEntry != null &&
-        _isReusable(warmEntry, url, coordinateAudioFocus)) {
+        _isReusable(
+          warmEntry,
+          url,
+          useLocalProxy,
+          coordinateAudioFocus,
+        )) {
       adapter = warmEntry.adapter;
       if (adapter.isDisposed) {
         adapter = _createAdapter(
           url: url,
           autoPlay: autoPlay,
           loop: loop,
+          useLocalProxy: useLocalProxy,
           coordinateAudioFocus: coordinateAudioFocus,
         );
       } else {
@@ -44,6 +51,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
         url: url,
         autoPlay: autoPlay,
         loop: loop,
+        useLocalProxy: useLocalProxy,
         coordinateAudioFocus: coordinateAudioFocus,
       );
     }
@@ -107,7 +115,8 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     _warmAdapters[cacheKey] = _WarmAdapterEntry(
       adapter: adapter,
-      url: adapter.url,
+      requestUrl: adapter.originalUrl,
+      useLocalProxy: adapter.usesLocalProxy,
       coordinateAudioFocus: adapter.coordinateAudioFocus,
     );
     _warmOrder.remove(cacheKey);
@@ -147,9 +156,11 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   bool _isReusable(
     _WarmAdapterEntry entry,
     String requestedUrl,
+    bool useLocalProxy,
     bool coordinateAudioFocus,
   ) {
-    return entry.url == requestedUrl &&
+    return entry.requestUrl == requestedUrl &&
+        entry.useLocalProxy == useLocalProxy &&
         entry.coordinateAudioFocus == coordinateAudioFocus &&
         !entry.adapter.isDisposed;
   }
@@ -158,12 +169,14 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     required String url,
     required bool autoPlay,
     required bool loop,
+    required bool useLocalProxy,
     required bool coordinateAudioFocus,
   }) {
     return HLSVideoAdapter(
       url: url,
       autoPlay: autoPlay,
       loop: loop,
+      useLocalProxy: useLocalProxy,
       coordinateAudioFocus: coordinateAudioFocus,
     );
   }

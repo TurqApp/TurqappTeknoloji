@@ -18,11 +18,13 @@ extension _GlobalVideoAdapterPoolFieldsPart on GlobalVideoAdapterPool {
 class _WarmAdapterEntry {
   const _WarmAdapterEntry({
     required this.adapter,
-    required this.url,
+    required this.requestUrl,
+    required this.useLocalProxy,
     required this.coordinateAudioFocus,
   });
 
   final HLSVideoAdapter adapter;
-  final String url;
+  final String requestUrl;
+  final bool useLocalProxy;
   final bool coordinateAudioFocus;
 }

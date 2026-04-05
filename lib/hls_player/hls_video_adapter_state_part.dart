@@ -2,7 +2,10 @@ part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
   void _performRefreshProxyUrlIfNeeded() {
-    final next = HLSVideoAdapter._resolveToProxy(_originalUrl);
+    final next = HLSVideoAdapter._resolvePlaybackUrl(
+      _originalUrl,
+      useLocalProxy: _useLocalProxy,
+    );
     if (next != _effectiveUrl) {
       _effectiveUrl = next;
       debugPrint('[HLSAdapter] Proxy URL aktif: $_effectiveUrl');

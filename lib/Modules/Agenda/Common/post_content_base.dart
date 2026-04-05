@@ -199,6 +199,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
 
+  bool get _shouldBypassLocalProxyForAndroidPrimaryFeed =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _isPrimaryFeedSurfaceInstance;
+
   bool get shouldKeepVideoSurfaceAlive =>
       widget.model.hasPlayableVideo &&
       (widget.shouldPlay || _surfaceKeepAliveDebounceActive);
@@ -356,6 +360,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       // dispatch ile çift-play dalgasından kaçınsın.
       autoPlay: _useLegacyIosFeedBehavior ? widget.shouldPlay : false,
       loop: shouldLoopVideo,
+      useLocalProxy: !_shouldBypassLocalProxyForAndroidPrimaryFeed,
     );
     _playbackExecutionService.primeAdapter(_videoAdapter!);
     _videoAdapter!.hlsController.setTelemetryVideoId(widget.model.docID);

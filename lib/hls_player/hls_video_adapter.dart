@@ -49,13 +49,17 @@ class HLSVideoAdapter extends ChangeNotifier {
   final HLSController _hls = HLSController();
   final String _originalUrl;
   String _effectiveUrl;
+  final bool _useLocalProxy;
   final bool autoPlay;
   final bool loop;
   final bool? _coordinateAudioFocus;
   bool get coordinateAudioFocus => _coordinateAudioFocus ?? true;
 
-  /// CDN URL'yi proxy URL'ye çevir. Proxy başlamadıysa orijinal URL döner.
-  static String _resolveToProxy(String originalUrl) {
+  static String _resolvePlaybackUrl(
+    String originalUrl, {
+    required bool useLocalProxy,
+  }) {
+    if (!useLocalProxy) return originalUrl;
     if (!originalUrl.contains('cdn.turqapp.com')) return originalUrl;
     final proxy = maybeFindHlsProxyServer();
     if (proxy == null) return originalUrl;
@@ -94,6 +98,8 @@ class HLSVideoAdapter extends ChangeNotifier {
   HLSController get hlsController => _hls;
   int get rendererStallCount => _hls.rendererStallCount;
   int get surfaceRebindCount => _hls.surfaceRebindCount;
+  String get originalUrl => _originalUrl;
+  bool get usesLocalProxy => _useLocalProxy;
   Future<bool> isPlayingNative() => _hls.isPlayingNative();
   Future<bool> isBufferingNative() => _hls.isBufferingNative();
   Future<Map<String, dynamic>> getPlaybackDiagnostics() =>
@@ -107,10 +113,15 @@ class HLSVideoAdapter extends ChangeNotifier {
     required String url,
     this.autoPlay = false,
     this.loop = false,
+    bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
   })  : _originalUrl = url,
+        _useLocalProxy = useLocalProxy,
         _coordinateAudioFocus = coordinateAudioFocus,
-        _effectiveUrl = _resolveToProxy(url) {
+        _effectiveUrl = _resolvePlaybackUrl(
+          url,
+          useLocalProxy: useLocalProxy,
+        ) {
     if (coordinateAudioFocus) {
       AudioFocusCoordinator.instance.register(this);
     }

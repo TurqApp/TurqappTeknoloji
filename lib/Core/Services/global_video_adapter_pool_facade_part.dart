@@ -34,6 +34,7 @@ extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
     required String url,
     bool autoPlay = false,
     bool loop = true,
+    bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
   }) =>
       _GlobalVideoAdapterPoolRuntimeX(this).acquire(
@@ -41,6 +42,7 @@ extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
         url: url,
         autoPlay: autoPlay,
         loop: loop,
+        useLocalProxy: useLocalProxy,
         coordinateAudioFocus: coordinateAudioFocus,
       );
 
