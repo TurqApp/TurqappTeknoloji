@@ -53,9 +53,13 @@ class ExoPlayerPlaybackProbe(
 
     fun onSurfaceAttached() {
         monitor.onSurfaceAttached()
+        if (player.playWhenReady || player.isPlaying || monitor.isPlaybackExpected) {
+            watchdog.start()
+        }
     }
 
     fun onSurfaceDetached() {
+        watchdog.stop()
         monitor.onSurfaceDetached()
     }
 
@@ -107,8 +111,10 @@ class ExoPlayerPlaybackProbe(
         val bufferingWhileAutoplaying =
             player.playWhenReady && player.playbackState == Player.STATE_BUFFERING
         if (isPlaying) {
+            watchdog.start()
             monitor.onPlaybackStarted()
         } else if (!bufferingWhileAutoplaying) {
+            watchdog.stop()
             monitor.onPlaybackPaused()
         }
         Log.d(
