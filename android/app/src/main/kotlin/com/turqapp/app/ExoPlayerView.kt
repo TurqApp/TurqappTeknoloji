@@ -290,6 +290,11 @@ class ExoPlayerView(
         }
 
         if (existing == null) {
+            activePlayer.setVideoFrameMetadataListener { _, _, _, _ ->
+                val now = System.currentTimeMillis()
+                lastVideoFrameAtMs = now
+                smokeMonitor.onVideoFrameSampled()
+            }
             activePlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {

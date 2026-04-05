@@ -102,9 +102,11 @@ class ExoPlayerPlaybackProbe(
     }
 
     override fun onIsPlayingChanged(isPlaying: Boolean) {
+        val bufferingWhileAutoplaying =
+            player.playWhenReady && player.playbackState == Player.STATE_BUFFERING
         if (isPlaying) {
             monitor.onPlaybackStarted()
-        } else {
+        } else if (!bufferingWhileAutoplaying) {
             monitor.onPlaybackPaused()
         }
         Log.d(

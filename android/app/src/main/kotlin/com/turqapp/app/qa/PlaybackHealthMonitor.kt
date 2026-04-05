@@ -231,6 +231,19 @@ class PlaybackHealthMonitor(
         publish("frameRendered")
     }
 
+    fun onVideoFrameSampled() {
+        if (!hasRenderedFirstFrame && firstFrameRenderedAt == 0L) return
+        lastFrameRenderedAt = now()
+        awaitingFullscreenRecovery = false
+        awaitingBackgroundRecovery = false
+        clearErrors(
+            "VIDEO_FREEZE",
+            "AUDIO_NOT_STARTED",
+            "FULLSCREEN_INTERRUPTION",
+            "BACKGROUND_RESUME_FAILURE",
+        )
+    }
+
     fun onPositionUpdate(positionMs: Long) {
         if (!isPlaybackExpected &&
             !isPlaying &&
