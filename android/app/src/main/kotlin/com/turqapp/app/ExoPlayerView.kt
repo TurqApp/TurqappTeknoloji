@@ -448,7 +448,11 @@ class ExoPlayerView(
 
     fun play() {
         player?.let { p ->
-            smokeProbe?.onAutoplayRequested()
+            val shouldRecordAutoplayRequest =
+                !smokeMonitor.isPlaybackExpected || !p.playWhenReady
+            if (shouldRecordAutoplayRequest) {
+                smokeProbe?.onAutoplayRequested()
+            }
             if (isSoftHeld) {
                 p.volume = heldVolume
                 isSoftHeld = false

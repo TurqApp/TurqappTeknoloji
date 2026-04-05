@@ -5,6 +5,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   static const Duration _startupPlaybackLockDuration =
       Duration(milliseconds: 900);
+  static const Duration _androidCurrentRecoveryGrace =
+      Duration(milliseconds: 1200);
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 2;
 
@@ -89,7 +91,14 @@ extension AgendaControllerFeedPart on AgendaController {
     );
     final now = DateTime.now();
     final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+    final canAttemptCurrentRecovery =
+        !GetPlatform.isAndroid ||
+        _lastPlaybackCommandDocId != playbackKey ||
+        _lastPlaybackCommandAt == null ||
+        now.difference(_lastPlaybackCommandAt!) >
+            _androidCurrentRecoveryGrace;
     final needsCurrentRecovery = !pendingPlay &&
+        canAttemptCurrentRecovery &&
         manager.currentPlayingDocID == playbackKey &&
         !manager.isPlaybackTargetActive(playbackKey);
     final shouldIssueImmediateCommand = needsCurrentRecovery ||
