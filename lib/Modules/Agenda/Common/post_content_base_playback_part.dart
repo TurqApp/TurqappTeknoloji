@@ -2,6 +2,15 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  Duration get _resolvedAutoplaySegmentGateTimeout {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        _requiredAutoplaySegmentCount > 1) {
+      return const Duration(milliseconds: 2200);
+    }
+    return PostContentBaseState._autoplaySegmentGateTimeout;
+  }
+
   void _resetAutoplaySegmentGate() {
     _autoplaySegmentGateTimer?.cancel();
     _autoplaySegmentGateTimer = null;
@@ -60,7 +69,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
     _autoplaySegmentGateStartedAt ??= DateTime.now();
     final elapsed = DateTime.now().difference(_autoplaySegmentGateStartedAt!);
-    if (elapsed >= PostContentBaseState._autoplaySegmentGateTimeout) {
+    if (elapsed >= _resolvedAutoplaySegmentGateTimeout) {
       _autoplaySegmentGateTimedOut = true;
       _recordPlaybackDispatch(
         'feed_card_segment_gate_timeout',

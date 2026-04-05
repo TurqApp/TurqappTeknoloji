@@ -35,7 +35,6 @@ class ExoPlayerPlaybackProbe(
     fun attach() {
         player.addListener(this)
         player.addAnalyticsListener(this)
-        watchdog.start()
         Log.d(tag, "attach")
     }
 
@@ -47,6 +46,7 @@ class ExoPlayerPlaybackProbe(
     }
 
     fun onAutoplayRequested() {
+        watchdog.start()
         monitor.onPlaybackRequested()
         Log.d(tag, "autoplayRequested")
     }
@@ -91,10 +91,12 @@ class ExoPlayerPlaybackProbe(
                 Log.w(tag, "state=BUFFERING count=$rebufferCount")
             }
             Player.STATE_ENDED -> {
+                watchdog.stop()
                 monitor.onPlaybackPaused()
                 Log.d(tag, "state=ENDED position=${player.currentPosition}")
             }
             Player.STATE_IDLE -> {
+                watchdog.stop()
                 monitor.onPlaybackPaused()
                 Log.d(tag, "state=IDLE")
             }
