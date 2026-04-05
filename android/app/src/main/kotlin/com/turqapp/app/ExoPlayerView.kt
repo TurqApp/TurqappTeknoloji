@@ -61,6 +61,7 @@ class ExoPlayerView(
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
     private var preferredMaxBufferMs: Long = 6000
+    private val startupRecoveryMaxResumePositionMs = 1200L
     private var currentUrl: String? = null
     private var isSoftHeld = false
     private var heldVolume: Float = 1f
@@ -368,14 +369,18 @@ class ExoPlayerView(
             }
 
             override fun onRenderedFirstFrame() {
+                val alreadyShowingStableFrame =
+                    didRenderFirstFrame && playerView.alpha >= 1f
                 didRenderFirstFrame = true
                 stopStartupRecoveryWatchdog()
                 lastVideoFrameAtMs = System.currentTimeMillis()
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
-                scheduleSurfaceReveal()
-                sendEvent(mapOf("event" to "firstFrame"))
+                if (!alreadyShowingStableFrame) {
+                    scheduleSurfaceReveal()
+                    sendEvent(mapOf("event" to "firstFrame"))
+                }
             }
             })
             activePlayer.addAnalyticsListener(object : AnalyticsListener {
@@ -734,6 +739,10 @@ class ExoPlayerView(
             override fun run() {
                 val p = player
                 if (p == null || isSoftHeld || didRenderFirstFrame || !container.isShown) {
+                    stopStartupRecoveryWatchdog()
+                    return
+                }
+                if (p.currentPosition > startupRecoveryMaxResumePositionMs) {
                     stopStartupRecoveryWatchdog()
                     return
                 }

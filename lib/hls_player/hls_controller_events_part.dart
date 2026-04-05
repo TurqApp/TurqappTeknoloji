@@ -214,12 +214,26 @@ extension HLSControllerEventsPart on HLSController {
     required bool resumePlay,
   }) async {
     if (_viewId == null) return;
-    if (seekSeconds != null && seekSeconds > 0.05) {
+    final currentPosition = _currentPosition.isFinite ? _currentPosition : 0.0;
+    final hasStableVisualResume =
+        _hasRenderedFirstFrame && currentPosition > 0.05;
+    final seekAlreadyApplied = seekSeconds != null &&
+        seekSeconds > 0.05 &&
+        (currentPosition - seekSeconds).abs() <= 0.18;
+    if (hasStableVisualResume && seekAlreadyApplied) {
+      return;
+    }
+    if (seekSeconds != null &&
+        seekSeconds > 0.05 &&
+        !seekAlreadyApplied) {
       try {
         await seekTo(seekSeconds);
       } catch (_) {}
     }
     if (!resumePlay) return;
+    if (hasStableVisualResume && seekAlreadyApplied) {
+      return;
+    }
     try {
       await play();
     } catch (_) {}

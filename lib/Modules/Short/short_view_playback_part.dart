@@ -1,6 +1,25 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  bool _shouldSuppressDuplicateAutoplayBootstrap(
+    int page, {
+    Duration minSpacing = const Duration(milliseconds: 450),
+  }) {
+    if (page < 0 || page >= _cachedShorts.length) return false;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return false;
+    final token = '$page:$docId';
+    final lastToken = _lastAutoplayBootstrapToken;
+    final lastAt = _lastAutoplayBootstrapAt;
+    final now = DateTime.now();
+    _lastAutoplayBootstrapToken = token;
+    _lastAutoplayBootstrapAt = now;
+    if (lastToken != token || lastAt == null) {
+      return false;
+    }
+    return now.difference(lastAt) < minSpacing;
+  }
+
   bool _shouldSuppressDuplicatePrimaryPlay(
     String docId,
     HLSVideoAdapter adapter, {
@@ -19,7 +38,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _requestExclusivePlayback(
-    String docId, {
+    String docId,
+    HLSVideoAdapter adapter, {
     Duration minSpacing = const Duration(milliseconds: 220),
   }) {
     final trimmed = docId.trim();
@@ -36,7 +56,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+      _playbackRuntimeService.requestPlay(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
+      );
     } catch (_) {}
   }
 
@@ -157,13 +180,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
     _resetShortAutoplaySegmentGate();
-    if (currentPage >= 0 && currentPage < _cachedShorts.length) {
-      try {
-        _playbackRuntimeService.updateExclusiveModeDoc(
-          controller.playbackHandleKeyForDoc(_cachedShorts[currentPage].docID),
-        );
-      } catch (_) {}
-    }
     isManuallyPaused = false;
     _isTransitioning = false;
     _telemetryFirstFrame = false;
@@ -254,20 +270,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   Future<void> _startAutoPlayCurrentVideo() async {
     if (controller.shorts.isEmpty || !_isShortRoutePlaybackActive) return;
+    if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;
     final hadActiveAdapter = controller.cache[currentPage] != null;
-    if (currentPage >= 0 && currentPage < _cachedShorts.length) {
-      final docId = _cachedShorts[currentPage].docID;
-      final playbackHandleKey = controller.playbackHandleKeyForDoc(docId);
-      try {
-        _playbackRuntimeService.updateExclusiveModeDoc(playbackHandleKey);
-      } catch (_) {}
-      try {
-        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
-      } catch (_) {}
-    }
-
     if (defaultTargetPlatform != TargetPlatform.android) {
       await controller.keepOnlyIndex(currentPage);
     }
@@ -395,7 +401,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
           final shouldRecoverExistingPlayback = vc.value.hasRenderedFirstFrame &&
               vc.value.position > Duration.zero &&
               !vc.value.isBuffering &&
-              !vc.isStopped;
+              !vc.isStopped &&
+              defaultTargetPlatform != TargetPlatform.android;
           if (shouldRecoverExistingPlayback) {
             vc.recoverFrozenPlayback();
           } else {
@@ -403,7 +410,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           }
         }
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId);
+          _requestExclusivePlayback(docId, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
         _setupVideoEndListener(vc);
@@ -412,11 +419,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
         if (page < _cachedShorts.length) {
           final post = _cachedShorts[page];
-          try {
-            _playbackRuntimeService.enterExclusiveMode(
-              controller.playbackHandleKeyForDoc(post.docID),
-            );
-          } catch (_) {}
           VideoTelemetryService.instance
               .startSession(post.docID, post.playbackUrl);
           final decision = _shortPlaybackDecisionFor(page, vc.value);
@@ -495,7 +497,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
             : '';
         final shouldRecoverFrozenPlayback = value.hasRenderedFirstFrame &&
             value.position >= const Duration(milliseconds: 800) &&
-            !value.isBuffering;
+            !value.isBuffering &&
+            defaultTargetPlatform != TargetPlatform.android;
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_stall_recovery_play',
@@ -514,7 +517,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           await _playbackExecutionService.playAdapter(vc);
         }
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId);
+          _requestExclusivePlayback(docId, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}
@@ -559,7 +562,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _applyShortPlaybackPresentation(page, vc);
         await _playbackExecutionService.playAdapter(vc);
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId);
+          _requestExclusivePlayback(docId, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}

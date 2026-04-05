@@ -856,10 +856,10 @@ extension ShortControllerLoadingPart on ShortController {
     }
     final previous = shorts.toList(growable: false);
     if (remapCache) {
-      unawaited(_remapCacheForNewList(
+      _remapCacheForNewList(
         previous: previous,
         next: newItems,
-      ));
+      );
     }
     shorts.assignAll(newItems);
   }
@@ -891,10 +891,10 @@ extension ShortControllerLoadingPart on ShortController {
 
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
-  Future<void> _remapCacheForNewList({
+  void _remapCacheForNewList({
     required List<PostsModel> previous,
     required List<PostsModel> next,
-  }) async {
+  }) {
     if (cache.isEmpty) return;
 
     final adaptersByDocId = <String, HLSVideoAdapter>{};
@@ -945,9 +945,11 @@ extension ShortControllerLoadingPart on ShortController {
       ..addAll(remappedTiers);
 
     if (releaseTasks.isNotEmpty) {
-      try {
-        await Future.wait(releaseTasks);
-      } catch (_) {}
+      unawaited(() async {
+        try {
+          await Future.wait(releaseTasks);
+        } catch (_) {}
+      }());
     }
   }
 }

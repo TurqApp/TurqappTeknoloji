@@ -50,7 +50,7 @@ extension ShortControllerCachePart on ShortController {
         cacheKey: playbackHandleKeyForDoc(short.docID),
         url: videoUrl,
         autoPlay: false,
-        loop: true,
+        loop: false,
       );
       cacheTarget[index] = adapter;
       _registerPlaybackHandleForIndex(index, adapter);
@@ -264,7 +264,7 @@ extension ShortControllerCachePart on ShortController {
         cacheKey: playbackHandleKeyForDoc(post.docID),
         url: post.playbackUrl,
         autoPlay: false,
-        loop: true,
+        loop: false,
       );
       cache[idx] = adapter;
       _registerPlaybackHandleForIndex(idx, adapter);

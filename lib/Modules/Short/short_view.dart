@@ -168,6 +168,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   DateTime? _lastExclusivePlayAt;
   String? _lastPrimaryPlayDocId;
   DateTime? _lastPrimaryPlayAt;
+  String? _lastAutoplayBootstrapToken;
+  DateTime? _lastAutoplayBootstrapAt;
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
@@ -280,7 +282,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     try {
-      await _playbackExecutionService.stopAdapter(adapter);
+      await _playbackExecutionService.quietBackgroundAdapter(adapter);
     } catch (_) {}
   }
 
