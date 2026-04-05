@@ -218,12 +218,6 @@ class HLSController {
         'viewId': previousViewId,
       });
     } catch (_) {}
-
-    try {
-      await _methodChannel.invokeMethod('stopPlayback', {
-        'viewId': previousViewId,
-      });
-    } catch (_) {}
   }
 
   Future<void> loadVideoWithFallback(

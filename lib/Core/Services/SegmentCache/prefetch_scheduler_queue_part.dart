@@ -199,6 +199,13 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     pause();
   }
 
+  void unfocusDoc() {
+    if (!_restrictToFocusedDoc && _focusedDocID == null) return;
+    _restrictToFocusedDoc = false;
+    _focusedDocID = null;
+    _publishPrefetchHealthIfNeeded(force: true);
+  }
+
   bool _queueFocusedDocIfNeeded({
     required SegmentCacheManager cacheManager,
   }) {

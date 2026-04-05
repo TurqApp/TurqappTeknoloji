@@ -283,7 +283,12 @@ void main() {
     expect(touched, isEmpty);
     expect(userTouched, <String>['doc-b', 'doc-a']);
     expect(progressUpdates['doc-c'], 0.6);
-    expect(readyBoostLog, <String>['doc-c:3', 'doc-c:4', 'doc-c:6']);
+    expect(readyBoostLog, <String>[
+      'doc-c:3',
+      'doc-c:4',
+      'doc-c:5',
+      'doc-c:6',
+    ]);
     expect(readyBoosts['doc-c'], 6);
   });
 

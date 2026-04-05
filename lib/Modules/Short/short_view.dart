@@ -45,9 +45,9 @@ const double _shortProgressPersistDelta = 0.10;
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
     this.maxPagesPerFling = 1,
-    this.baseMinFlingVelocity = 110.0,
-    this.fastSwipeFraction = 0.05,
-    this.snapPageFraction = 0.05,
+    this.baseMinFlingVelocity = 92.0,
+    this.fastSwipeFraction = 0.035,
+    this.snapPageFraction = 0.035,
     super.parent,
   });
 
@@ -78,9 +78,9 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
 
   @override
   SpringDescription get spring => const SpringDescription(
-        mass: 0.35,
-        stiffness: 320.0,
-        damping: 28.0,
+        mass: 0.28,
+        stiffness: 420.0,
+        damping: 24.0,
       );
 
   @override
@@ -163,6 +163,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   bool _showOverlayControls = true;
   bool _didInitialAttach = false;
   bool _didPrimeInitialPlayback = false;
+  bool _startupPlaybackSettled = false;
   bool _isTransitioning = false;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
@@ -175,6 +176,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   String? _pendingActiveAdapterEnsureToken;
   int? _pendingAutoAdvancePage;
   int? _preparedAutoAdvancePage;
+  List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
@@ -299,23 +301,23 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   void _syncShortSurfaceAfterStartup() {
     if (!mounted) return;
-    _cachedShorts = List<PostsModel>.from(controller.shorts);
-    currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-    controller.lastIndex.value = currentPage;
-    if (pageController.hasClients) {
-      try {
-        pageController.jumpToPage(currentPage);
-      } catch (_) {}
+    final nextList = List<PostsModel>.from(controller.shorts);
+    if (_cachedShorts.isEmpty) {
+      _cachedShorts = nextList;
+      currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+      controller.lastIndex.value = currentPage;
+      if (pageController.hasClients) {
+        try {
+          pageController.jumpToPage(currentPage);
+        } catch (_) {}
+      }
+      setState(() {});
+    } else {
+      _applyRenderListUpdate(nextList);
     }
-    setState(() {});
     if (_cachedShorts.isNotEmpty && _isShortRoutePlaybackActive) {
       unawaited(controller.ensureActiveAdapterReady(currentPage));
       _primeInitialPlayback();
-      _scheduleRouteVisiblePlaybackBootstrap(
-        delay: defaultTargetPlatform == TargetPlatform.iOS
-            ? const Duration(milliseconds: 320)
-            : const Duration(milliseconds: 120),
-      );
     }
   }
 

@@ -1,6 +1,14 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  bool _shouldKeepPosterHidden(
+    HLSVideoAdapter adapter,
+    PlaybackLifecycleDecision decision,
+  ) {
+    if (decision.shouldHidePoster) return true;
+    return adapter.value.hasRenderedFirstFrame;
+  }
+
   bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
     final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
@@ -232,14 +240,15 @@ extension ShortViewUiPart on _ShortViewState {
                         curve: Curves.easeOut,
                         child: _buildFullscreenVideoSurface(
                           vp,
-                          'vp-${list[idx].docID}-${vp.hashCode}',
+                          'vp-${list[idx].docID}',
                           modelAspectRatio: modelAr,
                         ),
                       ),
                     )
                   : const SizedBox.shrink();
 
-              return RepaintBoundary(
+              return KeyedSubtree(
+                key: ValueKey('short-page-${list[idx].docID}'),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -257,6 +266,10 @@ extension ShortViewUiPart on _ShortViewState {
                             vp,
                             decision.hasStableVisualFrame,
                           );
+                          final shouldHidePoster = _shouldKeepPosterHidden(
+                            vp,
+                            decision,
+                          );
                           if (!_hasThumbCandidate(
                             list[idx],
                             overrideUrl: thumb,
@@ -266,7 +279,7 @@ extension ShortViewUiPart on _ShortViewState {
                           return IgnorePointer(
                             ignoring: true,
                             child: AnimatedOpacity(
-                              opacity: decision.shouldHidePoster ? 0 : 1,
+                              opacity: shouldHidePoster ? 0 : 1,
                               duration: const Duration(milliseconds: 220),
                               curve: Curves.easeOutCubic,
                               child: _buildThumbOverlay(idx, thumb, modelAr),

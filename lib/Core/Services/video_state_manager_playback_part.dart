@@ -98,6 +98,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
   void _registerPlaybackHandle(String docID, PlaybackHandle handle) {
     final previous = _allVideoControllers[docID];
+    if (previous != null && targetsSamePlaybackResource(previous, handle)) {
+      _allVideoControllers[docID] = previous;
+      return;
+    }
     if (previous != null && !identical(previous, handle)) {
       _silenceSupersededHandle(docID, previous);
     }
@@ -154,7 +158,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
   void _syncFocusedPrefetchDoc(String? activeDocID) {
     try {
-      maybeFindPrefetchScheduler()?.focusDoc(activeDocID);
+      final scheduler = maybeFindPrefetchScheduler();
+      if (scheduler == null) return;
+      scheduler.unfocusDoc();
+      final normalized = HlsSegmentPolicy.normalizeDocId(activeDocID);
+      if (normalized == null || normalized.isEmpty) return;
+      scheduler.boostDoc(normalized);
     } catch (_) {}
   }
 
@@ -229,7 +238,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
-    _allVideoControllers[docID] = handle;
+    final previous = _allVideoControllers[docID];
+    final effectiveHandle = previous != null &&
+            targetsSamePlaybackResource(previous, handle)
+        ? previous
+        : handle;
+    _allVideoControllers[docID] = effectiveHandle;
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
     _markTargetPlaybackDoc(docID);

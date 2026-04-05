@@ -17,17 +17,7 @@ extension ShortControllerLoadingPart on ShortController {
   Future<List<PostsModel>> _excludeFeedVisibleSnapshotConflicts(
     List<PostsModel> posts,
   ) async {
-    if (posts.isEmpty) return const <PostsModel>[];
-    final warmFeedVisibleVideoDocIds =
-        await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId);
-    if (warmFeedVisibleVideoDocIds.isEmpty) {
-      return posts;
-    }
-    return posts
-        .where(
-          (post) => !warmFeedVisibleVideoDocIds.contains(post.docID.trim()),
-        )
-        .toList(growable: false);
+    return posts;
   }
 
   Future<bool> _tryRestoreVisibleSnapshotIfCurrentListCollapsed({
@@ -251,7 +241,6 @@ extension ShortControllerLoadingPart on ShortController {
         } else if (fallbackPosts == null) {
           final fallback = await _filterVisibleShortPosts(
             finalFiltered,
-            enforceFeedConflictExclusion: false,
           );
           if (fallback.isNotEmpty) {
             fallbackPosts = fallback;
@@ -283,12 +272,10 @@ extension ShortControllerLoadingPart on ShortController {
   Future<List<PostsModel>> _filterVisibleShortPosts(
     List<PostsModel> posts,
     {
-    bool enforceFeedConflictExclusion = true,
-  }) async {
+    bool preservePresentationOrder = false,
+  }
+  ) async {
     if (posts.isEmpty) return const <PostsModel>[];
-    final warmFeedVisibleVideoDocIds = enforceFeedConflictExclusion
-        ? await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId)
-        : const <String>{};
     final authorIds =
         posts.map((e) => e.userID).toSet().toList(growable: false);
     final userSummaries = await _fetchUserSummaries(authorIds);
@@ -318,14 +305,12 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
-    final deduped =
-        excludeFeedVisibleShortConflicts(
-      filtered,
-      warmFeedVisibleVideoDocIds,
-      fallbackToOriginalWhenEmpty: !enforceFeedConflictExclusion,
-    );
+    if (preservePresentationOrder || filtered.length < 3) {
+      return filtered;
+    }
+
     return mixShortPresentationPosts(
-      deduped,
+      filtered,
       sessionNamespace: 'short',
     );
   }
@@ -336,7 +321,10 @@ extension ShortControllerLoadingPart on ShortController {
     final currentShorts = shorts.toList(growable: false);
     if (currentShorts.isEmpty) return;
 
-    final reconciled = await _filterVisibleShortPosts(currentShorts);
+    final reconciled = await _filterVisibleShortPosts(
+      currentShorts,
+      preservePresentationOrder: true,
+    );
     if (reconciled.isEmpty || _hasSameRenderOrder(currentShorts, reconciled)) {
       return;
     }

@@ -18,6 +18,20 @@ abstract class PlaybackHandle {
   Future<void> dispose();
 }
 
+bool targetsSamePlaybackResource(PlaybackHandle left, PlaybackHandle right) {
+  if (identical(left, right)) return true;
+  if (left is HLSAdapterPlaybackHandle && right is HLSAdapterPlaybackHandle) {
+    return identical(left.adapter, right.adapter);
+  }
+  if (left is HLSPlaybackHandle && right is HLSPlaybackHandle) {
+    return identical(left.controller, right.controller);
+  }
+  if (left is LegacyPlaybackHandle && right is LegacyPlaybackHandle) {
+    return identical(left.controller, right.controller);
+  }
+  return false;
+}
+
 /// Native HLS player handle (AVPlayer on iOS, ExoPlayer on Android).
 class HLSPlaybackHandle implements PlaybackHandle {
   final HLSController controller;

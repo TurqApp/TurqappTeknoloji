@@ -1,6 +1,21 @@
 part of 'short_controller.dart';
 
 extension ShortControllerCachePart on ShortController {
+  void _ensureReadySegmentsForIndex(
+    int index, {
+    int minimumSegmentCount = SegmentCacheRuntimeService.globalReadySegmentCount,
+  }) {
+    if (index < 0 || index >= shorts.length) return;
+    final docId = shorts[index].docID.trim();
+    if (docId.isEmpty) return;
+    try {
+      const SegmentCacheRuntimeService().ensureMinimumReadySegments(
+        docId,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+    } catch (_) {}
+  }
+
   void _registerPlaybackHandleForIndex(int index, HLSVideoAdapter adapter) {
     if (index < 0 || index >= shorts.length) return;
     final docId = shorts[index].docID.trim();
@@ -72,6 +87,7 @@ extension ShortControllerCachePart on ShortController {
   Future<void> ensureActiveAdapterReady(int currentIndex) async {
     if (shorts.isEmpty) return;
     final safeIndex = currentIndex.clamp(0, shorts.length - 1);
+    _ensureReadySegmentsForIndex(safeIndex);
     final existing = cache[safeIndex];
     if (existing == null) {
       final adapter =
@@ -93,6 +109,8 @@ extension ShortControllerCachePart on ShortController {
     if (shorts.isEmpty) return;
     final safeActiveIndex = activeIndex.clamp(0, shorts.length - 1);
     if (neighborIndex < 0 || neighborIndex >= shorts.length) return;
+    _ensureReadySegmentsForIndex(safeActiveIndex);
+    _ensureReadySegmentsForIndex(neighborIndex);
 
     final activeAdapter = cache[safeActiveIndex];
     if (activeAdapter != null && !activeAdapter.isDisposed) {
@@ -129,6 +147,9 @@ extension ShortControllerCachePart on ShortController {
     final window = _playbackCoordinator.buildWindow(shorts, currentIndex);
     final hotIndices = window.hotIndices;
     final warmIndices = window.warmIndices;
+    for (final i in hotIndices) {
+      _ensureReadySegmentsForIndex(i);
+    }
 
     final futures = <Future>[];
     for (final i in hotIndices) {

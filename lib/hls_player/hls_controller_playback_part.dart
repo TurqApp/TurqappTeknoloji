@@ -30,6 +30,12 @@ extension HLSControllerPlaybackPart on HLSController {
       throw Exception('Controller not initialized. Call initialize() first.');
     }
 
+    final previousUrl = _currentUrl;
+    final shouldDeferAutoplayForReattach =
+        autoPlay &&
+        previousUrl == url &&
+        ((_pendingReattachShouldPlay) ||
+            ((_pendingReattachSeekSeconds ?? 0.0) > 0.05));
     final sameVideoReload = _currentUrl == url && _shouldPreserveResumeVisual;
     _currentUrl = url;
     _isLooping = loop;
@@ -49,7 +55,7 @@ extension HLSControllerPlaybackPart on HLSController {
       await HLSController._methodChannel.invokeMethod('loadVideo', {
         'viewId': _viewId,
         'url': url,
-        'autoPlay': autoPlay,
+        'autoPlay': shouldDeferAutoplayForReattach ? false : autoPlay,
         'loop': loop,
       });
     } on PlatformException catch (e) {

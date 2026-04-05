@@ -6,7 +6,6 @@ import 'package:turqappv2/Core/Repositories/config_repository.dart';
 class HlsSegmentPolicy {
   static const int _defaultFirstSegmentSeconds = 2;
   static const int _defaultNextSegmentSeconds = 6;
-  static const double _watchIntentLeadSeconds = 2.0;
   static const Duration _configTtl = Duration(minutes: 30);
 
   static int _firstSegmentSeconds = _defaultFirstSegmentSeconds;
@@ -16,9 +15,6 @@ class HlsSegmentPolicy {
   static int get firstSegmentSeconds => _firstSegmentSeconds;
 
   static int get nextSegmentSeconds => _nextSegmentSeconds;
-
-  static double get watchIntentThresholdSeconds =>
-      firstSegmentSeconds + _watchIntentLeadSeconds;
 
   static Future<void> refresh({bool forceRefresh = false}) {
     final inFlight = _refreshFuture;
@@ -93,11 +89,6 @@ class HlsSegmentPolicy {
       positionSeconds: normalized * approximateTotalSeconds,
       totalSegments: totalSegments,
     );
-  }
-
-  static bool hasReachedWatchIntent(double positionSeconds) {
-    if (!positionSeconds.isFinite) return false;
-    return positionSeconds >= watchIntentThresholdSeconds;
   }
 
   static int _clampSegmentSeconds(dynamic value, int fallback) {

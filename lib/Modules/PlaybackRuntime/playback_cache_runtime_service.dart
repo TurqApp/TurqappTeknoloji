@@ -215,7 +215,7 @@ class SegmentCacheRuntimeService {
   final SegmentCacheReadySegmentsAction? boostReadySegmentsAction;
 
   static const int globalReadySegmentCount = 2;
-  static const int globalWatchLookAheadSegments = 1;
+  static const int globalWatchLookAheadSegments = 2;
 
   static final Map<String, int> _lastRequestedReadySegmentsByDoc =
       <String, int>{};
@@ -289,6 +289,42 @@ class SegmentCacheRuntimeService {
     return cachedSegmentCount(docId) >= minimumSegmentCount;
   }
 
+  void ensureMinimumReadySegments(
+    String docId, {
+    int minimumSegmentCount = globalReadySegmentCount,
+  }) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
+    final targetReadySegments = minimumSegmentCount.clamp(1, 99);
+    final entry = _readEntry(normalizedDocId);
+    if (entry != null && entry.cachedSegmentCount >= targetReadySegments) {
+      final lastRequested =
+          _lastRequestedReadySegmentsByDoc[normalizedDocId] ?? 0;
+      if (lastRequested <= entry.cachedSegmentCount) {
+        _lastRequestedReadySegmentsByDoc.remove(normalizedDocId);
+      }
+      return;
+    }
+
+    final lastRequested =
+        _lastRequestedReadySegmentsByDoc[normalizedDocId] ?? 0;
+    if (targetReadySegments <= lastRequested &&
+        lastRequested > (entry?.cachedSegmentCount ?? 0)) {
+      return;
+    }
+
+    final boostAction = boostReadySegmentsAction;
+    if (boostAction != null) {
+      _lastRequestedReadySegmentsByDoc[normalizedDocId] = targetReadySegments;
+      boostAction(normalizedDocId, targetReadySegments);
+      return;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    if (scheduler == null) return;
+    _lastRequestedReadySegmentsByDoc[normalizedDocId] = targetReadySegments;
+    scheduler.boostDoc(normalizedDocId, readySegments: targetReadySegments);
+  }
+
   void markPlaying(String docId) {
     _markPlaying(docId);
   }
@@ -330,10 +366,6 @@ class SegmentCacheRuntimeService {
             progress: normalized,
             totalSegments: totalSegmentCount,
           );
-    if (positionSeconds != null &&
-        !HlsSegmentPolicy.hasReachedWatchIntent(positionSeconds)) {
-      return;
-    }
     final targetReadySegments =
         (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
 

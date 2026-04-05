@@ -28,8 +28,10 @@ class TurqSearchBar extends StatefulWidget {
 
 class _TurqSearchBarState extends State<TurqSearchBar> {
   final FocusNode _fallbackFocusNode = FocusNode();
+  final TextEditingController _fallbackController = TextEditingController();
 
   static void _noopFocusListener() {}
+  static void _noopTextListener() {}
 
   FocusNode? _resolveUsableFocusNode(FocusNode? candidate) {
     if (candidate == null) return null;
@@ -42,9 +44,25 @@ class _TurqSearchBarState extends State<TurqSearchBar> {
     }
   }
 
+  TextEditingController _resolveUsableController(
+    TextEditingController candidate,
+  ) {
+    try {
+      candidate.addListener(_noopTextListener);
+      candidate.removeListener(_noopTextListener);
+      if (_fallbackController.text != candidate.text) {
+        _fallbackController.value = candidate.value;
+      }
+      return candidate;
+    } catch (_) {
+      return _fallbackController;
+    }
+  }
+
   @override
   void dispose() {
     _fallbackFocusNode.dispose();
+    _fallbackController.dispose();
     super.dispose();
   }
 
@@ -54,6 +72,7 @@ class _TurqSearchBarState extends State<TurqSearchBar> {
         widget.hintText.isEmpty ? 'common.search'.tr : widget.hintText;
     final effectiveFocusNode =
         _resolveUsableFocusNode(widget.focusNode) ?? _fallbackFocusNode;
+    final effectiveController = _resolveUsableController(widget.controller);
 
     return Container(
       height: TurqSearchBar.height,
@@ -70,10 +89,10 @@ class _TurqSearchBarState extends State<TurqSearchBar> {
             const SizedBox(width: 8),
             Expanded(
               child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: widget.controller,
+                valueListenable: effectiveController,
                 builder: (context, value, _) {
                   return TextField(
-                    controller: widget.controller,
+                    controller: effectiveController,
                     focusNode: effectiveFocusNode,
                     onTap: widget.onTap,
                     onChanged: widget.onChanged,
@@ -91,7 +110,7 @@ class _TurqSearchBarState extends State<TurqSearchBar> {
                           ? null
                           : GestureDetector(
                               onTap: () {
-                                widget.controller.clear();
+                                effectiveController.clear();
                                 widget.onChanged?.call('');
                                 widget.onClear?.call();
                               },

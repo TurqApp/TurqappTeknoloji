@@ -1,6 +1,47 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _markStartupPlaybackSettled() {
+    if (_startupPlaybackSettled) return;
+    _startupPlaybackSettled = true;
+    final pending = _pendingStartupRenderList;
+    if (pending == null) return;
+    _pendingStartupRenderList = null;
+    _applyRenderListUpdate(pending);
+  }
+
+  void _rebindActiveRenderPage({
+    bool forceState = false,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || !_isShortRoutePlaybackActive || _cachedShorts.isEmpty) {
+        return;
+      }
+      final page = currentPage;
+      if (page < 0 || page >= _cachedShorts.length) return;
+      final hadActiveAdapter = controller.cache[page] != null;
+      await controller.ensureActiveAdapterReady(page);
+      if (!mounted ||
+          !_isShortRoutePlaybackActive ||
+          _cachedShorts.isEmpty ||
+          page != currentPage) {
+        return;
+      }
+      _setStateIfActiveAdapterChanged(
+        page,
+        hadActiveAdapter,
+        force: forceState,
+      );
+      _scheduleTierReconcile(
+        page,
+        suppressWarmPause: true,
+      );
+      if (!isManuallyPaused && controller.cache[page] != null) {
+        _schedulePlayForPage(page);
+      }
+    });
+  }
+
   bool _shouldSuppressDuplicateAutoplayBootstrap(
     int page, {
     Duration minSpacing = const Duration(milliseconds: 450),
@@ -97,23 +138,41 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
 
+    final previousList = List<PostsModel>.from(_cachedShorts);
     final update = _shortRenderCoordinator.buildUpdate(
-      previous: _cachedShorts,
+      previous: previousList,
       next: nextList,
       currentIndex: currentPage,
     );
     if (update.patch.isEmpty) return;
+    final previousPage = _initialDisplayIndex(previousList, currentPage);
+    final previousActiveDocId = previousList.isEmpty ||
+            previousPage < 0 ||
+            previousPage >= previousList.length
+        ? ''
+        : previousList[previousPage].docID.trim();
+    final remappedPage = _initialDisplayIndex(nextList, update.remappedIndex);
+    final nextActiveDocId = nextList.isEmpty ||
+            remappedPage < 0 ||
+            remappedPage >= nextList.length
+        ? ''
+        : nextList[remappedPage].docID.trim();
+    final shouldDeferStartupSwap = !_startupPlaybackSettled &&
+        previousActiveDocId.isNotEmpty &&
+        nextActiveDocId.isNotEmpty &&
+        previousActiveDocId != nextActiveDocId;
+    if (shouldDeferStartupSwap) {
+      _pendingStartupRenderList = List<PostsModel>.from(nextList);
+      return;
+    }
     _shortRenderCoordinator.trackUpdateMetrics(
-      previous: _cachedShorts,
+      previous: previousList,
       currentIndex: currentPage,
       update: update,
       next: nextList,
     );
 
-    final previousPage = currentPage;
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
-    final remappedPage =
-        _initialDisplayIndex(_cachedShorts, update.remappedIndex);
     currentPage = remappedPage;
     controller.lastIndex.value = currentPage;
 
@@ -127,6 +186,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
         } catch (_) {}
       });
     }
+
+    final activeDocChanged = previousActiveDocId != nextActiveDocId;
+    _rebindActiveRenderPage(
+      forceState: activeDocChanged,
+    );
   }
 
   void _onPageChanged(int page) {
@@ -324,6 +388,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;
+    if (currentPage >= 0 && currentPage < _cachedShorts.length) {
+      final docId = _cachedShorts[currentPage].docID.trim();
+      if (docId.isNotEmpty) {
+        try {
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+        } catch (_) {}
+      }
+    }
     final hadActiveAdapter = controller.cache[currentPage] != null;
     if (defaultTargetPlatform != TargetPlatform.android) {
       await controller.keepOnlyIndex(currentPage);
@@ -366,6 +438,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
           return;
         }
+        try {
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+        } catch (_) {}
         final hadActiveAdapter = controller.cache[page] != null;
         await controller.ensureActiveAdapterReady(page);
         if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
@@ -416,6 +491,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
             !vc.value.isPlaying &&
             !_hasReadyShortSegment(page);
         if (shouldGate) {
+          if (docId.isNotEmpty) {
+            try {
+              _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+            } catch (_) {}
+          }
           _autoplaySegmentGateStartedAt ??= DateTime.now();
           final elapsed =
               DateTime.now().difference(_autoplaySegmentGateStartedAt!);
@@ -502,6 +582,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _stallWatchdogRetries = 0;
     _stallWatchdogBufferingCycles = 0;
     _stallWatchdogLastPosition = vc.value.position;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return;
+    }
     _armStallWatchdog(page, vc);
   }
 
@@ -677,6 +760,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       _telemetryFirstFrame = true;
       controller.markPlaybackReady(videoId);
       VideoTelemetryService.instance.onFirstFrame(videoId);
+      _markStartupPlaybackSettled();
       _prepareUpcomingVideoAfterFirstFrame();
     }
 
@@ -706,12 +790,17 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final vc = controller.cache[currentPage];
     if (vc == null) return;
 
-    final position = vc.value.position.inMilliseconds;
-    final duration = vc.value.duration.inMilliseconds;
+    final value = vc.value;
+    final position = value.position.inMilliseconds;
+    final duration = value.duration.inMilliseconds;
+    final progress =
+        duration > 0 && position > 0 ? position / duration : 0.0;
+    final isNearEnd = duration > 0 &&
+        position > 0 &&
+        ((duration - position) <= 650 || progress >= 0.98);
+    final shouldAutoAdvance = value.isCompleted || isNearEnd;
 
     if (duration > 0 && position > 0) {
-      final progress = position / duration;
-
       try {
         final now = DateTime.now();
         final shouldPersistByTime = _lastProgressPersistAt == null ||
@@ -734,14 +823,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
       } catch (_) {}
 
       _maybePrepareNextVideoForAutoAdvance(progress);
+    }
 
-      if (progress >= 0.98) {
-        _isTransitioning = true;
-        VideoTelemetryService.instance
-            .onCompleted(_cachedShorts[currentPage].docID);
-        vc.removeListener(_videoEndListener);
-        unawaited(_goToNextVideo());
-      }
+    if (shouldAutoAdvance) {
+      _isTransitioning = true;
+      VideoTelemetryService.instance
+          .onCompleted(_cachedShorts[currentPage].docID);
+      vc.removeListener(_videoEndListener);
+      unawaited(_goToNextVideo());
     }
   }
 
@@ -750,11 +839,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
       final nextPage = currentPage + 1;
       isManuallyPaused = false;
       _pendingAutoAdvancePage = nextPage;
-      try {
-        if (_preparedAutoAdvancePage != nextPage) {
-          await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
-        }
-      } catch (_) {}
+      if (_preparedAutoAdvancePage != nextPage) {
+        _preparedAutoAdvancePage = nextPage;
+        unawaited(() async {
+          try {
+            await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
+          } catch (_) {
+            if (_preparedAutoAdvancePage == nextPage) {
+              _preparedAutoAdvancePage = null;
+            }
+          }
+        }());
+      }
       if (!mounted) {
         _isTransitioning = false;
         return;

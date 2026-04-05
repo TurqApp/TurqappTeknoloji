@@ -181,7 +181,9 @@ class ExoPlayerView(
                 smokeProbe?.onSurfaceDetached()
                 isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
-                softHold()
+                if (!preserveVisibleFrame) {
+                    softHold()
+                }
             }
         })
         eventChannel.setStreamHandler(this)
@@ -717,7 +719,7 @@ class ExoPlayerView(
                             "recoveryAttempt" to (stallRecoveries + 1),
                         )
                     )
-                    recoverFromRendererStall()
+                    recoverFromRendererStall(hardSurfaceRebind = playbackClockStalled)
                 }
 
                 lastWatchdogPositionMs = p.currentPosition
@@ -770,22 +772,40 @@ class ExoPlayerView(
         startupRecoveryRunnable = null
     }
 
-    private fun recoverFromRendererStall() {
+    private fun recoverFromRendererStall(hardSurfaceRebind: Boolean) {
         val p = player ?: return
         if (stallRecoveries >= 2) return
         stallRecoveries += 1
         val currentPosition = p.currentPosition
+        val preserveVisibleRecovery =
+            currentPosition > 0L &&
+                (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
         handler.post {
             try {
+                if (!hardSurfaceRebind) {
+                    Log.w(
+                        "ExoPlayerView#$viewId",
+                        "softPlaybackNudge position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
+                    )
+                    p.playWhenReady = true
+                    if (!p.isPlaying) {
+                        p.play()
+                    }
+                    lastVideoFrameAtMs = System.currentTimeMillis()
+                    lastWatchdogPositionMs = p.currentPosition
+                    return@post
+                }
                 Log.w(
                     "ExoPlayerView#$viewId",
                     "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
                 )
-                didRenderFirstFrame = false
-                pendingRevealRunnable?.let(handler::removeCallbacks)
-                pendingRevealRunnable = null
-                playerView.animate().cancel()
-                playerView.alpha = 0f
+                if (!preserveVisibleRecovery) {
+                    didRenderFirstFrame = false
+                    pendingRevealRunnable?.let(handler::removeCallbacks)
+                    pendingRevealRunnable = null
+                    playerView.animate().cancel()
+                    playerView.alpha = 0f
+                }
                 sendEvent(
                     mapOf(
                         "event" to "surfaceRebind",
@@ -793,7 +813,9 @@ class ExoPlayerView(
                         "recoveryAttempt" to stallRecoveries,
                     )
                 )
-                sendEvent(mapOf("event" to "surfaceDetached"))
+                if (!preserveVisibleRecovery) {
+                    sendEvent(mapOf("event" to "surfaceDetached"))
+                }
                 playerView.player = null
                 playerView.player = p
                 p.seekTo(currentPosition)
@@ -811,17 +833,22 @@ class ExoPlayerView(
         if (startupRecoveryAttempts >= 1) return
         startupRecoveryAttempts += 1
         val currentPosition = p.currentPosition
+        val preserveVisibleRecovery =
+            currentPosition > 0L &&
+                (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
         handler.post {
             try {
                 Log.w(
                     "ExoPlayerView#$viewId",
                     "startupSurfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"
                 )
-                didRenderFirstFrame = false
-                pendingRevealRunnable?.let(handler::removeCallbacks)
-                pendingRevealRunnable = null
-                playerView.animate().cancel()
-                playerView.alpha = 0f
+                if (!preserveVisibleRecovery) {
+                    didRenderFirstFrame = false
+                    pendingRevealRunnable?.let(handler::removeCallbacks)
+                    pendingRevealRunnable = null
+                    playerView.animate().cancel()
+                    playerView.alpha = 0f
+                }
                 sendEvent(
                     mapOf(
                         "event" to "surfaceRebind",
@@ -830,7 +857,9 @@ class ExoPlayerView(
                         "recoveryKind" to "startup_timeout",
                     )
                 )
-                sendEvent(mapOf("event" to "surfaceDetached"))
+                if (!preserveVisibleRecovery) {
+                    sendEvent(mapOf("event" to "surfaceDetached"))
+                }
                 playerView.player = null
                 playerView.player = p
                 if (currentPosition > 0L) {

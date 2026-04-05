@@ -40,9 +40,9 @@ part 'single_short_view_ui_part.dart';
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
     this.maxPagesPerFling = 1,
-    this.baseMinFlingVelocity = 110.0,
-    this.fastSwipeFraction = 0.05,
-    this.snapPageFraction = 0.05,
+    this.baseMinFlingVelocity = 92.0,
+    this.fastSwipeFraction = 0.035,
+    this.snapPageFraction = 0.035,
     super.parent,
   });
 
@@ -73,9 +73,9 @@ class MomentumPageScrollPhysics extends PageScrollPhysics {
 
   @override
   SpringDescription get spring => const SpringDescription(
-        mass: 0.35,
-        stiffness: 320.0,
-        damping: 28.0,
+        mass: 0.28,
+        stiffness: 420.0,
+        damping: 24.0,
       );
 
   @override
