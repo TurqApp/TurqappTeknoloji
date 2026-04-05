@@ -88,7 +88,6 @@ extension ProfileControllerLifecyclePart on ProfileController {
     _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
 
     _performBindCacheWorkers();
-    unawaited(_performBootstrapProfileData());
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
       scrollControllerForSelection(selection);
     }

@@ -19,10 +19,6 @@ extension ProfileControllerHeaderPart on ProfileController {
     return headerAvatarUrl.value.trim();
   }
 
-  Future<void> _performBootstrapProfileData() async {
-    await _performPrepareStartupSurface();
-  }
-
   Future<void> _performBootstrapHeaderFromTypesense({
     bool allowBackgroundRefresh = true,
   }) async {

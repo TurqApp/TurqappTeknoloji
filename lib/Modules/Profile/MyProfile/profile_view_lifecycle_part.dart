@@ -49,7 +49,9 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(controller.onPrimarySurfaceVisible());
+      if (_isProfileSurfaceActive()) {
+        unawaited(controller.onPrimarySurfaceVisible());
+      }
       _refreshProfileSupplementalMetaIfActive(force: false);
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {

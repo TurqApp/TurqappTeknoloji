@@ -85,12 +85,6 @@ extension ProfileControllerRuntimePart on ProfileController {
       _activeUid = newUid;
       _performClearInMemoryPostLists();
       _listenToCounterChanges();
-      unawaited(
-        _performPrepareStartupSurface(
-          allowBackgroundRefresh:
-              ContentPolicy.allowBackgroundRefresh(ContentScreenKind.profile),
-        ),
-      );
     }
   }
 

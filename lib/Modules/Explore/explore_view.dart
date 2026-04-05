@@ -82,6 +82,14 @@ class _ExploreViewState extends State<ExploreView> {
   final int _floodSessionShuffleSeed = Random().nextInt(1 << 30);
   bool _didApplyFloodSessionOrder = false;
 
+  bool _isExploreSurfaceActive() {
+    final route = Get.currentRoute.trim();
+    if (route == '/NavBarView' || route == 'NavBarView') {
+      return false;
+    }
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -96,7 +104,9 @@ class _ExploreViewState extends State<ExploreView> {
       _ownsController = true;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(controller.onPrimarySurfaceVisible());
+      if (_isExploreSurfaceActive()) {
+        unawaited(controller.onPrimarySurfaceVisible());
+      }
     });
   }
 
