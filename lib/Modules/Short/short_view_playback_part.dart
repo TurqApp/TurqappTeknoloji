@@ -132,6 +132,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
     if (page == currentPage) return;
+    final isAutoAdvance = _pendingAutoAdvancePage == page;
+    if (isAutoAdvance) {
+      _pendingAutoAdvancePage = null;
+    }
+    if (_preparedAutoAdvancePage == page) {
+      _preparedAutoAdvancePage = null;
+    }
     _playDebounce?.cancel();
     _tierDebounce?.cancel();
     _tierReconcileDebounce?.cancel();
@@ -191,7 +198,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(
       defaultTargetPlatform == TargetPlatform.android
-          ? _shortScrollDebounceAndroid
+          ? (isAutoAdvance ? Duration.zero : _shortScrollDebounceAndroid)
           : const Duration(milliseconds: 60),
       () {
         if (!mounted) return;
@@ -202,6 +209,50 @@ extension ShortViewPlaybackPart on _ShortViewState {
         controller.loadMoreIfNeeded(currentPage);
       },
     );
+  }
+
+  Future<void> _prepareNextVideoForAutoAdvance(
+    int activePage,
+    int nextPage,
+  ) async {
+    if (nextPage < 0 || nextPage >= _cachedShorts.length) return;
+    final hadActiveAdapter = controller.cache[nextPage] != null;
+    await controller.prepareNeighborAdapter(activePage, nextPage);
+    if (!mounted) return;
+    _setStateIfActiveAdapterChanged(nextPage, hadActiveAdapter);
+  }
+
+  void _maybePrepareNextVideoForAutoAdvance(double progress) {
+    if (progress < 0.90) return;
+    final nextPage = currentPage + 1;
+    if (nextPage >= _cachedShorts.length) return;
+    if (_preparedAutoAdvancePage == nextPage) return;
+    _preparedAutoAdvancePage = nextPage;
+    unawaited(() async {
+      try {
+        await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
+      } catch (_) {
+        if (_preparedAutoAdvancePage == nextPage) {
+          _preparedAutoAdvancePage = null;
+        }
+      }
+    }());
+  }
+
+  void _prepareUpcomingVideoAfterFirstFrame() {
+    final nextPage = currentPage + 1;
+    if (nextPage >= _cachedShorts.length) return;
+    if (_preparedAutoAdvancePage == nextPage) return;
+    _preparedAutoAdvancePage = nextPage;
+    unawaited(() async {
+      try {
+        await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
+      } catch (_) {
+        if (_preparedAutoAdvancePage == nextPage) {
+          _preparedAutoAdvancePage = null;
+        }
+      }
+    }());
   }
 
   void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
@@ -626,6 +677,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       _telemetryFirstFrame = true;
       controller.markPlaybackReady(videoId);
       VideoTelemetryService.instance.onFirstFrame(videoId);
+      _prepareUpcomingVideoAfterFirstFrame();
     }
 
     if (v.isBuffering) {
@@ -681,29 +733,38 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
       } catch (_) {}
 
+      _maybePrepareNextVideoForAutoAdvance(progress);
+
       if (progress >= 0.98) {
         _isTransitioning = true;
         VideoTelemetryService.instance
             .onCompleted(_cachedShorts[currentPage].docID);
         vc.removeListener(_videoEndListener);
-        _goToNextVideo();
+        unawaited(_goToNextVideo());
       }
     }
   }
 
-  void _goToNextVideo() {
+  Future<void> _goToNextVideo() async {
     if (currentPage < _cachedShorts.length - 1) {
       final nextPage = currentPage + 1;
       isManuallyPaused = false;
-      pageController
-          .animateToPage(
-        nextPage,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      )
-          .then((_) {
+      _pendingAutoAdvancePage = nextPage;
+      try {
+        if (_preparedAutoAdvancePage != nextPage) {
+          await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
+        }
+      } catch (_) {}
+      if (!mounted) {
         _isTransitioning = false;
-      });
+        return;
+      }
+      try {
+        if (pageController.hasClients) {
+          pageController.jumpToPage(nextPage);
+        }
+      } catch (_) {}
+      _isTransitioning = false;
     } else {
       _isTransitioning = false;
     }

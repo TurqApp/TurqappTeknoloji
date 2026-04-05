@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class TurqSearchBar extends StatelessWidget {
+class TurqSearchBar extends StatefulWidget {
   const TurqSearchBar({
     super.key,
     required this.controller,
@@ -23,10 +23,40 @@ class TurqSearchBar extends StatelessWidget {
   static const double height = 40;
 
   @override
+  State<TurqSearchBar> createState() => _TurqSearchBarState();
+}
+
+class _TurqSearchBarState extends State<TurqSearchBar> {
+  final FocusNode _fallbackFocusNode = FocusNode();
+
+  static void _noopFocusListener() {}
+
+  FocusNode? _resolveUsableFocusNode(FocusNode? candidate) {
+    if (candidate == null) return null;
+    try {
+      candidate.addListener(_noopFocusListener);
+      candidate.removeListener(_noopFocusListener);
+      return candidate;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _fallbackFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final resolvedHintText = hintText.isEmpty ? 'common.search'.tr : hintText;
+    final resolvedHintText =
+        widget.hintText.isEmpty ? 'common.search'.tr : widget.hintText;
+    final effectiveFocusNode =
+        _resolveUsableFocusNode(widget.focusNode) ?? _fallbackFocusNode;
+
     return Container(
-      height: height,
+      height: TurqSearchBar.height,
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.03),
@@ -40,13 +70,13 @@ class TurqSearchBar extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: controller,
+                valueListenable: widget.controller,
                 builder: (context, value, _) {
                   return TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onTap: onTap,
-                    onChanged: onChanged,
+                    controller: widget.controller,
+                    focusNode: effectiveFocusNode,
+                    onTap: widget.onTap,
+                    onChanged: widget.onChanged,
                     decoration: InputDecoration(
                       hintText: resolvedHintText,
                       hintStyle: const TextStyle(
@@ -61,9 +91,9 @@ class TurqSearchBar extends StatelessWidget {
                           ? null
                           : GestureDetector(
                               onTap: () {
-                                controller.clear();
-                                onChanged?.call('');
-                                onClear?.call();
+                                widget.controller.clear();
+                                widget.onChanged?.call('');
+                                widget.onClear?.call();
                               },
                               child: const Padding(
                                 padding: EdgeInsets.only(left: 8),

@@ -89,6 +89,38 @@ extension ShortControllerCachePart on ShortController {
     await existing.setPreferredBufferDuration(_activeBufferSeconds);
   }
 
+  Future<void> prepareNeighborAdapter(int activeIndex, int neighborIndex) async {
+    if (shorts.isEmpty) return;
+    final safeActiveIndex = activeIndex.clamp(0, shorts.length - 1);
+    if (neighborIndex < 0 || neighborIndex >= shorts.length) return;
+
+    final activeAdapter = cache[safeActiveIndex];
+    if (activeAdapter != null && !activeAdapter.isDisposed) {
+      _tiers[safeActiveIndex] = _CacheTier.hot;
+      await activeAdapter.setPreferredBufferDuration(_activeBufferSeconds);
+    }
+
+    final existingNeighbor = cache[neighborIndex];
+    if (existingNeighbor == null) {
+      final adapter = await _preloadSingleVideoWithCache(
+        neighborIndex,
+        shorts[neighborIndex],
+      );
+      if (adapter == null) return;
+      _tiers[neighborIndex] = _CacheTier.hot;
+      await adapter.setPreferredBufferDuration(_neighborBufferSeconds);
+    } else {
+      if (existingNeighbor.isStopped) {
+        await existingNeighbor.reloadVideo();
+      }
+      _tiers[neighborIndex] = _CacheTier.hot;
+      await existingNeighbor.setPreferredBufferDuration(_neighborBufferSeconds);
+    }
+
+    final window = _playbackCoordinator.buildWindow(shorts, safeActiveIndex);
+    _enforceMaxPlayers(safeActiveIndex, window.maxAttachedPlayers);
+  }
+
   Future<void> updateCacheTiers(
     int currentIndex, {
     bool suppressWarmPause = false,

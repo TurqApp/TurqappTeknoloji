@@ -173,6 +173,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
+  int? _pendingAutoAdvancePage;
+  int? _preparedAutoAdvancePage;
   List<PostsModel> _cachedShorts = [];
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
