@@ -197,37 +197,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return effectiveFollowingIds;
   }
 
-  bool _canPresentWarmStartupSeedImmediately(
-    List<PostsModel> startupItems, {
-    required int targetCount,
-  }) {
-    if (startupItems.isEmpty || targetCount <= 0) {
-      return false;
-    }
-    final minReadyCount = min(
-      targetCount,
-      ReadBudgetRegistry.feedReadyForNavCount,
-    );
-    return startupItems.length >= minReadyCount;
-  }
-
-  void _applyQuickFilledAgenda(List<PostsModel> quickFiltered) {
-    if (quickFiltered.isEmpty) return;
-
-    _addUniqueToAgenda(quickFiltered);
-    _reorderAgendaForStartupPresentationIfNeeded();
-    _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
-    unawaited(_revalidateQuickFilledAgenda(quickFiltered));
-
-    if (agendaList.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
-          primeInitialCenteredPost();
-        }
-      });
-    }
-  }
-
   Future<void> _tryQuickFillFromCache({int? limit}) async {
     if (agendaList.isEmpty && centeredIndex.value != -1) {
       centeredIndex.value = -1;
@@ -291,19 +260,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final warmSeed = snapshot.data ?? const <PostsModel>[];
     if (warmSeed.isEmpty) return hadWarmSnapshot;
 
-    final warmOnlyQuickFiltered = _composeStartupFeedItems(
-      cacheCandidates: warmSeed,
-      targetCount: effectiveLimit,
-    );
-    if (_canPresentWarmStartupSeedImmediately(
-      warmOnlyQuickFiltered,
-      targetCount: effectiveLimit,
-    )) {
-      _startupLiveHeadApplied = false;
-      _applyQuickFilledAgenda(warmOnlyQuickFiltered);
-      return hadWarmSnapshot;
-    }
-
     final liveHeadPage = await _loadStartupLiveHeadPage(
       targetCount: effectiveLimit,
     );
@@ -333,7 +289,18 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       }
     }
 
-    _applyQuickFilledAgenda(quickFiltered);
+    _addUniqueToAgenda(quickFiltered);
+    _reorderAgendaForStartupPresentationIfNeeded();
+    _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
+    unawaited(_revalidateQuickFilledAgenda(quickFiltered));
+
+    if (agendaList.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          primeInitialCenteredPost();
+        }
+      });
+    }
     return hadWarmSnapshot;
   }
 
