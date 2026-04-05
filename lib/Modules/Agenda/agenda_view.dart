@@ -64,6 +64,35 @@ class AgendaView extends StatelessWidget {
     return InAppNotificationsController.ensure();
   }
 
+  void _queueFeedEntryWarmWhenReady() {
+    if (_feedEntryWarmQueued) return;
+    _feedEntryWarmQueued = true;
+
+    void attemptWarm({int attempt = 0}) {
+      final delay = attempt == 0
+          ? const Duration(milliseconds: 900)
+          : const Duration(milliseconds: 1200);
+      Future<void>.delayed(delay, () {
+        if (controller.isClosed) {
+          _feedEntryWarmQueued = false;
+          return;
+        }
+        final prefetch = maybeFindPrefetchScheduler();
+        final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+        final renderReady = controller.renderFeedEntries.isNotEmpty;
+        final startupReady =
+            prefetch != null && prefetch.feedReadyCount >= readyThreshold;
+        if ((!renderReady || !startupReady) && attempt < 8) {
+          attemptWarm(attempt: attempt + 1);
+          return;
+        }
+        unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());
+      });
+    }
+
+    attemptWarm();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_primarySurfaceBootstrapQueued) {
@@ -74,8 +103,7 @@ class AgendaView extends StatelessWidget {
       });
     }
     if (!_feedEntryWarmQueued) {
-      _feedEntryWarmQueued = true;
-      unawaited(ensureAdmobBannerWarmupService().warmForFeedEntry());
+      _queueFeedEntryWarmWhenReady();
     }
     if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
       // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.

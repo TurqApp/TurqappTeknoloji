@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 
 part 'admob_banner_warmup_service_runtime_part.dart';

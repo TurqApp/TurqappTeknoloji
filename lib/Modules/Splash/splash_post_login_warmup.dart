@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
+import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
@@ -76,7 +77,6 @@ class PostLoginWarmup {
     }
 
     unawaited(_requestTrackingPermission());
-    unawaited(_initializeAdMob(isFirstLaunch: isFirstLaunch));
     unawaited(_fetchTrendingTags());
 
     if (effectiveUserId.isNotEmpty) {
@@ -129,6 +129,16 @@ class PostLoginWarmup {
       Future.delayed(const Duration(milliseconds: 900), () {
         unawaited(_initializeNotifications());
       });
+
+      final onWiFi = _isOnWiFiNow();
+      final admobDelay = Duration(
+        milliseconds:
+            isFirstLaunch ? (onWiFi ? 2200 : 2600) : (onWiFi ? 2800 : 3200),
+      );
+      _scheduleAdmobInitWhenStartupReady(
+        isFirstLaunch: isFirstLaunch,
+        initialDelay: admobDelay,
+      );
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.backgroundWarmup,
@@ -137,6 +147,35 @@ class PostLoginWarmup {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  void _scheduleAdmobInitWhenStartupReady({
+    required bool isFirstLaunch,
+    required Duration initialDelay,
+  }) {
+    void scheduleAttempt({int attemptIndex = 0}) {
+      final delay =
+          attemptIndex == 0 ? initialDelay : const Duration(milliseconds: 900);
+      Future.delayed(delay, () {
+        if (_skipBackgroundStartupWork()) {
+          return;
+        }
+        final agenda = maybeFindAgendaController();
+        final prefetch = maybeFindPrefetchScheduler();
+        final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+        final feedRendered = agenda?.renderFeedEntries.isNotEmpty ?? false;
+        final startupReady = feedRendered &&
+            prefetch != null &&
+            prefetch.feedReadyCount >= readyThreshold;
+        if (!startupReady && attemptIndex < 12) {
+          scheduleAttempt(attemptIndex: attemptIndex + 1);
+          return;
+        }
+        unawaited(_initializeAdMob(isFirstLaunch: isFirstLaunch));
+      });
+    }
+
+    scheduleAttempt();
   }
 
   Future<void> _initCacheProxy() async {
