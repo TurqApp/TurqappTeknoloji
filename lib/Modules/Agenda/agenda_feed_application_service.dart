@@ -46,7 +46,7 @@ class AgendaFeedApplicationService {
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.flood,
     _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.text,
     _AgendaStartupBucket.liveVideo,
@@ -54,7 +54,7 @@ class AgendaFeedApplicationService {
     _AgendaStartupBucket.image,
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.image,
-    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.flood,
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.liveVideo,
@@ -207,6 +207,29 @@ class AgendaFeedApplicationService {
     }
 
     final slotPlan = _startupPreferredSlotPlan.take(targetCount).toList();
+    final slotDemand = <_AgendaStartupBucket, int>{
+      _AgendaStartupBucket.cacheVideo: 0,
+      _AgendaStartupBucket.liveVideo: 0,
+      _AgendaStartupBucket.image: 0,
+      _AgendaStartupBucket.flood: 0,
+      _AgendaStartupBucket.text: 0,
+    };
+    for (final bucket in slotPlan) {
+      slotDemand[bucket] = (slotDemand[bucket] ?? 0) + 1;
+    }
+    if (startupVariantOverride != null) {
+      for (final entry in buckets.entries) {
+        final prepared = _prepareStartupBucketCandidates(
+          entry.value.toList(growable: false),
+          bucket: entry.key,
+          requiredCount: slotDemand[entry.key] ?? 0,
+          startupVariantOverride: startupVariantOverride,
+        );
+        entry.value
+          ..clear()
+          ..addAll(prepared);
+      }
+    }
     final cursorByBucket = <_AgendaStartupBucket, int>{
       _AgendaStartupBucket.cacheVideo: 0,
       _AgendaStartupBucket.liveVideo: 0,
@@ -275,6 +298,49 @@ class AgendaFeedApplicationService {
       ...refreshPlan.replacementItems
           .where((post) => !startupHeadIds.contains(post.docID)),
     ];
+  }
+
+  List<PostsModel> _prepareStartupBucketCandidates(
+    List<PostsModel> items, {
+    required _AgendaStartupBucket bucket,
+    required int requiredCount,
+    required int startupVariantOverride,
+  }) {
+    if (items.length < 2 || requiredCount <= 0) {
+      return items;
+    }
+    final ranked = items.toList(growable: true)
+      ..sort((left, right) {
+        final leftScore = _startupBucketRankScore(
+          left,
+          bucket: bucket,
+          startupVariantOverride: startupVariantOverride,
+        );
+        final rightScore = _startupBucketRankScore(
+          right,
+          bucket: bucket,
+          startupVariantOverride: startupVariantOverride,
+        );
+        if (leftScore != rightScore) {
+          return leftScore.compareTo(rightScore);
+        }
+        return right.timeStamp.compareTo(left.timeStamp);
+      });
+    return ranked;
+  }
+
+  int _startupBucketRankScore(
+    PostsModel post, {
+    required _AgendaStartupBucket bucket,
+    required int startupVariantOverride,
+  }) {
+    return Object.hash(
+      startupVariantOverride,
+      bucket.index,
+      post.docID.trim(),
+      post.userID.trim(),
+      post.timeStamp,
+    ).abs();
   }
 
   String? capturePlaybackAnchor({
@@ -424,41 +490,15 @@ class AgendaFeedApplicationService {
         return <_AgendaStartupBucket>[
           _AgendaStartupBucket.cacheVideo,
           _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.image,
-          _AgendaStartupBucket.text,
-          _AgendaStartupBucket.flood,
         ];
       case _AgendaStartupBucket.liveVideo:
-        return <_AgendaStartupBucket>[
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
-          _AgendaStartupBucket.image,
-          _AgendaStartupBucket.text,
-        ];
+        return <_AgendaStartupBucket>[_AgendaStartupBucket.liveVideo];
       case _AgendaStartupBucket.image:
-        return <_AgendaStartupBucket>[
-          _AgendaStartupBucket.image,
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
-          _AgendaStartupBucket.text,
-          _AgendaStartupBucket.flood,
-        ];
+        return <_AgendaStartupBucket>[_AgendaStartupBucket.image];
       case _AgendaStartupBucket.flood:
-        return <_AgendaStartupBucket>[
-          _AgendaStartupBucket.flood,
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
-          _AgendaStartupBucket.image,
-          _AgendaStartupBucket.text,
-        ];
+        return <_AgendaStartupBucket>[_AgendaStartupBucket.flood];
       case _AgendaStartupBucket.text:
-        return <_AgendaStartupBucket>[
-          _AgendaStartupBucket.text,
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
-          _AgendaStartupBucket.image,
-          _AgendaStartupBucket.flood,
-        ];
+        return <_AgendaStartupBucket>[_AgendaStartupBucket.text];
     }
   }
 

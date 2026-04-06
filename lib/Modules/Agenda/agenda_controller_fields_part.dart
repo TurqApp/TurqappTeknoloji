@@ -77,6 +77,9 @@ class _AgendaControllerState {
   bool startupPromoRevealUnlockedByScroll = false;
   bool startupPromoRevealSawUserDrag = false;
   final startupCacheOriginVideoDocIds = <String>{};
+  int nextBufferedFetchTriggerCount =
+      ReadBudgetRegistry.feedHomeInitialLimit -
+      ReadBudgetRegistry.feedBufferedFetchLimit;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -247,6 +250,10 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.startupPromoRevealSawUserDrag = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
+  int get _nextBufferedFetchTriggerCount =>
+      _state.nextBufferedFetchTriggerCount;
+  set _nextBufferedFetchTriggerCount(int value) =>
+      _state.nextBufferedFetchTriggerCount = value;
 
   bool isStartupCacheOriginVideoDoc(String docId) {
     final normalized = docId.trim();

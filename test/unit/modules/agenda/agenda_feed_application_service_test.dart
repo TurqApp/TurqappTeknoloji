@@ -229,7 +229,7 @@ void main() {
           'live',
           'flood',
           'cache',
-          'cache',
+          'live',
           'cache',
           'text',
           'live',
@@ -237,7 +237,7 @@ void main() {
           'image',
           'cache',
           'image',
-          'image',
+          'live',
           'flood',
           'live',
           'live',
@@ -252,6 +252,59 @@ void main() {
           'image',
           'flood',
         ],
+      );
+    });
+
+    test(
+        'composeStartupFeedItems keeps slot kinds but varies selected posts across startup variants',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        40,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          40,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          40,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          20,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+
+      final variantA = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+        startupVariantOverride: 17,
+      );
+      final variantB = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+        startupVariantOverride: 231,
+      );
+
+      expect(variantA, hasLength(30));
+      expect(variantB, hasLength(30));
+      expect(
+        variantA.map(_startupKindForPost).toList(growable: false),
+        variantB.map(_startupKindForPost).toList(growable: false),
+      );
+      expect(
+        variantA.map((post) => post.docID).toList(growable: false),
+        isNot(variantB.map((post) => post.docID).toList(growable: false)),
       );
     });
 

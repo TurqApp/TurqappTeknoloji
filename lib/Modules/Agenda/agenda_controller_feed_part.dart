@@ -16,6 +16,21 @@ extension AgendaControllerFeedPart on AgendaController {
       Duration(milliseconds: 1200);
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 2;
+  static const int _feedInitialBufferedFetchTriggerCount = 20;
+
+  void _resetBufferedFeedFetchTrigger() {
+    _nextBufferedFetchTriggerCount = _feedInitialBufferedFetchTriggerCount;
+  }
+
+  void _advanceBufferedFeedFetchTrigger(int viewedCount) {
+    final stride = ReadBudgetRegistry.feedBufferedFetchLimit;
+    if (stride <= 0) return;
+    var nextTrigger = _nextBufferedFetchTriggerCount;
+    while (nextTrigger <= viewedCount) {
+      nextTrigger += stride;
+    }
+    _nextBufferedFetchTriggerCount = nextTrigger;
+  }
 
   bool _reclaimFeedPlaybackFromExternalOwner(
     VideoStateManager manager, {
@@ -656,16 +671,18 @@ extension AgendaControllerFeedPart on AgendaController {
     lastOffset = currentOffset;
 
     final centered = centeredIndex.value;
+    final viewedCount =
+        centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
     final remainingAfterCentered = centered >= 0 && centered < agendaList.length
         ? agendaList.length - centered - 1
         : agendaList.length;
 
     if (agendaList.isNotEmpty &&
         scrollController.position.hasContentDimensions &&
-        (scrollController.position.pixels >=
-                scrollController.position.maxScrollExtent - 300 ||
-            remainingAfterCentered <=
-                ReadBudgetRegistry.feedBufferedFetchLimit)) {
+        hasMore.value &&
+        !isLoading.value &&
+        viewedCount >= _nextBufferedFetchTriggerCount) {
+      _advanceBufferedFeedFetchTrigger(viewedCount);
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'near_end',
@@ -674,6 +691,8 @@ extension AgendaControllerFeedPart on AgendaController {
           'offset': currentOffset,
           'maxScrollExtent': scrollController.position.maxScrollExtent,
           'count': agendaList.length,
+          'viewedCount': viewedCount,
+          'nextTriggerCount': _nextBufferedFetchTriggerCount,
           'remainingAfterCentered': remainingAfterCentered,
         },
       );

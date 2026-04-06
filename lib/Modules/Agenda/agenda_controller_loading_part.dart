@@ -260,6 +260,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     if (initial) {
+      _resetBufferedFeedFetchTrigger();
       lastDoc = null;
       _usePrimaryFeedPaging = true;
       hasMore.value = true;
@@ -388,7 +389,16 @@ extension AgendaControllerLoadingPart on AgendaController {
         preferCache: shouldPreferCacheOnOpen,
         cacheOnly: !liveConnected,
       );
-      final visibleItems = page.items;
+      final visibleItems = initial
+          ? await _augmentStartupSupportCandidates(
+              candidates: page.items,
+              nowMs: nowMs,
+              primaryCutoffMs: cutoffMs,
+              targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+              preferCache: shouldPreferCacheOnOpen,
+              cacheOnly: !liveConnected,
+            )
+          : page.items;
       final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
         currentItems: agendaList.toList(growable: false),
         pageItems: visibleItems,
@@ -653,13 +663,27 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     final currentAgenda = agendaList.toList(growable: false);
-    final fetchedById = <String, PostsModel>{
-      for (final post in visibleItems) post.docID: post,
-    };
-    final mergedAgenda = currentAgenda
-        .map((post) => fetchedById[post.docID] ?? post)
-        .toList(growable: false);
+    final shouldReplaceStartupHead =
+        _startupPresentationApplied && !_startupLiveHeadApplied;
+    final mergedAgenda = shouldReplaceStartupHead
+        ? _mergeStartupHeadWithCurrentItems(
+            currentItems: currentAgenda,
+            liveItems: visibleItems,
+            targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+            nowMs: nowMs,
+          )
+        : (() {
+            final fetchedById = <String, PostsModel>{
+              for (final post in visibleItems) post.docID: post,
+            };
+            return currentAgenda
+                .map((post) => fetchedById[post.docID] ?? post)
+                .toList(growable: false);
+          })();
     agendaList.assignAll(mergedAgenda);
+    if (shouldReplaceStartupHead) {
+      _startupLiveHeadApplied = true;
+    }
     _scheduleInitialFeedVideoPosterWarmup(visibleItems);
     if (playbackAnchor != null && playbackAnchor.isNotEmpty) {
       _pendingCenteredDocId = playbackAnchor;
@@ -692,6 +716,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
     try {
+      _resetBufferedFeedFetchTrigger();
       _cancelDeferredInitialNetworkBootstrap();
       _feedRefreshInFlight = true;
       _pendingCenteredDocId = null;
