@@ -89,14 +89,15 @@ extension StoryRepositoryCachePart on StoryRepository {
     }
 
     final userIds = userStories.keys.toList(growable: false);
+    final profileCacheOnly = cacheFirst && cacheHit;
     final userDataMap = await _userCache.getProfiles(
       userIds,
       preferCache: true,
-      cacheOnly: false,
+      cacheOnly: profileCacheOnly,
     );
     final missingUserIds =
         userIds.where((id) => userDataMap[id] == null).toList(growable: false);
-    if (missingUserIds.isNotEmpty) {
+    if (missingUserIds.isNotEmpty && !profileCacheOnly) {
       userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
     }
 

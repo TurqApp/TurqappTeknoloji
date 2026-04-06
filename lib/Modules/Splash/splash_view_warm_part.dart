@@ -133,6 +133,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       unawaited(HlsSegmentPolicy.refresh());
       final onWiFi = _isOnWiFiNow();
+      _primeCurrentUserAvatarHint(onWiFi: onWiFi);
       final storyController = maybeFindStoryRowController();
       final agendaController = ensureAgendaController();
       final recommendedController = ensureRecommendedUserListController();
@@ -146,6 +147,13 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationJobWarmups();
       final deferShortCriticalWarmup =
           Platform.isAndroid && prioritizeHomeWarmups;
+      final storyStartupWarmLimit = storyController == null
+          ? null
+          : ReadBudgetRegistry.storyStartupWarmLimit(
+              onWiFi: onWiFi,
+              isFirstLaunch: isFirstLaunch,
+            );
+      Future<void>? earlyStoryWarmFuture;
       final criticalSlices = <Future<void> Function()>[];
 
       if (prioritizeHomeWarmups) {
@@ -154,21 +162,27 @@ extension _SplashViewWarmPart on _SplashViewState {
             onWiFi: onWiFi,
             isFirstLaunch: isFirstLaunch,
           );
+          if (storyController != null &&
+              storyStartupWarmLimit != null &&
+              earlyStoryWarmFuture == null) {
+            earlyStoryWarmFuture = _forceLoadStoriesSync(
+              storyController,
+              limit: storyStartupWarmLimit,
+            );
+          }
           await agendaController
               .prepareStartupSurface(
                 allowBackgroundRefresh: false,
               )
               .timeout(const Duration(seconds: 3), onTimeout: () {});
         });
-        if (storyController != null) {
+        if (storyController != null && storyStartupWarmLimit != null) {
           criticalSlices.add(() async {
-            await _forceLoadStoriesSync(
+            earlyStoryWarmFuture ??= _forceLoadStoriesSync(
               storyController,
-              limit: ReadBudgetRegistry.storyStartupWarmLimit(
-                onWiFi: onWiFi,
-                isFirstLaunch: isFirstLaunch,
-              ),
+              limit: storyStartupWarmLimit,
             );
+            await earlyStoryWarmFuture;
           });
         }
         if (!deferShortCriticalWarmup) {
@@ -558,6 +572,29 @@ extension _SplashViewWarmPart on _SplashViewState {
     } catch (_) {
       return false;
     }
+  }
+
+  void _primeCurrentUserAvatarHint({required bool onWiFi}) {
+    final avatarUrl = CurrentUserService.instance.avatarUrl.trim();
+    if (avatarUrl.isEmpty) return;
+    unawaited(() async {
+      try {
+        var path = '';
+        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+          avatarUrl,
+        );
+        path = cached?.file.path ?? '';
+        if (path.isEmpty && onWiFi) {
+          final file = await TurqImageCacheManager.instance.getSingleFile(
+            avatarUrl,
+          );
+          path = file.path;
+        }
+        if (path.isNotEmpty) {
+          TurqImageCacheManager.rememberResolvedFile(avatarUrl, path);
+        }
+      } catch (_) {}
+    }());
   }
 
   Future<void> _warmMarketListings({
