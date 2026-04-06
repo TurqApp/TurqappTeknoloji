@@ -1172,11 +1172,11 @@ class ExoPlayerView(
                         .start()
                 }
             }
+            hideResumeFrameOverlayNow()
             recordNativeVisualPhase(
                 phase = "video_play",
                 source = if (immediate) "surface_reveal_immediate" else "surface_reveal",
             )
-            hideResumeFrameOverlay()
         }
     }
 
@@ -1252,15 +1252,19 @@ class ExoPlayerView(
         return true
     }
 
+    private fun hideResumeFrameOverlayNow() {
+        if (resumeFrameOverlay.visibility != View.VISIBLE) return
+        resumeFrameOverlay.animate().cancel()
+        resumeFrameOverlay.alpha = 0f
+        resumeFrameOverlay.visibility = View.GONE
+        resumeFrameOverlay.setImageDrawable(null)
+        resumeFrameBitmap = null
+        resumeFrameCacheKey = null
+    }
+
     private fun hideResumeFrameOverlay() {
         runOnMain {
-            if (resumeFrameOverlay.visibility != View.VISIBLE) return@runOnMain
-            resumeFrameOverlay.animate().cancel()
-            resumeFrameOverlay.alpha = 0f
-            resumeFrameOverlay.visibility = View.GONE
-            resumeFrameOverlay.setImageDrawable(null)
-            resumeFrameBitmap = null
-            resumeFrameCacheKey = null
+            hideResumeFrameOverlayNow()
         }
     }
 
