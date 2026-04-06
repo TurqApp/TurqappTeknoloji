@@ -96,12 +96,10 @@ extension AgendaControllerSupportPart on AgendaController {
   }
 
   int _agendaCutoffMs(int nowMs) {
-    if (_agendaWindow == null) return 0;
-    return nowMs - _agendaWindow!.inMilliseconds;
+    return nowMs - _agendaWindow.inMilliseconds;
   }
 
   bool _isInAgendaWindow(num ts, int nowMs) {
-    if (_agendaWindow == null) return true;
     final v = ts.toInt();
     return v >= _agendaCutoffMs(nowMs) && v <= nowMs;
   }
@@ -111,7 +109,7 @@ extension AgendaControllerSupportPart on AgendaController {
       return false;
     }
     final ts = post.timeStamp.toInt();
-    if (_agendaWindow != null && ts < _agendaCutoffMs(nowMs)) {
+    if (ts < _agendaCutoffMs(nowMs)) {
       return false;
     }
     if (ts <= nowMs) {
@@ -374,54 +372,6 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
 extension AgendaControllerOverlayReturnPart on AgendaController {
   void _performReshuffleVisibleHeadAfterShortReturn() {
-    final currentItems = agendaList.toList(growable: false);
-    if (currentItems.isEmpty) {
-      _performResetSurfaceForTabTransition();
-      return;
-    }
-
-    final headLimit = min(
-      FeedSnapshotRepository.startupHomeLimitValue,
-      currentItems.length,
-    );
-    final currentHead = currentItems.take(headLimit).toList(growable: false);
-
-    if (currentHead.length >= 2) {
-      final deviceSession = DeviceSessionService.instance;
-      beginStartupSurfaceSession(
-        sessionNamespace: 'feed',
-        deviceSalt: deviceSession.cachedDeviceKey,
-        forceNew: true,
-      );
-      if (deviceSession.cachedDeviceKey.isEmpty) {
-        unawaited(deviceSession.warmDeviceKey());
-      }
-
-      final recomposedHead = _composeStartupFeedItems(
-        liveCandidates: const <PostsModel>[],
-        cacheCandidates: currentHead,
-        targetCount: currentHead.length,
-      );
-
-      final seenDocIds = <String>{};
-      final stableHead = <PostsModel>[];
-      for (final post in recomposedHead) {
-        if (seenDocIds.add(post.docID)) {
-          stableHead.add(post);
-        }
-      }
-      for (final post in currentHead) {
-        if (seenDocIds.add(post.docID)) {
-          stableHead.add(post);
-        }
-      }
-
-      agendaList.assignAll(<PostsModel>[
-        ...stableHead,
-        ...currentItems.skip(headLimit),
-      ]);
-    }
-
     _performResetSurfaceForTabTransition();
   }
 }

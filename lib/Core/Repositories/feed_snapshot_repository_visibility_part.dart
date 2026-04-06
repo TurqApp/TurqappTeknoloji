@@ -13,8 +13,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     bool refreshNonPublicCachedSummaries = true,
   }) async {
     if (items.isEmpty) return const <PostsModel>[];
-    final normalized = _normalizePosts(items)
-      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    final normalized = _normalizePosts(items);
     final authorIds = normalized
         .map((post) => post.userID)
         .where((id) => id.isNotEmpty)

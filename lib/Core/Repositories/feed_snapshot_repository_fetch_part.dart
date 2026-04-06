@@ -1,6 +1,9 @@
 part of 'feed_snapshot_repository.dart';
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
+  int _feedHomeCutoffMs(int nowMs) =>
+      nowMs - const Duration(days: 7).inMilliseconds;
+
   Future<Map<String, PostsModel>> _rehydrateHomeFeedVideoCards(
     Map<String, PostsModel> postsById, {
     required bool cacheOnly,
@@ -59,12 +62,13 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   }) async {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty) return const <PostsModel>[];
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final page = await _loadPersonalFallbackPage(
       currentUserId: normalizedUserId,
       followingIds: followingIds,
       hiddenPostIds: hiddenPostIds,
-      nowMs: DateTime.now().millisecondsSinceEpoch,
-      cutoffMs: 0,
+      nowMs: nowMs,
+      cutoffMs: _feedHomeCutoffMs(nowMs),
       limit: limit,
       preferCache: true,
       cacheOnly: true,
@@ -508,13 +512,14 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   ) async {
     final userId = query.userId.trim();
     if (userId.isEmpty) return const <PostsModel>[];
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final followingIds = await _loadFollowingIds(userId);
     final page = await fetchHomePage(
       userId: userId,
       followingIds: followingIds,
       hiddenPostIds: const <String>{},
-      nowMs: DateTime.now().millisecondsSinceEpoch,
-      cutoffMs: 0,
+      nowMs: nowMs,
+      cutoffMs: _feedHomeCutoffMs(nowMs),
       limit: query.effectiveLimit,
       preferCache: true,
       cacheOnly: false,
@@ -527,6 +532,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   Future<List<PostsModel>?> _loadWarmHomeSnapshot(
     FeedSnapshotQuery query,
   ) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final posts = await _warmLaunchPool.loadPosts(
       IndexPoolKind.feed,
       limit: query.effectiveLimit,
@@ -538,8 +544,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       currentUserId: query.userId.trim(),
       followingIds: await _loadFollowingIds(query.userId),
       hiddenPostIds: const <String>{},
-      nowMs: DateTime.now().millisecondsSinceEpoch,
-      cutoffMs: 0,
+      nowMs: nowMs,
+      cutoffMs: _feedHomeCutoffMs(nowMs),
       limit: query.effectiveLimit,
       summaryCacheOnly: true,
       refreshNonPublicCachedSummaries: false,
