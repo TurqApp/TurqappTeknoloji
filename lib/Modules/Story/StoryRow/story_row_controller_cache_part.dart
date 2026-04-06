@@ -6,8 +6,11 @@ extension StoryRowControllerCachePart on StoryRowController {
     int take = 4,
   }) async {
     final myUid = _currentUid;
-    final critical = source
-        .where((e) => e.userID != myUid)
+    final ordered = <StoryUserModel>[
+      ...source.where((e) => e.userID == myUid),
+      ...source.where((e) => e.userID != myUid),
+    ];
+    final critical = ordered
         .map((e) => e.avatarUrl.trim())
         .where((e) => e.isNotEmpty)
         .toSet()
@@ -129,8 +132,8 @@ extension StoryRowControllerCachePart on StoryRowController {
       );
       if (loaded.isNotEmpty) {
         await _primeVisibleAvatarHints(loaded);
-        await _warmPublishCriticalAvatarFiles(loaded);
         users.assignAll(loaded);
+        unawaited(_warmPublishCriticalAvatarFiles(loaded));
         unawaited(_warmVisibleAvatarFiles(loaded));
       }
       _ensureMyUserPlaceholder();

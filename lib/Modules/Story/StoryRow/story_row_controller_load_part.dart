@@ -118,10 +118,10 @@ extension StoryRowControllerLoadPart on StoryRowController {
         isAllSeen: allSeen,
       );
       await _primeVisibleAvatarHints(orderedUsers);
-      if (!hadExternalUsersBeforeLoad) {
-        await _warmPublishCriticalAvatarFiles(orderedUsers);
-      }
       users.value = orderedUsers;
+      if (!hadExternalUsersBeforeLoad) {
+        unawaited(_warmPublishCriticalAvatarFiles(orderedUsers));
+      }
       unawaited(_warmVisibleAvatarFiles(users));
       if (_shouldLogDebug && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
