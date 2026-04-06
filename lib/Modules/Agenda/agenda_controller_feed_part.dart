@@ -328,6 +328,7 @@ extension AgendaControllerFeedPart on AgendaController {
     lastCenteredIndex = target;
     _lockStartupPlaybackTargetForIndex(target);
     _pendingCenteredDocId = null;
+    final targetPost = agendaList[target];
     _invariantGuard.assertCenteredSelection(
       surface: 'feed',
       invariantKey: 'prime_initial_centered_post',
@@ -338,33 +339,30 @@ extension AgendaControllerFeedPart on AgendaController {
         'target': target,
       },
     );
-    if (!pauseAll.value && canClaimPlaybackNow) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (isClosed ||
-            pauseAll.value ||
-            !canClaimPlaybackNow ||
-            !isPrimaryFeedRouteVisible ||
-            centeredIndex.value != target ||
-            target < 0 ||
-            target >= agendaList.length) {
-          return;
-        }
-        if (!_canAutoplayVideoPost(agendaList[target])) {
-          return;
-        }
-        final post = agendaList[target];
+    if (!_canAutoplayVideoPost(targetPost)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed ||
+          pauseAll.value ||
+          !isPrimaryFeedRouteVisible ||
+          centeredIndex.value != target ||
+          target < 0 ||
+          target >= agendaList.length ||
+          agendaList[target].docID != targetPost.docID) {
+        return;
+      }
+      if (canClaimPlaybackNow) {
         _ensureFeedPlaybackForIndex(target);
         _schedulePlaybackReassert(
           index: target,
-          docId: post.docID,
+          docId: targetPost.docID,
           manager: VideoStateManager.instance,
         );
-        _scheduleStartupAutoplayKick(
-          index: target,
-          docId: post.docID,
-        );
-      });
-    }
+      }
+      _scheduleStartupAutoplayKick(
+        index: target,
+        docId: targetPost.docID,
+      );
+    });
   }
 
   void resumeFeedPlayback() {

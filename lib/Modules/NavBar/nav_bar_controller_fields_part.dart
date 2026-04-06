@@ -29,6 +29,8 @@ class _NavBarControllerState {
   Timer? backgroundCacheTimer;
   Timer? uploadIndicatorTimer;
   Timer? ratingPromptTimer;
+  Timer? feedResumeRetryTimer;
+  int feedResumeRetryEpoch = 0;
 }
 
 extension NavBarControllerFieldsPart on NavBarController {
@@ -89,6 +91,10 @@ extension NavBarControllerFieldsPart on NavBarController {
       _state.uploadIndicatorTimer = value;
   Timer? get _ratingPromptTimer => _state.ratingPromptTimer;
   set _ratingPromptTimer(Timer? value) => _state.ratingPromptTimer = value;
+  Timer? get _feedResumeRetryTimer => _state.feedResumeRetryTimer;
+  set _feedResumeRetryTimer(Timer? value) => _state.feedResumeRetryTimer = value;
+  int get _feedResumeRetryEpoch => _state.feedResumeRetryEpoch;
+  set _feedResumeRetryEpoch(int value) => _state.feedResumeRetryEpoch = value;
 
   bool get mediaOverlayActive => _mediaOverlayDepth.value > 0;
 }

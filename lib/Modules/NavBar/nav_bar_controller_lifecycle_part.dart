@@ -1,6 +1,14 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerLifecyclePart on NavBarController {
+  static const List<Duration> _feedResumeRetryDelaysAfterOverlayPop =
+      <Duration>[
+        Duration.zero,
+        Duration(milliseconds: 120),
+        Duration(milliseconds: 320),
+        Duration(milliseconds: 650),
+      ];
+
   int _asNavStatInt(Object? value) {
     if (value is num) return value.toInt();
     return int.tryParse((value ?? '').toString()) ?? 0;
@@ -220,7 +228,76 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     } catch (_) {}
   }
 
+  bool _hasFeedPlaybackOwnerImpl() {
+    final currentPlaying = VideoStateManager.instance.currentPlayingDocID;
+    final key = currentPlaying?.trim() ?? '';
+    return key.startsWith('feed:');
+  }
+
+  void _cancelFeedResumeRetryImpl({bool invalidateEpoch = true}) {
+    _feedResumeRetryTimer?.cancel();
+    _feedResumeRetryTimer = null;
+    if (invalidateEpoch) {
+      _feedResumeRetryEpoch = _feedResumeRetryEpoch + 1;
+    }
+  }
+
+  void _attemptFeedResumeAfterOverlayPopImpl({
+    required int epoch,
+    required int attempt,
+  }) {
+    void runAttempt() {
+      if (_isDisposed || epoch != _feedResumeRetryEpoch) return;
+      if (mediaOverlayActive || selectedIndex.value != 0) {
+        _feedResumeRetryTimer = null;
+        return;
+      }
+      if (_hasFeedPlaybackOwnerImpl()) {
+        _feedResumeRetryTimer = null;
+        return;
+      }
+
+      _resumeFeedIfNeededImpl();
+      if (_isDisposed || epoch != _feedResumeRetryEpoch) return;
+      if (_hasFeedPlaybackOwnerImpl()) {
+        _feedResumeRetryTimer = null;
+        return;
+      }
+      if (attempt + 1 >= _feedResumeRetryDelaysAfterOverlayPop.length) {
+        _feedResumeRetryTimer = null;
+        return;
+      }
+
+      final nextDelay = _feedResumeRetryDelaysAfterOverlayPop[attempt + 1];
+      _feedResumeRetryTimer?.cancel();
+      _feedResumeRetryTimer = Timer(nextDelay, () {
+        _attemptFeedResumeAfterOverlayPopImpl(
+          epoch: epoch,
+          attempt: attempt + 1,
+        );
+      });
+    }
+
+    if (attempt == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        runAttempt();
+      });
+      return;
+    }
+    runAttempt();
+  }
+
+  void _scheduleFeedResumeAfterOverlayPopImpl() {
+    _cancelFeedResumeRetryImpl();
+    final epoch = _feedResumeRetryEpoch;
+    _attemptFeedResumeAfterOverlayPopImpl(
+      epoch: epoch,
+      attempt: 0,
+    );
+  }
+
   void _pushMediaOverlayLockImpl() {
+    _cancelFeedResumeRetryImpl();
     _mediaOverlayDepth.value = _mediaOverlayDepth.value + 1;
     _suspendFeedForTabExitImpl();
     _pauseGlobalTabMediaImpl();
@@ -230,7 +307,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final next = _mediaOverlayDepth.value - 1;
     _mediaOverlayDepth.value = next < 0 ? 0 : next;
     if (mediaOverlayActive) return;
-    _resumeFeedIfNeededImpl();
+    _scheduleFeedResumeAfterOverlayPopImpl();
   }
 
   void _primeVisibleSurfaceAfterTabChangeImpl({
