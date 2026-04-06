@@ -120,6 +120,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
   static const Duration _resumeSurfaceKeepAliveDebounce =
       Duration(milliseconds: 720);
+  static const Duration _androidFeedOwnerGrace =
+      Duration(milliseconds: 1100);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -510,6 +512,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
+    final ownerGrace = defaultTargetPlatform == TargetPlatform.android &&
+            _isPrimaryFeedSurfaceInstance
+        ? _androidFeedOwnerGrace
+        : const Duration(milliseconds: 650);
     return _playbackRuntimeService.evaluateLifecycle(
       PlaybackLifecycleSnapshot(
         docId: playbackHandleKey,
@@ -529,6 +535,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         duration: value.duration,
         visualReadyPositionThreshold: visualReadyPositionThreshold,
       ),
+      ownerGrace: ownerGrace,
     );
   }
 
