@@ -79,7 +79,7 @@ PlaybackPolicySnapshot _resolvePlaybackPolicy(
     allowOnDemandSegmentFetch: !context.pauseOnCellular,
     allowPlaylistFetch: true,
     cacheOnlyMode: context.pauseOnCellular,
-    enableMobileSeedMode: false,
+    enableMobileSeedMode: !lowData,
     startupWindowSegments: lowData ? 1 : 2,
     aheadWindowSegments: lowData ? 0 : 1,
     maxConcurrentPrefetch: 1,

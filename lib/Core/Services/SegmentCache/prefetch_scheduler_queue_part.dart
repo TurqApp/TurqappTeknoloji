@@ -813,6 +813,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
+    if (!_restrictToFocusedDoc) return false;
+    final focusedDocId = _focusedDocID?.trim() ?? '';
+    if (focusedDocId.isEmpty) return false;
     final policy = maybeFindPlaybackPolicyEngine();
     if (policy == null) return false;
     return policy
@@ -844,20 +847,12 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (segmentUris.isEmpty) return const <String>[];
 
     final ordered = <String>[];
-    final seen = <int>{};
-    final total = segmentUris.length;
-
-    for (int n = 1; n <= total; n++) {
-      for (final seg in <int>[n, n + 3]) {
-        if (seg > total) continue;
-        final idx = seg - 1;
-        if (!seen.add(idx)) continue;
-        final uri = segmentUris[idx];
-        final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
-        if (cacheManager.getSegmentFile(docID, key) == null) {
-          ordered.add(uri);
-        }
+    for (final uri in segmentUris) {
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) != null) {
+        continue;
       }
+      ordered.add(uri);
     }
     return ordered;
   }
