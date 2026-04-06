@@ -6,6 +6,21 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return 210;
   }
 
+  void _scheduleStartupQuickFillFollowUps(
+    List<PostsModel> shown, {
+    bool includeReshareFetch = false,
+  }) {
+    if (shown.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || shown.isEmpty) return;
+      _scheduleInitialFeedVideoPosterWarmup(shown);
+      unawaited(_revalidateQuickFilledAgenda(shown));
+      if (includeReshareFetch) {
+        _scheduleReshareFetchForPosts(shown, perPostLimit: 1);
+      }
+    });
+  }
+
   Set<String> _startupCacheReadyVideoDocIds(Iterable<PostsModel> posts) {
     final cacheManager = maybeFindSegmentCacheManager();
     if (cacheManager == null) return const <String>{};
@@ -132,46 +147,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
   }
 
-  Future<_AgendaSourcePage?> _loadStartupLiveHeadPage({
-    required int targetCount,
-  }) async {
-    if (!ContentPolicy.isConnected || targetCount <= 0) {
-      return null;
-    }
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final cutoffMs = _agendaCutoffMs(nowMs);
-    final liveLimit = min(
-      ReadBudgetRegistry.feedHomeInitialLimitValue,
-      targetCount,
-    );
-    if (liveLimit <= 0) {
-      return null;
-    }
-
-    try {
-      final page = await _loadAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: liveLimit,
-        useStoredCursor: false,
-        preferCache: false,
-        cacheOnly: false,
-      );
-      final liveHead = page.items.take(liveLimit).toList(growable: false);
-      if (liveHead.isEmpty) {
-        return null;
-      }
-      return _AgendaSourcePage(
-        liveHead,
-        page.lastDoc,
-        page.usesPrimaryFeed,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<Set<String>> _loadStartupFollowingIds(
     String uid, {
     Duration timeout = const Duration(milliseconds: 180),
@@ -233,9 +208,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
       _reorderAgendaForStartupPresentationIfNeeded();
-      _scheduleInitialFeedVideoPosterWarmup(toAdd);
-      unawaited(_revalidateQuickFilledAgenda(toAdd));
-      _scheduleReshareFetchForPosts(toAdd, perPostLimit: 1);
+      _scheduleStartupQuickFillFollowUps(
+        toAdd,
+        includeReshareFetch: true,
+      );
 
       if (agendaList.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -261,39 +237,16 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final warmSeed = snapshot.data ?? const <PostsModel>[];
     if (warmSeed.isEmpty) return hadWarmSnapshot;
 
-    final liveHeadPage = await _loadStartupLiveHeadPage(
-      targetCount: effectiveLimit,
-    );
-    final liveHead = liveHeadPage?.items ?? const <PostsModel>[];
-    _startupLiveHeadApplied = liveHead.isNotEmpty;
-
     final quickFiltered = _composeStartupFeedItems(
       cacheCandidates: warmSeed,
-      liveCandidates: liveHead,
       targetCount: effectiveLimit,
     );
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
-
-    if (_startupLiveHeadApplied && liveHeadPage != null) {
-      final visibleIds = quickFiltered.map((post) => post.docID).toSet();
-      final pendingLiveOverflow = liveHead
-          .where((post) => !visibleIds.contains(post.docID))
-          .toList(growable: false);
-
-      _usePrimaryFeedPaging = liveHeadPage.usesPrimaryFeed;
-      lastDoc = liveHeadPage.lastDoc;
-      if (pendingLiveOverflow.isNotEmpty) {
-        _shuffleCache.replace(pendingLiveOverflow);
-        hasMore.value = true;
-      } else {
-        hasMore.value = liveHeadPage.lastDoc != null;
-      }
-    }
+    _startupLiveHeadApplied = false;
 
     _addUniqueToAgenda(quickFiltered);
     _reorderAgendaForStartupPresentationIfNeeded();
-    _scheduleInitialFeedVideoPosterWarmup(quickFiltered);
-    unawaited(_revalidateQuickFilledAgenda(quickFiltered));
+    _scheduleStartupQuickFillFollowUps(quickFiltered);
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

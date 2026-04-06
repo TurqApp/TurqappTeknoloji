@@ -338,6 +338,23 @@ extension AgendaControllerFeedPart on AgendaController {
         'target': target,
       },
     );
+    if (!pauseAll.value && canClaimPlaybackNow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed ||
+            pauseAll.value ||
+            !canClaimPlaybackNow ||
+            !isPrimaryFeedRouteVisible ||
+            centeredIndex.value != target ||
+            target < 0 ||
+            target >= agendaList.length) {
+          return;
+        }
+        if (!_canAutoplayVideoPost(agendaList[target])) {
+          return;
+        }
+        _ensureFeedPlaybackForIndex(target);
+      });
+    }
   }
 
   void resumeFeedPlayback() {
