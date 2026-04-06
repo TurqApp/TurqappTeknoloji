@@ -1,6 +1,51 @@
 part of 'story_row_controller.dart';
 
 extension StoryRowControllerCachePart on StoryRowController {
+  Future<void> _warmPublishCriticalAvatarFiles(
+    Iterable<StoryUserModel> source, {
+    int take = 4,
+  }) async {
+    final myUid = _currentUid;
+    final critical = source
+        .where((e) => e.userID != myUid)
+        .map((e) => e.avatarUrl.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .take(take)
+        .toList(growable: false);
+    if (critical.isEmpty) return;
+
+    for (final url in critical) {
+      try {
+        await TurqImageCacheManager.warmUrl(url);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _primeVisibleAvatarHints(
+    Iterable<StoryUserModel> source, {
+    int take = 12,
+  }) async {
+    final urls = source
+        .map((e) => e.avatarUrl.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .take(take)
+        .toList(growable: false);
+    if (urls.isEmpty) return;
+
+    for (final url in urls) {
+      try {
+        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+          url,
+        );
+        final path = cached?.file.path ?? '';
+        if (path.isEmpty) continue;
+        TurqImageCacheManager.rememberResolvedFile(url, path);
+      } catch (_) {}
+    }
+  }
+
   Future<void> addMyUserImmediately() async {
     try {
       final myUid = _currentUid;
@@ -54,7 +99,7 @@ extension StoryRowControllerCachePart on StoryRowController {
 
     for (final url in urls) {
       try {
-        await TurqImageCacheManager.instance.getSingleFile(url);
+        await TurqImageCacheManager.warmUrl(url);
       } catch (_) {}
     }
   }
@@ -83,6 +128,8 @@ extension StoryRowControllerCachePart on StoryRowController {
         allowExpired: allowExpired,
       );
       if (loaded.isNotEmpty) {
+        await _primeVisibleAvatarHints(loaded);
+        await _warmPublishCriticalAvatarFiles(loaded);
         users.assignAll(loaded);
         unawaited(_warmVisibleAvatarFiles(loaded));
       }

@@ -7,7 +7,13 @@ extension StoryRowContentPart on _StoryRowState {
       _storyOptimizer.localStoryCache.length;
       _storyOptimizer.localTimeCache.length;
 
-      final hasData = controller.users.isNotEmpty;
+      final myUid = controller.userService.effectiveUserId;
+      final onlyCurrentUserPlaceholder = controller.users.length == 1 &&
+          myUid.isNotEmpty &&
+          controller.users.first.userID == myUid &&
+          controller.isLoadingAny;
+      final hasData =
+          controller.users.isNotEmpty && !onlyCurrentUserPlaceholder;
 
       return AnimatedSize(
         duration: const Duration(milliseconds: 300),

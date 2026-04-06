@@ -4,7 +4,41 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _resolvedUrl = '';
   String _resolvedFilePath = '';
   bool _didBootstrap = false;
+  bool _bootstrapInFlight = false;
+  bool _bootstrapSettled = false;
+  bool _didLogLocalReady = false;
+  bool _didLogNetworkFallback = false;
+  bool _didLogPainted = false;
+  final DateTime _mountedAt = DateTime.now();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+
+  void _logAvatarSync(
+    String stage, {
+    String source = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final surface = widget.debugSurface.trim();
+    if (surface.isEmpty) return;
+    final key = widget.debugKey.trim().isNotEmpty
+        ? widget.debugKey.trim()
+        : ((widget.userId ?? '').trim().isNotEmpty
+            ? (widget.userId ?? '').trim()
+            : _resolvedUrl);
+    final elapsedMs = DateTime.now().difference(_mountedAt).inMilliseconds;
+    debugPrint(
+      '[AvatarSync][$surface][$key] stage=$stage '
+      'elapsedMs=$elapsedMs source=$source '
+      'metadata=${<String, dynamic>{
+        'hasResolvedUrl': _resolvedUrl.isNotEmpty,
+        'hasResolvedFilePath': _resolvedFilePath.isNotEmpty,
+        'rememberedHit': _rememberedFilePathFor(_resolvedUrl).isNotEmpty,
+        ...metadata,
+      }}',
+    );
+  }
+
+  String _rememberedFilePathFor(String url) =>
+      TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
 
   String _initialResolvedUrl() {
     final direct = _normalizeUrl(widget.imageUrl);
@@ -43,6 +77,17 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   void initState() {
     super.initState();
     _resolvedUrl = _initialResolvedUrl();
+    _resolvedFilePath = _rememberedFilePathFor(_resolvedUrl);
+    _bootstrapInFlight = true;
+    _bootstrapSettled = false;
+    _logAvatarSync(
+      'mount',
+      source: 'init_state',
+      metadata: <String, dynamic>{
+        'initialUrlPresent': _resolvedUrl.isNotEmpty,
+        'initialRememberedFilePathPresent': _resolvedFilePath.isNotEmpty,
+      },
+    );
     unawaited(_bootstrap());
   }
 
@@ -57,10 +102,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       final shouldPreserveResolvedUrl =
           sameUser && widget.imageUrl == null && _resolvedUrl.isNotEmpty;
       _resolvedUrl = shouldPreserveResolvedUrl ? _resolvedUrl : nextResolved;
-      if (!shouldPreserveResolvedUrl && nextResolved.isEmpty) {
-        _resolvedFilePath = '';
-      }
+      _resolvedFilePath = shouldPreserveResolvedUrl
+          ? _resolvedFilePath
+          : _rememberedFilePathFor(_resolvedUrl);
       _didBootstrap = false;
+      _bootstrapInFlight = true;
+      _bootstrapSettled = false;
       unawaited(_bootstrap());
     }
   }
@@ -68,114 +115,129 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   Future<void> _bootstrap() async {
     if (_didBootstrap) return;
     _didBootstrap = true;
+    _bootstrapInFlight = true;
+    _bootstrapSettled = false;
 
-    final uid = (widget.userId ?? '').trim();
-    if (uid.isEmpty) {
-      await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
-      return;
-    }
+    try {
+      if (_resolvedUrl.isNotEmpty) {
+        await _resolveLocalFile(_resolvedUrl, allowNetwork: false);
+      }
 
-    final currentUser = CurrentUserService.instance;
-    if (uid == currentUser.effectiveUserId) {
-      final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
-      _resolvedUrl = currentAvatar;
-      await _resolveLocalFile(currentAvatar, allowNetwork: true);
-      if (currentUser.currentUser != null) {
+      final uid = (widget.userId ?? '').trim();
+      if (uid.isEmpty) {
+        await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
         return;
       }
 
+      final currentUser = CurrentUserService.instance;
+      if (uid == currentUser.effectiveUserId) {
+        final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
+        _resolvedUrl = currentAvatar;
+        await _resolveLocalFile(currentAvatar, allowNetwork: true);
+        if (currentUser.currentUser != null) {
+          return;
+        }
+        try {
+          final currentRaw = await UserRepository.ensure().getUserRaw(
+            uid,
+            preferCache: true,
+            cacheOnly: false,
+            forceServer: true,
+          );
+          final currentRawUrl = _pickAvatarUrl(currentRaw);
+          if (currentRawUrl.isNotEmpty) {
+            _resolvedUrl = currentRawUrl;
+            await _resolveLocalFile(currentRawUrl, allowNetwork: true);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      final users = UserRepository.ensure();
+
       try {
-        final currentRaw = await UserRepository.ensure().getUserRaw(
+        final cached = await _userSummaryResolver.resolve(
+          uid,
+          preferCache: true,
+          cacheOnly: true,
+        );
+        final cachedUrl = _normalizeUrl(cached?.avatarUrl);
+        if (cachedUrl.isNotEmpty && cachedUrl != _resolvedUrl && mounted) {
+          setState(() {
+            _resolvedUrl = cachedUrl;
+          });
+        }
+        if (cachedUrl.isNotEmpty) {
+          await _resolveLocalFile(cachedUrl, allowNetwork: false);
+        }
+      } catch (_) {}
+
+      try {
+        final cachedRaw = await users.getUserRaw(
+          uid,
+          preferCache: true,
+          cacheOnly: true,
+        );
+        final cachedRawUrl = _pickAvatarUrl(cachedRaw);
+        if (cachedRawUrl.isNotEmpty &&
+            cachedRawUrl != _resolvedUrl &&
+            mounted) {
+          setState(() {
+            _resolvedUrl = cachedRawUrl;
+          });
+        }
+        if (cachedRawUrl.isNotEmpty) {
+          await _resolveLocalFile(cachedRawUrl, allowNetwork: false);
+        }
+      } catch (_) {}
+
+      if (_resolvedUrl.isNotEmpty) return;
+
+      try {
+        final fetched = await _userSummaryResolver.resolve(
+          uid,
+          preferCache: true,
+          cacheOnly: false,
+        );
+        final fetchedUrl = _normalizeUrl(fetched?.avatarUrl);
+        if (fetchedUrl.isNotEmpty && fetchedUrl != _resolvedUrl && mounted) {
+          setState(() {
+            _resolvedUrl = fetchedUrl;
+          });
+        }
+        if (fetchedUrl.isNotEmpty) {
+          await _resolveLocalFile(fetchedUrl, allowNetwork: true);
+        }
+      } catch (_) {}
+
+      if (_resolvedUrl.isNotEmpty) return;
+
+      try {
+        final fetchedRaw = await users.getUserRaw(
           uid,
           preferCache: true,
           cacheOnly: false,
           forceServer: true,
         );
-        final currentRawUrl = _pickAvatarUrl(currentRaw);
-        if (currentRawUrl.isNotEmpty) {
-          _resolvedUrl = currentRawUrl;
-          await _resolveLocalFile(currentRawUrl, allowNetwork: true);
-          return;
+        final fetchedRawUrl = _pickAvatarUrl(fetchedRaw);
+        if (fetchedRawUrl.isNotEmpty &&
+            fetchedRawUrl != _resolvedUrl &&
+            mounted) {
+          setState(() {
+            _resolvedUrl = fetchedRawUrl;
+          });
+        }
+        if (fetchedRawUrl.isNotEmpty) {
+          await _resolveLocalFile(fetchedRawUrl, allowNetwork: true);
         }
       } catch (_) {}
+    } finally {
+      _bootstrapInFlight = false;
+      _bootstrapSettled = true;
+      if (mounted) {
+        setState(() {});
+      }
     }
-
-    final users = UserRepository.ensure();
-
-    try {
-      final cached = await _userSummaryResolver.resolve(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
-      final cachedUrl = _normalizeUrl(cached?.avatarUrl);
-      if (cachedUrl.isNotEmpty && cachedUrl != _resolvedUrl && mounted) {
-        setState(() {
-          _resolvedUrl = cachedUrl;
-        });
-      }
-      if (cachedUrl.isNotEmpty) {
-        await _resolveLocalFile(cachedUrl, allowNetwork: false);
-      }
-    } catch (_) {}
-
-    try {
-      final cachedRaw = await users.getUserRaw(
-        uid,
-        preferCache: true,
-        cacheOnly: true,
-      );
-      final cachedRawUrl = _pickAvatarUrl(cachedRaw);
-      if (cachedRawUrl.isNotEmpty && cachedRawUrl != _resolvedUrl && mounted) {
-        setState(() {
-          _resolvedUrl = cachedRawUrl;
-        });
-      }
-      if (cachedRawUrl.isNotEmpty) {
-        await _resolveLocalFile(cachedRawUrl, allowNetwork: false);
-      }
-    } catch (_) {}
-
-    if (_resolvedUrl.isNotEmpty) return;
-
-    try {
-      final fetched = await _userSummaryResolver.resolve(
-        uid,
-        preferCache: true,
-        cacheOnly: false,
-      );
-      final fetchedUrl = _normalizeUrl(fetched?.avatarUrl);
-      if (fetchedUrl.isNotEmpty && fetchedUrl != _resolvedUrl && mounted) {
-        setState(() {
-          _resolvedUrl = fetchedUrl;
-        });
-      }
-      if (fetchedUrl.isNotEmpty) {
-        await _resolveLocalFile(fetchedUrl, allowNetwork: true);
-      }
-    } catch (_) {}
-
-    if (_resolvedUrl.isNotEmpty) return;
-
-    try {
-      final fetchedRaw = await users.getUserRaw(
-        uid,
-        preferCache: true,
-        cacheOnly: false,
-        forceServer: true,
-      );
-      final fetchedRawUrl = _pickAvatarUrl(fetchedRaw);
-      if (fetchedRawUrl.isNotEmpty &&
-          fetchedRawUrl != _resolvedUrl &&
-          mounted) {
-        setState(() {
-          _resolvedUrl = fetchedRawUrl;
-        });
-      }
-      if (fetchedRawUrl.isNotEmpty) {
-        await _resolveLocalFile(fetchedRawUrl, allowNetwork: true);
-      }
-    } catch (_) {}
   }
 
   Future<void> _resolveLocalFile(
@@ -200,10 +262,23 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         file = await TurqImageCacheManager.instance.getSingleFile(normalized);
       }
       final nextPath = (file != null && file.existsSync()) ? file.path : '';
+      if (nextPath.isNotEmpty) {
+        TurqImageCacheManager.rememberResolvedFile(normalized, nextPath);
+      }
       if (nextPath != _resolvedFilePath && mounted) {
         setState(() {
           _resolvedFilePath = nextPath;
         });
+      }
+      if (nextPath.isNotEmpty && !_didLogLocalReady) {
+        _didLogLocalReady = true;
+        _logAvatarSync(
+          'local_file_ready',
+          source: allowNetwork ? 'cache_or_network' : 'cache_only',
+          metadata: <String, dynamic>{
+            'url': normalized,
+          },
+        );
       }
     } catch (_) {}
   }
@@ -223,6 +298,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
             _resolvedUrl = currentUserImage;
             _didBootstrap = false;
+            _bootstrapInFlight = true;
+            _bootstrapSettled = false;
             unawaited(_bootstrap());
           }
           return _buildAvatar(
@@ -237,6 +314,9 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
 
   Widget _buildAvatar(String url) {
     if (url.isEmpty) {
+      if (_shouldDeferDefaultAvatar()) {
+        return widget.placeholder ?? _buildPendingAvatarPlaceholder();
+      }
       return widget.placeholder ??
           DefaultAvatar(
             radius: widget.radius,
@@ -255,6 +335,19 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
               file,
               fit: BoxFit.cover,
               gaplessPlayback: true,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if ((wasSynchronouslyLoaded || frame != null) &&
+                    !_didLogPainted) {
+                  _didLogPainted = true;
+                  _logAvatarSync(
+                    'painted',
+                    source: wasSynchronouslyLoaded
+                        ? 'image_file_sync'
+                        : 'image_file_frame',
+                  );
+                }
+                return child;
+              },
             ),
           ),
         );
@@ -264,6 +357,16 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   }
 
   Widget _buildNetworkAvatar(String imageUrl) {
+    if (!_didLogNetworkFallback) {
+      _didLogNetworkFallback = true;
+      _logAvatarSync(
+        'network_fallback',
+        source: 'build_network_avatar',
+        metadata: <String, dynamic>{
+          'url': imageUrl,
+        },
+      );
+    }
     final size = widget.radius * 2;
     return ClipOval(
       child: SizedBox(
@@ -272,7 +375,22 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         child: CachedNetworkImage(
           imageUrl: imageUrl,
           cacheManager: TurqImageCacheManager.instance,
-          fit: BoxFit.cover,
+          fadeInDuration: Duration.zero,
+          fadeOutDuration: Duration.zero,
+          placeholderFadeInDuration: Duration.zero,
+          imageBuilder: (context, imageProvider) {
+            if (!_didLogPainted) {
+              _didLogPainted = true;
+              _logAvatarSync(
+                'painted',
+                source: 'cached_network_image_builder',
+              );
+            }
+            return Image(
+              image: imageProvider,
+              fit: BoxFit.cover,
+            );
+          },
           placeholder: (_, __) =>
               widget.placeholder ??
               Container(color: widget.backgroundColor ?? Colors.grey[300]),
@@ -290,5 +408,25 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _normalizeUrl(String? raw) {
     final trimmed = (raw ?? '').trim();
     return isDefaultAvatarUrl(trimmed) ? '' : trimmed;
+  }
+
+  bool _shouldDeferDefaultAvatar() {
+    if (_bootstrapSettled || !_bootstrapInFlight) return false;
+    if (_resolvedFilePath.isNotEmpty || _resolvedUrl.isNotEmpty) return true;
+    if ((widget.userId ?? '').trim().isNotEmpty) return true;
+    return _normalizeUrl(widget.imageUrl).isNotEmpty;
+  }
+
+  Widget _buildPendingAvatarPlaceholder() {
+    final size = widget.radius * 2;
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: ColoredBox(
+          color: widget.backgroundColor ?? const Color(0xFFE7EDF2),
+        ),
+      ),
+    );
   }
 }

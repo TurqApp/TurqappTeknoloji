@@ -21,6 +21,8 @@ class CachedUserAvatar extends StatefulWidget {
   final Color? backgroundColor;
   final Widget? placeholder;
   final Widget? errorWidget;
+  final String debugSurface;
+  final String debugKey;
 
   const CachedUserAvatar({
     super.key,
@@ -30,6 +32,8 @@ class CachedUserAvatar extends StatefulWidget {
     this.backgroundColor,
     this.placeholder,
     this.errorWidget,
+    this.debugSurface = '',
+    this.debugKey = '',
   });
 
   @override

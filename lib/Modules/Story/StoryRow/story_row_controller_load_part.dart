@@ -35,6 +35,7 @@ extension StoryRowControllerLoadPart on StoryRowController {
     if (silentLoad && _isSilentRefreshInFlight) {
       return;
     }
+    final hadExternalUsersBeforeLoad = users.any((u) => u.userID != myUid);
     try {
       if (silentLoad) {
         _isSilentRefreshInFlight = true;
@@ -110,12 +111,17 @@ extension StoryRowControllerLoadPart on StoryRowController {
         return true;
       }
 
-      users.value = _storyRowApplicationService.buildOrderedUsers(
+      final orderedUsers = _storyRowApplicationService.buildOrderedUsers(
         fetchedUsers: tempList,
         currentUid: myUid,
         currentUserStory: myStoryUser,
         isAllSeen: allSeen,
       );
+      await _primeVisibleAvatarHints(orderedUsers);
+      if (!hadExternalUsersBeforeLoad) {
+        await _warmPublishCriticalAvatarFiles(orderedUsers);
+      }
+      users.value = orderedUsers;
       unawaited(_warmVisibleAvatarFiles(users));
       if (_shouldLogDebug && myUid.isNotEmpty) {
         final me = users.firstWhereOrNull((u) => u.userID == myUid);
