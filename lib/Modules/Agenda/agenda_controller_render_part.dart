@@ -164,11 +164,8 @@ extension AgendaControllerRenderPart on AgendaController {
       renderFeedEntries.clear();
       return;
     }
-    final shouldDeferStartupPromos =
-        _startupPresentationApplied && !_startupPromoRevealApplied;
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
-      includePromos: !shouldDeferStartupPromos,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: renderFeedEntries.toList(growable: false),
@@ -176,9 +173,6 @@ extension AgendaControllerRenderPart on AgendaController {
       reason: 'render_feed_rebuild',
     );
     _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
-    if (shouldDeferStartupPromos && _startupPromoRevealUnlockedByScroll) {
-      _scheduleStartupPromoReveal();
-    }
   }
 
   void _queueFeedModeFallbackToForYou() {
