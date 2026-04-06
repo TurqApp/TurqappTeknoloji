@@ -1,6 +1,68 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  Future<List<PostsModel>> _hydrateStartupAuthorIdentityFromCache(
+    List<PostsModel> posts,
+  ) async {
+    if (posts.isEmpty) return const <PostsModel>[];
+    final authorIds = posts
+        .map((post) => post.userID.trim())
+        .where((uid) => uid.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (authorIds.isEmpty) return posts;
+
+    var summaries = const <String, dynamic>{};
+    try {
+      summaries = await _userSummaryResolver.resolveMany(
+        authorIds,
+        preferCache: true,
+        cacheOnly: true,
+      );
+    } catch (_) {}
+    if (summaries.isEmpty) return posts;
+
+    return posts.map((post) {
+      final summary = summaries[post.userID.trim()];
+      if (summary == null) return post;
+      return post.copyWith(
+        authorNickname: post.authorNickname.trim().isNotEmpty
+            ? post.authorNickname
+            : summary.nickname.trim(),
+        authorDisplayName: post.authorDisplayName.trim().isNotEmpty
+            ? post.authorDisplayName
+            : summary.displayName.trim(),
+        authorAvatarUrl: post.authorAvatarUrl.trim().isNotEmpty
+            ? post.authorAvatarUrl
+            : summary.avatarUrl.trim(),
+        rozet: post.rozet.trim().isNotEmpty
+            ? post.rozet
+            : summary.rozet.trim(),
+      );
+    }).toList(growable: false);
+  }
+
+  Future<void> _primeStartupAvatarHints(Iterable<PostsModel> posts) async {
+    final urls = posts
+        .map((post) => post.authorAvatarUrl.trim())
+        .where((url) => url.isNotEmpty)
+        .toSet()
+        .take(12)
+        .toList(growable: false);
+    if (urls.isEmpty) return;
+
+    for (final url in urls) {
+      try {
+        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+          url,
+        );
+        final path = cached?.file.path ?? '';
+        if (path.isEmpty) continue;
+        TurqImageCacheManager.rememberResolvedFile(url, path);
+      } catch (_) {}
+    }
+  }
+
   int _startupSeedLoadLimit(int targetCount) {
     if (targetCount <= 0) return 0;
     return 210;
@@ -202,9 +264,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       targetCount: effectiveLimit,
     );
     if (filtered.isEmpty) return;
+    final quickFilled = await _hydrateStartupAuthorIdentityFromCache(filtered);
+    await _primeStartupAvatarHints(quickFilled);
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd =
-        filtered.where((p) => !existingIDs.contains(p.docID)).toList();
+        quickFilled.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       _addUniqueToAgenda(toAdd);
       _reorderAgendaForStartupPresentationIfNeeded();
@@ -242,11 +306,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       targetCount: effectiveLimit,
     );
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
+    final quickFilled =
+        await _hydrateStartupAuthorIdentityFromCache(quickFiltered);
+    await _primeStartupAvatarHints(quickFilled);
     _startupLiveHeadApplied = false;
 
-    _addUniqueToAgenda(quickFiltered);
+    _addUniqueToAgenda(quickFilled);
     _reorderAgendaForStartupPresentationIfNeeded();
-    _scheduleStartupQuickFillFollowUps(quickFiltered);
+    _scheduleStartupQuickFillFollowUps(quickFilled);
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

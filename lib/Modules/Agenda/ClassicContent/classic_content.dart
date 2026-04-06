@@ -118,6 +118,7 @@ class _ClassicContentState extends State<ClassicContent>
   late final RelativeTimeTickService _relativeTimeTickService;
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
+  final Set<String> _avatarSyncLoggedHeaderDocIds = <String>{};
 
   String get _currentUid {
     final cachedUid =

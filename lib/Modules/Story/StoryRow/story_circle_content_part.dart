@@ -224,6 +224,8 @@ extension _StoryCircleContentPart on _StoryCircleState {
         radius: _StoryCircleState._storyAvatarRadius,
         backgroundColor: Colors.transparent,
         placeholder: const SizedBox.expand(),
+        debugSurface: 'story_ring_avatar',
+        debugKey: widget.model.userID,
       ),
     );
   }

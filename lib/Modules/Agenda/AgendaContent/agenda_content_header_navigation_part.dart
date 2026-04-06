@@ -315,6 +315,8 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
           userId: userId,
           imageUrl: imageUrl,
           radius: radius,
+          debugSurface: 'feed_card_avatar',
+          debugKey: widget.model.docID,
         ),
       ),
     );

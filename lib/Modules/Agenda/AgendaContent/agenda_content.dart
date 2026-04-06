@@ -127,6 +127,7 @@ class _AgendaContentState extends State<AgendaContent>
   Future<List<dynamic>>? _quotedSourceFuture;
   String _quotedSourceFutureUserId = '';
   String _quotedSourceFuturePostId = '';
+  final Set<String> _avatarSyncLoggedHeaderDocIds = <String>{};
 
   String get _currentUid {
     final cachedUid =

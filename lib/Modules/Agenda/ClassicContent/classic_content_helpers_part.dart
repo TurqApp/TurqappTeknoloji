@@ -167,6 +167,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
           userId: userId,
           imageUrl: imageUrl,
           radius: radius,
+          debugSurface: 'feed_card_avatar',
+          debugKey: widget.model.docID,
         ),
       ),
     );

@@ -24,7 +24,8 @@ class _PostContentControllerState {
       : canSendAdminPush = AdminAccessService.isKnownAdminSync(),
         editTime = (model.editTime?.toInt() ?? 0).obs,
         currentModel = Rx<PostsModel?>(model),
-        localPollSelection = RxnInt();
+        localPollSelection = RxnInt(),
+        identityResolveStartedAt = DateTime.now();
 
   bool canSendAdminPush;
   final likes = <String>[].obs;
@@ -45,6 +46,8 @@ class _PostContentControllerState {
   final RxInt editTime;
   final Rx<PostsModel?> currentModel;
   final RxnInt localPollSelection;
+  final DateTime identityResolveStartedAt;
+  bool identityResolveLogged = false;
   final yenidenPaylasildiMi = false.obs;
   PostRepositoryState? postState;
   StreamSubscription<DocumentSnapshot>? userSub;

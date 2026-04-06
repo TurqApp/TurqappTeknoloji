@@ -8,6 +8,18 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     final handle = controller.nickname.value.trim().isNotEmpty
         ? controller.nickname.value.trim()
         : controller.username.value.trim();
+    if (_avatarSyncLoggedHeaderDocIds.add(widget.model.docID)) {
+      debugPrint(
+        '[AvatarSync][feed_card_shell][${widget.model.docID}] '
+        'stage=header_build elapsedMs=0 source=header_user_info_bar '
+        'metadata=${<String, dynamic>{
+          'hasPrimaryName': primaryName.trim().isNotEmpty,
+          'hasHandle': handle.trim().isNotEmpty,
+          'hasAvatarUrl': controller.avatarUrl.value.trim().isNotEmpty,
+          'userId': widget.model.userID,
+        }}',
+      );
+    }
     String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} ${'common.edited'.tr}"
         : timeAgoMetin(widget.model.izBirakYayinTarihi != 0

@@ -33,8 +33,27 @@ extension PostContentControllerProfilePart on PostContentController {
     final hasPostLevelIdentity = postLevelNickname.isNotEmpty &&
         postLevelDisplayName.isNotEmpty &&
         postLevelAvatarFallback.isNotEmpty;
+    final resolvedAt = _controllerState.identityResolveStartedAt;
+
+    void logProfileResolution(String source) {
+      if (_controllerState.identityResolveLogged) return;
+      _controllerState.identityResolveLogged = true;
+      debugPrint(
+        '[AvatarSync][feed_card_meta][${model.docID}] '
+        'stage=profile_ready elapsedMs='
+        '${DateTime.now().difference(resolvedAt).inMilliseconds} '
+        'source=$source '
+        'metadata=${<String, dynamic>{
+          'nickname': nickname.value.trim().isNotEmpty,
+          'fullName': fullName.value.trim().isNotEmpty,
+          'avatarUrl': avatarUrl.value.trim().isNotEmpty,
+          'userId': userID,
+        }}',
+      );
+    }
 
     void applyProfile({
+      required String source,
       required String nick,
       required String uname,
       required String image,
@@ -56,6 +75,7 @@ extension PostContentControllerProfilePart on PostContentController {
       avatarUrl.value = normalizedImage;
       token.value = pushToken;
       fullName.value = effectiveName;
+      logProfileResolution(source);
     }
 
     void cacheProfile({
@@ -84,6 +104,7 @@ extension PostContentControllerProfilePart on PostContentController {
             user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
         final image = userService.avatarUrl;
         applyProfile(
+          source: 'current_user_stream',
           nick: user.nickname,
           uname: user.nickname,
           image: image,
@@ -109,6 +130,7 @@ extension PostContentControllerProfilePart on PostContentController {
             user.fullName.trim().isNotEmpty ? user.fullName : user.nickname;
         final image = userService.avatarUrl;
         applyProfile(
+          source: 'current_user',
           nick: user.nickname,
           uname: user.nickname,
           image: image,
@@ -135,6 +157,7 @@ extension PostContentControllerProfilePart on PostContentController {
 
     if (hasPostLevelIdentity) {
       applyProfile(
+        source: 'post_model',
         nick: postLevelNickname,
         uname: postLevelNickname,
         image: postLevelAvatarFallback,
@@ -149,6 +172,7 @@ extension PostContentControllerProfilePart on PostContentController {
         DateTime.now().difference(cachedProfile.updatedAt) <
             _userProfileCacheTtl) {
       applyProfile(
+        source: 'controller_cache',
         nick: cachedProfile.nickname,
         uname: cachedProfile.username,
         image: cachedProfile.avatarUrl,
@@ -162,6 +186,7 @@ extension PostContentControllerProfilePart on PostContentController {
     final warmProfile = userSummaryResolver.peek(userID, allowStale: true);
     if (warmProfile != null) {
       applyProfile(
+        source: 'summary_peek',
         nick: warmProfile.nickname,
         uname: warmProfile.username.isNotEmpty
             ? warmProfile.username
@@ -191,6 +216,7 @@ extension PostContentControllerProfilePart on PostContentController {
       );
       if (summary != null) {
         applyProfile(
+          source: 'summary_resolve',
           nick: summary.nickname,
           uname:
               summary.username.isNotEmpty ? summary.username : summary.nickname,
