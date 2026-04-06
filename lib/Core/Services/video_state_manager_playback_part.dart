@@ -166,10 +166,17 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _syncFocusedPrefetchDoc(String? activeDocID) {
     try {
       final scheduler = maybeFindPrefetchScheduler();
+      final activeKey = activeDocID?.trim() ?? '';
+      final normalized = HlsSegmentPolicy.normalizeDocId(activeDocID);
+      maybeFindHlsDataUsageProbe()?.setVisibleDoc(normalized);
       if (scheduler == null) return;
       scheduler.unfocusDoc();
-      final normalized = HlsSegmentPolicy.normalizeDocId(activeDocID);
       if (normalized == null || normalized.isEmpty) return;
+      if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
+        scheduler.focusDoc(normalized);
+        scheduler.boostDoc(normalized, readySegments: 3);
+        return;
+      }
       scheduler.boostDoc(normalized);
     } catch (_) {}
   }
@@ -246,10 +253,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
     final previous = _allVideoControllers[docID];
-    final effectiveHandle = previous != null &&
-            targetsSamePlaybackResource(previous, handle)
-        ? previous
-        : handle;
+    final effectiveHandle =
+        previous != null && targetsSamePlaybackResource(previous, handle)
+            ? previous
+            : handle;
     _allVideoControllers[docID] = effectiveHandle;
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
