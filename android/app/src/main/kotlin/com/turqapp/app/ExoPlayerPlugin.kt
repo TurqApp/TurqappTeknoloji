@@ -84,8 +84,15 @@ class ExoPlayerPlugin private constructor(
                 val url = args?.get("url") as? String
                 val autoPlay = args?.get("autoPlay") as? Boolean ?: true
                 val loop = args?.get("loop") as? Boolean ?: false
+                val preferResumePoster =
+                    args?.get("preferResumePoster") as? Boolean
                 if (url != null) {
-                    view!!.loadVideo(url, autoPlay, loop)
+                    view!!.loadVideo(
+                        url,
+                        autoPlay,
+                        loop,
+                        preferResumePosterOverride = preferResumePoster,
+                    )
                     result.success(null)
                 } else {
                     result.error("INVALID_ARGUMENTS", "url is required", null)

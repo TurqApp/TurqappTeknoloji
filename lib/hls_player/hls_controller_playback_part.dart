@@ -24,10 +24,15 @@ extension HLSControllerPlaybackPart on HLSController {
     String url, {
     bool autoPlay = true,
     bool loop = false,
+    bool? preferResumePoster,
   }) async {
     if (_isInactive) return;
     if (_viewId == null) {
       throw Exception('Controller not initialized. Call initialize() first.');
+    }
+
+    if (preferResumePoster != null) {
+      _preferResumePoster = preferResumePoster;
     }
 
     final previousUrl = _currentUrl;
@@ -57,6 +62,7 @@ extension HLSControllerPlaybackPart on HLSController {
         'url': url,
         'autoPlay': shouldDeferAutoplayForReattach ? false : autoPlay,
         'loop': loop,
+        'preferResumePoster': _preferResumePoster,
       });
     } on PlatformException catch (e) {
       _handleError('Failed to load video: ${e.message}');

@@ -63,6 +63,7 @@ class HLSController {
   String? _errorMessage;
   bool _hasRenderedFirstFrame = false;
   bool _awaitingFreshFrameAfterReattach = false;
+  bool _preferResumePoster = false;
   double? _pendingReattachSeekSeconds;
   bool _pendingReattachShouldPlay = false;
   int _rendererStallCount = 0;
@@ -107,6 +108,7 @@ class HLSController {
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
   bool get awaitingFreshFrameAfterReattach => _awaitingFreshFrameAfterReattach;
+  bool get preferResumePoster => _preferResumePoster;
   bool get canRestartStoppedPlayback =>
       !_isInactive &&
       _viewId != null &&
@@ -266,10 +268,20 @@ class HLSController {
     String url, {
     bool autoPlay = true,
     bool loop = false,
+    bool? preferResumePoster,
   }) {
     return HLSControllerPlaybackPart(
       this,
-    ).loadVideo(url, autoPlay: autoPlay, loop: loop);
+    ).loadVideo(
+      url,
+      autoPlay: autoPlay,
+      loop: loop,
+      preferResumePoster: preferResumePoster,
+    );
+  }
+
+  void updateResumePosterPreference(bool value) {
+    _preferResumePoster = value;
   }
 
   Future<void> play() => HLSControllerPlaybackPart(this).play();

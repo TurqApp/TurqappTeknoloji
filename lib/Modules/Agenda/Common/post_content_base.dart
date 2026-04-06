@@ -97,6 +97,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _pauseAllWorker;
   Worker? _playbackSuspendedWorker;
   Worker? _navSelectionWorker;
+  Worker? _keepAliveWindowWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   Timer? _autoplaySegmentGateTimer;
@@ -211,7 +212,33 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get shouldKeepVideoSurfaceAlive =>
       widget.model.hasPlayableVideo &&
-      (widget.shouldPlay || _surfaceKeepAliveDebounceActive);
+      (widget.shouldPlay ||
+          _surfaceKeepAliveDebounceActive ||
+          _shouldKeepResumeSurfaceAliveInWarmWindow);
+
+  bool get _shouldKeepResumeSurfaceAliveInWarmWindow {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!widget.model.hasPlayableVideo) return false;
+    final value = _videoAdapter?.value ?? const HLSVideoValue();
+    final hasResumeHint = _hasResumePositionHint(
+      value,
+      threshold: _stableFramePositionThreshold,
+    );
+    if (!hasResumeHint) return false;
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    if (modelIndex < 0) return false;
+    final centered = agendaController.centeredIndex.value;
+    if (centered < 0 || agendaController.agendaList.isEmpty) return false;
+    final safeCentered =
+        centered.clamp(0, agendaController.agendaList.length - 1);
+    final warmStart = safeCentered < 5 ? 0 : safeCentered - 5;
+    final warmEndExclusive =
+        (safeCentered + 6).clamp(0, agendaController.agendaList.length);
+    return modelIndex >= warmStart && modelIndex < warmEndExclusive;
+  }
 
   void bindKeepAliveUpdater(VoidCallback callback) {
     _keepAliveUpdateCallback = callback;
@@ -521,15 +548,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance) {
-      final hasResumePositionHint = _hasResumePositionHint(
-        value,
-        threshold: visualReadyPositionThreshold,
-      );
-      if (value.awaitingFreshFrameAfterReattach && hasResumePositionHint) {
-        return true;
-      }
-      if (!value.hasRenderedFirstFrame &&
-          hasResumePositionHint &&
+      if (value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed) {
         return true;
@@ -566,8 +585,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
     final hasStableVideo =
         value.hasRenderedFirstFrame &&
-        (value.isPlaying ||
-            value.position > visualReadyPositionThreshold);
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed;
     if (hasStableVideo) return 'video_play';
 
     if (hasResumeHint) {

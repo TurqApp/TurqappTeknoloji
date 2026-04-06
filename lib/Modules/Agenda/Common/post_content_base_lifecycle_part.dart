@@ -12,6 +12,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       controller.arsiv.value = false;
     }
 
+    _keepAliveWindowWorker ??= ever<int>(agendaController.centeredIndex, (_) {
+      _keepAliveUpdateCallback?.call();
+    });
+
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =
           isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
@@ -89,6 +93,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _pauseAllWorker?.dispose();
     _playbackSuspendedWorker?.dispose();
     _navSelectionWorker?.dispose();
+    _keepAliveWindowWorker?.dispose();
     videoValueNotifier.dispose();
   }
 

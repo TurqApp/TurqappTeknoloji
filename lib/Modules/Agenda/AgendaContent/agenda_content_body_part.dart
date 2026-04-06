@@ -240,6 +240,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   useAspectRatio: false,
                                                   overrideAutoPlay:
                                                       shouldAutoResumeInlinePlatformView,
+                                                  isPrimaryFeedSurface:
+                                                      isPrimaryFeedSurfaceInstance,
+                                                  preferResumePoster:
+                                                      shouldSuppressGenericResumeThumbnail,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -249,20 +253,25 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               }
                                               final shouldHidePoster =
                                                   shouldHidePlaybackPoster(v);
+                                              final posterFadeDuration =
+                                                  GetPlatform.isAndroid &&
+                                                          isPrimaryFeedSurfaceInstance
+                                                      ? Duration.zero
+                                                      : AppDuration
+                                                          .thumbnailFadeOut;
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(
-                                                  opacity: shouldHidePoster
-                                                      ? 0
-                                                      : 1,
-                                                  duration: AppDuration
-                                                      .thumbnailFadeOut,
+                                                  opacity:
+                                                      shouldHidePoster ? 0 : 1,
+                                                  duration: posterFadeDuration,
                                                   curve: Curves.easeOut,
                                                   child: child!,
                                                 ),
                                               );
                                             },
-                                            child: _buildVideoThumbnail(
+                                            child:
+                                                _buildVideoThumbnail(
                                               aspectRatio: displayAspect,
                                             ),
                                           ),
@@ -286,7 +295,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                   ValueListenableBuilder<HLSVideoValue>(
                                     valueListenable: videoValueNotifier,
                                     builder: (_, v, __) {
-                                      if (!v.isInitialized) {
+                                      if (!v.isInitialized ||
+                                          v.duration <= Duration.zero) {
                                         return const SizedBox.shrink();
                                       }
                                       final remaining = v.duration - v.position;
@@ -295,8 +305,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           : remaining;
                                       final countdownColor =
                                           isStartupCacheOriginVideo
-                                          ? const Color(0xFF61E37A)
-                                          : Colors.white;
+                                              ? const Color(0xFF61E37A)
+                                              : Colors.white;
                                       return Positioned(
                                         top: 8,
                                         right: 8,
@@ -351,9 +361,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 ? 'alıntılandı'
                                                 : '',
                                             textColor: Colors.white,
-                                            fontSize:
-                                                AppTypography.postAttribution
-                                                    .fontSize!,
+                                            fontSize: AppTypography
+                                                .postAttribution.fontSize!,
                                           ),
                                       ],
                                     ),
@@ -373,8 +382,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               mainModel: widget.model,
                                               hostSurface:
                                                   widget.floodHostSurface,
-                                            ))
-                                            ?.then((_) {
+                                            ))?.then((_) {
                                           if (!mounted) return;
                                           _restoreAgendaFeedCenter();
                                         });

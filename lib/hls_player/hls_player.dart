@@ -20,6 +20,8 @@ class HLSPlayer extends StatefulWidget {
   final double aspectRatio;
   final bool useAspectRatio;
   final bool forceFullscreenOnAndroid;
+  final bool isPrimaryFeedSurface;
+  final bool preferResumePoster;
 
   const HLSPlayer({
     super.key,
@@ -36,6 +38,8 @@ class HLSPlayer extends StatefulWidget {
     this.aspectRatio = 16 / 9,
     this.useAspectRatio = true,
     this.forceFullscreenOnAndroid = false,
+    this.isPrimaryFeedSurface = false,
+    this.preferResumePoster = false,
   });
 
   @override
@@ -48,6 +52,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
   @override
   void initState() {
     super.initState();
+    widget.controller.updateResumePosterPreference(widget.preferResumePoster);
   }
 
   @override
@@ -69,6 +74,13 @@ class _HLSPlayerState extends State<HLSPlayer> {
         !widget.autoPlay) {
       widget.controller.cancelPendingResume();
     }
+
+    if (oldWidget.preferResumePoster != widget.preferResumePoster) {
+      widget.controller.updateResumePosterPreference(widget.preferResumePoster);
+      if (_isInitialized && oldWidget.url == widget.url) {
+        unawaited(_loadVideo());
+      }
+    }
   }
 
   @override
@@ -87,13 +99,18 @@ class _HLSPlayerState extends State<HLSPlayer> {
       widget.url,
       autoPlay: widget.autoPlay,
       loop: widget.loop,
+      preferResumePoster: widget.preferResumePoster,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final resolvedBackgroundColor = widget.backgroundColor ??
+        ((Platform.isAndroid && widget.isPrimaryFeedSurface)
+            ? Colors.black
+            : Colors.transparent);
     final playerBody = Container(
-      color: widget.backgroundColor ?? Colors.transparent,
+      color: resolvedBackgroundColor,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -171,6 +188,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'autoPlay': widget.autoPlay,
           'loop': widget.loop,
           'forceFullscreen': widget.forceFullscreenOnAndroid,
+          'primaryFeedSurface': widget.isPrimaryFeedSurface,
+          'preferResumePoster': widget.preferResumePoster,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
@@ -190,6 +209,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'autoPlay': widget.autoPlay,
           'loop': widget.loop,
           'forceFullscreen': widget.forceFullscreenOnAndroid,
+          'primaryFeedSurface': widget.isPrimaryFeedSurface,
+          'preferResumePoster': widget.preferResumePoster,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,

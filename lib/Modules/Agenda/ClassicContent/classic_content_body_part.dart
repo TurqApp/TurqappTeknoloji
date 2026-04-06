@@ -553,6 +553,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             useAspectRatio: false,
                             overrideAutoPlay:
                                 shouldAutoResumeInlinePlatformView,
+                            isPrimaryFeedSurface: isPrimaryFeedSurfaceInstance,
+                            preferResumePoster:
+                                shouldSuppressGenericResumeThumbnail,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster
@@ -560,11 +563,15 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
                       final shouldHidePoster = shouldHidePlaybackPoster(v);
+                      final posterFadeDuration =
+                          GetPlatform.isAndroid && isPrimaryFeedSurfaceInstance
+                              ? Duration.zero
+                              : AppDuration.thumbnailFadeOut;
                       return IgnorePointer(
                         ignoring: true,
                         child: AnimatedOpacity(
                           opacity: shouldHidePoster ? 0 : 1,
-                          duration: AppDuration.thumbnailFadeOut,
+                          duration: posterFadeDuration,
                           curve: Curves.easeOut,
                           child: child!,
                         ),
@@ -594,7 +601,6 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     right: 8,
                     child: buildUploadIndicator(),
                   ),
-
                 if (videoController != null &&
                     !_shouldBlurIzBirakPost &&
                     widget.model.floodCount > 1)
@@ -603,13 +609,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     left: 0,
                     child: Texts.colorfulFloodForVideo,
                   ),
-
                 _buildClassicReshareOverlay(
                   bottom: widget.model.originalUserID.isNotEmpty
                       ? ((widget.model.floodCount > 1) ? 52 : 34)
                       : ((widget.model.floodCount > 1) ? 26 : 8),
                 ),
-
                 _buildMediaTapOverlay(
                   onTap: _openVideoMedia,
                   onDoubleTap: controller.like,
@@ -705,7 +709,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, __) {
-                      if (!v.isInitialized) return const SizedBox.shrink();
+                      if (!v.isInitialized || v.duration <= Duration.zero) {
+                        return const SizedBox.shrink();
+                      }
                       final remaining = v.duration - v.position;
                       final safeRemaining =
                           remaining.isNegative ? Duration.zero : remaining;
