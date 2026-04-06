@@ -142,6 +142,13 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
       try {
         final handle = entry.value;
+        if (handle is HLSAdapterPlaybackHandle &&
+            handle.adapter.preferWarmPoolPause) {
+          final value = handle.adapter.value;
+          if (!value.isPlaying && !value.isBuffering) {
+            continue;
+          }
+        }
         if (handle.isInitialized) {
           _playbackExecutionService.quietHandle(
             handle,
