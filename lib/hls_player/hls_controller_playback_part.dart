@@ -31,14 +31,14 @@ extension HLSControllerPlaybackPart on HLSController {
     }
 
     final previousUrl = _currentUrl;
-    final shouldDeferAutoplayForReattach =
-        autoPlay &&
+    final shouldDeferAutoplayForReattach = autoPlay &&
         previousUrl == url &&
         ((_pendingReattachShouldPlay) ||
             ((_pendingReattachSeekSeconds ?? 0.0) > 0.05));
     final sameVideoReload = _currentUrl == url && _shouldPreserveResumeVisual;
     _currentUrl = url;
     _isLooping = loop;
+    _resetVisualTimingMarkers();
     _updateState(PlayerState.loading);
     _firstFrameEmitted = false;
     if (!sameVideoReload) {

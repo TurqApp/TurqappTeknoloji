@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -88,6 +89,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _replayAdImpressionReceived = false;
   bool _autoplayReplayInFlight = false;
   bool _surfaceKeepAliveDebounceActive = false;
+  String? _lastPlaybackVisualWarning;
+  DateTime? _lastPlaybackVisualWarningAt;
   double? _lastAppliedPlaybackVolume;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
@@ -199,6 +202,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
+
+  bool get isPrimaryFeedSurfaceInstance => _isPrimaryFeedSurfaceInstance;
 
   bool get _shouldBypassLocalProxyForAndroidPrimaryFeed =>
       defaultTargetPlatform == TargetPlatform.android &&
@@ -494,14 +499,161 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     );
   }
 
+  bool _hasResumePositionHint(
+    HLSVideoValue value, {
+    required Duration threshold,
+  }) {
+    if (value.position > threshold) return true;
+    final savedState =
+        playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
+    return (savedState?.position ?? Duration.zero) > threshold;
+  }
+
   bool shouldHidePlaybackPoster(
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
+    final shouldPinPosterWhileInactive =
+        !isStandalonePostInstance &&
+        (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
+    if (shouldPinPosterWhileInactive) {
+      return false;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance) {
+      final hasResumePositionHint = _hasResumePositionHint(
+        value,
+        threshold: visualReadyPositionThreshold,
+      );
+      if (value.awaitingFreshFrameAfterReattach && hasResumePositionHint) {
+        return true;
+      }
+      if (!value.hasRenderedFirstFrame &&
+          hasResumePositionHint &&
+          widget.shouldPlay &&
+          _isSurfacePlaybackAllowed) {
+        return true;
+      }
+    }
     return _playbackLifecycleDecision(
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
     ).shouldHidePoster;
+  }
+
+  bool get shouldSuppressGenericResumeThumbnail {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    return _hasResumePositionHint(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      threshold: _stableFramePositionThreshold,
+    );
+  }
+
+  String _resolvePlaybackVisualWarning(
+    HLSVideoValue value, {
+    Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
+  }) {
+    final hasResumeHint = _hasResumePositionHint(
+      value,
+      threshold: visualReadyPositionThreshold,
+    );
+    final pinnedPoster =
+        !isStandalonePostInstance &&
+        (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
+    if (pinnedPoster) return 'poster';
+
+    final hasStableVideo =
+        value.hasRenderedFirstFrame &&
+        (value.isPlaying ||
+            value.position > visualReadyPositionThreshold);
+    if (hasStableVideo) return 'video_play';
+
+    if (hasResumeHint) {
+      return 'resume_poster';
+    }
+
+    final shouldHidePoster = shouldHidePlaybackPoster(
+      value,
+      visualReadyPositionThreshold: visualReadyPositionThreshold,
+    );
+    if (!shouldHidePoster) {
+      return 'thumb';
+    }
+
+    return 'siyah';
+  }
+
+  void _recordPlaybackVisualWarning(
+    HLSVideoValue value, {
+    String source = 'video_update',
+  }) {
+    if (!widget.model.hasPlayableVideo) return;
+    final next = _resolvePlaybackVisualWarning(value);
+    final now = DateTime.now();
+    final previousWarning = _lastPlaybackVisualWarning;
+    final previousWarningStartedAt = _lastPlaybackVisualWarningAt;
+    if (_lastPlaybackVisualWarning == next) return;
+    _lastPlaybackVisualWarning = next;
+    _lastPlaybackVisualWarningAt = now;
+    final currentCenteredIndex = agendaController.centeredIndex.value;
+    final safeCenteredIndex = agendaController.agendaList.isEmpty
+        ? -1
+        : currentCenteredIndex.clamp(0, agendaController.agendaList.length - 1);
+    final warmWindowStart = safeCenteredIndex < 0
+        ? -1
+        : (safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5);
+    final warmWindowEndExclusive = safeCenteredIndex < 0
+        ? -1
+        : (safeCenteredIndex + 6).clamp(0, agendaController.agendaList.length);
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    final metadata = <String, dynamic>{
+      'docId': widget.model.docID,
+      'instanceTag': widget.instanceTag ?? '',
+      'playbackHandleKey': playbackHandleKey,
+      'surface': _qaSurfaceName,
+      'warning': next,
+      'source': source,
+      'previousWarning': previousWarning ?? '',
+      'previousWarningDurationMs': previousWarningStartedAt == null
+          ? -1
+          : now.difference(previousWarningStartedAt).inMilliseconds,
+      'phaseStartedAtEpochMs': now.millisecondsSinceEpoch,
+      'shouldPlay': widget.shouldPlay,
+      'surfaceAllowed': _isSurfacePlaybackAllowed,
+      'positionMs': value.position.inMilliseconds,
+      'durationMs': value.duration.inMilliseconds,
+      'isInitialized': value.isInitialized,
+      'isPlaying': value.isPlaying,
+      'isBuffering': value.isBuffering,
+      'hasRenderedFirstFrame': value.hasRenderedFirstFrame,
+      'awaitingFreshFrameAfterReattach': value.awaitingFreshFrameAfterReattach,
+      'resumeHint': _hasResumePositionHint(
+        value,
+        threshold: _stableFramePositionThreshold,
+      ),
+      'centeredIndex': safeCenteredIndex,
+      'modelIndex': modelIndex,
+      'warmWindowStart': warmWindowStart,
+      'warmWindowEndExclusive': warmWindowEndExclusive,
+      'insideWarmWindow': modelIndex >= 0 &&
+          warmWindowStart >= 0 &&
+          modelIndex >= warmWindowStart &&
+          modelIndex < warmWindowEndExclusive,
+    };
+    if (kDebugMode) {
+      debugPrint(
+        '[PlaybackVisual][$next][${widget.model.docID}] source=$source metadata=$metadata',
+      );
+    }
+    recordQALabVideoEvent(
+      code: 'playback_visual_$next',
+      message: 'playback visual phase changed',
+      metadata: metadata,
+    );
   }
 
   int _remainingSecondsBucket(HLSVideoValue value) {

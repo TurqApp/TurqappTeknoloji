@@ -1,6 +1,50 @@
 part of 'hls_controller.dart';
 
 extension HLSControllerEventsPart on HLSController {
+  int _eventNowEpochMs() => DateTime.now().millisecondsSinceEpoch;
+
+  void _recordResumePosterTiming(
+    String trigger, {
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final resumePosterAt = _lastResumePosterAtEpochMs;
+    if (resumePosterAt == null) return;
+    final phaseSource = _lastNativeVisualPhaseSource ?? '';
+    final posterLiftedAt = _lastPosterLiftedAtEpochMs;
+    final firstFrameAt = _lastFirstFrameAtEpochMs;
+    final playAt = _lastPlayAtEpochMs;
+    final payload = <String, dynamic>{
+      'viewId': _viewId ?? -1,
+      'videoId': _telemetryVideoId ?? '',
+      'url': _currentUrl ?? '',
+      'trigger': trigger,
+      'resumePosterAtEpochMs': resumePosterAt,
+      'posterLiftedAtEpochMs': posterLiftedAt ?? -1,
+      'firstFrameAtEpochMs': firstFrameAt ?? -1,
+      'playAtEpochMs': playAt ?? -1,
+      'posterToLiftMs':
+          posterLiftedAt == null ? -1 : posterLiftedAt - resumePosterAt,
+      'posterToFirstFrameMs':
+          firstFrameAt == null ? -1 : firstFrameAt - resumePosterAt,
+      'posterToPlayMs': playAt == null ? -1 : playAt - resumePosterAt,
+      'phase': _lastNativeVisualPhase ?? '',
+      'phaseSource': phaseSource,
+      'phaseAtEpochMs': _lastNativeVisualPhaseAtEpochMs ?? -1,
+      'positionMs': (_currentPosition * 1000).round(),
+      ...metadata,
+    };
+    if (kDebugMode && !_suppressHlsSmokeLogs) {
+      debugPrint(
+        '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] resumePosterTiming payload=$payload url=$_currentUrl',
+      );
+    }
+    recordQALabVideoEvent(
+      code: 'resume_poster_timing',
+      message: 'resume poster timing snapshot',
+      metadata: payload,
+    );
+  }
+
   void _listenToEvents() {
     if (_eventChannel == null) return;
 
@@ -40,11 +84,15 @@ extension HLSControllerEventsPart on HLSController {
             break;
 
           case 'play':
+            _lastPlayAtEpochMs = _eventNowEpochMs();
+            _recordResumePosterTiming('play');
             _updateState(PlayerState.playing);
             break;
 
           case 'firstFrame':
+            _lastFirstFrameAtEpochMs = _eventNowEpochMs();
             _markFirstFrameRendered();
+            _recordResumePosterTiming('first_frame');
             break;
 
           case 'surfaceDetached':
@@ -134,6 +182,38 @@ extension HLSControllerEventsPart on HLSController {
             }
             break;
 
+          case 'visualPhase':
+            final phase = event['phase'] as String? ?? '';
+            final phaseSource = event['source'] as String? ?? '';
+            final phaseStartedAt =
+                (event['phaseStartedAtEpochMs'] as num?)?.toInt() ??
+                    _eventNowEpochMs();
+            _lastNativeVisualPhase = phase;
+            _lastNativeVisualPhaseSource = phaseSource;
+            _lastNativeVisualPhaseAtEpochMs = phaseStartedAt;
+            if (phase == 'resume_poster') {
+              _lastResumePosterAtEpochMs = phaseStartedAt;
+              _lastPosterLiftedAtEpochMs = null;
+              _lastFirstFrameAtEpochMs = null;
+              _lastPlayAtEpochMs = null;
+            } else if (phase == 'video_play') {
+              _lastPosterLiftedAtEpochMs = phaseStartedAt;
+              _recordResumePosterTiming(
+                'video_play',
+                metadata: <String, dynamic>{
+                  'previousPhase': event['previousPhase'] ?? '',
+                  'previousDurationMs':
+                      (event['previousDurationMs'] as num?)?.toInt() ?? -1,
+                },
+              );
+            }
+            if (kDebugMode && !_suppressHlsSmokeLogs) {
+              debugPrint(
+                '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] visualPhase payload=$event url=$_currentUrl',
+              );
+            }
+            break;
+
           case 'stopped':
             if (_state == PlayerState.completed || _isAtPlaybackEnd) {
               _updateState(PlayerState.completed);
@@ -182,6 +262,7 @@ extension HLSControllerEventsPart on HLSController {
   }
 
   void _markFirstFrameRendered() {
+    _awaitingFreshFrameAfterReattach = false;
     if (_hasRenderedFirstFrame) return;
     _hasRenderedFirstFrame = true;
     _emitFirstFrame(true);
@@ -223,9 +304,7 @@ extension HLSControllerEventsPart on HLSController {
     if (hasStableVisualResume && seekAlreadyApplied) {
       return;
     }
-    if (seekSeconds != null &&
-        seekSeconds > 0.05 &&
-        !seekAlreadyApplied) {
+    if (seekSeconds != null && seekSeconds > 0.05 && !seekAlreadyApplied) {
       try {
         await seekTo(seekSeconds);
       } catch (_) {}

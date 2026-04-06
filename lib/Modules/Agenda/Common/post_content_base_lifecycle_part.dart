@@ -53,6 +53,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       });
     }
 
+    _recordPlaybackVisualWarning(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      source: 'init',
+    );
     onPostInitialized();
   }
 
@@ -89,6 +93,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidUpdateWidget(T oldWidget) {
+    _recordPlaybackVisualWarning(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      source: 'did_update_widget_pre',
+    );
     if (oldWidget.shouldPlay != widget.shouldPlay) {
       if (widget.shouldPlay) {
         _cancelSurfaceKeepAliveDebounce();
@@ -117,6 +125,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _safePauseVideo();
       }
     }
+    _recordPlaybackVisualWarning(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      source: 'did_update_widget_post',
+    );
   }
 
   void _handleDidPushNext() {
@@ -126,11 +138,19 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _skipNextPause = false;
       return;
     }
+    _recordPlaybackVisualWarning(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      source: 'did_push_next',
+    );
     _safePauseVideo();
   }
 
   void _handleDidPopNext() {
     if (!widget.shouldPlay) return;
+    _recordPlaybackVisualWarning(
+      _videoAdapter?.value ?? const HLSVideoValue(),
+      source: 'did_pop_next',
+    );
     if (isStandalonePostInstance) {
       if (_videoAdapter == null) return;
       _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
@@ -149,6 +169,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _handleVideoUpdate() {
     if (!mounted) return;
     final v = _videoAdapter!.value;
+    _recordPlaybackVisualWarning(v);
     _applyPlaybackVolume();
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;

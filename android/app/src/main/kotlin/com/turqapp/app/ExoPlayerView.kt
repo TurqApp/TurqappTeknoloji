@@ -1,6 +1,7 @@
 package com.turqapp.app
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Build
 import android.os.Debug
@@ -9,8 +10,10 @@ import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.TextureView
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -29,6 +32,7 @@ import com.turqapp.app.qa.ExoPlayerSmokeRegistry
 import com.turqapp.app.qa.PlaybackHealthMonitor
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.platform.PlatformView
+import java.util.LinkedHashMap
 
 class ExoPlayerView(
     private val context: Context,
@@ -37,7 +41,28 @@ class ExoPlayerView(
     private val eventChannel: EventChannel
 ) : PlatformView, EventChannel.StreamHandler {
 
+    companion object {
+        private const val RESUME_FRAME_CACHE_MAX_ENTRIES = 8
+        private val resumeFrameCache = object : LinkedHashMap<String, Bitmap>(
+            RESUME_FRAME_CACHE_MAX_ENTRIES,
+            0.75f,
+            true
+        ) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Bitmap>?): Boolean {
+                val shouldEvict = size > RESUME_FRAME_CACHE_MAX_ENTRIES
+                if (shouldEvict) {
+                    eldest?.value?.takeIf { !it.isRecycled }?.recycle()
+                }
+                return shouldEvict
+            }
+        }
+    }
+
     private val forceFullscreen = args?.get("forceFullscreen") as? Boolean ?: false
+    private val isPrimaryFeedSurface =
+        args?.get("primaryFeedSurface") as? Boolean ?: false
+    private val preferResumePoster =
+        args?.get("preferResumePoster") as? Boolean ?: false
     private val container = object : FrameLayout(context) {
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             if (forceFullscreen) {
@@ -54,6 +79,7 @@ class ExoPlayerView(
         }
     }
     private val playerView: PlayerView
+    private val resumeFrameOverlay: ImageView
     private var player: ExoPlayer? = null
     private var eventSink: EventChannel.EventSink? = null
     private var isLooping = false
@@ -88,6 +114,10 @@ class ExoPlayerView(
     private var selectedVideoBitrateKbps = 0L
     private var selectedVideoHeight = 0
     private var selectedVideoWidth = 0
+    private var resumeFrameBitmap: Bitmap? = null
+    private var resumeFrameCacheKey: String? = null
+    private var lastNativeVisualPhase: String? = null
+    private var lastNativeVisualPhaseAtMs = 0L
     private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
     private var isSmokeRegistryActive = false
@@ -112,6 +142,46 @@ class ExoPlayerView(
             context,
             monitor,
             probeSnapshot + runtimeSnapshot,
+        )
+    }
+
+    private fun recordNativeVisualPhase(
+        phase: String,
+        source: String,
+        extra: Map<String, Any?> = emptyMap(),
+    ) {
+        val now = System.currentTimeMillis()
+        val previousPhase = lastNativeVisualPhase
+        if (previousPhase == phase) {
+            return
+        }
+        val previousDurationMs = if (lastNativeVisualPhaseAtMs > 0L) {
+            now - lastNativeVisualPhaseAtMs
+        } else {
+            -1L
+        }
+        lastNativeVisualPhase = phase
+        lastNativeVisualPhaseAtMs = now
+        val payload = mutableMapOf<String, Any>(
+            "event" to "visualPhase",
+            "phase" to phase,
+            "source" to source,
+            "previousPhase" to (previousPhase ?: ""),
+            "previousDurationMs" to previousDurationMs,
+            "phaseStartedAtEpochMs" to now,
+            "overlayVisible" to (resumeFrameOverlay.visibility == View.VISIBLE),
+            "playerAlpha" to playerView.alpha.toDouble(),
+            "didRenderFirstFrame" to didRenderFirstFrame,
+            "preferResumePoster" to preferResumePoster,
+            "url" to (currentUrl ?: ""),
+        )
+        extra.forEach { (key, value) ->
+            if (value != null) {
+                payload[key] = value
+            }
+        }
+        sendEvent(
+            payload,
         )
     }
 
@@ -144,6 +214,17 @@ class ExoPlayerView(
             )
         }
         container.addView(playerView)
+        resumeFrameOverlay = ImageView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            setBackgroundColor(Color.TRANSPARENT)
+            alpha = 0f
+            visibility = View.GONE
+        }
+        container.addView(resumeFrameOverlay)
         playerView.videoSurfaceView?.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
             val width = (right - left).coerceAtLeast(0)
             val height = (bottom - top).coerceAtLeast(0)
@@ -183,7 +264,17 @@ class ExoPlayerView(
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 val preserveVisibleFrame =
-                    forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
+                    (forceFullscreen || isPrimaryFeedSurface) &&
+                        (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
+                if (preserveVisibleFrame) {
+                    val captured = captureResumeFrameOverlay(source = "surface_detach")
+                    if (!captured) {
+                        recordNativeVisualPhase(
+                            phase = "siyah",
+                            source = "surface_detach_capture_failed",
+                        )
+                    }
+                }
                 didRenderFirstFrame = false
                 handler.post {
                     pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -195,7 +286,7 @@ class ExoPlayerView(
                 smokeProbe?.onSurfaceDetached()
                 isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
-                if (!preserveVisibleFrame) {
+                if (isPrimaryFeedSurface || !preserveVisibleFrame) {
                     softHold()
                 }
             }
@@ -274,7 +365,28 @@ class ExoPlayerView(
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
         val preserveVisibleFrameOnReset =
-            forceFullscreen && (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
+            (forceFullscreen || isPrimaryFeedSurface) &&
+                (didRenderFirstFrame || hasStableSurfaceLayout || playerView.alpha >= 1f)
+        if (preserveVisibleFrameOnReset) {
+            val captured = captureResumeFrameOverlay(source = "load_reset")
+            if (!captured) {
+                recordNativeVisualPhase(
+                    phase = "siyah",
+                    source = "load_reset_capture_failed",
+                )
+            }
+        } else {
+            clearResumeFrameOverlay()
+        }
+        if (preferResumePoster) {
+            val showedCachedPoster = showCachedResumeFrameOverlay(url, source = "load_cached_resume")
+            if (!showedCachedPoster) {
+                recordNativeVisualPhase(
+                    phase = "siyah",
+                    source = "resume_cache_miss",
+                )
+            }
+        }
         isSoftHeld = false
         didRenderFirstFrame = false
         isPlayerReady = false
@@ -387,6 +499,7 @@ class ExoPlayerView(
                 val alreadyShowingStableFrame =
                     didRenderFirstFrame && playerView.alpha >= 1f
                 didRenderFirstFrame = true
+                hideResumeFrameOverlay()
                 stopStartupRecoveryWatchdog()
                 lastVideoFrameAtMs = System.currentTimeMillis()
                 if (firstVideoFrameAtMs == 0L) {
@@ -816,6 +929,15 @@ class ExoPlayerView(
                     "ExoPlayerView#$viewId",
                     "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
                 )
+                if (preserveVisibleRecovery) {
+                    val captured = captureResumeFrameOverlay(source = "stall_rebind")
+                    if (!captured) {
+                        recordNativeVisualPhase(
+                            phase = "siyah",
+                            source = "stall_rebind_capture_failed",
+                        )
+                    }
+                }
                 if (!preserveVisibleRecovery) {
                     didRenderFirstFrame = false
                     pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -859,6 +981,15 @@ class ExoPlayerView(
                     "ExoPlayerView#$viewId",
                     "startupSurfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"
                 )
+                if (preserveVisibleRecovery) {
+                    val captured = captureResumeFrameOverlay(source = "startup_rebind")
+                    if (!captured) {
+                        recordNativeVisualPhase(
+                            phase = "siyah",
+                            source = "startup_rebind_capture_failed",
+                        )
+                    }
+                }
                 if (!preserveVisibleRecovery) {
                     didRenderFirstFrame = false
                     pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -901,13 +1032,13 @@ class ExoPlayerView(
 
     private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
         if (!forceFullscreen) {
-            // Feed kartlarında poster zaten ilk frame gelene kadar üstte tutuluyor.
-            // Native view'i her load'ta tekrar alpha=0'a çekmek ikinci siyah dalga
-            // üretiyor. Non-fullscreen akışta görünürlük reseti yapma.
             handler.post {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
                 pendingRevealRunnable = null
                 playerView.animate().cancel()
+                // Feed kartlarında poster zaten ilk frame gelene kadar üstte tutuluyor.
+                // Native view'i her load'ta tekrar alpha=0'a çekmek ikinci siyah dalga
+                // üretiyor. Non-fullscreen akışta görünürlük reseti yapma.
                 playerView.alpha = 1f
             }
             return
@@ -978,6 +1109,106 @@ class ExoPlayerView(
                         .start()
                 }
             }
+            recordNativeVisualPhase(
+                phase = "video_play",
+                source = if (immediate) "surface_reveal_immediate" else "surface_reveal",
+            )
+            hideResumeFrameOverlay()
+        }
+    }
+
+    private fun captureResumeFrameOverlay(source: String): Boolean {
+        if (!isPrimaryFeedSurface) return false
+        val cacheKey = currentUrl ?: return false
+        val textureView = playerView.videoSurfaceView as? TextureView ?: return false
+        if (!textureView.isAvailable || textureView.width <= 0 || textureView.height <= 0) {
+            return false
+        }
+        val rawBitmap = try {
+            val target = Bitmap.createBitmap(
+                textureView.width,
+                textureView.height,
+                Bitmap.Config.ARGB_8888
+            )
+            textureView.getBitmap(target) ?: target
+        } catch (_: Throwable) {
+            null
+        } ?: return false
+        val cachedBitmap = try {
+            rawBitmap.copy(Bitmap.Config.ARGB_8888, false)
+        } catch (_: Throwable) {
+            rawBitmap
+        }
+        if (cachedBitmap !== rawBitmap) {
+            rawBitmap.takeIf { !it.isRecycled }?.recycle()
+        }
+        synchronized(resumeFrameCache) {
+            val previous = resumeFrameCache.put(cacheKey, cachedBitmap)
+            if (previous !== cachedBitmap) {
+                previous?.takeIf { !it.isRecycled }?.recycle()
+            }
+        }
+        handler.post {
+            resumeFrameBitmap = cachedBitmap
+            resumeFrameCacheKey = cacheKey
+            resumeFrameOverlay.setImageBitmap(cachedBitmap)
+            resumeFrameOverlay.animate().cancel()
+            resumeFrameOverlay.alpha = 1f
+            resumeFrameOverlay.visibility = View.VISIBLE
+            recordNativeVisualPhase(
+                phase = "resume_poster",
+                source = source,
+            )
+        }
+        return true
+    }
+
+    private fun showCachedResumeFrameOverlay(url: String, source: String): Boolean {
+        if (!isPrimaryFeedSurface || !preferResumePoster) return false
+        val cachedBitmap = synchronized(resumeFrameCache) {
+            resumeFrameCache[url]
+        } ?: return false
+        if (cachedBitmap.isRecycled) {
+            synchronized(resumeFrameCache) {
+                resumeFrameCache.remove(url)
+            }
+            return false
+        }
+        handler.post {
+            resumeFrameBitmap = cachedBitmap
+            resumeFrameCacheKey = url
+            resumeFrameOverlay.setImageBitmap(cachedBitmap)
+            resumeFrameOverlay.animate().cancel()
+            resumeFrameOverlay.alpha = 1f
+            resumeFrameOverlay.visibility = View.VISIBLE
+            recordNativeVisualPhase(
+                phase = "resume_poster",
+                source = source,
+            )
+        }
+        return true
+    }
+
+    private fun hideResumeFrameOverlay() {
+        handler.post {
+            if (resumeFrameOverlay.visibility != View.VISIBLE) return@post
+            resumeFrameOverlay.animate().cancel()
+            resumeFrameOverlay.alpha = 0f
+            resumeFrameOverlay.visibility = View.GONE
+            resumeFrameOverlay.setImageDrawable(null)
+            resumeFrameBitmap = null
+            resumeFrameCacheKey = null
+        }
+    }
+
+    private fun clearResumeFrameOverlay() {
+        handler.post {
+            resumeFrameOverlay.animate().cancel()
+            resumeFrameOverlay.alpha = 0f
+            resumeFrameOverlay.visibility = View.GONE
+            resumeFrameOverlay.setImageDrawable(null)
+            resumeFrameBitmap = null
+            resumeFrameCacheKey = null
         }
     }
 
@@ -987,6 +1218,7 @@ class ExoPlayerView(
         stopStartupRecoveryWatchdog()
         player?.pause()
         resetSurfaceVisibility()
+        clearResumeFrameOverlay()
         isSmokeRegistryActive = false
         ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
         if (fully) {

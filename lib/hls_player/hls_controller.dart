@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 
 part 'hls_controller_diagnostics_part.dart';
@@ -61,12 +62,20 @@ class HLSController {
   bool _isLooping = false;
   String? _errorMessage;
   bool _hasRenderedFirstFrame = false;
+  bool _awaitingFreshFrameAfterReattach = false;
   double? _pendingReattachSeekSeconds;
   bool _pendingReattachShouldPlay = false;
   int _rendererStallCount = 0;
   int _surfaceRebindCount = 0;
   bool _isDisposing = false;
   bool _isDisposed = false;
+  String? _lastNativeVisualPhase;
+  String? _lastNativeVisualPhaseSource;
+  int? _lastNativeVisualPhaseAtEpochMs;
+  int? _lastResumePosterAtEpochMs;
+  int? _lastPosterLiftedAtEpochMs;
+  int? _lastFirstFrameAtEpochMs;
+  int? _lastPlayAtEpochMs;
 
   // Fallback support
   String? _fallbackUrl;
@@ -97,6 +106,7 @@ class HLSController {
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
+  bool get awaitingFreshFrameAfterReattach => _awaitingFreshFrameAfterReattach;
   bool get canRestartStoppedPlayback =>
       !_isInactive &&
       _viewId != null &&
@@ -117,6 +127,16 @@ class HLSController {
     if (!_hasRenderedFirstFrame) return false;
     if (!_currentPosition.isFinite) return false;
     return _currentPosition > 0.05;
+  }
+
+  void _resetVisualTimingMarkers() {
+    _lastNativeVisualPhase = null;
+    _lastNativeVisualPhaseSource = null;
+    _lastNativeVisualPhaseAtEpochMs = null;
+    _lastResumePosterAtEpochMs = null;
+    _lastPosterLiftedAtEpochMs = null;
+    _lastFirstFrameAtEpochMs = null;
+    _lastPlayAtEpochMs = null;
   }
 
   void cancelPendingResume() {
@@ -164,6 +184,7 @@ class HLSController {
 
   void resetSurfaceVisualStateForReuse() {
     if (!_hasRenderedFirstFrame) return;
+    _awaitingFreshFrameAfterReattach = false;
     _hasRenderedFirstFrame = false;
     _emitFirstFrame(false);
   }
@@ -173,6 +194,7 @@ class HLSController {
     if (_isInactive) return;
     final previousViewId = _viewId;
     final hadBoundView = previousViewId != null;
+    final shouldPreserveResumeVisual = _shouldPreserveResumeVisual;
     if (hadBoundView) {
       final previousPosition =
           _currentPosition.isFinite ? _currentPosition : 0.0;
@@ -194,7 +216,9 @@ class HLSController {
     // Rebind güvenliği: aynı controller yeni view'a bağlanıyorsa eski stream'i kapat.
     _eventSubscription?.cancel();
     _eventSubscription = null;
-    if (!_shouldPreserveResumeVisual) {
+    _awaitingFreshFrameAfterReattach =
+        hadBoundView && previousViewId != viewId && shouldPreserveResumeVisual;
+    if (!shouldPreserveResumeVisual) {
       _hasRenderedFirstFrame = false;
       _emitFirstFrame(false);
     }
