@@ -352,7 +352,17 @@ extension AgendaControllerFeedPart on AgendaController {
         if (!_canAutoplayVideoPost(agendaList[target])) {
           return;
         }
+        final post = agendaList[target];
         _ensureFeedPlaybackForIndex(target);
+        _schedulePlaybackReassert(
+          index: target,
+          docId: post.docID,
+          manager: VideoStateManager.instance,
+        );
+        _scheduleStartupAutoplayKick(
+          index: target,
+          docId: post.docID,
+        );
       });
     }
   }
@@ -517,6 +527,40 @@ extension AgendaControllerFeedPart on AgendaController {
         }
       },
     );
+  }
+
+  void _scheduleStartupAutoplayKick({
+    required int index,
+    required String docId,
+  }) {
+    if (!GetPlatform.isAndroid) return;
+    final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
+    for (final delay in const <Duration>[
+      Duration(milliseconds: 900),
+      Duration(milliseconds: 2200),
+      Duration(milliseconds: 3800),
+    ]) {
+      Future.delayed(delay, () {
+        if (isClosed ||
+            pauseAll.value ||
+            !canClaimPlaybackNow ||
+            !isPrimaryFeedRouteVisible ||
+            centeredIndex.value != index ||
+            index < 0 ||
+            index >= agendaList.length ||
+            agendaList[index].docID != docId) {
+          return;
+        }
+        final manager = VideoStateManager.instance;
+        if (manager.isPlaybackTargetActive(playbackKey)) {
+          return;
+        }
+        final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
+        if (!resumed) {
+          _ensureFeedPlaybackForIndex(index);
+        }
+      });
+    }
   }
 
   void _cancelPendingPlaybackReassert() {

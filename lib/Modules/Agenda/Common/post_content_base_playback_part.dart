@@ -393,12 +393,34 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (_controllerOwnsInlinePlayback) {
       final currentOwner =
           _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
+      final runtimeCurrentOwner =
+          _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
       final pendingClaim = _playbackRuntimeService.hasPendingPlayFor(
         playbackHandleKey,
       );
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
+        final shouldBootstrapInitialFeedClaim = GetPlatform.isAndroid &&
+            _isPrimaryFeedSurfaceInstance &&
+            widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            !pendingClaim &&
+            runtimeCurrentOwner.isEmpty;
+        if (shouldBootstrapInitialFeedClaim) {
+          _recordPlaybackDispatch(
+            'feed_card_manager_bootstrap_claim',
+            source: source,
+            dispatchIssued: false,
+          );
+          _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+          _applyPlaybackVolume();
+          _syncRuntimeHints(
+            isAudible: _resolvedPlaybackVolume() > 0.0,
+            hasStableFocus: false,
+          );
+          return;
+        }
         final shouldRestartStoppedOwner = GetPlatform.isAndroid &&
             currentOwner &&
             (adapter.isStopped ||

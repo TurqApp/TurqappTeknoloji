@@ -240,7 +240,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         !v.isPlaying &&
         !v.isBuffering &&
         !v.isCompleted &&
-        v.position > Duration.zero;
+        (v.position > Duration.zero || v.hasRenderedFirstFrame);
     if (shouldRecoverPlayback) {
       _playbackRecoveryTimer ??= Timer(const Duration(milliseconds: 260), () {
         _playbackRecoveryTimer = null;
