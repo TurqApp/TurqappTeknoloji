@@ -16,7 +16,8 @@ extension AgendaControllerFeedPart on AgendaController {
       Duration(milliseconds: 1200);
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 2;
-  static const int _feedInitialBufferedFetchTriggerCount = 20;
+  static const int _feedInitialBufferedFetchTriggerCount =
+      ReadBudgetRegistry.feedBufferedFetchLimit;
 
   void _resetBufferedFeedFetchTrigger() {
     _nextBufferedFetchTriggerCount = _feedInitialBufferedFetchTriggerCount;

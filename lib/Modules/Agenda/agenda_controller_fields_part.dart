@@ -78,7 +78,6 @@ class _AgendaControllerState {
   bool startupPromoRevealSawUserDrag = false;
   final startupCacheOriginVideoDocIds = <String>{};
   int nextBufferedFetchTriggerCount =
-      ReadBudgetRegistry.feedHomeInitialLimit -
       ReadBudgetRegistry.feedBufferedFetchLimit;
 }
 
