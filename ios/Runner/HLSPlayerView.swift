@@ -52,6 +52,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var playbackWatchdog: PlaybackWatchdog?
     private var wasMutedBeforeBackground: Bool = false
     private var volumeBeforeBackground: Float = 1.0
+    private var preferResumePoster: Bool = false
+    private var lastNativeVisualPhase: String?
+    private var lastNativeVisualPhaseAtEpochMs: Int64 = 0
 
     private func log(_ message: String) {
         print("[HLSPlayerView] \(message)")
@@ -99,6 +102,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             if params["url"] as? String != nil {
                 isAutoPlay = params["autoPlay"] as? Bool ?? true
                 isLooping = params["loop"] as? Bool ?? false
+                preferResumePoster = params["preferResumePoster"] as? Bool ?? false
             }
         }
 
@@ -118,12 +122,20 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     // MARK: - Video Loading
-    func loadVideo(url: String, autoPlay: Bool? = nil, loop: Bool? = nil) {
+    func loadVideo(
+        url: String,
+        autoPlay: Bool? = nil,
+        loop: Bool? = nil,
+        preferResumePoster: Bool? = nil
+    ) {
         if let autoPlay = autoPlay {
             isAutoPlay = autoPlay
         }
         if let loop = loop {
             isLooping = loop
+        }
+        if let preferResumePoster = preferResumePoster {
+            self.preferResumePoster = preferResumePoster
         }
         log("loadVideo url=\(url)")
         guard let videoURL = URL(string: url) else {
@@ -137,6 +149,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             clearFrameSnapshot()
         }
         cleanup(preserveFrameSnapshot: shouldPreserveSnapshot)
+        if shouldPreserveSnapshot && !_view.snapshotView.isHidden {
+            recordNativeVisualPhase(
+                phase: shouldUseResumePosterPhase() ? "resume_poster" : "poster",
+                source: "load_cached_resume"
+            )
+        }
         didRequestInitialPlay = false
         didStabilizeVisualLayer = false
         didRenderFirstFrame = false
@@ -601,6 +619,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 self.playbackHealthMonitor.onFirstFrameRendered()
                 self.playbackHealthMonitor.onFrameRendered()
                 self.hideFrameSnapshot()
+                self.recordNativeVisualPhase(
+                    phase: "video_play",
+                    source: "first_frame"
+                )
                 self.sendEvent(["event": "firstFrame"])
             }
         }
@@ -643,6 +665,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         _view.snapshotView.image = image
         if showOverlay {
             _view.snapshotView.isHidden = false
+            recordNativeVisualPhase(
+                phase: shouldUseResumePosterPhase() ? "resume_poster" : "poster",
+                source: "snapshot_capture"
+            )
         }
     }
 
@@ -670,10 +696,52 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private func clearFrameSnapshot() {
         _view.snapshotView.image = nil
         _view.snapshotView.isHidden = true
+        clearNativeVisualPhase()
     }
 
     private func hideFrameSnapshot() {
         _view.snapshotView.isHidden = true
+        clearNativeVisualPhase()
+    }
+
+    private func shouldUseResumePosterPhase() -> Bool {
+        let position = player?.currentTime().seconds ?? 0.0
+        return preferResumePoster && position.isFinite && position > 0.05
+    }
+
+    private func clearNativeVisualPhase() {
+        lastNativeVisualPhase = nil
+        lastNativeVisualPhaseAtEpochMs = 0
+    }
+
+    private func recordNativeVisualPhase(
+        phase: String,
+        source: String
+    ) {
+        let now = Int64(Date().timeIntervalSince1970 * 1000.0)
+        let previousPhase = lastNativeVisualPhase
+        if previousPhase == phase {
+            return
+        }
+        let previousDurationMs: Int64 = lastNativeVisualPhaseAtEpochMs > 0
+            ? now - lastNativeVisualPhaseAtEpochMs
+            : -1
+        lastNativeVisualPhase = phase
+        lastNativeVisualPhaseAtEpochMs = now
+        let payload: [String: Any] = [
+            "event": "visualPhase",
+            "phase": phase,
+            "source": source,
+            "previousPhase": previousPhase ?? "",
+            "previousDurationMs": previousDurationMs,
+            "phaseStartedAtEpochMs": now,
+            "overlayVisible": !_view.snapshotView.isHidden,
+            "didRenderFirstFrame": didRenderFirstFrame,
+            "preferResumePoster": preferResumePoster,
+            "url": currentUrl ?? "",
+        ]
+        log("visualPhase phase=\(phase) source=\(source) overlayVisible=\(!_view.snapshotView.isHidden) url=\(currentUrl ?? "-")")
+        sendEvent(payload)
     }
 
     private func scheduleVisualLayerStabilization(forceReattach: Bool) {
