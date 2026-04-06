@@ -35,7 +35,26 @@ class AgendaFeedRefreshPlan {
   final List<String> freshScheduledIds;
 }
 
+class AgendaFeedBufferedWindowPlan {
+  const AgendaFeedBufferedWindowPlan({
+    required this.blockBaseCount,
+    required this.targetAgendaCount,
+    required this.startsNewBlock,
+  });
+
+  final int blockBaseCount;
+  final int targetAgendaCount;
+  final bool startsNewBlock;
+}
+
 class AgendaFeedApplicationService {
+  static const Map<_AgendaStartupBucket, int> _startupSupportSlotTargets =
+      <_AgendaStartupBucket, int>{
+    _AgendaStartupBucket.flood: 4,
+    _AgendaStartupBucket.image: 8,
+    _AgendaStartupBucket.text: 2,
+  };
+
   static const List<_AgendaStartupBucket> _startupPreferredSlotPlan =
       <_AgendaStartupBucket>[
     _AgendaStartupBucket.cacheVideo,
@@ -111,6 +130,71 @@ class AgendaFeedApplicationService {
       lastDoc: lastDoc,
       usesPrimaryFeed: usesPrimaryFeed,
     );
+  }
+
+  int resolveNextBufferedFetchTrigger({
+    required int currentTrigger,
+    required int viewedCount,
+    required int stride,
+  }) {
+    if (stride <= 0) return currentTrigger;
+    var nextTrigger = currentTrigger;
+    while (nextTrigger <= viewedCount) {
+      nextTrigger += stride;
+    }
+    return nextTrigger;
+  }
+
+  AgendaFeedBufferedWindowPlan? resolveBufferedWindowPlan({
+    required int viewedCount,
+    required int initialCount,
+    required int blockSize,
+    required int stepSize,
+  }) {
+    if (viewedCount < stepSize ||
+        initialCount <= 0 ||
+        blockSize <= 0 ||
+        stepSize <= 0) {
+      return null;
+    }
+
+    final normalizedViewedCount = viewedCount - stepSize;
+    final blockOffset = (normalizedViewedCount ~/ blockSize) * blockSize;
+    final blockBaseCount = initialCount + blockOffset;
+    final revealStepIndex = ((normalizedViewedCount % blockSize) ~/ stepSize) + 1;
+    final targetAgendaCount = blockBaseCount + (revealStepIndex * stepSize);
+
+    return AgendaFeedBufferedWindowPlan(
+      blockBaseCount: blockBaseCount,
+      targetAgendaCount: targetAgendaCount,
+      startsNewBlock: revealStepIndex == 1,
+    );
+  }
+
+  List<Map<String, dynamic>> capStartupRenderEntries({
+    required List<Map<String, dynamic>> renderEntries,
+    required int visiblePostCount,
+  }) {
+    if (renderEntries.isEmpty || visiblePostCount <= 0) {
+      return const <Map<String, dynamic>>[];
+    }
+    var shownPostCount = 0;
+    final capped = <Map<String, dynamic>>[];
+    for (final entry in renderEntries) {
+      final renderType = (entry['renderType'] ?? 'post').toString();
+      if (renderType == 'promo') {
+        if (shownPostCount > 0 && shownPostCount <= visiblePostCount) {
+          capped.add(entry);
+        }
+        continue;
+      }
+      if (shownPostCount >= visiblePostCount) {
+        break;
+      }
+      shownPostCount++;
+      capped.add(entry);
+    }
+    return capped;
   }
 
   AgendaFeedRefreshPlan buildRefreshPlan({
@@ -273,21 +357,23 @@ class AgendaFeedApplicationService {
     required int nowMs,
     int? startupVariantOverride,
     Set<String>? cacheReadyVideoDocIds,
+    bool preferLiveStartupHead = false,
   }) {
     final refreshPlan = buildRefreshPlan(
       currentItems: currentItems,
       fetchedPosts: liveItems,
       nowMs: nowMs,
     );
-    final fetchedById = <String, PostsModel>{
-      for (final post in liveItems) post.docID: post,
-    };
-    final updatedCurrentItems = currentItems
-        .map((post) => fetchedById[post.docID] ?? post)
-        .toList(growable: false);
+    final effectivePreferLiveStartupHead = preferLiveStartupHead &&
+        shouldPreferLiveStartupHeadForMerge(
+          currentItems: currentItems,
+          liveItems: liveItems,
+          targetCount: targetCount,
+        );
     final startupHead = composeStartupFeedItems(
       liveCandidates: liveItems,
-      cacheCandidates: updatedCurrentItems,
+      cacheCandidates:
+          effectivePreferLiveStartupHead ? const <PostsModel>[] : currentItems,
       targetCount: targetCount,
       startupVariantOverride: startupVariantOverride,
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
@@ -298,6 +384,31 @@ class AgendaFeedApplicationService {
       ...refreshPlan.replacementItems
           .where((post) => !startupHeadIds.contains(post.docID)),
     ];
+  }
+
+  bool shouldPreferLiveStartupHeadForMerge({
+    required List<PostsModel> currentItems,
+    required List<PostsModel> liveItems,
+    required int targetCount,
+  }) {
+    if (targetCount <= 0 || currentItems.isEmpty || liveItems.isEmpty) {
+      return true;
+    }
+
+    final currentDeficitScore = _startupSupportDeficitScore(
+      currentItems.take(targetCount),
+      targetCount: targetCount,
+    );
+    final liveOnlyHead = composeStartupFeedItems(
+      liveCandidates: liveItems,
+      cacheCandidates: const <PostsModel>[],
+      targetCount: targetCount,
+    );
+    final liveDeficitScore = _startupSupportDeficitScore(
+      liveOnlyHead,
+      targetCount: targetCount,
+    );
+    return liveDeficitScore <= currentDeficitScore;
   }
 
   List<PostsModel> _prepareStartupBucketCandidates(
@@ -438,7 +549,7 @@ class AgendaFeedApplicationService {
     PostsModel post, {
     required bool isLiveCandidate,
   }) {
-    if (post.isFloodSeriesRoot) {
+    if (post.isFloodSeriesContent) {
       return _AgendaStartupBucket.flood;
     }
     if (post.hasPlayableVideo) {
@@ -547,6 +658,47 @@ class AgendaFeedApplicationService {
       cacheCandidates: normalizedCache,
       liveCandidates: normalizedLive,
     );
+  }
+
+  int _startupSupportDeficitScore(
+    Iterable<PostsModel> posts, {
+    required int targetCount,
+  }) {
+    if (targetCount < _startupPreferredSlotPlan.length) {
+      return 0;
+    }
+    final counts = <_AgendaStartupBucket, int>{
+      _AgendaStartupBucket.flood: 0,
+      _AgendaStartupBucket.image: 0,
+      _AgendaStartupBucket.text: 0,
+    };
+    for (final post in posts.take(targetCount)) {
+      final bucket = _resolveStartupSupportBucket(post);
+      if (bucket == null) continue;
+      counts[bucket] = (counts[bucket] ?? 0) + 1;
+    }
+
+    var deficitScore = 0;
+    for (final entry in _startupSupportSlotTargets.entries) {
+      final missing = entry.value - (counts[entry.key] ?? 0);
+      if (missing > 0) {
+        deficitScore += missing;
+      }
+    }
+    return deficitScore;
+  }
+
+  _AgendaStartupBucket? _resolveStartupSupportBucket(PostsModel post) {
+    if (post.isFloodSeriesContent) {
+      return _AgendaStartupBucket.flood;
+    }
+    if (!post.hasVideoSignal && post.hasImageContent) {
+      return _AgendaStartupBucket.image;
+    }
+    if (!post.hasVideoSignal && !post.hasImageContent && post.hasTextContent) {
+      return _AgendaStartupBucket.text;
+    }
+    return null;
   }
 }
 

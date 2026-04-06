@@ -24,13 +24,12 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _advanceBufferedFeedFetchTrigger(int viewedCount) {
-    final stride = ReadBudgetRegistry.feedBufferedFetchLimit;
-    if (stride <= 0) return;
-    var nextTrigger = _nextBufferedFetchTriggerCount;
-    while (nextTrigger <= viewedCount) {
-      nextTrigger += stride;
-    }
-    _nextBufferedFetchTriggerCount = nextTrigger;
+    _nextBufferedFetchTriggerCount =
+        _agendaFeedApplicationService.resolveNextBufferedFetchTrigger(
+      currentTrigger: _nextBufferedFetchTriggerCount,
+      viewedCount: viewedCount,
+      stride: ReadBudgetRegistry.feedBufferedFetchLimit,
+    );
   }
 
   bool _reclaimFeedPlaybackFromExternalOwner(
@@ -683,6 +682,23 @@ extension AgendaControllerFeedPart on AgendaController {
         hasMore.value &&
         !isLoading.value &&
         viewedCount >= _nextBufferedFetchTriggerCount) {
+      final triggerCount = _nextBufferedFetchTriggerCount;
+      final bufferedPlan =
+          _agendaFeedApplicationService.resolveBufferedWindowPlan(
+        viewedCount: triggerCount,
+        initialCount: FeedSnapshotRepository.startupHomeLimitValue,
+        blockSize: ReadBudgetRegistry.feedLivePageLimit,
+        stepSize: ReadBudgetRegistry.feedBufferedFetchLimit,
+      );
+      final targetAgendaCount = bufferedPlan?.targetAgendaCount ??
+          (FeedSnapshotRepository.startupHomeLimitValue + triggerCount);
+      debugPrint(
+        '[FeedFetchTrigger] viewedCount=$viewedCount currentCount=${agendaList.length} '
+        'pageLimit=${ReadBudgetRegistry.feedBufferedFetchLimit} '
+        'triggerCount=$triggerCount '
+        'targetAgendaCount=$targetAgendaCount '
+        'blockBaseCount=${bufferedPlan?.blockBaseCount ?? 0}',
+      );
       _advanceBufferedFeedFetchTrigger(viewedCount);
       recordQALabScrollEvent(
         surface: 'feed',
@@ -700,6 +716,8 @@ extension AgendaControllerFeedPart on AgendaController {
       fetchAgendaBigData(
         pageLimit: ReadBudgetRegistry.feedBufferedFetchLimit,
         trigger: 'scroll_near_end',
+        targetAgendaCount: targetAgendaCount,
+        bufferedBlockBaseCount: bufferedPlan?.blockBaseCount,
       );
     }
 

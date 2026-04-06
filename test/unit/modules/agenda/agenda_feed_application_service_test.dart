@@ -405,6 +405,59 @@ void main() {
     });
 
     test(
+        'composeStartupFeedItems treats flood members as flood slots instead of cache video',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        20,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          8,
+          (index) => _floodMemberVideoPost(id: 'flm${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          10,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+      );
+
+      expect(result, hasLength(30));
+      expect(
+        result.map(_startupKindForPost).toList(growable: false),
+        containsAllInOrder(<String>[
+          'cache',
+          'cache',
+          'cache',
+          'image',
+          'live',
+          'live',
+          'flood',
+        ]),
+      );
+      expect(
+        result.where((post) => _startupKindForPost(post) == 'flood').length,
+        4,
+      );
+    });
+
+    test(
         'mergeStartupHeadWithCurrentItems keeps mixed startup head and preserves unique tail items',
         () {
       final service = AgendaFeedApplicationService();
@@ -462,6 +515,241 @@ void main() {
       expect(
         merged.any((post) => post.docID == 'tx1'),
         isTrue,
+      );
+    });
+
+    test('resolveNextBufferedFetchTrigger advances in ten-card strides', () {
+      final service = AgendaFeedApplicationService();
+
+      expect(
+        service.resolveNextBufferedFetchTrigger(
+          currentTrigger: 10,
+          viewedCount: 10,
+          stride: 10,
+        ),
+        20,
+      );
+      expect(
+        service.resolveNextBufferedFetchTrigger(
+          currentTrigger: 20,
+          viewedCount: 20,
+          stride: 10,
+        ),
+        30,
+      );
+      expect(
+        service.resolveNextBufferedFetchTrigger(
+          currentTrigger: 30,
+          viewedCount: 30,
+          stride: 10,
+        ),
+        40,
+      );
+      expect(
+        service.resolveNextBufferedFetchTrigger(
+          currentTrigger: 10,
+          viewedCount: 27,
+          stride: 10,
+        ),
+        30,
+      );
+    });
+
+    test('resolveBufferedWindowPlan locks thirty-card blocks in ten-card steps',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final planAt10 = service.resolveBufferedWindowPlan(
+        viewedCount: 10,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt10, isNotNull);
+      expect(planAt10!.blockBaseCount, 30);
+      expect(planAt10.targetAgendaCount, 40);
+      expect(planAt10.startsNewBlock, isTrue);
+
+      final planAt20 = service.resolveBufferedWindowPlan(
+        viewedCount: 20,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt20, isNotNull);
+      expect(planAt20!.blockBaseCount, 30);
+      expect(planAt20.targetAgendaCount, 50);
+      expect(planAt20.startsNewBlock, isFalse);
+
+      final planAt30 = service.resolveBufferedWindowPlan(
+        viewedCount: 30,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt30, isNotNull);
+      expect(planAt30!.blockBaseCount, 30);
+      expect(planAt30.targetAgendaCount, 60);
+      expect(planAt30.startsNewBlock, isFalse);
+
+      final planAt40 = service.resolveBufferedWindowPlan(
+        viewedCount: 40,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt40, isNotNull);
+      expect(planAt40!.blockBaseCount, 60);
+      expect(planAt40.targetAgendaCount, 70);
+      expect(planAt40.startsNewBlock, isTrue);
+    });
+
+    test('capStartupRenderEntries keeps only first six posts and their promos',
+        () {
+      final service = AgendaFeedApplicationService();
+      final renderEntries = List<Map<String, dynamic>>.generate(30, (index) {
+        final postNumber = index + 1;
+        return <String, dynamic>{
+          'renderType': 'post',
+          'postNumber': postNumber,
+        };
+      }).expand((entry) sync* {
+        final postNumber = entry['postNumber']! as int;
+        yield entry;
+        if (postNumber % 3 == 0) {
+          yield <String, dynamic>{
+            'renderType': 'promo',
+            'slotNumber': postNumber ~/ 3,
+          };
+        }
+      }).toList(growable: false);
+
+      final capped = service.capStartupRenderEntries(
+        renderEntries: renderEntries,
+        visiblePostCount: 6,
+      );
+
+      expect(capped.length, 8);
+      expect(
+        capped.where((entry) => entry['renderType'] == 'post').length,
+        6,
+      );
+      expect(
+        capped.where((entry) => entry['renderType'] == 'promo').length,
+        2,
+      );
+      expect(
+        capped
+            .where((entry) => entry['renderType'] == 'post')
+            .map((entry) => entry['postNumber']),
+        orderedEquals(<int>[1, 2, 3, 4, 5, 6]),
+      );
+
+      final cappedFifteen = service.capStartupRenderEntries(
+        renderEntries: renderEntries,
+        visiblePostCount: 15,
+      );
+      expect(
+        cappedFifteen.where((entry) => entry['renderType'] == 'post').length,
+        15,
+      );
+      expect(
+        cappedFifteen.where((entry) => entry['renderType'] == 'promo').length,
+        5,
+      );
+      expect(cappedFifteen.length, 20);
+
+      final cappedThirty = service.capStartupRenderEntries(
+        renderEntries: renderEntries,
+        visiblePostCount: 30,
+      );
+      expect(cappedThirty, orderedEquals(renderEntries));
+    });
+
+    test(
+        'mergeStartupHeadWithCurrentItems keeps flood-complete startup head when live-only head is weaker',
+        () {
+      final service = AgendaFeedApplicationService();
+      final nowMs = DateTime(2026, 4, 7, 0, 30).millisecondsSinceEpoch;
+
+      final currentItems = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          8,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+      final liveItems = <PostsModel>[
+        ...List<PostsModel>.generate(
+          24,
+          (index) => _readyVideoPost(id: 'lv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          6,
+          (index) => _imagePost(id: 'lim${index + 1}'),
+        ),
+      ];
+
+      final merged = service.mergeStartupHeadWithCurrentItems(
+        currentItems: currentItems,
+        liveItems: liveItems,
+        targetCount: 30,
+        nowMs: nowMs,
+        preferLiveStartupHead: true,
+      );
+
+      expect(
+        merged.take(30).map(_startupKindForPost).toList(growable: false),
+        const <String>[
+          'cache',
+          'cache',
+          'cache',
+          'image',
+          'live',
+          'live',
+          'flood',
+          'cache',
+          'live',
+          'cache',
+          'text',
+          'live',
+          'live',
+          'image',
+          'cache',
+          'image',
+          'live',
+          'flood',
+          'live',
+          'live',
+          'image',
+          'text',
+          'cache',
+          'image',
+          'live',
+          'flood',
+          'image',
+          'live',
+          'image',
+          'flood',
+        ],
+      );
+      expect(
+        merged
+            .take(30)
+            .where((post) => _startupKindForPost(post) == 'flood')
+            .length,
+        4,
       );
     });
   });
@@ -546,11 +834,23 @@ PostsModel _floodPost({
     ..thumbnail = 'https://cdn.example.com/$id-thumb.jpg';
 }
 
+PostsModel _floodMemberVideoPost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _readyVideoPost(id: id, timeStamp: timeStamp)
+    ..flood = true
+    ..mainFlood = 'series-$id';
+}
+
 String _startupKindForPost(PostsModel post) {
-  if (post.docID.startsWith('lv')) return 'live';
-  if (post.docID.startsWith('cv')) return 'cache';
-  if (post.docID.startsWith('im')) return 'image';
-  if (post.docID.startsWith('fl')) return 'flood';
-  if (post.docID.startsWith('tx')) return 'text';
+  if (post.isFloodSeriesContent) return 'flood';
+  if (post.hasPlayableVideo) {
+    return post.docID.startsWith('lv') ? 'live' : 'cache';
+  }
+  if (!post.hasVideoSignal && post.hasImageContent) return 'image';
+  if (!post.hasVideoSignal && !post.hasImageContent && post.hasTextContent) {
+    return 'text';
+  }
   return 'other';
 }

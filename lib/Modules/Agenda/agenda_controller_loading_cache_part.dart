@@ -1,6 +1,26 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  Future<T> _profileFeedStartupCacheStep<T>(
+    String label,
+    Future<T> Function() action,
+  ) async {
+    final startedAt = DateTime.now();
+    debugPrint('[FeedStartupCache] start:$label');
+    try {
+      final result = await action();
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint('[FeedStartupCache] end:$label elapsedMs=$elapsedMs');
+      return result;
+    } catch (error) {
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint(
+        '[FeedStartupCache] fail:$label elapsedMs=$elapsedMs error=$error',
+      );
+      rethrow;
+    }
+  }
+
   Future<List<PostsModel>> _hydrateStartupAuthorIdentityFromCache(
     List<PostsModel> posts,
   ) async {
@@ -20,52 +40,142 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         cacheOnly: true,
       );
     } catch (_) {}
-    if (summaries.isEmpty) return posts;
+
+    final unresolvedIds = authorIds.where((uid) {
+      final summary = summaries[uid];
+      return summary == null || summary.avatarUrl.trim().isEmpty;
+    }).toList(growable: false);
+    final cachedProfiles = <String, Map<String, dynamic>>{};
+    if (unresolvedIds.isNotEmpty) {
+      try {
+        cachedProfiles.addAll(
+          await _profileCache.getProfiles(
+            unresolvedIds,
+            preferCache: true,
+            cacheOnly: true,
+          ),
+        );
+      } catch (_) {}
+    }
+    if (summaries.isEmpty && cachedProfiles.isEmpty) return posts;
 
     return posts.map((post) {
       final summary = summaries[post.userID.trim()];
-      if (summary == null) return post;
+      final profile = cachedProfiles[post.userID.trim()];
+      final profileNickname = (profile?['nickname'] ?? '').toString().trim();
+      final profileDisplayName =
+          (profile?['displayName'] ?? '').toString().trim();
+      final profileAvatarUrl = CdnUrlBuilder.toCdnUrl(
+        (profile?['avatarUrl'] ?? '').toString().trim(),
+      );
+      final profileRozet = (profile?['rozet'] ?? '').toString().trim();
+      final summaryNickname = summary?.nickname.trim() ?? '';
+      final summaryDisplayName = summary?.displayName.trim() ?? '';
+      final summaryAvatarUrl =
+          CdnUrlBuilder.toCdnUrl(summary?.avatarUrl.trim() ?? '');
+      final summaryRozet = summary?.rozet.trim() ?? '';
+      if (summary == null && profile == null) return post;
       return post.copyWith(
         authorNickname: post.authorNickname.trim().isNotEmpty
             ? post.authorNickname
-            : summary.nickname.trim(),
+            : (summaryNickname.isNotEmpty ? summaryNickname : profileNickname),
         authorDisplayName: post.authorDisplayName.trim().isNotEmpty
             ? post.authorDisplayName
-            : summary.displayName.trim(),
+            : (summaryDisplayName.isNotEmpty
+                ? summaryDisplayName
+                : profileDisplayName),
         authorAvatarUrl: post.authorAvatarUrl.trim().isNotEmpty
             ? post.authorAvatarUrl
-            : summary.avatarUrl.trim(),
+            : (summaryAvatarUrl.isNotEmpty
+                ? summaryAvatarUrl
+                : profileAvatarUrl),
         rozet: post.rozet.trim().isNotEmpty
             ? post.rozet
-            : summary.rozet.trim(),
+            : (summaryRozet.isNotEmpty ? summaryRozet : profileRozet),
       );
     }).toList(growable: false);
   }
 
   Future<void> _primeStartupAvatarHints(Iterable<PostsModel> posts) async {
-    final urls = posts
-        .map((post) => post.authorAvatarUrl.trim())
-        .where((url) => url.isNotEmpty)
-        .toSet()
-        .take(12)
-        .toList(growable: false);
+    final urls = <String>[];
+    final seen = <String>{};
+    for (final post in posts) {
+      final url = CdnUrlBuilder.toCdnUrl(post.authorAvatarUrl.trim());
+      if (url.isEmpty || !seen.add(url)) continue;
+      urls.add(url);
+      if (urls.length >= 12) break;
+    }
     if (urls.isEmpty) return;
 
-    for (final url in urls) {
+    Future<void> primeUrl(
+      String url, {
+      required bool allowNetwork,
+    }) async {
       try {
+        final remembered =
+            TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
+        if (remembered.isNotEmpty) return;
         final cached = await TurqImageCacheManager.instance.getFileFromCache(
           url,
         );
-        final path = cached?.file.path ?? '';
-        if (path.isEmpty) continue;
+        var path = cached?.file.path ?? '';
+        if (path.isEmpty && allowNetwork) {
+          final file = await TurqImageCacheManager.warmUrl(url).timeout(
+            const Duration(milliseconds: 220),
+            onTimeout: () => throw TimeoutException('avatar_warm_timeout'),
+          );
+          path = file.path;
+        }
+        if (path.isEmpty) return;
         TurqImageCacheManager.rememberResolvedFile(url, path);
       } catch (_) {}
+    }
+
+    final criticalCount = ContentPolicy.isOnWiFi ? 4 : 0;
+    final criticalUrls = urls.take(criticalCount).toList(growable: false);
+    final nonCriticalUrls = urls.skip(criticalCount).toList(growable: false);
+
+    if (criticalUrls.isNotEmpty) {
+      await Future.wait(
+        criticalUrls.map(
+          (url) => primeUrl(
+            url,
+            allowNetwork: true,
+          ),
+        ),
+      );
+    }
+    for (final url in nonCriticalUrls) {
+      await primeUrl(
+        url,
+        allowNetwork: false,
+      );
     }
   }
 
   int _startupSeedLoadLimit(int targetCount) {
     if (targetCount <= 0) return 0;
     return 210;
+  }
+
+  int _startupShardCandidateLimit(int targetCount) {
+    if (targetCount <= 0) return 0;
+    return min(_startupSeedLoadLimit(targetCount), 90);
+  }
+
+  bool _hasStartupVariationRoom(
+    Iterable<PostsModel> candidates, {
+    required int targetCount,
+  }) {
+    if (targetCount <= 0) return false;
+    var count = 0;
+    for (final _ in candidates) {
+      count++;
+      if (count > targetCount) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _scheduleStartupQuickFillFollowUps(
@@ -123,6 +233,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     };
   }
 
+  int _feedStartupVariantOverride() => startupVariantIndexForSurface(
+        surfaceKey: 'feed_startup_head',
+        sessionNamespace: 'feed',
+        variantCount: 997,
+      );
+
   List<PostsModel> _composeStartupFeedItems({
     required List<PostsModel> cacheCandidates,
     List<PostsModel> liveCandidates = const <PostsModel>[],
@@ -138,6 +254,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       liveCandidates: liveCandidates,
       cacheCandidates: cacheCandidates,
       targetCount: targetCount,
+      startupVariantOverride: _feedStartupVariantOverride(),
       cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(<PostsModel>[
         ...cacheCandidates,
         ...liveCandidates,
@@ -152,7 +269,239 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           liveCandidates: liveCandidates,
         ),
       );
+    assert(() {
+      final cacheDocIds = <String>{
+        for (final post in cacheCandidates)
+          if (post.docID.trim().isNotEmpty) post.docID.trim(),
+      };
+      final liveDocIds = <String>{
+        for (final post in liveCandidates)
+          if (post.docID.trim().isNotEmpty) post.docID.trim(),
+      };
+      final slots = shownItems.asMap().entries.map((entry) {
+        final post = entry.value;
+        final docId = post.docID.trim();
+        final kind = _startupDebugKindForPost(
+          post,
+          cacheDocIds: cacheDocIds,
+          liveDocIds: liveDocIds,
+        );
+        return '${entry.key + 1}:$kind:$docId';
+      }).join(' | ');
+      debugPrint('[FeedStartupOrder] count=${shownItems.length} slots=$slots');
+      return true;
+    }());
     return shownItems;
+  }
+
+  String _startupDebugKindForPost(
+    PostsModel post, {
+    required Set<String> cacheDocIds,
+    required Set<String> liveDocIds,
+  }) {
+    final docId = post.docID.trim();
+    final origin = cacheDocIds.contains(docId)
+        ? 'cache'
+        : (liveDocIds.contains(docId) ? 'live' : 'mixed');
+    if (post.isFloodSeriesContent) return 'flood@$origin';
+    final text = post.metin.trim().isNotEmpty;
+    final hasMedia = post.img.any((entry) => entry.trim().isNotEmpty) ||
+        post.video.trim().isNotEmpty ||
+        post.thumbnail.trim().isNotEmpty;
+    if (text && !hasMedia) return 'text@$origin';
+    if (post.hasPlayableVideo) {
+      return origin == 'live' ? 'live' : 'cache';
+    }
+    return 'image@$origin';
+  }
+
+  static const Map<String, int> _startupSupportSlotTargets = <String, int>{
+    'flood': 4,
+    'image': 8,
+    'text': 2
+  };
+
+  int _startupSupportFallbackCutoffMs(int nowMs) =>
+      nowMs - const Duration(days: 30).inMilliseconds;
+
+  String? _startupSupportKind(PostsModel post) {
+    if (post.isFloodSeriesContent) return 'flood';
+    if (post.hasPlayableVideo) return null;
+    final hasText = post.metin.trim().isNotEmpty;
+    final hasImage = post.img.any((entry) => entry.trim().isNotEmpty) ||
+        post.thumbnail.trim().isNotEmpty;
+    if (hasText && !hasImage) return 'text';
+    if (hasImage) return 'image';
+    return null;
+  }
+
+  Map<String, int> _startupSupportDeficits(
+    List<PostsModel> posts, {
+    required int targetCount,
+  }) {
+    if (targetCount < FeedSnapshotRepository.startupHomeLimitValue) {
+      return const <String, int>{};
+    }
+    final counts = <String, int>{'flood': 0, 'image': 0, 'text': 0};
+    for (final post in posts) {
+      final kind = _startupSupportKind(post);
+      if (kind == null) continue;
+      counts[kind] = (counts[kind] ?? 0) + 1;
+    }
+    final deficits = <String, int>{};
+    for (final entry in _startupSupportSlotTargets.entries) {
+      final current = counts[entry.key] ?? 0;
+      final missing = entry.value - current;
+      if (missing > 0) {
+        deficits[entry.key] = missing;
+      }
+    }
+    return deficits;
+  }
+
+  Map<String, int> _startupSupportCounts(
+    Iterable<PostsModel> posts,
+  ) {
+    final counts = <String, int>{'flood': 0, 'image': 0, 'text': 0};
+    for (final post in posts) {
+      final kind = _startupSupportKind(post);
+      if (kind == null) continue;
+      counts[kind] = (counts[kind] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  Future<List<PostsModel>> _augmentStartupSupportCandidates({
+    required List<PostsModel> candidates,
+    required int nowMs,
+    required int primaryCutoffMs,
+    required int targetCount,
+    required bool preferCache,
+    required bool cacheOnly,
+    bool allowNetworkFallbackFetch = true,
+  }) async {
+    final monthCutoffMs = _startupSupportFallbackCutoffMs(nowMs);
+    final seenDocIds = <String>{};
+    final primaryCandidates = <PostsModel>[];
+    final fallbackPool = <PostsModel>[];
+
+    for (final post in candidates) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) continue;
+      final ts = post.timeStamp.toInt();
+      if (ts >= primaryCutoffMs) {
+        primaryCandidates.add(post);
+        continue;
+      }
+      if (ts < monthCutoffMs) {
+        continue;
+      }
+      final kind = _startupSupportKind(post);
+      if (kind == null) {
+        continue;
+      }
+      fallbackPool.add(post);
+    }
+
+    if (primaryCandidates.length != candidates.length) {
+      debugPrint(
+        '[FeedStartupWindow] primary=${primaryCandidates.length} '
+        'fallbackPool=${fallbackPool.length} '
+        'dropped=${candidates.length - primaryCandidates.length - fallbackPool.length}',
+      );
+    }
+
+    final deficits = _startupSupportDeficits(
+      primaryCandidates,
+      targetCount: targetCount,
+    );
+    debugPrint(
+      '[FeedStartupSupport] primaryCounts=${_startupSupportCounts(primaryCandidates)} '
+      'fallbackPoolCounts=${_startupSupportCounts(fallbackPool)} '
+      'deficits=$deficits targetCount=$targetCount',
+    );
+    if (deficits.isEmpty) {
+      return primaryCandidates;
+    }
+
+    final fallbackLimit =
+        max(FeedSnapshotRepository.startupHomeLimitValue * 4, 120);
+    final remaining = Map<String, int>.from(deficits);
+    final additions = <PostsModel>[];
+
+    for (final post in fallbackPool) {
+      final kind = _startupSupportKind(post);
+      if (kind == null) continue;
+      final missing = remaining[kind] ?? 0;
+      if (missing <= 0) continue;
+      additions.add(post);
+      remaining[kind] = missing - 1;
+      if (remaining.values.every((value) => value <= 0)) {
+        break;
+      }
+    }
+
+    if (remaining.values.every((value) => value <= 0)) {
+      return <PostsModel>[
+        ...primaryCandidates,
+        ...additions,
+      ];
+    }
+
+    if (!allowNetworkFallbackFetch) {
+      return <PostsModel>[
+        ...primaryCandidates,
+        ...additions,
+      ];
+    }
+
+    final page = await _loadAgendaSourcePage(
+      nowMs: nowMs,
+      cutoffMs: monthCutoffMs,
+      limit: fallbackLimit,
+      useStoredCursor: false,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    if (page.items.isEmpty) {
+      debugPrint(
+        '[FeedStartupSupport] fallbackPageCounts={} remaining=$remaining',
+      );
+      return <PostsModel>[
+        ...primaryCandidates,
+        ...additions,
+      ];
+    }
+
+    debugPrint(
+      '[FeedStartupSupport] fallbackPageCounts=${_startupSupportCounts(page.items)} '
+      'remainingBeforeScan=$remaining',
+    );
+
+    for (final post in page.items) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) continue;
+      final ts = post.timeStamp.toInt();
+      if (ts < monthCutoffMs) continue;
+      final kind = _startupSupportKind(post);
+      if (kind == null) continue;
+      final missing = remaining[kind] ?? 0;
+      if (missing <= 0) continue;
+      additions.add(post);
+      remaining[kind] = missing - 1;
+      if (remaining.values.every((value) => value <= 0)) {
+        break;
+      }
+    }
+
+    if (additions.isNotEmpty) {
+      debugPrint(
+        '[FeedStartupSupportFallback] primary=${primaryCandidates.length} '
+        'added=${additions.length} deficits=$deficits '
+        'remaining=$remaining sample=${additions.take(5).map((post) => post.docID).join(',')}',
+      );
+    }
+    return <PostsModel>[...primaryCandidates, ...additions];
   }
 
   List<PostsModel> _mergeStartupHeadWithCurrentItems({
@@ -168,8 +517,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       liveItems: liveItems,
       targetCount: targetCount,
       nowMs: nowMs,
-      startupVariantOverride: startupVariantOverride,
+      startupVariantOverride:
+          startupVariantOverride ?? _feedStartupVariantOverride(),
       cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(currentItems),
+      preferLiveStartupHead: true,
     );
     _startupCacheOriginVideoDocIds
       ..clear()
@@ -243,8 +594,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         limit ?? FeedSnapshotRepository.startupHomeLimitValue;
     await _tryQuickFillFromPool(limit: effectiveLimit);
     if (agendaList.isNotEmpty) return;
-
     if (ContentPolicy.isConnected) {
+      debugPrint(
+        '[FeedStartupCache] status=skip_connected_cache_seed_fill '
+        'targetCount=$effectiveLimit',
+      );
       return;
     }
 
@@ -259,8 +613,17 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       preferCache: true,
       cacheOnly: true,
     );
+    final startupCandidates = await _augmentStartupSupportCandidates(
+      candidates: page.items,
+      nowMs: nowMs,
+      primaryCutoffMs: cutoffMs,
+      targetCount: effectiveLimit,
+      preferCache: true,
+      cacheOnly: true,
+      allowNetworkFallbackFetch: true,
+    );
     final filtered = _composeStartupFeedItems(
-      cacheCandidates: page.items,
+      cacheCandidates: startupCandidates,
       targetCount: effectiveLimit,
     );
     if (filtered.isEmpty) return;
@@ -270,8 +633,15 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final toAdd =
         quickFilled.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
+      final shouldActivateStartupStages = agendaList.isEmpty;
       _addUniqueToAgenda(toAdd);
       _reorderAgendaForStartupPresentationIfNeeded();
+      if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+        _activateStartupRenderStages(
+          reason: 'quick_fill_cache',
+        );
+      }
+      _applyStartupRenderStagesNow();
       _scheduleStartupQuickFillFollowUps(
         toAdd,
         includeReshareFetch: true,
@@ -292,27 +662,172 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (me.isEmpty) return false;
     final effectiveLimit =
         limit ?? FeedSnapshotRepository.startupHomeLimitValue;
+    final startupShardLimit = _startupShardCandidateLimit(effectiveLimit);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final allowStartupShardQuickFill = !ContentPolicy.isConnected;
+    final shardSeed = allowStartupShardQuickFill
+        ? await _profileFeedStartupCacheStep(
+            'inspect_startup_shard',
+            () => _feedSnapshotRepository.inspectHomeStartupShard(
+              userId: me,
+              limit: startupShardLimit,
+            ),
+          )
+        : const <PostsModel>[];
+    if (!allowStartupShardQuickFill) {
+      debugPrint(
+        '[FeedStartupShard] status=skip_connected '
+        'targetCount=$effectiveLimit',
+      );
+    }
+    if (shardSeed.isNotEmpty) {
+      debugPrint(
+        '[FeedStartupShard] count=${shardSeed.length} '
+        'sample=${shardSeed.take(5).map((post) => post.docID).join(',')}',
+      );
+      if (!_hasStartupVariationRoom(
+        shardSeed,
+        targetCount: effectiveLimit,
+      )) {
+        debugPrint(
+          '[FeedStartupShard] status=skip_insufficient_variation '
+          'count=${shardSeed.length} targetCount=$effectiveLimit',
+        );
+      } else {
+        final startupCandidates = await _profileFeedStartupCacheStep(
+          'augment_support_from_shard',
+          () => _augmentStartupSupportCandidates(
+            candidates: shardSeed,
+            nowMs: nowMs,
+            primaryCutoffMs: _agendaCutoffMs(nowMs),
+            targetCount: effectiveLimit,
+            preferCache: true,
+            cacheOnly: true,
+            allowNetworkFallbackFetch: true,
+          ),
+        );
+        final quickFiltered = _composeStartupFeedItems(
+          cacheCandidates: startupCandidates,
+          targetCount: effectiveLimit,
+        );
+        if (quickFiltered.isNotEmpty) {
+          final quickFilled = await _profileFeedStartupCacheStep(
+            'hydrate_author_identity_from_shard',
+            () => _hydrateStartupAuthorIdentityFromCache(quickFiltered),
+          );
+          await _profileFeedStartupCacheStep(
+            'prime_avatar_hints_from_shard',
+            () => _primeStartupAvatarHints(quickFilled),
+          );
+          _startupLiveHeadApplied = false;
+          final shouldActivateStartupStages = agendaList.isEmpty;
+          _addUniqueToAgenda(quickFilled);
+          _reorderAgendaForStartupPresentationIfNeeded();
+          if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+            _activateStartupRenderStages(
+              reason: 'quick_fill_shard',
+            );
+          }
+          _applyStartupRenderStagesNow();
+          _scheduleStartupQuickFillFollowUps(quickFilled);
+          if (agendaList.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+                primeInitialCenteredPost();
+              }
+            });
+          }
+          return true;
+        }
+      }
+    }
+
     final seedLoadLimit = _startupSeedLoadLimit(effectiveLimit);
-    final snapshot = await _feedSnapshotRepository.bootstrapHome(
-      userId: me,
-      limit: seedLoadLimit,
+    final snapshot = await _profileFeedStartupCacheStep(
+      'bootstrap_home_snapshot',
+      () => _feedSnapshotRepository.bootstrapHome(
+        userId: me,
+        limit: seedLoadLimit,
+      ),
     );
     final hadWarmSnapshot = snapshot.hasLocalSnapshot;
     final warmSeed = snapshot.data ?? const <PostsModel>[];
     if (warmSeed.isEmpty) return hadWarmSnapshot;
+    if (ContentPolicy.isConnected && snapshot.isStale) {
+      debugPrint(
+        '[FeedStartupCache] status=skip_connected_stale_warm_snapshot '
+        'count=${warmSeed.length} targetCount=$effectiveLimit',
+      );
+      return hadWarmSnapshot;
+    }
+    final useFreshConnectedWarmSnapshot = ContentPolicy.isConnected &&
+        !snapshot.isStale &&
+        snapshot.source == CachedResourceSource.server &&
+        warmSeed.length >= effectiveLimit;
+    if (!_hasStartupVariationRoom(warmSeed, targetCount: effectiveLimit) &&
+        !useFreshConnectedWarmSnapshot) {
+      debugPrint(
+        '[FeedStartupCache] status=skip_warm_snapshot_insufficient_variation '
+        'count=${warmSeed.length} targetCount=$effectiveLimit',
+      );
+      return hadWarmSnapshot;
+    }
+    if (useFreshConnectedWarmSnapshot) {
+      debugPrint(
+        '[FeedStartupCache] status=use_connected_fresh_warm_snapshot '
+        'count=${warmSeed.length} targetCount=$effectiveLimit '
+        'source=${snapshot.source.name}',
+      );
+    }
+    final startupCandidates = await _profileFeedStartupCacheStep(
+      'augment_support_from_warm_snapshot',
+      () => _augmentStartupSupportCandidates(
+        candidates: warmSeed,
+        nowMs: nowMs,
+        primaryCutoffMs: _agendaCutoffMs(nowMs),
+        targetCount: effectiveLimit,
+        preferCache: true,
+        cacheOnly: true,
+        allowNetworkFallbackFetch: true,
+      ),
+    );
 
     final quickFiltered = _composeStartupFeedItems(
-      cacheCandidates: warmSeed,
+      cacheCandidates: startupCandidates,
       targetCount: effectiveLimit,
     );
     if (quickFiltered.isEmpty) return hadWarmSnapshot;
-    final quickFilled =
-        await _hydrateStartupAuthorIdentityFromCache(quickFiltered);
-    await _primeStartupAvatarHints(quickFilled);
-    _startupLiveHeadApplied = false;
+    final quickFilled = await _profileFeedStartupCacheStep(
+      'hydrate_author_identity_from_warm_snapshot',
+      () => _hydrateStartupAuthorIdentityFromCache(quickFiltered),
+    );
+    await _profileFeedStartupCacheStep(
+      'prime_avatar_hints_from_warm_snapshot',
+      () => _primeStartupAvatarHints(quickFilled),
+    );
+    final warmSnapshotSupportDeficits = _startupSupportDeficits(
+      quickFilled,
+      targetCount: effectiveLimit,
+    );
+    final warmSnapshotHasSupportCoverage = warmSnapshotSupportDeficits.isEmpty;
+    if (useFreshConnectedWarmSnapshot && !warmSnapshotHasSupportCoverage) {
+      debugPrint(
+        '[FeedStartupCache] status=warm_snapshot_missing_support '
+        'deficits=$warmSnapshotSupportDeficits targetCount=$effectiveLimit',
+      );
+    }
+    _startupLiveHeadApplied =
+        useFreshConnectedWarmSnapshot && warmSnapshotHasSupportCoverage;
 
+    final shouldActivateStartupStages = agendaList.isEmpty;
     _addUniqueToAgenda(quickFilled);
     _reorderAgendaForStartupPresentationIfNeeded();
+    if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+      _activateStartupRenderStages(
+        reason: 'quick_fill_warm_snapshot',
+      );
+    }
+    _applyStartupRenderStagesNow();
     _scheduleStartupQuickFillFollowUps(quickFilled);
 
     if (agendaList.isNotEmpty) {
@@ -328,11 +843,23 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   Future<void> _revalidateQuickFilledAgenda(List<PostsModel> shown) async {
     if (shown.isEmpty ||
         !ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)) {
+      debugPrint(
+        '[FeedStartupHeadSync] source=quick_fill_revalidate status=skipped '
+        'shownEmpty=${shown.isEmpty} '
+        'backgroundRefreshAllowed=${ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed)}',
+      );
       return;
     }
     try {
       final protectVisibleAgenda =
           ContentPolicy.isConnected && agendaList.isNotEmpty;
+      debugPrint(
+        '[FeedStartupHeadSync] source=quick_fill_revalidate status=begin '
+        'protectVisibleAgenda=$protectVisibleAgenda '
+        'startupPresentationApplied=$_startupPresentationApplied '
+        'startupLiveHeadApplied=$_startupLiveHeadApplied '
+        'agendaCount=${agendaList.length} shownCount=${shown.length}',
+      );
       if (protectVisibleAgenda && !_startupLiveHeadApplied) {
         try {
           await syncFeedHeadAfterSurfaceOpen();
@@ -542,6 +1069,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     bool preferCache = true,
     bool cacheOnly = false,
     bool? usePrimaryFeedPaging,
+    bool includeSupplementalSources = true,
   }) async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
@@ -574,6 +1102,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       preferCache: preferCache,
       cacheOnly: cacheOnly,
       usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
+      includeSupplementalSources: includeSupplementalSources,
     );
     return _AgendaSourcePage(
       page.items,
@@ -613,11 +1142,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final ordered = agendaList.toList(growable: false)
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
     return ordered.take(limit).toList(growable: false);
-  }
-
-  List<PostsModel> _buildVisibleAgendaSnapshot({required int limit}) {
-    if (limit <= 0) return const <PostsModel>[];
-    return agendaList.take(limit).toList(growable: false);
   }
 
   List<List<T>> _chunkList<T>(List<T> input, int size) {

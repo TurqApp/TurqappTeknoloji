@@ -30,6 +30,7 @@ class _AgendaControllerState {
   Timer? agendaRetryTimer;
   Timer? deferredInitialNetworkBootstrapTimer;
   Timer? startupPromoRevealTimer;
+  Timer? startupRenderStageTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -76,7 +77,11 @@ class _AgendaControllerState {
   bool startupPromoRevealApplied = false;
   bool startupPromoRevealUnlockedByScroll = false;
   bool startupPromoRevealSawUserDrag = false;
+  bool startupRenderStagingActive = false;
+  int startupRenderVisiblePostCount = 0;
   final startupCacheOriginVideoDocIds = <String>{};
+  final bufferedFeedBlockItems = <PostsModel>[];
+  int bufferedFeedBlockBaseCount = 0;
   int nextBufferedFetchTriggerCount =
       ReadBudgetRegistry.feedBufferedFetchLimit;
 }
@@ -138,6 +143,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   Timer? get _startupPromoRevealTimer => _state.startupPromoRevealTimer;
   set _startupPromoRevealTimer(Timer? value) =>
       _state.startupPromoRevealTimer = value;
+  Timer? get _startupRenderStageTimer => _state.startupRenderStageTimer;
+  set _startupRenderStageTimer(Timer? value) =>
+      _state.startupRenderStageTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -236,7 +244,6 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupPromoRevealQueued => _state.startupPromoRevealQueued;
   set _startupPromoRevealQueued(bool value) =>
       _state.startupPromoRevealQueued = value;
-  bool get _startupPromoRevealApplied => _state.startupPromoRevealApplied;
   set _startupPromoRevealApplied(bool value) =>
       _state.startupPromoRevealApplied = value;
   bool get _startupPromoRevealUnlockedByScroll =>
@@ -247,8 +254,18 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.startupPromoRevealSawUserDrag;
   set _startupPromoRevealSawUserDrag(bool value) =>
       _state.startupPromoRevealSawUserDrag = value;
+  bool get _startupRenderStagingActive => _state.startupRenderStagingActive;
+  set _startupRenderStagingActive(bool value) =>
+      _state.startupRenderStagingActive = value;
+  int get _startupRenderVisiblePostCount => _state.startupRenderVisiblePostCount;
+  set _startupRenderVisiblePostCount(int value) =>
+      _state.startupRenderVisiblePostCount = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
+  List<PostsModel> get _bufferedFeedBlockItems => _state.bufferedFeedBlockItems;
+  int get _bufferedFeedBlockBaseCount => _state.bufferedFeedBlockBaseCount;
+  set _bufferedFeedBlockBaseCount(int value) =>
+      _state.bufferedFeedBlockBaseCount = value;
   int get _nextBufferedFetchTriggerCount =>
       _state.nextBufferedFetchTriggerCount;
   set _nextBufferedFetchTriggerCount(int value) =>
