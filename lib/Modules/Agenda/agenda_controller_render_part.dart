@@ -2,6 +2,9 @@ part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
   void _scheduleStartupPromoReveal({int attempt = 0}) {
+    if (!_startupPromoRevealUnlockedByScroll) {
+      return;
+    }
     if (_startupPromoRevealQueued ||
         _startupPromoRevealTimer?.isActive == true) {
       return;
@@ -19,14 +22,44 @@ extension AgendaControllerRenderPart on AgendaController {
         return;
       }
       final prefetch = maybeFindPrefetchScheduler();
-      final readyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+      final navReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
+      final readyThreshold = navReadyThreshold < 10 ? 10 : navReadyThreshold;
       final waitingForStartupPromoWindow = prefetch == null ||
           prefetch.feedWindowCount < readyThreshold ||
           prefetch.feedReadyCount < readyThreshold;
-      if (attempt < 8 && waitingForStartupPromoWindow) {
+      if (attempt < 24 && waitingForStartupPromoWindow) {
+        if (attempt == 0 || attempt % 8 == 0) {
+          recordQALabFeedFetchEvent(
+            stage: 'startup_promo_reveal_wait',
+            trigger: 'startup_promo_ready_window',
+            metadata: <String, dynamic>{
+              'attempt': attempt,
+              'unlockedByScroll': _startupPromoRevealUnlockedByScroll,
+              'feedReadyCount': prefetch?.feedReadyCount ?? -1,
+              'feedWindowCount': prefetch?.feedWindowCount ?? -1,
+              'readyThreshold': readyThreshold,
+              'renderCount': renderFeedEntries.length,
+              'filteredCount': filteredFeedEntries.length,
+            },
+          );
+        }
         _scheduleStartupPromoReveal(attempt: attempt + 1);
         return;
       }
+      recordQALabFeedFetchEvent(
+        stage: 'startup_promo_reveal_apply',
+        trigger: 'startup_promo_ready_window',
+        metadata: <String, dynamic>{
+          'attempt': attempt,
+          'unlockedByScroll': _startupPromoRevealUnlockedByScroll,
+          'feedReadyCount': prefetch?.feedReadyCount ?? -1,
+          'feedWindowCount': prefetch?.feedWindowCount ?? -1,
+          'readyThreshold': readyThreshold,
+          'renderCount': renderFeedEntries.length,
+          'filteredCount': filteredFeedEntries.length,
+        },
+      );
+      _startupPromoRevealApplied = true;
       _rebuildRenderFeedEntries();
     });
   }
@@ -127,11 +160,12 @@ extension AgendaControllerRenderPart on AgendaController {
       _startupPromoRevealTimer?.cancel();
       _startupPromoRevealTimer = null;
       _startupPromoRevealQueued = false;
+      _startupPromoRevealApplied = false;
       renderFeedEntries.clear();
       return;
     }
     final shouldDeferStartupPromos =
-        _startupPresentationApplied && renderFeedEntries.isEmpty;
+        _startupPresentationApplied && !_startupPromoRevealApplied;
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
       includePromos: !shouldDeferStartupPromos,
@@ -142,7 +176,7 @@ extension AgendaControllerRenderPart on AgendaController {
       reason: 'render_feed_rebuild',
     );
     _feedRenderCoordinator.applyPatch(renderFeedEntries, patch);
-    if (shouldDeferStartupPromos) {
+    if (shouldDeferStartupPromos && _startupPromoRevealUnlockedByScroll) {
       _scheduleStartupPromoReveal();
     }
   }

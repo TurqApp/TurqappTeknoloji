@@ -1,6 +1,13 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
+  void noteStartupPromoRevealUserDrag() {
+    if (_startupPromoRevealUnlockedByScroll) return;
+    _startupPromoRevealSawUserDrag = true;
+  }
+
+  static const int _startupThumbnailPrefetchInitialCount = 5;
+  static const int _startupThumbnailPrefetchRadius = 5;
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
@@ -234,12 +241,10 @@ extension AgendaControllerFeedPart on AgendaController {
         : 10;
     final startupWindowStabilizing =
         prefetch.feedReadyCount < startupReadyThreshold;
-    final maxBoosted = startupWindowStabilizing
-        ? 1
-        : (_feedPlaybackBoostLookAhead + 1);
-    final readySegments = startupWindowStabilizing
-        ? 1
-        : _feedPlaybackBoostReadySegments;
+    final maxBoosted =
+        startupWindowStabilizing ? 1 : (_feedPlaybackBoostLookAhead + 1);
+    final readySegments =
+        startupWindowStabilizing ? 1 : _feedPlaybackBoostReadySegments;
     var boosted = 0;
     for (int i = centered; i < agendaList.length; i++) {
       final post = agendaList[i];
@@ -395,17 +400,19 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchThumbnailBatches() {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final targetCount = min(
-      max(
-        ReadBudgetRegistry.startupFeedPrefetchDocLimit,
-        ((current ~/ 8) + 1) * 8,
-      ),
-      agendaList.length,
+    final start = max(
+      0,
+      current < _startupThumbnailPrefetchInitialCount
+          ? 0
+          : current - _startupThumbnailPrefetchRadius,
     );
-    if (targetCount <= _prefetchedThumbnailPostCount) return;
-
-    for (int i = _prefetchedThumbnailPostCount; i < targetCount; i++) {
+    final end =
+        min(agendaList.length, current + _startupThumbnailPrefetchRadius + 1);
+    for (int i = start; i < end; i++) {
       final post = agendaList[i];
+      if (!_prefetchedThumbnailDocIds.add(post.docID)) {
+        continue;
+      }
       if (post.img.isNotEmpty) {
         TurqImageCacheManager.warmUrl(post.img.first).ignore();
       }
@@ -414,8 +421,8 @@ extension AgendaControllerFeedPart on AgendaController {
       }
     }
 
-    _prefetchedThumbnailPostCount = targetCount;
-    _warmReplayAdsForPreparedWindow(targetCount);
+    _prefetchedThumbnailPostCount = max(_prefetchedThumbnailPostCount, end);
+    _warmReplayAdsForPreparedWindow(end - start);
   }
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
@@ -627,33 +634,63 @@ extension AgendaControllerFeedPart on AgendaController {
       const Duration(milliseconds: 220),
       () {
         final settledAt = DateTime.now();
+        final settledOffset = scrollController.hasClients
+            ? scrollController.offset
+            : currentOffset;
+        final scrollDistance = settledOffset - _qaScrollStartOffset;
+        final shouldUnlockStartupPromoReveal =
+            !_startupPromoRevealUnlockedByScroll &&
+                _startupPromoRevealSawUserDrag &&
+                _qaActiveScrollToken.isNotEmpty &&
+                scrollDistance.abs() > 400.0;
         final centered = centeredIndex.value;
         final centeredDocId = centered >= 0 && centered < agendaList.length
             ? agendaList[centered].docID
             : '';
+        if (shouldUnlockStartupPromoReveal) {
+          _startupPromoRevealUnlockedByScroll = true;
+          recordQALabFeedFetchEvent(
+            stage: 'startup_promo_reveal_unlock',
+            trigger: 'user_scroll_settled',
+            metadata: <String, dynamic>{
+              'scrollToken': _qaActiveScrollToken,
+              'offset': settledOffset,
+              'distance': scrollDistance,
+              'durationMs': settledAt
+                  .difference(_qaScrollStartedAt ?? settledAt)
+                  .inMilliseconds,
+              'centeredIndex': centered,
+              'docId': centeredDocId,
+              'count': agendaList.length,
+            },
+          );
+        }
         recordQALabScrollEvent(
           surface: 'feed',
           phase: 'settled',
           metadata: <String, dynamic>{
             'scrollToken': _qaActiveScrollToken,
-            'offset':
-                scrollController.hasClients ? scrollController.offset : 0.0,
-            'distance': (scrollController.hasClients
-                    ? scrollController.offset
-                    : currentOffset) -
-                _qaScrollStartOffset,
+            'offset': settledOffset,
+            'distance': scrollDistance,
             'durationMs': settledAt
                 .difference(_qaScrollStartedAt ?? settledAt)
                 .inMilliseconds,
             'centeredIndex': centered,
             'docId': centeredDocId,
             'count': agendaList.length,
+            'startupPromoRevealUnlockedByScroll':
+                _startupPromoRevealUnlockedByScroll,
+            'startupPromoRevealSawUserDrag': _startupPromoRevealSawUserDrag,
           },
         );
         _qaLatestScrollToken = _qaActiveScrollToken;
         _qaScrollStartedAt = null;
         _qaScrollStartOffset = 0.0;
         _qaActiveScrollToken = '';
+        _startupPromoRevealSawUserDrag = false;
+        if (shouldUnlockStartupPromoReveal) {
+          _scheduleStartupPromoReveal();
+        }
         if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();
         }

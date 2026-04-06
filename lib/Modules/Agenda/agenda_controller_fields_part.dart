@@ -29,6 +29,7 @@ class _AgendaControllerState {
   Timer? resharePostsFetchTimer;
   Timer? agendaRetryTimer;
   Timer? deferredInitialNetworkBootstrapTimer;
+  Timer? startupPromoRevealTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -38,6 +39,7 @@ class _AgendaControllerState {
   String? lastPlaybackWindowSignature;
   String? pendingCenteredDocId;
   int prefetchedThumbnailPostCount = 0;
+  final prefetchedThumbnailDocIds = <String>{};
   final followingIDs = <String>{}.obs;
   final feedViewMode = FeedViewMode.forYou.obs;
   final myReshares = <String, int>{}.obs;
@@ -70,6 +72,10 @@ class _AgendaControllerState {
   bool feedRefreshInFlight = false;
   bool startupPresentationApplied = false;
   bool startupLiveHeadApplied = false;
+  bool startupPromoRevealQueued = false;
+  bool startupPromoRevealApplied = false;
+  bool startupPromoRevealUnlockedByScroll = false;
+  bool startupPromoRevealSawUserDrag = false;
   final startupCacheOriginVideoDocIds = <String>{};
 }
 
@@ -127,6 +133,9 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.deferredInitialNetworkBootstrapTimer;
   set _deferredInitialNetworkBootstrapTimer(Timer? value) =>
       _state.deferredInitialNetworkBootstrapTimer = value;
+  Timer? get _startupPromoRevealTimer => _state.startupPromoRevealTimer;
+  set _startupPromoRevealTimer(Timer? value) =>
+      _state.startupPromoRevealTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -147,6 +156,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   int get _prefetchedThumbnailPostCount => _state.prefetchedThumbnailPostCount;
   set _prefetchedThumbnailPostCount(int value) =>
       _state.prefetchedThumbnailPostCount = value;
+  Set<String> get _prefetchedThumbnailDocIds =>
+      _state.prefetchedThumbnailDocIds;
   RxSet<String> get followingIDs => _state.followingIDs;
   Rx<FeedViewMode> get feedViewMode => _state.feedViewMode;
   RxMap<String, int> get myReshares => _state.myReshares;
@@ -220,6 +231,20 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupLiveHeadApplied => _state.startupLiveHeadApplied;
   set _startupLiveHeadApplied(bool value) =>
       _state.startupLiveHeadApplied = value;
+  bool get _startupPromoRevealQueued => _state.startupPromoRevealQueued;
+  set _startupPromoRevealQueued(bool value) =>
+      _state.startupPromoRevealQueued = value;
+  bool get _startupPromoRevealApplied => _state.startupPromoRevealApplied;
+  set _startupPromoRevealApplied(bool value) =>
+      _state.startupPromoRevealApplied = value;
+  bool get _startupPromoRevealUnlockedByScroll =>
+      _state.startupPromoRevealUnlockedByScroll;
+  set _startupPromoRevealUnlockedByScroll(bool value) =>
+      _state.startupPromoRevealUnlockedByScroll = value;
+  bool get _startupPromoRevealSawUserDrag =>
+      _state.startupPromoRevealSawUserDrag;
+  set _startupPromoRevealSawUserDrag(bool value) =>
+      _state.startupPromoRevealSawUserDrag = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
 

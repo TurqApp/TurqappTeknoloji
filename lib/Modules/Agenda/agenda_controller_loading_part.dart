@@ -6,7 +6,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   List<PostsModel> _initialVisibleVideoWarmupWindow(
     List<PostsModel> posts, {
-    int limit = 4,
+    int limit = 5,
   }) {
     if (posts.isEmpty || limit <= 0) return const <PostsModel>[];
     return posts
@@ -21,10 +21,24 @@ extension AgendaControllerLoadingPart on AgendaController {
         .toList(growable: false);
     if (videoPosts.isEmpty) return;
 
+    final priorityPosts = videoPosts.take(5).toList(growable: false);
+    final deferredPosts = videoPosts.skip(priorityPosts.length).toList(
+          growable: false,
+        );
+
     await Future.wait(
-      videoPosts.map(_warmFeedPosterForPost),
+      priorityPosts.map(_warmFeedPosterForPost),
       eagerError: false,
     );
+
+    if (deferredPosts.isNotEmpty) {
+      unawaited(
+        Future.wait(
+          deferredPosts.map(_warmFeedPosterForPost),
+          eagerError: false,
+        ),
+      );
+    }
   }
 
   Future<void> _warmFeedPosterForPost(PostsModel post) async {
@@ -251,7 +265,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       hasMore.value = true;
       _startupPresentationApplied = false;
       _startupLiveHeadApplied = false;
+      _startupPromoRevealUnlockedByScroll = false;
+      _startupPromoRevealSawUserDrag = false;
       _prefetchedThumbnailPostCount = 0;
+      _prefetchedThumbnailDocIds.clear();
       agendaList.clear();
       _shuffleCache.clear();
       // Eski yeniden paylaşım meta verilerini sıfırla
@@ -764,6 +781,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = pageApplyPlan.lastDoc;
       hasMore.value = pageApplyPlan.hasMore;
       _prefetchedThumbnailPostCount = 0;
+      _startupPromoRevealUnlockedByScroll = false;
+      _startupPromoRevealSawUserDrag = false;
+      _prefetchedThumbnailDocIds.clear();
       _shuffleCache.clear();
       publicReshareEvents.clear();
       feedReshareEntries.clear();
