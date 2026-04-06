@@ -210,9 +210,15 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool useAspectRatio,
     required bool? overrideAutoPlay,
     required bool forceFullscreenOnAndroid,
+    required bool isPrimaryFeedSurface,
+    required bool preferResumePoster,
     bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
+    updateWarmPoolPausePreference(
+      defaultTargetPlatform == TargetPlatform.android &&
+          isPrimaryFeedSurface,
+    );
     return HLSPlayer(
       key: key,
       url: url,
@@ -224,6 +230,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       aspectRatio: aspectRatio,
       useAspectRatio: useAspectRatio,
       forceFullscreenOnAndroid: forceFullscreenOnAndroid,
+      isPrimaryFeedSurface: isPrimaryFeedSurface,
+      preferResumePoster: preferResumePoster,
     );
   }
 }

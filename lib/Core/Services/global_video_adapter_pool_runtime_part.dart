@@ -5,6 +5,10 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid || Platform.isIOS) {
+      if (Platform.isAndroid && adapter.preferWarmPoolPause) {
+        await adapter.forceSilence();
+        return;
+      }
       await adapter.silenceAndStopPlayback();
       return;
     }

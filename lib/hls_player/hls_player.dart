@@ -77,9 +77,6 @@ class _HLSPlayerState extends State<HLSPlayer> {
 
     if (oldWidget.preferResumePoster != widget.preferResumePoster) {
       widget.controller.updateResumePosterPreference(widget.preferResumePoster);
-      if (_isInitialized && oldWidget.url == widget.url) {
-        unawaited(_loadVideo());
-      }
     }
   }
 

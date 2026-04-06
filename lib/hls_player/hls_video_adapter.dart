@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
@@ -15,6 +17,7 @@ class HLSVideoValue {
   final bool isBuffering;
   final bool isCompleted;
   final bool hasRenderedFirstFrame;
+  final bool awaitingFreshFrameAfterReattach;
   final Duration position;
   final Duration duration;
   final Size size;
@@ -27,6 +30,7 @@ class HLSVideoValue {
     this.isBuffering = false,
     this.isCompleted = false,
     this.hasRenderedFirstFrame = false,
+    this.awaitingFreshFrameAfterReattach = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.size = const Size(1920, 1080),
@@ -81,10 +85,12 @@ class HLSVideoAdapter extends ChangeNotifier {
   bool _viewReady = false;
   bool _disposed = false;
   bool _isStopped = false;
+  bool _preferWarmPoolPause = false;
   bool get isDisposed => _disposed;
 
   /// Network/decoder durdurulmuş mu? (stopPlayback çağrıldı)
   bool get isStopped => _isStopped;
+  bool get preferWarmPoolPause => _preferWarmPoolPause;
 
   // Pending command queue
   bool _wantPlay = false;
@@ -188,6 +194,8 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool useAspectRatio = true,
     bool? overrideAutoPlay,
     bool forceFullscreenOnAndroid = false,
+    bool isPrimaryFeedSurface = false,
+    bool preferResumePoster = false,
     bool suppressLoadingOverlay = false,
   }) =>
       _performBuildPlayer(
@@ -196,8 +204,14 @@ class HLSVideoAdapter extends ChangeNotifier {
         useAspectRatio: useAspectRatio,
         overrideAutoPlay: overrideAutoPlay,
         forceFullscreenOnAndroid: forceFullscreenOnAndroid,
+        isPrimaryFeedSurface: isPrimaryFeedSurface,
+        preferResumePoster: preferResumePoster,
         suppressLoadingOverlay: suppressLoadingOverlay,
       );
+
+  void updateWarmPoolPausePreference(bool value) {
+    _preferWarmPoolPause = value;
+  }
 
   @override
   void dispose() {

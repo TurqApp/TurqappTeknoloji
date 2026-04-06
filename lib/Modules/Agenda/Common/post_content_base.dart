@@ -118,6 +118,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _autoplaySegmentGatePollInterval =
       Duration(milliseconds: 80);
   static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
+  static const Duration _resumeSurfaceKeepAliveDebounce =
+      Duration(milliseconds: 720);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -260,7 +262,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!widget.model.hasPlayableVideo) return;
     _surfaceKeepAliveTimer?.cancel();
     _setSurfaceKeepAliveDebounce(true);
-    _surfaceKeepAliveTimer = Timer(_surfaceKeepAliveDebounce, () {
+    final debounce =
+        _shouldKeepResumeSurfaceAliveInWarmWindow
+            ? _resumeSurfaceKeepAliveDebounce
+            : _surfaceKeepAliveDebounce;
+    _surfaceKeepAliveTimer = Timer(debounce, () {
       _surfaceKeepAliveTimer = null;
       _setSurfaceKeepAliveDebounce(false);
     });
