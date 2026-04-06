@@ -229,16 +229,27 @@ extension AgendaControllerFeedPart on AgendaController {
   void _boostFeedPlaybackHorizon(int centered) {
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null || agendaList.isEmpty) return;
+    final startupReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 10
+        ? ReadBudgetRegistry.feedReadyForNavCount
+        : 10;
+    final startupWindowStabilizing =
+        prefetch.feedReadyCount < startupReadyThreshold;
+    final maxBoosted = startupWindowStabilizing
+        ? 1
+        : (_feedPlaybackBoostLookAhead + 1);
+    final readySegments = startupWindowStabilizing
+        ? 1
+        : _feedPlaybackBoostReadySegments;
     var boosted = 0;
     for (int i = centered; i < agendaList.length; i++) {
       final post = agendaList[i];
       if (!_canAutoplayVideoPost(post)) continue;
       prefetch.boostDoc(
         post.docID,
-        readySegments: _feedPlaybackBoostReadySegments,
+        readySegments: readySegments,
       );
       boosted++;
-      if (boosted > _feedPlaybackBoostLookAhead) {
+      if (boosted >= maxBoosted) {
         break;
       }
     }
@@ -288,15 +299,13 @@ extension AgendaControllerFeedPart on AgendaController {
     final startupReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 10
         ? ReadBudgetRegistry.feedReadyForNavCount
         : 10;
-    final startupMaxDocs =
-        prefetch == null || prefetch.feedReadyCount < startupReadyThreshold
-            ? 10
-            : null;
+    if (prefetch != null && prefetch.feedReadyCount < startupReadyThreshold) {
+      return;
+    }
     try {
       prefetch?.updateFeedQueueForPosts(
         videoPosts,
         safeCurrent,
-        maxDocs: startupMaxDocs,
       );
     } catch (_) {}
   }

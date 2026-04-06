@@ -1,6 +1,28 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  int _effectiveMaxConcurrent() {
+    if (_lastFeedWindowCount <= 0) {
+      return _maxConcurrent > 1 ? 1 : _maxConcurrent;
+    }
+    final startupReadyThreshold =
+        ReadBudgetRegistry.feedReadyForNavCount > 5
+        ? ReadBudgetRegistry.feedReadyForNavCount
+        : 5;
+    if (_lastFeedReadyCount < startupReadyThreshold) {
+      return 0;
+    }
+
+    final delayedRampThreshold = startupReadyThreshold + 5;
+    final startupRampThreshold =
+        delayedRampThreshold > 10 ? delayedRampThreshold : 10;
+    if (_lastFeedReadyCount < startupRampThreshold) {
+      return _maxConcurrent < 2 ? _maxConcurrent : 2;
+    }
+
+    return _maxConcurrent;
+  }
+
   bool _isBankDocId(String docID) => _lastFeedBankDocIDs.contains(docID);
 
   bool _isCurrentPriorityDoc(String docID) {
@@ -112,8 +134,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       await _ensureWifiQuotaFillPlan();
     }
     _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
+    final effectiveMaxConcurrent = _effectiveMaxConcurrent();
     if (_paused || _queue.isEmpty) return;
-    if (_activeDownloads >= _maxConcurrent) return;
+    if (_activeDownloads >= effectiveMaxConcurrent) return;
 
     if (_worker == null) {
       _worker = DownloadWorker();
@@ -121,7 +144,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _workerSub = _worker!.results.listen(_onDownloadResult);
     }
 
-    while (_queue.isNotEmpty && _activeDownloads < _maxConcurrent && !_paused) {
+    while (_queue.isNotEmpty &&
+        _activeDownloads < effectiveMaxConcurrent &&
+        !_paused) {
       if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
         _publishPrefetchHealthIfNeeded(force: true);
         return;
@@ -306,7 +331,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final orderedDownloads = toDownload.toList(growable: false);
       if (orderedDownloads.isEmpty) return;
 
-      final availableSlots = (_maxConcurrent - _activeDownloads).clamp(
+      final availableSlots =
+          (_effectiveMaxConcurrent() - _activeDownloads).clamp(
         0,
         orderedDownloads.length,
       );
