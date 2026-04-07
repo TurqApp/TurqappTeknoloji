@@ -497,7 +497,12 @@ extension PostRepositoryQueryPart on PostRepository {
 
     final sorted = roots.values.toList()
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    return sorted;
+    return reorderForStartupSurface(
+      sorted,
+      surfaceKey: 'feed_flood_roots_pool',
+      sessionNamespace: 'feed',
+      maxShuffleWindow: sorted.length,
+    );
   }
 
   Future<PostsModel?> _performFetchPostById(
@@ -699,9 +704,7 @@ extension PostRepositoryQueryPart on PostRepository {
   }
 
   bool _performIsRenderableCard(PostsModel model) {
-    if (model.deletedPost ||
-        model.gizlendi ||
-        model.shouldHideWhileUploading) {
+    if (model.deletedPost || model.gizlendi || model.shouldHideWhileUploading) {
       return false;
     }
     final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
