@@ -128,12 +128,20 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     required bool refreshNonPublicCachedSummaries,
   }) async {
     if (authorIds.isEmpty) return const <String, UserSummary>{};
+    final startedAt = DateTime.now();
     final cached = await _userSummaryResolver.resolveMany(
       authorIds.toList(growable: false),
       preferCache: true,
       cacheOnly: cacheOnly,
     );
-    if (cacheOnly) return cached;
+    if (cacheOnly) {
+      debugPrint(
+        '[FeedSnapshotStep] end:load_discovery_summaries '
+        'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+        'cacheOnly=true authorCount=${authorIds.length} refreshCount=0',
+      );
+      return cached;
+    }
     final viewerUid = currentUserId.trim();
     final refreshIds = authorIds.where((authorId) {
       final uid = authorId.trim();
@@ -149,11 +157,24 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         isApproved: summary.isApproved,
       );
     }).toList(growable: false);
-    if (refreshIds.isEmpty) return cached;
+    if (refreshIds.isEmpty) {
+      debugPrint(
+        '[FeedSnapshotStep] end:load_discovery_summaries '
+        'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+        'cacheOnly=false authorCount=${authorIds.length} refreshCount=0',
+      );
+      return cached;
+    }
 
     final fresh = await _userSummaryResolver.resolveMany(
       refreshIds,
       preferCache: false,
+    );
+    final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+    debugPrint(
+      '[FeedSnapshotStep] end:load_discovery_summaries '
+      'elapsedMs=$elapsedMs cacheOnly=false authorCount=${authorIds.length} '
+      'refreshCount=${refreshIds.length} freshCount=${fresh.length}',
     );
     if (fresh.isEmpty) return cached;
     return <String, UserSummary>{...cached, ...fresh};

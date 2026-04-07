@@ -171,6 +171,16 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         limit: ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit),
       );
 
+  Future<List<PostsModel>> inspectHomeStartupShard({
+    required String userId,
+    int limit = FeedSnapshotRepository.startupHomeLimit,
+  }) =>
+      inspectFeedHomeStartupShard(
+        this,
+        userId: userId,
+        limit: ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit),
+      );
+
   Future<void> persistHomeSnapshot({
     required String userId,
     required List<PostsModel> posts,

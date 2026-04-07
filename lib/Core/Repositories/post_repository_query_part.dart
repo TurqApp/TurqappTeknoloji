@@ -453,6 +453,53 @@ extension PostRepositoryQueryPart on PostRepository {
     return sorted;
   }
 
+  Future<List<PostsModel>> _performFetchFloodSeriesRoots({
+    required int limit,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    final targetCount = limit < 1 ? 1 : limit;
+    final scanLimit = targetCount * 3 > 240 ? targetCount * 3 : 240;
+    DocumentSnapshot<Map<String, dynamic>>? cursor;
+    final roots = <String, PostsModel>{};
+
+    while (roots.length < targetCount) {
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('Posts')
+          .where('arsiv', isEqualTo: false)
+          .where('deletedPost', isEqualTo: false)
+          .where('flood', isEqualTo: false)
+          .orderBy('timeStamp', descending: true)
+          .limit(scanLimit);
+      if (cursor != null) {
+        query = query.startAfterDocument(cursor);
+      }
+
+      final snap = await _getQueryWithSource(
+        query,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      if (snap.docs.isEmpty) break;
+
+      for (final doc in snap.docs) {
+        final model = PostsModel.fromMap(doc.data(), doc.id);
+        if (!model.isFloodSeriesRoot) continue;
+        if (model.shouldHideWhileUploading) continue;
+        if (!_isRenderableCard(model)) continue;
+        roots.putIfAbsent(model.docID, () => model);
+        if (roots.length >= targetCount) break;
+      }
+
+      cursor = snap.docs.last;
+      if (snap.docs.length < scanLimit) break;
+    }
+
+    final sorted = roots.values.toList()
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    return sorted;
+  }
+
   Future<PostsModel?> _performFetchPostById(
     String postId, {
     required bool preferCache,

@@ -168,6 +168,17 @@ extension PostRepositoryFacadePart on PostRepository {
         cacheOnly: cacheOnly,
       );
 
+  Future<List<PostsModel>> fetchFloodSeriesRoots({
+    int limit = 120,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      _performFetchFloodSeriesRoots(
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+
   Future<PostsModel?> fetchPostById(
     String postId, {
     bool preferCache = true,

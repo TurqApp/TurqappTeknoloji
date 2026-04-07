@@ -44,6 +44,29 @@ Future<CachedResource<List<PostsModel>>> inspectWarmFeedHome(
   );
 }
 
+Future<List<PostsModel>> inspectFeedHomeStartupShard(
+  FeedSnapshotRepository repository, {
+  required String userId,
+  int limit = FeedSnapshotRepository.startupHomeLimit,
+}) async {
+  final normalizedUserId = userId.trim();
+  if (normalizedUserId.isEmpty) return const <PostsModel>[];
+  final shard = await ensureStartupSnapshotShardStore().load(
+    surface: 'feed',
+    userId: normalizedUserId,
+    maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+  );
+  if (shard == null || shard.itemCount <= 0 || shard.payload.isEmpty) {
+    return const <PostsModel>[];
+  }
+  TurqImageCacheManager.hydratePosterHintsFromPayload(shard.payload);
+  final effectiveLimit = ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
+  return repository
+      ._normalizePosts(repository._decodePosts(shard.payload))
+      .take(effectiveLimit)
+      .toList(growable: false);
+}
+
 Future<void> persistFeedHomeSnapshot(
   FeedSnapshotRepository repository, {
   required String userId,
