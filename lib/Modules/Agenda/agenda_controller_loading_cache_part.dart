@@ -178,6 +178,15 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return false;
   }
 
+  int _startupWarmSnapshotMinimumQuickFillCount(int targetCount) {
+    if (targetCount <= 0) return 0;
+    final toleratedMissing = max(1, targetCount ~/ 10);
+    final minimumCount = targetCount - toleratedMissing;
+    return minimumCount < ReadBudgetRegistry.feedBufferedFetchLimit
+        ? ReadBudgetRegistry.feedBufferedFetchLimit
+        : minimumCount;
+  }
+
   void _scheduleStartupQuickFillFollowUps(
     List<PostsModel> shown, {
     bool includeReshareFetch = false,
@@ -371,6 +380,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       }
     }
     return deficits;
+  }
+
+  bool _startupWarmSnapshotCoverageSatisfied(
+    Map<String, int> deficits,
+  ) {
+    if (deficits.isEmpty) return true;
+    final blockingKeys = deficits.keys.where((key) => key != 'text');
+    return blockingKeys.isEmpty;
   }
 
   Map<String, int> _startupSupportCounts(
@@ -680,14 +697,18 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         quickFilled.where((p) => !existingIDs.contains(p.docID)).toList();
     if (toAdd.isNotEmpty) {
       final shouldActivateStartupStages = agendaList.isEmpty;
-      _addUniqueToAgenda(toAdd);
-      _reorderAgendaForStartupPresentationIfNeeded();
-      if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+      if (shouldActivateStartupStages) {
+        _startupRenderBootstrapHold = true;
         _activateStartupRenderStages(
           reason: 'quick_fill_cache',
         );
       }
+      _addUniqueToAgenda(toAdd);
+      _reorderAgendaForStartupPresentationIfNeeded();
       _applyStartupRenderStagesNow();
+      _scheduleBufferedFeedBlockPrefetchAfterFrame(
+        reason: 'quick_fill_cache',
+      );
       _scheduleStartupQuickFillFollowUps(
         toAdd,
         includeReshareFetch: true,
@@ -767,14 +788,18 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           );
           _startupLiveHeadApplied = false;
           final shouldActivateStartupStages = agendaList.isEmpty;
-          _addUniqueToAgenda(quickFilled);
-          _reorderAgendaForStartupPresentationIfNeeded();
-          if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+          if (shouldActivateStartupStages) {
+            _startupRenderBootstrapHold = true;
             _activateStartupRenderStages(
               reason: 'quick_fill_shard',
             );
           }
+          _addUniqueToAgenda(quickFilled);
+          _reorderAgendaForStartupPresentationIfNeeded();
           _applyStartupRenderStagesNow();
+          _scheduleBufferedFeedBlockPrefetchAfterFrame(
+            reason: 'quick_fill_shard',
+          );
           _scheduleStartupQuickFillFollowUps(quickFilled);
           if (agendaList.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -810,8 +835,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         !snapshot.isStale &&
         snapshot.source == CachedResourceSource.server &&
         warmSeed.length >= effectiveLimit;
+    final allowPartialWarmSnapshotQuickFill =
+        warmSeed.length >=
+            _startupWarmSnapshotMinimumQuickFillCount(effectiveLimit) &&
+        !snapshot.isStale;
+    final useFastWarmSnapshotSeed =
+        useFreshConnectedWarmSnapshot || allowPartialWarmSnapshotQuickFill;
     if (!_hasStartupVariationRoom(warmSeed, targetCount: effectiveLimit) &&
-        !useFreshConnectedWarmSnapshot) {
+        !useFastWarmSnapshotSeed) {
       debugPrint(
         '[FeedStartupCache] status=skip_warm_snapshot_insufficient_variation '
         'count=${warmSeed.length} targetCount=$effectiveLimit',
@@ -824,19 +855,28 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         'count=${warmSeed.length} targetCount=$effectiveLimit '
         'source=${snapshot.source.name}',
       );
+    } else if (allowPartialWarmSnapshotQuickFill) {
+      debugPrint(
+        '[FeedStartupCache] status=use_partial_warm_snapshot '
+        'count=${warmSeed.length} targetCount=$effectiveLimit '
+        'minimumCount=${_startupWarmSnapshotMinimumQuickFillCount(effectiveLimit)} '
+        'source=${snapshot.source.name} stale=${snapshot.isStale}',
+      );
     }
-    final startupCandidates = await _profileFeedStartupCacheStep(
-      'augment_support_from_warm_snapshot',
-      () => _augmentStartupSupportCandidates(
-        candidates: warmSeed,
-        nowMs: nowMs,
-        primaryCutoffMs: _agendaCutoffMs(nowMs),
-        targetCount: effectiveLimit,
-        preferCache: true,
-        cacheOnly: true,
-        allowNetworkFallbackFetch: true,
-      ),
-    );
+    final startupCandidates = useFastWarmSnapshotSeed
+        ? warmSeed
+        : await _profileFeedStartupCacheStep(
+            'augment_support_from_warm_snapshot',
+            () => _augmentStartupSupportCandidates(
+              candidates: warmSeed,
+              nowMs: nowMs,
+              primaryCutoffMs: _agendaCutoffMs(nowMs),
+              targetCount: effectiveLimit,
+              preferCache: true,
+              cacheOnly: true,
+              allowNetworkFallbackFetch: true,
+            ),
+          );
 
     final quickFiltered = _composeStartupFeedItems(
       cacheCandidates: startupCandidates,
@@ -855,7 +895,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       quickFilled,
       targetCount: effectiveLimit,
     );
-    final warmSnapshotHasSupportCoverage = warmSnapshotSupportDeficits.isEmpty;
+    final warmSnapshotHasSupportCoverage =
+        _startupWarmSnapshotCoverageSatisfied(
+      warmSnapshotSupportDeficits,
+    );
     if (useFreshConnectedWarmSnapshot && !warmSnapshotHasSupportCoverage) {
       debugPrint(
         '[FeedStartupCache] status=warm_snapshot_missing_support '
@@ -866,14 +909,18 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         useFreshConnectedWarmSnapshot && warmSnapshotHasSupportCoverage;
 
     final shouldActivateStartupStages = agendaList.isEmpty;
-    _addUniqueToAgenda(quickFilled);
-    _reorderAgendaForStartupPresentationIfNeeded();
-    if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+    if (shouldActivateStartupStages) {
+      _startupRenderBootstrapHold = true;
       _activateStartupRenderStages(
         reason: 'quick_fill_warm_snapshot',
       );
     }
+    _addUniqueToAgenda(quickFilled);
+    _reorderAgendaForStartupPresentationIfNeeded();
     _applyStartupRenderStagesNow();
+    _scheduleBufferedFeedBlockPrefetchAfterFrame(
+      reason: 'quick_fill_warm_snapshot',
+    );
     _scheduleStartupQuickFillFollowUps(quickFilled);
 
     if (agendaList.isNotEmpty) {

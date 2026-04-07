@@ -94,6 +94,105 @@ void main() {
       expect(merged[1]['timestamp'], 600);
     });
   });
+
+  group('FeedRenderCoordinator.buildRenderEntries', () {
+    test(
+        'keeps promos homogeneous through the first thirty posts as ad then recommended',
+        () {
+      final coordinator = FeedRenderCoordinator();
+      final filteredEntries = List<Map<String, dynamic>>.generate(
+        30,
+        (index) => <String, dynamic>{
+          'type': 'normal',
+          'model': _post(id: 'p${index + 1}', timeStamp: 1000 - index),
+          'reshare': false,
+          'timestamp': 1000 - index,
+          'agendaIndex': index,
+        },
+      );
+
+      final renderEntries = coordinator.buildRenderEntries(
+        filteredEntries: filteredEntries,
+      );
+
+      final promoEntries = renderEntries
+          .where((entry) => entry['renderType'] == 'promo')
+          .toList(growable: false);
+
+      expect(promoEntries, hasLength(10));
+      expect(
+        promoEntries.map((entry) => entry['slotNumber']),
+        orderedEquals(<int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+      );
+      expect(
+        promoEntries.map((entry) => entry['promoType']),
+        orderedEquals(<String>[
+          'ad',
+          'recommended',
+          'ad',
+          'recommended',
+          'ad',
+          'recommended',
+          'ad',
+          'recommended',
+          'ad',
+          'recommended',
+        ]),
+      );
+    });
+
+    test('builds only the requested startup render window without post-trim',
+        () {
+      final coordinator = FeedRenderCoordinator();
+      final filteredEntries = List<Map<String, dynamic>>.generate(
+        30,
+        (index) => <String, dynamic>{
+          'type': 'normal',
+          'model': _post(id: 'p${index + 1}', timeStamp: 1000 - index),
+          'reshare': false,
+          'timestamp': 1000 - index,
+          'agendaIndex': index,
+        },
+      );
+
+      final firstFive = coordinator.buildRenderEntries(
+        filteredEntries: filteredEntries,
+        maxRenderEntries: 5,
+      );
+      expect(firstFive, hasLength(5));
+      expect(
+        firstFive.map((entry) => entry['renderType'] ?? 'post'),
+        orderedEquals(<String>['post', 'post', 'post', 'promo', 'post']),
+      );
+
+      final firstTen = coordinator.buildRenderEntries(
+        filteredEntries: filteredEntries,
+        maxRenderEntries: 10,
+      );
+      expect(firstTen, hasLength(10));
+      expect(
+        firstTen.map((entry) => entry['renderType'] ?? 'post'),
+        orderedEquals(<String>[
+          'post',
+          'post',
+          'post',
+          'promo',
+          'post',
+          'post',
+          'post',
+          'promo',
+          'post',
+          'post',
+        ]),
+      );
+      expect(
+        firstTen
+            .where((entry) => entry['renderType'] == 'promo')
+            .map((entry) => entry['promoType']),
+        orderedEquals(<String>['ad', 'recommended']),
+      );
+    });
+  });
 }
 
 PostsModel _post({

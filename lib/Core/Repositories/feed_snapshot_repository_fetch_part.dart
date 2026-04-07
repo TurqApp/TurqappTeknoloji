@@ -4,6 +4,26 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
 
+  Future<T> _profileFeedSnapshotStep<T>(
+    String label,
+    Future<T> Function() action,
+  ) async {
+    final startedAt = DateTime.now();
+    debugPrint('[FeedSnapshotStep] start:$label');
+    try {
+      final result = await action();
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint('[FeedSnapshotStep] end:$label elapsedMs=$elapsedMs');
+      return result;
+    } catch (error) {
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint(
+        '[FeedSnapshotStep] fail:$label elapsedMs=$elapsedMs error=$error',
+      );
+      rethrow;
+    }
+  }
+
   Future<Map<String, PostsModel>> _rehydrateHomeFeedVideoCards(
     Map<String, PostsModel> postsById, {
     required bool cacheOnly,
@@ -88,6 +108,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     bool cacheOnly = false,
     bool usePrimaryFeedPaging = true,
     bool refreshNonPublicCachedSummaries = true,
+    bool includeSupplementalSources = true,
   }) async {
     const contract = FeedSnapshotRepository._homeContract;
     final normalizedUserId = userId.trim();
@@ -105,13 +126,15 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       );
     }
 
-    var refsPage = await _postRepository.fetchUserFeedReferences(
-      uid: normalizedUserId,
-      limit: limit,
-      startAfter: startAfter,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
+    var refsPage = await _profileFeedSnapshotStep('fetch_refs', () {
+      return _postRepository.fetchUserFeedReferences(
+        uid: normalizedUserId,
+        limit: limit,
+        startAfter: startAfter,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+    });
 
     var refs = refsPage.items
         .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
@@ -153,15 +176,19 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final postIds = refs.map((item) => item.postId).toList(growable: false);
     final rawPostsById = postIds.isEmpty
         ? const <String, PostsModel>{}
-        : await _postRepository.fetchPostCardsByIds(
-            postIds,
-            preferCache: preferCache,
-            cacheOnly: cacheOnly,
-          );
-    final postsById = await _rehydrateHomeFeedVideoCards(
-      rawPostsById,
-      cacheOnly: cacheOnly,
-    );
+        : await _profileFeedSnapshotStep('fetch_post_cards', () {
+            return _postRepository.fetchPostCardsByIds(
+              postIds,
+              preferCache: preferCache,
+              cacheOnly: cacheOnly,
+            );
+          });
+    final postsById = await _profileFeedSnapshotStep('rehydrate_video_cards', () {
+      return _rehydrateHomeFeedVideoCards(
+        rawPostsById,
+        cacheOnly: cacheOnly,
+      );
+    });
 
     final merged = <String, PostsModel>{};
     for (final ref in refs) {
@@ -170,64 +197,82 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged[post.docID] = post;
     }
 
-    if (startAfter == null) {
+    if (includeSupplementalSources && startAfter == null) {
       final preferLiveOwnPosts = !cacheOnly;
-      final ownPosts = await _postRepository.fetchRecentPostsForAuthors(
-        <String>[normalizedUserId],
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        perAuthorLimit: min(limit, 10),
-        preferCache: preferLiveOwnPosts ? false : preferCache,
-        cacheOnly: cacheOnly,
-      );
+      final ownPosts = await _profileFeedSnapshotStep('fetch_own_posts', () {
+        return _postRepository.fetchRecentPostsForAuthors(
+          <String>[normalizedUserId],
+          nowMs: nowMs,
+          cutoffMs: cutoffMs,
+          perAuthorLimit: min(limit, 10),
+          preferCache: preferLiveOwnPosts ? false : preferCache,
+          cacheOnly: cacheOnly,
+        );
+      });
       for (final post in ownPosts) {
         merged.putIfAbsent(post.docID, () => post);
       }
     }
 
-    final celebIds = await _postRepository.fetchCelebrityAuthorIds(
-      <String>{normalizedUserId, ...followingIds}.toList(growable: false),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    if (celebIds.isNotEmpty) {
-      final celebPosts = await _postRepository.fetchRecentPostsForAuthors(
-        celebIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        perAuthorLimit:
-            max(2, (limit / celebIds.length.clamp(1, limit)).ceil()),
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      for (final post in celebPosts) {
-        merged.putIfAbsent(post.docID, () => post);
+    var celebIds = const <String>[];
+    List<PostsModel> celebPosts = const <PostsModel>[];
+    if (includeSupplementalSources) {
+      celebIds = await _profileFeedSnapshotStep('fetch_celeb_ids', () {
+        return _postRepository.fetchCelebrityAuthorIds(
+          <String>{normalizedUserId, ...followingIds}.toList(growable: false),
+          preferCache: preferCache,
+          cacheOnly: cacheOnly,
+        );
+      });
+      if (celebIds.isNotEmpty) {
+        celebPosts = await _profileFeedSnapshotStep('fetch_celeb_posts', () {
+          return _postRepository.fetchRecentPostsForAuthors(
+            celebIds,
+            nowMs: nowMs,
+            cutoffMs: cutoffMs,
+            perAuthorLimit:
+                max(2, (limit / celebIds.length.clamp(1, limit)).ceil()),
+            preferCache: preferCache,
+            cacheOnly: cacheOnly,
+          );
+        });
+        for (final post in celebPosts) {
+          merged.putIfAbsent(post.docID, () => post);
+        }
       }
     }
 
-    final publicScheduled = await _fetchVisiblePublicIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-          ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-          : limit,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
+    final publicScheduled = includeSupplementalSources
+        ? await _profileFeedSnapshotStep('fetch_public_scheduled', () {
+            return _fetchVisiblePublicIzBirakPosts(
+              nowMs: nowMs,
+              cutoffMs: cutoffMs,
+              limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+                  ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
+                  : limit,
+              preferCache: preferCache,
+              cacheOnly: cacheOnly,
+            );
+          })
+        : const <PostsModel>[];
     for (final post in publicScheduled) {
       merged.putIfAbsent(post.docID, () => post);
     }
 
-    final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
-          ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
-          : limit,
-      maxTimeExclusive: _resolveFeedPageMaxTime(startAfter),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
+    final globalBadgePosts = includeSupplementalSources
+        ? await _profileFeedSnapshotStep('fetch_global_badge', () {
+            return _fetchVisibleGlobalBadgePosts(
+              nowMs: nowMs,
+              cutoffMs: cutoffMs,
+              limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
+                  ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
+                  : limit,
+              maxTimeExclusive: _resolveFeedPageMaxTime(startAfter),
+              preferCache: preferCache,
+              cacheOnly: cacheOnly,
+            );
+          })
+        : const <PostsModel>[];
     for (final post in globalBadgePosts) {
       merged.putIfAbsent(post.docID, () => post);
     }
@@ -278,17 +323,19 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       );
     }
 
-    final visible = await filterVisiblePosts(
-      merged.values.toList(growable: false),
-      currentUserId: normalizedUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      summaryCacheOnly: cacheOnly,
-      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-    );
+    final visible = await _profileFeedSnapshotStep('filter_visible', () {
+      return filterVisiblePosts(
+        merged.values.toList(growable: false),
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        summaryCacheOnly: cacheOnly,
+        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
+      );
+    });
 
     if (_shouldLogDiagnostics) {
       debugPrint(
@@ -552,19 +599,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     );
     if (visible.isEmpty) return null;
 
-    try {
-      final rehydratedById = await _rehydrateHomeFeedVideoCards(
-        <String, PostsModel>{
-          for (final post in visible) post.docID: post,
-        },
-        cacheOnly: false,
-      );
-      return visible
-          .map((post) => rehydratedById[post.docID] ?? post)
-          .toList(growable: false);
-    } catch (_) {
-      return visible;
-    }
+    // Warm-launch bootstrap must stay local-only; live video rehydrate here
+    // delays the first feed paint and defeats the point of startup cache.
+    final rehydratedById = await _rehydrateHomeFeedVideoCards(
+      <String, PostsModel>{
+        for (final post in visible) post.docID: post,
+      },
+      cacheOnly: true,
+    );
+    return visible
+        .map((post) => rehydratedById[post.docID] ?? post)
+        .toList(growable: false);
   }
 
   Future<Set<String>> _loadFollowingIds(String userId) async {

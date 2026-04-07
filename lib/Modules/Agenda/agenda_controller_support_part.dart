@@ -23,6 +23,39 @@ extension AgendaControllerSupportPart on AgendaController {
     return post.hasPlayableVideo;
   }
 
+  String _feedDebugKindForPost(PostsModel post) {
+    if (post.isFloodSeriesContent) return 'flood';
+    final hasText = post.metin.trim().isNotEmpty;
+    final hasImage = post.img.any((entry) => entry.trim().isNotEmpty) ||
+        post.thumbnail.trim().isNotEmpty;
+    if (post.hasPlayableVideo) return 'video';
+    if (hasText && !hasImage) return 'text';
+    return 'image';
+  }
+
+  void _debugAgendaKinds(
+    String label,
+    Iterable<PostsModel> posts,
+  ) {
+    assert(() {
+      final list = posts.toList(growable: false);
+      const chunkSize = 10;
+      for (var start = 0; start < list.length; start += chunkSize) {
+        final end =
+            (start + chunkSize < list.length) ? start + chunkSize : list.length;
+        final slots = list.sublist(start, end).asMap().entries.map((entry) {
+          final absoluteIndex = start + entry.key + 1;
+          final post = entry.value;
+          return '$absoluteIndex:${_feedDebugKindForPost(post)}:${post.docID}';
+        }).join(' | ');
+        debugPrint(
+          '[FeedAgendaKinds] label=$label count=${list.length} range=${start + 1}-$end slots=$slots',
+        );
+      }
+      return true;
+    }());
+  }
+
   bool canAutoplayInTests(PostsModel post) => _canAutoplayVideoPost(post);
 
   bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
@@ -213,12 +246,14 @@ extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> persistStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final visibleStartup = _buildVisibleAgendaSnapshot(
-      limit: FeedSnapshotRepository.startupHomeLimitValue,
+    final startupCandidates = _buildOrderedAgendaSnapshot(
+      limit: _startupShardCandidateLimit(
+        FeedSnapshotRepository.startupHomeLimitValue,
+      ),
     );
     await _persistFeedStartupShardOnly(
       userId: userId,
-      ordered: visibleStartup,
+      ordered: startupCandidates,
       snapshotAt: DateTime.now(),
       source: 'feed_runtime',
     );
@@ -231,13 +266,15 @@ extension AgendaControllerPublicApiPart on AgendaController {
     final ordered = _buildOrderedAgendaSnapshot(
       limit: ReadBudgetRegistry.feedPersistSnapshotLimit,
     );
-    final visibleStartup = _buildVisibleAgendaSnapshot(
-      limit: FeedSnapshotRepository.startupHomeLimitValue,
+    final startupCandidates = _buildOrderedAgendaSnapshot(
+      limit: _startupShardCandidateLimit(
+        FeedSnapshotRepository.startupHomeLimitValue,
+      ),
     );
     if (ordered.isEmpty) {
       await _persistFeedStartupShardOnly(
         userId: userId,
-        ordered: visibleStartup,
+        ordered: startupCandidates,
         snapshotAt: snapshotAt,
         source: 'none',
       );
@@ -252,7 +289,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     );
     await _persistFeedStartupShardOnly(
       userId: userId,
-      ordered: visibleStartup,
+      ordered: startupCandidates,
       snapshotAt: snapshotAt,
       source: 'feed_runtime',
     );
@@ -302,7 +339,12 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void _rebuildFilteredFeedEntries() => _performRebuildFilteredFeedEntries();
 
-  void _rebuildRenderFeedEntries() => _performRebuildRenderFeedEntries();
+  void _rebuildRenderFeedEntries({
+    bool ignoreStartupBootstrapHold = false,
+  }) =>
+      _performRebuildRenderFeedEntries(
+        ignoreStartupBootstrapHold: ignoreStartupBootstrapHold,
+      );
 
   Future<void> _recordFeedStartupSurface({
     required String source,
@@ -339,7 +381,9 @@ extension AgendaControllerPublicApiPart on AgendaController {
     required DateTime snapshotAt,
     required String source,
   }) async {
-    final limit = FeedSnapshotRepository.startupHomeLimitValue;
+    final limit = _startupShardCandidateLimit(
+      FeedSnapshotRepository.startupHomeLimitValue,
+    );
     if (ordered.isEmpty) {
       await ensureStartupSnapshotShardStore().clear(
         surface: 'feed',

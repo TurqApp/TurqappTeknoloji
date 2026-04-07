@@ -79,6 +79,7 @@ class _AgendaControllerState {
   bool startupPromoRevealSawUserDrag = false;
   bool startupRenderStagingActive = false;
   int startupRenderVisiblePostCount = 0;
+  bool startupRenderBootstrapHold = false;
   final startupCacheOriginVideoDocIds = <String>{};
   final bufferedFeedBlockItems = <PostsModel>[];
   int bufferedFeedBlockBaseCount = 0;
@@ -262,6 +263,9 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.startupRenderVisiblePostCount;
   set _startupRenderVisiblePostCount(int value) =>
       _state.startupRenderVisiblePostCount = value;
+  bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
+  set _startupRenderBootstrapHold(bool value) =>
+      _state.startupRenderBootstrapHold = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
   List<PostsModel> get _bufferedFeedBlockItems => _state.bufferedFeedBlockItems;

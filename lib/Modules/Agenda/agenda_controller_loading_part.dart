@@ -985,16 +985,17 @@ extension AgendaControllerLoadingPart on AgendaController {
             'nextCount=${lockedAgenda.length} '
             'preferLive=$shouldPreferLiveStartupHead',
           );
+          final shouldActivateStartupStages =
+              initial && currentAgenda.isEmpty && lockedAgenda.isNotEmpty;
+          if (shouldActivateStartupStages) {
+            _startupRenderBootstrapHold = true;
+            _activateStartupRenderStages(
+              reason: 'initial_locked_assign',
+            );
+          }
           if (!_hasSameAgendaDocOrder(currentAgenda, lockedAgenda)) {
-            final shouldActivateStartupStages =
-                initial && currentAgenda.isEmpty && lockedAgenda.isNotEmpty;
             agendaList.assignAll(lockedAgenda);
             _debugAgendaKinds('initial_locked_assign', agendaList);
-            if (shouldActivateStartupStages && agendaList.isNotEmpty) {
-              _activateStartupRenderStages(
-                reason: 'initial_locked_assign',
-              );
-            }
             _applyStartupRenderStagesNow();
             _scheduleInitialFeedVideoPosterWarmup(
               _initialVisibleVideoWarmupWindow(lockedAgenda),
@@ -1026,13 +1027,14 @@ extension AgendaControllerLoadingPart on AgendaController {
           );
           final shouldActivateStartupStages =
               initial && currentAgenda.isEmpty && recomposedAgenda.isNotEmpty;
-          agendaList.assignAll(recomposedAgenda);
-          _debugAgendaKinds('initial_recomposed_assign', agendaList);
-          if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+          if (shouldActivateStartupStages) {
+            _startupRenderBootstrapHold = true;
             _activateStartupRenderStages(
               reason: 'initial_recomposed_assign',
             );
           }
+          agendaList.assignAll(recomposedAgenda);
+          _debugAgendaKinds('initial_recomposed_assign', agendaList);
           _applyStartupRenderStagesNow();
           _startupLiveHeadApplied = true;
           _scheduleInitialFeedVideoPosterWarmup(
@@ -1059,6 +1061,12 @@ extension AgendaControllerLoadingPart on AgendaController {
             final startupItems = _applyStartupFeedPresentationOrder(
               pageApplyPlan.itemsToAdd,
             );
+            if (shouldActivateStartupStages && startupItems.isNotEmpty) {
+              _startupRenderBootstrapHold = true;
+              _activateStartupRenderStages(
+                reason: 'initial_items_to_add',
+              );
+            }
             debugPrint(
               '[FeedStartupHeadSync] source=initial_bootstrap '
               'status=apply_composed_startup_items '
@@ -1067,11 +1075,6 @@ extension AgendaControllerLoadingPart on AgendaController {
             );
             agendaList.assignAll(startupItems);
             _debugAgendaKinds('initial_items_to_add', agendaList);
-            if (shouldActivateStartupStages && agendaList.isNotEmpty) {
-              _activateStartupRenderStages(
-                reason: 'initial_items_to_add',
-              );
-            }
             _applyStartupRenderStagesNow();
             _scheduleInitialFeedVideoPosterWarmup(startupItems);
             _scheduleReshareFetchForPosts(
@@ -1082,14 +1085,17 @@ extension AgendaControllerLoadingPart on AgendaController {
               reason: 'initial_items_to_add',
             );
           } else {
+            if (initial &&
+                shouldActivateStartupStages &&
+                pageApplyPlan.itemsToAdd.isNotEmpty) {
+              _startupRenderBootstrapHold = true;
+              _activateStartupRenderStages(
+                reason: 'initial_items_to_add',
+              );
+            }
             _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
             if (initial) {
               _reorderAgendaForStartupPresentationIfNeeded();
-              if (shouldActivateStartupStages && agendaList.isNotEmpty) {
-                _activateStartupRenderStages(
-                  reason: 'initial_items_to_add',
-                );
-              }
               _applyStartupRenderStagesNow();
             }
             _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
@@ -1413,6 +1419,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
     await _profileFeedHeadSyncStep('apply_head', () async {
       if (currentAgenda.isEmpty && mergedAgenda.isNotEmpty) {
+        _startupRenderBootstrapHold = true;
         _activateStartupRenderStages(
           reason: 'surface_open_sync_apply_head',
         );

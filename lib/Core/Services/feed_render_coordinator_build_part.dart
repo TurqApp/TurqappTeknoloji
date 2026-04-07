@@ -76,15 +76,28 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
 
   List<Map<String, dynamic>> buildRenderEntries({
     required List<Map<String, dynamic>> filteredEntries,
+    int? maxRenderEntries,
   }) {
     if (filteredEntries.isEmpty) return const <Map<String, dynamic>>[];
 
+    final normalizedMaxRenderEntries =
+        maxRenderEntries != null && maxRenderEntries > 0
+            ? maxRenderEntries
+            : null;
     final renderEntries = <Map<String, dynamic>>[];
     for (int i = 0; i < filteredEntries.length; i++) {
+      if (normalizedMaxRenderEntries != null &&
+          renderEntries.length >= normalizedMaxRenderEntries) {
+        break;
+      }
       final postEntry = Map<String, dynamic>.from(filteredEntries[i])
         ..putIfAbsent('renderType', () => 'post');
       renderEntries.add(postEntry);
 
+      if (normalizedMaxRenderEntries != null &&
+          renderEntries.length >= normalizedMaxRenderEntries) {
+        break;
+      }
       final postNumber = i + 1;
       if (!_shouldInsertPromoAfterPost(postNumber)) continue;
       final slotNumber = postNumber ~/ 3;

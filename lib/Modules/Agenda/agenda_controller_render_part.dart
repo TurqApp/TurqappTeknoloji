@@ -1,6 +1,91 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
+  static const List<int> _startupRenderStageEntryCounts = <int>[
+    5,
+    10,
+    20,
+    30,
+    40,
+  ];
+
+  void _activateStartupRenderStages({String reason = 'unknown'}) {
+    _startupRenderStageTimer?.cancel();
+    _startupRenderStageTimer = null;
+    _startupRenderStagingActive = true;
+    _startupRenderVisiblePostCount = _startupRenderStageEntryCounts.first;
+    debugPrint(
+      '[FeedStartupStage] status=activate reason=$reason '
+      'visibleEntries=$_startupRenderVisiblePostCount',
+    );
+    _scheduleStartupRenderStageAdvance();
+  }
+
+  void _applyStartupRenderStagesNow() {
+    if (agendaList.isEmpty) {
+      _startupRenderBootstrapHold = false;
+      return;
+    }
+    _rebuildMergedFeedEntries();
+    _rebuildFilteredFeedEntries();
+    debugPrint(
+      '[FeedStartupStage] status=sync_rebuild visibleEntries=$_startupRenderVisiblePostCount '
+      'agendaCount=${agendaList.length}',
+    );
+    _rebuildRenderFeedEntries(ignoreStartupBootstrapHold: true);
+    _startupRenderBootstrapHold = false;
+  }
+
+  void _resetStartupRenderStages() {
+    _startupRenderStageTimer?.cancel();
+    _startupRenderStageTimer = null;
+    _startupRenderStagingActive = false;
+    _startupRenderVisiblePostCount = 0;
+    _startupRenderBootstrapHold = false;
+  }
+
+  int? _nextStartupRenderStageEntryCount(int currentCount) {
+    for (final target in _startupRenderStageEntryCounts) {
+      if (target > currentCount) return target;
+    }
+    return null;
+  }
+
+  void _scheduleStartupRenderStageAdvance() {
+    if (!_startupRenderStagingActive) return;
+    final currentCount = _startupRenderVisiblePostCount;
+    if (currentCount >= _startupRenderStageEntryCounts.last) {
+      _resetStartupRenderStages();
+      return;
+    }
+    final nextStageCount = _nextStartupRenderStageEntryCount(currentCount);
+    if (nextStageCount == null) {
+      _resetStartupRenderStages();
+      return;
+    }
+    _startupRenderStageTimer?.cancel();
+    _startupRenderStageTimer = Timer(
+      currentCount <= _startupRenderStageEntryCounts.first
+          ? const Duration(milliseconds: 90)
+          : const Duration(milliseconds: 140),
+      () {
+        _startupRenderStageTimer = null;
+        if (isClosed || !_startupRenderStagingActive) return;
+        _startupRenderVisiblePostCount = nextStageCount;
+        debugPrint(
+          '[FeedStartupStage] status=advance visibleEntries=$nextStageCount',
+        );
+        _rebuildRenderFeedEntries();
+        if (nextStageCount >= _startupRenderStageEntryCounts.last) {
+          _resetStartupRenderStages();
+          _rebuildRenderFeedEntries();
+          return;
+        }
+        _scheduleStartupRenderStageAdvance();
+      },
+    );
+  }
+
   void _scheduleStartupPromoReveal({int attempt = 0}) {
     if (!_startupPromoRevealUnlockedByScroll) {
       return;
@@ -152,11 +237,20 @@ extension AgendaControllerRenderPart on AgendaController {
     _feedRenderCoordinator.applyPatch(filteredFeedEntries, patch);
   }
 
-  void _performRebuildRenderFeedEntries() {
+  void _performRebuildRenderFeedEntries({
+    bool ignoreStartupBootstrapHold = false,
+  }) {
+    if (_startupRenderBootstrapHold && !ignoreStartupBootstrapHold) {
+      return;
+    }
     if (filteredFeedEntries.isEmpty) {
+      if (_startupRenderStagingActive && agendaList.isNotEmpty) {
+        return;
+      }
       if (isLoading.value && renderFeedEntries.isNotEmpty) {
         return;
       }
+      _resetStartupRenderStages();
       _startupPromoRevealTimer?.cancel();
       _startupPromoRevealTimer = null;
       _startupPromoRevealQueued = false;
@@ -166,6 +260,8 @@ extension AgendaControllerRenderPart on AgendaController {
     }
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
+      maxRenderEntries:
+          _startupRenderStagingActive ? _startupRenderVisiblePostCount : null,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: renderFeedEntries.toList(growable: false),
