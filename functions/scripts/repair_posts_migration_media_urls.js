@@ -42,6 +42,7 @@ async function run() {
       if (plan.status !== 'ready') continue;
 
       let groupTouched = false;
+      const queuePatch = {};
 
       for (const item of plan.docs) {
         const ref = apps.targetDb.collection(options.targetCollection).doc(item.docId);
@@ -60,11 +61,47 @@ async function run() {
           patch.thumbnail = item.payload.thumbnail;
         }
 
+        if (shared.asString(data.video) !== shared.asString(item.payload.video)) {
+          patch.video = item.payload.video;
+        }
+
+        if (shared.asString(data.hlsMasterUrl) !== shared.asString(item.payload.hlsMasterUrl)) {
+          patch.hlsMasterUrl = item.payload.hlsMasterUrl;
+        }
+
+        if (shared.asString(data.hlsStatus) !== shared.asString(item.payload.hlsStatus)) {
+          patch.hlsStatus = item.payload.hlsStatus;
+        }
+
+        if (shared.asNum(data.hlsUpdatedAt, 0) !== shared.asNum(item.payload.hlsUpdatedAt, 0)) {
+          patch.hlsUpdatedAt = item.payload.hlsUpdatedAt;
+        }
+
         if (Object.keys(patch).length === 0) continue;
 
         batch.set(ref, patch, { merge: true });
         opCount += 1;
         repairedDocs += 1;
+        groupTouched = true;
+
+        if (opCount >= 350) {
+          await batch.commit();
+          batch = apps.targetDb.batch();
+          opCount = 0;
+        }
+      }
+
+      if ((plan.skipped || []).length === 0 && state === 'published_partial') {
+        queuePatch.active = false;
+        queuePatch.lastError = '';
+        queuePatch.lastErrorAt = 0;
+        queuePatch.state = 'published';
+        queuePatch.updatedAt = Date.now();
+      }
+
+      if (Object.keys(queuePatch).length > 0) {
+        batch.set(queueDoc.ref, queuePatch, { merge: true });
+        opCount += 1;
         groupTouched = true;
 
         if (opCount >= 350) {
