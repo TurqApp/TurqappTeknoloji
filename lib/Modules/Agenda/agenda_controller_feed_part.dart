@@ -18,6 +18,7 @@ extension AgendaControllerFeedPart on AgendaController {
   static const int _feedPlaybackBoostLookAhead = 2;
   static const int _feedInitialBufferedFetchTriggerCount =
       ReadBudgetRegistry.feedBufferedFetchLimit;
+  static const int _feedBufferedLeadRevealRemainingCount = 5;
 
   void _resetBufferedFeedFetchTrigger() {
     _nextBufferedFetchTriggerCount = _feedInitialBufferedFetchTriggerCount;
@@ -676,29 +677,70 @@ extension AgendaControllerFeedPart on AgendaController {
     final remainingAfterCentered = centered >= 0 && centered < agendaList.length
         ? agendaList.length - centered - 1
         : agendaList.length;
+    final isLeadRevealWindow =
+        agendaList.length >= FeedSnapshotRepository.startupHomeLimitValue &&
+            viewedCount > 0 &&
+            remainingAfterCentered <= _feedBufferedLeadRevealRemainingCount;
+    final leadBufferedBlockBaseCount = isLeadRevealWindow
+        ? _resolveBufferedFeedPrefetchBaseCount(agendaList.length)
+        : null;
+    final leadBufferedBlockReady = leadBufferedBlockBaseCount != null &&
+        _hasBufferedFeedBlockReadyForBase(leadBufferedBlockBaseCount);
+    final leadBufferedPrefetchInFlight = leadBufferedBlockBaseCount != null &&
+        _hasBufferedFeedBlockPrefetchInFlightForBase(
+          leadBufferedBlockBaseCount,
+        );
+    if (agendaList.isNotEmpty &&
+        scrollController.position.hasContentDimensions &&
+        hasMore.value &&
+        isLeadRevealWindow &&
+        !leadBufferedBlockReady &&
+        !leadBufferedPrefetchInFlight) {
+      _scheduleBufferedFeedBlockPrefetchAfterFrame(
+        reason: 'scroll_tail_lead',
+      );
+    }
+
+    final normalTriggerReached = viewedCount >= _nextBufferedFetchTriggerCount;
+    final bufferedPlan = (viewedCount > 0 && normalTriggerReached)
+        ? _agendaFeedApplicationService.resolveBufferedWindowPlan(
+            viewedCount: viewedCount,
+            initialCount: FeedSnapshotRepository.startupHomeLimitValue,
+            blockSize: ReadBudgetRegistry.feedLivePageLimit,
+            stepSize: ReadBudgetRegistry.feedBufferedFetchLimit,
+          )
+        : null;
+    final shouldLeadBufferedReveal = isLeadRevealWindow && leadBufferedBlockReady;
+    final triggerBlockBaseCount =
+        bufferedPlan?.blockBaseCount ?? leadBufferedBlockBaseCount;
+    final targetAgendaCount = bufferedPlan?.targetAgendaCount ??
+        (shouldLeadBufferedReveal
+            ? agendaList.length + ReadBudgetRegistry.feedBufferedFetchLimit
+            : (FeedSnapshotRepository.startupHomeLimitValue + viewedCount));
+    final canBypassLoadingForBufferedReveal =
+        triggerBlockBaseCount != null &&
+            _canBypassLoadingForBufferedReveal(
+              initial: false,
+              targetAgendaCount: targetAgendaCount,
+              bufferedBlockBaseCount: triggerBlockBaseCount,
+            );
 
     if (agendaList.isNotEmpty &&
         scrollController.position.hasContentDimensions &&
         hasMore.value &&
-        !isLoading.value &&
-        viewedCount >= _nextBufferedFetchTriggerCount) {
+        (!isLoading.value || canBypassLoadingForBufferedReveal) &&
+        (normalTriggerReached || shouldLeadBufferedReveal)) {
       final triggerCount = _nextBufferedFetchTriggerCount;
-      final bufferedPlan =
-          _agendaFeedApplicationService.resolveBufferedWindowPlan(
-        viewedCount: viewedCount,
-        initialCount: FeedSnapshotRepository.startupHomeLimitValue,
-        blockSize: ReadBudgetRegistry.feedLivePageLimit,
-        stepSize: ReadBudgetRegistry.feedBufferedFetchLimit,
-      );
-      final targetAgendaCount = bufferedPlan?.targetAgendaCount ??
-          (FeedSnapshotRepository.startupHomeLimitValue + viewedCount);
       debugPrint(
         '[FeedFetchTrigger] viewedCount=$viewedCount currentCount=${agendaList.length} '
         'pageLimit=${ReadBudgetRegistry.feedBufferedFetchLimit} '
         'triggerCount=$triggerCount '
         'resolvedViewedCount=$viewedCount '
+        'leadReveal=$shouldLeadBufferedReveal '
+        'remainingAfterCentered=$remainingAfterCentered '
+        'canBypassLoading=$canBypassLoadingForBufferedReveal '
         'targetAgendaCount=$targetAgendaCount '
-        'blockBaseCount=${bufferedPlan?.blockBaseCount ?? 0}',
+        'blockBaseCount=${triggerBlockBaseCount ?? 0}',
       );
       _advanceBufferedFeedFetchTrigger(viewedCount);
       recordQALabScrollEvent(
@@ -718,7 +760,7 @@ extension AgendaControllerFeedPart on AgendaController {
         pageLimit: ReadBudgetRegistry.feedBufferedFetchLimit,
         trigger: 'scroll_near_end',
         targetAgendaCount: targetAgendaCount,
-        bufferedBlockBaseCount: bufferedPlan?.blockBaseCount,
+        bufferedBlockBaseCount: triggerBlockBaseCount,
       );
     }
 

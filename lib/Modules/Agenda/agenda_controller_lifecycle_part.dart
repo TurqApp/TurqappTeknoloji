@@ -62,6 +62,8 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _resharePostsFetchTimer?.cancel();
     _agendaRetryTimer?.cancel();
     _deferredInitialNetworkBootstrapTimer?.cancel();
+    _startupPromoRevealTimer?.cancel();
+    _startupRenderStageTimer?.cancel();
     unawaited(persistWarmLaunchCache());
     _disposeFeedScrollControllerSafely();
   }

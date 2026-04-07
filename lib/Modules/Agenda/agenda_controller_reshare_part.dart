@@ -151,6 +151,7 @@ extension AgendaControllerResharePart on AgendaController {
     }
     if (unique.isNotEmpty) {
       agendaList.addAll(unique);
+      _debugAgendaKinds('add_unique', agendaList);
       _scheduleFeedPrefetch();
     }
   }

@@ -274,6 +274,16 @@ extension AgendaControllerLoadingPart on AgendaController {
     return initialCount + ((normalized ~/ blockSize) * blockSize);
   }
 
+  bool _hasBufferedFeedBlockReadyForBase(int blockBaseCount) {
+    return _bufferedFeedBlockItems.isNotEmpty &&
+        _bufferedFeedBlockBaseCount == blockBaseCount;
+  }
+
+  bool _hasBufferedFeedBlockPrefetchInFlightForBase(int blockBaseCount) {
+    return _bufferedFeedBlockPrefetchFuture != null &&
+        _bufferedFeedBlockPrefetchBaseCount == blockBaseCount;
+  }
+
   void _scheduleBufferedFeedBlockPrefetchAfterFrame({
     required String reason,
   }) {
@@ -360,6 +370,29 @@ extension AgendaControllerLoadingPart on AgendaController {
         _bufferedFeedBlockPrefetchBaseCount = 0;
       }
     }
+    if (isClosed || !_hasBufferedFeedBlockReadyForBase(blockBaseCount)) {
+      return;
+    }
+    final centered = centeredIndex.value;
+    final viewedCount =
+        centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
+    final remainingAfterCentered = centered >= 0 && centered < agendaList.length
+        ? agendaList.length - centered - 1
+        : agendaList.length;
+    final leadRevealRemainingCount =
+        max(1, ReadBudgetRegistry.feedBufferedFetchLimit ~/ 2);
+    if (viewedCount <= 0 || remainingAfterCentered > leadRevealRemainingCount) {
+      return;
+    }
+    unawaited(
+      fetchAgendaBigData(
+        trigger: 'buffered_prefetch_ready_tail',
+        pageLimit: ReadBudgetRegistry.feedBufferedFetchLimit,
+        targetAgendaCount:
+            agendaList.length + ReadBudgetRegistry.feedBufferedFetchLimit,
+        bufferedBlockBaseCount: blockBaseCount,
+      ),
+    );
   }
 
   List<PostsModel> _takeBufferedFeedBlockItems(int count) {
@@ -371,6 +404,25 @@ extension AgendaControllerLoadingPart on AgendaController {
         _bufferedFeedBlockItems.take(takeCount).toList(growable: false);
     _bufferedFeedBlockItems.removeRange(0, takeCount);
     return items;
+  }
+
+  bool _canBypassLoadingForBufferedReveal({
+    required bool initial,
+    int? targetAgendaCount,
+    int? bufferedBlockBaseCount,
+  }) {
+    if (initial ||
+        targetAgendaCount == null ||
+        bufferedBlockBaseCount == null ||
+        bufferedBlockBaseCount < FeedSnapshotRepository.startupHomeLimitValue) {
+      return false;
+    }
+    if (_bufferedFeedBlockItems.isNotEmpty &&
+        _bufferedFeedBlockBaseCount == bufferedBlockBaseCount) {
+      return true;
+    }
+    return _bufferedFeedBlockPrefetchFuture != null &&
+        _bufferedFeedBlockPrefetchBaseCount == bufferedBlockBaseCount;
   }
 
   Future<_AgendaBufferedFeedBlockLoadResult> _loadBufferedFeedBlock({
@@ -491,6 +543,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       cacheCandidates: augmentedCandidates,
       liveCandidates: const <PostsModel>[],
       targetCount: blockSize,
+      allowSparseSlotFallback: true,
     );
     final blockItems = <PostsModel>[];
     for (final post in composedBlockItems) {
@@ -742,7 +795,15 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    if (!hasMore.value || isLoading.value) {
+    final canBypassLoadingForBufferedReveal =
+        _canBypassLoadingForBufferedReveal(
+      initial: initial,
+      targetAgendaCount: targetAgendaCount,
+      bufferedBlockBaseCount: bufferedBlockBaseCount,
+    );
+
+    if ((!hasMore.value && !canBypassLoadingForBufferedReveal) ||
+        (isLoading.value && !canBypassLoadingForBufferedReveal)) {
       recordQALabFeedFetchEvent(
         stage: 'skipped',
         trigger: trigger,
@@ -751,19 +812,26 @@ extension AgendaControllerLoadingPart on AgendaController {
           'pageLimit': pageLimit ?? 0,
           'isLoading': isLoading.value,
           'hasMore': hasMore.value,
+          'canBypassLoadingForBufferedReveal':
+              canBypassLoadingForBufferedReveal,
           'currentCount': agendaList.length,
         },
       );
       return;
     }
 
-    isLoading.value = true;
+    final startedLoading = !isLoading.value;
+    if (startedLoading) {
+      isLoading.value = true;
+    }
     recordQALabFeedFetchEvent(
       stage: 'started',
       trigger: trigger,
       metadata: <String, dynamic>{
         'initial': initial,
         'pageLimit': pageLimit ?? 0,
+        'startedLoading': startedLoading,
+        'canBypassLoadingForBufferedReveal': canBypassLoadingForBufferedReveal,
         'currentCount': agendaList.length,
       },
     );
@@ -950,7 +1018,26 @@ extension AgendaControllerLoadingPart on AgendaController {
       _usePrimaryFeedPaging = effectiveUsesPrimaryFeed;
       lastDoc = effectiveLastDoc;
 
-      if (visibleItems.isNotEmpty) {
+      final shouldProtectBufferedStartupExpansion = initial &&
+          agendaList.isNotEmpty &&
+          (_bufferedFeedBlockPrefetchFuture != null ||
+              _bufferedFeedBlockItems.isNotEmpty);
+
+      if (visibleItems.isNotEmpty && shouldProtectBufferedStartupExpansion) {
+        debugPrint(
+          '[FeedStartupHeadSync] source=initial_bootstrap '
+          'status=skip_during_buffered_prefetch '
+          'agendaCount=${agendaList.length} visibleCount=${visibleItems.length} '
+          'bufferedReadyCount=${_bufferedFeedBlockItems.length} '
+          'bufferedPrefetchBaseCount=$_bufferedFeedBlockPrefetchBaseCount',
+        );
+        unawaited(
+          _saveFeedPostsToPool(
+            visibleItems,
+            const <String, Map<String, dynamic>>{},
+          ),
+        );
+      } else if (visibleItems.isNotEmpty) {
         final lockStartupHeadOnly =
             initial && _shouldLockStartupHeadOnly(currentAgenda);
         final shouldPreferLiveStartupHead = initial &&
@@ -1155,7 +1242,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         _scheduleAgendaRetry(initial: initial && agendaList.isEmpty);
       }
     } finally {
-      isLoading.value = false; // HER DURUMDA EN SON ÇALIŞIR
+      if (startedLoading) {
+        isLoading.value = false; // HER DURUMDA EN SON ÇALIŞIR
+      }
 
       // 🎯 INSTAGRAM STYLE: İlk açılışta ilk videoyu otomatik centered yap
       if (initial && agendaList.isNotEmpty) {

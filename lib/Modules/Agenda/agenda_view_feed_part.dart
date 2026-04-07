@@ -20,7 +20,9 @@ extension _AgendaViewFeedPart on AgendaView {
       child: Obx(() {
         final display = controller.mergedFeedEntries;
         final filteredDisplay = controller.filteredFeedEntries;
-        final renderDisplay = controller.renderFeedEntries;
+        final renderDisplay = controller.visibleStartupRenderEntries(
+          controller.renderFeedEntries.toList(growable: false),
+        );
         final displayCount = display.length;
         final filteredCount = filteredDisplay.length;
 

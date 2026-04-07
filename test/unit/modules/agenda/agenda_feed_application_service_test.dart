@@ -256,6 +256,74 @@ void main() {
     });
 
     test(
+        'composeStartupFeedItems repeats the locked ten-slot motif across sixty cards',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        80,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          80,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          20,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 60,
+      );
+
+      expect(result, hasLength(60));
+      _expectLockedTenSlotMotif(result);
+    });
+
+    test(
+        'composeStartupFeedItems keeps the same locked ten-slot motif across ninety cards',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        120,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          120,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          30,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          18,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 90,
+      );
+
+      expect(result, hasLength(90));
+      _expectLockedTenSlotMotif(result);
+    });
+
+    test(
         'composeStartupFeedItems keeps slot kinds but varies selected posts across startup variants',
         () {
       final service = AgendaFeedApplicationService();
@@ -524,6 +592,47 @@ void main() {
     });
 
     test(
+        'composeStartupFeedItems can fill sparse late blocks without collapsing to one item',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final cacheCandidates = <PostsModel>[
+        _readyVideoPost(id: 'cv1'),
+        ...List<PostsModel>.generate(
+          18,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          6,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: const <PostsModel>[],
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+        allowSparseSlotFallback: true,
+      );
+      final kinds = result.map(_startupKindForPost).toList(growable: false);
+
+      expect(result, hasLength(30));
+      expect(kinds.first, 'cache');
+      expect(
+          kinds.where((kind) => kind == 'flood').length, lessThanOrEqualTo(3));
+      expect(kinds.sublist(0, 10).where((kind) => kind == 'flood').length,
+          lessThanOrEqualTo(1));
+      expect(kinds.sublist(10, 20).where((kind) => kind == 'flood').length,
+          lessThanOrEqualTo(1));
+      expect(kinds.sublist(20, 30).where((kind) => kind == 'flood').length,
+          lessThanOrEqualTo(1));
+    });
+
+    test(
         'mergeStartupHeadWithCurrentItems keeps mixed startup head and preserves unique tail items',
         () {
       final service = AgendaFeedApplicationService();
@@ -668,6 +777,28 @@ void main() {
       expect(planAt40!.blockBaseCount, 60);
       expect(planAt40.targetAgendaCount, 70);
       expect(planAt40.startsNewBlock, isTrue);
+
+      final planAt70 = service.resolveBufferedWindowPlan(
+        viewedCount: 70,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt70, isNotNull);
+      expect(planAt70!.blockBaseCount, 90);
+      expect(planAt70.targetAgendaCount, 100);
+      expect(planAt70.startsNewBlock, isTrue);
+
+      final planAt100 = service.resolveBufferedWindowPlan(
+        viewedCount: 100,
+        initialCount: 30,
+        blockSize: 30,
+        stepSize: 10,
+      );
+      expect(planAt100, isNotNull);
+      expect(planAt100!.blockBaseCount, 120);
+      expect(planAt100.targetAgendaCount, 130);
+      expect(planAt100.startsNewBlock, isTrue);
     });
 
     test('capStartupRenderEntries keeps only first six posts and their promos',
@@ -896,6 +1027,36 @@ void main() {
       );
     });
   });
+}
+
+void _expectLockedTenSlotMotif(List<PostsModel> posts) {
+  expect(posts.length % 10, 0);
+  for (var start = 0; start < posts.length; start += 10) {
+    final chunk = posts.sublist(start, start + 10);
+    final chunkKinds = chunk.map(_startupKindForPost).toList(growable: false);
+    expect(
+      chunkKinds.where((kind) => kind == 'flood').length,
+      1,
+      reason: 'chunk ${start ~/ 10} flood count',
+    );
+    expect(
+      chunkKinds[2],
+      'image',
+      reason: 'chunk ${start ~/ 10} image slot',
+    );
+    expect(
+      chunkKinds[5],
+      'flood',
+      reason: 'chunk ${start ~/ 10} flood slot',
+    );
+    for (final index in <int>[0, 1, 3, 4, 6, 7, 8, 9]) {
+      expect(
+        <String>['cache', 'live'].contains(chunkKinds[index]),
+        isTrue,
+        reason: 'chunk ${start ~/ 10} video slot ${index + 1}',
+      );
+    }
+  }
 }
 
 PostsModel _post({

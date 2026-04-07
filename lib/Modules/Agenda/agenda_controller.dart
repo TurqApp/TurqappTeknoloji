@@ -20,6 +20,7 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -96,6 +97,28 @@ AgendaController ensureAgendaController({bool permanent = false}) {
 
 extension AgendaControllerFacadePart on AgendaController {
   int get fetchLimit => ReadBudgetRegistry.feedBufferedFetchLimit;
+
+  bool get isStartupRenderStagingActive => _startupRenderStagingActive;
+
+  int get startupRenderVisiblePostCount => _startupRenderVisiblePostCount;
+
+  List<Map<String, dynamic>> visibleStartupRenderEntries(
+    List<Map<String, dynamic>> renderEntries,
+  ) {
+    if (!_startupRenderStagingActive) {
+      return renderEntries;
+    }
+    final capped = renderEntries.length <= _startupRenderVisiblePostCount
+        ? renderEntries
+        : renderEntries
+            .take(_startupRenderVisiblePostCount)
+            .toList(growable: false);
+    debugPrint(
+      '[FeedStartupStage] status=apply visibleEntries=$_startupRenderVisiblePostCount '
+      'renderCount=${renderEntries.length} visibleRenderCount=${capped.length}',
+    );
+    return capped;
+  }
 
   AgendaShuffleCacheService get _shuffleCache =>
       ensureAgendaShuffleCacheService();

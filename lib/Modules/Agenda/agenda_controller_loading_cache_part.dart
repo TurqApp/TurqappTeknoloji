@@ -252,6 +252,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required List<PostsModel> cacheCandidates,
     List<PostsModel> liveCandidates = const <PostsModel>[],
     required int targetCount,
+    bool allowSparseSlotFallback = false,
   }) {
     if ((cacheCandidates.isEmpty && liveCandidates.isEmpty) ||
         targetCount <= 0) {
@@ -270,6 +271,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       targetCount: targetCount,
       startupVariantOverride: startupVariant,
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
+      allowSparseSlotFallback: allowSparseSlotFallback,
     );
     _startupCacheOriginVideoDocIds
       ..clear()
@@ -835,8 +837,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         !snapshot.isStale &&
         snapshot.source == CachedResourceSource.server &&
         warmSeed.length >= effectiveLimit;
-    final allowPartialWarmSnapshotQuickFill =
-        warmSeed.length >=
+    final allowPartialWarmSnapshotQuickFill = warmSeed.length >=
             _startupWarmSnapshotMinimumQuickFillCount(effectiveLimit) &&
         !snapshot.isStale;
     final useFastWarmSnapshotSeed =

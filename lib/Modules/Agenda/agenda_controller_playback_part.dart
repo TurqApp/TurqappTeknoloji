@@ -196,6 +196,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
 
   void _performTrackPlaybackWindow() {
     final playbackKpi = maybeFindPlaybackKpiService();
+    maybeFindHlsDataUsageProbe()?.setVisibleDoc(
+        centeredIndex.value >= 0 && centeredIndex.value < agendaList.length
+            ? agendaList[centeredIndex.value].docID
+            : null);
     if (playbackKpi == null) return;
     final centered = centeredIndex.value;
     final activeDocId = centered >= 0 && centered < agendaList.length

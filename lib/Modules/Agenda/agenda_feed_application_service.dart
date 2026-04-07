@@ -222,6 +222,7 @@ class AgendaFeedApplicationService {
     required int targetCount,
     int? startupVariantOverride,
     Set<String>? cacheReadyVideoDocIds,
+    bool allowSparseSlotFallback = false,
   }) {
     if (targetCount <= 0) return const <PostsModel>[];
 
@@ -284,6 +285,7 @@ class AgendaFeedApplicationService {
           slotPlan: slotPlan.sublist(start, end),
           buckets: buckets,
           usedIds: usedIds,
+          allowSparseSlotFallback: allowSparseSlotFallback,
         ),
       );
       if (output.length >= targetCount) break;
@@ -531,6 +533,7 @@ class AgendaFeedApplicationService {
     required List<_AgendaStartupBucket> slotPlan,
     required Map<_AgendaStartupBucket, List<PostsModel>> buckets,
     required Set<String> usedIds,
+    required bool allowSparseSlotFallback,
   }) {
     if (slotPlan.isEmpty) return const <PostsModel>[];
 
@@ -543,13 +546,20 @@ class AgendaFeedApplicationService {
         usedIds: usedIds,
         allowFlood:
             !usedFloodInChunk || desiredBucket == _AgendaStartupBucket.flood,
+        allowSparseSlotFallback: allowSparseSlotFallback,
       );
       if (candidate == null) {
-        break;
+        if (!allowSparseSlotFallback) {
+          break;
+        }
+        continue;
       }
       final docId = candidate.docID.trim();
       if (docId.isEmpty || !usedIds.add(docId)) {
-        break;
+        if (!allowSparseSlotFallback) {
+          break;
+        }
+        continue;
       }
       if (candidate.isFloodSeriesContent) {
         usedFloodInChunk = true;
@@ -564,8 +574,43 @@ class AgendaFeedApplicationService {
     required Map<_AgendaStartupBucket, List<PostsModel>> buckets,
     required Set<String> usedIds,
     required bool allowFlood,
+    required bool allowSparseSlotFallback,
   }) {
     for (final bucket in _startupSlotFallbackOrder(desiredBucket)) {
+      if (bucket == _AgendaStartupBucket.flood && !allowFlood) {
+        continue;
+      }
+      final candidate = _firstUnusedStartupCandidate(
+        buckets[bucket]!,
+        usedIds: usedIds,
+      );
+      if (candidate != null) {
+        return candidate;
+      }
+    }
+    if (!allowSparseSlotFallback) {
+      return null;
+    }
+    return _selectSparseStartupFallbackCandidate(
+      buckets,
+      usedIds: usedIds,
+      allowFlood: allowFlood,
+    );
+  }
+
+  PostsModel? _selectSparseStartupFallbackCandidate(
+    Map<_AgendaStartupBucket, List<PostsModel>> buckets, {
+    required Set<String> usedIds,
+    required bool allowFlood,
+  }) {
+    const fallbackOrder = <_AgendaStartupBucket>[
+      _AgendaStartupBucket.image,
+      _AgendaStartupBucket.text,
+      _AgendaStartupBucket.cacheVideo,
+      _AgendaStartupBucket.liveVideo,
+      _AgendaStartupBucket.flood,
+    ];
+    for (final bucket in fallbackOrder) {
       if (bucket == _AgendaStartupBucket.flood && !allowFlood) {
         continue;
       }
