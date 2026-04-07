@@ -195,6 +195,15 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
 
   @override
   Widget build(BuildContext context) {
+    final thumbnail = SizedBox.expand(
+      child: CachedNetworkImage(
+        imageUrl: widget.thumbnailUrl,
+        fit: BoxFit.cover,
+        placeholder: (c, u) => Container(color: Colors.black12),
+        errorWidget: (c, u, e) => Container(color: Colors.black12),
+      ),
+    );
+
     return VisibilityDetector(
       key: Key(widget.visibilityKey),
       onVisibilityChanged: (info) {
@@ -209,20 +218,17 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(2),
-        child: _adapter != null
-            ? _adapter!.buildPlayer(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            thumbnail,
+            if (_adapter != null)
+              _adapter!.buildPlayer(
                 aspectRatio: widget.aspectRatio,
                 useAspectRatio: widget.useAspectRatio,
-              )
-            : SizedBox.expand(
-                child: CachedNetworkImage(
-                  imageUrl: widget.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (c, u) => Container(color: Colors.black12),
-                  errorWidget: (c, u, e) =>
-                      const Icon(Icons.image_not_supported),
-                ),
               ),
+          ],
+        ),
       ),
     );
   }
