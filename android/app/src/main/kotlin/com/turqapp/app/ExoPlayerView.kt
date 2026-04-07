@@ -130,6 +130,15 @@ class ExoPlayerView(
         return didRenderFirstFrame || firstVideoFrameAtMs > 0L || lastVideoFrameAtMs > 0L
     }
 
+    private fun shouldKeepStartupPlaybackAcrossDetach(): Boolean {
+        if (!isPrimaryFeedSurface) return false
+        if (didRenderFirstFrame) return false
+        val p = player ?: return false
+        if (!p.playWhenReady) return false
+        return p.playbackState == Player.STATE_BUFFERING ||
+            p.playbackState == Player.STATE_READY
+    }
+
     private inline fun runOnMain(crossinline block: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             block()
@@ -300,6 +309,7 @@ class ExoPlayerView(
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                val keepStartupPlaybackAlive = shouldKeepStartupPlaybackAcrossDetach()
                 val preserveVisibleFrame =
                     (forceFullscreen || isPrimaryFeedSurface) &&
                         hasReusableVideoFrame()
@@ -323,7 +333,9 @@ class ExoPlayerView(
                 smokeProbe?.onSurfaceDetached()
                 isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
-                if (isPrimaryFeedSurface || !preserveVisibleFrame) {
+                if (!keepStartupPlaybackAlive &&
+                    (isPrimaryFeedSurface || !preserveVisibleFrame)
+                ) {
                     softHold()
                 }
             }
