@@ -120,7 +120,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     _prefetchThumbnailBatches();
     _prefetchUpcomingImages();
 
-    if (centeredIndex.value == -1) {
+    if (_needsInitialFeedPlaybackPrime) {
+      primeInitialCenteredPost();
+    } else if (centeredIndex.value == -1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (agendaList.isNotEmpty && centeredIndex.value == -1) {
           primeInitialCenteredPost();
@@ -740,7 +742,9 @@ extension AgendaControllerLoadingPart on AgendaController {
 
       if (agendaList.isNotEmpty && _startupLiveHeadApplied) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          if (agendaList.isNotEmpty &&
+              (_needsInitialFeedPlaybackPrime ||
+                  centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });
@@ -753,7 +757,9 @@ extension AgendaControllerLoadingPart on AgendaController {
             hasLocalContent: true,
           )) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          if (agendaList.isNotEmpty &&
+              (_needsInitialFeedPlaybackPrime ||
+                  centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });
@@ -763,7 +769,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (agendaList.isNotEmpty && _shouldDeferInitialNetworkBootstrap()) {
         _scheduleDeferredInitialNetworkBootstrap();
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          if (agendaList.isNotEmpty &&
+              (_needsInitialFeedPlaybackPrime ||
+                  centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });
@@ -1235,7 +1243,7 @@ extension AgendaControllerLoadingPart on AgendaController {
             ..clear()
             ..addAll(previousBufferedFeedBlockItems);
           _bufferedFeedBlockBaseCount = previousBufferedFeedBlockBaseCount;
-          if (centeredIndex.value == -1) {
+          if (_needsInitialFeedPlaybackPrime || centeredIndex.value == -1) {
             primeInitialCenteredPost();
           }
         }
@@ -1250,7 +1258,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (initial && agendaList.isNotEmpty) {
         // Bir frame bekle ki VisibilityDetector build olsun
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          if (agendaList.isNotEmpty &&
+              (_needsInitialFeedPlaybackPrime ||
+                  centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });

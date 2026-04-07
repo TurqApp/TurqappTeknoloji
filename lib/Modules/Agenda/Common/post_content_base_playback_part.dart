@@ -21,6 +21,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   int get _requiredAutoplaySegmentCount {
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance) {
+      if (shouldEnableStartupRecoveryWatchdog) {
+        return 1;
+      }
       return SegmentCacheRuntimeService.globalReadySegmentCount;
     }
     return 1;

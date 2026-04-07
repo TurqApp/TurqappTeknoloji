@@ -381,6 +381,15 @@ extension AgendaControllerFeedPart on AgendaController {
     });
   }
 
+  bool get _needsInitialFeedPlaybackPrime {
+    if (agendaList.isEmpty) return false;
+    final lastRowDocId = _lastPlaybackRowUpdateDocId?.trim() ?? '';
+    if (lastRowDocId.isNotEmpty) return false;
+    final currentOwner = VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    if (currentOwner.startsWith('feed:')) return false;
+    return true;
+  }
+
   void resumeFeedPlayback() {
     if (!canClaimPlaybackNow) return;
     if (agendaList.isEmpty) return;
@@ -549,11 +558,23 @@ extension AgendaControllerFeedPart on AgendaController {
   }) {
     if (!GetPlatform.isAndroid) return;
     final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
-    for (final delay in const <Duration>[
-      Duration(milliseconds: 900),
-      Duration(milliseconds: 2200),
-      Duration(milliseconds: 3800),
-    ]) {
+    final isStartupLeadKick =
+        index == 0 &&
+        (_lastPlaybackRowUpdateDocId?.trim().isEmpty ?? true) &&
+        (VideoStateManager.instance.currentPlayingDocID?.trim().isEmpty ?? true);
+    final delays = isStartupLeadKick
+        ? const <Duration>[
+            Duration(milliseconds: 180),
+            Duration(milliseconds: 520),
+            Duration(milliseconds: 1100),
+            Duration(milliseconds: 2200),
+          ]
+        : const <Duration>[
+            Duration(milliseconds: 900),
+            Duration(milliseconds: 2200),
+            Duration(milliseconds: 3800),
+          ];
+    for (final delay in delays) {
       Future.delayed(delay, () {
         if (isClosed ||
             pauseAll.value ||

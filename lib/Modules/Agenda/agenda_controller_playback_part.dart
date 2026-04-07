@@ -212,6 +212,14 @@ extension AgendaControllerPlaybackPart on AgendaController {
         !playbackSuspended.value &&
         !pauseAll.value &&
         !externalOwnerActive;
+    if (GetPlatform.isAndroid &&
+        ownershipExpected &&
+        centered == 0 &&
+        currentPlayingDocId == null &&
+        centered < agendaList.length &&
+        _canAutoplayVideoPost(agendaList[centered])) {
+      _ensureFeedPlaybackForIndex(centered);
+    }
     final visibleCount = _visibleFractions.length;
     var strongestIndex = -1;
     var strongestFraction = 0.0;

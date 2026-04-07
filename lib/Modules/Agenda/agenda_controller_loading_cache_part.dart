@@ -722,6 +722,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       }
       _addUniqueToAgenda(toAdd);
       _reorderAgendaForStartupPresentationIfNeeded();
+      if (_needsInitialFeedPlaybackPrime) {
+        primeInitialCenteredPost();
+      }
       _applyStartupRenderStagesNow();
       _scheduleBufferedFeedBlockPrefetchAfterFrame(
         reason: 'quick_fill_cache',
@@ -737,7 +740,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
 
       if (agendaList.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+          if (agendaList.isNotEmpty &&
+              (_needsInitialFeedPlaybackPrime ||
+                  centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });
@@ -813,6 +818,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           }
           _addUniqueToAgenda(quickFilled);
           _reorderAgendaForStartupPresentationIfNeeded();
+          if (_needsInitialFeedPlaybackPrime) {
+            primeInitialCenteredPost();
+          }
           _applyStartupRenderStagesNow();
           _scheduleBufferedFeedBlockPrefetchAfterFrame(
             reason: 'quick_fill_shard',
@@ -824,7 +832,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           );
           if (agendaList.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+              if (agendaList.isNotEmpty &&
+                  (_needsInitialFeedPlaybackPrime ||
+                      centeredIndex.value == -1)) {
                 primeInitialCenteredPost();
               }
             });
@@ -933,6 +943,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     }
     _addUniqueToAgenda(quickFilled);
     _reorderAgendaForStartupPresentationIfNeeded();
+    if (_needsInitialFeedPlaybackPrime) {
+      primeInitialCenteredPost();
+    }
     _applyStartupRenderStagesNow();
     _scheduleBufferedFeedBlockPrefetchAfterFrame(
       reason: 'quick_fill_warm_snapshot',
@@ -945,7 +958,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (agendaList.isNotEmpty && centeredIndex.value == -1) {
+        if (agendaList.isNotEmpty &&
+            (_needsInitialFeedPlaybackPrime || centeredIndex.value == -1)) {
           primeInitialCenteredPost();
         }
       });
