@@ -3,7 +3,6 @@ part of 'flood_listing_controller.dart';
 class _FloodListingControllerState {
   final RxList<PostsModel> floods = <PostsModel>[].obs;
   final ScrollController scrollController = ScrollController();
-  final Map<String, GlobalKey> floodKeys = <String, GlobalKey>{};
   final RxInt currentVisibleIndex = RxInt(-1);
   final RxInt centeredIndex = 0.obs;
   final Map<int, double> visibleFractions = <int, double>{};
@@ -18,7 +17,6 @@ class _FloodListingControllerState {
 extension FloodListingControllerFieldsPart on FloodListingController {
   RxList<PostsModel> get floods => _state.floods;
   ScrollController get scrollController => _state.scrollController;
-  Map<String, GlobalKey> get _floodKeys => _state.floodKeys;
   RxInt get currentVisibleIndex => _state.currentVisibleIndex;
   RxInt get centeredIndex => _state.centeredIndex;
   Map<int, double> get _visibleFractions => _state.visibleFractions;

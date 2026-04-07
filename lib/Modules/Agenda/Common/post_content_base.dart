@@ -105,6 +105,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _playbackIntentTracked = false;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
+  bool _dependenciesReady = false;
   VoidCallback? _keepAliveUpdateCallback;
 
   /// Video state'i sadece süre/replay göstergesini güncellemek için.
@@ -308,6 +309,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isSurfacePlaybackAllowed {
     if (_isFloodSurfaceInstance) {
+      if (!_dependenciesReady) {
+        return true;
+      }
       final route = ModalRoute.of(context);
       return route?.isCurrent ?? false;
     }
@@ -473,6 +477,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _dependenciesReady = true;
     _handleDidChangeDependencies();
   }
 

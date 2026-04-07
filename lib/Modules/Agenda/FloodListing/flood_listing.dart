@@ -43,14 +43,13 @@ class _FloodListingState extends State<FloodListing> {
   double _chainLeftOffset() =>
       AgendaSpacing.modernContainerPadding.left + AgendaSpacing.avatarRadius;
 
-  void _restoreHostSurface() {
-    if (widget.hostSurface == FloodListingHostSurface.exploreSeries) {
-      maybeFindExploreController()?.goToPage(2);
-    }
+  void _prepareHostSurfaceReturn() {
+    if (widget.hostSurface != FloodListingHostSurface.exploreSeries) return;
+    maybeFindExploreController()?.preserveTabOnNextReturn(2);
   }
 
   void _handleBack() {
-    _restoreHostSurface();
+    _prepareHostSurfaceReturn();
     Get.back();
   }
 
@@ -81,10 +80,10 @@ class _FloodListingState extends State<FloodListing> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: true,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) return;
-        _restoreHostSurface();
+        if (didPop) return;
+        _handleBack();
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,
@@ -126,7 +125,6 @@ class _FloodListingState extends State<FloodListing> {
                     }
 
                     final model = controller.floods[index];
-                    final itemKey = controller.getFloodKey(docId: model.docID);
                     final isCentered = centeredIndex == index;
                     final shouldPlay =
                         FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
@@ -135,7 +133,7 @@ class _FloodListingState extends State<FloodListing> {
                     final isLastItem = index == controller.floods.length - 1;
 
                     final contentWidget = AgendaContent(
-                      key: itemKey,
+                      key: ValueKey('flood-${model.docID}'),
                       model: model,
                       isPreview: true,
                       instanceTag: controller.floodInstanceTag(model.docID),

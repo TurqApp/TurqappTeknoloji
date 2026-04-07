@@ -184,13 +184,6 @@ extension FloodListingControllerRuntimePart on FloodListingController {
 
   String floodInstanceTag(String docId) => 'flood_$docId';
 
-  GlobalKey getFloodKey({required String docId}) {
-    return _floodKeys.putIfAbsent(
-      docId,
-      () => GlobalObjectKey(floodInstanceTag(docId)),
-    );
-  }
-
   void _onScroll() {
     if (!scrollController.hasClients || floods.isEmpty) return;
     final position = scrollController.position;
