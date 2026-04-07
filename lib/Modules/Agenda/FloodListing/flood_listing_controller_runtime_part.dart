@@ -5,6 +5,42 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   static const int _floodNextBatchPromotionTriggerOffset = 2;
   static const Duration _floodPriorityPlanTick = Duration(milliseconds: 900);
 
+  List<int> _collectPlayableFloodIndices({
+    required int startIndex,
+    required int playableCount,
+  }) {
+    if (playableCount <= 0 || floods.isEmpty) return const <int>[];
+    final safeStart = startIndex.clamp(0, floods.length - 1);
+    final indices = <int>[];
+    for (var i = safeStart; i < floods.length; i++) {
+      final model = floods[i];
+      if (!model.hasPlayableVideo) continue;
+      indices.add(i);
+      if (indices.length >= playableCount) break;
+    }
+    return indices;
+  }
+
+  void _scheduleFloodSegmentWarmupForIndices(
+    Iterable<int> indices, {
+    required int readySegments,
+  }) {
+    if (floods.isEmpty) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    for (final i in indices) {
+      if (i < 0 || i >= floods.length) continue;
+      final model = floods[i];
+      if (!model.hasPlayableVideo) continue;
+      try {
+        prefetch.boostDoc(
+          model.docID,
+          readySegments: readySegments,
+        );
+      } catch (_) {}
+    }
+  }
+
   int _playableFloodCachedSegmentCount(int index) {
     if (index < 0 || index >= floods.length) return 0;
     final model = floods[index];
@@ -128,20 +164,25 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     _resetFloodSegmentPriorityPlan();
     _updateFloodPrefetchPriorityContext(0);
 
-    final initialWindowCount = _floodPriorityBatchSize.clamp(1, floods.length);
-    _scheduleFloodSegmentWarmupFrom(
+    final initialPlayableIndices = _collectPlayableFloodIndices(
       startIndex: 0,
+      playableCount: _floodPriorityBatchSize,
+    );
+    _scheduleFloodSegmentWarmupForIndices(
+      initialPlayableIndices,
       readySegments: 2,
-      windowCount: initialWindowCount,
     );
     _promotedSecondSegmentBatchStarts.add(0);
 
-    final remainingStart = initialWindowCount;
+    if (initialPlayableIndices.isEmpty) return;
+    final remainingStart = initialPlayableIndices.last + 1;
     if (remainingStart >= floods.length) return;
-    _scheduleFloodSegmentWarmupFrom(
-      startIndex: remainingStart,
+    _scheduleFloodSegmentWarmupForIndices(
+      _collectPlayableFloodIndices(
+        startIndex: remainingStart,
+        playableCount: floods.length,
+      ),
       readySegments: 1,
-      windowCount: floods.length - remainingStart,
     );
   }
 

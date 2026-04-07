@@ -12,9 +12,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       controller.arsiv.value = false;
     }
 
-    _keepAliveWindowWorker ??= ever<int>(agendaController.centeredIndex, (_) {
-      _keepAliveUpdateCallback?.call();
-    });
+    final floodController =
+        _isFloodSurfaceInstance ? maybeFindFloodListingController() : null;
+    _keepAliveWindowWorker ??= ever<int>(
+      floodController?.centeredIndex ?? agendaController.centeredIndex,
+      (_) {
+        _keepAliveUpdateCallback?.call();
+      },
+    );
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =

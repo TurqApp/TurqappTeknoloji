@@ -229,7 +229,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       widget.model.hasPlayableVideo &&
       (widget.shouldPlay ||
           _surfaceKeepAliveDebounceActive ||
-          _shouldKeepResumeSurfaceAliveInWarmWindow);
+          _shouldKeepResumeSurfaceAliveInWarmWindow ||
+          _shouldKeepFloodSurfaceAliveInWarmWindow);
 
   bool get _shouldKeepResumeSurfaceAliveInWarmWindow {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
@@ -253,6 +254,55 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final warmEndExclusive =
         (safeCentered + 6).clamp(0, agendaController.agendaList.length);
     return modelIndex >= warmStart && modelIndex < warmEndExclusive;
+  }
+
+  bool get _shouldKeepFloodSurfaceAliveInWarmWindow {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isFloodSurfaceInstance) return false;
+    if (!widget.model.hasPlayableVideo) return false;
+    final modelIndex = _surfaceModelIndex();
+    if (modelIndex < 0) return false;
+    final safeCenteredIndex = _surfaceSafeCenteredIndex();
+    if (safeCenteredIndex < 0) return false;
+    final warmWindowStart = safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5;
+    final warmWindowEndExclusive =
+        (safeCenteredIndex + 6).clamp(0, _surfaceListLength());
+    return modelIndex >= warmWindowStart &&
+        modelIndex < warmWindowEndExclusive;
+  }
+
+  int _surfaceListLength() {
+    if (_isFloodSurfaceInstance) {
+      return maybeFindFloodListingController()?.floods.length ?? 0;
+    }
+    return agendaController.agendaList.length;
+  }
+
+  int _surfaceModelIndex() {
+    if (_isFloodSurfaceInstance) {
+      return maybeFindFloodListingController()?.floods.indexWhere(
+            (p) => p.docID == widget.model.docID,
+          ) ??
+          -1;
+    }
+    return agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+  }
+
+  int _surfaceCurrentCenteredIndex() {
+    if (_isFloodSurfaceInstance) {
+      return maybeFindFloodListingController()?.centeredIndex.value ?? -1;
+    }
+    return agendaController.centeredIndex.value;
+  }
+
+  int _surfaceSafeCenteredIndex() {
+    final length = _surfaceListLength();
+    if (length <= 0) return -1;
+    final centered = _surfaceCurrentCenteredIndex();
+    if (centered < 0) return -1;
+    return centered.clamp(0, length - 1);
   }
 
   void bindKeepAliveUpdater(VoidCallback callback) {
@@ -682,19 +732,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_lastPlaybackVisualWarning == next) return;
     _lastPlaybackVisualWarning = next;
     _lastPlaybackVisualWarningAt = now;
-    final currentCenteredIndex = agendaController.centeredIndex.value;
-    final safeCenteredIndex = agendaController.agendaList.isEmpty
-        ? -1
-        : currentCenteredIndex.clamp(0, agendaController.agendaList.length - 1);
+    final safeCenteredIndex = _surfaceSafeCenteredIndex();
     final warmWindowStart = safeCenteredIndex < 0
         ? -1
         : (safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5);
     final warmWindowEndExclusive = safeCenteredIndex < 0
         ? -1
-        : (safeCenteredIndex + 6).clamp(0, agendaController.agendaList.length);
-    final modelIndex = agendaController.agendaList.indexWhere(
-      (p) => p.docID == widget.model.docID,
-    );
+        : (safeCenteredIndex + 6).clamp(0, _surfaceListLength());
+    final modelIndex = _surfaceModelIndex();
     final metadata = <String, dynamic>{
       'docId': widget.model.docID,
       'instanceTag': widget.instanceTag ?? '',
