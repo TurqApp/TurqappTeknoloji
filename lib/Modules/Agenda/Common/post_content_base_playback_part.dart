@@ -132,7 +132,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
   }
 
-  Future<void> _disposePlaybackForSurfaceLoss() async {
+  Future<void> _disposePlaybackForSurfaceLoss({
+    bool clearSavedState = false,
+  }) async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
     _videoAdapter = null;
@@ -146,7 +148,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _playbackRuntimeService.unregisterPlaybackHandle(playbackHandleKey);
     } catch (_) {}
     try {
-      await adapterPool.release(adapter, keepWarm: false);
+      await adapterPool.release(
+        adapter,
+        keepWarm: false,
+        clearSavedState: clearSavedState,
+      );
     } catch (_) {}
     if (mounted) {
       _markPostContentDirty();

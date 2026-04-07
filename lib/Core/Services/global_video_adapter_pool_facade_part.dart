@@ -49,10 +49,12 @@ extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
   Future<void> release(
     HLSVideoAdapter adapter, {
     bool keepWarm = true,
+    bool clearSavedState = false,
   }) =>
       _GlobalVideoAdapterPoolRuntimeX(this).release(
         adapter,
         keepWarm: keepWarm,
+        clearSavedState: clearSavedState,
       );
 
   Future<void> clear() => _GlobalVideoAdapterPoolRuntimeX(this).clear();

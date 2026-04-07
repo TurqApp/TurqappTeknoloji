@@ -69,6 +69,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   Future<void> release(
     HLSVideoAdapter adapter, {
     bool keepWarm = true,
+    bool clearSavedState = false,
   }) async {
     final cacheKey = _leasedKeys.remove(adapter);
     if (cacheKey == null) {
@@ -91,7 +92,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     if (adapter.isDisposed) return;
 
-    if (_shouldResetSavedState(adapter)) {
+    if (clearSavedState || _shouldResetSavedState(adapter)) {
       VideoStateManager.instance.clearVideoState(cacheKey);
     } else {
       _saveState(cacheKey, adapter);

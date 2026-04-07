@@ -127,6 +127,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           unawaited(_disposePlaybackForSurfaceLoss());
           return;
         }
+        if (_isFloodSurfaceInstance) {
+          unawaited(
+            _disposePlaybackForSurfaceLoss(
+              clearSavedState: true,
+            ),
+          );
+          return;
+        }
         _safePauseVideo();
       }
     }
