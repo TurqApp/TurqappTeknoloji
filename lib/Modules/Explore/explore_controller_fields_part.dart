@@ -45,6 +45,7 @@ class _ExploreControllerState {
   final floodsVisibleIndex = (-1).obs;
   int? lastFloodVisibleIndex;
   String? pendingFloodDocId;
+  int? preserveTabIndexOnNextReturn;
   final Set<int> preparedFloodChildChunkStarts = <int>{};
   final showScrollToTop = false.obs;
   final followingIDs = <String>{}.obs;
@@ -108,6 +109,9 @@ extension ExploreControllerFieldsPart on ExploreController {
   set lastFloodVisibleIndex(int? value) => _state.lastFloodVisibleIndex = value;
   String? get _pendingFloodDocId => _state.pendingFloodDocId;
   set _pendingFloodDocId(String? value) => _state.pendingFloodDocId = value;
+  int? get _preserveTabIndexOnNextReturn => _state.preserveTabIndexOnNextReturn;
+  set _preserveTabIndexOnNextReturn(int? value) =>
+      _state.preserveTabIndexOnNextReturn = value;
   Set<int> get _preparedFloodChildChunkStarts =>
       _state.preparedFloodChildChunkStarts;
   RxBool get showScrollToTop => _state.showScrollToTop;

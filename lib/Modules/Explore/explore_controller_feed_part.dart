@@ -182,6 +182,15 @@ extension ExploreControllerFeedPart on ExploreController {
       floodsHasMore.value = false;
       return;
     }
+    if (floodsScroll.hasClients) {
+      final position = floodsScroll.position;
+      final extentThreshold =
+          (position.viewportDimension * 1.1).clamp(320.0, 960.0);
+      if (position.extentAfter <= extentThreshold) {
+        unawaited(fetchFloods());
+        return;
+      }
+    }
     final focusIndex = preferredIndex ?? _performResolveFloodSeriesFocusIndex();
     if (focusIndex < 0 || focusIndex >= exploreFloods.length) return;
 
@@ -937,7 +946,6 @@ extension ExploreControllerFeedPart on ExploreController {
       const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
       const int pageLimit = _exploreFloodListBatchSize;
       const int targetBatch = _exploreFloodListBatchSize;
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
       List<PostsModel> accumulated = [];
       bool noMoreServerPages = false;
       final existingIDs = exploreFloods.map((e) => e.docID).toSet();
@@ -960,7 +968,6 @@ extension ExploreControllerFeedPart on ExploreController {
           page = await _exploreRepository.fetchFloodFallbackPage(
             startAfter: lastFloodsDoc,
             pageLimit: pageLimit,
-            nowMs: nowMs,
           );
         }
         if (page.items.isEmpty) {
@@ -983,10 +990,7 @@ extension ExploreControllerFeedPart on ExploreController {
           }
           batch.add(model);
         }
-        batch = batch
-            .where((post) => post.timeStamp <= nowMs)
-            .where((post) => post.deletedPost != true)
-            .toList();
+        batch = batch.where((post) => post.deletedPost != true).toList();
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
           accumulated.addAll(batch);

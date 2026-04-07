@@ -59,6 +59,9 @@ extension ExploreControllerPublicPart on ExploreController {
   void resetFloodChildPrefetchPlan() =>
       _ExploreControllerSupportX(this).resetFloodChildPrefetchPlan();
 
+  void preserveTabOnNextReturn(int index) =>
+      _preserveTabIndexOnNextReturn = index;
+
   void goToPage(int index) => _handleGoToPage(index);
 
   Future<void> invalidateViewerScopedContent({

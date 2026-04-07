@@ -198,6 +198,8 @@ extension ExploreControllerSearchPart on ExploreController {
   }
 
   void _performResetSearchToDefault() {
+    final preservedTabIndex = _preserveTabIndexOnNextReturn;
+    _preserveTabIndexOnNextReturn = null;
     _searchDebounce?.cancel();
     _searchRequestId++;
     searchFocus.unfocus();
@@ -206,9 +208,9 @@ extension ExploreControllerSearchPart on ExploreController {
     _clearSearchResults();
     isKeyboardOpen.value = false;
     isSearchMode.value = false;
-    selection.value = 0;
+    selection.value = preservedTabIndex ?? 0;
     if (pageController.hasClients) {
-      pageController.jumpToPage(0);
+      pageController.jumpToPage(preservedTabIndex ?? 0);
     }
   }
 }

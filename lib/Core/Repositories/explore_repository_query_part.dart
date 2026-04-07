@@ -147,14 +147,13 @@ extension ExploreRepositoryQueryPart on ExploreRepository {
   Future<ExploreQueryPage> _fetchFloodFallbackPageImpl({
     DocumentSnapshot? startAfter,
     required int pageLimit,
-    int? nowMs,
   }) async {
-    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     Query<Map<String, dynamic>> query = _firestore
         .collection('Posts')
         .where('arsiv', isEqualTo: false)
         .where('flood', isEqualTo: false)
-        .where('timeStamp', isLessThanOrEqualTo: ts)
+        .where('floodCount', isGreaterThan: 1)
+        .orderBy('floodCount')
         .orderBy('timeStamp', descending: true)
         .limit(pageLimit);
     if (startAfter != null) {
