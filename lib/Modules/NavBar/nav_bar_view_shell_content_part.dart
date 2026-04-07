@@ -170,6 +170,17 @@ extension _NavBarViewShellContentPart on NavBarView {
         const Duration(milliseconds: 350),
       );
     } catch (_) {}
+    try {
+      final initialIndex = shortController.shorts.isEmpty
+          ? 0
+          : shortController.lastIndex.value.clamp(
+              0,
+              shortController.shorts.length - 1,
+            );
+      await shortController.ensureActiveAdapterReady(initialIndex).timeout(
+        const Duration(milliseconds: 450),
+      );
+    } catch (_) {}
 
     controller.suspendFeedForTabExit();
     controller.pauseGlobalTabMedia();
