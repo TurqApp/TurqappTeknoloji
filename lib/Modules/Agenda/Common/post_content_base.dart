@@ -556,6 +556,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return false;
     }
     if (value.position > threshold) return true;
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        !_isExplicitResumeRecoveryContext(value, source: source)) {
+      return false;
+    }
     final savedState =
         playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return (savedState?.position ?? Duration.zero) > threshold;

@@ -158,7 +158,8 @@ class ExoPlayerView(
         }
     }
 
-    private fun shouldUseStartupRecoveryWatchdog(): Boolean = forceFullscreen
+    private fun shouldUseStartupRecoveryWatchdog(): Boolean =
+        forceFullscreen || isPrimaryFeedSurface
 
     private fun publishSmokeSnapshot(monitor: PlaybackHealthMonitor) {
         if (!isSmokeRegistryActive) {
@@ -619,11 +620,10 @@ class ExoPlayerView(
         } else {
             activePlayer.setMediaItem(mediaItem)
         }
-        activePlayer.prepare()
-
         playerView.player = activePlayer
         player = activePlayer
         currentUrl = url
+        activePlayer.prepare()
         if (autoPlay) {
             smokeMonitor.resetForNewPlaybackSession()
             smokeProbe?.onAutoplayRequested()
