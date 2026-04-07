@@ -212,6 +212,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool forceFullscreenOnAndroid,
     required bool isPrimaryFeedSurface,
     required bool preferResumePoster,
+    bool startupRecoveryWatchdogEnabled = true,
     bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
@@ -232,6 +233,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       forceFullscreenOnAndroid: forceFullscreenOnAndroid,
       isPrimaryFeedSurface: isPrimaryFeedSurface,
       preferResumePoster: preferResumePoster,
+      startupRecoveryWatchdogEnabled: startupRecoveryWatchdogEnabled,
     );
   }
 }

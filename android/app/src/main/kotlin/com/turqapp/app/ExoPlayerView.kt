@@ -65,6 +65,8 @@ class ExoPlayerView(
         args?.get("primaryFeedSurface") as? Boolean ?: false
     private var preferResumePoster =
         args?.get("preferResumePoster") as? Boolean ?: false
+    private val startupRecoveryWatchdogEnabled =
+        args?.get("startupRecoveryWatchdogEnabled") as? Boolean ?: true
     private val container = object : FrameLayout(context) {
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             if (forceFullscreen) {
@@ -168,7 +170,7 @@ class ExoPlayerView(
     }
 
     private fun shouldUseStartupRecoveryWatchdog(): Boolean =
-        forceFullscreen || isPrimaryFeedSurface
+        forceFullscreen || (isPrimaryFeedSurface && startupRecoveryWatchdogEnabled)
 
     private fun publishSmokeSnapshot(monitor: PlaybackHealthMonitor) {
         if (!isSmokeRegistryActive) {

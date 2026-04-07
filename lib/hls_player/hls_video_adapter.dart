@@ -196,6 +196,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool forceFullscreenOnAndroid = false,
     bool isPrimaryFeedSurface = false,
     bool preferResumePoster = false,
+    bool startupRecoveryWatchdogEnabled = true,
     bool suppressLoadingOverlay = false,
   }) =>
       _performBuildPlayer(
@@ -206,6 +207,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         forceFullscreenOnAndroid: forceFullscreenOnAndroid,
         isPrimaryFeedSurface: isPrimaryFeedSurface,
         preferResumePoster: preferResumePoster,
+        startupRecoveryWatchdogEnabled: startupRecoveryWatchdogEnabled,
         suppressLoadingOverlay: suppressLoadingOverlay,
       );
 

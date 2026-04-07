@@ -556,6 +556,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             isPrimaryFeedSurface: isPrimaryFeedSurfaceInstance,
                             preferResumePoster:
                                 shouldSuppressGenericResumeThumbnail,
+                            startupRecoveryWatchdogEnabled:
+                                shouldEnableStartupRecoveryWatchdog,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster

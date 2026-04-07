@@ -156,6 +156,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return agendaController.isStartupCacheOriginVideoDoc(widget.model.docID);
   }
 
+  bool get shouldEnableStartupRecoveryWatchdog {
+    if (defaultTargetPlatform != TargetPlatform.android) return true;
+    if (!_isPrimaryFeedSurfaceInstance) return true;
+    if (!widget.model.hasPlayableVideo) return false;
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    return modelIndex == 0;
+  }
+
   int get cachedSegmentCountForCurrentVideo {
     if (!widget.model.hasPlayableVideo) return 0;
     try {

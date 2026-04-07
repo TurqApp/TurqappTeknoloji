@@ -22,6 +22,7 @@ class HLSPlayer extends StatefulWidget {
   final bool forceFullscreenOnAndroid;
   final bool isPrimaryFeedSurface;
   final bool preferResumePoster;
+  final bool startupRecoveryWatchdogEnabled;
 
   const HLSPlayer({
     super.key,
@@ -40,6 +41,7 @@ class HLSPlayer extends StatefulWidget {
     this.forceFullscreenOnAndroid = false,
     this.isPrimaryFeedSurface = false,
     this.preferResumePoster = false,
+    this.startupRecoveryWatchdogEnabled = true,
   });
 
   @override
@@ -187,6 +189,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'forceFullscreen': widget.forceFullscreenOnAndroid,
           'primaryFeedSurface': widget.isPrimaryFeedSurface,
           'preferResumePoster': widget.preferResumePoster,
+          'startupRecoveryWatchdogEnabled':
+              widget.startupRecoveryWatchdogEnabled,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
@@ -208,6 +212,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'forceFullscreen': widget.forceFullscreenOnAndroid,
           'primaryFeedSurface': widget.isPrimaryFeedSurface,
           'preferResumePoster': widget.preferResumePoster,
+          'startupRecoveryWatchdogEnabled':
+              widget.startupRecoveryWatchdogEnabled,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,

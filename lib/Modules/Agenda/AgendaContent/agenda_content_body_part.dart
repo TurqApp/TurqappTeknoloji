@@ -244,6 +244,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       isPrimaryFeedSurfaceInstance,
                                                   preferResumePoster:
                                                       shouldSuppressGenericResumeThumbnail,
+                                                  startupRecoveryWatchdogEnabled:
+                                                      shouldEnableStartupRecoveryWatchdog,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,

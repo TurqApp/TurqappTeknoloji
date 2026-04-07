@@ -315,6 +315,8 @@ extension _SplashViewWarmPart on _SplashViewState {
       await _runWarmSlices(criticalSlices);
 
       final deferredSlices = <Future<void> Function()>[];
+      final shouldDelayHomeIdentityWarmups =
+          Platform.isAndroid && prioritizeHomeWarmups;
       if (deferFeedSnapshotWarmUntilAfterFirstPaint) {
         deferredSlices.add(() async {
           await _profileStartupWarmSlice('home_feed_snapshot_deferred', () async {
@@ -326,6 +328,13 @@ extension _SplashViewWarmPart on _SplashViewState {
         });
       }
       if (prioritizeHomeWarmups && storyController != null) {
+        if (shouldDelayHomeIdentityWarmups) {
+          deferredSlices.add(() async {
+            await Future.delayed(
+              Duration(milliseconds: onWiFi ? 1200 : 800),
+            );
+          });
+        }
         deferredSlices.add(() async {
           await _profileStartupWarmSlice('home_identity_hints', () async {
             await _warmStartupVisibleIdentityHints(
