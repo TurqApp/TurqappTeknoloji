@@ -210,18 +210,6 @@ extension _SplashViewWarmPart on _SplashViewState {
         });
         if (storyController != null && storyStartupWarmLimit != null) {
           criticalSlices.add(() async {
-            await _profileStartupWarmSlice('home_identity_hints', () async {
-              await _warmStartupVisibleIdentityHints(
-                agendaController: agendaController,
-                storyController: storyController,
-                onWiFi: onWiFi,
-              ).timeout(
-                Duration(milliseconds: onWiFi ? 220 : 90),
-                onTimeout: () {},
-              );
-            });
-          });
-          criticalSlices.add(() async {
             await _profileStartupWarmSlice('home_story_sync', () async {
               await _forceLoadStoriesSync(
                 storyController,
@@ -338,6 +326,18 @@ extension _SplashViewWarmPart on _SplashViewState {
         });
       }
       if (prioritizeHomeWarmups && storyController != null) {
+        deferredSlices.add(() async {
+          await _profileStartupWarmSlice('home_identity_hints', () async {
+            await _warmStartupVisibleIdentityHints(
+              agendaController: agendaController,
+              storyController: storyController,
+              onWiFi: onWiFi,
+            ).timeout(
+              Duration(milliseconds: onWiFi ? 220 : 90),
+              onTimeout: () {},
+            );
+          });
+        });
         deferredSlices.add(() async {
           await _warmUserMetaAndAvatars(
             agendaController: agendaController,

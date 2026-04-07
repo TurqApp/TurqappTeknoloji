@@ -234,6 +234,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
       }
     }
     await ensureFeedSurfaceReady();
+    _primeStartupPlaybackWindow();
     await _recordFeedStartupSurface(
       source: 'feed_surface_ready',
     );
@@ -241,6 +242,34 @@ extension AgendaControllerPublicApiPart on AgendaController {
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed);
     if (!allowRefresh || agendaList.isEmpty || _startupLiveHeadApplied) return;
     unawaited(syncFeedHeadAfterSurfaceOpen());
+  }
+
+  void _primeStartupPlaybackWindow() {
+    if (agendaList.isEmpty) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final startupWindow = agendaList
+        .where((post) => _canAutoplayVideoPost(post))
+        .take(4)
+        .toList(growable: false);
+    if (startupWindow.isEmpty) return;
+    unawaited(
+      prefetch.updateFeedQueueForPosts(
+        startupWindow,
+        0,
+        maxDocs: startupWindow.length,
+      ),
+    );
+    prefetch.boostDoc(
+      startupWindow.first.docID,
+      readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+    );
+    if (startupWindow.length > 1) {
+      prefetch.boostDoc(
+        startupWindow[1].docID,
+        readySegments: 1,
+      );
+    }
   }
 
   Future<void> persistStartupShard() async {
