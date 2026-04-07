@@ -48,54 +48,18 @@ class AgendaFeedBufferedWindowPlan {
 }
 
 class AgendaFeedApplicationService {
-  static const Map<_AgendaStartupBucket, int> _startupSupportSlotTargets =
-      <_AgendaStartupBucket, int>{
-    _AgendaStartupBucket.flood: 4,
-    _AgendaStartupBucket.image: 8,
-    _AgendaStartupBucket.text: 2,
-  };
-
-  static const List<_AgendaStartupBucket> _startupPreferredSlotPlan =
+  static const List<_AgendaStartupBucket> _startupPreferredTenSlotPlan =
       <_AgendaStartupBucket>[
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.image,
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.flood,
     _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.text,
     _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.flood,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.text,
-    _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.flood,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.flood,
-  ];
-
-  static const List<_AgendaStartupBucket> _startupGlobalFallbackOrder =
-      <_AgendaStartupBucket>[
-    _AgendaStartupBucket.liveVideo,
-    _AgendaStartupBucket.cacheVideo,
-    _AgendaStartupBucket.image,
-    _AgendaStartupBucket.text,
-    _AgendaStartupBucket.flood,
   ];
 
   AgendaFeedPageApplyPlan buildPageApplyPlan({
@@ -161,7 +125,8 @@ class AgendaFeedApplicationService {
     final normalizedViewedCount = viewedCount - stepSize;
     final blockOffset = (normalizedViewedCount ~/ blockSize) * blockSize;
     final blockBaseCount = initialCount + blockOffset;
-    final revealStepIndex = ((normalizedViewedCount % blockSize) ~/ stepSize) + 1;
+    final revealStepIndex =
+        ((normalizedViewedCount % blockSize) ~/ stepSize) + 1;
     final targetAgendaCount = blockBaseCount + (revealStepIndex * stepSize);
 
     return AgendaFeedBufferedWindowPlan(
@@ -267,46 +232,41 @@ class AgendaFeedApplicationService {
     );
     final normalizedLive = _dedupePosts(split.liveCandidates);
     final normalizedCache = _dedupePosts(split.cacheCandidates);
+    final liveById = <String, PostsModel>{
+      for (final post in normalizedLive) post.docID.trim(): post,
+    };
+    final normalizedSupport = _dedupePosts(<PostsModel>[
+      ...normalizedCache,
+      ...normalizedLive,
+    ]);
     final buckets = <_AgendaStartupBucket, List<PostsModel>>{
-      _AgendaStartupBucket.cacheVideo: <PostsModel>[],
-      _AgendaStartupBucket.liveVideo: <PostsModel>[],
-      _AgendaStartupBucket.image: <PostsModel>[],
-      _AgendaStartupBucket.flood: <PostsModel>[],
-      _AgendaStartupBucket.text: <PostsModel>[],
+      _AgendaStartupBucket.cacheVideo: normalizedCache
+          .where(
+            (post) => post.hasPlayableVideo && !post.isFloodSeriesContent,
+          )
+          .toList(growable: true),
+      _AgendaStartupBucket.liveVideo: normalizedLive
+          .where(
+            (post) => post.hasPlayableVideo && !post.isFloodSeriesContent,
+          )
+          .toList(growable: true),
+      _AgendaStartupBucket.image: normalizedSupport
+          .where(_isImageStartupCandidate)
+          .toList(growable: true),
+      _AgendaStartupBucket.flood: normalizedSupport
+          .where((post) => post.isFloodSeriesContent)
+          .toList(growable: true),
+      _AgendaStartupBucket.text: normalizedSupport
+          .where(_isTextStartupCandidate)
+          .toList(growable: true),
     };
-    final seenIds = <String>{};
-    for (final post in normalizedLive) {
-      final docId = post.docID.trim();
-      if (docId.isEmpty || !seenIds.add(docId)) continue;
-      final bucket = _resolveStartupBucket(post, isLiveCandidate: true);
-      if (bucket == null) continue;
-      buckets[bucket]!.add(post);
-    }
-    for (final post in normalizedCache) {
-      final docId = post.docID.trim();
-      if (docId.isEmpty || !seenIds.add(docId)) continue;
-      final bucket = _resolveStartupBucket(post, isLiveCandidate: false);
-      if (bucket == null) continue;
-      buckets[bucket]!.add(post);
-    }
 
-    final slotPlan = _startupPreferredSlotPlan.take(targetCount).toList();
-    final slotDemand = <_AgendaStartupBucket, int>{
-      _AgendaStartupBucket.cacheVideo: 0,
-      _AgendaStartupBucket.liveVideo: 0,
-      _AgendaStartupBucket.image: 0,
-      _AgendaStartupBucket.flood: 0,
-      _AgendaStartupBucket.text: 0,
-    };
-    for (final bucket in slotPlan) {
-      slotDemand[bucket] = (slotDemand[bucket] ?? 0) + 1;
-    }
+    final slotPlan = _startupSlotPlanForTarget(targetCount);
     if (startupVariantOverride != null) {
       for (final entry in buckets.entries) {
         final prepared = _prepareStartupBucketCandidates(
           entry.value.toList(growable: false),
           bucket: entry.key,
-          requiredCount: slotDemand[entry.key] ?? 0,
           startupVariantOverride: startupVariantOverride,
         );
         entry.value
@@ -314,40 +274,25 @@ class AgendaFeedApplicationService {
           ..addAll(prepared);
       }
     }
-    final cursorByBucket = <_AgendaStartupBucket, int>{
-      _AgendaStartupBucket.cacheVideo: 0,
-      _AgendaStartupBucket.liveVideo: 0,
-      _AgendaStartupBucket.image: 0,
-      _AgendaStartupBucket.flood: 0,
-      _AgendaStartupBucket.text: 0,
-    };
 
     final output = <PostsModel>[];
-    for (final desiredBucket in slotPlan) {
-      final selectedBucket = _selectStartupBucketForSlot(
-        desiredBucket,
-        buckets,
-        cursorByBucket,
+    final usedIds = <String>{};
+    for (var start = 0; start < slotPlan.length; start += 10) {
+      final end = (start + 10 < slotPlan.length) ? start + 10 : slotPlan.length;
+      output.addAll(
+        _composeStartupSlotChunk(
+          slotPlan: slotPlan.sublist(start, end),
+          buckets: buckets,
+          usedIds: usedIds,
+        ),
       );
-      if (selectedBucket == null) continue;
-      final cursor = cursorByBucket[selectedBucket] ?? 0;
-      output.add(buckets[selectedBucket]![cursor]);
-      cursorByBucket[selectedBucket] = cursor + 1;
       if (output.length >= targetCount) break;
     }
 
-    while (output.length < targetCount) {
-      final selectedBucket = _selectFallbackStartupBucket(
-        buckets,
-        cursorByBucket,
-      );
-      if (selectedBucket == null) break;
-      final cursor = cursorByBucket[selectedBucket] ?? 0;
-      output.add(buckets[selectedBucket]![cursor]);
-      cursorByBucket[selectedBucket] = cursor + 1;
-    }
-
-    return output.take(targetCount).toList(growable: false);
+    return output
+        .take(targetCount)
+        .map((post) => liveById[post.docID.trim()] ?? post)
+        .toList(growable: false);
   }
 
   List<PostsModel> mergeStartupHeadWithCurrentItems({
@@ -404,6 +349,9 @@ class AgendaFeedApplicationService {
       cacheCandidates: const <PostsModel>[],
       targetCount: targetCount,
     );
+    if (liveOnlyHead.length < targetCount) {
+      return false;
+    }
     final liveDeficitScore = _startupSupportDeficitScore(
       liveOnlyHead,
       targetCount: targetCount,
@@ -414,10 +362,9 @@ class AgendaFeedApplicationService {
   List<PostsModel> _prepareStartupBucketCandidates(
     List<PostsModel> items, {
     required _AgendaStartupBucket bucket,
-    required int requiredCount,
     required int startupVariantOverride,
   }) {
-    if (items.length < 2 || requiredCount <= 0) {
+    if (items.length < 2) {
       return items;
     }
     final ranked = items.toList(growable: true)
@@ -545,54 +492,6 @@ class AgendaFeedApplicationService {
     return agendaList.indexWhere((post) => post.docID == pendingDocId);
   }
 
-  _AgendaStartupBucket? _resolveStartupBucket(
-    PostsModel post, {
-    required bool isLiveCandidate,
-  }) {
-    if (post.isFloodSeriesContent) {
-      return _AgendaStartupBucket.flood;
-    }
-    if (post.hasPlayableVideo) {
-      return isLiveCandidate
-          ? _AgendaStartupBucket.liveVideo
-          : _AgendaStartupBucket.cacheVideo;
-    }
-    if (!post.hasVideoSignal && post.hasImageContent) {
-      return _AgendaStartupBucket.image;
-    }
-    if (!post.hasVideoSignal && !post.hasImageContent && post.hasTextContent) {
-      return _AgendaStartupBucket.text;
-    }
-    return null;
-  }
-
-  _AgendaStartupBucket? _selectStartupBucketForSlot(
-      _AgendaStartupBucket desiredBucket,
-      Map<_AgendaStartupBucket, List<PostsModel>> buckets,
-      Map<_AgendaStartupBucket, int> cursorByBucket) {
-    for (final bucket in _startupSlotFallbackOrder(desiredBucket)) {
-      final cursor = cursorByBucket[bucket] ?? 0;
-      final items = buckets[bucket]!;
-      if (cursor < items.length) {
-        return bucket;
-      }
-    }
-    return null;
-  }
-
-  _AgendaStartupBucket? _selectFallbackStartupBucket(
-      Map<_AgendaStartupBucket, List<PostsModel>> buckets,
-      Map<_AgendaStartupBucket, int> cursorByBucket) {
-    for (final bucket in _startupGlobalFallbackOrder) {
-      final cursor = cursorByBucket[bucket] ?? 0;
-      final items = buckets[bucket]!;
-      if (cursor < items.length) {
-        return bucket;
-      }
-    }
-    return null;
-  }
-
   List<_AgendaStartupBucket> _startupSlotFallbackOrder(
     _AgendaStartupBucket desiredBucket,
   ) {
@@ -603,14 +502,96 @@ class AgendaFeedApplicationService {
           _AgendaStartupBucket.liveVideo,
         ];
       case _AgendaStartupBucket.liveVideo:
-        return <_AgendaStartupBucket>[_AgendaStartupBucket.liveVideo];
+        return <_AgendaStartupBucket>[
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+        ];
       case _AgendaStartupBucket.image:
-        return <_AgendaStartupBucket>[_AgendaStartupBucket.image];
+        return <_AgendaStartupBucket>[
+          _AgendaStartupBucket.image,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+        ];
       case _AgendaStartupBucket.flood:
-        return <_AgendaStartupBucket>[_AgendaStartupBucket.flood];
+        return <_AgendaStartupBucket>[
+          _AgendaStartupBucket.flood,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+        ];
       case _AgendaStartupBucket.text:
-        return <_AgendaStartupBucket>[_AgendaStartupBucket.text];
+        return <_AgendaStartupBucket>[
+          _AgendaStartupBucket.text,
+          _AgendaStartupBucket.liveVideo,
+          _AgendaStartupBucket.cacheVideo,
+        ];
     }
+  }
+
+  List<PostsModel> _composeStartupSlotChunk({
+    required List<_AgendaStartupBucket> slotPlan,
+    required Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+    required Set<String> usedIds,
+  }) {
+    if (slotPlan.isEmpty) return const <PostsModel>[];
+
+    final output = <PostsModel>[];
+    var usedFloodInChunk = false;
+    for (final desiredBucket in slotPlan) {
+      final candidate = _selectStartupCandidateForSlot(
+        desiredBucket: desiredBucket,
+        buckets: buckets,
+        usedIds: usedIds,
+        allowFlood:
+            !usedFloodInChunk || desiredBucket == _AgendaStartupBucket.flood,
+      );
+      if (candidate == null) {
+        break;
+      }
+      final docId = candidate.docID.trim();
+      if (docId.isEmpty || !usedIds.add(docId)) {
+        break;
+      }
+      if (candidate.isFloodSeriesContent) {
+        usedFloodInChunk = true;
+      }
+      output.add(candidate);
+    }
+    return output;
+  }
+
+  PostsModel? _selectStartupCandidateForSlot({
+    required _AgendaStartupBucket desiredBucket,
+    required Map<_AgendaStartupBucket, List<PostsModel>> buckets,
+    required Set<String> usedIds,
+    required bool allowFlood,
+  }) {
+    for (final bucket in _startupSlotFallbackOrder(desiredBucket)) {
+      if (bucket == _AgendaStartupBucket.flood && !allowFlood) {
+        continue;
+      }
+      final candidate = _firstUnusedStartupCandidate(
+        buckets[bucket]!,
+        usedIds: usedIds,
+      );
+      if (candidate != null) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  PostsModel? _firstUnusedStartupCandidate(
+    List<PostsModel> items, {
+    required Set<String> usedIds,
+  }) {
+    for (final post in items) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || usedIds.contains(docId)) {
+        continue;
+      }
+      return post;
+    }
+    return null;
   }
 
   List<PostsModel> _dedupePosts(List<PostsModel> posts) {
@@ -664,7 +645,7 @@ class AgendaFeedApplicationService {
     Iterable<PostsModel> posts, {
     required int targetCount,
   }) {
-    if (targetCount < _startupPreferredSlotPlan.length) {
+    if (targetCount < _startupPreferredTenSlotPlan.length) {
       return 0;
     }
     final counts = <_AgendaStartupBucket, int>{
@@ -678,8 +659,9 @@ class AgendaFeedApplicationService {
       counts[bucket] = (counts[bucket] ?? 0) + 1;
     }
 
+    final supportTargets = _startupSupportTargetsForTarget(targetCount);
     var deficitScore = 0;
-    for (final entry in _startupSupportSlotTargets.entries) {
+    for (final entry in supportTargets.entries) {
       final missing = entry.value - (counts[entry.key] ?? 0);
       if (missing > 0) {
         deficitScore += missing;
@@ -692,13 +674,60 @@ class AgendaFeedApplicationService {
     if (post.isFloodSeriesContent) {
       return _AgendaStartupBucket.flood;
     }
-    if (!post.hasVideoSignal && post.hasImageContent) {
+    if (_isImageStartupCandidate(post)) {
       return _AgendaStartupBucket.image;
     }
-    if (!post.hasVideoSignal && !post.hasImageContent && post.hasTextContent) {
+    if (_isTextStartupCandidate(post)) {
       return _AgendaStartupBucket.text;
     }
     return null;
+  }
+
+  Map<_AgendaStartupBucket, int> _startupSupportTargetsForTarget(
+      int targetCount) {
+    final slotPlan = _startupSlotPlanForTarget(targetCount);
+    final supportTargets = <_AgendaStartupBucket, int>{
+      _AgendaStartupBucket.flood: 0,
+      _AgendaStartupBucket.image: 0,
+      _AgendaStartupBucket.text: 0,
+    };
+    for (final bucket in slotPlan) {
+      if (!supportTargets.containsKey(bucket)) {
+        continue;
+      }
+      supportTargets[bucket] = (supportTargets[bucket] ?? 0) + 1;
+    }
+    return supportTargets;
+  }
+
+  bool _isImageStartupCandidate(PostsModel post) {
+    if (post.isFloodSeriesContent || post.hasPlayableVideo) {
+      return false;
+    }
+    return post.hasImageContent;
+  }
+
+  bool _isTextStartupCandidate(PostsModel post) {
+    if (post.isFloodSeriesContent || post.hasPlayableVideo) {
+      return false;
+    }
+    return post.hasTextContent;
+  }
+
+  List<_AgendaStartupBucket> _startupSlotPlanForTarget(int targetCount) {
+    if (targetCount <= 0) return const <_AgendaStartupBucket>[];
+    final slotPlan = <_AgendaStartupBucket>[];
+    while (slotPlan.length < targetCount) {
+      final remaining = targetCount - slotPlan.length;
+      slotPlan.addAll(
+        _startupPreferredTenSlotPlan.take(
+          remaining < _startupPreferredTenSlotPlan.length
+              ? remaining
+              : _startupPreferredTenSlotPlan.length,
+        ),
+      );
+    }
+    return slotPlan;
   }
 }
 

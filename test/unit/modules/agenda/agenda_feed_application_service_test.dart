@@ -223,34 +223,34 @@ void main() {
         const <String>[
           'cache',
           'cache',
-          'cache',
           'image',
           'live',
           'live',
           'flood',
           'cache',
-          'live',
           'cache',
           'text',
           'live',
-          'live',
-          'image',
+          'cache',
           'cache',
           'image',
           'live',
+          'live',
           'flood',
-          'live',
-          'live',
-          'image',
+          'cache',
+          'cache',
           'text',
+          'live',
+          'cache',
           'cache',
           'image',
           'live',
-          'flood',
-          'image',
           'live',
-          'image',
           'flood',
+          'cache',
+          'cache',
+          'text',
+          'live',
         ],
       );
     });
@@ -309,7 +309,7 @@ void main() {
     });
 
     test(
-        'composeStartupFeedItems backfills missing image and text slots with live video first',
+        'composeStartupFeedItems prefers flood before video for missing image and text slots',
         () {
       final service = AgendaFeedApplicationService();
 
@@ -344,21 +344,21 @@ void main() {
         isEmpty,
       );
       expect(
+        result.where((post) => _startupKindForPost(post) == 'flood').length,
+        2,
+      );
+      expect(
         result.where((post) => _startupKindForPost(post) == 'live').length,
-        20,
+        18,
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'cache').length,
-        8,
-      );
-      expect(
-        result.where((post) => _startupKindForPost(post) == 'flood').length,
-        2,
+        10,
       );
     });
 
     test(
-        'composeStartupFeedItems keeps flood count bounded when videos can fill missing slots',
+        'composeStartupFeedItems keeps flood at one per ten and falls back to video when image and text are missing',
         () {
       final service = AgendaFeedApplicationService();
 
@@ -386,26 +386,59 @@ void main() {
       expect(result, hasLength(30));
       expect(
         result.where((post) => _startupKindForPost(post) == 'flood').length,
-        4,
+        3,
       );
       expect(
         result.where((post) => _startupKindForPost(post) == 'live').length,
-        greaterThanOrEqualTo(8),
+        15,
       );
       expect(
-        result
-            .where(
-              (post) =>
-                  _startupKindForPost(post) == 'live' ||
-                  _startupKindForPost(post) == 'cache',
-            )
-            .length,
-        26,
+        result.where((post) => _startupKindForPost(post) == 'cache').length,
+        12,
       );
     });
 
     test(
-        'composeStartupFeedItems treats flood members as flood slots instead of cache video',
+        'composeStartupFeedItems reserves flood for flood slots before text and image fallbacks',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        20,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
+      );
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
+      );
+      final kinds = result.map(_startupKindForPost).toList(growable: false);
+
+      expect(result, hasLength(30));
+      expect(kinds.where((kind) => kind == 'flood').length, 3);
+      expect(kinds[5], 'flood');
+      expect(kinds[15], 'flood');
+      expect(kinds[25], 'flood');
+      expect(kinds[2], isNot('flood'));
+      expect(kinds[8], isNot('flood'));
+      expect(kinds[12], isNot('flood'));
+      expect(kinds[18], isNot('flood'));
+      expect(kinds[22], isNot('flood'));
+    });
+
+    test(
+        'composeStartupFeedItems keeps flood members out of video buckets and at one flood per ten',
         () {
       final service = AgendaFeedApplicationService();
 
@@ -437,24 +470,57 @@ void main() {
         cacheCandidates: cacheCandidates,
         targetCount: 30,
       );
+      final kinds = result.map(_startupKindForPost).toList(growable: false);
 
       expect(result, hasLength(30));
-      expect(
-        result.map(_startupKindForPost).toList(growable: false),
-        containsAllInOrder(<String>[
-          'cache',
-          'cache',
-          'cache',
-          'image',
-          'live',
-          'live',
-          'flood',
-        ]),
+      expect(kinds[5], 'flood');
+      expect(kinds[15], 'flood');
+      expect(kinds[25], 'flood');
+      expect(kinds.where((kind) => kind == 'flood').length, 3);
+      expect(kinds.sublist(0, 10).where((kind) => kind == 'flood').length, 1);
+      expect(kinds.sublist(10, 20).where((kind) => kind == 'flood').length, 1);
+      expect(kinds.sublist(20, 30).where((kind) => kind == 'flood').length, 1);
+    });
+
+    test(
+        'composeStartupFeedItems widens image and text buckets without allowing extra flood drift',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final liveCandidates = List<PostsModel>.generate(
+        30,
+        (index) => _readyVideoPost(id: 'lv${index + 1}'),
       );
-      expect(
-        result.where((post) => _startupKindForPost(post) == 'flood').length,
-        4,
+      final cacheCandidates = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        _imageTextPost(id: 'mix1'),
+        _imageTextPost(id: 'mix2'),
+        _imageTextPost(id: 'mix3'),
+        _imageTextPost(id: 'mix4'),
+        _imageTextPost(id: 'mix5'),
+        _imageTextPost(id: 'mix6'),
+        ...List<PostsModel>.generate(
+          6,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+      ];
+
+      final result = service.composeStartupFeedItems(
+        liveCandidates: liveCandidates,
+        cacheCandidates: cacheCandidates,
+        targetCount: 30,
       );
+      final kinds = result.map(_startupKindForPost).toList(growable: false);
+
+      expect(result, hasLength(30));
+      expect(kinds[2], 'image');
+      expect(result[8].docID, startsWith('mix'));
+      expect(kinds[12], 'image');
+      expect(result[18].docID, startsWith('mix'));
+      expect(kinds.where((kind) => kind == 'flood').length, 3);
     });
 
     test(
@@ -714,34 +780,34 @@ void main() {
         const <String>[
           'cache',
           'cache',
-          'cache',
           'image',
           'live',
           'live',
           'flood',
           'cache',
-          'live',
           'cache',
           'text',
           'live',
-          'live',
-          'image',
+          'cache',
           'cache',
           'image',
           'live',
+          'live',
           'flood',
-          'live',
-          'live',
-          'image',
+          'cache',
+          'cache',
           'text',
+          'live',
+          'cache',
           'cache',
           'image',
           'live',
-          'flood',
-          'image',
           'live',
-          'image',
           'flood',
+          'cache',
+          'cache',
+          'text',
+          'live',
         ],
       );
       expect(
@@ -749,7 +815,84 @@ void main() {
             .take(30)
             .where((post) => _startupKindForPost(post) == 'flood')
             .length,
-        4,
+        3,
+      );
+    });
+
+    test(
+        'shouldPreferLiveStartupHeadForMerge rejects incomplete live-only heads',
+        () {
+      final service = AgendaFeedApplicationService();
+
+      final currentItems = <PostsModel>[
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _readyVideoPost(id: 'cv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          12,
+          (index) => _imagePost(id: 'im${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          8,
+          (index) => _floodPost(id: 'fl${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _textPost(id: 'tx${index + 1}'),
+        ),
+      ];
+      final liveItems = <PostsModel>[
+        ...List<PostsModel>.generate(
+          10,
+          (index) => _readyVideoPost(id: 'lv${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          3,
+          (index) => _imagePost(id: 'lim${index + 1}'),
+        ),
+        ...List<PostsModel>.generate(
+          4,
+          (index) => _floodPost(id: 'lfl${index + 1}'),
+        ),
+      ];
+
+      expect(
+        service.shouldPreferLiveStartupHeadForMerge(
+          currentItems: currentItems,
+          liveItems: liveItems,
+          targetCount: 30,
+        ),
+        isFalse,
+      );
+    });
+
+    test(
+        'startup support path keeps flood roots outside the normal time window',
+        () {
+      final loadingCacheSource = File(
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Agenda/agenda_controller_loading_cache_part.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/post_repository_query_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        loadingCacheSource,
+        contains(
+            "if (kind == 'flood') {\n        primaryCandidates.add(post);"),
+      );
+      expect(
+        loadingCacheSource,
+        contains('_postRepository.fetchFloodSeriesRoots('),
+      );
+      expect(
+        repositorySource,
+        contains("where('flood', isEqualTo: false)"),
+      );
+      expect(
+        repositorySource,
+        contains('if (!model.isFloodSeriesRoot) continue;'),
       );
     });
   });
@@ -823,6 +966,15 @@ PostsModel _textPost({
   int timeStamp = 0,
 }) {
   return _post(id: id, timeStamp: timeStamp)..metin = 'text-$id';
+}
+
+PostsModel _imageTextPost({
+  required String id,
+  int timeStamp = 0,
+}) {
+  return _post(id: id, timeStamp: timeStamp)
+    ..img = <String>['https://cdn.example.com/$id.jpg']
+    ..metin = 'text-$id';
 }
 
 PostsModel _floodPost({

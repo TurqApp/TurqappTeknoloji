@@ -250,15 +250,17 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       return const <PostsModel>[];
     }
     _startupPresentationApplied = true;
+    final startupVariant = _feedStartupVariantOverride();
+    final cacheReadyVideoDocIds = _startupCacheReadyVideoDocIds(<PostsModel>[
+      ...cacheCandidates,
+      ...liveCandidates,
+    ]);
     final shownItems = _agendaFeedApplicationService.composeStartupFeedItems(
       liveCandidates: liveCandidates,
       cacheCandidates: cacheCandidates,
       targetCount: targetCount,
-      startupVariantOverride: _feedStartupVariantOverride(),
-      cacheReadyVideoDocIds: _startupCacheReadyVideoDocIds(<PostsModel>[
-        ...cacheCandidates,
-        ...liveCandidates,
-      ]),
+      startupVariantOverride: startupVariant,
+      cacheReadyVideoDocIds: cacheReadyVideoDocIds,
     );
     _startupCacheOriginVideoDocIds
       ..clear()
@@ -315,14 +317,25 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return 'image@$origin';
   }
 
-  static const Map<String, int> _startupSupportSlotTargets = <String, int>{
-    'flood': 4,
-    'image': 8,
-    'text': 2
-  };
+  Map<String, int> _startupSupportSlotTargetsForCount(int targetCount) {
+    if (targetCount <= 0) return const <String, int>{};
+    final chunkCount =
+        (targetCount / ReadBudgetRegistry.feedBufferedFetchLimit).ceil();
+    if (chunkCount <= 0) return const <String, int>{};
+    return <String, int>{
+      'flood': chunkCount,
+      'image': chunkCount,
+      'text': chunkCount,
+    };
+  }
 
   int _startupSupportFallbackCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 30).inMilliseconds;
+
+  int _startupFloodSupportFetchLimit(int targetCount) {
+    final normalizedTarget = targetCount < 1 ? 1 : targetCount;
+    return max(normalizedTarget * 3, 120);
+  }
 
   String? _startupSupportKind(PostsModel post) {
     if (post.isFloodSeriesContent) return 'flood';
@@ -339,9 +352,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     List<PostsModel> posts, {
     required int targetCount,
   }) {
-    if (targetCount < FeedSnapshotRepository.startupHomeLimitValue) {
+    if (targetCount < ReadBudgetRegistry.feedBufferedFetchLimit) {
       return const <String, int>{};
     }
+    final supportTargets = _startupSupportSlotTargetsForCount(targetCount);
     final counts = <String, int>{'flood': 0, 'image': 0, 'text': 0};
     for (final post in posts) {
       final kind = _startupSupportKind(post);
@@ -349,7 +363,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       counts[kind] = (counts[kind] ?? 0) + 1;
     }
     final deficits = <String, int>{};
-    for (final entry in _startupSupportSlotTargets.entries) {
+    for (final entry in supportTargets.entries) {
       final current = counts[entry.key] ?? 0;
       final missing = entry.value - current;
       if (missing > 0) {
@@ -379,9 +393,13 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required bool preferCache,
     required bool cacheOnly,
     bool allowNetworkFallbackFetch = true,
+    Set<String> excludeDocIds = const <String>{},
   }) async {
     final monthCutoffMs = _startupSupportFallbackCutoffMs(nowMs);
-    final seenDocIds = <String>{};
+    final seenDocIds = <String>{
+      for (final docId in excludeDocIds)
+        if (docId.trim().isNotEmpty) docId.trim(),
+    };
     final primaryCandidates = <PostsModel>[];
     final fallbackPool = <PostsModel>[];
 
@@ -389,6 +407,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       final docId = post.docID.trim();
       if (docId.isEmpty || !seenDocIds.add(docId)) continue;
       final ts = post.timeStamp.toInt();
+      final kind = _startupSupportKind(post);
+      if (kind == 'flood') {
+        primaryCandidates.add(post);
+        continue;
+      }
       if (ts >= primaryCutoffMs) {
         primaryCandidates.add(post);
         continue;
@@ -396,7 +419,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       if (ts < monthCutoffMs) {
         continue;
       }
-      final kind = _startupSupportKind(post);
       if (kind == null) {
         continue;
       }
@@ -453,6 +475,30 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         ...primaryCandidates,
         ...additions,
       ];
+    }
+
+    final missingFloodCount = remaining['flood'] ?? 0;
+    if (missingFloodCount > 0) {
+      final floodRoots = await _postRepository.fetchFloodSeriesRoots(
+        limit: _startupFloodSupportFetchLimit(targetCount),
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      for (final post in floodRoots) {
+        final docId = post.docID.trim();
+        if (docId.isEmpty || !seenDocIds.add(docId)) continue;
+        additions.add(post);
+        remaining['flood'] = (remaining['flood'] ?? 0) - 1;
+        if ((remaining['flood'] ?? 0) <= 0) {
+          break;
+        }
+      }
+      if (remaining.values.every((value) => value <= 0)) {
+        return <PostsModel>[
+          ...primaryCandidates,
+          ...additions,
+        ];
+      }
     }
 
     final page = await _loadAgendaSourcePage(

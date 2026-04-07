@@ -82,8 +82,9 @@ class _AgendaControllerState {
   final startupCacheOriginVideoDocIds = <String>{};
   final bufferedFeedBlockItems = <PostsModel>[];
   int bufferedFeedBlockBaseCount = 0;
-  int nextBufferedFetchTriggerCount =
-      ReadBudgetRegistry.feedBufferedFetchLimit;
+  Future<void>? bufferedFeedBlockPrefetchFuture;
+  int bufferedFeedBlockPrefetchBaseCount = 0;
+  int nextBufferedFetchTriggerCount = ReadBudgetRegistry.feedBufferedFetchLimit;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -257,7 +258,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupRenderStagingActive => _state.startupRenderStagingActive;
   set _startupRenderStagingActive(bool value) =>
       _state.startupRenderStagingActive = value;
-  int get _startupRenderVisiblePostCount => _state.startupRenderVisiblePostCount;
+  int get _startupRenderVisiblePostCount =>
+      _state.startupRenderVisiblePostCount;
   set _startupRenderVisiblePostCount(int value) =>
       _state.startupRenderVisiblePostCount = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
@@ -266,6 +268,14 @@ extension AgendaControllerFieldsPart on AgendaController {
   int get _bufferedFeedBlockBaseCount => _state.bufferedFeedBlockBaseCount;
   set _bufferedFeedBlockBaseCount(int value) =>
       _state.bufferedFeedBlockBaseCount = value;
+  Future<void>? get _bufferedFeedBlockPrefetchFuture =>
+      _state.bufferedFeedBlockPrefetchFuture;
+  set _bufferedFeedBlockPrefetchFuture(Future<void>? value) =>
+      _state.bufferedFeedBlockPrefetchFuture = value;
+  int get _bufferedFeedBlockPrefetchBaseCount =>
+      _state.bufferedFeedBlockPrefetchBaseCount;
+  set _bufferedFeedBlockPrefetchBaseCount(int value) =>
+      _state.bufferedFeedBlockPrefetchBaseCount = value;
   int get _nextBufferedFetchTriggerCount =>
       _state.nextBufferedFetchTriggerCount;
   set _nextBufferedFetchTriggerCount(int value) =>

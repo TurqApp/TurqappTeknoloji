@@ -141,6 +141,49 @@ extension AgendaControllerLoadingPart on AgendaController {
         !_startupLiveHeadApplied;
   }
 
+  bool _shouldLockStartupHeadOnly(
+    List<PostsModel> currentAgenda,
+  ) {
+    return _shouldRecomposeStartupHeadOnInitialBootstrap(currentAgenda) &&
+        currentAgenda.length <= FeedSnapshotRepository.startupHomeLimitValue;
+  }
+
+  List<PostsModel> _composeLockedStartupHead({
+    required List<PostsModel> currentAgenda,
+    required List<PostsModel> liveItems,
+  }) {
+    final shouldPreferLiveStartupHead =
+        _agendaFeedApplicationService.shouldPreferLiveStartupHeadForMerge(
+      currentItems: currentAgenda,
+      liveItems: liveItems,
+      targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+    );
+    if (!shouldPreferLiveStartupHead) {
+      return currentAgenda
+          .take(FeedSnapshotRepository.startupHomeLimitValue)
+          .toList(growable: false);
+    }
+    return _composeStartupFeedItems(
+      cacheCandidates: const <PostsModel>[],
+      liveCandidates: liveItems,
+      targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+    );
+  }
+
+  bool _hasSameAgendaDocOrder(
+    List<PostsModel> left,
+    List<PostsModel> right,
+  ) {
+    if (identical(left, right)) return true;
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      if (left[index].docID != right[index].docID) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   void _performResetSurfaceForTabTransition() {
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
@@ -217,6 +260,106 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _resetBufferedFeedBlock() {
     _bufferedFeedBlockItems.clear();
     _bufferedFeedBlockBaseCount = 0;
+    _bufferedFeedBlockPrefetchBaseCount = 0;
+    _bufferedFeedBlockPrefetchFuture = null;
+  }
+
+  int? _resolveBufferedFeedPrefetchBaseCount(int agendaCount) {
+    final initialCount = FeedSnapshotRepository.startupHomeLimitValue;
+    final blockSize = ReadBudgetRegistry.feedLivePageLimit;
+    if (agendaCount < initialCount) {
+      return null;
+    }
+    final normalized = max(agendaCount, initialCount) - initialCount;
+    return initialCount + ((normalized ~/ blockSize) * blockSize);
+  }
+
+  void _scheduleBufferedFeedBlockPrefetchAfterFrame({
+    required String reason,
+  }) {
+    if (agendaList.length < FeedSnapshotRepository.startupHomeLimitValue) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      unawaited(_prefetchBufferedFeedBlock(reason: reason));
+    });
+  }
+
+  Future<void> _prefetchBufferedFeedBlock({
+    required String reason,
+  }) async {
+    final blockBaseCount =
+        _resolveBufferedFeedPrefetchBaseCount(agendaList.length);
+    if (blockBaseCount == null) return;
+    if (_bufferedFeedBlockItems.isNotEmpty) {
+      if (_bufferedFeedBlockBaseCount == blockBaseCount) {
+        return;
+      }
+      return;
+    }
+    if (_bufferedFeedBlockBaseCount == blockBaseCount) {
+      return;
+    }
+    final inFlight = _bufferedFeedBlockPrefetchFuture;
+    if (inFlight != null &&
+        _bufferedFeedBlockPrefetchBaseCount == blockBaseCount) {
+      return;
+    }
+
+    final future = () async {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
+      final liveConnected = ContentPolicy.isConnected;
+      final shouldPreferCacheOnOpen = !liveConnected;
+      debugPrint(
+        '[FeedBufferedBlock] status=prefetch_begin reason=$reason '
+        'blockBaseCount=$blockBaseCount agendaCount=${agendaList.length}',
+      );
+      final blockLoadResult = await _loadBufferedFeedBlock(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        blockSize: ReadBudgetRegistry.feedLivePageLimit,
+        pageLimit: fetchLimit,
+        preferCache: shouldPreferCacheOnOpen,
+        cacheOnly: !liveConnected,
+      );
+      if (isClosed) return;
+      if (_bufferedFeedBlockItems.isNotEmpty &&
+          _bufferedFeedBlockBaseCount != blockBaseCount) {
+        return;
+      }
+      if (blockLoadResult.blockItems.isNotEmpty) {
+        _bufferedFeedBlockItems
+          ..clear()
+          ..addAll(blockLoadResult.blockItems);
+        _bufferedFeedBlockBaseCount = blockBaseCount;
+        lastDoc = blockLoadResult.lastDoc;
+        _usePrimaryFeedPaging = blockLoadResult.usesPrimaryFeed;
+        hasMore.value =
+            blockLoadResult.hasMore || _bufferedFeedBlockItems.isNotEmpty;
+        debugPrint(
+          '[FeedBufferedBlock] status=prefetch_ready reason=$reason '
+          'blockBaseCount=$blockBaseCount count=${_bufferedFeedBlockItems.length}',
+        );
+      } else {
+        debugPrint(
+          '[FeedBufferedBlock] status=prefetch_empty reason=$reason '
+          'blockBaseCount=$blockBaseCount',
+        );
+      }
+    }();
+
+    _bufferedFeedBlockPrefetchBaseCount = blockBaseCount;
+    _bufferedFeedBlockPrefetchFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_bufferedFeedBlockPrefetchFuture, future)) {
+        _bufferedFeedBlockPrefetchFuture = null;
+        _bufferedFeedBlockPrefetchBaseCount = 0;
+      }
+    }
   }
 
   List<PostsModel> _takeBufferedFeedBlockItems(int count) {
@@ -224,9 +367,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       return const <PostsModel>[];
     }
     final takeCount = min(count, _bufferedFeedBlockItems.length);
-    final items = _bufferedFeedBlockItems
-        .take(takeCount)
-        .toList(growable: false);
+    final items =
+        _bufferedFeedBlockItems.take(takeCount).toList(growable: false);
     _bufferedFeedBlockItems.removeRange(0, takeCount);
     return items;
   }
@@ -239,10 +381,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
-    final seenDocIds = agendaList
+    final currentAgendaDocIds = agendaList
         .map((post) => post.docID.trim())
         .where((docId) => docId.isNotEmpty)
         .toSet();
+    final seenDocIds = <String>{...currentAgendaDocIds};
     final liveCandidates = <PostsModel>[];
     var cursor = lastDoc is DocumentSnapshot<Map<String, dynamic>>
         ? lastDoc as DocumentSnapshot<Map<String, dynamic>>?
@@ -279,7 +422,51 @@ extension AgendaControllerLoadingPart on AgendaController {
       usesStoredCursor = false;
     }
 
-    if (liveCandidates.isEmpty) {
+    var blockCandidates = liveCandidates.toList(growable: true);
+    var usedBroadUniqueScan = false;
+
+    if (blockCandidates.length < blockSize) {
+      final uniqueScanLimit = max(_startupSeedLoadLimit(blockSize), blockSize);
+      final broadPage = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: uniqueScanLimit,
+        startAfter: null,
+        useStoredCursor: false,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+      final broadSeenDocIds = agendaList
+          .map((post) => post.docID.trim())
+          .where((docId) => docId.isNotEmpty)
+          .toSet();
+      final broadUniqueCandidates = <PostsModel>[];
+      var addedFromBroadScan = 0;
+      for (final post in broadPage.items) {
+        final docId = post.docID.trim();
+        if (docId.isEmpty || !broadSeenDocIds.add(docId)) continue;
+        broadUniqueCandidates.add(post);
+        if (blockCandidates.length < blockSize) {
+          if (!seenDocIds.add(docId)) continue;
+          blockCandidates.add(post);
+        }
+        addedFromBroadScan++;
+      }
+      if (broadUniqueCandidates.length > blockCandidates.length) {
+        blockCandidates = broadUniqueCandidates;
+      }
+      usedBroadUniqueScan = broadUniqueCandidates.isNotEmpty;
+      debugPrint(
+        '[FeedBufferedBlock] status=broaden_unique_scan '
+        'currentUnique=${blockCandidates.length} target=$blockSize '
+        'added=$addedFromBroadScan broadVisible=${broadPage.items.length}',
+      );
+      effectiveHasMore = effectiveHasMore ||
+          broadPage.lastDoc != null ||
+          blockCandidates.length >= blockSize;
+    }
+
+    if (blockCandidates.isEmpty) {
       return _AgendaBufferedFeedBlockLoadResult(
         blockItems: const <PostsModel>[],
         lastDoc: effectiveLastDoc,
@@ -288,19 +475,36 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
     }
 
+    final supportExcludeDocIds = <String>{...currentAgendaDocIds};
     final augmentedCandidates = await _augmentStartupSupportCandidates(
-      candidates: liveCandidates,
+      candidates: blockCandidates,
       nowMs: nowMs,
       primaryCutoffMs: cutoffMs,
       targetCount: blockSize,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
-      allowNetworkFallbackFetch: true,
+      allowNetworkFallbackFetch: !usedBroadUniqueScan,
+      excludeDocIds: supportExcludeDocIds,
     );
-    final blockItems = _composeStartupFeedItems(
-      cacheCandidates: const <PostsModel>[],
-      liveCandidates: augmentedCandidates,
+    final blockSeenDocIds = <String>{...currentAgendaDocIds};
+    final composedBlockItems = _composeStartupFeedItems(
+      cacheCandidates: augmentedCandidates,
+      liveCandidates: const <PostsModel>[],
       targetCount: blockSize,
+    );
+    final blockItems = <PostsModel>[];
+    for (final post in composedBlockItems) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !blockSeenDocIds.add(docId)) continue;
+      blockItems.add(post);
+      if (blockItems.length >= blockSize) break;
+    }
+    debugPrint(
+      '[FeedBufferedBlock] status=compose_block '
+      'candidateCount=${blockCandidates.length} '
+      'augmentedCount=${augmentedCandidates.length} '
+      'composedCount=${blockItems.length} '
+      'target=$blockSize',
     );
 
     return _AgendaBufferedFeedBlockLoadResult(
@@ -320,6 +524,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
+    final inFlightPrefetch = _bufferedFeedBlockPrefetchFuture;
+    if (inFlightPrefetch != null &&
+        _bufferedFeedBlockPrefetchBaseCount == blockBaseCount) {
+      await inFlightPrefetch;
+    }
     if (_bufferedFeedBlockBaseCount != blockBaseCount) {
       final blockLoadResult = await _loadBufferedFeedBlock(
         nowMs: nowMs,
@@ -332,7 +541,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       _bufferedFeedBlockItems
         ..clear()
         ..addAll(blockLoadResult.blockItems);
-      _bufferedFeedBlockBaseCount = blockBaseCount;
+      _bufferedFeedBlockBaseCount =
+          blockLoadResult.blockItems.isNotEmpty ? blockBaseCount : 0;
       lastDoc = blockLoadResult.lastDoc;
       _usePrimaryFeedPaging = blockLoadResult.usesPrimaryFeed;
       hasMore.value =
@@ -574,7 +784,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (!initial &&
           desiredAgendaCount != null &&
           bufferedBlockBaseCount != null &&
-          bufferedBlockBaseCount >= FeedSnapshotRepository.startupHomeLimitValue) {
+          bufferedBlockBaseCount >=
+              FeedSnapshotRepository.startupHomeLimitValue) {
         final revealedItems = await _revealBufferedFeedBlockForTarget(
           targetAgendaCount: desiredAgendaCount,
           blockBaseCount: bufferedBlockBaseCount,
@@ -659,7 +870,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         effectiveHasMore =
             page.lastDoc != null && page.items.length >= loadLimit;
 
-        final pageVisibleItems = initial
+        final rawPageVisibleItems = initial
             ? await _augmentStartupSupportCandidates(
                 candidates: page.items,
                 nowMs: nowMs,
@@ -670,6 +881,20 @@ extension AgendaControllerLoadingPart on AgendaController {
                 allowNetworkFallbackFetch: true,
               )
             : page.items;
+        final pageVisibleItems =
+            initial && currentAgenda.isEmpty && rawPageVisibleItems.isNotEmpty
+                ? _applyStartupFeedPresentationOrder(rawPageVisibleItems)
+                : rawPageVisibleItems;
+        if (initial &&
+            currentAgenda.isEmpty &&
+            rawPageVisibleItems.length != pageVisibleItems.length) {
+          debugPrint(
+            '[FeedStartupHeadSync] source=initial_bootstrap '
+            'status=compose_before_page_apply '
+            'rawCount=${rawPageVisibleItems.length} '
+            'composedCount=${pageVisibleItems.length}',
+          );
+        }
 
         if (initial) {
           visibleItems = pageVisibleItems;
@@ -726,6 +951,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       lastDoc = effectiveLastDoc;
 
       if (visibleItems.isNotEmpty) {
+        final lockStartupHeadOnly =
+            initial && _shouldLockStartupHeadOnly(currentAgenda);
         final shouldPreferLiveStartupHead = initial &&
             _agendaFeedApplicationService.shouldPreferLiveStartupHeadForMerge(
               currentItems: currentAgenda,
@@ -734,7 +961,8 @@ extension AgendaControllerLoadingPart on AgendaController {
             );
         final shouldRecomposeStartupHead = initial &&
             _shouldRecomposeStartupHeadOnInitialBootstrap(currentAgenda) &&
-            shouldPreferLiveStartupHead;
+            shouldPreferLiveStartupHead &&
+            !lockStartupHeadOnly;
         unawaited(
           _saveFeedPostsToPool(
             visibleItems,
@@ -745,13 +973,49 @@ extension AgendaControllerLoadingPart on AgendaController {
           markHighlighted(pageApplyPlan.freshScheduledIds,
               keepFor: const Duration(milliseconds: 900));
         }
-        if (shouldRecomposeStartupHead) {
-          final recomposedAgenda = _mergeStartupHeadWithCurrentItems(
-            currentItems: currentAgenda,
+        if (lockStartupHeadOnly) {
+          final lockedAgenda = _composeLockedStartupHead(
+            currentAgenda: currentAgenda,
             liveItems: visibleItems,
-            targetCount: FeedSnapshotRepository.startupHomeLimitValue,
-            nowMs: nowMs,
           );
+          debugPrint(
+            '[FeedStartupHeadSync] source=initial_bootstrap '
+            'status=apply_locked_startup_head '
+            'currentCount=${currentAgenda.length} liveCount=${visibleItems.length} '
+            'nextCount=${lockedAgenda.length} '
+            'preferLive=$shouldPreferLiveStartupHead',
+          );
+          if (!_hasSameAgendaDocOrder(currentAgenda, lockedAgenda)) {
+            final shouldActivateStartupStages =
+                initial && currentAgenda.isEmpty && lockedAgenda.isNotEmpty;
+            agendaList.assignAll(lockedAgenda);
+            _debugAgendaKinds('initial_locked_assign', agendaList);
+            if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+              _activateStartupRenderStages(
+                reason: 'initial_locked_assign',
+              );
+            }
+            _applyStartupRenderStagesNow();
+            _scheduleInitialFeedVideoPosterWarmup(
+              _initialVisibleVideoWarmupWindow(lockedAgenda),
+            );
+            _scheduleBufferedFeedBlockPrefetchAfterFrame(
+              reason: 'initial_locked_assign',
+            );
+          }
+          _startupLiveHeadApplied = true;
+        } else if (shouldRecomposeStartupHead) {
+          final recomposedAgenda = lockStartupHeadOnly
+              ? _composeLockedStartupHead(
+                  currentAgenda: currentAgenda,
+                  liveItems: visibleItems,
+                )
+              : _mergeStartupHeadWithCurrentItems(
+                  currentItems: currentAgenda,
+                  liveItems: visibleItems,
+                  targetCount: FeedSnapshotRepository.startupHomeLimitValue,
+                  nowMs: nowMs,
+                );
           debugPrint(
             '[FeedStartupHeadSwap] source=initial_bootstrap '
             'currentCount=${currentAgenda.length} liveCount=${visibleItems.length} '
@@ -763,6 +1027,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           final shouldActivateStartupStages =
               initial && currentAgenda.isEmpty && recomposedAgenda.isNotEmpty;
           agendaList.assignAll(recomposedAgenda);
+          _debugAgendaKinds('initial_recomposed_assign', agendaList);
           if (shouldActivateStartupStages && agendaList.isNotEmpty) {
             _activateStartupRenderStages(
               reason: 'initial_recomposed_assign',
@@ -772,6 +1037,9 @@ extension AgendaControllerLoadingPart on AgendaController {
           _startupLiveHeadApplied = true;
           _scheduleInitialFeedVideoPosterWarmup(
             _initialVisibleVideoWarmupWindow(recomposedAgenda),
+          );
+          _scheduleBufferedFeedBlockPrefetchAfterFrame(
+            reason: 'initial_recomposed_assign',
           );
           if (pageApplyPlan.itemsToAdd.isNotEmpty) {
             _scheduleReshareFetchForPosts(
@@ -787,21 +1055,52 @@ extension AgendaControllerLoadingPart on AgendaController {
             _startupLiveHeadApplied = true;
           }
           final shouldActivateStartupStages = initial && agendaList.isEmpty;
-          _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
-          if (initial) {
-            _reorderAgendaForStartupPresentationIfNeeded();
+          if (initial && currentAgenda.isEmpty) {
+            final startupItems = _applyStartupFeedPresentationOrder(
+              pageApplyPlan.itemsToAdd,
+            );
+            debugPrint(
+              '[FeedStartupHeadSync] source=initial_bootstrap '
+              'status=apply_composed_startup_items '
+              'rawCount=${pageApplyPlan.itemsToAdd.length} '
+              'composedCount=${startupItems.length}',
+            );
+            agendaList.assignAll(startupItems);
+            _debugAgendaKinds('initial_items_to_add', agendaList);
             if (shouldActivateStartupStages && agendaList.isNotEmpty) {
               _activateStartupRenderStages(
                 reason: 'initial_items_to_add',
               );
             }
             _applyStartupRenderStagesNow();
+            _scheduleInitialFeedVideoPosterWarmup(startupItems);
+            _scheduleReshareFetchForPosts(
+              startupItems,
+              perPostLimit: 1,
+            );
+            _scheduleBufferedFeedBlockPrefetchAfterFrame(
+              reason: 'initial_items_to_add',
+            );
+          } else {
+            _addUniqueToAgenda(pageApplyPlan.itemsToAdd);
+            if (initial) {
+              _reorderAgendaForStartupPresentationIfNeeded();
+              if (shouldActivateStartupStages && agendaList.isNotEmpty) {
+                _activateStartupRenderStages(
+                  reason: 'initial_items_to_add',
+                );
+              }
+              _applyStartupRenderStagesNow();
+            }
+            _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
+            _scheduleReshareFetchForPosts(
+              pageApplyPlan.itemsToAdd,
+              perPostLimit: 1,
+            );
+            _scheduleBufferedFeedBlockPrefetchAfterFrame(
+              reason: initial ? 'initial_add_unique' : 'paged_add_unique',
+            );
           }
-          _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
-          _scheduleReshareFetchForPosts(
-            pageApplyPlan.itemsToAdd,
-            perPostLimit: 1,
-          );
         }
       }
 
@@ -1070,8 +1369,15 @@ extension AgendaControllerLoadingPart on AgendaController {
     final currentAgenda = agendaList.toList(growable: false);
     final shouldReplaceStartupHead =
         _startupPresentationApplied && !_startupLiveHeadApplied;
+    final shouldLockStartupHeadOnly = _shouldLockStartupHeadOnly(currentAgenda);
     final mergedAgenda =
         await _profileFeedHeadSyncStep('compose_next_head', () async {
+      if (shouldLockStartupHeadOnly) {
+        return _composeLockedStartupHead(
+          currentAgenda: currentAgenda,
+          liveItems: visibleItems,
+        );
+      }
       return shouldReplaceStartupHead
           ? _mergeStartupHeadWithCurrentItems(
               currentItems: currentAgenda,
@@ -1112,6 +1418,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
       agendaList.assignAll(mergedAgenda);
+      _debugAgendaKinds('surface_open_sync_apply_head', agendaList);
       _applyStartupRenderStagesNow();
     });
     if (shouldReplaceStartupHead) {

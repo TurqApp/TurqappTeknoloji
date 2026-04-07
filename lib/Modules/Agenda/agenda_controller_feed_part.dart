@@ -685,17 +685,18 @@ extension AgendaControllerFeedPart on AgendaController {
       final triggerCount = _nextBufferedFetchTriggerCount;
       final bufferedPlan =
           _agendaFeedApplicationService.resolveBufferedWindowPlan(
-        viewedCount: triggerCount,
+        viewedCount: viewedCount,
         initialCount: FeedSnapshotRepository.startupHomeLimitValue,
         blockSize: ReadBudgetRegistry.feedLivePageLimit,
         stepSize: ReadBudgetRegistry.feedBufferedFetchLimit,
       );
       final targetAgendaCount = bufferedPlan?.targetAgendaCount ??
-          (FeedSnapshotRepository.startupHomeLimitValue + triggerCount);
+          (FeedSnapshotRepository.startupHomeLimitValue + viewedCount);
       debugPrint(
         '[FeedFetchTrigger] viewedCount=$viewedCount currentCount=${agendaList.length} '
         'pageLimit=${ReadBudgetRegistry.feedBufferedFetchLimit} '
         'triggerCount=$triggerCount '
+        'resolvedViewedCount=$viewedCount '
         'targetAgendaCount=$targetAgendaCount '
         'blockBaseCount=${bufferedPlan?.blockBaseCount ?? 0}',
       );
