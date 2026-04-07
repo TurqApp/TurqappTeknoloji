@@ -31,6 +31,9 @@ extension ProfileControllerSupportPart on ProfileController {
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.profile),
       );
 
+  void setPrimarySurfaceActive(bool value) =>
+      _performSetPrimarySurfaceActive(value);
+
   Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) =>
       _performPrepareStartupSurface(
         allowBackgroundRefresh: allowBackgroundRefresh,

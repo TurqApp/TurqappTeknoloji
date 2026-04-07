@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
@@ -63,18 +64,52 @@ class SplashStartupOrchestrator {
   final PostLoginWarmup _postLoginWarmup;
   final StartupSessionFailureReporter _failureReporter;
 
+  Future<T> _profileStartupPhase<T>(
+    String label,
+    Future<T> Function() action,
+  ) async {
+    final startedAt = DateTime.now();
+    debugPrint('[StartupBootstrap] start:$label');
+    try {
+      final result = await action();
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint('[StartupBootstrap] end:$label elapsedMs=$elapsedMs');
+      return result;
+    } catch (error) {
+      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+      debugPrint(
+        '[StartupBootstrap] fail:$label elapsedMs=$elapsedMs error=$error',
+      );
+      rethrow;
+    }
+  }
+
   Future<void> initializeApp() async {
     var shouldScheduleBackgroundInit = false;
     var scheduledBackgroundInitFirstLaunch = false;
     try {
-      final prefs = await _startupBootstrap.run();
-      final sessionResult = await _bootstrapSession(prefs: prefs);
-
-      await hydrateStartupManifestContext(
-        loggedIn: sessionResult.loggedIn,
+      final prefs = await _profileStartupPhase(
+        'startup_bootstrap',
+        () => _startupBootstrap.run(),
       );
-      _dependencyRegistrar.register();
-      await _prepareStartupBeforeNavigation(sessionResult);
+      final sessionResult = await _profileStartupPhase(
+        'session_bootstrap',
+        () => _bootstrapSession(prefs: prefs),
+      );
+
+      await _profileStartupPhase(
+        'hydrate_startup_manifest',
+        () => hydrateStartupManifestContext(
+          loggedIn: sessionResult.loggedIn,
+        ),
+      );
+      await _profileStartupPhase('dependency_registration', () async {
+        _dependencyRegistrar.register();
+      });
+      await _profileStartupPhase(
+        'prepare_startup_before_navigation',
+        () => _prepareStartupBeforeNavigation(sessionResult),
+      );
       _postLoginWarmup.startNonBlockingStartupWork(
         isFirstLaunch: sessionResult.isFirstLaunch,
         effectiveUserId: CurrentUserService.instance.effectiveUserId,

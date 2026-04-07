@@ -6,6 +6,7 @@ class _ProfileLifecycleState {
   StreamSubscription<Map<String, dynamic>?>? counterSub;
   Timer? persistCacheTimer;
   Future<void>? startupPrepareFuture;
+  bool primarySurfaceActive = false;
   Worker? allPostsWorker;
   Worker? photosWorker;
   Worker? videosWorker;
@@ -95,6 +96,9 @@ extension ProfileControllerFieldsPart on ProfileController {
       _lifecycleState.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _lifecycleState.startupPrepareFuture = value;
+  bool get _primarySurfaceActive => _lifecycleState.primarySurfaceActive;
+  set _primarySurfaceActive(bool value) =>
+      _lifecycleState.primarySurfaceActive = value;
   bool get _startupShardHydrated => _lifecycleState.startupShardHydrated;
   set _startupShardHydrated(bool value) =>
       _lifecycleState.startupShardHydrated = value;
@@ -141,7 +145,8 @@ extension ProfileControllerFieldsPart on ProfileController {
   set _startupScrollStartedAt(DateTime? value) =>
       _scrollState.startupScrollStartedAt = value;
   double get _lastObservedOffset => _scrollState.lastObservedOffset;
-  set _lastObservedOffset(double value) => _scrollState.lastObservedOffset = value;
+  set _lastObservedOffset(double value) =>
+      _scrollState.lastObservedOffset = value;
   Map<int, double> get _visibleFractions => _scrollState.visibleFractions;
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;
   set _visibilityDebounce(Timer? value) =>

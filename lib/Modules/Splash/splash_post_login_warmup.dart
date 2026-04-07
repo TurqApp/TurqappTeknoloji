@@ -95,7 +95,18 @@ class PostLoginWarmup {
 
   Future<void> runBackgroundInit({required bool isFirstLaunch}) async {
     try {
-      unawaited(_initCacheProxy());
+      final onWiFi = _isOnWiFiNow();
+      final cacheProxyDelay = _cacheProxyInitDelay(
+        isFirstLaunch: isFirstLaunch,
+        onWiFi: onWiFi,
+      );
+      if (cacheProxyDelay == Duration.zero) {
+        unawaited(_initCacheProxy());
+      } else {
+        Future.delayed(cacheProxyDelay, () {
+          unawaited(_initCacheProxy());
+        });
+      }
 
       final hasUser = _hasSignedInUser();
       if (hasUser) {
@@ -114,7 +125,6 @@ class PostLoginWarmup {
           }
         }
 
-        final onWiFi = _isOnWiFiNow();
         Future.delayed(
           Duration(
             milliseconds:
@@ -130,7 +140,6 @@ class PostLoginWarmup {
         unawaited(_initializeNotifications());
       });
 
-      final onWiFi = _isOnWiFiNow();
       final admobDelay = Duration(
         milliseconds:
             isFirstLaunch ? (onWiFi ? 2200 : 2600) : (onWiFi ? 2800 : 3200),
@@ -225,6 +234,20 @@ class PostLoginWarmup {
     } finally {
       _globalCacheProxyInitFuture = null;
     }
+  }
+
+  Duration _cacheProxyInitDelay({
+    required bool isFirstLaunch,
+    required bool onWiFi,
+  }) {
+    if (_isIOS()) {
+      return Duration.zero;
+    }
+    return Duration(
+      milliseconds: isFirstLaunch
+          ? (onWiFi ? 1200 : 1500)
+          : (onWiFi ? 900 : 1200),
+    );
   }
 
   bool _shouldDisableCacheProxyForSession(Object error) {

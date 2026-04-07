@@ -126,6 +126,83 @@ void main() {
     },
   );
 
+  test(
+    'SessionBootstrap extends auth restore wait for returning Android sessions',
+    () async {
+      final events = <String>[];
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'account_center.last_used_uid': 'uid-restored',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      var effectiveUserId = '';
+
+      final bootstrap = SessionBootstrap(
+        initializeAccountCenter: () async {
+          events.add('accountCenter.init');
+        },
+        initializeCurrentUser: () async {
+          events.add('currentUser.init');
+        },
+        handleFirstLaunchCleanup: (_) async => false,
+        readEffectiveUserId: () => effectiveUserId,
+        ensureAuthReady: ({required timeout}) async {
+          events.add('ensureAuthReady:${timeout.inMilliseconds}');
+          effectiveUserId = 'uid-restored';
+          return effectiveUserId;
+        },
+        syncCurrentAccountToAccountCenter: () async {
+          events.add('accountCenter.sync');
+        },
+        isIOS: () => false,
+      );
+
+      final result = await bootstrap.run(prefs: prefs);
+
+      expect(result.loggedIn, isTrue);
+      expect(events, contains('ensureAuthReady:1800'));
+      expect(events, contains('accountCenter.sync'));
+    },
+  );
+
+  test(
+    'SessionBootstrap preserves returning-session auth wait even if init clears cache pointer',
+    () async {
+      final events = <String>[];
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        'cached_current_user_active_uid': 'uid-restored',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      var effectiveUserId = '';
+
+      final bootstrap = SessionBootstrap(
+        initializeAccountCenter: () async {
+          events.add('accountCenter.init');
+        },
+        initializeCurrentUser: () async {
+          events.add('currentUser.init');
+          await prefs.remove('cached_current_user_active_uid');
+        },
+        handleFirstLaunchCleanup: (_) async => false,
+        readEffectiveUserId: () => effectiveUserId,
+        ensureAuthReady: ({required timeout}) async {
+          events.add('ensureAuthReady:${timeout.inMilliseconds}');
+          effectiveUserId = 'uid-restored';
+          return effectiveUserId;
+        },
+        syncCurrentAccountToAccountCenter: () async {
+          events.add('accountCenter.sync');
+        },
+        isIOS: () => false,
+      );
+
+      final result = await bootstrap.run(prefs: prefs);
+
+      expect(result.loggedIn, isTrue);
+      expect(events, contains('ensureAuthReady:1800'));
+      expect(events, contains('accountCenter.sync'));
+    },
+  );
+
   test('SplashStartupOrchestrator records startup failures and still navigates',
       () async {
     final failures = <StartupSessionFailure>[];
@@ -192,7 +269,6 @@ void main() {
       effectiveUserId: '',
     );
     await Future<void>.delayed(Duration.zero);
-    expect(events, contains('admob:true'));
     expect(events, contains('tags'));
     expect(events, isNot(contains('follow')));
 
@@ -203,7 +279,6 @@ void main() {
       effectiveUserId: 'uid-1',
     );
     await Future<void>.delayed(Duration.zero);
-    expect(events, contains('admob:false'));
     expect(events, contains('tags'));
     expect(events, contains('follow'));
   });

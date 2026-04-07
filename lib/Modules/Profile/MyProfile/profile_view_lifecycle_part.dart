@@ -27,6 +27,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
   }
 
   void _initializeProfileView() {
+    final initialSurfaceActive = _isProfileSurfaceActive();
     final existingController = ProfileController.maybeFind();
     if (existingController != null) {
       controller = existingController;
@@ -34,6 +35,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller = ProfileController.ensure();
       _ownsController = true;
     }
+    controller.setPrimarySurfaceActive(initialSurfaceActive);
     final existingSocialMediaController = maybeFindSocialMediaController();
     if (existingSocialMediaController != null) {
       socialMediaController = existingSocialMediaController;
@@ -50,6 +52,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isProfileSurfaceActive()) {
+        controller.setPrimarySurfaceActive(true);
         unawaited(controller.onPrimarySurfaceVisible());
       }
       _refreshProfileSupplementalMetaIfActive(force: false);
@@ -61,6 +64,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     if (nav != null) {
       _profileTabWorker = ever<int>(nav.selectedIndex, (_) {
         if (!_isProfileSurfaceActive()) {
+          controller.setPrimarySurfaceActive(false);
           _suspendProfileFeedForRoute();
           try {
             VideoStateManager.instance.pauseAllVideos(force: true);
@@ -70,6 +74,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
           } catch (_) {}
           return;
         }
+        controller.setPrimarySurfaceActive(true);
         _resumeProfileFeedAfterRoute();
         _refreshProfileSurfaceMetaIfActive(force: false);
       });
@@ -98,6 +103,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     }
     if (_ownsController &&
         identical(ProfileController.maybeFind(), controller)) {
+      controller.setPrimarySurfaceActive(false);
       Get.delete<ProfileController>(force: true);
     }
   }

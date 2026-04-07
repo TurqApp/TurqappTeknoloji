@@ -1,6 +1,14 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
+  void _performSetPrimarySurfaceActive(bool value) {
+    if (_primarySurfaceActive == value) return;
+    _primarySurfaceActive = value;
+    if (value) {
+      _performRebuildMergedPosts();
+    }
+  }
+
   bool get _canRetainStartupPlaybackLock {
     if (!GetPlatform.isIOS) return false;
     if (postSelection.value != 0) return false;
@@ -147,6 +155,7 @@ extension ProfileControllerSelectionPart on ProfileController {
   }
 
   void _performRebuildMergedPosts() {
+    if (!_primarySurfaceActive) return;
     if (allPosts.isEmpty && reshares.isEmpty) {
       mergedPosts.clear();
       _visibleFractions.clear();

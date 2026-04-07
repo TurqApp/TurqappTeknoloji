@@ -17,6 +17,10 @@ typedef SessionAuthReadyRunner = Future<String?> Function({
   required Duration timeout,
 });
 
+const _accountCenterActiveUidPrefsKey = 'account_center.active_uid';
+const _accountCenterLastUsedUidPrefsKey = 'account_center.last_used_uid';
+const _currentUserActiveCacheUidPrefsKey = 'cached_current_user_active_uid';
+
 class SessionBootstrapResult {
   const SessionBootstrapResult({
     required this.isFirstLaunch,
@@ -67,6 +71,7 @@ class SessionBootstrap {
   }) async {
     await ensureSurfacePolicyOverrideService().ensureReady(prefs: prefs);
     await _initializeAccountCenter();
+    final hadReturningSessionHint = _hasReturningSessionHint(prefs);
 
     late final bool isFirstLaunch;
     if (_isIOS()) {
@@ -83,7 +88,10 @@ class SessionBootstrap {
 
     var loggedIn = _readEffectiveUserId().isNotEmpty;
     if (!loggedIn) {
-      final restoredUid = await _attemptAuthRestoreUid();
+      final restoredUid = await _attemptAuthRestoreUid(
+        prefs: prefs,
+        hadReturningSessionHint: hadReturningSessionHint,
+      );
       if (restoredUid.isNotEmpty) {
         await _initializeCurrentUser();
         loggedIn = _readEffectiveUserId().isNotEmpty || restoredUid.isNotEmpty;
@@ -99,11 +107,21 @@ class SessionBootstrap {
     );
   }
 
-  Duration get _authRestoreWait => IntegrationTestMode.enabled
-      ? const Duration(seconds: 3)
-      : _isIOS()
-          ? const Duration(milliseconds: 450)
-          : const Duration(milliseconds: 900);
+  Duration _authRestoreWaitFor({
+    required SharedPreferences prefs,
+    bool hadReturningSessionHint = false,
+  }) {
+    if (IntegrationTestMode.enabled) {
+      return const Duration(seconds: 3);
+    }
+    if (_isIOS()) {
+      return const Duration(milliseconds: 450);
+    }
+    if (hadReturningSessionHint || _hasReturningSessionHint(prefs)) {
+      return const Duration(milliseconds: 1800);
+    }
+    return const Duration(milliseconds: 900);
+  }
 
   Future<bool> _runFirstLaunchCleanupSafely(SharedPreferences prefs) async {
     try {
@@ -131,9 +149,31 @@ class SessionBootstrap {
     }
   }
 
-  Future<String> _attemptAuthRestoreUid() async {
+  bool _hasReturningSessionHint(SharedPreferences prefs) {
+    final accountCenterActiveUid =
+        (prefs.getString(_accountCenterActiveUidPrefsKey) ?? '').trim();
+    if (accountCenterActiveUid.isNotEmpty) return true;
+    final accountCenterLastUsedUid =
+        (prefs.getString(_accountCenterLastUsedUidPrefsKey) ?? '').trim();
+    if (accountCenterLastUsedUid.isNotEmpty) return true;
+    final currentUserCacheUid =
+        (prefs.getString(_currentUserActiveCacheUidPrefsKey) ?? '').trim();
+    return currentUserCacheUid.isNotEmpty;
+  }
+
+  Future<String> _attemptAuthRestoreUid({
+    required SharedPreferences prefs,
+    bool hadReturningSessionHint = false,
+  }) async {
     try {
-      return (await _ensureAuthReady(timeout: _authRestoreWait))?.trim() ?? '';
+      return (await _ensureAuthReady(
+                timeout: _authRestoreWaitFor(
+                  prefs: prefs,
+                  hadReturningSessionHint: hadReturningSessionHint,
+                ),
+              ))
+              ?.trim() ??
+          '';
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.authStateRestore,
@@ -146,7 +186,8 @@ class SessionBootstrap {
   }
 
   static Future<void> _defaultInitializeAccountCenter() async {
-    await ensureAccountCenterService().init();
+    final service = ensureAccountCenterService();
+    unawaited(service.init());
   }
 
   static Future<void> _defaultInitializeCurrentUser() async {
