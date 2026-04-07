@@ -4,21 +4,75 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   static const int _floodPriorityBatchSize = 5;
   static const int _floodNextBatchPromotionTriggerOffset = 2;
   static const Duration _floodPriorityPlanTick = Duration(milliseconds: 900);
+  static const int _floodPlayableLeadQueueCount = 3;
+  static const int _floodPlayableTailQueueCount = 3;
 
-  List<int> _collectPlayableFloodIndices({
-    required int startIndex,
+  void _rebuildPlayableFloodQueueMetadata() {
+    _playableRawIndices.clear();
+    _playableQueueIndexByRawIndex.clear();
+    var playableQueueIndex = 0;
+    for (var rawIndex = 0; rawIndex < floods.length; rawIndex++) {
+      final post = floods[rawIndex];
+      if (!post.hasPlayableVideo) continue;
+      _playableRawIndices.add(rawIndex);
+      _playableQueueIndexByRawIndex[rawIndex] = playableQueueIndex;
+      playableQueueIndex++;
+    }
+  }
+
+  List<PostsModel> _playableFloodPosts() {
+    if (_playableRawIndices.isEmpty) return const <PostsModel>[];
+    return _playableRawIndices
+        .where((rawIndex) => rawIndex >= 0 && rawIndex < floods.length)
+        .map((rawIndex) => floods[rawIndex])
+        .toList(growable: false);
+  }
+
+  int _playableFloodQueueIndexForRawIndex(int rawIndex) {
+    if (_playableRawIndices.isEmpty) return -1;
+    final exact = _playableQueueIndexByRawIndex[rawIndex];
+    if (exact != null) return exact;
+    if (rawIndex <= 0) return 0;
+    for (var i = rawIndex - 1; i >= 0; i--) {
+      final mapped = _playableQueueIndexByRawIndex[i];
+      if (mapped != null) return mapped;
+    }
+    return 0;
+  }
+
+  List<int> _collectPlayableFloodIndicesByQueue({
+    required int playableQueueStart,
     required int playableCount,
   }) {
-    if (playableCount <= 0 || floods.isEmpty) return const <int>[];
-    final safeStart = startIndex.clamp(0, floods.length - 1);
-    final indices = <int>[];
-    for (var i = safeStart; i < floods.length; i++) {
-      final model = floods[i];
-      if (!model.hasPlayableVideo) continue;
-      indices.add(i);
-      if (indices.length >= playableCount) break;
-    }
-    return indices;
+    if (playableCount <= 0 || _playableRawIndices.isEmpty) return const <int>[];
+    final safeStart = playableQueueStart.clamp(0, _playableRawIndices.length);
+    if (safeStart >= _playableRawIndices.length) return const <int>[];
+    final endExclusive =
+        (safeStart + playableCount).clamp(0, _playableRawIndices.length);
+    return _playableRawIndices.sublist(safeStart, endExclusive);
+  }
+
+  void _updateFloodPlaybackQueue(int focusedIndex) {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final playablePosts = _playableFloodPosts();
+    if (playablePosts.isEmpty) return;
+    final playableQueueIndex = _playableFloodQueueIndexForRawIndex(focusedIndex);
+    if (playableQueueIndex < 0) return;
+    final maxDocs =
+        (playableQueueIndex +
+                _floodPlayableLeadQueueCount +
+                _floodPlayableTailQueueCount)
+            .clamp(1, playablePosts.length);
+    try {
+      unawaited(
+        prefetch.updateFeedQueueForPosts(
+          playablePosts,
+          playableQueueIndex,
+          maxDocs: maxDocs,
+        ),
+      );
+    } catch (_) {}
   }
 
   void _scheduleFloodSegmentWarmupForIndices(
@@ -63,19 +117,22 @@ extension FloodListingControllerRuntimePart on FloodListingController {
 
   void _promoteNextFloodBatchForSecondSegmentSweepIfNeeded() {
     if (!_allPlayableFloodsReadyForSegments(1)) return;
+    final playableCount = _playableRawIndices.length;
+    if (playableCount == 0) return;
 
     for (var batchStart = 0;
-        batchStart < floods.length;
+        batchStart < playableCount;
         batchStart += _floodPriorityBatchSize) {
-      final batchCount =
-          (floods.length - batchStart).clamp(0, _floodPriorityBatchSize);
+      final batchIndices = _collectPlayableFloodIndicesByQueue(
+        playableQueueStart: batchStart,
+        playableCount: _floodPriorityBatchSize,
+      );
+      final batchCount = batchIndices.length;
       if (batchCount <= 0) return;
 
       var batchNeedsSecondSegment = false;
-      for (var i = batchStart; i < batchStart + batchCount; i++) {
-        final model = floods[i];
-        if (!model.hasPlayableVideo) continue;
-        if (_playableFloodCachedSegmentCount(i) < 2) {
+      for (final rawIndex in batchIndices) {
+        if (_playableFloodCachedSegmentCount(rawIndex) < 2) {
           batchNeedsSecondSegment = true;
           break;
         }
@@ -86,10 +143,9 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       }
 
       if (_promotedSecondSegmentBatchStarts.add(batchStart)) {
-        _scheduleFloodSegmentWarmupFrom(
-          startIndex: batchStart,
+        _scheduleFloodSegmentWarmupForIndices(
+          batchIndices,
           readySegments: 2,
-          windowCount: batchCount,
         );
       }
       return;
@@ -142,30 +198,19 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     }
   }
 
-  void _scheduleFloodSegmentWarmupFrom({
-    required int startIndex,
-    required int readySegments,
-    int? windowCount,
-  }) {
-    if (startIndex < 0 || startIndex >= floods.length) return;
-    _scheduleFloodSegmentWarmup(
-      preferredIndex: startIndex,
-      readySegments: readySegments,
-      windowCount: windowCount,
-    );
-  }
-
   void _resetFloodSegmentPriorityPlan() {
     _promotedSecondSegmentBatchStarts.clear();
   }
 
   void _scheduleInitialFloodSegmentPriorityPlan() {
     if (floods.isEmpty) return;
+    _rebuildPlayableFloodQueueMetadata();
     _resetFloodSegmentPriorityPlan();
     _updateFloodPrefetchPriorityContext(0);
+    _updateFloodPlaybackQueue(0);
 
-    final initialPlayableIndices = _collectPlayableFloodIndices(
-      startIndex: 0,
+    final initialPlayableIndices = _collectPlayableFloodIndicesByQueue(
+      playableQueueStart: 0,
       playableCount: _floodPriorityBatchSize,
     );
     _scheduleFloodSegmentWarmupForIndices(
@@ -175,12 +220,12 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     _promotedSecondSegmentBatchStarts.add(0);
 
     if (initialPlayableIndices.isEmpty) return;
-    final remainingStart = initialPlayableIndices.last + 1;
-    if (remainingStart >= floods.length) return;
+    final remainingStart = initialPlayableIndices.length;
+    if (remainingStart >= _playableRawIndices.length) return;
     _scheduleFloodSegmentWarmupForIndices(
-      _collectPlayableFloodIndices(
-        startIndex: remainingStart,
-        playableCount: floods.length,
+      _collectPlayableFloodIndicesByQueue(
+        playableQueueStart: remainingStart,
+        playableCount: _playableRawIndices.length - remainingStart,
       ),
       readySegments: 1,
     );
@@ -188,24 +233,27 @@ extension FloodListingControllerRuntimePart on FloodListingController {
 
   void _promoteNextFloodSegmentBatchIfNeeded(int focusedIndex) {
     if (focusedIndex < 0 || focusedIndex >= floods.length) return;
-
+    final focusedPlayableIndex = _playableFloodQueueIndexForRawIndex(focusedIndex);
+    if (focusedPlayableIndex < 0) return;
     final currentBatchStart =
-        (focusedIndex ~/ _floodPriorityBatchSize) * _floodPriorityBatchSize;
+        (focusedPlayableIndex ~/ _floodPriorityBatchSize) *
+            _floodPriorityBatchSize;
     final promotionThreshold =
         currentBatchStart + _floodNextBatchPromotionTriggerOffset;
-    if (focusedIndex < promotionThreshold) return;
+    if (focusedPlayableIndex < promotionThreshold) return;
 
     final nextBatchStart = currentBatchStart + _floodPriorityBatchSize;
-    if (nextBatchStart >= floods.length) return;
+    if (nextBatchStart >= _playableRawIndices.length) return;
     if (!_promotedSecondSegmentBatchStarts.add(nextBatchStart)) return;
 
-    final nextWindowCount =
-        (floods.length - nextBatchStart).clamp(0, _floodPriorityBatchSize);
-    if (nextWindowCount <= 0) return;
-    _scheduleFloodSegmentWarmupFrom(
-      startIndex: nextBatchStart,
+    final nextBatchIndices = _collectPlayableFloodIndicesByQueue(
+      playableQueueStart: nextBatchStart,
+      playableCount: _floodPriorityBatchSize,
+    );
+    if (nextBatchIndices.isEmpty) return;
+    _scheduleFloodSegmentWarmupForIndices(
+      nextBatchIndices,
       readySegments: 2,
-      windowCount: nextWindowCount,
     );
   }
 
@@ -218,6 +266,8 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     _priorityPlanTimer?.cancel();
     _visibilityDebounce?.cancel();
     _visibleFractions.clear();
+    _playableRawIndices.clear();
+    _playableQueueIndexByRawIndex.clear();
     _promotedSecondSegmentBatchStarts.clear();
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
@@ -257,6 +307,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       currentVisibleIndex.value = modelIndex;
       capturePendingCenteredEntry(preferredIndex: modelIndex);
       _updateFloodPrefetchPriorityContext(modelIndex);
+      _updateFloodPlaybackQueue(modelIndex);
       _scheduleFloodSegmentWarmup(
         preferredIndex: modelIndex,
         readySegments: 2,
@@ -305,6 +356,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     lastCenteredIndex = nextIndex;
     capturePendingCenteredEntry(preferredIndex: nextIndex);
     _updateFloodPrefetchPriorityContext(nextIndex);
+    _updateFloodPlaybackQueue(nextIndex);
     _scheduleFloodSegmentWarmup(
       preferredIndex: nextIndex,
       readySegments: 2,
@@ -347,6 +399,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     lastCenteredIndex = target;
     capturePendingCenteredEntry(preferredIndex: target);
     _updateFloodPrefetchPriorityContext(target);
+    _updateFloodPlaybackQueue(target);
     _scheduleFloodSegmentWarmup(
       preferredIndex: target,
       readySegments: 2,

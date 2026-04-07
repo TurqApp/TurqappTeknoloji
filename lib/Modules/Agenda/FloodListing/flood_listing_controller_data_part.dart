@@ -4,6 +4,10 @@ extension FloodListingControllerDataPart on FloodListingController {
   Future<void> getFloods(int floodCount, String anyFloodID) async {
     capturePendingCenteredEntry();
     floods.clear();
+    _visibleFractions.clear();
+    _playableRawIndices.clear();
+    _playableQueueIndexByRawIndex.clear();
+    _promotedSecondSegmentBatchStarts.clear();
 
     final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
     final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
