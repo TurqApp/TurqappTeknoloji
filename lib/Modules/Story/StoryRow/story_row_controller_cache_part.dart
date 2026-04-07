@@ -18,11 +18,39 @@ extension StoryRowControllerCachePart on StoryRowController {
         .toList(growable: false);
     if (critical.isEmpty) return;
 
-    for (final url in critical) {
+    Future<void> warmCriticalUrl(
+      String url, {
+      required bool allowNetwork,
+    }) async {
       try {
-        await TurqImageCacheManager.warmUrl(url);
+        final remembered =
+            TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
+        if (remembered.isNotEmpty) return;
+        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+          url,
+        );
+        var path = cached?.file.path ?? '';
+        if (path.isEmpty && allowNetwork) {
+          final file = await TurqImageCacheManager.warmUrl(url).timeout(
+            const Duration(milliseconds: 220),
+            onTimeout: () => throw TimeoutException('story_avatar_timeout'),
+          );
+          path = file.path;
+        }
+        if (path.isEmpty) return;
+        TurqImageCacheManager.rememberResolvedFile(url, path);
       } catch (_) {}
     }
+
+    final allowNetwork = ContentPolicy.isOnWiFi;
+    await Future.wait(
+      critical.take(allowNetwork ? take : min(take, 2)).map(
+            (url) => warmCriticalUrl(
+              url,
+              allowNetwork: allowNetwork,
+            ),
+          ),
+    );
   }
 
   Future<void> _primeVisibleAvatarHints(
@@ -132,8 +160,8 @@ extension StoryRowControllerCachePart on StoryRowController {
       );
       if (loaded.isNotEmpty) {
         await _primeVisibleAvatarHints(loaded);
+        await _warmPublishCriticalAvatarFiles(loaded);
         users.assignAll(loaded);
-        unawaited(_warmPublishCriticalAvatarFiles(loaded));
         unawaited(_warmVisibleAvatarFiles(loaded));
       }
       _ensureMyUserPlaceholder();

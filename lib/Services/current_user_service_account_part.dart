@@ -271,7 +271,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       final raw = normalizedFields['avatarUrl'];
       if (raw == null || isDeleteMarker(raw)) return current.avatarUrl;
       final trimmed = raw.toString().trim();
-      return isDefaultAvatarUrl(trimmed) ? '' : trimmed;
+      return isDefaultAvatarUrl(trimmed) ? '' : CdnUrlBuilder.toCdnUrl(trimmed);
     }
 
     final patched = current.copyWith(

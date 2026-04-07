@@ -118,8 +118,11 @@ extension StoryRowControllerLoadPart on StoryRowController {
         isAllSeen: allSeen,
       );
       await _primeVisibleAvatarHints(orderedUsers);
-      users.value = orderedUsers;
       if (!hadExternalUsersBeforeLoad) {
+        await _warmPublishCriticalAvatarFiles(orderedUsers);
+      }
+      users.value = orderedUsers;
+      if (hadExternalUsersBeforeLoad) {
         unawaited(_warmPublishCriticalAvatarFiles(orderedUsers));
       }
       unawaited(_warmVisibleAvatarFiles(users));

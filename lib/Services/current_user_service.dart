@@ -25,6 +25,7 @@ import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/viewer_surface_invalidation_service.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/account_session_vault.dart';
@@ -208,7 +209,8 @@ extension CurrentUserServiceFacadePart on CurrentUserService {
 
   String get avatarUrl {
     final raw = (_currentUser?.avatarUrl ?? '').trim();
-    return isDefaultAvatarUrl(raw) ? '' : raw;
+    if (isDefaultAvatarUrl(raw)) return '';
+    return CdnUrlBuilder.toCdnUrl(raw);
   }
 
   String get fullName => _currentUser?.fullName ?? '';

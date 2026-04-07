@@ -7,6 +7,7 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
       return;
     }
     _currentUser = resolvedUser;
+    await _primeAvatarHintFromCache(resolvedUser);
     final didPublish = _publishResolvedUser(resolvedUser);
     await UserRepository.ensure().seedCurrentUser(resolvedUser);
     unawaited(_warmAvatar(resolvedUser));
@@ -56,8 +57,20 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     if (url.isEmpty) return;
     if (_lastWarmedAvatarUrl == url) return;
     try {
-      await TurqImageCacheManager.instance.getSingleFile(url);
+      final file = await TurqImageCacheManager.instance.getSingleFile(url);
+      TurqImageCacheManager.rememberResolvedFile(url, file.path);
       _lastWarmedAvatarUrl = url;
+    } catch (_) {}
+  }
+
+  Future<void> _primeAvatarHintFromCache(CurrentUserModel? user) async {
+    final url = (user?.avatarUrl ?? '').trim();
+    if (url.isEmpty) return;
+    try {
+      final cached = await TurqImageCacheManager.instance.getFileFromCache(url);
+      final path = cached?.file.path ?? '';
+      if (path.isEmpty) return;
+      TurqImageCacheManager.rememberResolvedFile(url, path);
     } catch (_) {}
   }
 

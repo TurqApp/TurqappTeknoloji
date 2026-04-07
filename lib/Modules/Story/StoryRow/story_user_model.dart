@@ -1,5 +1,6 @@
 import 'package:turqappv2/Modules/Story/StoryMaker/story_model.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 
 class StoryUserModel {
   String nickname;
@@ -32,6 +33,7 @@ class StoryUserModel {
 
   factory StoryUserModel.fromCacheMap(Map<String, dynamic> map) {
     final rawStories = (map['stories'] as List?) ?? const [];
+    final rawAvatar = (map['avatarUrl'] ?? '').toString().trim();
     final stories = <StoryModel>[];
     for (final rawStory in rawStories) {
       if (rawStory is! Map) continue;
@@ -45,9 +47,9 @@ class StoryUserModel {
     }
     return StoryUserModel(
       nickname: (map['nickname'] ?? '').toString(),
-      avatarUrl: ((map['avatarUrl'] ?? '').toString().trim().isEmpty)
+      avatarUrl: rawAvatar.isEmpty
           ? kDefaultAvatarUrl
-          : (map['avatarUrl'] ?? '').toString(),
+          : CdnUrlBuilder.toCdnUrl(rawAvatar),
       fullName: (map['fullName'] ?? '').toString(),
       userID: (map['userID'] ?? '').toString(),
       stories: stories,

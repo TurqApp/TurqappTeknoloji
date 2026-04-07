@@ -216,7 +216,13 @@ extension _StoryCircleContentPart on _StoryCircleState {
   }
 
   Widget _buildAvatarImage({required bool isMe}) {
-    final imageUrl = isMe ? userService.avatarUrl : widget.model.avatarUrl;
+    final imageUrl = isMe
+        ? (() {
+            final current = userService.avatarUrl.trim();
+            if (current.isNotEmpty) return current;
+            return widget.model.avatarUrl.trim();
+          })()
+        : widget.model.avatarUrl;
     return ClipRect(
       child: CachedUserAvatar(
         userId: widget.model.userID,

@@ -3,6 +3,7 @@ part of 'cached_user_avatar.dart';
 class _CachedUserAvatarState extends State<CachedUserAvatar> {
   String _resolvedUrl = '';
   String _resolvedFilePath = '';
+  String _primedFilePath = '';
   bool _didBootstrap = false;
   bool _bootstrapInFlight = false;
   bool _bootstrapSettled = false;
@@ -78,6 +79,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     super.initState();
     _resolvedUrl = _initialResolvedUrl();
     _resolvedFilePath = _rememberedFilePathFor(_resolvedUrl);
+    _primeResolvedFileFrame(_resolvedFilePath);
     _bootstrapInFlight = true;
     _bootstrapSettled = false;
     _logAvatarSync(
@@ -105,6 +107,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       _resolvedFilePath = shouldPreserveResolvedUrl
           ? _resolvedFilePath
           : _rememberedFilePathFor(_resolvedUrl);
+      _primeResolvedFileFrame(_resolvedFilePath);
       _didBootstrap = false;
       _bootstrapInFlight = true;
       _bootstrapSettled = false;
@@ -270,6 +273,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           _resolvedFilePath = nextPath;
         });
       }
+      _primeResolvedFileFrame(nextPath);
       if (nextPath.isNotEmpty && !_didLogLocalReady) {
         _didLogLocalReady = true;
         _logAvatarSync(
@@ -283,6 +287,24 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     } catch (_) {}
   }
 
+  void _primeResolvedFileFrame(String path) {
+    final normalized = path.trim();
+    if (normalized.isEmpty || normalized == _primedFilePath) {
+      return;
+    }
+    final file = File(normalized);
+    if (!file.existsSync()) {
+      return;
+    }
+    _primedFilePath = normalized;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        precacheImage(FileImage(file), context).catchError((_) {}),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final userService = CurrentUserService.instance;
@@ -293,8 +315,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         stream: userService.userStream,
         initialData: userService.currentUser,
         builder: (context, snapshot) {
-          final currentUserImage =
-              _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
+          final currentUserImage = (() {
+            final direct = _normalizeUrl(userService.avatarUrl);
+            if (direct.isNotEmpty) return direct;
+            return _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
+          })();
           if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
             _resolvedUrl = currentUserImage;
             _didBootstrap = false;
@@ -407,7 +432,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
 
   String _normalizeUrl(String? raw) {
     final trimmed = (raw ?? '').trim();
-    return isDefaultAvatarUrl(trimmed) ? '' : trimmed;
+    if (isDefaultAvatarUrl(trimmed)) return '';
+    return CdnUrlBuilder.toCdnUrl(trimmed);
   }
 
   bool _shouldDeferDefaultAvatar() {
