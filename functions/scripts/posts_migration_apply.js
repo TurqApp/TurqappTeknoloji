@@ -4,7 +4,9 @@ const {
   alignStartTimestamp,
   buildOptions,
   deleteApps,
+  filterGroupsMissingTargetRoots,
   formatTrTimestamp,
+  getHlsTriggerTimestamp,
   initializeApps,
   limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
@@ -22,8 +24,12 @@ async function run() {
   try {
     console.log(`Mod             : ${options.apply ? 'APPLY' : 'DRY-RUN'}`);
     const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    const firstHlsTriggerAt = getHlsTriggerTimestamp(firstPublishAt, options);
     console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
     console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.hlsTriggerLeadMinutes > 0) {
+      console.log(`Ilk HLS tetik   : ${formatTrTimestamp(firstHlsTriggerAt)}`);
+    }
     if (options.limitDays > 0) {
       console.log(`Gun limiti      : ${options.limitDays}`);
     }
@@ -38,10 +44,18 @@ async function run() {
         return a.rootId.localeCompare(b.rootId);
       });
 
+    const remainingGroups = options.skipExistingRoot
+      ? await filterGroupsMissingTargetRoots(
+          apps.targetDb,
+          options.targetCollection,
+          eligibleGroups,
+        )
+      : eligibleGroups;
+
     const limitedGroups =
       options.limitGroups > 0
-        ? eligibleGroups.slice(0, options.limitGroups)
-        : eligibleGroups;
+        ? remainingGroups.slice(0, options.limitGroups)
+        : remainingGroups;
     const scheduledGroups = limitGroupsByScheduleWindow(
       limitedGroups,
       firstPublishAt,
@@ -70,18 +84,18 @@ async function run() {
       for (const plan of plans) {
         if (plan.status !== 'ready') continue;
         const batch = apps.targetDb.batch();
-      for (const doc of plan.docs) {
-        const ref = apps.targetDb
-          .collection(options.targetCollection)
-          .doc(doc.docId);
-        batch.set(ref, doc.payload, { merge: true });
-        writtenDocs += 1;
-      }
-      for (const skipped of plan.skipped || []) {
-        batch.delete(
-          apps.targetDb.collection(options.targetCollection).doc(skipped.docId),
-        );
-      }
+        for (const doc of plan.docs) {
+          const ref = apps.targetDb
+            .collection(options.targetCollection)
+            .doc(doc.docId);
+          batch.set(ref, doc.payload, { merge: true });
+          writtenDocs += 1;
+        }
+        for (const skipped of plan.skipped || []) {
+          batch.delete(
+            apps.targetDb.collection(options.targetCollection).doc(skipped.docId),
+          );
+        }
         await batch.commit();
         writtenGroups += 1;
       }
@@ -97,6 +111,9 @@ async function run() {
         anchorLabel: formatTrTimestamp(options.startTimestamp),
         firstTriggerAt: firstPublishAt,
         firstTriggerLabel: formatTrTimestamp(firstPublishAt),
+        hlsTriggerLeadMinutes: options.hlsTriggerLeadMinutes,
+        firstHlsTriggerAt,
+        firstHlsTriggerLabel: formatTrTimestamp(firstHlsTriggerAt),
         intervalMinutes: options.intervalMinutes,
         triggerLeadMinutes: options.triggerLeadMinutes,
         dailyStartHour: options.dailyStartHour,
@@ -104,14 +121,24 @@ async function run() {
         dailyEndMinute: options.dailyEndMinute,
         limitDays: options.limitDays,
         limitGroups: options.limitGroups,
+        deferHls: options.deferHls,
+        skipExistingRoot: options.skipExistingRoot,
       },
       source: {
         scannedDocs: loaded.scannedDocs,
         scannedFloodDocs: loaded.scannedFloodDocs,
         totalFloodGroups: loaded.groups.length,
+        eligibleFloodGroups: eligibleGroups.length,
+        existingRootGroups: eligibleGroups.length - remainingGroups.length,
+        remainingFloodGroups: remainingGroups.length,
       },
       summary: {
         ...summarizePlans(plans),
+        plannedGroups: scheduledGroups.length,
+        remainingGroupsAfterRun: Math.max(
+          remainingGroups.length - (options.apply ? writtenGroups : 0),
+          0,
+        ),
         writtenGroups,
         writtenDocs,
       },
@@ -126,8 +153,11 @@ async function run() {
 
     console.log(`Hazir grup      : ${report.summary.readyGroups}`);
     console.log(`Parsiyel grup   : ${report.summary.partialGroups}`);
+    console.log(`Mevcut root     : ${report.source.existingRootGroups}`);
+    console.log(`Planli grup     : ${report.summary.plannedGroups}`);
     console.log(`Yazilan grup    : ${writtenGroups}`);
     console.log(`Yazilan doc     : ${writtenDocs}`);
+    console.log(`Kalan grup      : ${report.summary.remainingGroupsAfterRun}`);
     console.log(`Basarisiz grup  : ${report.summary.failedGroups}`);
     console.log(`Rapor           : ${reportPath}`);
   } finally {

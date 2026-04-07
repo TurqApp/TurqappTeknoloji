@@ -7,10 +7,13 @@ const {
   alignStartTimestamp,
   buildOptions,
   deleteApps,
+  filterGroupsMissingTargetRoots,
   formatTrTimestamp,
+  getHlsTriggerTimestamp,
   initializeApps,
   limitGroupsByScheduleWindow,
   loadSourceFloodGroups,
+  nextScheduleTimestamp,
   writeReport,
 } = require('./posts_migration_shared');
 
@@ -131,6 +134,10 @@ function resolveSourceVideoPath(docId, sourceData) {
   return `Posts/${docId}/video.mp4`;
 }
 
+function resolveSourceThumbnailPath(sourceData) {
+  return extractStorageObjectPath(sourceData.thumbnail);
+}
+
 async function run() {
   const options = buildOptions();
   const apps = await initializeApps(options);
@@ -139,8 +146,12 @@ async function run() {
     console.log(`Mod             : ${options.apply ? 'APPLY' : 'DRY-RUN'}`);
     console.log('Hazirlik        : source media -> target storage');
     const firstPublishAt = alignStartTimestamp(options.startTimestamp, options);
+    const firstHlsTriggerAt = getHlsTriggerTimestamp(firstPublishAt, options);
     console.log(`Baslangic anchor: ${formatTrTimestamp(options.startTimestamp)}`);
     console.log(`Ilk tetik       : ${formatTrTimestamp(firstPublishAt)}`);
+    if (options.hlsTriggerLeadMinutes > 0) {
+      console.log(`Ilk HLS tetik   : ${formatTrTimestamp(firstHlsTriggerAt)}`);
+    }
     if (options.limitDays > 0) {
       console.log(`Gun limiti      : ${options.limitDays}`);
     }
@@ -155,8 +166,18 @@ async function run() {
         return a.rootId.localeCompare(b.rootId);
       });
 
+    const remainingGroups = options.skipExistingRoot
+      ? await filterGroupsMissingTargetRoots(
+          apps.targetDb,
+          options.targetCollection,
+          groups,
+        )
+      : groups;
+
     const limitedGroups =
-      options.limitGroups > 0 ? groups.slice(0, options.limitGroups) : groups;
+      options.limitGroups > 0
+        ? remainingGroups.slice(0, options.limitGroups)
+        : remainingGroups;
     const scheduledGroups = limitGroupsByScheduleWindow(
       limitedGroups,
       firstPublishAt,
@@ -171,6 +192,9 @@ async function run() {
         anchorLabel: formatTrTimestamp(options.startTimestamp),
         firstTriggerAt: firstPublishAt,
         firstTriggerLabel: formatTrTimestamp(firstPublishAt),
+        hlsTriggerLeadMinutes: options.hlsTriggerLeadMinutes,
+        firstHlsTriggerAt,
+        firstHlsTriggerLabel: formatTrTimestamp(firstHlsTriggerAt),
         intervalMinutes: options.intervalMinutes,
         triggerLeadMinutes: options.triggerLeadMinutes,
         dailyStartHour: options.dailyStartHour,
@@ -178,11 +202,14 @@ async function run() {
         dailyEndMinute: options.dailyEndMinute,
         limitDays: options.limitDays,
         limitGroups: options.limitGroups,
+        skipExistingRoot: options.skipExistingRoot,
       },
       source: {
         scannedDocs: loaded.scannedDocs,
         scannedFloodDocs: loaded.scannedFloodDocs,
         totalFloodGroups: loaded.groups.length,
+        existingRootGroups: groups.length - remainingGroups.length,
+        remainingFloodGroups: remainingGroups.length,
       },
       summary: {
         totalGroups: scheduledGroups.length,
@@ -192,16 +219,24 @@ async function run() {
         skippedGroups: 0,
         copiedObjects: 0,
         existingObjects: 0,
+        remainingGroupsAfterRun: remainingGroups.length,
       },
       groups: [],
     };
 
+    let scheduleTimestamp = firstPublishAt;
     for (const group of scheduledGroups) {
       const groupReport = {
         rootId: group.rootId,
         docCount: group.docCount,
         sourceRootTimeStamp: group.sourceRootTimeStamp,
         kind: group.kind,
+        publishAt: scheduleTimestamp,
+        publishLabel: formatTrTimestamp(scheduleTimestamp),
+        hlsTriggerAt: getHlsTriggerTimestamp(scheduleTimestamp, options),
+        hlsTriggerLabel: formatTrTimestamp(
+          getHlsTriggerTimestamp(scheduleTimestamp, options),
+        ),
         status: 'ready',
         reason: '',
         docs: [],
@@ -270,6 +305,34 @@ async function run() {
           }
         }
 
+        if (asString(sourceData.thumbnail)) {
+          const sourceThumbnailPath = resolveSourceThumbnailPath(sourceData);
+          if (!sourceThumbnailPath) {
+            docReport.failed.push('missing_source_thumbnail_path');
+          } else {
+            const targetPath = `Posts/${item.id}/thumbnail${extFromPath(
+              sourceThumbnailPath,
+              '.jpg',
+            )}`;
+            const result = await copyObject({
+              sourceBucket: apps.sourceBucket,
+              targetBucket: apps.targetBucket,
+              sourcePath: sourceThumbnailPath,
+              targetPath,
+              apply: options.apply,
+            });
+            if (!result.ok) {
+              docReport.failed.push(result.reason);
+            } else if (result.existed) {
+              docReport.existing.push(targetPath);
+              report.summary.existingObjects += 1;
+            } else {
+              docReport.copied.push(targetPath);
+              if (result.copied) report.summary.copiedObjects += 1;
+            }
+          }
+        }
+
         if (docReport.failed.length > 0) {
           groupReport.status = 'failed';
           groupReport.reason = docReport.failed[0];
@@ -283,7 +346,15 @@ async function run() {
         report.summary.readyGroups += 1;
       }
 
+      if (options.apply) {
+        report.summary.remainingGroupsAfterRun = Math.max(
+          remainingGroups.length - report.summary.readyGroups,
+          0,
+        );
+      }
+
       report.groups.push(groupReport);
+      scheduleTimestamp = nextScheduleTimestamp(scheduleTimestamp, options);
     }
 
     const reportPath = writeReport(
@@ -293,8 +364,11 @@ async function run() {
     );
     console.log(`Hazir grup      : ${report.summary.readyGroups}`);
     console.log(`Basarisiz grup  : ${report.summary.failedGroups}`);
+    console.log(`Mevcut root     : ${report.source.existingRootGroups}`);
+    console.log(`Planli grup     : ${report.summary.totalGroups}`);
     console.log(`Kopyalanan obje : ${report.summary.copiedObjects}`);
     console.log(`Var olan obje   : ${report.summary.existingObjects}`);
+    console.log(`Kalan grup      : ${report.summary.remainingGroupsAfterRun}`);
     console.log(`Rapor           : ${reportPath}`);
   } finally {
     await deleteApps(apps);

@@ -128,7 +128,10 @@ function buildOptions() {
     limitDays: Number(arg('limit-days', DEFAULT_LIMIT_DAYS)),
     reportDir: arg('report-dir', DEFAULT_REPORT_DIR),
     limitGroups: Number(arg('limit-groups', '0')),
+    hlsTriggerLeadMinutes: Number(arg('hls-trigger-lead-minutes', '0')),
     apply: hasFlag('apply'),
+    deferHls: hasFlag('defer-hls'),
+    skipExistingRoot: hasFlag('skip-existing-root'),
   };
 }
 
@@ -327,6 +330,10 @@ function nextScheduleTimestamp(timestamp, options) {
   return nextAnchorTimestamp(anchor, options) - getTriggerLeadMs(options);
 }
 
+function getHlsTriggerTimestamp(timestamp, options) {
+  return timestamp - Math.max(0, asNum(options.hlsTriggerLeadMinutes, 0)) * 60 * 1000;
+}
+
 function limitGroupsByScheduleWindow(groups, firstScheduleTimestamp, options) {
   if (asNum(options.limitDays, 0) <= 0) return groups;
   return groups.filter((_, index) => {
@@ -452,6 +459,26 @@ async function loadSourceFloodGroups(sourceDb, options) {
   };
 }
 
+async function filterGroupsMissingTargetRoots(targetDb, targetCollection, groups) {
+  const filtered = [];
+
+  for (let index = 0; index < groups.length; index += 200) {
+    const slice = groups.slice(index, index + 200);
+    const refs = slice.map((group) =>
+      targetDb.collection(targetCollection).doc(group.rootId),
+    );
+    const snaps = await targetDb.getAll(...refs);
+
+    for (let offset = 0; offset < slice.length; offset += 1) {
+      if (!snaps[offset]?.exists) {
+        filtered.push(slice[offset]);
+      }
+    }
+  }
+
+  return filtered;
+}
+
 function classifyGroup(docs) {
   let hasVideo = false;
   let hasImage = false;
@@ -570,6 +597,40 @@ async function resolveTargetMedia(sourceData, docId, targetBucket, options) {
   }
 
   if (hasVideo) {
+    if (options.deferHls) {
+      if (options.apply) {
+        const [mp4Exists] = await targetBucket.file(`Posts/${docId}/video.mp4`).exists();
+        if (!mp4Exists) {
+          return {
+            ok: false,
+            reason: 'missing_video_mp4',
+          };
+        }
+      }
+      result.video = buildVideoMp4Url(options.cdnDomain, docId);
+      if (asString(sourceData.thumbnail).length > 0) {
+        const thumbnailStoragePath = await pickExistingStoragePath(
+          targetBucket,
+          THUMB_EXT_CANDIDATES.map((ext) => `Posts/${docId}/thumbnail.${ext}`),
+        );
+        if (!thumbnailStoragePath) {
+          return {
+            ok: false,
+            reason: 'missing_video_thumbnail',
+          };
+        }
+        result.thumbnail = await buildProtectedAssetUrl(
+          targetBucket,
+          options.cdnDomain,
+          thumbnailStoragePath,
+        );
+      }
+      result.hlsMasterUrl = '';
+      result.hlsStatus = 'none';
+      result.hlsUpdatedAt = 0;
+      return result;
+    }
+
     const hlsStoragePath = 'Posts/' + docId + '/hls/master.m3u8';
     const [hlsExists] = await targetBucket.file(hlsStoragePath).exists();
     if (!hlsExists) {
@@ -655,6 +716,7 @@ function buildReshareMap(sourceData) {
 }
 
 async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket, options, userCache) {
+  const hlsTriggerAt = getHlsTriggerTimestamp(scheduleTimestamp, options);
   if (!group.hasRoot) {
     return {
       baseId: group.baseId,
@@ -663,6 +725,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
       reason: 'missing_root_0',
       scheduleTimestamp,
       scheduleLabel: formatTrTimestamp(scheduleTimestamp),
+      hlsTriggerAt,
+      hlsTriggerLabel: formatTrTimestamp(hlsTriggerAt),
       docCount: group.docCount,
       kind: group.kind,
       docs: [],
@@ -689,6 +753,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
         reason: `missing_user_id:${item.id}`,
         scheduleTimestamp,
         scheduleLabel: formatTrTimestamp(scheduleTimestamp),
+        hlsTriggerAt,
+        hlsTriggerLabel: formatTrTimestamp(hlsTriggerAt),
         docCount: group.docCount,
         kind: group.kind,
         docs: [],
@@ -716,6 +782,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
         reason: `missing_target_user:${userId}`,
         scheduleTimestamp,
         scheduleLabel: formatTrTimestamp(scheduleTimestamp),
+        hlsTriggerAt,
+        hlsTriggerLabel: formatTrTimestamp(hlsTriggerAt),
         docCount: group.docCount,
         kind: group.kind,
         docs: [],
@@ -738,6 +806,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
         reason: `${media.reason}:${item.id}`,
         scheduleTimestamp,
         scheduleLabel: formatTrTimestamp(scheduleTimestamp),
+        hlsTriggerAt,
+        hlsTriggerLabel: formatTrTimestamp(hlsTriggerAt),
         docCount: group.docCount,
         kind: group.kind,
         docs: [],
@@ -816,6 +886,8 @@ async function prepareGroupPlan(group, scheduleTimestamp, targetDb, targetBucket
     reason: '',
     scheduleTimestamp,
     scheduleLabel: formatTrTimestamp(scheduleTimestamp),
+    hlsTriggerAt,
+    hlsTriggerLabel: formatTrTimestamp(hlsTriggerAt),
     docCount: group.docCount,
     kind: group.kind,
     partial: skipped.length > 0,
@@ -882,6 +954,7 @@ module.exports = {
   buildProtectedAssetUrl,
   buildTargetMainFlood,
   deleteApps,
+  filterGroupsMissingTargetRoots,
   formatTrTimestamp,
   initializeApps,
   loadSourceFloodGroups,
@@ -889,6 +962,7 @@ module.exports = {
   nextScheduleTimestamp,
   pickExistingStoragePath,
   alignStartTimestamp,
+  getHlsTriggerTimestamp,
   prepareGroupPlan,
   summarizePlans,
   writeReport,
