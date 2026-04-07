@@ -9,6 +9,17 @@ extension AgendaControllerRenderPart on AgendaController {
     40,
   ];
 
+  Duration _startupRenderStageDelay(int currentCount) {
+    if (!GetPlatform.isAndroid) {
+      return currentCount <= _startupRenderStageEntryCounts.first
+          ? const Duration(milliseconds: 90)
+          : const Duration(milliseconds: 140);
+    }
+    return currentCount <= _startupRenderStageEntryCounts.first
+        ? const Duration(milliseconds: 180)
+        : const Duration(milliseconds: 220);
+  }
+
   void _activateStartupRenderStages({String reason = 'unknown'}) {
     _startupRenderStageTimer?.cancel();
     _startupRenderStageTimer = null;
@@ -65,9 +76,7 @@ extension AgendaControllerRenderPart on AgendaController {
     }
     _startupRenderStageTimer?.cancel();
     _startupRenderStageTimer = Timer(
-      currentCount <= _startupRenderStageEntryCounts.first
-          ? const Duration(milliseconds: 90)
-          : const Duration(milliseconds: 140),
+      _startupRenderStageDelay(currentCount),
       () {
         _startupRenderStageTimer = null;
         if (isClosed || !_startupRenderStagingActive) return;
