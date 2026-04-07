@@ -202,6 +202,22 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     });
   }
 
+  void _scheduleStartupAvatarHintPrime(
+    List<PostsModel> posts, {
+    required String source,
+  }) {
+    if (posts.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed || posts.isEmpty) return;
+      unawaited(
+        _profileFeedStartupCacheStep(
+          source,
+          () => _primeStartupAvatarHints(posts),
+        ),
+      );
+    });
+  }
+
   Set<String> _startupCacheReadyVideoDocIds(Iterable<PostsModel> posts) {
     final cacheManager = maybeFindSegmentCacheManager();
     if (cacheManager == null) return const <String>{};
@@ -693,7 +709,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
     if (filtered.isEmpty) return;
     final quickFilled = await _hydrateStartupAuthorIdentityFromCache(filtered);
-    await _primeStartupAvatarHints(quickFilled);
     final existingIDs = agendaList.map((e) => e.docID).toSet();
     final toAdd =
         quickFilled.where((p) => !existingIDs.contains(p.docID)).toList();
@@ -714,6 +729,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       _scheduleStartupQuickFillFollowUps(
         toAdd,
         includeReshareFetch: true,
+      );
+      _scheduleStartupAvatarHintPrime(
+        quickFilled,
+        source: 'prime_avatar_hints_from_cache_deferred',
       );
 
       if (agendaList.isNotEmpty) {
@@ -784,10 +803,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
             'hydrate_author_identity_from_shard',
             () => _hydrateStartupAuthorIdentityFromCache(quickFiltered),
           );
-          await _profileFeedStartupCacheStep(
-            'prime_avatar_hints_from_shard',
-            () => _primeStartupAvatarHints(quickFilled),
-          );
           _startupLiveHeadApplied = false;
           final shouldActivateStartupStages = agendaList.isEmpty;
           if (shouldActivateStartupStages) {
@@ -803,6 +818,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
             reason: 'quick_fill_shard',
           );
           _scheduleStartupQuickFillFollowUps(quickFilled);
+          _scheduleStartupAvatarHintPrime(
+            quickFilled,
+            source: 'prime_avatar_hints_from_shard_deferred',
+          );
           if (agendaList.isNotEmpty) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (agendaList.isNotEmpty && centeredIndex.value == -1) {
@@ -888,10 +907,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       'hydrate_author_identity_from_warm_snapshot',
       () => _hydrateStartupAuthorIdentityFromCache(quickFiltered),
     );
-    await _profileFeedStartupCacheStep(
-      'prime_avatar_hints_from_warm_snapshot',
-      () => _primeStartupAvatarHints(quickFilled),
-    );
     final warmSnapshotSupportDeficits = _startupSupportDeficits(
       quickFilled,
       targetCount: effectiveLimit,
@@ -923,6 +938,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       reason: 'quick_fill_warm_snapshot',
     );
     _scheduleStartupQuickFillFollowUps(quickFilled);
+    _scheduleStartupAvatarHintPrime(
+      quickFilled,
+      source: 'prime_avatar_hints_from_warm_snapshot_deferred',
+    );
 
     if (agendaList.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

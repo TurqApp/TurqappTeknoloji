@@ -869,20 +869,47 @@ class ExoPlayerView(
         val runnable = object : Runnable {
             override fun run() {
                 val p = player
-                if (p == null || !p.isPlaying || isSoftHeld) {
+                if (p == null || isSoftHeld) {
                     stopStallWatchdog()
                     return
                 }
-                if (p.playbackState != Player.STATE_READY || isBufferingDispatched) {
-                    handler.postDelayed(this, 1200)
-                    return
-                }
-
                 val now = System.currentTimeMillis()
                 val positionMs = p.currentPosition
                 val advancedMs = positionMs - lastWatchdogPositionMs
                 val frameSilenceMs = if (lastVideoFrameAtMs <= 0L) 0L else now - lastVideoFrameAtMs
                 val firstFrameAgeMs = if (firstVideoFrameAtMs <= 0L) 0L else now - firstVideoFrameAtMs
+
+                val prolongedBufferingAfterFirstFrame =
+                    didRenderFirstFrame &&
+                        p.playbackState == Player.STATE_BUFFERING &&
+                        isBufferingDispatched &&
+                        firstFrameAgeMs >= 1500L &&
+                        frameSilenceMs >= if (isPrimaryFeedSurface) 1400L else 2200L
+
+                if (prolongedBufferingAfterFirstFrame) {
+                    Log.w(
+                        "ExoPlayerView#$viewId",
+                        "rendererStall kind=buffering_stall position=${positionMs / 1000.0} frameSilenceMs=$frameSilenceMs firstFrameAgeMs=$firstFrameAgeMs advancedMs=$advancedMs recoveryAttempt=${stallRecoveries + 1}"
+                    )
+                    sendEvent(
+                        mapOf(
+                            "event" to "rendererStall",
+                            "position" to (positionMs / 1000.0),
+                            "frameSilenceMs" to frameSilenceMs,
+                            "firstFrameAgeMs" to firstFrameAgeMs,
+                            "advancedMs" to advancedMs,
+                            "stallKind" to "buffering_stall",
+                            "recoveryAttempt" to (stallRecoveries + 1),
+                        )
+                    )
+                    recoverFromRendererStall(hardSurfaceRebind = isPrimaryFeedSurface)
+                    return
+                }
+
+                if (!p.isPlaying || p.playbackState != Player.STATE_READY || isBufferingDispatched) {
+                    handler.postDelayed(this, 1200)
+                    return
+                }
 
                 val rendererFrozenAfterAdvance =
                     didRenderFirstFrame &&
