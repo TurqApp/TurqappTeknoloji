@@ -110,14 +110,21 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   Future<bool> _handleBackNavigation() async {
     final hasEducation = settingController.educationScreenIsOn.value;
+    const feedIndex = 0;
+    const exploreIndex = 1;
     final profileIndex = hasEducation ? 4 : 3;
     final educationIndex = hasEducation ? 3 : 0;
+
+    if (controller.selectedIndex.value == exploreIndex) {
+      controller.changeIndex(feedIndex);
+      return false;
+    }
 
     if (hasEducation && controller.selectedIndex.value == educationIndex) {
       final educationController = maybeFindEducationController();
       if (educationController == null) return false;
       if (educationController.canExitToFeed) {
-        controller.changeIndex(0);
+        controller.changeIndex(feedIndex);
       } else {
         educationController.handleBackFromEducation();
       }
@@ -134,12 +141,18 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   void _handleRootHorizontalSwipe(DragEndDetails details) async {
     final dx = details.velocity.pixelsPerSecond.dx;
+    const exploreIndex = 1;
     const shortIndex = 2;
     const feedIndex = 0;
     final selected = controller.selectedIndex.value;
 
     if (selected == feedIndex && dx < -700) {
       await _openShortRoute();
+      return;
+    }
+
+    if (selected == exploreIndex && dx > 700) {
+      controller.changeIndex(feedIndex);
       return;
     }
 
