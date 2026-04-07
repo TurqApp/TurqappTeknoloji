@@ -19,6 +19,7 @@ class _HlsDataUsageProbeState {
   int peakOffscreenParallelDownloads = 0;
   int variantSwitchesObserved = 0;
   String? lastVisibleVariantKey;
+  String? mobileBytesKpiSignature;
 }
 
 extension _HlsDataUsageProbeFieldsPart on HlsDataUsageProbe {
@@ -63,4 +64,8 @@ extension _HlsDataUsageProbeFieldsPart on HlsDataUsageProbe {
   String? get _lastVisibleVariantKey => _state.lastVisibleVariantKey;
   set _lastVisibleVariantKey(String? value) =>
       _state.lastVisibleVariantKey = value;
+
+  String? get _mobileBytesKpiSignature => _state.mobileBytesKpiSignature;
+  set _mobileBytesKpiSignature(String? value) =>
+      _state.mobileBytesKpiSignature = value;
 }

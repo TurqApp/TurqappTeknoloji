@@ -1,6 +1,11 @@
 part of 'hls_data_usage_probe.dart';
 
 extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
+  String _currentNetworkTypeName() {
+    final network = NetworkAwarenessService.maybeFind();
+    return (network?.currentNetwork ?? NetworkType.none).name;
+  }
+
   Future<void> maybeApplyDebugDelay({
     required bool isPlaylist,
     required HlsTrafficSource source,
@@ -122,6 +127,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       visibleDocId: _visibleDocId,
       variantKey: variantKey,
       kind: 'segment',
+      networkType: _currentNetworkTypeName(),
     );
     _events.add(event);
 
@@ -166,6 +172,10 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
         _lastVisibleVariantKey = variantKey;
       }
     }
+
+    if (!cacheHit) {
+      _publishMobileBytesKpiIfNeeded();
+    }
   }
 
   void _recordPlaylistEvent({
@@ -192,7 +202,12 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       visibleDocId: _visibleDocId,
       variantKey: _variantKeyFromPlaylistPath(pathKey),
       kind: 'playlist',
+      networkType: _currentNetworkTypeName(),
     ));
+
+    if (!cacheHit) {
+      _publishMobileBytesKpiIfNeeded();
+    }
   }
 
   String? _variantKeyFromPlaylistPath(String path) {

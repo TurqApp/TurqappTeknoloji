@@ -214,7 +214,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     func pause() {
         log("pause url=\(currentUrl ?? "-")")
-        captureCurrentFrameSnapshot(showOverlay: false)
+        captureCurrentFrameSnapshot(showOverlay: shouldShowResumePosterOnPause())
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
     }
@@ -490,6 +490,20 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         didRequestInitialPlay = true
         DispatchQueue.main.asyncAfter(deadline: .now() + (force ? 0.0 : 0.05)) { [weak self] in
             guard let self = self, let player = self.player else { return }
+            if #available(iOS 10.0, *) {
+                switch player.timeControlStatus {
+                case .playing, .waitingToPlayAtSpecifiedRate:
+                    self.refreshPlayerLayer()
+                    return
+                case .paused:
+                    break
+                @unknown default:
+                    break
+                }
+            } else if player.rate > 0 {
+                self.refreshPlayerLayer()
+                return
+            }
             self.playbackHealthMonitor.onPlaybackRequested()
             self.refreshPlayerLayer()
             if #available(iOS 10.0, *) {
@@ -707,6 +721,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private func shouldUseResumePosterPhase() -> Bool {
         let position = player?.currentTime().seconds ?? 0.0
         return preferResumePoster && position.isFinite && position > 0.05
+    }
+
+    private func shouldShowResumePosterOnPause() -> Bool {
+        shouldUseResumePosterPhase()
     }
 
     private func clearNativeVisualPhase() {

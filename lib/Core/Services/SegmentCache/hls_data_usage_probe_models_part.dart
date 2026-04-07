@@ -11,6 +11,7 @@ class HlsTransferEvent {
     required this.visibleDocId,
     required this.variantKey,
     required this.kind,
+    required this.networkType,
   });
 
   final DateTime at;
@@ -22,6 +23,7 @@ class HlsTransferEvent {
   final String? visibleDocId;
   final String? variantKey;
   final String kind;
+  final String networkType;
 
   bool get isVisibleAtTransfer => visibleDocId != null && visibleDocId == docId;
 
@@ -35,6 +37,7 @@ class HlsTransferEvent {
         'visibleDocId': visibleDocId,
         'variantKey': variantKey,
         'kind': kind,
+        'networkType': networkType,
       };
 }
 
@@ -93,12 +96,23 @@ class HlsDataUsageSnapshot {
   HlsDataUsageSnapshot({
     required this.label,
     required this.elapsed,
+    required this.networkType,
     required this.downloadedBytes,
     required this.cacheServedBytes,
     required this.visibleDownloadedBytes,
     required this.offscreenDownloadedBytes,
+    required this.backgroundDownloadedBytes,
+    required this.visibleSegmentDownloads,
+    required this.backgroundSegmentDownloads,
+    required this.prefetchSegmentDownloads,
     required this.prefetchDownloadedBytes,
     required this.playbackDownloadedBytes,
+    required this.cellularDownloadedBytes,
+    required this.cellularBackgroundDownloadedBytes,
+    required this.cellularBackgroundSegmentDownloads,
+    required this.cellularPrefetchDownloadedBytes,
+    required this.cellularPrefetchSegmentDownloads,
+    required this.cellularPlaybackDownloadedBytes,
     required this.segmentDownloads,
     required this.repeatedSegmentDownloads,
     required this.playlistDownloads,
@@ -116,12 +130,23 @@ class HlsDataUsageSnapshot {
 
   final String label;
   final Duration elapsed;
+  final String networkType;
   final int downloadedBytes;
   final int cacheServedBytes;
   final int visibleDownloadedBytes;
   final int offscreenDownloadedBytes;
+  final int backgroundDownloadedBytes;
+  final int visibleSegmentDownloads;
+  final int backgroundSegmentDownloads;
+  final int prefetchSegmentDownloads;
   final int prefetchDownloadedBytes;
   final int playbackDownloadedBytes;
+  final int cellularDownloadedBytes;
+  final int cellularBackgroundDownloadedBytes;
+  final int cellularBackgroundSegmentDownloads;
+  final int cellularPrefetchDownloadedBytes;
+  final int cellularPrefetchSegmentDownloads;
+  final int cellularPlaybackDownloadedBytes;
   final int segmentDownloads;
   final int repeatedSegmentDownloads;
   final int playlistDownloads;
@@ -145,6 +170,23 @@ class HlsDataUsageSnapshot {
       ? 0.0
       : (downloadedBytes / (1024 * 1024)) / uniqueDocsDownloaded;
 
+  double get backgroundMbPerMinute {
+    final minutes = elapsed.inMilliseconds / 60000.0;
+    if (minutes <= 0) return 0.0;
+    return (backgroundDownloadedBytes / (1024 * 1024)) / minutes;
+  }
+
+  double get cellularMbPerMinute {
+    final minutes = elapsed.inMilliseconds / 60000.0;
+    if (minutes <= 0) return 0.0;
+    return (cellularDownloadedBytes / (1024 * 1024)) / minutes;
+  }
+
+  double get cellularBackgroundRatio {
+    if (cellularDownloadedBytes <= 0) return 0.0;
+    return cellularBackgroundDownloadedBytes / cellularDownloadedBytes;
+  }
+
   double get cacheReuseRatio {
     final total = downloadedBytes + cacheServedBytes;
     if (total <= 0) return 0.0;
@@ -154,14 +196,30 @@ class HlsDataUsageSnapshot {
   Map<String, dynamic> toJson() => <String, dynamic>{
         'label': label,
         'elapsedSeconds': elapsed.inMilliseconds / 1000.0,
+        'networkType': networkType,
         'downloadedBytes': downloadedBytes,
         'downloadedMb': downloadedBytes / (1024 * 1024),
         'cacheServedBytes': cacheServedBytes,
         'cacheServedMb': cacheServedBytes / (1024 * 1024),
         'visibleDownloadedBytes': visibleDownloadedBytes,
         'offscreenDownloadedBytes': offscreenDownloadedBytes,
+        'backgroundDownloadedBytes': backgroundDownloadedBytes,
+        'backgroundDownloadedMb': backgroundDownloadedBytes / (1024 * 1024),
+        'visibleSegmentDownloads': visibleSegmentDownloads,
+        'backgroundSegmentDownloads': backgroundSegmentDownloads,
+        'prefetchSegmentDownloads': prefetchSegmentDownloads,
         'prefetchDownloadedBytes': prefetchDownloadedBytes,
         'playbackDownloadedBytes': playbackDownloadedBytes,
+        'cellularDownloadedBytes': cellularDownloadedBytes,
+        'cellularDownloadedMb': cellularDownloadedBytes / (1024 * 1024),
+        'cellularBackgroundDownloadedBytes': cellularBackgroundDownloadedBytes,
+        'cellularBackgroundDownloadedMb':
+            cellularBackgroundDownloadedBytes / (1024 * 1024),
+        'cellularBackgroundSegmentDownloads':
+            cellularBackgroundSegmentDownloads,
+        'cellularPrefetchDownloadedBytes': cellularPrefetchDownloadedBytes,
+        'cellularPrefetchSegmentDownloads': cellularPrefetchSegmentDownloads,
+        'cellularPlaybackDownloadedBytes': cellularPlaybackDownloadedBytes,
         'segmentDownloads': segmentDownloads,
         'repeatedSegmentDownloads': repeatedSegmentDownloads,
         'playlistDownloads': playlistDownloads,
@@ -173,8 +231,11 @@ class HlsDataUsageSnapshot {
         'peakOffscreenParallelDownloads': peakOffscreenParallelDownloads,
         'variantSwitchesObserved': variantSwitchesObserved,
         'mbPerMinute': mbPerMinute,
+        'backgroundMbPerMinute': backgroundMbPerMinute,
+        'cellularMbPerMinute': cellularMbPerMinute,
         'avgMbPerVideo': avgMbPerVideo,
         'cacheReuseRatio': cacheReuseRatio,
+        'cellularBackgroundRatio': cellularBackgroundRatio,
         'topDocs': topDocs.map((e) => e.toJson()).toList(growable: false),
         'anomalies': List<String>.from(anomalies, growable: false),
       };

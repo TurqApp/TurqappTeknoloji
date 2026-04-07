@@ -50,6 +50,10 @@ final class PlaybackWatchdog {
         let layer = playerLayerProvider()
         let currentTime = player.currentTime().seconds
         let timestamp = CACurrentMediaTime()
+        let duration = player.currentItem?.duration.seconds ?? 0
+        let hasFiniteDuration = duration.isFinite && duration > 0
+        let remaining = hasFiniteDuration ? max(0, duration - currentTime) : Double.greatestFiniteMagnitude
+        let isNearPlaybackEnd = hasFiniteDuration && remaining <= 0.35
         let advanced = currentTime.isFinite && currentTime > lastObservedTime + 0.04
 
         if advanced {
@@ -68,7 +72,8 @@ final class PlaybackWatchdog {
             playerIsPlaying = player.rate > 0
         }
 
-        let staleFrame = monitor.shouldFlagVideoFreeze(referenceTime: timestamp)
+        let staleFrame = !isNearPlaybackEnd &&
+            monitor.shouldFlagVideoFreeze(referenceTime: timestamp)
         let likelyAudioOnly =
             playerIsPlaying &&
             (advanced || timestamp - lastAdvancedAt < 1.0) &&
@@ -76,11 +81,13 @@ final class PlaybackWatchdog {
             !monitor.isBuffering &&
             (!layerReady || currentTime > 0.1)
 
-        if staleFrame && (playerIsPlaying || currentTime > 0.1 || monitor.isPlaybackExpected) {
+        if staleFrame &&
+            !isNearPlaybackEnd &&
+            (playerIsPlaying || currentTime > 0.1 || monitor.isPlaybackExpected) {
             monitor.detectVideoFreezeIfNeeded(referenceTime: timestamp)
         }
 
-        if likelyAudioOnly {
+        if likelyAudioOnly && !isNearPlaybackEnd {
             monitor.onAudioMissing()
             monitor.detectVideoFreezeIfNeeded(referenceTime: timestamp)
         }

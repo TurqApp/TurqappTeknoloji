@@ -32,6 +32,7 @@ extension HlsDataUsageProbeFacadePart on HlsDataUsageProbe {
     _peakOffscreenParallelDownloads = 0;
     _variantSwitchesObserved = 0;
     _lastVisibleVariantKey = null;
+    _mobileBytesKpiSignature = null;
   }
 
   void setVisibleDoc(String? docId) {

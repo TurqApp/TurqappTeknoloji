@@ -166,6 +166,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   void _syncFocusedPrefetchDoc(String? activeDocID) {
     try {
       final scheduler = maybeFindPrefetchScheduler();
+      final cacheManager = SegmentCacheManager.maybeFind();
       final activeKey = activeDocID?.trim() ?? '';
       final normalized = HlsSegmentPolicy.normalizeDocId(activeDocID);
       maybeFindHlsDataUsageProbe()?.setVisibleDoc(normalized);
@@ -173,8 +174,26 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       scheduler.unfocusDoc();
       if (normalized == null || normalized.isEmpty) return;
       if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
+        final initialCachedSegments =
+            cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
+        debugPrint(
+          '[FeedSegmentWarm] stage=boost_start doc=$normalized '
+          'targetReadySegments=3 cachedSegments=$initialCachedSegments '
+          'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads}',
+        );
         scheduler.focusDoc(normalized);
         scheduler.boostDoc(normalized, readySegments: 3);
+        Future<void>.delayed(const Duration(milliseconds: 900), () {
+          if (_currentPlayingDocID != activeDocID) return;
+          final cachedSegments =
+              cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
+          debugPrint(
+            '[FeedSegmentWarm] stage=boost_check doc=$normalized '
+            'targetReadySegments=3 cachedSegments=$cachedSegments '
+            'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads} '
+            'feedReadyCount=${scheduler.feedReadyCount} feedWindowCount=${scheduler.feedWindowCount}',
+          );
+        });
         return;
       }
       scheduler.boostDoc(normalized);

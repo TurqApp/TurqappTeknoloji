@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_data_usage_probe.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 import 'package:video_player/video_player.dart';
