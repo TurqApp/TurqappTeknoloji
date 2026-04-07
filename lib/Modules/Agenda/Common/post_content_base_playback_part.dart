@@ -430,12 +430,21 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           final savedState =
               VideoStateManager.instance.getVideoState(playbackHandleKey);
           final savedPosition = savedState?.position ?? Duration.zero;
-          if (savedPosition > Duration.zero) {
+          final shouldUseSavedResumeSeek =
+              !_shouldBypassSavedResumeHintForPrimaryFeedLead(
+            adapter.value,
+            source: source,
+          );
+          if (shouldUseSavedResumeSeek && savedPosition > Duration.zero) {
             adapter.queueSeekAndPlay(savedPosition);
           }
           _recordPlaybackDispatch(
             'feed_card_adapter_restart_stopped',
             source: source,
+            metadata: <String, dynamic>{
+              'savedPositionMs': savedPosition.inMilliseconds,
+              'usedSavedResumeSeek': shouldUseSavedResumeSeek,
+            },
           );
           _hasAutoPlayed = true;
           unawaited(_playbackExecutionService.playAdapter(adapter));

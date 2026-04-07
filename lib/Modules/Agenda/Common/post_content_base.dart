@@ -547,11 +547,42 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _hasResumePositionHint(
     HLSVideoValue value, {
     required Duration threshold,
+    String? source,
   }) {
+    if (_shouldBypassSavedResumeHintForPrimaryFeedLead(
+      value,
+      source: source,
+    )) {
+      return false;
+    }
     if (value.position > threshold) return true;
     final savedState =
         playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return (savedState?.position ?? Duration.zero) > threshold;
+  }
+
+  bool _shouldBypassSavedResumeHintForPrimaryFeedLead(
+    HLSVideoValue value, {
+    String? source,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    return modelIndex == 0;
+  }
+
+  bool _isExplicitResumeRecoveryContext(
+    HLSVideoValue value, {
+    String? source,
+  }) {
+    if (source?.contains('route_did_pop_next') ?? false) return true;
+    if (value.awaitingFreshFrameAfterReattach) return true;
+    final adapter = _videoAdapter;
+    if (adapter == null) return false;
+    return adapter.hlsController.awaitingFreshFrameAfterReattach;
   }
 
   bool shouldHidePlaybackPoster(
@@ -591,10 +622,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   String _resolvePlaybackVisualWarning(
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
+    String source = 'video_update',
   }) {
     final hasResumeHint = _hasResumePositionHint(
       value,
       threshold: visualReadyPositionThreshold,
+      source: source,
     );
     final pinnedPoster =
         !isStandalonePostInstance &&
@@ -627,7 +660,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     String source = 'video_update',
   }) {
     if (!widget.model.hasPlayableVideo) return;
-    final next = _resolvePlaybackVisualWarning(value);
+    final next = _resolvePlaybackVisualWarning(value, source: source);
     final now = DateTime.now();
     final previousWarning = _lastPlaybackVisualWarning;
     final previousWarningStartedAt = _lastPlaybackVisualWarningAt;
@@ -671,6 +704,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       'resumeHint': _hasResumePositionHint(
         value,
         threshold: _stableFramePositionThreshold,
+        source: source,
       ),
       'centeredIndex': safeCenteredIndex,
       'modelIndex': modelIndex,
