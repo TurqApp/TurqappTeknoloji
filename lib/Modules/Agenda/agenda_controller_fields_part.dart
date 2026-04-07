@@ -60,6 +60,7 @@ class _AgendaControllerState {
   DateTime? lastHeadSyncAt;
   DateTime? lastDeferredInitialNetworkBootstrapAt;
   DateTime? lastPlaybackCommandAt;
+  DateTime? lastFloodRootWarmAt;
   DateTime? startupPlaybackLockedAt;
   DateTime? qaScrollStartedAt;
   double qaScrollStartOffset = 0.0;
@@ -68,6 +69,7 @@ class _AgendaControllerState {
   String qaLatestScrollToken = '';
   String? startupLockedFeedDocId;
   String? lastPlaybackCommandDocId;
+  String? lastFloodRootWarmDocId;
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
   bool feedRefreshInFlight = false;
@@ -211,6 +213,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   DateTime? get _lastPlaybackCommandAt => _state.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _state.lastPlaybackCommandAt = value;
+  DateTime? get _lastFloodRootWarmAt => _state.lastFloodRootWarmAt;
+  set _lastFloodRootWarmAt(DateTime? value) =>
+      _state.lastFloodRootWarmAt = value;
   DateTime? get _startupPlaybackLockedAt => _state.startupPlaybackLockedAt;
   set _startupPlaybackLockedAt(DateTime? value) =>
       _state.startupPlaybackLockedAt = value;
@@ -230,6 +235,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   String? get _lastPlaybackCommandDocId => _state.lastPlaybackCommandDocId;
   set _lastPlaybackCommandDocId(String? value) =>
       _state.lastPlaybackCommandDocId = value;
+  String? get _lastFloodRootWarmDocId => _state.lastFloodRootWarmDocId;
+  set _lastFloodRootWarmDocId(String? value) =>
+      _state.lastFloodRootWarmDocId = value;
   bool get _feedModeFallbackQueued => _state.feedModeFallbackQueued;
   set _feedModeFallbackQueued(bool value) =>
       _state.feedModeFallbackQueued = value;

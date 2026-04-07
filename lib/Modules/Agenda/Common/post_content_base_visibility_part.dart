@@ -21,6 +21,13 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
     }
 
+    if (_isPrimaryFeedSurfaceInstance) {
+      agendaController.maybePrimeVisibleFloodRootChildren(
+        widget.model,
+        visibleFraction: visibleFraction,
+      );
+    }
+
     if (visibleFraction < 0.55) return;
 
     final profileController = ProfileController.maybeFind();

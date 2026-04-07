@@ -1,6 +1,13 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerSupportPart on AgendaController {
+  static const double _feedFloodRootWarmVisibilityThreshold = 0.68;
+  static const Duration _feedFloodRootWarmSameDocCooldown =
+      Duration(seconds: 3);
+  static const Duration _feedFloodRootWarmGlobalCooldown =
+      Duration(milliseconds: 1200);
+  static const int _feedFloodRootChildWarmCount = 4;
+
   UserProfileCacheService get _profileCache => ensureUserProfileCacheService();
 
   UserSummaryResolver get _userSummaryResolver => UserSummaryResolver.ensure();
@@ -69,6 +76,70 @@ extension AgendaControllerSupportPart on AgendaController {
 
   bool _canAutoplayVideoPost(PostsModel post, [int? nowMs]) {
     return post.hasPlayableVideo && !_isBlurredIzBirakVideo(post, nowMs);
+  }
+
+  void maybePrimeVisibleFloodRootChildren(
+    PostsModel root, {
+    required double visibleFraction,
+  }) {
+    if (!isPrimaryFeedRouteVisible) return;
+    if (!root.isFloodSeriesRoot || root.floodCount.toInt() <= 1) return;
+    if (visibleFraction < _feedFloodRootWarmVisibilityThreshold) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final normalizedDocId = root.docID.trim();
+    if (normalizedDocId.isEmpty) return;
+    final now = DateTime.now();
+    final lastDocId = _lastFloodRootWarmDocId;
+    final lastAt = _lastFloodRootWarmAt;
+    if (lastAt != null) {
+      final elapsed = now.difference(lastAt);
+      if (lastDocId == normalizedDocId &&
+          elapsed < _feedFloodRootWarmSameDocCooldown) {
+        return;
+      }
+      if (lastDocId != normalizedDocId &&
+          elapsed < _feedFloodRootWarmGlobalCooldown) {
+        return;
+      }
+    }
+    _lastFloodRootWarmDocId = normalizedDocId;
+    _lastFloodRootWarmAt = now;
+    unawaited(_primeVisibleFloodRootChildren(root));
+  }
+
+  Future<void> _primeVisibleFloodRootChildren(PostsModel root) async {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final floodCount = root.floodCount.toInt();
+    if (floodCount <= 1) return;
+    final baseId = root.docID.replaceFirst(RegExp(r'_\d+$'), '');
+    final childIds = List<String>.generate(
+      floodCount - 1,
+      (i) => '${baseId}_${i + 1}',
+      growable: false,
+    );
+    if (childIds.isEmpty) return;
+    final fetched = await _postRepository.fetchPostsByIds(
+      childIds,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    var warmed = 0;
+    for (final childId in childIds) {
+      if (warmed >= _feedFloodRootChildWarmCount) break;
+      final child = fetched[childId];
+      if (child == null || child.deletedPost == true || !child.hasPlayableVideo) {
+        continue;
+      }
+      try {
+        prefetch.boostDoc(
+          child.docID,
+          readySegments: 1,
+        );
+        warmed++;
+      } catch (_) {}
+    }
   }
 
   bool get isPrimaryFeedRouteVisible {
