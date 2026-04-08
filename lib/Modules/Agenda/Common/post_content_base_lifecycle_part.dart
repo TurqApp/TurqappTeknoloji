@@ -278,17 +278,27 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (v.isInitialized && v.duration.inMilliseconds > 0) {
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
       if (progress > 0) {
+        final positionSeconds = v.position.inMilliseconds / 1000.0;
         try {
           _segmentCacheRuntimeService.ensureNextSegmentReady(
             widget.model.docID,
             progress,
-            positionSeconds: v.position.inMilliseconds / 1000.0,
+            positionSeconds: positionSeconds,
           );
         } catch (_) {}
         try {
           _segmentCacheRuntimeService.updateWatchProgress(
             widget.model.docID,
             progress,
+          );
+        } catch (_) {}
+        try {
+          final thirdSegmentStartSeconds =
+              HlsSegmentPolicy.firstSegmentSeconds +
+                  HlsSegmentPolicy.nextSegmentSeconds;
+          FeedDiversityMemoryService.ensure().noteWatchedPost(
+            widget.model,
+            currentSegment: positionSeconds >= thirdSegmentStartSeconds ? 3 : 0,
           );
         } catch (_) {}
       }

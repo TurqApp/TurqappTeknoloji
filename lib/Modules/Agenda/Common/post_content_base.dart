@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kDebugMode;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -8,6 +7,8 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../../Core/Services/feed_diversity_memory_service.dart';
+import '../../../Core/Services/SegmentCache/hls_segment_policy.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
@@ -121,8 +122,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
   static const Duration _resumeSurfaceKeepAliveDebounce =
       Duration(milliseconds: 720);
-  static const Duration _androidFeedOwnerGrace =
-      Duration(milliseconds: 1100);
+  static const Duration _androidFeedOwnerGrace = Duration(milliseconds: 1100);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -267,8 +267,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final warmWindowStart = safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5;
     final warmWindowEndExclusive =
         (safeCenteredIndex + 6).clamp(0, _surfaceListLength());
-    return modelIndex >= warmWindowStart &&
-        modelIndex < warmWindowEndExclusive;
+    return modelIndex >= warmWindowStart && modelIndex < warmWindowEndExclusive;
   }
 
   int _surfaceListLength() {
@@ -281,8 +280,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int _surfaceModelIndex() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.floods.indexWhere(
-            (p) => p.docID == widget.model.docID,
-          ) ??
+                (p) => p.docID == widget.model.docID,
+              ) ??
           -1;
     }
     return agendaController.agendaList.indexWhere(
@@ -325,10 +324,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!widget.model.hasPlayableVideo) return;
     _surfaceKeepAliveTimer?.cancel();
     _setSurfaceKeepAliveDebounce(true);
-    final debounce =
-        _shouldKeepResumeSurfaceAliveInWarmWindow
-            ? _resumeSurfaceKeepAliveDebounce
-            : _surfaceKeepAliveDebounce;
+    final debounce = _shouldKeepResumeSurfaceAliveInWarmWindow
+        ? _resumeSurfaceKeepAliveDebounce
+        : _surfaceKeepAliveDebounce;
     _surfaceKeepAliveTimer = Timer(debounce, () {
       _surfaceKeepAliveTimer = null;
       _setSurfaceKeepAliveDebounce(false);
@@ -654,8 +652,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
-    final shouldPinPosterWhileInactive =
-        !isStandalonePostInstance &&
+    final shouldPinPosterWhileInactive = !isStandalonePostInstance &&
         (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
     if (shouldPinPosterWhileInactive) {
       return false;
@@ -694,13 +691,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       threshold: visualReadyPositionThreshold,
       source: source,
     );
-    final pinnedPoster =
-        !isStandalonePostInstance &&
+    final pinnedPoster = !isStandalonePostInstance &&
         (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
     if (pinnedPoster) return 'poster';
 
-    final hasStableVideo =
-        value.hasRenderedFirstFrame &&
+    final hasStableVideo = value.hasRenderedFirstFrame &&
         widget.shouldPlay &&
         _isSurfacePlaybackAllowed;
     if (hasStableVideo) return 'video_play';

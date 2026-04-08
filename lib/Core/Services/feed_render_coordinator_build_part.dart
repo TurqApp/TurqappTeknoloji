@@ -1,5 +1,13 @@
 part of 'feed_render_coordinator.dart';
 
+const List<String> _feedPromoCycle = <String>[
+  'ad',
+  'recommended',
+  'ad',
+  'ad',
+  'recommended',
+];
+
 extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
   List<Map<String, dynamic>> buildMergedEntries({
     required List<PostsModel> agendaList,
@@ -100,13 +108,14 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
       }
       final postNumber = i + 1;
       if (!_shouldInsertPromoAfterPost(postNumber)) continue;
-      final slotNumber = postNumber ~/ 3;
-      final isAd = slotNumber.isOdd;
+      final promoOrdinal = (postNumber ~/ 3) - 1;
+      final slotNumber = promoOrdinal + 1;
+      final promoType = _feedPromoCycle[promoOrdinal % _feedPromoCycle.length];
       renderEntries.add(<String, dynamic>{
         'renderType': 'promo',
-        'promoType': isAd ? 'ad' : 'recommended',
+        'promoType': promoType,
         'slotNumber': slotNumber,
-        'recommendedBatch': slotNumber ~/ 2,
+        'recommendedBatch': _recommendedBatchForPromoOrdinal(promoOrdinal),
       });
     }
     _trackRenderEntries(
@@ -118,5 +127,17 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
 
   bool _shouldInsertPromoAfterPost(int postNumber) {
     return postNumber > 0 && postNumber % 3 == 0;
+  }
+
+  int _recommendedBatchForPromoOrdinal(int promoOrdinal) {
+    final fullCycles = promoOrdinal ~/ _feedPromoCycle.length;
+    final offset = promoOrdinal % _feedPromoCycle.length;
+    if (offset == 1) {
+      return fullCycles * 2;
+    }
+    if (offset == 4) {
+      return (fullCycles * 2) + 1;
+    }
+    return fullCycles * 2;
   }
 }

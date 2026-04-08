@@ -320,6 +320,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       debugPrint('[FeedStartupOrder] count=${shownItems.length} slots=$slots');
       return true;
     }());
+    FeedDiversityMemoryService.ensure().rememberStartupHead(shownItems);
     return shownItems;
   }
 
@@ -345,15 +346,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   Map<String, int> _startupSupportSlotTargetsForCount(int targetCount) {
-    if (targetCount <= 0) return const <String, int>{};
-    final chunkCount =
-        (targetCount / ReadBudgetRegistry.feedBufferedFetchLimit).ceil();
-    if (chunkCount <= 0) return const <String, int>{};
-    return <String, int>{
-      'flood': chunkCount,
-      'image': chunkCount,
-      'text': chunkCount,
-    };
+    return _agendaFeedApplicationService.startupSupportTargetsForCount(
+      targetCount,
+    );
   }
 
   int _startupSupportFallbackCutoffMs(int nowMs) =>
@@ -365,7 +360,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   String? _startupSupportKind(PostsModel post) {
-    if (post.isFloodSeriesContent) return 'flood';
+    if (post.isFloodSeriesRoot && post.floodCount.toInt() > 1) return 'flood';
     if (post.hasPlayableVideo) return null;
     final hasText = post.metin.trim().isNotEmpty;
     final hasImage = post.img.any((entry) => entry.trim().isNotEmpty) ||
@@ -741,8 +736,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       if (agendaList.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (agendaList.isNotEmpty &&
-              (_needsInitialFeedPlaybackPrime ||
-                  centeredIndex.value == -1)) {
+              (_needsInitialFeedPlaybackPrime || centeredIndex.value == -1)) {
             primeInitialCenteredPost();
           }
         });

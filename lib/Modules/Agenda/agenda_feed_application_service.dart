@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -65,8 +66,37 @@ class _AgendaPresentationSelection {
   final _AgendaPresentationBucket bucket;
 }
 
+class _AgendaFeedPenaltySnapshot {
+  const _AgendaFeedPenaltySnapshot({
+    required this.startupHeadDocIds,
+    required this.startupHeadFloodRootIds,
+    required this.weeklyWatchedDocIds,
+    required this.weeklyWatchedFloodRootIds,
+  });
+
+  const _AgendaFeedPenaltySnapshot.empty()
+      : startupHeadDocIds = const <String>{},
+        startupHeadFloodRootIds = const <String>{},
+        weeklyWatchedDocIds = const <String>{},
+        weeklyWatchedFloodRootIds = const <String>{};
+
+  final Set<String> startupHeadDocIds;
+  final Set<String> startupHeadFloodRootIds;
+  final Set<String> weeklyWatchedDocIds;
+  final Set<String> weeklyWatchedFloodRootIds;
+
+  bool get hasStartupPenalties =>
+      startupHeadDocIds.isNotEmpty ||
+      startupHeadFloodRootIds.isNotEmpty ||
+      weeklyWatchedDocIds.isNotEmpty ||
+      weeklyWatchedFloodRootIds.isNotEmpty;
+
+  bool get hasPresentationPenalties =>
+      weeklyWatchedDocIds.isNotEmpty || weeklyWatchedFloodRootIds.isNotEmpty;
+}
+
 class AgendaFeedApplicationService {
-  static const List<_AgendaStartupBucket> _startupPreferredTenSlotPlan =
+  static const List<_AgendaStartupBucket> _startupPreferredPostSlotPlan =
       <_AgendaStartupBucket>[
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.cacheVideo,
@@ -74,24 +104,34 @@ class AgendaFeedApplicationService {
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.flood,
-    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.liveVideo,
     _AgendaStartupBucket.cacheVideo,
     _AgendaStartupBucket.text,
     _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.image,
+    _AgendaStartupBucket.cacheVideo,
+    _AgendaStartupBucket.liveVideo,
+    _AgendaStartupBucket.flood,
   ];
 
-  static const List<_AgendaPresentationBucket> _feedPresentationTenSlotPlan =
+  static const List<_AgendaPresentationBucket> _feedPresentationPostSlotPlan =
       <_AgendaPresentationBucket>[
     _AgendaPresentationBucket.video,
+    _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.image,
+    _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.flood,
     _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.text,
     _AgendaPresentationBucket.video,
+    _AgendaPresentationBucket.video,
     _AgendaPresentationBucket.image,
     _AgendaPresentationBucket.video,
+    _AgendaPresentationBucket.video,
+    _AgendaPresentationBucket.flood,
   ];
 
   static const int _feedPresentationShuffleWindow = 24;
@@ -269,6 +309,7 @@ class AgendaFeedApplicationService {
       cacheCandidates: cacheCandidates,
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
     );
+    final penaltySnapshot = _capturePenaltySnapshot();
     final normalizedLive = _dedupePosts(split.liveCandidates);
     final normalizedCache = _dedupePosts(split.cacheCandidates);
     final liveById = <String, PostsModel>{
@@ -292,9 +333,8 @@ class AgendaFeedApplicationService {
       _AgendaStartupBucket.image: normalizedSupport
           .where(_isImageStartupCandidate)
           .toList(growable: true),
-      _AgendaStartupBucket.flood: normalizedSupport
-          .where((post) => post.isFloodSeriesContent)
-          .toList(growable: true),
+      _AgendaStartupBucket.flood:
+          normalizedSupport.where(_isFloodFeedCandidate).toList(growable: true),
       _AgendaStartupBucket.text: normalizedSupport
           .where(_isTextStartupCandidate)
           .toList(growable: true),
@@ -307,6 +347,7 @@ class AgendaFeedApplicationService {
           entry.value.toList(growable: false),
           bucket: entry.key,
           startupVariantOverride: startupVariantOverride,
+          penaltySnapshot: penaltySnapshot,
         );
         entry.value
           ..clear()
@@ -316,8 +357,13 @@ class AgendaFeedApplicationService {
 
     final output = <PostsModel>[];
     final usedIds = <String>{};
-    for (var start = 0; start < slotPlan.length; start += 10) {
-      final end = (start + 10 < slotPlan.length) ? start + 10 : slotPlan.length;
+    for (var start = 0;
+        start < slotPlan.length;
+        start += _startupPreferredPostSlotPlan.length) {
+      final end =
+          (start + _startupPreferredPostSlotPlan.length < slotPlan.length)
+              ? start + _startupPreferredPostSlotPlan.length
+              : slotPlan.length;
       output.addAll(
         _composeStartupSlotChunk(
           slotPlan: slotPlan.sublist(start, end),
@@ -371,6 +417,15 @@ class AgendaFeedApplicationService {
     ];
   }
 
+  Map<String, int> startupSupportTargetsForCount(int targetCount) {
+    final targets = _startupSupportTargetsForTarget(targetCount);
+    return <String, int>{
+      'flood': targets[_AgendaStartupBucket.flood] ?? 0,
+      'image': targets[_AgendaStartupBucket.image] ?? 0,
+      'text': targets[_AgendaStartupBucket.text] ?? 0,
+    };
+  }
+
   bool shouldPreferLiveStartupHeadForMerge({
     required List<PostsModel> currentItems,
     required List<PostsModel> liveItems,
@@ -403,6 +458,7 @@ class AgendaFeedApplicationService {
     List<PostsModel> items, {
     required _AgendaStartupBucket bucket,
     required int startupVariantOverride,
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
   }) {
     if (items.length < 2) {
       return items;
@@ -433,13 +489,17 @@ class AgendaFeedApplicationService {
           }
           return right.timeStamp.compareTo(left.timeStamp);
         });
+      final reordered = reorderForStartupSurface(
+        chunk,
+        surfaceKey:
+            'feed_startup_bucket_${bucket.index}_${startupVariantOverride}_${start ~/ _feedPresentationShuffleWindow}',
+        sessionNamespace: 'feed',
+        maxShuffleWindow: chunk.length,
+      );
       ranked.addAll(
-        reorderForStartupSurface(
-          chunk,
-          surfaceKey:
-              'feed_startup_bucket_${bucket.index}_${startupVariantOverride}_${start ~/ _feedPresentationShuffleWindow}',
-          sessionNamespace: 'feed',
-          maxShuffleWindow: chunk.length,
+        _applyStartupPenaltyOrder(
+          reordered,
+          penaltySnapshot: penaltySnapshot,
         ),
       );
     }
@@ -470,7 +530,8 @@ class AgendaFeedApplicationService {
 
     final pageOrdinal = currentItemCount < 0
         ? 0
-        : currentItemCount ~/ _feedPresentationTenSlotPlan.length;
+        : currentItemCount ~/ _feedPresentationPostSlotPlan.length;
+    final penaltySnapshot = _capturePenaltySnapshot();
     final buckets = <_AgendaPresentationBucket, List<PostsModel>>{
       _AgendaPresentationBucket.video: _prepareFeedPresentationBucketCandidates(
         pageItems
@@ -479,6 +540,7 @@ class AgendaFeedApplicationService {
             .toList(growable: false),
         bucket: _AgendaPresentationBucket.video,
         pageOrdinal: pageOrdinal,
+        penaltySnapshot: penaltySnapshot,
       ),
       _AgendaPresentationBucket.image: _prepareFeedPresentationBucketCandidates(
         pageItems.where(_isImageFeedPresentationCandidate).toList(
@@ -486,13 +548,15 @@ class AgendaFeedApplicationService {
             ),
         bucket: _AgendaPresentationBucket.image,
         pageOrdinal: pageOrdinal,
+        penaltySnapshot: penaltySnapshot,
       ),
       _AgendaPresentationBucket.flood: _prepareFeedPresentationBucketCandidates(
-        pageItems.where((post) => post.isFloodSeriesContent).toList(
+        pageItems.where(_isFloodFeedCandidate).toList(
               growable: false,
             ),
         bucket: _AgendaPresentationBucket.flood,
         pageOrdinal: pageOrdinal,
+        penaltySnapshot: penaltySnapshot,
       ),
       _AgendaPresentationBucket.text: _prepareFeedPresentationBucketCandidates(
         pageItems.where(_isTextFeedPresentationCandidate).toList(
@@ -500,14 +564,20 @@ class AgendaFeedApplicationService {
             ),
         bucket: _AgendaPresentationBucket.text,
         pageOrdinal: pageOrdinal,
+        penaltySnapshot: penaltySnapshot,
       ),
     };
 
     final output = <PostsModel>[];
     final usedIds = <String>{};
     final slotPlan = _feedPresentationSlotPlanForTarget(pageItems.length);
-    for (var start = 0; start < slotPlan.length; start += 10) {
-      final end = (start + 10 < slotPlan.length) ? start + 10 : slotPlan.length;
+    for (var start = 0;
+        start < slotPlan.length;
+        start += _feedPresentationPostSlotPlan.length) {
+      final end =
+          (start + _feedPresentationPostSlotPlan.length < slotPlan.length)
+              ? start + _feedPresentationPostSlotPlan.length
+              : slotPlan.length;
       output.addAll(
         _composeFeedPresentationSlotChunk(
           slotPlan: slotPlan.sublist(start, end),
@@ -538,6 +608,7 @@ class AgendaFeedApplicationService {
     List<PostsModel> items, {
     required _AgendaPresentationBucket bucket,
     required int pageOrdinal,
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
   }) {
     if (items.length < 2) {
       return items.toList(growable: true);
@@ -569,13 +640,17 @@ class AgendaFeedApplicationService {
           }
           return right.timeStamp.compareTo(left.timeStamp);
         });
+      final reordered = reorderForStartupSurface(
+        chunk,
+        surfaceKey:
+            'feed_page_bucket_${bucket.index}_${pageOrdinal}_${start ~/ _feedPresentationShuffleWindow}',
+        sessionNamespace: 'feed',
+        maxShuffleWindow: chunk.length,
+      );
       ranked.addAll(
-        reorderForStartupSurface(
-          chunk,
-          surfaceKey:
-              'feed_page_bucket_${bucket.index}_${pageOrdinal}_${start ~/ _feedPresentationShuffleWindow}',
-          sessionNamespace: 'feed',
-          maxShuffleWindow: chunk.length,
+        _applyPresentationPenaltyOrder(
+          reordered,
+          penaltySnapshot: penaltySnapshot,
         ),
       );
     }
@@ -701,10 +776,10 @@ class AgendaFeedApplicationService {
     while (slotPlan.length < targetCount) {
       final remaining = targetCount - slotPlan.length;
       slotPlan.addAll(
-        _feedPresentationTenSlotPlan.take(
-          remaining < _feedPresentationTenSlotPlan.length
+        _feedPresentationPostSlotPlan.take(
+          remaining < _feedPresentationPostSlotPlan.length
               ? remaining
-              : _feedPresentationTenSlotPlan.length,
+              : _feedPresentationPostSlotPlan.length,
         ),
       );
     }
@@ -722,12 +797,11 @@ class AgendaFeedApplicationService {
       case _AgendaPresentationBucket.image:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.image,
-          _AgendaPresentationBucket.video,
+          _AgendaPresentationBucket.flood,
         ];
       case _AgendaPresentationBucket.flood:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.flood,
-          _AgendaPresentationBucket.video,
         ];
       case _AgendaPresentationBucket.text:
         return <_AgendaPresentationBucket>[
@@ -745,37 +819,16 @@ class AgendaFeedApplicationService {
     if (slotPlan.isEmpty) return const <PostsModel>[];
 
     final output = <PostsModel>[];
-    final supportTargets = _feedPresentationSupportTargetsForSlotPlan(slotPlan);
-    final supportCounts = <_AgendaPresentationBucket, int>{
-      _AgendaPresentationBucket.image: 0,
-      _AgendaPresentationBucket.flood: 0,
-      _AgendaPresentationBucket.text: 0,
-    };
-    _AgendaPresentationBucket? lastSelectedBucket;
-    var usedFloodInChunk = false;
     for (final desiredBucket in slotPlan) {
       final selection = _selectFeedPresentationCandidateForSlot(
         desiredBucket: desiredBucket,
         buckets: buckets,
         usedIds: usedIds,
-        lastSelectedBucket: lastSelectedBucket,
-        allowFlood:
-            !usedFloodInChunk || desiredBucket == _AgendaPresentationBucket.flood,
-        supportCounts: supportCounts,
-        supportTargets: supportTargets,
       );
       if (selection == null) continue;
       final candidate = selection.post;
       final docId = candidate.docID.trim();
       if (docId.isEmpty || !usedIds.add(docId)) continue;
-      if (selection.bucket == _AgendaPresentationBucket.flood) {
-        usedFloodInChunk = true;
-      }
-      if (_isSupportPresentationBucket(selection.bucket)) {
-        supportCounts[selection.bucket] =
-            (supportCounts[selection.bucket] ?? 0) + 1;
-      }
-      lastSelectedBucket = selection.bucket;
       output.add(candidate);
     }
     return output;
@@ -785,89 +838,20 @@ class AgendaFeedApplicationService {
     required _AgendaPresentationBucket desiredBucket,
     required Map<_AgendaPresentationBucket, List<PostsModel>> buckets,
     required Set<String> usedIds,
-    required _AgendaPresentationBucket? lastSelectedBucket,
-    required bool allowFlood,
-    required Map<_AgendaPresentationBucket, int> supportCounts,
-    required Map<_AgendaPresentationBucket, int> supportTargets,
   }) {
-    _AgendaPresentationSelection? deferredHeavyCandidate;
     for (final bucket in _feedPresentationSlotFallbackOrder(desiredBucket)) {
-      if (bucket == _AgendaPresentationBucket.flood && !allowFlood) {
-        continue;
-      }
-      if (_supportPresentationBucketQuotaReached(
-        bucket,
-        supportCounts: supportCounts,
-        supportTargets: supportTargets,
-      )) {
-        continue;
-      }
       final candidate = _firstUnusedFeedPresentationCandidate(
         buckets[bucket]!,
         usedIds: usedIds,
       );
       if (candidate != null) {
-        final selection = _AgendaPresentationSelection(
+        return _AgendaPresentationSelection(
           post: candidate,
           bucket: bucket,
         );
-        if (_shouldDeferHeavyPresentationSelection(
-          lastSelectedBucket: lastSelectedBucket,
-          currentBucket: bucket,
-        )) {
-          deferredHeavyCandidate ??= selection;
-          continue;
-        }
-        return selection;
       }
     }
-    return deferredHeavyCandidate;
-  }
-
-  bool _shouldDeferHeavyPresentationSelection({
-    required _AgendaPresentationBucket? lastSelectedBucket,
-    required _AgendaPresentationBucket currentBucket,
-  }) {
-    if (lastSelectedBucket == null) return false;
-    return _isHeavyPresentationBucket(lastSelectedBucket) &&
-        _isHeavyPresentationBucket(currentBucket);
-  }
-
-  bool _isHeavyPresentationBucket(_AgendaPresentationBucket bucket) {
-    return bucket == _AgendaPresentationBucket.image ||
-        bucket == _AgendaPresentationBucket.flood;
-  }
-
-  bool _isSupportPresentationBucket(_AgendaPresentationBucket bucket) {
-    return bucket == _AgendaPresentationBucket.image ||
-        bucket == _AgendaPresentationBucket.flood ||
-        bucket == _AgendaPresentationBucket.text;
-  }
-
-  Map<_AgendaPresentationBucket, int> _feedPresentationSupportTargetsForSlotPlan(
-    List<_AgendaPresentationBucket> slotPlan,
-  ) {
-    final targets = <_AgendaPresentationBucket, int>{
-      _AgendaPresentationBucket.image: 0,
-      _AgendaPresentationBucket.flood: 0,
-      _AgendaPresentationBucket.text: 0,
-    };
-    for (final bucket in slotPlan) {
-      if (!_isSupportPresentationBucket(bucket)) continue;
-      targets[bucket] = (targets[bucket] ?? 0) + 1;
-    }
-    return targets;
-  }
-
-  bool _supportPresentationBucketQuotaReached(
-    _AgendaPresentationBucket bucket, {
-    required Map<_AgendaPresentationBucket, int> supportCounts,
-    required Map<_AgendaPresentationBucket, int> supportTargets,
-  }) {
-    if (!_isSupportPresentationBucket(bucket)) return false;
-    final allowed = supportTargets[bucket] ?? 0;
-    final current = supportCounts[bucket] ?? 0;
-    return current >= allowed;
+    return null;
   }
 
   PostsModel? _firstUnusedFeedPresentationCandidate(
@@ -902,20 +886,15 @@ class AgendaFeedApplicationService {
         return <_AgendaStartupBucket>[
           _AgendaStartupBucket.image,
           _AgendaStartupBucket.flood,
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
         ];
       case _AgendaStartupBucket.flood:
         return <_AgendaStartupBucket>[
           _AgendaStartupBucket.flood,
-          _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
         ];
       case _AgendaStartupBucket.text:
         return <_AgendaStartupBucket>[
           _AgendaStartupBucket.text,
           _AgendaStartupBucket.liveVideo,
-          _AgendaStartupBucket.cacheVideo,
         ];
     }
   }
@@ -929,16 +908,11 @@ class AgendaFeedApplicationService {
     if (slotPlan.isEmpty) return const <PostsModel>[];
 
     final output = <PostsModel>[];
-    var usedFloodInChunk = false;
     for (final desiredBucket in slotPlan) {
       final candidate = _selectStartupCandidateForSlot(
         desiredBucket: desiredBucket,
         buckets: buckets,
         usedIds: usedIds,
-        allowFlood:
-            !usedFloodInChunk ||
-            desiredBucket == _AgendaStartupBucket.flood ||
-            desiredBucket == _AgendaStartupBucket.image,
         allowSparseSlotFallback: allowSparseSlotFallback,
       );
       if (candidate == null) {
@@ -954,9 +928,6 @@ class AgendaFeedApplicationService {
         }
         continue;
       }
-      if (candidate.isFloodSeriesContent) {
-        usedFloodInChunk = true;
-      }
       output.add(candidate);
     }
     return output;
@@ -966,13 +937,9 @@ class AgendaFeedApplicationService {
     required _AgendaStartupBucket desiredBucket,
     required Map<_AgendaStartupBucket, List<PostsModel>> buckets,
     required Set<String> usedIds,
-    required bool allowFlood,
     required bool allowSparseSlotFallback,
   }) {
     for (final bucket in _startupSlotFallbackOrder(desiredBucket)) {
-      if (bucket == _AgendaStartupBucket.flood && !allowFlood) {
-        continue;
-      }
       final candidate = _firstUnusedStartupCandidate(
         buckets[bucket]!,
         usedIds: usedIds,
@@ -987,26 +954,21 @@ class AgendaFeedApplicationService {
     return _selectSparseStartupFallbackCandidate(
       buckets,
       usedIds: usedIds,
-      allowFlood: allowFlood,
     );
   }
 
   PostsModel? _selectSparseStartupFallbackCandidate(
     Map<_AgendaStartupBucket, List<PostsModel>> buckets, {
     required Set<String> usedIds,
-    required bool allowFlood,
   }) {
     const fallbackOrder = <_AgendaStartupBucket>[
-      _AgendaStartupBucket.image,
-      _AgendaStartupBucket.text,
       _AgendaStartupBucket.cacheVideo,
       _AgendaStartupBucket.liveVideo,
+      _AgendaStartupBucket.image,
       _AgendaStartupBucket.flood,
+      _AgendaStartupBucket.text,
     ];
     for (final bucket in fallbackOrder) {
-      if (bucket == _AgendaStartupBucket.flood && !allowFlood) {
-        continue;
-      }
       final candidate = _firstUnusedStartupCandidate(
         buckets[bucket]!,
         usedIds: usedIds,
@@ -1083,7 +1045,7 @@ class AgendaFeedApplicationService {
     Iterable<PostsModel> posts, {
     required int targetCount,
   }) {
-    if (targetCount < _startupPreferredTenSlotPlan.length) {
+    if (targetCount < _startupPreferredPostSlotPlan.length) {
       return 0;
     }
     final counts = <_AgendaStartupBucket, int>{
@@ -1109,7 +1071,7 @@ class AgendaFeedApplicationService {
   }
 
   _AgendaStartupBucket? _resolveStartupSupportBucket(PostsModel post) {
-    if (post.isFloodSeriesContent) {
+    if (_isFloodFeedCandidate(post)) {
       return _AgendaStartupBucket.flood;
     }
     if (_isImageStartupCandidate(post)) {
@@ -1166,20 +1128,142 @@ class AgendaFeedApplicationService {
     return post.hasTextContent;
   }
 
+  bool _isFloodFeedCandidate(PostsModel post) {
+    return post.isFloodSeriesRoot && post.floodCount.toInt() > 1;
+  }
+
   List<_AgendaStartupBucket> _startupSlotPlanForTarget(int targetCount) {
     if (targetCount <= 0) return const <_AgendaStartupBucket>[];
     final slotPlan = <_AgendaStartupBucket>[];
     while (slotPlan.length < targetCount) {
       final remaining = targetCount - slotPlan.length;
       slotPlan.addAll(
-        _startupPreferredTenSlotPlan.take(
-          remaining < _startupPreferredTenSlotPlan.length
+        _startupPreferredPostSlotPlan.take(
+          remaining < _startupPreferredPostSlotPlan.length
               ? remaining
-              : _startupPreferredTenSlotPlan.length,
+              : _startupPreferredPostSlotPlan.length,
         ),
       );
     }
     return slotPlan;
+  }
+
+  _AgendaFeedPenaltySnapshot _capturePenaltySnapshot() {
+    final service = FeedDiversityMemoryService.maybeFind();
+    if (service == null || !service.isReady) {
+      return const _AgendaFeedPenaltySnapshot.empty();
+    }
+    return _AgendaFeedPenaltySnapshot(
+      startupHeadDocIds: service.startupHeadPenaltyDocIds(),
+      startupHeadFloodRootIds: service.startupHeadPenaltyFloodRootIds(),
+      weeklyWatchedDocIds: service.weeklyWatchedPenaltyDocIds(),
+      weeklyWatchedFloodRootIds: service.weeklyWatchedFloodRootIds(),
+    );
+  }
+
+  List<PostsModel> _applyStartupPenaltyOrder(
+    List<PostsModel> items, {
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
+  }) {
+    if (items.length < 2 || !penaltySnapshot.hasStartupPenalties) {
+      return items;
+    }
+    final indexed = items.asMap().entries.toList(growable: false)
+      ..sort((left, right) {
+        final leftPenalty = _startupPenaltyScore(
+          left.value,
+          penaltySnapshot: penaltySnapshot,
+        );
+        final rightPenalty = _startupPenaltyScore(
+          right.value,
+          penaltySnapshot: penaltySnapshot,
+        );
+        if (leftPenalty != rightPenalty) {
+          return leftPenalty.compareTo(rightPenalty);
+        }
+        return left.key.compareTo(right.key);
+      });
+    return indexed.map((entry) => entry.value).toList(growable: false);
+  }
+
+  List<PostsModel> _applyPresentationPenaltyOrder(
+    List<PostsModel> items, {
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
+  }) {
+    if (items.length < 2 || !penaltySnapshot.hasPresentationPenalties) {
+      return items;
+    }
+    final indexed = items.asMap().entries.toList(growable: false)
+      ..sort((left, right) {
+        final leftPenalty = _presentationPenaltyScore(
+          left.value,
+          penaltySnapshot: penaltySnapshot,
+        );
+        final rightPenalty = _presentationPenaltyScore(
+          right.value,
+          penaltySnapshot: penaltySnapshot,
+        );
+        if (leftPenalty != rightPenalty) {
+          return leftPenalty.compareTo(rightPenalty);
+        }
+        return left.key.compareTo(right.key);
+      });
+    return indexed.map((entry) => entry.value).toList(growable: false);
+  }
+
+  int _startupPenaltyScore(
+    PostsModel post, {
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
+  }) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return 0;
+    final floodRootId = _resolveFloodRootId(post);
+    var penalty = 0;
+    if (penaltySnapshot.weeklyWatchedDocIds.contains(docId)) {
+      penalty += 6;
+    }
+    if (floodRootId.isNotEmpty &&
+        penaltySnapshot.weeklyWatchedFloodRootIds.contains(floodRootId)) {
+      penalty += 4;
+    }
+    if (penaltySnapshot.startupHeadDocIds.contains(docId)) {
+      penalty += 3;
+    }
+    if (floodRootId.isNotEmpty &&
+        penaltySnapshot.startupHeadFloodRootIds.contains(floodRootId)) {
+      penalty += 2;
+    }
+    return penalty;
+  }
+
+  int _presentationPenaltyScore(
+    PostsModel post, {
+    required _AgendaFeedPenaltySnapshot penaltySnapshot,
+  }) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return 0;
+    final floodRootId = _resolveFloodRootId(post);
+    var penalty = 0;
+    if (penaltySnapshot.weeklyWatchedDocIds.contains(docId)) {
+      penalty += 5;
+    }
+    if (floodRootId.isNotEmpty &&
+        penaltySnapshot.weeklyWatchedFloodRootIds.contains(floodRootId)) {
+      penalty += 3;
+    }
+    return penalty;
+  }
+
+  String _resolveFloodRootId(PostsModel post) {
+    if (!post.isFloodSeriesContent) return '';
+    final mainFlood = post.mainFlood.trim();
+    if (mainFlood.isNotEmpty) {
+      return mainFlood;
+    }
+    if (post.isFloodSeriesRoot) {
+      return post.docID.trim();
+    }
+    return post.docID.trim().replaceFirst(RegExp(r'_\d+$'), '');
   }
 }
 
