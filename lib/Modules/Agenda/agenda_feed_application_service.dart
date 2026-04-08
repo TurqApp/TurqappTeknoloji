@@ -55,6 +55,16 @@ class AgendaFeedBufferedWindowPlan {
   final bool startsNewBlock;
 }
 
+class _AgendaPresentationSelection {
+  const _AgendaPresentationSelection({
+    required this.post,
+    required this.bucket,
+  });
+
+  final PostsModel post;
+  final _AgendaPresentationBucket bucket;
+}
+
 class AgendaFeedApplicationService {
   static const List<_AgendaStartupBucket> _startupPreferredTenSlotPlan =
       <_AgendaStartupBucket>[
@@ -84,7 +94,7 @@ class AgendaFeedApplicationService {
     _AgendaPresentationBucket.video,
   ];
 
-  static const int _feedPresentationShuffleWindow = 12;
+  static const int _feedPresentationShuffleWindow = 24;
 
   AgendaFeedPageApplyPlan buildPageApplyPlan({
     required List<PostsModel> currentItems,
@@ -708,30 +718,21 @@ class AgendaFeedApplicationService {
       case _AgendaPresentationBucket.video:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.video,
-          _AgendaPresentationBucket.image,
-          _AgendaPresentationBucket.text,
-          _AgendaPresentationBucket.flood,
         ];
       case _AgendaPresentationBucket.image:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.image,
           _AgendaPresentationBucket.video,
-          _AgendaPresentationBucket.text,
-          _AgendaPresentationBucket.flood,
         ];
       case _AgendaPresentationBucket.flood:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.flood,
           _AgendaPresentationBucket.video,
-          _AgendaPresentationBucket.image,
-          _AgendaPresentationBucket.text,
         ];
       case _AgendaPresentationBucket.text:
         return <_AgendaPresentationBucket>[
           _AgendaPresentationBucket.text,
           _AgendaPresentationBucket.video,
-          _AgendaPresentationBucket.image,
-          _AgendaPresentationBucket.flood,
         ];
     }
   }
@@ -744,35 +745,129 @@ class AgendaFeedApplicationService {
     if (slotPlan.isEmpty) return const <PostsModel>[];
 
     final output = <PostsModel>[];
+    final supportTargets = _feedPresentationSupportTargetsForSlotPlan(slotPlan);
+    final supportCounts = <_AgendaPresentationBucket, int>{
+      _AgendaPresentationBucket.image: 0,
+      _AgendaPresentationBucket.flood: 0,
+      _AgendaPresentationBucket.text: 0,
+    };
+    _AgendaPresentationBucket? lastSelectedBucket;
+    var usedFloodInChunk = false;
     for (final desiredBucket in slotPlan) {
-      final candidate = _selectFeedPresentationCandidateForSlot(
+      final selection = _selectFeedPresentationCandidateForSlot(
         desiredBucket: desiredBucket,
         buckets: buckets,
         usedIds: usedIds,
+        lastSelectedBucket: lastSelectedBucket,
+        allowFlood:
+            !usedFloodInChunk || desiredBucket == _AgendaPresentationBucket.flood,
+        supportCounts: supportCounts,
+        supportTargets: supportTargets,
       );
-      if (candidate == null) continue;
+      if (selection == null) continue;
+      final candidate = selection.post;
       final docId = candidate.docID.trim();
       if (docId.isEmpty || !usedIds.add(docId)) continue;
+      if (selection.bucket == _AgendaPresentationBucket.flood) {
+        usedFloodInChunk = true;
+      }
+      if (_isSupportPresentationBucket(selection.bucket)) {
+        supportCounts[selection.bucket] =
+            (supportCounts[selection.bucket] ?? 0) + 1;
+      }
+      lastSelectedBucket = selection.bucket;
       output.add(candidate);
     }
     return output;
   }
 
-  PostsModel? _selectFeedPresentationCandidateForSlot({
+  _AgendaPresentationSelection? _selectFeedPresentationCandidateForSlot({
     required _AgendaPresentationBucket desiredBucket,
     required Map<_AgendaPresentationBucket, List<PostsModel>> buckets,
     required Set<String> usedIds,
+    required _AgendaPresentationBucket? lastSelectedBucket,
+    required bool allowFlood,
+    required Map<_AgendaPresentationBucket, int> supportCounts,
+    required Map<_AgendaPresentationBucket, int> supportTargets,
   }) {
+    _AgendaPresentationSelection? deferredHeavyCandidate;
     for (final bucket in _feedPresentationSlotFallbackOrder(desiredBucket)) {
+      if (bucket == _AgendaPresentationBucket.flood && !allowFlood) {
+        continue;
+      }
+      if (_supportPresentationBucketQuotaReached(
+        bucket,
+        supportCounts: supportCounts,
+        supportTargets: supportTargets,
+      )) {
+        continue;
+      }
       final candidate = _firstUnusedFeedPresentationCandidate(
         buckets[bucket]!,
         usedIds: usedIds,
       );
       if (candidate != null) {
-        return candidate;
+        final selection = _AgendaPresentationSelection(
+          post: candidate,
+          bucket: bucket,
+        );
+        if (_shouldDeferHeavyPresentationSelection(
+          lastSelectedBucket: lastSelectedBucket,
+          currentBucket: bucket,
+        )) {
+          deferredHeavyCandidate ??= selection;
+          continue;
+        }
+        return selection;
       }
     }
-    return null;
+    return deferredHeavyCandidate;
+  }
+
+  bool _shouldDeferHeavyPresentationSelection({
+    required _AgendaPresentationBucket? lastSelectedBucket,
+    required _AgendaPresentationBucket currentBucket,
+  }) {
+    if (lastSelectedBucket == null) return false;
+    return _isHeavyPresentationBucket(lastSelectedBucket) &&
+        _isHeavyPresentationBucket(currentBucket);
+  }
+
+  bool _isHeavyPresentationBucket(_AgendaPresentationBucket bucket) {
+    return bucket == _AgendaPresentationBucket.image ||
+        bucket == _AgendaPresentationBucket.flood;
+  }
+
+  bool _isSupportPresentationBucket(_AgendaPresentationBucket bucket) {
+    return bucket == _AgendaPresentationBucket.image ||
+        bucket == _AgendaPresentationBucket.flood ||
+        bucket == _AgendaPresentationBucket.text;
+  }
+
+  Map<_AgendaPresentationBucket, int> _feedPresentationSupportTargetsForSlotPlan(
+    List<_AgendaPresentationBucket> slotPlan,
+  ) {
+    final targets = <_AgendaPresentationBucket, int>{
+      _AgendaPresentationBucket.image: 0,
+      _AgendaPresentationBucket.flood: 0,
+      _AgendaPresentationBucket.text: 0,
+    };
+    for (final bucket in slotPlan) {
+      if (!_isSupportPresentationBucket(bucket)) continue;
+      targets[bucket] = (targets[bucket] ?? 0) + 1;
+    }
+    return targets;
+  }
+
+  bool _supportPresentationBucketQuotaReached(
+    _AgendaPresentationBucket bucket, {
+    required Map<_AgendaPresentationBucket, int> supportCounts,
+    required Map<_AgendaPresentationBucket, int> supportTargets,
+  }) {
+    if (!_isSupportPresentationBucket(bucket)) return false;
+    final allowed = supportTargets[bucket] ?? 0;
+    final current = supportCounts[bucket] ?? 0;
+    return current >= allowed;
   }
 
   PostsModel? _firstUnusedFeedPresentationCandidate(
@@ -806,6 +901,7 @@ class AgendaFeedApplicationService {
       case _AgendaStartupBucket.image:
         return <_AgendaStartupBucket>[
           _AgendaStartupBucket.image,
+          _AgendaStartupBucket.flood,
           _AgendaStartupBucket.liveVideo,
           _AgendaStartupBucket.cacheVideo,
         ];
@@ -840,7 +936,9 @@ class AgendaFeedApplicationService {
         buckets: buckets,
         usedIds: usedIds,
         allowFlood:
-            !usedFloodInChunk || desiredBucket == _AgendaStartupBucket.flood,
+            !usedFloodInChunk ||
+            desiredBucket == _AgendaStartupBucket.flood ||
+            desiredBucket == _AgendaStartupBucket.image,
         allowSparseSlotFallback: allowSparseSlotFallback,
       );
       if (candidate == null) {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
@@ -92,22 +93,29 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
-  // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
-  // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
-  // cagrilip startup fallback ekranina dusuyordu.
-  firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
-  await firebaseBootstrapFuture.timeout(
-    _startupBootstrapWait,
-    onTimeout: () {
-      debugPrint('[bootstrap] startup timed out before runApp; continuing.');
-    },
-  );
+  final shouldDeferBootstrapUntilAfterFirstFrame = Platform.isIOS;
+  Completer<void>? deferredBootstrapCompleter;
+  if (shouldDeferBootstrapUntilAfterFirstFrame) {
+    deferredBootstrapCompleter = Completer<void>();
+    firebaseBootstrapFuture = deferredBootstrapCompleter.future;
+  } else {
+    // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
+    // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
+    // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
+    // cagrilip startup fallback ekranina dusuyordu.
+    firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
+    await firebaseBootstrapFuture.timeout(
+      _startupBootstrapWait,
+      onTimeout: () {
+        debugPrint('[bootstrap] startup timed out before runApp; continuing.');
+      },
+    );
+    NetworkAwarenessService.ensure();
+    await ensureInitializedAppLanguageService();
+  }
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
-  NetworkAwarenessService.ensure();
-  await ensureInitializedAppLanguageService();
 
   runApp(const MyApp());
   scheduleQALabAutoOpenOnLaunch();
@@ -121,6 +129,25 @@ Future<void> main() async {
 
   // Ilk frame sonrasi yalnizca sistem UI ayarlari.
   WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (shouldDeferBootstrapUntilAfterFirstFrame) {
+      unawaited(() async {
+        try {
+          await _bootstrapFirebaseAndCrashlytics().timeout(
+            _startupBootstrapWait,
+            onTimeout: () {
+              debugPrint('[bootstrap] startup timed out after first frame; continuing.');
+            },
+          );
+          deferredBootstrapCompleter?.complete();
+        } catch (error, stack) {
+          if (!(deferredBootstrapCompleter?.isCompleted ?? true)) {
+            deferredBootstrapCompleter?.completeError(error, stack);
+          }
+        }
+        NetworkAwarenessService.ensure();
+        await ensureInitializedAppLanguageService();
+      }());
+    }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

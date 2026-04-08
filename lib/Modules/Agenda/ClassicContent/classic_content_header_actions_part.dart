@@ -3,18 +3,18 @@ part of 'classic_content.dart';
 extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget _buildClassicHeaderBackdrop({required Widget child}) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.02),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.03),
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: child,
         ),
       ),
@@ -279,7 +279,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     return Transform.translate(
       offset: const Offset(0, -8),
       child: Padding(
-        padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 18),
+        padding: const EdgeInsets.only(left: 4, right: 4, top: 8, bottom: 18),
         child: _buildClassicHeaderBackdrop(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,

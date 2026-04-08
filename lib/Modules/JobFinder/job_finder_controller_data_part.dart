@@ -27,6 +27,10 @@ extension JobFinderControllerDataPart on JobFinderController {
     if (!await isPasajTabEnabled(PasajTabIds.jobFinder)) {
       return;
     }
+    final shouldHoldInitialLoader = list.isEmpty;
+    if (shouldHoldInitialLoader) {
+      isLoading.value = true;
+    }
     try {
       final allowRefresh = allowBackgroundRefresh ?? false;
       await _performHydrateJobFinderStartupShard();
@@ -63,6 +67,9 @@ extension JobFinderControllerDataPart on JobFinderController {
         );
       }
     } finally {
+      if (shouldHoldInitialLoader) {
+        isLoading.value = false;
+      }
       unawaited(_persistJobFinderStartupShard());
       unawaited(_recordJobFinderStartupSurface());
     }

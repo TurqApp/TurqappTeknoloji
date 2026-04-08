@@ -109,13 +109,17 @@ class _SplashViewState extends State<SplashView> {
   @override
   void initState() {
     super.initState();
-    final elapsedSinceLaunch = Duration(
-      milliseconds: DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-    );
-    final remainingMs = (_introRevealDuration.inMilliseconds -
-            elapsedSinceLaunch.inMilliseconds)
-        .clamp(0, _introRevealDuration.inMilliseconds);
-    _remainingIntroBudget = Duration(milliseconds: remainingMs);
+    if (Platform.isIOS) {
+      _remainingIntroBudget = _introRevealDuration;
+    } else {
+      final elapsedSinceLaunch = Duration(
+        milliseconds: DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
+      );
+      final remainingMs = (_introRevealDuration.inMilliseconds -
+              elapsedSinceLaunch.inMilliseconds)
+          .clamp(0, _introRevealDuration.inMilliseconds);
+      _remainingIntroBudget = Duration(milliseconds: remainingMs);
+    }
     _startTypewriter();
 
     // Firebase hazır olmadan FirebasePerformance çağrısı yapılmasın.

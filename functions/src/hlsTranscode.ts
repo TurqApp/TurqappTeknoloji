@@ -119,6 +119,28 @@ const getVideoFPS = async (inputPath: string): Promise<number> => {
   return 30; // Güvenli varsayılan
 };
 
+const hasAudioStream = async (inputPath: string): Promise<boolean> => {
+  try {
+    const { stdout } = await execFileAsync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "a",
+      "-show_entries",
+      "stream=index",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      inputPath,
+    ]);
+    return String(stdout)
+      .split("\n")
+      .map((line) => line.trim())
+      .some(Boolean);
+  } catch (_) {
+    return false;
+  }
+};
+
 const buildForceKeyFrames = (
   durationSeconds: number,
   firstSegmentSeconds: number,
@@ -147,6 +169,23 @@ const buildTurqCleanVisionFilterComplex = (
 };
 
 const buildTurqCleanVisionThumbnailFilter = (): string => "null";
+
+const runWithConcurrency = async (
+  tasks: Array<() => Promise<unknown>>,
+  limit: number
+): Promise<void> => {
+  const running = new Set<Promise<unknown>>();
+  for (const task of tasks) {
+    const promise = Promise.resolve().then(task);
+    running.add(promise);
+    const cleanup = () => running.delete(promise);
+    promise.then(cleanup, cleanup);
+    if (running.size >= limit) {
+      await Promise.race(running);
+    }
+  }
+  await Promise.all(running);
+};
 
 /**
  * Video tipi bilgisi: path pattern'e göre belirlenir.
@@ -298,9 +337,10 @@ export const onVideoUpload = functions
       await bucket.file(filePath).download({ destination: inputPath });
 
       // B2: FPS tespiti ve duration paralel al
-      const [durationSeconds, videoFPS] = await Promise.all([
+      const [durationSeconds, videoFPS, videoHasAudio] = await Promise.all([
         getVideoDurationSeconds(inputPath),
         getVideoFPS(inputPath),
+        hasAudioStream(inputPath),
       ]);
       const forceKeyFrames = buildForceKeyFrames(
         durationSeconds,
@@ -366,7 +406,7 @@ export const onVideoUpload = functions
           buildTurqCleanVisionFilterComplex(renditionLabel, scale)
         );
         outputArgs.push(
-          "-map", `[${renditionLabel}out]`, "-map", "0:a:0?",
+          "-map", `[${renditionLabel}out]`,
           `-c:v:${i}`, "libx264",
           `-b:v:${i}`, `${r.bitrate}k`,
           `-maxrate:v:${i}`, `${r.maxrate}k`,
@@ -377,10 +417,15 @@ export const onVideoUpload = functions
           `-g:v:${i}`, String(gopSize),
           `-keyint_min:v:${i}`, String(gopSize),
           `-sc_threshold:v:${i}`, "0",
-          `-c:a:${i}`, "aac",
-          `-b:a:${i}`, "128k",
-          `-ar:${i}`, "48000",
         );
+        if (videoHasAudio) {
+          outputArgs.push(
+            "-map", "0:a:0?",
+            `-c:a:${i}`, "aac",
+            `-b:a:${i}`, "128k",
+            `-ar:${i}`, "48000",
+          );
+        }
       }
 
       ffmpegArgs.push("-filter_complex", filterComplexParts.join(";"));
@@ -393,7 +438,7 @@ export const onVideoUpload = functions
 
       // HLS muxer ayarları
       const varStreamMap = renditions
-        .map((_, i) => `v:${i},a:${i}`)
+        .map((_, i) => (videoHasAudio ? `v:${i},a:${i}` : `v:${i}`))
         .join(" ");
 
       ffmpegArgs.push(
@@ -415,7 +460,7 @@ export const onVideoUpload = functions
       console.log(`[HLS] Transcode complete. Uploading HLS files...`);
 
       // HLS dosyalarını Storage'a yükle (nested rendition dizinleri dahil)
-      const uploadPromises: Promise<unknown>[] = [];
+      const uploadTasks: Array<() => Promise<unknown>> = [];
       let hlsSegmentCount = 0;
 
       const walkDir = (dir: string, prefix: string) => {
@@ -436,7 +481,7 @@ export const onVideoUpload = functions
                 : "public, max-age=86400, s-maxage=86400"
               : "public, max-age=31536000, s-maxage=31536000, immutable";
 
-            uploadPromises.push(
+            uploadTasks.push(() =>
               bucket.upload(localPath, {
                 destination: remotePath,
                 metadata: {
@@ -451,7 +496,7 @@ export const onVideoUpload = functions
         }
       };
       walkDir(outputDir, "");
-      await Promise.all(uploadPromises);
+      await runWithConcurrency(uploadTasks, 6);
 
       // Thumbnail üret (sadece post tipi için)
       // B9: WebP + JPEG çift format — tarayıcı/istemci desteğine göre seç
@@ -463,50 +508,58 @@ export const onVideoUpload = functions
           /\.(jpg|jpeg)$/i,
           ".webp"
         );
+        const thumbnailSeekSeconds =
+          durationSeconds > 1 ? 1 : Math.max(0, durationSeconds / 2);
         try {
           // JPEG thumbnail (geri uyumluluk)
           await execFileAsync("ffmpeg", [
             "-i", inputPath,
-            "-ss", "1",
+            "-ss", String(thumbnailSeekSeconds),
             "-vframes", "1",
             "-vf", buildTurqCleanVisionThumbnailFilter(),
             "-q:v", "2",
             thumbnailJpgPath,
           ]);
 
-          // B9: WebP thumbnail — JPEG'den dönüştür (ffmpeg + libwebp veya sharp)
-          await execFileAsync("ffmpeg", [
-            "-i", thumbnailJpgPath,
-            "-c:v", "libwebp",
-            "-quality", "82",    // JPEG 85 eşdeğeri kalite
-            "-preset", "photo",
-            "-y",
-            thumbnailWebpPath,
-          ]);
+          await bucket.upload(thumbnailJpgPath, {
+            destination: target.thumbnailStoragePath,
+            metadata: {
+              contentType: "image/jpeg",
+              cacheControl: "public, max-age=86400, s-maxage=86400",
+            },
+          });
 
-          // Her iki formatı paralel yükle
-          const [jpgResult] = await Promise.all([
-            bucket.upload(thumbnailJpgPath, {
-              destination: target.thumbnailStoragePath,
-              metadata: {
-                contentType: "image/jpeg",
-                cacheControl: "public, max-age=86400, s-maxage=86400",
-              },
-            }),
-            // WebP thumbnail (istemciler Accept: image/webp ile tercih edebilir)
-            bucket.upload(thumbnailWebpPath, {
+          thumbnailUrl = await buildProtectedAssetUrl(
+            bucket,
+            target.thumbnailStoragePath
+          );
+
+          // B9: WebP thumbnail — JPEG'den dönüştür (ffmpeg + libwebp veya sharp)
+          try {
+            await execFileAsync("ffmpeg", [
+              "-i", thumbnailJpgPath,
+              "-c:v", "libwebp",
+              "-quality", "82",    // JPEG 85 eşdeğeri kalite
+              "-preset", "photo",
+              "-y",
+              thumbnailWebpPath,
+            ]);
+
+            await bucket.upload(thumbnailWebpPath, {
               destination: thumbnailWebpStoragePath,
               metadata: {
                 contentType: "image/webp",
                 cacheControl: "public, max-age=86400, s-maxage=86400",
               },
-            }).catch((e: unknown) => console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e)),
-          ]);
+            });
 
-          thumbnailUrl = await buildProtectedAssetUrl(
-            bucket,
-            thumbnailWebpStoragePath
-          );
+            thumbnailUrl = await buildProtectedAssetUrl(
+              bucket,
+              thumbnailWebpStoragePath
+            );
+          } catch (e: unknown) {
+            console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e);
+          }
           console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
         } catch (thumbErr) {
           console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);
