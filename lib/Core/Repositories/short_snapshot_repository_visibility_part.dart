@@ -73,22 +73,18 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
   }
   final deduped =
       excludeFeedVisibleShortConflicts(visible, warmFeedVisibleVideoDocIds);
-  final mixed = mixShortPresentationPosts(
-    deduped,
-    sessionNamespace: 'short',
-  );
   repository._invariantGuard.assertNotEmptyAfterRefresh(
     surface: 'short',
     invariantKey: 'eligible_visible_after_filter',
     hadSnapshot: normalized.isNotEmpty,
     previousCount: normalized.length,
-    nextCount: mixed.length,
+    nextCount: deduped.length,
     payload: <String, dynamic>{
       'currentUserId': currentUserId,
       'followingCount': followingIds.length,
     },
   );
-  return mixed;
+  return deduped;
 }
 
 List<PostsModel> _performNormalizePosts(List<PostsModel> posts) {

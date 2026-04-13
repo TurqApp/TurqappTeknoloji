@@ -22,9 +22,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
     }
     String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} ${'common.edited'.tr}"
-        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
-            ? widget.model.izBirakYayinTarihi
-            : widget.model.timeStamp);
+        : timeAgoMetin(widget.model.timeStamp);
     void openProfile() {
       if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
@@ -70,7 +68,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                               child: Text(
                                 primaryName,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTypography.postName.copyWith(
+                                style: _agendaPostNameStyle.copyWith(
                                   color: Colors.black,
                                 ),
                               ),
@@ -81,7 +79,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                 '@$handle',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTypography.postHandle.copyWith(
+                                style: _agendaPostHandleStyle.copyWith(
                                   color: Colors.grey,
                                 ),
                               ),
@@ -100,7 +98,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                                   _relativeTimeTickService.tick.value;
                                   return Text(
                                     buildDisplayTime(),
-                                    style: AppTypography.postMeta.copyWith(
+                                    style: _agendaPostMetaStyle.copyWith(
                                       color: Colors.grey,
                                     ),
                                   );
@@ -196,7 +194,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: AppTypography.postAttribution.fontSize!,
+                      fontSize: _agendaPostAttributionFontSize,
                     ),
                 ],
               ),
@@ -229,7 +227,7 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
             controller: controller,
             model: widget.model,
             explicitReshareUserId: widget.reshareUserID,
-            style: AppTypography.postAttribution.copyWith(
+            style: _agendaTypography(AppTypography.postAttribution).copyWith(
               color: Colors.white,
             ),
           ),

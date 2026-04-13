@@ -298,7 +298,6 @@ class SignInApplicationService {
     bool registerCurrentDeviceSession = false,
   }) async {
     await _ensureCurrentUserService().initialize();
-    await NotificationService.instance.initialize();
     await _clearSessionCachesAfterAccountSwitch();
     await _ensureCurrentUserService().ensureResolvedCurrentUser(
       expectedUid: expectedUid,
@@ -312,6 +311,9 @@ class SignInApplicationService {
     await _warmStoryRowAfterAuth();
     await _warmAgendaAfterAuth(retryUntilFilled: true);
     _startUnreadListenersAfterAuth();
+    NotificationService.instance.scheduleInitialize(
+      delay: const Duration(seconds: 2),
+    );
   }
 
   static Future<void> _defaultPasswordSignIn({
@@ -372,14 +374,23 @@ class SignInApplicationService {
         _ensureCurrentUserService().initialize(),
         Future.delayed(const Duration(seconds: 3)),
       ]);
-      unawaited(NotificationService.instance.initialize());
-      unawaited(_clearSessionCachesAfterAccountSwitch());
-      unawaited(
-        _ensureCurrentUserService().ensureResolvedCurrentUser(
-          expectedUid: _authUserIdProvider(),
-          reloadEmailVerification: true,
-        ),
+      NotificationService.instance.scheduleInitialize(
+        delay: const Duration(seconds: 2),
       );
+      unawaited(_clearSessionCachesAfterAccountSwitch());
+      final resolveCurrentUserFuture = _ensureCurrentUserService()
+          .ensureResolvedCurrentUser(
+            expectedUid: _authUserIdProvider(),
+            reloadEmailVerification: true,
+          );
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        await Future.any([
+          resolveCurrentUserFuture,
+          Future.delayed(const Duration(seconds: 2)),
+        ]);
+      } else {
+        unawaited(resolveCurrentUserFuture);
+      }
       await _warmStoryRowAfterAuth(timeout: const Duration(seconds: 3));
       await _warmAgendaAfterAuth(timeout: const Duration(seconds: 3));
     } catch (_) {}

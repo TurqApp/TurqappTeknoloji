@@ -181,7 +181,6 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           'targetReadySegments=3 cachedSegments=$initialCachedSegments '
           'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads}',
         );
-        scheduler.focusDoc(normalized);
         scheduler.boostDoc(normalized, readySegments: 3);
         Future<void>.delayed(const Duration(milliseconds: 900), () {
           if (_currentPlayingDocID != activeDocID) return;

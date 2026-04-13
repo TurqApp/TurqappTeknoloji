@@ -62,10 +62,6 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _reshareWarmupTimer?.cancel();
     _resharePostsFetchTimer?.cancel();
     _agendaRetryTimer?.cancel();
-    _deferredInitialNetworkBootstrapTimer?.cancel();
-    _startupPromoRevealTimer?.cancel();
-    _startupRenderStageTimer?.cancel();
-    unawaited(persistWarmLaunchCache());
     _disposeFeedScrollControllerSafely();
   }
 
@@ -154,6 +150,19 @@ extension AgendaControllerLifecyclePart on AgendaController {
   }
 
   void _performSuspendPlaybackForOverlay() {
+    final currentCentered = centeredIndex.value;
+    if (currentCentered >= 0 && currentCentered < agendaList.length) {
+      lastCenteredIndex = currentCentered;
+    }
+    final anchorDocId = _agendaFeedApplicationService.capturePlaybackAnchor(
+      agendaList: agendaList.toList(growable: false),
+      centeredIndex: currentCentered,
+      lastCenteredIndex: lastCenteredIndex,
+    );
+    final normalizedAnchorDocId = anchorDocId?.trim() ?? '';
+    if (normalizedAnchorDocId.isNotEmpty) {
+      _pendingCenteredDocId = normalizedAnchorDocId;
+    }
     playbackSuspended.value = true;
     _cancelPendingPlaybackReassert();
     _visibleFractions.clear();

@@ -3,6 +3,25 @@ part of 'cache_manager.dart';
 const Duration _userInteractionEvictionGracePeriod = Duration(hours: 6);
 
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
+  Future<void> purgeExpiredEntries() async {
+    final now = DateTime.now();
+    final expired = _index.entries.values
+        .where((entry) => _shouldPurgeExpiredEntry(entry, now: now))
+        .toList(growable: false);
+    if (expired.isEmpty) return;
+
+    for (final entry in expired) {
+      await _evictEntry(entry);
+    }
+
+    _recentlyPlayed.removeWhere(
+      (docID) => !_index.entries.containsKey(docID),
+    );
+    debugPrint(
+      '[CacheManager] Expired cache purged: ${expired.length} entries',
+    );
+  }
+
   VideoCacheEntry? _findEvictionCandidate({bool preferLowQuality = false}) {
     VideoCacheEntry? worst;
     double worstScore = double.infinity;
@@ -74,6 +93,29 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       return true;
     }
     return false;
+  }
+
+  bool _shouldPurgeExpiredEntry(
+    VideoCacheEntry entry, {
+    required DateTime now,
+  }) {
+    if (entry.state == VideoCacheState.playing) return false;
+    final userInteractionAt = entry.lastUserInteractionAt;
+    if (userInteractionAt == null) return false;
+    if (now.difference(userInteractionAt) < _userInteractionEvictionGracePeriod) {
+      return false;
+    }
+    if (entry.state == VideoCacheState.watched) {
+      return true;
+    }
+    if (entry.totalSegmentCount <= 0) {
+      return entry.cachedSegmentCount > 2 && entry.watchProgress > 0.10;
+    }
+    final currentSegment = HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
+      progress: entry.watchProgress,
+      totalSegments: entry.totalSegmentCount,
+    );
+    return currentSegment >= 3;
   }
 
   Future<void> _evictEntry(VideoCacheEntry entry) async {

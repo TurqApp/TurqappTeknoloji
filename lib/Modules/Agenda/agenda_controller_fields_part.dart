@@ -28,9 +28,6 @@ class _AgendaControllerState {
   Timer? reshareWarmupTimer;
   Timer? resharePostsFetchTimer;
   Timer? agendaRetryTimer;
-  Timer? deferredInitialNetworkBootstrapTimer;
-  Timer? startupPromoRevealTimer;
-  Timer? startupRenderStageTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -54,11 +51,8 @@ class _AgendaControllerState {
   Future<void>? ensureInitialLoadFuture;
   Future<void>? surfaceBootstrapFuture;
   Future<void>? startupPrepareFuture;
-  Future<void>? headSyncFuture;
   int feedMutationEpoch = 0;
   DateTime? lastEnsureInitialLoadAt;
-  DateTime? lastHeadSyncAt;
-  DateTime? lastDeferredInitialNetworkBootstrapAt;
   DateTime? lastPlaybackCommandAt;
   DateTime? lastFloodRootWarmAt;
   DateTime? startupPlaybackLockedAt;
@@ -73,21 +67,16 @@ class _AgendaControllerState {
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
   bool feedRefreshInFlight = false;
-  bool startupPresentationApplied = false;
-  bool startupLiveHeadApplied = false;
-  bool startupPromoRevealQueued = false;
-  bool startupPromoRevealApplied = false;
-  bool startupPromoRevealUnlockedByScroll = false;
-  bool startupPromoRevealSawUserDrag = false;
-  bool startupRenderStagingActive = false;
-  int startupRenderVisiblePostCount = 0;
+  int lastFeedWarmGroupIndex = -1;
+  int lastFeedWarmBlockIndex = -1;
+  bool startupPlannerHeadApplied = false;
+  bool startupHeadFinalized = false;
   bool startupRenderBootstrapHold = false;
   final startupCacheOriginVideoDocIds = <String>{};
-  final bufferedFeedBlockItems = <PostsModel>[];
-  int bufferedFeedBlockBaseCount = 0;
-  Future<void>? bufferedFeedBlockPrefetchFuture;
-  int bufferedFeedBlockPrefetchBaseCount = 0;
-  int nextBufferedFetchTriggerCount = ReadBudgetRegistry.feedBufferedFetchLimit;
+  int nextPageFetchTriggerCount = ReadBudgetRegistry.feedPageFetchLimit;
+  final plannedColdFeedWindow = <PostsModel>[];
+  DocumentSnapshot<Map<String, dynamic>>? plannedColdFeedLastDoc;
+  bool plannedColdFeedUsesPrimaryFeed = true;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -140,16 +129,6 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.resharePostsFetchTimer = value;
   Timer? get _agendaRetryTimer => _state.agendaRetryTimer;
   set _agendaRetryTimer(Timer? value) => _state.agendaRetryTimer = value;
-  Timer? get _deferredInitialNetworkBootstrapTimer =>
-      _state.deferredInitialNetworkBootstrapTimer;
-  set _deferredInitialNetworkBootstrapTimer(Timer? value) =>
-      _state.deferredInitialNetworkBootstrapTimer = value;
-  Timer? get _startupPromoRevealTimer => _state.startupPromoRevealTimer;
-  set _startupPromoRevealTimer(Timer? value) =>
-      _state.startupPromoRevealTimer = value;
-  Timer? get _startupRenderStageTimer => _state.startupRenderStageTimer;
-  set _startupRenderStageTimer(Timer? value) =>
-      _state.startupRenderStageTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -197,19 +176,11 @@ extension AgendaControllerFieldsPart on AgendaController {
   Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _state.startupPrepareFuture = value;
-  Future<void>? get _headSyncFuture => _state.headSyncFuture;
-  set _headSyncFuture(Future<void>? value) => _state.headSyncFuture = value;
   int get _feedMutationEpoch => _state.feedMutationEpoch;
   set _feedMutationEpoch(int value) => _state.feedMutationEpoch = value;
   DateTime? get _lastEnsureInitialLoadAt => _state.lastEnsureInitialLoadAt;
   set _lastEnsureInitialLoadAt(DateTime? value) =>
       _state.lastEnsureInitialLoadAt = value;
-  DateTime? get _lastHeadSyncAt => _state.lastHeadSyncAt;
-  set _lastHeadSyncAt(DateTime? value) => _state.lastHeadSyncAt = value;
-  DateTime? get _lastDeferredInitialNetworkBootstrapAt =>
-      _state.lastDeferredInitialNetworkBootstrapAt;
-  set _lastDeferredInitialNetworkBootstrapAt(DateTime? value) =>
-      _state.lastDeferredInitialNetworkBootstrapAt = value;
   DateTime? get _lastPlaybackCommandAt => _state.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _state.lastPlaybackCommandAt = value;
@@ -245,53 +216,34 @@ extension AgendaControllerFieldsPart on AgendaController {
   set _feedModeFallbackEpoch(int value) => _state.feedModeFallbackEpoch = value;
   bool get _feedRefreshInFlight => _state.feedRefreshInFlight;
   set _feedRefreshInFlight(bool value) => _state.feedRefreshInFlight = value;
-  bool get _startupPresentationApplied => _state.startupPresentationApplied;
-  set _startupPresentationApplied(bool value) =>
-      _state.startupPresentationApplied = value;
-  bool get _startupLiveHeadApplied => _state.startupLiveHeadApplied;
-  set _startupLiveHeadApplied(bool value) =>
-      _state.startupLiveHeadApplied = value;
-  bool get _startupPromoRevealQueued => _state.startupPromoRevealQueued;
-  set _startupPromoRevealQueued(bool value) =>
-      _state.startupPromoRevealQueued = value;
-  set _startupPromoRevealApplied(bool value) =>
-      _state.startupPromoRevealApplied = value;
-  bool get _startupPromoRevealUnlockedByScroll =>
-      _state.startupPromoRevealUnlockedByScroll;
-  set _startupPromoRevealUnlockedByScroll(bool value) =>
-      _state.startupPromoRevealUnlockedByScroll = value;
-  bool get _startupPromoRevealSawUserDrag =>
-      _state.startupPromoRevealSawUserDrag;
-  set _startupPromoRevealSawUserDrag(bool value) =>
-      _state.startupPromoRevealSawUserDrag = value;
-  bool get _startupRenderStagingActive => _state.startupRenderStagingActive;
-  set _startupRenderStagingActive(bool value) =>
-      _state.startupRenderStagingActive = value;
-  int get _startupRenderVisiblePostCount =>
-      _state.startupRenderVisiblePostCount;
-  set _startupRenderVisiblePostCount(int value) =>
-      _state.startupRenderVisiblePostCount = value;
+  int get _lastFeedWarmGroupIndex => _state.lastFeedWarmGroupIndex;
+  set _lastFeedWarmGroupIndex(int value) =>
+      _state.lastFeedWarmGroupIndex = value;
+  int get _lastFeedWarmBlockIndex => _state.lastFeedWarmBlockIndex;
+  set _lastFeedWarmBlockIndex(int value) =>
+      _state.lastFeedWarmBlockIndex = value;
+  bool get _startupPlannerHeadApplied => _state.startupPlannerHeadApplied;
+  set _startupPlannerHeadApplied(bool value) =>
+      _state.startupPlannerHeadApplied = value;
+  bool get _startupHeadFinalized => _state.startupHeadFinalized;
+  set _startupHeadFinalized(bool value) => _state.startupHeadFinalized = value;
   bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
   set _startupRenderBootstrapHold(bool value) =>
       _state.startupRenderBootstrapHold = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
-  List<PostsModel> get _bufferedFeedBlockItems => _state.bufferedFeedBlockItems;
-  int get _bufferedFeedBlockBaseCount => _state.bufferedFeedBlockBaseCount;
-  set _bufferedFeedBlockBaseCount(int value) =>
-      _state.bufferedFeedBlockBaseCount = value;
-  Future<void>? get _bufferedFeedBlockPrefetchFuture =>
-      _state.bufferedFeedBlockPrefetchFuture;
-  set _bufferedFeedBlockPrefetchFuture(Future<void>? value) =>
-      _state.bufferedFeedBlockPrefetchFuture = value;
-  int get _bufferedFeedBlockPrefetchBaseCount =>
-      _state.bufferedFeedBlockPrefetchBaseCount;
-  set _bufferedFeedBlockPrefetchBaseCount(int value) =>
-      _state.bufferedFeedBlockPrefetchBaseCount = value;
-  int get _nextBufferedFetchTriggerCount =>
-      _state.nextBufferedFetchTriggerCount;
-  set _nextBufferedFetchTriggerCount(int value) =>
-      _state.nextBufferedFetchTriggerCount = value;
+  int get _nextPageFetchTriggerCount => _state.nextPageFetchTriggerCount;
+  set _nextPageFetchTriggerCount(int value) =>
+      _state.nextPageFetchTriggerCount = value;
+  List<PostsModel> get _plannedColdFeedWindow => _state.plannedColdFeedWindow;
+  DocumentSnapshot<Map<String, dynamic>>? get _plannedColdFeedLastDoc =>
+      _state.plannedColdFeedLastDoc;
+  set _plannedColdFeedLastDoc(DocumentSnapshot<Map<String, dynamic>>? value) =>
+      _state.plannedColdFeedLastDoc = value;
+  bool get _plannedColdFeedUsesPrimaryFeed =>
+      _state.plannedColdFeedUsesPrimaryFeed;
+  set _plannedColdFeedUsesPrimaryFeed(bool value) =>
+      _state.plannedColdFeedUsesPrimaryFeed = value;
 
   bool isStartupCacheOriginVideoDoc(String docId) {
     final normalized = docId.trim();

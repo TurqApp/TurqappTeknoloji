@@ -112,13 +112,13 @@ class SessionBootstrap {
     bool hadReturningSessionHint = false,
   }) {
     if (IntegrationTestMode.enabled) {
-      return const Duration(seconds: 3);
-    }
-    if (_isIOS()) {
-      return const Duration(milliseconds: 450);
+      return const Duration(milliseconds: 900);
     }
     if (hadReturningSessionHint || _hasReturningSessionHint(prefs)) {
       return const Duration(milliseconds: 1800);
+    }
+    if (_isIOS()) {
+      return const Duration(milliseconds: 900);
     }
     return const Duration(milliseconds: 900);
   }
@@ -165,6 +165,11 @@ class SessionBootstrap {
     required SharedPreferences prefs,
     bool hadReturningSessionHint = false,
   }) async {
+    final shouldAttemptRestore =
+        hadReturningSessionHint || _hasReturningSessionHint(prefs);
+    if (!shouldAttemptRestore) {
+      return '';
+    }
     try {
       return (await _ensureAuthReady(
                 timeout: _authRestoreWaitFor(

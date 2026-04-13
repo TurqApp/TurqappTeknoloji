@@ -27,12 +27,14 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
-    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      ...post.preferredVideoPosterUrls,
+    ]..removeWhere((url) => url.trim().isEmpty);
+    if (candidates.isNotEmpty) {
       return true;
     }
-    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
-        .isNotEmpty;
+    return false;
   }
 
   void _scheduleFullscreenPlaybackGuard(HLSVideoAdapter ctrl, String docId) {
@@ -148,6 +150,73 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     _lastExclusivePlayAt = now;
     try {
       _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+    } catch (_) {}
+  }
+
+  Duration? _savedPlaybackPositionForSingleShort(
+    int index,
+    HLSVideoAdapter ctrl,
+  ) {
+    if (index < 0 || index >= shorts.length || ctrl.isDisposed) return null;
+    final handleKey = _playbackHandleKeyForDoc(shorts[index].docID);
+    final state = VideoStateManager.instance.getVideoState(
+      handleKey,
+    );
+    if (state == null || state.position <= const Duration(milliseconds: 50)) {
+      return null;
+    }
+    final duration = ctrl.value.duration;
+    var target = state.position;
+    if (duration > Duration.zero) {
+      final maxSeek = duration - const Duration(milliseconds: 120);
+      if (maxSeek <= Duration.zero) return null;
+      if (target > maxSeek) {
+        target = maxSeek;
+      }
+    }
+    final currentPosition = ctrl.value.position;
+    final currentMs = currentPosition.inMilliseconds;
+    final targetMs = target.inMilliseconds;
+    final forwardSkewMs = targetMs - currentMs;
+    final hasMeaningfulCurrentPosition = currentMs > 50;
+    if (hasMeaningfulCurrentPosition && forwardSkewMs <= 250) {
+      _playbackRuntimeService.clearSavedPlaybackState(handleKey);
+      return null;
+    }
+    if (ctrl.isStopped || !ctrl.value.isInitialized) {
+      return target;
+    }
+    final deltaMs =
+        (currentPosition.inMilliseconds - target.inMilliseconds).abs();
+    if (deltaMs <= 250) {
+      _playbackRuntimeService.clearSavedPlaybackState(handleKey);
+      return null;
+    }
+    return target;
+  }
+
+  Future<void> _restoreSingleShortPlaybackStateIfNeeded(
+    int index,
+    HLSVideoAdapter ctrl,
+  ) async {
+    if (index < 0 || index >= shorts.length || ctrl.isDisposed) return;
+    final docId = shorts[index].docID;
+    final handleKey = _playbackHandleKeyForDoc(docId);
+    final target = _savedPlaybackPositionForSingleShort(index, ctrl);
+    debugPrint(
+      '[SingleShortResume] restore_check index=$index doc=$docId handle=$handleKey '
+      'savedMs=${target?.inMilliseconds ?? -1} '
+      'currentMs=${ctrl.value.position.inMilliseconds} '
+      'init=${ctrl.value.isInitialized}',
+    );
+    if (target == null) return;
+    try {
+      debugPrint(
+        '[SingleShortResume] restore_apply index=$index doc=$docId handle=$handleKey '
+        'targetMs=${target.inMilliseconds}',
+      );
+      await ctrl.seekTo(target);
+      _playbackRuntimeService.clearSavedPlaybackState(handleKey);
     } catch (_) {}
   }
 
@@ -301,7 +370,31 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
       if (shouldPersist) {
         try {
+          debugPrint(
+            '[SingleShortResume] tick_save index=$currentPage doc=$docId '
+            'posMs=${value.position.inMilliseconds} '
+            'durMs=${value.duration.inMilliseconds} '
+            'progress=${progress.toStringAsFixed(3)}',
+          );
           _segmentCacheRuntimeService.updateWatchProgress(docId, progress);
+          _playbackRuntimeService.savePlaybackState(
+            _playbackHandleKeyForDoc(docId),
+            HLSAdapterPlaybackHandle(adapter),
+          );
+          final currentSegment = _segmentCacheRuntimeService
+              .estimateCurrentSegmentForDoc(
+                docId,
+                progress: progress,
+                positionSeconds: pos,
+              );
+          if (currentSegment != null &&
+              currentPage >= 0 &&
+              currentPage < shorts.length) {
+            FeedDiversityMemoryService.ensure().noteWatchedPost(
+              shorts[currentPage],
+              currentSegment: currentSegment,
+            );
+          }
           _lastProgressPersistAt = now;
           _lastPersistedProgress = progress;
         } catch (_) {}
@@ -318,19 +411,16 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
     final candidates = <String>[
       if (resolvedUrl.isNotEmpty) resolvedUrl,
-      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl)
-        fallbackImage,
-      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+      ...post.preferredVideoPosterUrls,
     ];
     if (candidates.isEmpty) {
       return const ColoredBox(color: Colors.black);
     }
     return CacheFirstNetworkImage(
       imageUrl: candidates.first,
-      candidateUrls: candidates.skip(1).toList(growable: false),
+      candidateUrls: candidates.skip(1).where((url) => url != candidates.first).toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),
@@ -471,10 +561,13 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     String keyId, {
     bool? overrideAutoPlay,
     double? modelAspectRatio,
+    bool? preferResumePosterOverride,
   }) {
     final ar = (modelAspectRatio != null && modelAspectRatio > 0)
         ? modelAspectRatio
         : (9 / 16);
+
+    final preferResumePoster = preferResumePosterOverride ?? false;
 
     final player = adapter.buildPlayer(
       key: ValueKey(keyId),
@@ -482,6 +575,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       overrideAutoPlay: overrideAutoPlay,
       forceFullscreenOnAndroid: true,
       suppressLoadingOverlay: true,
+      preferResumePoster: preferResumePoster,
     );
 
     if (ar > 1.2) {
@@ -501,6 +595,22 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     } else {
       return SizedBox.expand(child: player);
     }
+  }
+
+  bool _shouldPreferResumePosterForSingleShort(
+    int index,
+    HLSVideoAdapter adapter,
+  ) {
+    if (index < 0 || index >= shorts.length) return false;
+    if (_forceResumePosterOnReturn && index == currentPage) {
+      return true;
+    }
+    if (widget.initialPosition != null &&
+        widget.initialPosition! > Duration.zero &&
+        index == currentPage) {
+      return true;
+    }
+    return false;
   }
 
   Future<void> _fetchAndShuffle() async {

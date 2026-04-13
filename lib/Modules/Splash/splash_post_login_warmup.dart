@@ -136,9 +136,9 @@ class PostLoginWarmup {
         );
       }
 
-      Future.delayed(const Duration(milliseconds: 900), () {
-        unawaited(_initializeNotifications());
-      });
+      _scheduleNotificationInitWhenStartupReady(
+        isFirstLaunch: isFirstLaunch,
+      );
 
       final admobDelay = Duration(
         milliseconds:
@@ -183,6 +183,28 @@ class PostLoginWarmup {
           return;
         }
         unawaited(_initializeAdMob(isFirstLaunch: isFirstLaunch));
+      });
+    }
+
+    scheduleAttempt();
+  }
+
+  void _scheduleNotificationInitWhenStartupReady({
+    required bool isFirstLaunch,
+  }) {
+    void scheduleAttempt({int attemptIndex = 0}) {
+      final delay = attemptIndex == 0
+          ? Duration(milliseconds: isFirstLaunch ? 2400 : 1800)
+          : const Duration(milliseconds: 900);
+      Future.delayed(delay, () {
+        if (_skipBackgroundStartupWork()) return;
+        if (!isMinimumStartupPrepared()) {
+          if (attemptIndex < 8) {
+            scheduleAttempt(attemptIndex: attemptIndex + 1);
+          }
+          return;
+        }
+        unawaited(_initializeNotifications());
       });
     }
 

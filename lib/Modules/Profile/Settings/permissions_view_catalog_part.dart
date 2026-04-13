@@ -32,6 +32,10 @@ String _permissionId(Permission permission) {
   return permission.toString().split('.').last;
 }
 
+bool _isPermissionEnabled(PermissionStatus status) {
+  return status.isGranted || status.isLimited || status.isProvisional;
+}
+
 extension _PermissionsViewCatalogPart on _PermissionsViewState {
   List<_PermissionItem> get _items => [
         _PermissionItem(
@@ -99,7 +103,7 @@ extension _PermissionsViewCatalogPart on _PermissionsViewState {
     final next = <String, PermissionStatus>{};
     for (final item in _items) {
       next[_permissionId(item.permission)] =
-          await IntegrationPermissionTestHarness.statusFor(
+          await IntegrationPermissionTestHarness.refreshStatusFor(
         item.permission,
         permissionId: _permissionId(item.permission),
       );
@@ -114,7 +118,7 @@ extension _PermissionsViewCatalogPart on _PermissionsViewState {
   }
 
   String _statusLabel(PermissionStatus status) {
-    if (status.isGranted || status.isLimited) return 'permissions.allowed'.tr;
+    if (_isPermissionEnabled(status)) return 'permissions.allowed'.tr;
     return 'permissions.denied'.tr;
   }
 

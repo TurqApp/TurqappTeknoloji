@@ -52,6 +52,8 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
   Future<void> _performRestoreCachedBuckets() async {
     final buckets = await _profileRepository.readCachedBuckets(userID);
     if (buckets == null) return;
+    final isOwnProfile =
+        CurrentUserService.instance.effectiveUserId.trim() == userID.trim();
     var applied = false;
     if (buckets.all.isNotEmpty) {
       allPosts.assignAll(buckets.all);
@@ -60,8 +62,10 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
     if (buckets.photos.isNotEmpty) {
       photos.assignAll(buckets.photos);
     }
-    if (buckets.scheduled.isNotEmpty) {
+    if (isOwnProfile && buckets.scheduled.isNotEmpty) {
       scheduledPosts.assignAll(buckets.scheduled);
+    } else {
+      scheduledPosts.clear();
     }
     if (applied) {
       bootstrapFeedPlaybackAfterDataChange();

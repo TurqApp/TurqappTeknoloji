@@ -122,7 +122,7 @@ class HLSController {
     if (!_duration.isFinite || _duration <= 0) return false;
     if (!_currentPosition.isFinite) return false;
     final remaining = _duration - _currentPosition;
-    return remaining <= 0.35;
+    return remaining <= 0.05;
   }
 
   bool get _shouldPreserveResumeVisual {

@@ -34,18 +34,14 @@ class ReadBudgetRegistry {
   static const int feedHomeInitialLimit =
       SurfacePolicyRegistry.feedHomeInitialLimit;
   static const int feedLivePageLimit = SurfacePolicyRegistry.feedLivePageLimit;
-  static const int feedBufferedFetchLimit =
-      SurfacePolicyRegistry.feedBufferedFetchLimit;
+  static const int feedPageFetchLimit =
+      SurfacePolicyRegistry.feedPageFetchLimit;
   static const int feedPersistSnapshotLimit =
       SurfacePolicyRegistry.feedPersistSnapshotLimit;
   static const int feedVisiblePublicFallbackMinLimit =
       SurfacePolicyRegistry.feedVisiblePublicFallbackMinLimit;
   static const int feedGlobalBadgeMinLimit =
       SurfacePolicyRegistry.feedGlobalBadgeMinLimit;
-  static const int feedShuffleInitialFetchSize =
-      SurfacePolicyRegistry.feedShuffleInitialFetchSize;
-  static const int feedShuffleBackgroundFetchSize =
-      SurfacePolicyRegistry.feedShuffleBackgroundFetchSize;
   static const int shortHomeInitialLimit =
       SurfacePolicyRegistry.shortHomeInitialLimit;
   static const int shortBufferedFetchLimit =

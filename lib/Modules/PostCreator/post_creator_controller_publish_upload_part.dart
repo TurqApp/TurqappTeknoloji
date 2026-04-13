@@ -413,6 +413,9 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
 
           // Upload to Firestore with error handling
           try {
+            final isFreshVideoUpload = post.video != null;
+            final isPendingVideoProcessing =
+                isFreshVideoUpload && !isReusedVideoPost;
             await FirebaseFirestore.instance
                 .collection('Posts')
                 .doc(docID)
@@ -428,7 +431,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "gizlendi": false,
               "img": imageUrls,
               "imgMap": imgMap,
-              "isUploading": false,
+              "isUploading": isPendingVideoProcessing,
               "isAd": false,
               "ad": false,
               "izBirakYayinTarihi": publishTime,
@@ -464,13 +467,15 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "displayName": authorDisplayName,
               "avatarUrl": authorAvatarUrl,
               "rozet": authorRozet,
-              "video": videoUrl,
+              "video": isPendingVideoProcessing ? "" : videoUrl,
               "videoLook": {
                 "preset": post.videoLookPreset,
                 "version": 1,
                 "intensity": 1.0,
               },
-              "hlsStatus": isReusedVideoPost ? "ready" : "none",
+              "hlsStatus": isReusedVideoPost
+                  ? "ready"
+                  : (isPendingVideoProcessing ? "processing" : "none"),
               "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
               "hlsUpdatedAt": isReusedVideoPost ? nowMs : 0,
               "yorumMap": {
@@ -550,7 +555,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 floodCount: allPosts.length,
                 gizlendi: false,
                 img: imageUrls,
-                isUploading: false,
+                isUploading: isPendingVideoProcessing,
                 isAd: false,
                 ad: false,
                 izBirakYayinTarihi: publishTime,
@@ -575,13 +580,15 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 userID: uid,
                 authorNickname: authorNickname,
                 authorAvatarUrl: authorAvatarUrl,
-                video: videoUrl,
+                video: isPendingVideoProcessing ? "" : videoUrl,
                 videoLook: {
                   "preset": post.videoLookPreset,
                   "version": 1,
                   "intensity": 1.0,
                 },
-                hlsStatus: isReusedVideoPost ? "ready" : "none",
+                hlsStatus: isReusedVideoPost
+                    ? "ready"
+                    : (isPendingVideoProcessing ? "processing" : "none"),
                 hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
                 hlsUpdatedAt: isReusedVideoPost ? nowMs : 0,
                 yorum: comment.value,

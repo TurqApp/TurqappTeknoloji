@@ -42,7 +42,9 @@ extension PostContentControllerRuntimePart on PostContentController {
     getGizleArsivSikayetEdildi();
     getUserData(model.userID);
     getReSharedUsers(model.docID);
-    saveSeeing();
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      saveSeeing();
+    }
     followCheck();
     _bindFollowingState();
     WidgetsBinding.instance.addPostFrameCallback((_) {

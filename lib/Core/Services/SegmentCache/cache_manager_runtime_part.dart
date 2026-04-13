@@ -7,12 +7,63 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _cacheDir = '${appDir.path}/hls_cache';
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
-    unawaited(_recoverIndex());
+    unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
     _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-      _reconcileTotalSize();
+      unawaited(_runPeriodicMaintenance());
     });
     _isReady = true;
+  }
+
+  Future<void> _recoverAndPurgeExpiredEntries() async {
+    try {
+      await _recoverIndex();
+      _normalizeStalePlayingEntries(maxIdle: Duration.zero);
+      await purgeExpiredEntries();
+    } catch (e) {
+      debugPrint('[CacheManager] Recovery/purge failed: $e');
+    }
+  }
+
+  Future<void> _runPeriodicMaintenance() async {
+    try {
+      _reconcileTotalSize();
+      _normalizeStalePlayingEntries();
+      await purgeExpiredEntries();
+    } catch (e) {
+      debugPrint('[CacheManager] Periodic maintenance failed: $e');
+    }
+  }
+
+  void _normalizeStalePlayingEntries({
+    Duration maxIdle = const Duration(minutes: 15),
+  }) {
+    final now = DateTime.now();
+    var normalizedCount = 0;
+    for (final entry in _index.entries.values) {
+      if (entry.state != VideoCacheState.playing) continue;
+      if (now.difference(entry.lastAccessedAt) < maxIdle) continue;
+      entry.state = _restingStateForEntry(entry);
+      normalizedCount++;
+    }
+    if (normalizedCount <= 0) return;
+    _markDirty();
+    debugPrint(
+      '[CacheManager] Normalized stale playing entries: $normalizedCount',
+    );
+  }
+
+  VideoCacheState _restingStateForEntry(VideoCacheEntry entry) {
+    if (entry.watchProgress >= 0.9) {
+      return VideoCacheState.watched;
+    }
+    if (entry.isFullyCached) {
+      return VideoCacheState.ready;
+    }
+    if (entry.cachedSegmentCount > 0) {
+      return VideoCacheState.partial;
+    }
+    return VideoCacheState.uncached;
   }
 
   bool get isReady => _isReady;

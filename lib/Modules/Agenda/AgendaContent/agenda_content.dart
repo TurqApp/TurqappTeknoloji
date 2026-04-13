@@ -118,6 +118,35 @@ class _AgendaContentState extends State<AgendaContent>
   static const bool _showActionTapAreas = false;
   static const Color _actionColor = Color(0xFF6F7A85);
   static const Color _videoFallbackColor = Colors.black;
+
+  bool get _useAndroidAgendaTypography => GetPlatform.isAndroid;
+
+  double _agendaPlatformFontSize(double fontSize) {
+    if (!_useAndroidAgendaTypography) return fontSize;
+    return fontSize - 1;
+  }
+
+  TextStyle _agendaTypography(TextStyle style) {
+    final fontSize = style.fontSize;
+    if (fontSize == null) return style;
+    return style.copyWith(fontSize: _agendaPlatformFontSize(fontSize));
+  }
+
+  TextStyle get _agendaPostNameStyle => _agendaTypography(AppTypography.postName);
+
+  TextStyle get _agendaPostHandleStyle =>
+      _agendaTypography(AppTypography.postHandle);
+
+  TextStyle get _agendaPostMetaStyle => _agendaTypography(AppTypography.postMeta);
+
+  TextStyle get _agendaPostCaptionStyle =>
+      _agendaTypography(AppTypography.postCaption);
+
+  double get _agendaPostCaptionFontSize =>
+      _agendaPlatformFontSize(AppTypography.postCaption.fontSize ?? 14);
+
+  double get _agendaPostAttributionFontSize =>
+      _agendaPlatformFontSize(AppTypography.postAttribution.fontSize ?? 11);
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
   final arsivController = ensureArchiveController();

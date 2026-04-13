@@ -3,17 +3,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/playback_execution_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
@@ -28,6 +29,7 @@ import '../../main.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
+import '../../Services/post_interaction_service.dart';
 
 part 'short_view_playback_part.dart';
 part 'short_view_ui_part.dart';
@@ -38,7 +40,8 @@ const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
 const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);
 const Duration _shortTierReconcileDelay = Duration(milliseconds: 220);
 const Duration _shortEngagementRescoreDelay = Duration(milliseconds: 2500);
-const Duration _shortPlayWatchdogDelay = Duration(milliseconds: 450);
+const Duration _shortPlayWatchdogDelayAndroid = Duration(milliseconds: 450);
+const Duration _shortPlayWatchdogDelayIOS = Duration(milliseconds: 900);
 const Duration _shortProgressPersistInterval = Duration(seconds: 2);
 const double _shortProgressPersistDelta = 0.10;
 
@@ -174,10 +177,15 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
+  int? _pendingPlayPage;
+  String? _pendingPlayDocId;
+  bool _pendingPageActivation = false;
+  bool _forceResumePosterOnReturn = false;
   int? _pendingAutoAdvancePage;
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
+  final Set<String> _recordedVisibleShortDocIds = <String>{};
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -187,6 +195,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
   Timer? _routeVisiblePlaybackBootstrapTimer;
+  Duration _playbackWatchdogBaselinePosition = Duration.zero;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
 
@@ -198,14 +207,15 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   HLSVideoAdapter? _telemetryAdapter;
   int _playWatchdogRetries = 0;
   Timer? _stallWatchdogTimer;
+  Timer? _iosNativePlaybackGuardTimer;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
   int _stallWatchdogBufferingCycles = 0;
   bool _routeObserverSubscribed = false;
   static const Duration _shortAutoplaySegmentGateTimeout =
-      Duration(milliseconds: 950);
+      Duration(milliseconds: 420);
   static const Duration _shortAutoplaySegmentGatePollInterval =
-      Duration(milliseconds: 120);
+      Duration(milliseconds: 80);
 
   // Liste değişimlerini takip eden worker
   Worker? _shortsWorker;
@@ -253,7 +263,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         hasRenderedFirstFrame: value.hasRenderedFirstFrame,
         position: value.position,
         duration: value.duration,
-        visualReadyPositionThreshold: const Duration(milliseconds: 180),
+        visualReadyPositionThreshold: const Duration(milliseconds: 90),
       ),
     );
   }
@@ -286,16 +296,18 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     });
   }
 
+  void _scheduleInitialRoutePlaybackBootstrapIfNeeded() {
+    if (_didInitialAttach) return;
+    _didInitialAttach = true;
+    if (_cachedShorts.isEmpty) {
+      return;
+    }
+    _scheduleRouteVisiblePlaybackBootstrap(delay: Duration.zero);
+  }
+
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
     await _playbackExecutionService.stopAdapter(adapter);
-  }
-
-  Future<void> _quietBackgroundPlayback(HLSVideoAdapter adapter) async {
-    if (adapter.isDisposed) return;
-    try {
-      await _playbackExecutionService.quietBackgroundAdapter(adapter);
-    } catch (_) {}
   }
 
   void _primeInitialPlayback() {
@@ -337,16 +349,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
+    _iosNativePlaybackGuardTimer?.cancel();
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
     final vc = controller.cache[currentPage];
     if (vc != null) {
       _persistShortPlaybackState(currentPage, vc);
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        _quietBackgroundPlayback(vc);
-      } else {
-        await _releasePlayback(vc);
-      }
+      await _releasePlayback(vc);
       vc.removeListener(_videoEndListener);
       vc.removeListener(_telemetryListener);
     }
@@ -408,17 +417,18 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     routeObserver.subscribe(this, route);
     _routeObserverSubscribed = true;
     if (route.isCurrent) {
-      _scheduleRouteVisiblePlaybackBootstrap();
+      _scheduleInitialRoutePlaybackBootstrapIfNeeded();
     }
   }
 
   @override
   void didPush() {
-    _scheduleRouteVisiblePlaybackBootstrap();
+    _scheduleInitialRoutePlaybackBootstrapIfNeeded();
   }
 
   @override
   void didPushNext() {
+    _forceResumePosterOnReturn = false;
     unawaited(_pauseCurrentShortRoutePlayback());
   }
 
@@ -431,6 +441,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       maybeFindNavBarController()?.pauseGlobalTabMedia();
     } catch (_) {}
     if (_cachedShorts.isEmpty) return;
+    _forceResumePosterOnReturn = true;
     _scheduleRouteVisiblePlaybackBootstrap(delay: Duration.zero);
   }
 
@@ -444,6 +455,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _playbackWatchdogTimer?.cancel();
     _routeVisiblePlaybackBootstrapTimer?.cancel();
     _stallWatchdogTimer?.cancel();
+    _iosNativePlaybackGuardTimer?.cancel();
     _shortsWorker?.dispose();
     if (_routeObserverSubscribed) {
       try {
@@ -456,6 +468,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
     final vc = controller.cache[currentPage];
     if (vc != null) {
+      _persistShortPlaybackState(currentPage, vc);
       _releasePlayback(vc);
       vc.removeListener(_videoEndListener);
       vc.removeListener(_telemetryListener);

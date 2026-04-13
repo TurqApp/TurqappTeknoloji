@@ -82,6 +82,7 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
     int limit = 15,
     bool reset = false,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     if (reset) {
       _feedMemory.clear();
       _lastFeedDoc = null;
@@ -92,6 +93,7 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
         .where('arsiv', isEqualTo: false)
         .where('img', isNotEqualTo: [])
         .where('flood', isEqualTo: false)
+        .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy('timeStamp', descending: true)
         .limit(limit);
 
@@ -105,6 +107,7 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
       for (final doc in snap.docs) {
         final model = PostsModel.fromFirestore(doc);
         if (model.deletedPost == true) continue;
+        if (model.timeStamp > nowMs) continue;
         _feedMemory.add(model);
       }
     }

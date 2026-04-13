@@ -13,35 +13,36 @@ class FeedPlaybackSelectionPolicy {
   }) {
     return _isAndroidPlatform &&
         previousFraction != null &&
-        (previousFraction - visibleFraction).abs() < 0.12;
+        (previousFraction - visibleFraction).abs() < 0.08;
   }
 
   static Duration get evaluationDebounceDuration => _isAndroidPlatform
-      ? const Duration(milliseconds: 96)
-      : const Duration(milliseconds: 40);
+      ? const Duration(milliseconds: 48)
+      : const Duration(milliseconds: 24);
 
-  static double get playThreshold => 0.80;
+  static double get playThreshold => _isAndroidPlatform ? 0.72 : 0.76;
 
   static double get stopThreshold => _isAndroidPlatform ? 0.25 : 0.40;
 
-  static double get secondaryThreshold => _isAndroidPlatform ? 0.55 : 0.62;
+  static double get secondaryThreshold => _isAndroidPlatform ? 0.50 : 0.58;
 
-  static double get hysteresis => _isAndroidPlatform ? 0.10 : 0.06;
+  static double get hysteresis => _isAndroidPlatform ? 0.08 : 0.06;
 
   static double get switchRetentionThreshold =>
-      _isAndroidPlatform ? 0.58 : 0.62;
+      _isAndroidPlatform ? 0.52 : 0.56;
 
-  static double get switchDominanceMargin => _isAndroidPlatform ? 0.18 : 0.10;
+  static double get switchDominanceMargin => _isAndroidPlatform ? 0.12 : 0.10;
 
-  static Duration get scrollSettleReassertDuration =>
-      const Duration(milliseconds: 220);
+  static Duration get scrollSettleReassertDuration => _isAndroidPlatform
+      ? const Duration(milliseconds: 140)
+      : const Duration(milliseconds: 140);
 
   static Duration get playbackTargetStickinessDuration => _isAndroidPlatform
-      ? const Duration(milliseconds: 420)
+      ? const Duration(milliseconds: 220)
       : const Duration(milliseconds: 180);
 
   static Duration get pendingPlaybackTargetRetentionDuration =>
-      _isAndroidPlatform ? const Duration(milliseconds: 260) : Duration.zero;
+      _isAndroidPlatform ? const Duration(milliseconds: 120) : Duration.zero;
 
   static bool shouldPlayCenteredItem({
     required bool isCentered,
@@ -56,7 +57,7 @@ class FeedPlaybackSelectionPolicy {
   static double lingerThreshold({
     required double stopThreshold,
   }) {
-    return _isAndroidPlatform ? 0.14 : stopThreshold;
+    return _isAndroidPlatform ? 0.12 : stopThreshold;
   }
 
   static bool shouldRetainRecentlyActivatedTarget({

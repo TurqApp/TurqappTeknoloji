@@ -45,7 +45,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
     // before the user actually scrolls. Releasing the startup target early
     // causes 0->2->3 handoffs and sequential player spin-up across cards.
     final currentFraction = _visibleFractions[current] ?? 0.0;
-    return currentFraction >= stopThreshold;
+    final startupRetentionThreshold =
+        stopThreshold < 0.55 ? 0.55 : stopThreshold;
+    return currentFraction >= startupRetentionThreshold;
   }
 
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {

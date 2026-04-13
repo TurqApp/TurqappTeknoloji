@@ -89,9 +89,9 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
         }
         continue;
       }
-      if (post.timeStamp > nowMs && post.scheduledAt.toInt() <= 0) {
+      if (post.timeStamp > nowMs) {
         if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:future_unscheduled:${post.timeStamp}');
+          dropLogs.add('${post.docID}:future:${post.timeStamp}');
         }
         continue;
       }
@@ -189,17 +189,6 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
   bool _isInAgendaWindow(int timeStamp, int nowMs, int cutoffMs) {
     if (cutoffMs <= 0) return timeStamp <= nowMs || timeStamp > 0;
     return timeStamp >= cutoffMs && timeStamp <= nowMs;
-  }
-
-  bool _isEligibleFeedReference(
-    UserFeedReference item,
-    int nowMs,
-    int cutoffMs,
-  ) {
-    if (item.timeStamp <= 0) return false;
-    if (cutoffMs > 0 && item.timeStamp < cutoffMs) return false;
-    if (item.expiresAt > 0 && item.expiresAt < nowMs) return false;
-    return true;
   }
 
   bool _shouldDropIntegrationSeedPost(PostsModel post) {

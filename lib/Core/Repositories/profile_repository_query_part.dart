@@ -1,9 +1,9 @@
 part of 'profile_repository_library.dart';
 
-const Duration _profileOwnPostFutureTolerance = Duration(minutes: 15);
-
 extension ProfileRepositoryQueryPart on ProfileRepository {
   String _asTrimmedString(dynamic value) => (value ?? '').toString().trim();
+
+  int _visibleNowThresholdMs() => DateTime.now().millisecondsSinceEpoch;
 
   Map<String, dynamic> _coerceMap(dynamic value) {
     if (value is Map<String, dynamic>) {
@@ -46,22 +46,27 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     return effectiveUid.isNotEmpty && effectiveUid == normalizedUid;
   }
 
-  int _profileVisibleNowThresholdMs(String uid) {
-    final baseNowMs = DateTime.now().millisecondsSinceEpoch;
-    if (!_isOwnProfileRequest(uid)) return baseNowMs;
-    return baseNowMs + _profileOwnPostFutureTolerance.inMilliseconds;
-  }
-
   Future<ProfilePageResult> _fetchPrimaryPageImpl({
     required String uid,
     required DocumentSnapshot<Map<String, dynamic>>? startAfter,
     required int limit,
   }) async {
+    final restrictFutureDatedVisibility = !_isOwnProfileRequest(uid);
+    final visibleNowThresholdMs = _visibleNowThresholdMs();
     var query = _firestore
         .collection('Posts')
         .where('userID', isEqualTo: uid)
         .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
+        .where('flood', isEqualTo: false);
+
+    if (restrictFutureDatedVisibility) {
+      query = query.where(
+        'timeStamp',
+        isLessThanOrEqualTo: visibleNowThresholdMs,
+      );
+    }
+
+    query = query
         .orderBy('timeStamp', descending: true)
         .limit(limit);
 
@@ -112,11 +117,22 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       return _latestPostMemory[uid];
     }
 
-    final snapshot = await _firestore
+    final restrictFutureDatedVisibility = !_isOwnProfileRequest(uid);
+    final visibleNowThresholdMs = _visibleNowThresholdMs();
+    var query = _firestore
         .collection('Posts')
         .where('userID', isEqualTo: uid)
         .where('arsiv', isEqualTo: false)
-        .where('flood', isEqualTo: false)
+        .where('flood', isEqualTo: false);
+
+    if (restrictFutureDatedVisibility) {
+      query = query.where(
+        'timeStamp',
+        isLessThanOrEqualTo: visibleNowThresholdMs,
+      );
+    }
+
+    final snapshot = await query
         .orderBy('timeStamp', descending: true)
         .limit(1)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -140,6 +156,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       _latestPostMemory[uid] = null;
       return null;
     }
+    if (post != null && post.timeStamp > DateTime.now().millisecondsSinceEpoch) {
+      _latestPostMemory[uid] = null;
+      return null;
+    }
     _latestPostMemory[uid] = post;
     return post;
   }
@@ -150,10 +170,12 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       return _latestResharePostMemory[uid];
     }
 
+    final visibleNowThresholdMs = _visibleNowThresholdMs();
     final snapshot = await _firestore
         .collection('users')
         .doc(uid)
         .collection('reshared_posts')
+        .where('timeStamp', isLessThanOrEqualTo: visibleNowThresholdMs)
         .orderBy('timeStamp', descending: true)
         .limit(1)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -174,6 +196,10 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
       preferCache: false,
       cacheOnly: false,
     ))[postId];
+    if (post != null && post.timeStamp > DateTime.now().millisecondsSinceEpoch) {
+      _latestResharePostMemory[uid] = null;
+      return null;
+    }
     _latestResharePostMemory[uid] = post;
     return post;
   }
@@ -213,9 +239,9 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
     List<PostsModel> posts, {
     String? profileUid,
   }) {
-    final visibleNowThresholdMs = profileUid == null
-        ? DateTime.now().millisecondsSinceEpoch
-        : _profileVisibleNowThresholdMs(profileUid);
+    final visibleNowThresholdMs = _visibleNowThresholdMs();
+    final canSeeScheduledBucket =
+        profileUid != null && _isOwnProfileRequest(profileUid);
     final all = <PostsModel>[];
     final photos = <PostsModel>[];
     final videos = <PostsModel>[];
@@ -226,7 +252,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
         continue;
       }
       final isIzBirakPost = post.scheduledAt.toInt() > 0;
-      if (isIzBirakPost) {
+      if (isIzBirakPost && canSeeScheduledBucket) {
         scheduled.add(post);
       }
       if (post.timeStamp > visibleNowThresholdMs) {

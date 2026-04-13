@@ -147,12 +147,21 @@ extension HLSControllerEventsPart on HLSController {
             if (_state != PlayerState.completed &&
                 duration.isFinite &&
                 duration > 0 &&
-                (duration - position) <= 0.2) {
+                (duration - position) <= 0.05) {
               _updateState(PlayerState.completed);
             }
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
               _updateState(
                 position > 0 ? PlayerState.playing : PlayerState.ready,
+              );
+            }
+            if (!_hasRenderedFirstFrame &&
+                defaultTargetPlatform == TargetPlatform.android &&
+                position > 0.05) {
+              _lastFirstFrameAtEpochMs ??= _eventNowEpochMs();
+              _markFirstFrameRendered();
+              _recordResumePosterTiming(
+                'synthetic_first_frame_from_time_update',
               );
             }
             break;

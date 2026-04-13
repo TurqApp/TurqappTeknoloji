@@ -1,6 +1,9 @@
 part of 'short_controller.dart';
 
 extension ShortControllerCachePart on ShortController {
+  static const int _androidActiveReadySegments = 3;
+  static const int _androidNeighborReadySegments = 3;
+
   void _ensureReadySegmentsForIndex(
     int index, {
     int minimumSegmentCount = SegmentCacheRuntimeService.globalReadySegmentCount,
@@ -87,7 +90,12 @@ extension ShortControllerCachePart on ShortController {
   Future<void> ensureActiveAdapterReady(int currentIndex) async {
     if (shorts.isEmpty) return;
     final safeIndex = currentIndex.clamp(0, shorts.length - 1);
-    _ensureReadySegmentsForIndex(safeIndex);
+    _ensureReadySegmentsForIndex(
+      safeIndex,
+      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
+          ? _androidActiveReadySegments
+          : SegmentCacheRuntimeService.globalReadySegmentCount,
+    );
     final existing = cache[safeIndex];
     if (existing == null) {
       final adapter =
@@ -98,7 +106,11 @@ extension ShortControllerCachePart on ShortController {
       return;
     }
 
-    if (existing.isStopped) {
+    final shouldReloadForActivation = existing.isStopped ||
+        (defaultTargetPlatform == TargetPlatform.android &&
+            !existing.value.isInitialized &&
+            !existing.value.hasRenderedFirstFrame);
+    if (shouldReloadForActivation) {
       await existing.reloadVideo();
     }
     _tiers[safeIndex] = _CacheTier.hot;
@@ -109,13 +121,27 @@ extension ShortControllerCachePart on ShortController {
     if (shorts.isEmpty) return;
     final safeActiveIndex = activeIndex.clamp(0, shorts.length - 1);
     if (neighborIndex < 0 || neighborIndex >= shorts.length) return;
-    _ensureReadySegmentsForIndex(safeActiveIndex);
-    _ensureReadySegmentsForIndex(neighborIndex);
+    _ensureReadySegmentsForIndex(
+      safeActiveIndex,
+      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
+          ? _androidActiveReadySegments
+          : SegmentCacheRuntimeService.globalReadySegmentCount,
+    );
+    _ensureReadySegmentsForIndex(
+      neighborIndex,
+      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
+          ? _androidNeighborReadySegments
+          : SegmentCacheRuntimeService.globalReadySegmentCount,
+    );
 
     final activeAdapter = cache[safeActiveIndex];
     if (activeAdapter != null && !activeAdapter.isDisposed) {
       _tiers[safeActiveIndex] = _CacheTier.hot;
       await activeAdapter.setPreferredBufferDuration(_activeBufferSeconds);
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return;
     }
 
     final existingNeighbor = cache[neighborIndex];
@@ -155,7 +181,10 @@ extension ShortControllerCachePart on ShortController {
     for (final i in hotIndices) {
       if (!cache.containsKey(i)) {
         futures.add(_preloadSingleVideoWithCache(i, shorts[i]));
-      } else if (cache[i]!.isStopped) {
+      } else if (cache[i]!.isStopped ||
+          (defaultTargetPlatform == TargetPlatform.android &&
+              !cache[i]!.value.isInitialized &&
+              !cache[i]!.value.hasRenderedFirstFrame)) {
         futures.add(cache[i]!.reloadVideo());
       }
       _tiers[i] = _CacheTier.hot;

@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -15,11 +14,13 @@ import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../Core/Services/feed_diversity_memory_service.dart';
 import '../../Core/Services/playback_execution_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/read_budget_registry.dart';
 import '../../Core/Services/short_render_coordinator.dart';
+import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Themes/app_tokens.dart';
@@ -203,6 +204,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   HLSVideoAdapter? _fullscreenReturnPreservedController;
+  bool _forceResumePosterOnReturn = false;
   bool _routeObserverSubscribed = false;
   bool _routePlaybackActive = true;
   String? _suspendedFeedPlaybackHandleKey;
@@ -256,7 +258,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         hasRenderedFirstFrame: value.hasRenderedFirstFrame,
         position: value.position,
         duration: value.duration,
-        visualReadyPositionThreshold: const Duration(milliseconds: 180),
+        visualReadyPositionThreshold: const Duration(milliseconds: 90),
       ),
     );
   }

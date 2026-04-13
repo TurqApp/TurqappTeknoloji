@@ -120,6 +120,37 @@ class _ClassicContentState extends State<ClassicContent>
   String _quotedSourceProfileUserId = '';
   final Set<String> _avatarSyncLoggedHeaderDocIds = <String>{};
 
+  bool get _useAndroidClassicTypography => GetPlatform.isAndroid;
+
+  double _classicPlatformFontSize(double fontSize) {
+    if (!_useAndroidClassicTypography) return fontSize;
+    return fontSize - 1;
+  }
+
+  TextStyle _classicTypography(TextStyle style) {
+    final fontSize = style.fontSize;
+    if (fontSize == null) return style;
+    return style.copyWith(fontSize: _classicPlatformFontSize(fontSize));
+  }
+
+  TextStyle get _classicPostNameStyle =>
+      _classicTypography(AppTypography.postName);
+
+  TextStyle get _classicPostHandleStyle =>
+      _classicTypography(AppTypography.postHandle);
+
+  TextStyle get _classicPostMetaStyle =>
+      _classicTypography(AppTypography.postMeta);
+
+  TextStyle get _classicPostCaptionStyle =>
+      _classicTypography(AppTypography.postCaption);
+
+  double get _classicPostCaptionFontSize =>
+      _classicPlatformFontSize(AppTypography.postCaption.fontSize ?? 14);
+
+  double get _classicPostAttributionFontSize =>
+      _classicPlatformFontSize(AppTypography.postAttribution.fontSize ?? 11);
+
   String get _currentUid {
     final cachedUid =
         (controller.userService.currentUserRx.value?.userID ?? '').trim();

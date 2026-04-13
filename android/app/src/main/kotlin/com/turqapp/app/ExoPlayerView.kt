@@ -132,6 +132,10 @@ class ExoPlayerView(
         return didRenderFirstFrame || firstVideoFrameAtMs > 0L || lastVideoFrameAtMs > 0L
     }
 
+    private fun shouldUseResumeVisualChoreography(): Boolean {
+        return forceFullscreen
+    }
+
     private fun shouldKeepStartupPlaybackAcrossDetach(): Boolean {
         if (!isPrimaryFeedSurface) return false
         if (didRenderFirstFrame) return false
@@ -313,7 +317,7 @@ class ExoPlayerView(
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 val keepStartupPlaybackAlive = shouldKeepStartupPlaybackAcrossDetach()
                 val preserveVisibleFrame =
-                    (forceFullscreen || isPrimaryFeedSurface) &&
+                    shouldUseResumeVisualChoreography() &&
                         hasReusableVideoFrame()
                 if (preserveVisibleFrame) {
                     val captured = captureResumeFrameOverlay(source = "surface_detach")
@@ -422,7 +426,7 @@ class ExoPlayerView(
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
         val preserveVisibleFrameOnReset =
-            (forceFullscreen || isPrimaryFeedSurface) &&
+            shouldUseResumeVisualChoreography() &&
                 hasReusableVideoFrame()
         resetSurfaceVisibility(preserveLastFrame = preserveVisibleFrameOnReset)
         var hasResumeVisual = false
@@ -1135,15 +1139,13 @@ class ExoPlayerView(
     }
 
     private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
-        if (!forceFullscreen) {
+        if (!shouldUseResumeVisualChoreography()) {
             runOnMainBlocking {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
                 pendingRevealRunnable = null
                 playerView.animate().cancel()
-                // Feed kartlarında öncelik resume poster, sonra thumbnail.
-                // Native yüzeyi ilk frame gelene kadar görünmez tut ki siyah katman
-                // Flutter/native poster fallback'lerinin üstüne çıkmasın.
-                playerView.alpha = if (preserveLastFrame) 1f else 0f
+                playerView.alpha = 1f
+                hideResumeFrameOverlayNow()
             }
             return
         }
@@ -1156,24 +1158,13 @@ class ExoPlayerView(
     }
 
     private fun scheduleSurfaceReveal() {
-        if (!forceFullscreen) {
-            val needsFreshFrame = playerView.alpha < 1f
-            val canReveal = if (needsFreshFrame) {
-                didRenderFirstFrame
-            } else {
-                didRenderFirstFrame ||
-                    (isPlayerReady && hasVideoSize && hasStableSurfaceLayout)
-            }
-            if (!canReveal) return
+        if (!shouldUseResumeVisualChoreography()) {
             handler.post {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
-                val revealRunnable = Runnable {
-                    pendingRevealRunnable = null
-                    revealSurface(immediate = !didRenderFirstFrame)
-                }
-                pendingRevealRunnable = revealRunnable
-                val revealDelayMs = if (didRenderFirstFrame) 24L else 72L
-                handler.postDelayed(revealRunnable, revealDelayMs)
+                pendingRevealRunnable = null
+                playerView.animate().cancel()
+                playerView.alpha = 1f
+                hideResumeFrameOverlayNow()
             }
             return
         }
@@ -1190,11 +1181,16 @@ class ExoPlayerView(
             pendingRevealRunnable?.let(handler::removeCallbacks)
             val revealRunnable = Runnable {
                 pendingRevealRunnable = null
-                revealSurface()
+                revealSurface(immediate = preferResumePoster || didRenderFirstFrame)
             }
             pendingRevealRunnable = revealRunnable
             // Stabil yüzey yakalanırsa hızlı aç; gelmezse READY fallback ile beyaz ekranı bırakma.
-            val revealDelayMs = if (hasStableSurfaceLayout) 32L else 120L
+            val revealDelayMs = when {
+                preferResumePoster && didRenderFirstFrame -> 0L
+                didRenderFirstFrame -> 0L
+                hasStableSurfaceLayout -> 32L
+                else -> 120L
+            }
             handler.postDelayed(revealRunnable, revealDelayMs)
         }
     }
@@ -1203,7 +1199,7 @@ class ExoPlayerView(
         runOnMain {
             pendingRevealRunnable = null
             if (playerView.alpha < 1f) {
-                if (immediate) {
+                if (immediate || forceFullscreen || preferResumePoster) {
                     playerView.animate().cancel()
                     playerView.alpha = 1f
                 } else {
@@ -1222,7 +1218,10 @@ class ExoPlayerView(
     }
 
     private fun captureResumeFrameOverlay(source: String): Boolean {
-        if (!isPrimaryFeedSurface) return false
+        // Non-fullscreen card surfaces detach/rebind frequently during route and
+        // back/focus transitions. Avoid TextureView.getBitmap() there because it
+        // can block frame acquisition on the UI thread and cascade into ANR.
+        if (!forceFullscreen) return false
         val cacheKey = currentUrl ?: return false
         val textureView = playerView.videoSurfaceView as? TextureView ?: return false
         if (!textureView.isAvailable || textureView.width <= 0 || textureView.height <= 0) {
@@ -1268,7 +1267,7 @@ class ExoPlayerView(
     }
 
     private fun showCachedResumeFrameOverlay(url: String, source: String): Boolean {
-        if (!isPrimaryFeedSurface || !preferResumePoster) return false
+        if (!forceFullscreen || !preferResumePoster) return false
         val cachedBitmap = synchronized(resumeFrameCache) {
             resumeFrameCache[url]
         } ?: return false

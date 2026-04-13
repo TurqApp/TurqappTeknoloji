@@ -164,10 +164,10 @@ extension _NavBarViewShellContentPart on NavBarView {
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
     try {
-      await shortController.prepareStartupSurface(
-        allowBackgroundRefresh: false,
-      ).timeout(
-        const Duration(milliseconds: 350),
+      unawaited(
+        shortController.prepareStartupSurface(
+          allowBackgroundRefresh: false,
+        ),
       );
     } catch (_) {}
     try {
@@ -177,15 +177,13 @@ extension _NavBarViewShellContentPart on NavBarView {
               0,
               shortController.shorts.length - 1,
             );
-      await shortController.ensureActiveAdapterReady(initialIndex).timeout(
-        const Duration(milliseconds: 450),
-      );
+      unawaited(shortController.ensureActiveAdapterReady(initialIndex));
     } catch (_) {}
 
     controller.suspendFeedForTabExit();
     controller.pauseGlobalTabMedia();
     await Get.to(() => const ShortView());
-    maybeFindAgendaController()?.reshuffleVisibleHeadAfterShortReturn();
+    maybeFindAgendaController()?.resetVisibleFeedSurfaceAfterShortReturn();
     controller.resumeFeedIfNeeded();
   }
 

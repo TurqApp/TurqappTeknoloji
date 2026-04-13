@@ -1,6 +1,85 @@
 part of 'qa_lab_recorder.dart';
 
 extension QALabRecorderRuntimePart on QALabRecorder {
+  bool _hasSurfacePlaybackRecoverySignalNear({
+    required List<QALabIssue> surfaceIssues,
+    required DateTime anchorTime,
+    Duration lookback = const Duration(milliseconds: 6000),
+    Duration lookahead = const Duration(milliseconds: 3500),
+  }) {
+    if (surfaceIssues.isEmpty) return false;
+    for (final issue in surfaceIssues) {
+      if (issue.source != QALabIssueSource.video) continue;
+      if (issue.code == 'video_first_frame' ||
+          issue.code == 'playback_visual_video_play') {
+        final deltaMs = issue.timestamp.difference(anchorTime).inMilliseconds;
+        if (deltaMs >= -lookback.inMilliseconds &&
+            deltaMs <= lookahead.inMilliseconds) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _hasRecentFeedSurfaceLossVisualTransition({
+    required List<QALabIssue> surfaceIssues,
+    required DateTime anchorTime,
+  }) {
+    if (surfaceIssues.isEmpty) return false;
+    for (final issue in surfaceIssues) {
+      if (issue.source != QALabIssueSource.video) continue;
+      if (!issue.code.startsWith('playback_visual_')) continue;
+      if (issue.metadata['surfaceAllowed'] == false) {
+        final deltaMs = issue.timestamp.difference(anchorTime).inMilliseconds;
+        if (deltaMs >= -2200 && deltaMs <= 1200) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  bool _isSurfaceNativeWarmupGrace({
+    required String surface,
+    required String route,
+    required DateTime referenceTime,
+  }) {
+    if (surface != 'feed' && surface != 'short') {
+      return false;
+    }
+    if (_isTransientBlankSurfaceWarmup(
+      surface: surface,
+      surfaceCheckpoints: _surfaceCheckpoints(surface),
+      referenceTime: referenceTime,
+      route: route,
+    )) {
+      return true;
+    }
+    if (surface == 'feed' &&
+        _isQALabAutostartWarmup(
+          surface: surface,
+          route: route,
+          referenceTime: referenceTime,
+        )) {
+      return true;
+    }
+    return false;
+  }
+
+  bool _hasObservedSurfaceVideoSession(
+    List<QALabIssue> surfaceIssues,
+  ) {
+    for (final issue in surfaceIssues) {
+      if (issue.source != QALabIssueSource.video) continue;
+      if (issue.code == 'video_session_started' ||
+          issue.code == 'video_first_frame') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   List<QALabPinpointFinding> _buildNativePlaybackFindings({
     required String surface,
     required Map<String, dynamic> latestProbe,
@@ -19,15 +98,26 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       rootProbe,
       surface: surface,
     );
+    final effectiveRoute =
+        (visibilitySnapshot['currentRoute'] ?? '').toString().trim().isNotEmpty
+            ? (visibilitySnapshot['currentRoute'] ?? '').toString().trim()
+            : route;
     final surfaceIssues = _surfaceIssues(surface);
+    final hasObservedSurfaceVideoSession =
+        _hasObservedSurfaceVideoSession(surfaceIssues);
     final isForegroundSurface = surface == 'feed'
-        ? _isPrimaryFeedSelected(visibilitySnapshot, route: route)
-        : _isPrimaryShortSelected(visibilitySnapshot, route: route);
+        ? _isPrimaryFeedSelected(visibilitySnapshot, route: effectiveRoute)
+        : _isPrimaryShortSelected(visibilitySnapshot, route: effectiveRoute);
     if (!isForegroundSurface) {
       return const <QALabPinpointFinding>[];
     }
     if (lastNativePlaybackSnapshot.isEmpty ||
         lastNativePlaybackSnapshot['supported'] == false) {
+      return const <QALabPinpointFinding>[];
+    }
+    final nativeSurfaceHint =
+        (lastNativePlaybackSnapshot['surfaceHint'] ?? '').toString().trim();
+    if (nativeSurfaceHint.isNotEmpty && nativeSurfaceHint != surface) {
       return const <QALabPinpointFinding>[];
     }
 
@@ -38,6 +128,9 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     if (count <= 0 && !isPlaybackExpected && errors.isEmpty) {
       return const <QALabPinpointFinding>[];
     }
+    if (surface == 'short' && !hasObservedSurfaceVideoSession) {
+      return const <QALabPinpointFinding>[];
+    }
 
     final findings = <QALabPinpointFinding>[];
     final hasFirstFrame =
@@ -45,9 +138,26 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     final isPlaying = lastNativePlaybackSnapshot['isPlaying'] == true;
     final isBuffering = lastNativePlaybackSnapshot['isBuffering'] == true;
     final stallCount = _asInt(lastNativePlaybackSnapshot['stallCount']);
+    final lastKnownPlaybackTime =
+        _asDouble(lastNativePlaybackSnapshot['lastKnownPlaybackTime']);
     final sampledAt =
         _parseTimestamp(lastNativePlaybackSnapshot['sampledAt']) ??
             referenceTime;
+    final hasRecentFeedSurfaceLossVisualTransition = surface == 'feed' &&
+        _hasRecentFeedSurfaceLossVisualTransition(
+          surfaceIssues: surfaceIssues,
+          anchorTime: sampledAt,
+        );
+    final hasNearbySurfacePlaybackRecoverySignal =
+        _hasSurfacePlaybackRecoverySignalNear(
+          surfaceIssues: surfaceIssues,
+          anchorTime: sampledAt,
+        );
+    final suppressNativeWarmupSignals = _isSurfaceNativeWarmupGrace(
+      surface: surface,
+      route: effectiveRoute,
+      referenceTime: referenceTime,
+    );
     final snapshotContext = <String, dynamic>{
       'platform': (lastNativePlaybackSnapshot['platform'] ?? '').toString(),
       'status': (lastNativePlaybackSnapshot['status'] ?? '').toString(),
@@ -59,11 +169,14 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'isBuffering': isBuffering,
       'firstFrameRendered': hasFirstFrame,
       'stallCount': stallCount,
-      'lastKnownPlaybackTime':
-          _asDouble(lastNativePlaybackSnapshot['lastKnownPlaybackTime']),
+      'lastKnownPlaybackTime': lastKnownPlaybackTime,
       'layerAttachCount':
           _asInt(lastNativePlaybackSnapshot['layerAttachCount']),
     };
+    final hasRecoveredPlaybackAtSample = hasFirstFrame &&
+        isPlaying &&
+        !isBuffering &&
+        lastKnownPlaybackTime >= 0.25;
 
     const firstFrameCodes = <String>{
       'FIRST_FRAME_TIMEOUT',
@@ -79,10 +192,11 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         _nativePlaybackAwaitingBackgroundRecovery(lastNativePlaybackSnapshot);
     final suppressStartupFirstFrameTimeout = _isQALabAutostartWarmup(
       surface: surface,
-      route: route,
+      route: effectiveRoute,
       referenceTime: referenceTime,
     );
     if (!suppressStartupFirstFrameTimeout &&
+        !suppressNativeWarmupSignals &&
         !backgroundRecoveryPending &&
         !hasRecentUnresolvedLifecycleInterruption &&
         errors.any(firstFrameCodes.contains)) {
@@ -118,9 +232,14 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       );
     }
 
-    if (errors.contains('EXCESSIVE_REBUFFERING') ||
-        (isBuffering && stallCount >= 2)) {
-      if (!hasRecentUnresolvedLifecycleInterruption) {
+    final hasMeaningfulPlaybackExpectation =
+        isPlaybackExpected || isPlaying || hasFirstFrame;
+    if ((errors.contains('EXCESSIVE_REBUFFERING') ||
+            (isBuffering && stallCount >= 2)) &&
+        hasMeaningfulPlaybackExpectation) {
+      if (!suppressNativeWarmupSignals &&
+          !hasRecentUnresolvedLifecycleInterruption &&
+          !hasRecentFeedSurfaceLossVisualTransition) {
         findings.add(
           QALabPinpointFinding(
             severity: stallCount >= 4
@@ -141,20 +260,25 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     if (errors.contains('VIDEO_FREEZE') ||
         errors.contains('FULLSCREEN_INTERRUPTION') ||
         errors.contains('BACKGROUND_RESUME_FAILURE')) {
-      findings.add(
-        QALabPinpointFinding(
-          severity: errors.contains('VIDEO_FREEZE')
-              ? QALabIssueSeverity.blocking
-              : QALabIssueSeverity.error,
-          code: '${surface}_native_playback_interrupted',
-          message:
-              'Native playback health on $surface reported a freeze or failed recovery after an interruption.',
-          route: route,
-          surface: surface,
-          timestamp: sampledAt,
-          context: snapshotContext,
-        ),
-      );
+      if (!suppressNativeWarmupSignals &&
+          !hasRecentFeedSurfaceLossVisualTransition &&
+          !hasNearbySurfacePlaybackRecoverySignal &&
+          !hasRecoveredPlaybackAtSample) {
+        findings.add(
+          QALabPinpointFinding(
+            severity: errors.contains('VIDEO_FREEZE')
+                ? QALabIssueSeverity.blocking
+                : QALabIssueSeverity.error,
+            code: '${surface}_native_playback_interrupted',
+            message:
+                'Native playback health on $surface reported a freeze or failed recovery after an interruption.',
+            route: route,
+            surface: surface,
+            timestamp: sampledAt,
+            context: snapshotContext,
+          ),
+        );
+      }
     }
 
     if (errors.contains('AUDIO_NOT_STARTED')) {
@@ -173,7 +297,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     }
 
     if (surface == 'feed' &&
-        _isPrimaryFeedSelected(rootProbe, route: route) &&
+        _isPrimaryFeedSelected(rootProbe, route: effectiveRoute) &&
         isPlaybackExpected &&
         !hasFirstFrame &&
         !isPlaying &&
@@ -201,7 +325,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       }
       if (_isQALabAutostartWarmup(
         surface: surface,
-        route: route,
+        route: effectiveRoute,
         referenceTime: referenceTime,
       )) {
         return findings;

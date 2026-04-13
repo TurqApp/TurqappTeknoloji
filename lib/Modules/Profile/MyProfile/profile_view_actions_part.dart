@@ -74,7 +74,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                   _myDisplayBio,
                   style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 15,
+                    fontSize: 14,
                     fontFamily: "Montserrat",
                   ),
                 ),

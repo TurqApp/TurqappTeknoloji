@@ -196,6 +196,7 @@ extension PostRepositoryQueryPart on PostRepository {
         .where('arsiv', isEqualTo: false)
         .where('flood', isEqualTo: false)
         .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+        .where('timeStamp', isLessThanOrEqualTo: nowMs)
         .orderBy('timeStamp', descending: true)
         .limit(limit * 3);
     if (startAfter != null) {
@@ -212,6 +213,7 @@ extension PostRepositoryQueryPart on PostRepository {
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
         .where((post) => !post.shouldHideWhileUploading)
         .where((post) => _isRenderableCard(post))
+        .where((post) => post.timeStamp >= cutoffMs && post.timeStamp <= nowMs)
         .take(limit)
         .toList(growable: false);
     return PostQueryPage(
@@ -312,6 +314,7 @@ extension PostRepositoryQueryPart on PostRepository {
     List<String> authorIds, {
     required int nowMs,
     required int cutoffMs,
+    required int? maxTimeExclusive,
     required int perAuthorLimit,
     required int maxConcurrent,
     required bool preferCache,
@@ -326,20 +329,27 @@ extension PostRepositoryQueryPart on PostRepository {
 
     final nested = <List<PostsModel>>[];
     final concurrency = maxConcurrent < 1 ? 1 : maxConcurrent;
+    final queryLimit = max(perAuthorLimit * 4, 12);
+    final upperBoundExclusive =
+        maxTimeExclusive != null && maxTimeExclusive > 0
+            ? maxTimeExclusive
+            : nowMs + 1;
     for (int i = 0; i < cleaned.length; i += concurrency) {
       final chunk = cleaned.sublist(
         i,
         i + concurrency > cleaned.length ? cleaned.length : i + concurrency,
       );
-      final futures = chunk.map((authorId) async {
-        final snap = await _getQueryWithSource(
+        final futures = chunk.map((authorId) async {
+          final snap = await _getQueryWithSource(
           _firestore
               .collection('Posts')
               .where('userID', isEqualTo: authorId)
               .where('arsiv', isEqualTo: false)
               .where('deletedPost', isEqualTo: false)
+              .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+              .where('timeStamp', isLessThan: upperBoundExclusive)
               .orderBy('timeStamp', descending: true)
-              .limit(perAuthorLimit),
+              .limit(queryLimit),
           preferCache: preferCache,
           cacheOnly: cacheOnly,
         );
@@ -353,8 +363,9 @@ extension PostRepositoryQueryPart on PostRepository {
               (post) =>
                   !post.shouldHideWhileUploading &&
                   post.timeStamp >= cutoffMs &&
-                  (post.timeStamp <= nowMs || post.scheduledAt.toInt() > 0),
+                  post.timeStamp < upperBoundExclusive,
             )
+            .take(perAuthorLimit)
             .toList(growable: false);
       });
       nested.addAll(await Future.wait(futures));
@@ -401,7 +412,8 @@ extension PostRepositoryQueryPart on PostRepository {
       final effectivePublishAt = publishAt > 0 ? publishAt : scheduledAt;
       if (ts < cutoffMs) continue;
       if (effectivePublishAt <= 0) continue;
-      if (effectivePublishAt <= nowMs) continue;
+      if (ts > nowMs) continue;
+      if (effectivePublishAt > nowMs) continue;
       merged[model.docID] = model;
       if (merged.length >= limit) break;
     }
@@ -419,16 +431,44 @@ extension PostRepositoryQueryPart on PostRepository {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
+    final page = await _performFetchRecentGlobalPostsPage(
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+      maxTimeExclusive: maxTimeExclusive,
+      startAfter: null,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+    );
+    return page.items;
+  }
+
+  Future<PostQueryPage> _performFetchRecentGlobalPostsPage({
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required int? maxTimeExclusive,
+    required DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    final scanLimit = max(limit + 30, 90);
     Query<Map<String, dynamic>> query = _firestore
         .collection('Posts')
         .where('arsiv', isEqualTo: false)
         .where('deletedPost', isEqualTo: false)
         .where('flood', isEqualTo: false)
         .where('timeStamp', isGreaterThanOrEqualTo: cutoffMs)
+        .where(
+          'timeStamp',
+          isLessThan: maxTimeExclusive != null && maxTimeExclusive > 0
+              ? maxTimeExclusive
+              : nowMs + 1,
+        )
         .orderBy('timeStamp', descending: true)
-        .limit(limit * 6);
-    if (maxTimeExclusive != null && maxTimeExclusive > 0) {
-      query = query.where('timeStamp', isLessThan: maxTimeExclusive);
+        .limit(scanLimit);
+    if (startAfter != null) {
+      query = query.startAfterDocument(startAfter);
     }
 
     final snap = await _getQueryWithSource(
@@ -445,12 +485,15 @@ extension PostRepositoryQueryPart on PostRepository {
       final ts = model.timeStamp.toInt();
       if (ts < cutoffMs || ts > nowMs) continue;
       merged[model.docID] = model;
-      if (merged.length >= limit) break;
+      if (merged.length >= scanLimit) break;
     }
 
     final sorted = merged.values.toList()
       ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
-    return sorted;
+    return PostQueryPage(
+      items: sorted,
+      lastDoc: snap.docs.isNotEmpty ? snap.docs.last : null,
+    );
   }
 
   Future<List<PostsModel>> _performFetchFloodSeriesRoots({
@@ -458,6 +501,7 @@ extension PostRepositoryQueryPart on PostRepository {
     required bool preferCache,
     required bool cacheOnly,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final targetCount = limit < 1 ? 1 : limit;
     final scanLimit = targetCount * 3 > 240 ? targetCount * 3 : 240;
     DocumentSnapshot<Map<String, dynamic>>? cursor;
@@ -487,6 +531,7 @@ extension PostRepositoryQueryPart on PostRepository {
         if (!model.isFloodSeriesRoot) continue;
         if (model.shouldHideWhileUploading) continue;
         if (!_isRenderableCard(model)) continue;
+        if (model.timeStamp > nowMs) continue;
         roots.putIfAbsent(model.docID, () => model);
         if (roots.length >= targetCount) break;
       }

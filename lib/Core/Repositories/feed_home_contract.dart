@@ -1,5 +1,6 @@
 enum FeedHomePrimarySource {
   userFeedReferences,
+  globalApprovedPosts,
 }
 
 enum FeedHomeSupplementalSource {
@@ -28,28 +29,23 @@ class FeedHomeContract {
   });
 
   static const FeedHomeContract primaryHybridV1 = FeedHomeContract(
-    contractId: 'feed_home_primary_hybrid_v1',
-    primarySource: FeedHomePrimarySource.userFeedReferences,
+    contractId: 'feed_home_primary_global_v2',
+    primarySource: FeedHomePrimarySource.globalApprovedPosts,
     supplementalSources: <FeedHomeSupplementalSource>[
       FeedHomeSupplementalSource.ownRecentPosts,
-      FeedHomeSupplementalSource.celebrityRecentPosts,
       FeedHomeSupplementalSource.publicScheduledIzBirakPosts,
-      FeedHomeSupplementalSource.globalBadgePosts,
     ],
     fallbackOrder: <FeedHomeFallbackPath>[
       FeedHomeFallbackPath.personalSnapshot,
       FeedHomeFallbackPath.legacyPage,
     ],
     usesPrimaryFeedPaging: true,
-    primaryCollection: 'userFeeds',
-    primaryItemsSubcollection: 'items',
+    primaryCollection: 'Posts',
+    primaryItemsSubcollection: '',
     celebrityCollection: 'celebAccounts',
     requiredReferenceFields: <String>[
-      'postId',
-      'authorId',
       'timeStamp',
-      'isCelebrity',
-      'expiresAt',
+      'userID',
     ],
   );
 

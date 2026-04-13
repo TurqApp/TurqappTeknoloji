@@ -139,23 +139,6 @@ extension AgendaControllerResharePart on AgendaController {
     });
   }
 
-  void _addUniqueToAgenda(List<PostsModel> items) {
-    if (items.isEmpty) return;
-    final existing = agendaList.map((e) => e.docID).toSet();
-    final unique = <PostsModel>[];
-    for (final p in items) {
-      if (!existing.contains(p.docID)) {
-        existing.add(p.docID);
-        unique.add(p);
-      }
-    }
-    if (unique.isNotEmpty) {
-      agendaList.addAll(unique);
-      _debugAgendaKinds('add_unique', agendaList);
-      _scheduleFeedPrefetch();
-    }
-  }
-
   bool _isUserMarkedDeactivated(Map<String, dynamic>? data) {
     if (data == null) return false;
     return isDeactivatedAccount(

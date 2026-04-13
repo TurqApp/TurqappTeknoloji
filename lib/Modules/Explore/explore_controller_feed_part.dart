@@ -959,15 +959,18 @@ extension ExploreControllerFeedPart on ExploreController {
 
       while (pagesFetched < maxPages && !noMoreServerPages) {
         ExploreQueryPage page;
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
         try {
           page = await _exploreRepository.fetchFloodServerPage(
             startAfter: lastFloodsDoc,
             pageLimit: pageLimit,
+            nowMs: nowMs,
           );
         } catch (_) {
           page = await _exploreRepository.fetchFloodFallbackPage(
             startAfter: lastFloodsDoc,
             pageLimit: pageLimit,
+            nowMs: nowMs,
           );
         }
         if (page.items.isEmpty) {
@@ -991,6 +994,7 @@ extension ExploreControllerFeedPart on ExploreController {
           batch.add(model);
         }
         batch = batch.where((post) => post.deletedPost != true).toList();
+        batch = batch.where((post) => post.timeStamp <= nowMs).toList();
         batch = await _filterByPrivacy(batch);
         if (batch.isNotEmpty) {
           accumulated.addAll(batch);

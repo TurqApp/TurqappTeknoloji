@@ -44,8 +44,10 @@ extension ShortRepositoryQueryPart on ShortRepository {
       try {
         snap = await fallback.get();
       } catch (_) {
-        Query<Map<String, dynamic>> broad =
-            base.orderBy('timeStamp', descending: true).limit(pageSize);
+        Query<Map<String, dynamic>> broad = base
+            .where('timeStamp', isLessThanOrEqualTo: ts)
+            .orderBy('timeStamp', descending: true)
+            .limit(pageSize);
         if (startAfter != null) {
           broad = broad.startAfterDocument(startAfter);
         }
@@ -58,9 +60,10 @@ extension ShortRepositoryQueryPart on ShortRepository {
     }
 
     return ShortPageResult(
-      snap.docs.map((d) => PostsModel.fromMap(d.data(), d.id)).toList(
-            growable: false,
-          ),
+      snap.docs
+          .map((d) => PostsModel.fromMap(d.data(), d.id))
+          .where((post) => post.timeStamp <= ts)
+          .toList(growable: false),
       snap.docs.last,
       snap.docs.length == pageSize,
     );

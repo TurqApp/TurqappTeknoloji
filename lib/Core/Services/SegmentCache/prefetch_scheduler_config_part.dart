@@ -8,19 +8,40 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
 const int _prefetchSchedulerTargetReadySegments = 2;
 const int _prefetchSchedulerPriorityWindowSize = 5;
 const int _prefetchSchedulerPriorityPromotionOffset = 2;
-const int _prefetchSchedulerFallbackFeedFullWindow = 15;
-const int _prefetchSchedulerFallbackFeedPrepWindow = 8;
-const int _prefetchSchedulerWifiMinBreadthCount = 12;
-const int _prefetchSchedulerWifiMinDepthCount = 7;
-const int _prefetchSchedulerWifiMinMaxConcurrent = 4;
-const int _prefetchSchedulerWifiMinFeedFullWindow = 15;
-const int _prefetchSchedulerWifiMinFeedPrepWindow = 20;
-const int _prefetchSchedulerFeedBankBatchSize = 20;
-const int _prefetchSchedulerQuotaFillBurstSegments = 2;
-const int _prefetchSchedulerQuotaFillBoostReadySegments = 8;
+const int _prefetchSchedulerFallbackFeedFullWindow = 6;
+const int _prefetchSchedulerFallbackFeedPrepWindow = 2;
+const int _prefetchSchedulerWifiMinBreadthCount = 5;
+const int _prefetchSchedulerWifiMinDepthCount = 3;
+const int _prefetchSchedulerWifiMinMaxConcurrent = 3;
+const int _prefetchSchedulerWifiMinFeedFullWindow = 6;
+const int _prefetchSchedulerWifiMinFeedPrepWindow = 3;
+const int _prefetchSchedulerFeedBankBatchSize = 2;
+const int _prefetchSchedulerFeedAroundRadius = 5;
+const int _prefetchSchedulerFeedRetainBehindCount = 5;
+const int _prefetchSchedulerQuotaFillBurstSegments = 4;
+const int _prefetchSchedulerQuotaFillBoostReadySegments = 2;
 const int _prefetchSchedulerQuotaFillRemotePageLimit = 40;
 const int _prefetchSchedulerQuotaFillPlanningDocLimit = 180;
-const int _prefetchSchedulerQuotaFillLowWatermark = 8;
+const int _prefetchSchedulerQuotaFillLowWatermark = 16;
+const double _prefetchSchedulerShortLandscapeAspectThreshold = 1.2;
+const Duration _prefetchSchedulerShortQuotaFillWindow = Duration(days: 7);
+const int _prefetchSchedulerShortQuotaFillBandMinutes = 5;
+const int _prefetchSchedulerShortQuotaFillSubsliceMs = 200;
+const List<List<int>> _prefetchSchedulerShortQuotaFillMinuteSets =
+    <List<int>>[
+  <int>[1, 14, 33, 40, 59],
+  <int>[2, 21, 28, 47, 54],
+  <int>[3, 16, 35, 42, 49],
+  <int>[4, 23, 30, 37, 56],
+  <int>[5, 18, 25, 44, 51],
+  <int>[6, 13, 32, 39, 58],
+  <int>[7, 20, 27, 46, 53],
+  <int>[8, 15, 34, 41, 48],
+  <int>[9, 22, 29, 36, 55],
+  <int>[10, 12, 31, 43, 50],
+  <int>[11, 17, 24, 38, 57],
+  <int>[0, 19, 26, 45, 52],
+];
 
 @visibleForTesting
 int resolvePrefetchReadySegmentsForPost(

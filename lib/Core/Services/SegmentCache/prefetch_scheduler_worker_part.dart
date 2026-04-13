@@ -5,12 +5,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (_lastFeedWindowCount <= 0) {
       return _maxConcurrent > 1 ? 1 : _maxConcurrent;
     }
-    final startupReadyThreshold =
-        ReadBudgetRegistry.feedReadyForNavCount > 5
+    final startupReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 5
         ? ReadBudgetRegistry.feedReadyForNavCount
         : 5;
     if (_lastFeedReadyCount < startupReadyThreshold) {
-      return 0;
+      return _maxConcurrent > 1 ? 1 : _maxConcurrent;
     }
 
     final delayedRampThreshold = startupReadyThreshold + 5;
@@ -125,12 +124,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
-    final hasFeedWindowContext = _lastFeedWindowCount > 0;
-    if (_activeDownloads == 0 &&
+    if (_automaticQuotaFillEnabled &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
-                _prefetchSchedulerQuotaFillLowWatermark) &&
-        hasFeedWindowContext) {
+                _prefetchSchedulerQuotaFillLowWatermark)) {
       await _ensureWifiQuotaFillPlan();
     }
     _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
@@ -512,8 +509,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
     final safeCurrent =
         _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final aroundStart = (safeCurrent - 5).clamp(0, _lastFeedDocIDs.length - 1);
-    final aroundEnd = (safeCurrent + 5).clamp(0, _lastFeedDocIDs.length - 1);
+    final aroundStart = (safeCurrent - _prefetchSchedulerFeedAroundRadius)
+        .clamp(0, _lastFeedDocIDs.length - 1);
+    final aroundEnd = (safeCurrent + _prefetchSchedulerFeedAroundRadius)
+        .clamp(0, _lastFeedDocIDs.length - 1);
     final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
       0,
       _lastFeedDocIDs.length - 1,

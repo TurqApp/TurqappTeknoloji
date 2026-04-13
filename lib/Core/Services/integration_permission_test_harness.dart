@@ -10,7 +10,8 @@ class IntegrationPermissionTestHarness {
   static final Map<String, Queue<PermissionStatus>> _queuedRequests =
       <String, Queue<PermissionStatus>>{};
 
-  static bool get isActive => _statuses.isNotEmpty || _queuedRequests.isNotEmpty;
+  static bool get isActive =>
+      _statuses.isNotEmpty || _queuedRequests.isNotEmpty;
 
   static void reset() {
     _statuses.clear();
@@ -38,6 +39,16 @@ class IntegrationPermissionTestHarness {
     final overridden = _statuses[normalized];
     if (overridden != null) return overridden;
     return permission.status;
+  }
+
+  static Future<PermissionStatus> refreshStatusFor(
+    Permission permission, {
+    required String permissionId,
+  }) async {
+    final normalized = _normalize(permissionId);
+    final result = await permission.status;
+    _statuses[normalized] = result;
+    return result;
   }
 
   static Future<PermissionStatus> request(

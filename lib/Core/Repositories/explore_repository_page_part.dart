@@ -7,6 +7,7 @@ extension ExploreRepositoryPagePart on ExploreRepository {
     required int pageLimit,
     required String feedMode,
   }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final snap = await PerformanceService.traceFeedLoad(
       () => query.get(),
       feedMode: feedMode,
@@ -22,6 +23,7 @@ extension ExploreRepositoryPagePart on ExploreRepository {
         .map((id) => byId[id])
         .whereType<PostsModel>()
         .where((item) => !item.shouldHideWhileUploading)
+        .where((item) => item.timeStamp <= nowMs)
         .where((item) => !excludeSeriesRoots || item.floodCount <= 1)
         .take(pageLimit)
         .toList(growable: false);

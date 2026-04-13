@@ -1,6 +1,9 @@
 part of 'feed_snapshot_repository.dart';
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
+  static const Duration _feedLaunchCursorStep = Duration(minutes: 30);
+  static const int _feedLaunchCursorWindowCount = 48;
+
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
 
@@ -126,140 +129,59 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       );
     }
 
-    var refsPage = await _profileFeedSnapshotStep('fetch_refs', () {
-      return _postRepository.fetchUserFeedReferences(
-        uid: normalizedUserId,
+    final initialPrimaryMaxTimeExclusive = startAfter == null
+        ? _resolveInitialPrimaryWindowMaxTime(
+            nowMs: nowMs,
+            cutoffMs: cutoffMs,
+          )
+        : _resolveFeedPageMaxTime(startAfter);
+
+    final primaryPage = await _profileFeedSnapshotStep('fetch_global_primary', () {
+      return _postRepository.fetchRecentGlobalPostsPage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
         limit: limit,
+        maxTimeExclusive: initialPrimaryMaxTimeExclusive,
         startAfter: startAfter,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
     });
 
-    var refs = refsPage.items
-        .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
-        .toList(growable: false);
-
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
-        'refs=${refsPage.items.length} eligible=${refs.length} limit=$limit '
-        'contract=${contract.contractId}',
-      );
-    }
-
-    if (refs.isEmpty && startAfter == null) {
-      final repaired = await _tryRepairHybridFeed(
-        userId: normalizedUserId,
-        limit: limit,
-      );
-      if (repaired) {
-        refsPage = await _postRepository.fetchUserFeedReferences(
-          uid: normalizedUserId,
-          limit: limit,
-          startAfter: null,
-          preferCache: false,
-          cacheOnly: false,
-        );
-        refs = refsPage.items
-            .where((item) => _isEligibleFeedReference(item, nowMs, cutoffMs))
-            .toList(growable: false);
-        if (_shouldLogDiagnostics) {
-          debugPrint(
-            '[FeedSnapshot] uid=$normalizedUserId repairRefetch refs=${refsPage.items.length} '
-            'eligible=${refs.length}',
-          );
-        }
-      }
-    }
-
-    final postIds = refs.map((item) => item.postId).toList(growable: false);
-    final rawPostsById = postIds.isEmpty
-        ? const <String, PostsModel>{}
-        : await _profileFeedSnapshotStep('fetch_post_cards', () {
-            return _postRepository.fetchPostCardsByIds(
-              postIds,
-              preferCache: preferCache,
-              cacheOnly: cacheOnly,
-            );
-          });
-    final postsById = await _profileFeedSnapshotStep('rehydrate_video_cards', () {
-      return _rehydrateHomeFeedVideoCards(
-        rawPostsById,
+    final primaryPosts = await _profileFeedSnapshotStep('resolve_global_primary', () {
+      return _resolveVisibleDiscoveryPublicPosts(
+        primaryPage.items,
+        preferCache: preferCache,
         cacheOnly: cacheOnly,
       );
     });
 
+    if (_shouldLogDiagnostics) {
+      debugPrint(
+        '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
+        'primary=${primaryPage.items.length} visiblePrimary=${primaryPosts.length} limit=$limit '
+        'contract=${contract.contractId}',
+      );
+    }
+
     final merged = <String, PostsModel>{};
-    for (final ref in refs) {
-      final post = postsById[ref.postId];
-      if (post == null) continue;
+    for (final post in primaryPosts) {
       merged[post.docID] = post;
     }
 
-    if (includeSupplementalSources && startAfter == null) {
-      final preferLiveOwnPosts = !cacheOnly;
-      final ownPosts = await _profileFeedSnapshotStep('fetch_own_posts', () {
-        return _postRepository.fetchRecentPostsForAuthors(
-          <String>[normalizedUserId],
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-          perAuthorLimit: min(limit, 10),
-          preferCache: preferLiveOwnPosts ? false : preferCache,
-          cacheOnly: cacheOnly,
-        );
-      });
-      for (final post in ownPosts) {
-        merged.putIfAbsent(post.docID, () => post);
-      }
-    }
+    final primarySatisfiesPage = primaryPosts.length >= limit;
 
-    var celebIds = const <String>[];
-    List<PostsModel> celebPosts = const <PostsModel>[];
-    if (includeSupplementalSources) {
-      celebIds = await _profileFeedSnapshotStep('fetch_celeb_ids', () {
-        return _postRepository.fetchCelebrityAuthorIds(
-          <String>{normalizedUserId, ...followingIds}.toList(growable: false),
-          preferCache: preferCache,
-          cacheOnly: cacheOnly,
-        );
-      });
-      if (celebIds.isNotEmpty) {
-        celebPosts = await _profileFeedSnapshotStep('fetch_celeb_posts', () {
-          return _postRepository.fetchRecentPostsForAuthors(
-            celebIds,
-            nowMs: nowMs,
-            cutoffMs: cutoffMs,
-            perAuthorLimit:
-                max(2, (limit / celebIds.length.clamp(1, limit)).ceil()),
-            preferCache: preferCache,
-            cacheOnly: cacheOnly,
-          );
-        });
-        for (final post in celebPosts) {
-          merged.putIfAbsent(post.docID, () => post);
-        }
-      }
-    }
+    const List<PostsModel> followingPosts = <PostsModel>[];
 
-    final publicScheduled = includeSupplementalSources
-        ? await _profileFeedSnapshotStep('fetch_public_scheduled', () {
-            return _fetchVisiblePublicIzBirakPosts(
-              nowMs: nowMs,
-              cutoffMs: cutoffMs,
-              limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-                  ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-                  : limit,
-              preferCache: preferCache,
-              cacheOnly: cacheOnly,
-            );
-          })
-        : const <PostsModel>[];
+    const List<String> celebIds = <String>[];
+
+    const List<PostsModel> publicScheduled = <PostsModel>[];
     for (final post in publicScheduled) {
       merged.putIfAbsent(post.docID, () => post);
     }
 
-    final globalBadgePosts = includeSupplementalSources
+    final globalBadgePosts =
+        includeSupplementalSources && !primarySatisfiesPage
         ? await _profileFeedSnapshotStep('fetch_global_badge', () {
             return _fetchVisibleGlobalBadgePosts(
               nowMs: nowMs,
@@ -267,7 +189,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
               limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
                   ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
                   : limit,
-              maxTimeExclusive: _resolveFeedPageMaxTime(startAfter),
+              maxTimeExclusive: initialPrimaryMaxTimeExclusive,
               preferCache: preferCache,
               cacheOnly: cacheOnly,
             );
@@ -280,12 +202,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$normalizedUserId merged=${merged.length} '
-        'celebAuthors=${celebIds.length} publicScheduled=${publicScheduled.length} '
-        'globalBadge=${globalBadgePosts.length}',
+        'following=${followingPosts.length} celebAuthors=${celebIds.length} '
+        'publicScheduled=${publicScheduled.length} globalBadge=${globalBadgePosts.length}',
       );
     }
 
-    if (merged.isEmpty && refsPage.lastDoc == null && startAfter == null) {
+    if (merged.isEmpty && primaryPage.lastDoc == null && startAfter == null) {
       if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId fallback=personal reason=primary_empty',
@@ -325,7 +247,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
     final visible = await _profileFeedSnapshotStep('filter_visible', () {
       return filterVisiblePosts(
-        merged.values.toList(growable: false),
+        _sortFeedCandidatesForVisibility(
+          merged.values.toList(growable: false),
+        ),
         currentUserId: normalizedUserId,
         followingIds: followingIds,
         hiddenPostIds: hiddenPostIds,
@@ -347,8 +271,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (visible.isEmpty && startAfter == null) {
       if (_shouldLogDiagnostics) {
         debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId fallback=personal '
-          'reason=visible_empty refs=${refs.length} merged=${merged.length}',
+        '[FeedSnapshot] uid=$normalizedUserId fallback=personal '
+          'reason=visible_empty primary=${primaryPosts.length} merged=${merged.length}',
         );
       }
       final personalFallback = await _loadPersonalFallbackPage(
@@ -368,7 +292,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedSnapshot] uid=$normalizedUserId fallback=legacy '
-          'reason=visible_empty_personal_empty refs=${refs.length} '
+          'reason=visible_empty_personal_empty primary=${primaryPosts.length} '
           'merged=${merged.length}',
         );
       }
@@ -393,7 +317,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nextCount: visible.length,
       payload: <String, dynamic>{
         'uid': normalizedUserId,
-        'refsCount': refs.length,
+        'primaryCount': primaryPosts.length,
         'usesPrimaryFeed': true,
         'feedContract': contract.contractId,
       },
@@ -401,7 +325,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
     return FeedSourcePage(
       items: visible,
-      lastDoc: refsPage.lastDoc,
+      lastDoc: primaryPage.lastDoc,
       usesPrimaryFeed: true,
     );
   }
@@ -439,40 +363,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       merged[post.docID] = post;
     }
 
-    if (followingIds.isNotEmpty) {
-      final followingSeed = followingIds.toList(growable: false);
-      final perAuthorLimit = followingSeed.length > 150
-          ? 1
-          : followingSeed.length > 50
-              ? 2
-              : 3;
-      final followingPosts = await _postRepository.fetchRecentPostsForAuthors(
-        followingSeed,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        perAuthorLimit: perAuthorLimit,
-        maxConcurrent: 10,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      for (final post in followingPosts) {
-        merged.putIfAbsent(post.docID, () => post);
-      }
-    }
-
-    final publicScheduled = await _fetchVisiblePublicIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit < ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-          ? ReadBudgetRegistry.feedVisiblePublicFallbackMinLimit
-          : limit,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    for (final post in publicScheduled) {
-      merged.putIfAbsent(post.docID, () => post);
-    }
-
     final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
       nowMs: nowMs,
       cutoffMs: cutoffMs,
@@ -488,7 +378,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     final visible = await filterVisiblePosts(
-      merged.values.toList(growable: false),
+      _sortFeedCandidatesForVisibility(
+        merged.values.toList(growable: false),
+      ),
       currentUserId: currentUserId,
       followingIds: followingIds,
       hiddenPostIds: hiddenPostIds,
@@ -502,7 +394,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
-        'followingSeed=${followingIds.length} '
         'merged=${merged.length} visible=${visible.length} '
         'globalBadge=${globalBadgePosts.length}',
       );
@@ -515,43 +406,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     );
   }
 
-  Future<bool> _tryRepairHybridFeed({
-    required String userId,
-    required int limit,
-  }) async {
-    if (IntegrationTestMode.skipBackgroundStartupWork) {
-      return false;
-    }
-    final normalizedUserId = userId.trim();
-    if (normalizedUserId.isEmpty) return false;
-    if (FeedSnapshotRepository._hybridBackfillRequested.contains(
-      normalizedUserId,
-    )) {
-      return false;
-    }
-    FeedSnapshotRepository._hybridBackfillRequested.add(normalizedUserId);
-    try {
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west1')
-          .httpsCallable('backfillHybridFeedForUser');
-      final response = await callable.call(<String, dynamic>{
-        'uid': normalizedUserId,
-        'perAuthorLimit': limit < 20 ? 3 : 4,
+  List<PostsModel> _sortFeedCandidatesForVisibility(List<PostsModel> posts) {
+    if (posts.length < 2) return posts;
+    final sorted = posts.toList(growable: false)
+      ..sort((left, right) {
+        final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+        if (timeCompare != 0) {
+          return timeCompare;
+        }
+        return left.docID.trim().compareTo(right.docID.trim());
       });
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId repairTriggered result=${response.data}',
-        );
-      }
-      return true;
-    } catch (error, stackTrace) {
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId repairFailed error=$error',
-        );
-        debugPrintStack(stackTrace: stackTrace);
-      }
-      return false;
-    }
+    return sorted;
   }
 
   Future<List<PostsModel>> _fetchHomeSnapshot(
@@ -627,34 +492,22 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     return _asNullableFeedInt(data?['timeStamp']);
   }
 
-  Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
+  int _resolveInitialPrimaryWindowMaxTime({
     required int nowMs,
     required int cutoffMs,
-    required int limit,
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    final posts = await _postRepository.fetchPublicScheduledIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
+  }) {
+    final launchBucket = startupVariantIndexForSurface(
+      surfaceKey: 'feed_launch_cursor',
+      sessionNamespace: 'feed',
+      variantCount: _feedLaunchCursorWindowCount,
     );
-    if (posts.isEmpty) return const <PostsModel>[];
-    final authorMeta = await _userSummaryResolver.resolveMany(
-      posts.map((post) => post.userID).toSet().toList(growable: false),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    return posts.where((post) {
-      final meta = authorMeta[post.userID];
-      if (meta == null) return false;
-      return isDiscoveryPublicAuthor(
-        rozet: meta.rozet,
-        isApproved: meta.isApproved,
-      );
-    }).toList(growable: false);
+    final shiftedNow = nowMs -
+        (_feedLaunchCursorStep.inMilliseconds * launchBucket);
+    final floor = cutoffMs + 1;
+    if (shiftedNow < floor) {
+      return floor;
+    }
+    return shiftedNow;
   }
 
   Future<List<PostsModel>> _fetchVisibleGlobalBadgePosts({
@@ -673,6 +526,20 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       preferCache: preferCache,
       cacheOnly: cacheOnly,
     );
+    return _resolveVisibleDiscoveryPublicPosts(
+      posts,
+      preferCache: preferCache,
+      cacheOnly: cacheOnly,
+      limit: limit,
+    );
+  }
+
+  Future<List<PostsModel>> _resolveVisibleDiscoveryPublicPosts(
+    List<PostsModel> posts, {
+    required bool preferCache,
+    required bool cacheOnly,
+    int? limit,
+  }) async {
     if (posts.isEmpty) return const <PostsModel>[];
 
     final authorMeta = await _userSummaryResolver.resolveMany(
@@ -704,6 +571,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           rozet: post.rozet.isNotEmpty ? post.rozet : meta.rozet,
         ),
       );
+      if (limit != null && visible.length >= limit) {
+        break;
+      }
     }
     return visible;
   }

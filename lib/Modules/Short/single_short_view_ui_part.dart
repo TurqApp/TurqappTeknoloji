@@ -60,6 +60,9 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildInjectedShortPage(int idx) {
     final injected = widget.injectedController!;
+    final preferResumePoster =
+        idx == currentPage &&
+        _shouldPreferResumePosterForSingleShort(idx, injected);
     if (!_videoControllers.containsKey(idx)) {
       _videoControllers[idx] = injected;
       _externallyOwned.add(idx);
@@ -74,6 +77,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           'injected-${shorts[idx].docID}-${injected.hashCode}',
           overrideAutoPlay: false,
           modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
+          preferResumePosterOverride: preferResumePoster,
         ),
         AnimatedBuilder(
           animation: injected,
@@ -99,7 +103,11 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               ignoring: true,
               child: AnimatedOpacity(
                 opacity: decision.shouldHidePoster ? 0 : 1,
-                duration: AppDuration.thumbnailFadeOut,
+                duration: decision.shouldHidePoster &&
+                        idx == currentPage &&
+                        injected.value.hasRenderedFirstFrame
+                    ? Duration.zero
+                    : AppDuration.thumbnailFadeOut,
                 curve: Curves.easeOut,
                 child: thumb,
               ),
@@ -140,6 +148,9 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildManagedShortPage(int idx, String thumb, HLSVideoAdapter vp) {
     final isNear = (idx - currentPage).abs() <= 2;
+    final preferResumePoster =
+        idx == currentPage &&
+        _shouldPreferResumePosterForSingleShort(idx, vp);
     final thumbAr = shorts[idx].aspectRatio.toDouble();
     final videoWidget = !isNear
         ? Stack(
@@ -164,6 +175,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 vp,
                 'vp-${shorts[idx].docID}-${vp.hashCode}',
                 modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
+                preferResumePosterOverride: preferResumePoster,
               ),
               AnimatedBuilder(
                 animation: vp,
@@ -190,7 +202,11 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                     ignoring: true,
                     child: AnimatedOpacity(
                       opacity: decision.shouldHidePoster ? 0 : 1,
-                      duration: AppDuration.thumbnailFadeOut,
+                      duration: decision.shouldHidePoster &&
+                              idx == currentPage &&
+                              vp.value.hasRenderedFirstFrame
+                          ? Duration.zero
+                          : AppDuration.thumbnailFadeOut,
                       curve: Curves.easeOut,
                       child: overlay,
                     ),

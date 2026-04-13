@@ -260,7 +260,7 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
                 controller.bio.value,
                 style: const TextStyle(
                   color: Colors.black,
-                  fontSize: 15,
+                  fontSize: 14,
                   fontFamily: "Montserrat",
                 ),
               ),

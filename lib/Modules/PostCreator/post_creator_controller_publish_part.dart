@@ -477,6 +477,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           ? _normalizePollForSave(post.poll, publishTime)
           : null;
 
+      final isFreshVideoUpload = post.video != null;
+      final isPendingVideoProcessing = isFreshVideoUpload && !isReusedVideoPost;
       await FirebaseFirestore.instance.collection("Posts").doc(docID).set({
         "arsiv": false,
         if (!isImagePost) "aspectRatio": aspectRatio,
@@ -488,6 +490,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "gizlendi": false,
         "img": imageUrls,
         "imgMap": imgMap,
+        "isUploading": isPendingVideoProcessing,
         "isAd": false,
         "ad": false,
         "izBirakYayinTarihi": publishTime,
@@ -501,8 +504,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         },
         "konum": post.location,
         "locationCity": locationCity,
-        "mainFlood":
-            index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
+        "mainFlood": index == 0 ? "" : resolvePostCreatorFloodRootDocId(docID),
         "metin": post.text,
         "reshareMap": {
           "visibility": paylasimSelection.value,
@@ -514,8 +516,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "thumbnail": thumbnailUrl,
         "timeStamp": batchTimeStamp,
         "userID": uid,
-        "video": videoUrl,
-        "hlsStatus": isReusedVideoPost ? "ready" : "none",
+        "video": isPendingVideoProcessing ? "" : videoUrl,
+        "hlsStatus": isReusedVideoPost
+            ? "ready"
+            : (isPendingVideoProcessing ? "processing" : "none"),
         "hlsMasterUrl": isReusedVideoPost ? videoUrl : "",
         "hlsUpdatedAt": isReusedVideoPost ? nowMs : 0,
         "yorumMap": {
@@ -590,6 +594,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           floodCount: allPosts.length,
           gizlendi: false,
           img: imageUrls,
+          isUploading: isPendingVideoProcessing,
           isAd: false,
           ad: false,
           izBirakYayinTarihi: publishTime,
@@ -609,8 +614,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           thumbnail: thumbnailUrl,
           timeStamp: batchTimeStamp,
           userID: uid,
-          video: videoUrl,
-          hlsStatus: isReusedVideoPost ? "ready" : "none",
+          video: isPendingVideoProcessing ? "" : videoUrl,
+          hlsStatus: isReusedVideoPost
+              ? "ready"
+              : (isPendingVideoProcessing ? "processing" : "none"),
           hlsMasterUrl: isReusedVideoPost ? videoUrl : "",
           hlsUpdatedAt: isReusedVideoPost ? nowMs : 0,
           yorum: comment.value,

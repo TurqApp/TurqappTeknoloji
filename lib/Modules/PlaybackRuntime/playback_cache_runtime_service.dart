@@ -124,6 +124,10 @@ class PlaybackRuntimeService {
     return _manager.getVideoState(docId);
   }
 
+  void clearSavedPlaybackState(String docId) {
+    _manager.clearVideoState(docId);
+  }
+
   void enterExclusiveMode(String docId) {
     _manager.enterExclusiveMode(docId);
   }
@@ -160,10 +164,13 @@ class PlaybackRuntimeService {
                 (snapshot.duration - snapshot.playbackEndGrace));
     final reachedStablePlaybackPosition =
         snapshot.position > snapshot.visualReadyPositionThreshold;
+    final hasAudiblePlaybackFrame = atPlaybackEnd ||
+        (snapshot.hasRenderedFirstFrame &&
+            !snapshot.isBuffering &&
+            (snapshot.isPlaying || reachedStablePlaybackPosition));
     final hasStableVisualFrame = atPlaybackEnd ||
         (snapshot.hasRenderedFirstFrame &&
             !snapshot.isBuffering &&
-            (snapshot.isPlaying || reachedStablePlaybackPosition) &&
             reachedStablePlaybackPosition);
 
     final phase = !snapshot.shouldPlay || !snapshot.isSurfacePlaybackAllowed
@@ -176,12 +183,12 @@ class PlaybackRuntimeService {
                     ? PlaybackLifecyclePhase.waitingForPlayer
                     : (!snapshot.hasRenderedFirstFrame && !atPlaybackEnd)
                         ? PlaybackLifecyclePhase.waitingForFirstFrame
-                        : !hasStableVisualFrame
+                        : !hasAudiblePlaybackFrame
                             ? PlaybackLifecyclePhase.waitingForVisualSync
                             : PlaybackLifecyclePhase.audible;
 
     final shouldBeAudible =
-        !snapshot.isMuted && isOwnerCandidate && hasStableVisualFrame;
+        !snapshot.isMuted && isOwnerCandidate && hasAudiblePlaybackFrame;
 
     return PlaybackLifecycleDecision(
       phase: phase,
@@ -287,6 +294,29 @@ class SegmentCacheRuntimeService {
     int minimumSegmentCount = 1,
   }) {
     return cachedSegmentCount(docId) >= minimumSegmentCount;
+  }
+
+  int? estimateCurrentSegmentForDoc(
+    String docId, {
+    required double progress,
+    double? positionSeconds,
+  }) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return null;
+    final entry = _readEntry(normalizedDocId);
+    if (entry == null) return null;
+    final totalSegmentCount = entry.totalSegmentCount;
+    if (totalSegmentCount <= 0) return null;
+    if (positionSeconds != null) {
+      return HlsSegmentPolicy.estimateCurrentSegment(
+        positionSeconds: positionSeconds,
+        totalSegments: totalSegmentCount,
+      );
+    }
+    return _estimateCurrentSegment(
+      progress: progress.clamp(0.0, 1.0),
+      totalSegments: totalSegmentCount,
+    );
   }
 
   void ensureMinimumReadySegments(

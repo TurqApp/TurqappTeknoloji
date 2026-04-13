@@ -125,12 +125,15 @@ extension ExploreRepositoryQueryPart on ExploreRepository {
   Future<ExploreQueryPage> _fetchFloodServerPageImpl({
     DocumentSnapshot? startAfter,
     required int pageLimit,
+    int? nowMs,
   }) async {
+    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     Query<Map<String, dynamic>> query = _firestore
         .collection('Posts')
         .where('arsiv', isEqualTo: false)
         .where('flood', isEqualTo: false)
         .where('floodCount', isGreaterThan: 1)
+        .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('floodCount')
         .orderBy('timeStamp', descending: true)
         .limit(pageLimit);
@@ -147,12 +150,15 @@ extension ExploreRepositoryQueryPart on ExploreRepository {
   Future<ExploreQueryPage> _fetchFloodFallbackPageImpl({
     DocumentSnapshot? startAfter,
     required int pageLimit,
+    int? nowMs,
   }) async {
+    final ts = nowMs ?? DateTime.now().millisecondsSinceEpoch;
     Query<Map<String, dynamic>> query = _firestore
         .collection('Posts')
         .where('arsiv', isEqualTo: false)
         .where('flood', isEqualTo: false)
         .where('floodCount', isGreaterThan: 1)
+        .where('timeStamp', isLessThanOrEqualTo: ts)
         .orderBy('floodCount')
         .orderBy('timeStamp', descending: true)
         .limit(pageLimit);

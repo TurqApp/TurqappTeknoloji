@@ -17,6 +17,10 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     if (latestSettle == null) {
       return const <QALabPinpointFinding>[];
     }
+    final surfaceCheckpoints = _surfaceCheckpoints(surface);
+    final settledEvents = surfaceTimeline
+        .where((event) => event.category == 'scroll' && event.code == 'settled')
+        .toList(growable: false);
     final expectedDocId = (latestSettle.metadata['docId'] ?? '').toString();
     if (expectedDocId.isEmpty) {
       return const <QALabPinpointFinding>[];
@@ -54,6 +58,21 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       after: latestSettle.timestamp,
     );
     final scrollToken = (latestSettle.metadata['scrollToken'] ?? '').toString();
+    final suppressShortWarmupScrollWarnings =
+        surface == 'short' &&
+        _isTransientBlankSurfaceWarmup(
+          surface: surface,
+          surfaceCheckpoints: surfaceCheckpoints,
+          referenceTime: referenceTime,
+          route: route,
+        );
+    // First short swipe after initial settle still shares startup warmup noise on
+    // iOS; keep it out of blocking/slow transition diagnostics.
+    final suppressFirstShortTransitionWarnings =
+        surface == 'short' && settledEvents.length <= 2;
+    final suppressShortTransitionWarnings =
+        suppressShortWarmupScrollWarnings ||
+        suppressFirstShortTransitionWarnings;
     final stableFrameEvent = surface != 'short'
         ? null
         : _firstScrollPhaseAfter(
@@ -63,6 +82,35 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             docId: expectedDocId,
             scrollToken: scrollToken,
           );
+    final playbackProbe =
+        rootProbe['videoPlayback'] as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+    final currentPlayingDocId =
+        (playbackProbe['currentPlayingDocID'] ?? '').toString().trim();
+    final targetPlaybackDocId =
+        (playbackProbe['targetPlaybackDocID'] ?? '').toString().trim();
+    final nativeSurfaceHint =
+        (lastNativePlaybackSnapshot['surfaceHint'] ?? '').toString().trim();
+    final nativeSampledAt =
+        _parseTimestamp(lastNativePlaybackSnapshot['sampledAt']) ??
+            referenceTime;
+    final shortRuntimePlaybackRecovered = surface == 'short' &&
+        dispatch != null &&
+        (_matchesPlaybackDocForSurface(
+              surface: surface,
+              expectedDocId: expectedDocId,
+              currentDocId: currentPlayingDocId,
+            ) ||
+            _matchesPlaybackDocForSurface(
+              surface: surface,
+              expectedDocId: expectedDocId,
+              currentDocId: targetPlaybackDocId,
+            )) &&
+        (nativeSurfaceHint.isEmpty || nativeSurfaceHint == surface) &&
+        lastNativePlaybackSnapshot['firstFrameRendered'] == true &&
+        lastNativePlaybackSnapshot['isPlaying'] == true &&
+        lastNativePlaybackSnapshot['isBuffering'] != true &&
+        !nativeSampledAt.isBefore(latestSettle.timestamp);
     final dispatchLatencyMs = dispatch == null
         ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
         : dispatch.timestamp.difference(latestSettle.timestamp).inMilliseconds;
@@ -102,7 +150,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           },
         ),
       );
-    } else if (dispatch != null &&
+    } else if (!(surface == 'short' && suppressShortTransitionWarnings) &&
+        dispatch != null &&
         dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchWarningMs) {
       findings.add(
         QALabPinpointFinding(
@@ -167,7 +216,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           },
         ),
       );
-    } else if (firstFrameIssue != null &&
+    } else if (!(surface == 'short' && suppressShortTransitionWarnings) &&
+        firstFrameIssue != null &&
         firstFrameLatencyMs >= QALabMode.scrollFirstFrameWarningMs) {
       findings.add(
         QALabPinpointFinding(
@@ -189,13 +239,26 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     }
 
     if (surface == 'short') {
-      final stableFrameLatencyMs = stableFrameEvent == null
+      final stableFrameSource = stableFrameEvent == null
+          ? (firstFrameIssue == null ? 'runtime_playing' : 'video_first_frame')
+          : 'stable_frame';
+      final effectiveStableFrameTimestamp =
+          stableFrameEvent?.timestamp ??
+          firstFrameIssue?.timestamp ??
+          (shortRuntimePlaybackRecovered ? nativeSampledAt : null);
+      final stableFrameLatencyMs = effectiveStableFrameTimestamp == null
           ? referenceTime.difference(latestSettle.timestamp).inMilliseconds
-          : stableFrameEvent.timestamp
+          : effectiveStableFrameTimestamp
               .difference(latestSettle.timestamp)
               .inMilliseconds;
-      if (stableFrameEvent == null &&
-          stableFrameLatencyMs >= QALabMode.shortVisualStableFrameBlockingMs) {
+      final missingStableFrameBlockingMs =
+          dispatch != null ||
+                  firstFrameIssue != null ||
+                  playbackAlreadyTargetedAtSettle
+              ? QALabMode.scrollFirstFrameBlockingMs
+              : QALabMode.shortVisualStableFrameBlockingMs;
+      if (effectiveStableFrameTimestamp == null &&
+          stableFrameLatencyMs >= missingStableFrameBlockingMs) {
         findings.add(
           QALabPinpointFinding(
             severity: QALabIssueSeverity.blocking,
@@ -208,42 +271,69 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             context: <String, dynamic>{
               'docId': expectedDocId,
               'scrollToken': scrollToken,
-              'stableFrameLatencyMs': stableFrameLatencyMs,
+                'stableFrameLatencyMs': stableFrameLatencyMs,
             },
           ),
         );
-      } else if (stableFrameEvent != null &&
+      } else if (!suppressShortTransitionWarnings &&
+          effectiveStableFrameTimestamp != null &&
           stableFrameLatencyMs >= QALabMode.shortVisualStableFrameWarningMs) {
+        final stableFrameSeverity =
+            stableFrameSource == 'stable_frame' && firstFrameIssue != null
+            ? (stableFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs
+                  ? QALabIssueSeverity.error
+                  : QALabIssueSeverity.warning)
+            : QALabIssueSeverity.warning;
         findings.add(
           QALabPinpointFinding(
-            severity: stableFrameLatencyMs >=
-                    QALabMode.shortVisualStableFrameBlockingMs
-                ? QALabIssueSeverity.error
-                : QALabIssueSeverity.warning,
+            severity: stableFrameSeverity,
             code: 'short_transition_visual_slow',
             message:
                 'Short transition reached a visually stable frame too late after scroll settle.',
             route: route,
             surface: surface,
-            timestamp: stableFrameEvent.timestamp,
+            timestamp: effectiveStableFrameTimestamp,
             context: <String, dynamic>{
               'docId': expectedDocId,
               'scrollToken': scrollToken,
               'stableFrameLatencyMs': stableFrameLatencyMs,
-              'positionMs': _asInt(stableFrameEvent.metadata['positionMs']),
-              'isPlaying': stableFrameEvent.metadata['isPlaying'] == true,
-              'isBuffering': stableFrameEvent.metadata['isBuffering'] == true,
+              'source': stableFrameSource,
+              'positionMs':
+                  stableFrameEvent == null
+                      ? null
+                      : _asInt(stableFrameEvent.metadata['positionMs']),
+              'isPlaying':
+                  stableFrameEvent == null
+                      ? null
+                      : stableFrameEvent.metadata['isPlaying'] == true,
+              'isBuffering':
+                  stableFrameEvent == null
+                      ? null
+                      : stableFrameEvent.metadata['isBuffering'] == true,
             },
           ),
         );
       }
     }
 
+    final hasShortVisualConfirmation = surface == 'short' &&
+        (stableFrameEvent != null ||
+            firstFrameIssue != null ||
+            shortRuntimePlaybackRecovered);
+
     final duplicateBursts = _duplicatePlaybackDispatchBursts(
       surfaceTimeline: surfaceTimeline,
       docId: expectedDocId,
       after: latestSettle.timestamp,
-    );
+    ).where((burst) {
+      if (surface != 'short') {
+        return true;
+      }
+      return !_isBenignShortDuplicatePlaybackBurst(
+        burst,
+        hasVisualConfirmation: hasShortVisualConfirmation,
+      );
+    }).toList(growable: false);
     if (duplicateBursts.isNotEmpty) {
       findings.add(
         QALabPinpointFinding(
@@ -276,7 +366,15 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
                 event.code == 'short_stall_recovery_play',
           )
           .toList(growable: false);
-      if (retryEvents.length >= 2) {
+      final onlyWatchdogRetries = retryEvents.every(
+        (event) => event.code == 'short_watchdog_play_retry',
+      );
+      final benignWatchdogReplay = hasShortVisualConfirmation &&
+          onlyWatchdogRetries &&
+          retryEvents.length == 2;
+      if (!suppressShortTransitionWarnings &&
+          retryEvents.length >= 2 &&
+          !benignWatchdogReplay) {
         findings.add(
           QALabPinpointFinding(
             severity: retryEvents.length >= 3 ||

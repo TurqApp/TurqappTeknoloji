@@ -11,7 +11,9 @@ extension ShortContentControllerRuntimePart on ShortContentController {
 
     Future.microtask(() {
       if (isClosed) return;
-      _shortInteractionService.recordView(model.docID);
+      if (defaultTargetPlatform != TargetPlatform.iOS) {
+        _shortInteractionService.recordView(model.docID);
+      }
       _loadUserInteractionStatus();
     });
 

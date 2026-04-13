@@ -122,9 +122,46 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSetVolume(double v) {
     if (_disposed) return Future.value();
-    _pendingVolume = v;
+    final requestedVolume = v.clamp(0.0, 1.0).toDouble();
+    final previousRequestedVolume = _pendingVolume;
+    final shouldRecheckIosAudibility = defaultTargetPlatform == TargetPlatform.iOS &&
+        requestedVolume > 0.001 &&
+        _viewReady &&
+        _value.isInitialized &&
+        _value.hasRenderedFirstFrame &&
+        !_value.isCompleted;
+    if (_hasPendingVolume &&
+        (_pendingVolume - requestedVolume).abs() < 0.001 &&
+        !shouldRecheckIosAudibility) {
+      return Future.value();
+    }
+    _pendingVolume = requestedVolume;
     _hasPendingVolume = true;
-    if (_viewReady) return _hls.setVolume(v);
+    if (_viewReady) {
+      return (() async {
+        await _hls.setVolume(requestedVolume);
+        var stillMuted = false;
+        final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+        final isUnmute = previousRequestedVolume <= 0.001 &&
+            requestedVolume > 0.001;
+        final shouldReassertPlayback = isIOS &&
+            (isUnmute || shouldRecheckIosAudibility) &&
+            _value.isInitialized &&
+            _value.hasRenderedFirstFrame &&
+            !_value.isCompleted;
+        if (shouldRecheckIosAudibility) {
+          try {
+            stillMuted = await _hls.isMutedNative();
+          } catch (_) {}
+        }
+        if (!shouldReassertPlayback) return;
+        final shouldForcePlay = stillMuted || !_value.isPlaying;
+        if (!shouldForcePlay) return;
+        try {
+          await _hls.play();
+        } catch (_) {}
+      })();
+    }
     return Future.value();
   }
 
@@ -141,6 +178,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSeekTo(Duration pos) {
     if (_disposed) return Future.value();
+    if (_isStopped) {
+      _pendingSeek = pos;
+      return Future.value();
+    }
     final shouldClearCompleted = _value.isCompleted &&
         (_value.duration == Duration.zero || pos < _value.duration);
     if (shouldClearCompleted) {

@@ -62,6 +62,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       ctrl,
       preferredIndex: index,
     );
+    await _restoreSingleShortPlaybackStateIfNeeded(index, ctrl);
     await _playbackExecutionService.playAdapter(ctrl);
     _requestExclusivePlayback(shorts[index].docID);
     _applySingleShortPlaybackPresentation(index, ctrl);
@@ -109,6 +110,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
   void _handlePageChanged(int page) {
     if (page == currentPage) return;
+    _forceResumePosterOnReturn = false;
 
     final prev = _videoControllers[currentPage];
     if (prev != null) {
@@ -220,6 +222,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidPushNext() {
+    _forceResumePosterOnReturn = false;
     unawaited(_endActiveTelemetrySession());
     unawaited(_pauseAllControllers());
   }
@@ -230,6 +233,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
     final vp = _videoControllers[currentPage];
     if (vp == null || vp.isDisposed) return;
+    _forceResumePosterOnReturn = true;
 
     try {
       _playbackRuntimeService.enterExclusiveMode(

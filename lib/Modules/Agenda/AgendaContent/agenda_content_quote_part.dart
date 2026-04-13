@@ -75,7 +75,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                 const SizedBox(width: 3),
                 Text(
                   widget.model.konum,
-                  style: AppTypography.postMeta.copyWith(
+                  style: _agendaPostMetaStyle.copyWith(
                     color: Colors.black,
                   ),
                 ),
@@ -160,7 +160,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       quotedText,
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.postCaption.copyWith(
+                      style: _agendaPostCaptionStyle.copyWith(
                         color: const Color(0xFF3A434D),
                         height: 1.35,
                       ),
@@ -263,7 +263,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                       displayName.isEmpty ? 'common.user'.tr : displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.postName.copyWith(
+                      style: _agendaPostNameStyle.copyWith(
                         color: Colors.black,
                       ),
                     ),
@@ -275,7 +275,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         '@$username',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.postHandle.copyWith(
+                        style: _agendaPostHandleStyle.copyWith(
                           color: Colors.grey,
                         ),
                       ),
@@ -290,7 +290,7 @@ extension _AgendaContentQuotePart on _AgendaContentState {
                         displayTime,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.postMeta.copyWith(
+                        style: _agendaPostMetaStyle.copyWith(
                           color: Colors.grey,
                         ),
                       ),

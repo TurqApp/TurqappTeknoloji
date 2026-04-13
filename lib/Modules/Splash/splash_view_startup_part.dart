@@ -829,14 +829,17 @@ extension _SplashViewStartupPart on _SplashViewState {
       if (agendaController.agendaList.isNotEmpty) {
         return;
       }
-      await agendaController
-          .prepareStartupSurface(
-            allowBackgroundRefresh: false,
-          )
-          .timeout(
-            const Duration(milliseconds: 900),
-            onTimeout: () {},
-          );
+      final prepareFuture = agendaController.prepareStartupSurface(
+        allowBackgroundRefresh: false,
+      );
+      if (ContentPolicy.isConnected) {
+        unawaited(prepareFuture.catchError((_) {}));
+        return;
+      }
+      await prepareFuture.timeout(
+        const Duration(milliseconds: 900),
+        onTimeout: () {},
+      );
     } catch (error, stackTrace) {
       StartupSessionFailureReporter.defaultReporter.record(
         kind: StartupSessionFailureKind.primaryRouteReadiness,

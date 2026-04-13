@@ -131,4 +131,41 @@ extension QALabRecorderDiagnosticsPart on QALabRecorder {
     final ageMs = referenceTime.difference(observedSince).inMilliseconds;
     return ageMs >= 0 && ageMs < QALabMode.autoplayDetectionGraceMs;
   }
+
+  bool _hasObservedSurfaceVideoSessionIssue(List<QALabIssue> surfaceIssues) {
+    for (final issue in surfaceIssues) {
+      if (issue.source != QALabIssueSource.video) continue;
+      if (issue.code == 'video_session_started' ||
+          issue.code == 'video_first_frame') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isTransientShortBlankSurfaceBootstrap({
+    required String surface,
+    required List<QALabIssue> surfaceIssues,
+    required List<QALabCheckpoint> surfaceCheckpoints,
+    required DateTime referenceTime,
+    required String route,
+  }) {
+    if (surface != 'short') return false;
+    if (_hasObservedSurfaceVideoSessionIssue(surfaceIssues)) {
+      return false;
+    }
+    if (surfaceCheckpoints.isEmpty) return false;
+
+    var observedSince = surfaceCheckpoints.last.timestamp;
+    for (final checkpoint in surfaceCheckpoints.reversed) {
+      if (checkpoint.route != route) {
+        break;
+      }
+      observedSince = checkpoint.timestamp;
+    }
+
+    final ageMs = referenceTime.difference(observedSince).inMilliseconds;
+    return ageMs >= 0 &&
+        ageMs < const Duration(seconds: 8).inMilliseconds;
+  }
 }

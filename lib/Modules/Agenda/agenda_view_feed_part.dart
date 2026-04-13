@@ -20,8 +20,8 @@ extension _AgendaViewFeedPart on AgendaView {
       child: Obx(() {
         final display = controller.mergedFeedEntries;
         final filteredDisplay = controller.filteredFeedEntries;
-        final renderDisplay = controller.visibleStartupRenderEntries(
-          controller.renderFeedEntries.toList(growable: false),
+        final renderDisplay = controller.renderFeedEntries.toList(
+          growable: false,
         );
         final displayCount = display.length;
         final filteredCount = filteredDisplay.length;
@@ -49,40 +49,28 @@ extension _AgendaViewFeedPart on AgendaView {
           return _buildEmptyFeedState(emptyText);
         }
 
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification is ScrollStartNotification &&
-                notification.dragDetails != null) {
-              controller.noteStartupPromoRevealUserDrag();
-            } else if (notification is ScrollUpdateNotification &&
-                notification.dragDetails != null) {
-              controller.noteStartupPromoRevealUserDrag();
-            }
-            return false;
-          },
-          child: ListView.builder(
-            controller: controller.scrollController,
-            physics: GetPlatform.isAndroid
-                ? const ClampingScrollPhysics(
-                    parent: AlwaysScrollableScrollPhysics(),
-                  )
-                : const AlwaysScrollableScrollPhysics(),
-            cacheExtent: GetPlatform.isIOS ? 180.0 : 220.0,
-            padding: const EdgeInsets.only(
-              bottom: kBottomNavigationBarHeight + 16,
-            ),
-            itemCount: renderDisplay.length + 1,
-            itemBuilder: (context, index) {
-              if (index == 0) return header();
-
-              final actualIndex = index - 1;
-              if (actualIndex >= renderDisplay.length) {
-                return const SizedBox.shrink();
-              }
-
-              return _buildFeedItem(renderDisplay[actualIndex]);
-            },
+        return ListView.builder(
+          controller: controller.scrollController,
+          physics: GetPlatform.isAndroid
+              ? const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                )
+              : const AlwaysScrollableScrollPhysics(),
+          cacheExtent: GetPlatform.isIOS ? 180.0 : 220.0,
+          padding: const EdgeInsets.only(
+            bottom: kBottomNavigationBarHeight + 16,
           ),
+          itemCount: renderDisplay.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) return header();
+
+            final actualIndex = index - 1;
+            if (actualIndex >= renderDisplay.length) {
+              return const SizedBox.shrink();
+            }
+
+            return _buildFeedItem(renderDisplay[actualIndex]);
+          },
         );
       }),
     );

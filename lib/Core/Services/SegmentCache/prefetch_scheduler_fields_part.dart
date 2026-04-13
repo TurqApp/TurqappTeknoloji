@@ -32,9 +32,10 @@ class _PrefetchSchedulerState {
   final http.Client httpClient = http.Client();
   bool quotaFillRemoteInFlight = false;
   bool quotaFillRemoteHasMore = true;
-  DocumentSnapshot<Map<String, dynamic>>? quotaFillRemoteCursor;
+  QueryDocumentSnapshot<Map<String, dynamic>>? quotaFillRemoteCursor;
   int quotaFillRemoteExhaustedUsageBytes = 0;
   int quotaFillRemoteExhaustedTargetBytes = 0;
+  bool automaticQuotaFillEnabled = true;
 }
 
 extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
@@ -103,9 +104,9 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   bool get _quotaFillRemoteHasMore => _state.quotaFillRemoteHasMore;
   set _quotaFillRemoteHasMore(bool value) =>
       _state.quotaFillRemoteHasMore = value;
-  DocumentSnapshot<Map<String, dynamic>>? get _quotaFillRemoteCursor =>
+  QueryDocumentSnapshot<Map<String, dynamic>>? get _quotaFillRemoteCursor =>
       _state.quotaFillRemoteCursor;
-  set _quotaFillRemoteCursor(DocumentSnapshot<Map<String, dynamic>>? value) =>
+  set _quotaFillRemoteCursor(QueryDocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.quotaFillRemoteCursor = value;
   int get _quotaFillRemoteExhaustedUsageBytes =>
       _state.quotaFillRemoteExhaustedUsageBytes;
@@ -115,4 +116,5 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
       _state.quotaFillRemoteExhaustedTargetBytes;
   set _quotaFillRemoteExhaustedTargetBytes(int value) =>
       _state.quotaFillRemoteExhaustedTargetBytes = value;
+  bool get _automaticQuotaFillEnabled => _state.automaticQuotaFillEnabled;
 }

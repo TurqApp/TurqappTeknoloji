@@ -1,35 +1,11 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
-  static const List<int> _startupRenderStageEntryCounts = <int>[
-    5,
-    10,
-    20,
-    30,
-    40,
-  ];
-
-  Duration _startupRenderStageDelay(int currentCount) {
-    if (!GetPlatform.isAndroid) {
-      return currentCount <= _startupRenderStageEntryCounts.first
-          ? const Duration(milliseconds: 90)
-          : const Duration(milliseconds: 140);
-    }
-    return currentCount <= _startupRenderStageEntryCounts.first
-        ? const Duration(milliseconds: 180)
-        : const Duration(milliseconds: 220);
-  }
-
   void _activateStartupRenderStages({String reason = 'unknown'}) {
-    _startupRenderStageTimer?.cancel();
-    _startupRenderStageTimer = null;
-    _startupRenderStagingActive = true;
-    _startupRenderVisiblePostCount = _startupRenderStageEntryCounts.first;
     debugPrint(
       '[FeedStartupStage] status=activate reason=$reason '
-      'visibleEntries=$_startupRenderVisiblePostCount',
+      'visibleEntries=${FeedRenderBlockPlan.renderSlotsPerBlock}',
     );
-    _scheduleStartupRenderStageAdvance();
   }
 
   void _applyStartupRenderStagesNow() {
@@ -40,7 +16,7 @@ extension AgendaControllerRenderPart on AgendaController {
     _rebuildMergedFeedEntries();
     _rebuildFilteredFeedEntries();
     debugPrint(
-      '[FeedStartupStage] status=sync_rebuild visibleEntries=$_startupRenderVisiblePostCount '
+      '[FeedStartupStage] status=sync_rebuild visibleEntries=${FeedRenderBlockPlan.renderSlotsPerBlock} '
       'agendaCount=${agendaList.length}',
     );
     _rebuildRenderFeedEntries(ignoreStartupBootstrapHold: true);
@@ -48,114 +24,7 @@ extension AgendaControllerRenderPart on AgendaController {
   }
 
   void _resetStartupRenderStages() {
-    _startupRenderStageTimer?.cancel();
-    _startupRenderStageTimer = null;
-    _startupRenderStagingActive = false;
-    _startupRenderVisiblePostCount = 0;
     _startupRenderBootstrapHold = false;
-  }
-
-  int? _nextStartupRenderStageEntryCount(int currentCount) {
-    for (final target in _startupRenderStageEntryCounts) {
-      if (target > currentCount) return target;
-    }
-    return null;
-  }
-
-  void _scheduleStartupRenderStageAdvance() {
-    if (!_startupRenderStagingActive) return;
-    final currentCount = _startupRenderVisiblePostCount;
-    if (currentCount >= _startupRenderStageEntryCounts.last) {
-      _resetStartupRenderStages();
-      return;
-    }
-    final nextStageCount = _nextStartupRenderStageEntryCount(currentCount);
-    if (nextStageCount == null) {
-      _resetStartupRenderStages();
-      return;
-    }
-    _startupRenderStageTimer?.cancel();
-    _startupRenderStageTimer = Timer(
-      _startupRenderStageDelay(currentCount),
-      () {
-        _startupRenderStageTimer = null;
-        if (isClosed || !_startupRenderStagingActive) return;
-        _startupRenderVisiblePostCount = nextStageCount;
-        debugPrint(
-          '[FeedStartupStage] status=advance visibleEntries=$nextStageCount',
-        );
-        _rebuildRenderFeedEntries();
-        if (nextStageCount >= _startupRenderStageEntryCounts.last) {
-          _resetStartupRenderStages();
-          _rebuildRenderFeedEntries();
-          return;
-        }
-        _scheduleStartupRenderStageAdvance();
-      },
-    );
-  }
-
-  void _scheduleStartupPromoReveal({int attempt = 0}) {
-    if (!_startupPromoRevealUnlockedByScroll) {
-      return;
-    }
-    if (_startupPromoRevealQueued ||
-        _startupPromoRevealTimer?.isActive == true) {
-      return;
-    }
-    _startupPromoRevealQueued = true;
-    final delay = attempt == 0
-        ? const Duration(milliseconds: 450)
-        : const Duration(milliseconds: 700);
-    _startupPromoRevealTimer = Timer(delay, () {
-      _startupPromoRevealTimer = null;
-      _startupPromoRevealQueued = false;
-      if (isClosed ||
-          filteredFeedEntries.isEmpty ||
-          renderFeedEntries.isEmpty) {
-        return;
-      }
-      final prefetch = maybeFindPrefetchScheduler();
-      final navReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount;
-      final readyThreshold = navReadyThreshold < 10 ? 10 : navReadyThreshold;
-      final waitingForStartupPromoWindow = prefetch == null ||
-          prefetch.feedWindowCount < readyThreshold ||
-          prefetch.feedReadyCount < readyThreshold;
-      if (attempt < 24 && waitingForStartupPromoWindow) {
-        if (attempt == 0 || attempt % 8 == 0) {
-          recordQALabFeedFetchEvent(
-            stage: 'startup_promo_reveal_wait',
-            trigger: 'startup_promo_ready_window',
-            metadata: <String, dynamic>{
-              'attempt': attempt,
-              'unlockedByScroll': _startupPromoRevealUnlockedByScroll,
-              'feedReadyCount': prefetch?.feedReadyCount ?? -1,
-              'feedWindowCount': prefetch?.feedWindowCount ?? -1,
-              'readyThreshold': readyThreshold,
-              'renderCount': renderFeedEntries.length,
-              'filteredCount': filteredFeedEntries.length,
-            },
-          );
-        }
-        _scheduleStartupPromoReveal(attempt: attempt + 1);
-        return;
-      }
-      recordQALabFeedFetchEvent(
-        stage: 'startup_promo_reveal_apply',
-        trigger: 'startup_promo_ready_window',
-        metadata: <String, dynamic>{
-          'attempt': attempt,
-          'unlockedByScroll': _startupPromoRevealUnlockedByScroll,
-          'feedReadyCount': prefetch?.feedReadyCount ?? -1,
-          'feedWindowCount': prefetch?.feedWindowCount ?? -1,
-          'readyThreshold': readyThreshold,
-          'renderCount': renderFeedEntries.length,
-          'filteredCount': filteredFeedEntries.length,
-        },
-      );
-      _startupPromoRevealApplied = true;
-      _rebuildRenderFeedEntries();
-    });
   }
 
   void _performBindMergedFeedEntries() {
@@ -253,24 +122,15 @@ extension AgendaControllerRenderPart on AgendaController {
       return;
     }
     if (filteredFeedEntries.isEmpty) {
-      if (_startupRenderStagingActive && agendaList.isNotEmpty) {
-        return;
-      }
       if (isLoading.value && renderFeedEntries.isNotEmpty) {
         return;
       }
       _resetStartupRenderStages();
-      _startupPromoRevealTimer?.cancel();
-      _startupPromoRevealTimer = null;
-      _startupPromoRevealQueued = false;
-      _startupPromoRevealApplied = false;
       renderFeedEntries.clear();
       return;
     }
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
-      maxRenderEntries:
-          _startupRenderStagingActive ? _startupRenderVisiblePostCount : null,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: renderFeedEntries.toList(growable: false),

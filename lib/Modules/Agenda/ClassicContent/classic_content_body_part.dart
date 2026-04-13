@@ -1,7 +1,7 @@
 part of 'classic_content.dart';
 
 extension ClassicContentBodyPart on _ClassicContentState {
-  double get _captionFontSize => AppTypography.postCaption.fontSize!;
+  double get _captionFontSize => _classicPostCaptionFontSize;
 
   Widget textOnlyBody(BuildContext context) {
     final sanitizedCaption =
@@ -77,7 +77,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           ? widget.model.quotedSourceUserID
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
-                      fontSize: AppTypography.postAttribution.fontSize!,
+                      fontSize: _classicPostAttributionFontSize,
                       textColor: Colors.red,
                       showBackdrop: true,
                     ),
@@ -213,7 +213,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: AppTypography.postAttribution.fontSize!,
+                          fontSize: _classicPostAttributionFontSize,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -304,7 +304,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           labelSuffix:
                               widget.model.quotedPost ? 'alıntılandı' : '',
                           textColor: Colors.white,
-                          fontSize: AppTypography.postAttribution.fontSize!,
+                          fontSize: _classicPostAttributionFontSize,
                         ),
                       ),
                     _buildClassicMediaHeader(),
@@ -395,7 +395,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             '$label$text',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTypography.postCaption.copyWith(
+                            style: _classicPostCaptionStyle.copyWith(
                               color: Colors.black87,
                               fontFamily: "MontserratMedium",
                             ),
@@ -405,7 +405,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         if (showResults)
                           Text(
                             '${(pct * 100).toStringAsFixed(0)}%',
-                            style: AppTypography.postMeta.copyWith(
+                            style: _classicPostMetaStyle.copyWith(
                               color: Colors.black54,
                               fontFamily: "MontserratMedium",
                             ),
@@ -420,7 +420,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                 children: [
                   Text(
                     'Toplam ${totalVotes.toInt()} oy',
-                    style: AppTypography.postMeta.copyWith(
+                    style: _classicPostMetaStyle.copyWith(
                       color: Colors.black54,
                       fontFamily: "MontserratMedium",
                     ),
@@ -431,7 +431,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       expired: expired,
                       expiresAtMs: expiresAt,
                     ),
-                    style: AppTypography.postMeta.copyWith(
+                    style: _classicPostMetaStyle.copyWith(
                       color: Colors.black54,
                       fontFamily: "MontserratMedium",
                     ),
@@ -631,7 +631,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                           : '',
                       labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
                       textColor: Colors.white,
-                      fontSize: AppTypography.postAttribution.fontSize!,
+                      fontSize: _classicPostAttributionFontSize,
                     ),
                   ),
                 _buildIzBirakBlurOverlay(),

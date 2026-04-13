@@ -1,36 +1,46 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerFeedPart on AgendaController {
-  void noteStartupPromoRevealUserDrag() {
-    if (_startupPromoRevealUnlockedByScroll) return;
-    _startupPromoRevealSawUserDrag = true;
-  }
-
   static const int _startupThumbnailPrefetchInitialCount = 5;
   static const int _startupThumbnailPrefetchRadius = 5;
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
-      Duration(milliseconds: 900);
+      Duration(milliseconds: 520);
+  static const Duration _androidStartupPlaybackGrace =
+      Duration(milliseconds: 420);
   static const Duration _androidCurrentRecoveryGrace =
       Duration(milliseconds: 1200);
+  static const int _feedBoostPlayableCount = 3;
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 2;
-  static const int _feedInitialBufferedFetchTriggerCount =
-      ReadBudgetRegistry.feedBufferedFetchLimit;
-  static const int _feedBufferedLeadRevealRemainingCount = 5;
+  static const int _feedPlannerGroupPostCount =
+      FeedRenderBlockPlan.postsPerGroup;
+  static const int _feedPlannerGroupsPerBlock =
+      FeedRenderBlockPlan.groupsPerBlock;
+  static const int _feedHotPrefetchGroupCount = 3;
+  static const int _feedStartupWarmGroupCount = 2;
 
-  void _resetBufferedFeedFetchTrigger() {
-    _nextBufferedFetchTriggerCount = _feedInitialBufferedFetchTriggerCount;
+  int get _feedInitialPageFetchTriggerCount {
+    final trigger = ReadBudgetRegistry.feedPageFetchLimit -
+        (FeedRenderBlockPlan.postsPerGroup * 2);
+    return trigger > FeedRenderBlockPlan.postsPerGroup
+        ? trigger
+        : FeedRenderBlockPlan.postsPerGroup;
   }
 
-  void _advanceBufferedFeedFetchTrigger(int viewedCount) {
-    _nextBufferedFetchTriggerCount =
-        _agendaFeedApplicationService.resolveNextBufferedFetchTrigger(
-      currentTrigger: _nextBufferedFetchTriggerCount,
-      viewedCount: viewedCount,
-      stride: ReadBudgetRegistry.feedBufferedFetchLimit,
-    );
+  void _resetFeedPageFetchTrigger() {
+    _nextPageFetchTriggerCount = _feedInitialPageFetchTriggerCount;
+  }
+
+  void _advanceFeedPageFetchTrigger(int viewedCount) {
+    final stride = ReadBudgetRegistry.feedPageFetchLimit;
+    if (stride <= 0) return;
+    var nextTrigger = _nextPageFetchTriggerCount;
+    while (nextTrigger <= viewedCount) {
+      nextTrigger += stride;
+    }
+    _nextPageFetchTriggerCount = nextTrigger;
   }
 
   bool _reclaimFeedPlaybackFromExternalOwner(
@@ -70,6 +80,49 @@ extension AgendaControllerFeedPart on AgendaController {
     final key = playbackHandleKey?.trim() ?? '';
     if (key.isEmpty) return false;
     return !key.startsWith('feed:');
+  }
+
+  ({int activeGroupIndex, int activeBlockIndex, int activeGroupInBlock})
+      _resolveFeedWarmIdentity(int centered) {
+    final safeCentered =
+        centered >= 0 && centered < agendaList.length ? centered : 0;
+    final activeGroupIndex = safeCentered ~/ _feedPlannerGroupPostCount;
+    return (
+      activeGroupIndex: activeGroupIndex,
+      activeBlockIndex: activeGroupIndex ~/ _feedPlannerGroupsPerBlock,
+      activeGroupInBlock: activeGroupIndex % _feedPlannerGroupsPerBlock,
+    );
+  }
+
+  ({int start, int endExclusive}) _resolveFeedWarmPostRange({
+    required int startGroupIndex,
+    required int hotGroupCount,
+  }) {
+    if (agendaList.isEmpty || hotGroupCount <= 0) {
+      return (start: 0, endExclusive: 0);
+    }
+    final start = startGroupIndex * _feedPlannerGroupPostCount;
+    final endExclusive = min(
+      agendaList.length,
+      start + (_feedPlannerGroupPostCount * hotGroupCount),
+    );
+    return (start: start, endExclusive: endExclusive);
+  }
+
+  void _recordFeedWarmSchedulerIfChanged(int centered) {
+    if (centered < 0 || centered >= agendaList.length) return;
+    final identity = _resolveFeedWarmIdentity(centered);
+    if (_lastFeedWarmGroupIndex == identity.activeGroupIndex &&
+        _lastFeedWarmBlockIndex == identity.activeBlockIndex) {
+      return;
+    }
+    _lastFeedWarmGroupIndex = identity.activeGroupIndex;
+    _lastFeedWarmBlockIndex = identity.activeBlockIndex;
+    debugPrint(
+      '[FeedWarmScheduler] block=${identity.activeBlockIndex} '
+      'group=${identity.activeGroupInBlock + 1} '
+      'hotGroupCount=$_feedHotPrefetchGroupCount',
+    );
   }
 
   bool get _canRetainStartupPlaybackLock {
@@ -219,6 +272,7 @@ extension AgendaControllerFeedPart on AgendaController {
         }
       }
 
+      _recordFeedWarmSchedulerIfChanged(newIndex);
       _scheduleFeedPrefetch();
     });
   }
@@ -257,23 +311,91 @@ extension AgendaControllerFeedPart on AgendaController {
         : 10;
     final startupWindowStabilizing =
         prefetch.feedReadyCount < startupReadyThreshold;
-    final maxBoosted =
-        startupWindowStabilizing ? 1 : (_feedPlaybackBoostLookAhead + 1);
-    final readySegments =
-        startupWindowStabilizing ? 1 : _feedPlaybackBoostReadySegments;
+    final prioritizedIndices = _resolvePrioritizedPlayableFeedIndices(
+      centered: centered,
+      lookAheadPlayableCount: _feedPlaybackBoostLookAhead,
+      behindPlayableCount: 1,
+    );
+    if (prioritizedIndices.isEmpty) return;
+    final maxBoosted = startupWindowStabilizing
+        ? _feedPlaybackBoostLookAhead + 1
+        : _feedBoostPlayableCount;
     var boosted = 0;
-    for (int i = centered; i < agendaList.length; i++) {
-      final post = agendaList[i];
+    var playableRank = 0;
+    for (final index in prioritizedIndices) {
+      final post = agendaList[index];
       if (!_canAutoplayVideoPost(post)) continue;
       prefetch.boostDoc(
         post.docID,
-        readySegments: readySegments,
+        readySegments: _feedBoostReadySegmentsForPlayableRank(
+          playableRank,
+          startupWindowStabilizing: startupWindowStabilizing,
+        ),
       );
+      playableRank++;
       boosted++;
-      if (boosted >= maxBoosted) {
+      if (boosted >= min(maxBoosted, _feedBoostPlayableCount)) {
         break;
       }
     }
+  }
+
+  List<int> _resolvePrioritizedPlayableFeedIndices({
+    required int centered,
+    required int lookAheadPlayableCount,
+    required int behindPlayableCount,
+  }) {
+    if (agendaList.isEmpty) {
+      return const <int>[];
+    }
+    final safeCentered = centered.clamp(0, agendaList.length - 1);
+    final indices = <int>[];
+
+    void addIfPlayable(int index) {
+      if (index < 0 || index >= agendaList.length) return;
+      if (indices.contains(index)) return;
+      if (!_canAutoplayVideoPost(agendaList[index])) return;
+      indices.add(index);
+    }
+
+    addIfPlayable(safeCentered);
+
+    var aheadFound = 0;
+    for (int index = safeCentered + 1;
+        index < agendaList.length && aheadFound < lookAheadPlayableCount;
+        index++) {
+      if (_canAutoplayVideoPost(agendaList[index])) {
+        addIfPlayable(index);
+        aheadFound++;
+      }
+    }
+
+    var behindFound = 0;
+    for (int index = safeCentered - 1;
+        index >= 0 && behindFound < behindPlayableCount;
+        index--) {
+      if (_canAutoplayVideoPost(agendaList[index])) {
+        addIfPlayable(index);
+        behindFound++;
+      }
+    }
+
+    return indices;
+  }
+
+  int _feedBoostReadySegmentsForPlayableRank(
+    int playableRank, {
+    required bool startupWindowStabilizing,
+  }) {
+    if (playableRank == 0) {
+      return startupWindowStabilizing
+          ? _feedPlaybackBoostReadySegments
+          : _feedPlaybackBoostReadySegments + 1;
+    }
+    if (playableRank == 1) {
+      return startupWindowStabilizing ? 1 : _feedPlaybackBoostReadySegments;
+    }
+    return 1;
   }
 
   void _prefetchCurrentPoster() {
@@ -294,41 +416,93 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchThumbnailBatches();
     _prefetchUpcomingImages();
 
+    final centered = centeredIndex.value;
+    final hotWindowPosts = _resolveFeedHotWindowPosts(
+      centeredIndex: centered,
+      hotGroupCount: _feedHotPrefetchGroupCount,
+    );
     final videoPosts =
-        agendaList.where((p) => _canAutoplayVideoPost(p)).toList();
+        hotWindowPosts.where((p) => _canAutoplayVideoPost(p)).toList();
     FeedSurfaceRegistry.recordVideoDocIds(
       videoPosts.map((post) => post.docID),
     );
     if (videoPosts.isEmpty) return;
 
     int safeCurrent = 0;
-    final centered = centeredIndex.value;
     if (centered >= 0 && centered < agendaList.length) {
       final centeredDocID = agendaList[centered].docID;
       final mapped = videoPosts.indexWhere((p) => p.docID == centeredDocID);
       if (mapped >= 0) {
         safeCurrent = mapped;
       } else {
+        final safeCentered =
+            centered >= 0 && centered < agendaList.length ? centered : 0;
+        final hotWindowStart = _resolveFeedHotWindowStart(safeCentered);
         int beforeCount = 0;
-        for (int i = 0; i < centered; i++) {
-          if (_canAutoplayVideoPost(agendaList[i])) beforeCount++;
+        final relativeCentered = (safeCentered - hotWindowStart).clamp(
+          0,
+          hotWindowPosts.isEmpty ? 0 : hotWindowPosts.length - 1,
+        );
+        for (int i = 0; i < relativeCentered; i++) {
+          if (_canAutoplayVideoPost(hotWindowPosts[i])) beforeCount++;
         }
         safeCurrent = beforeCount.clamp(0, videoPosts.length - 1);
       }
     }
-    final prefetch = maybeFindPrefetchScheduler();
-    final startupReadyThreshold = ReadBudgetRegistry.feedReadyForNavCount > 10
-        ? ReadBudgetRegistry.feedReadyForNavCount
-        : 10;
-    if (prefetch != null && prefetch.feedReadyCount < startupReadyThreshold) {
-      return;
-    }
     try {
-      prefetch?.updateFeedQueueForPosts(
+      maybeFindPrefetchScheduler()?.updateFeedQueueForPosts(
         videoPosts,
         safeCurrent,
       );
     } catch (_) {}
+  }
+
+  int _resolveFeedWarmGroupIndex(int centered) {
+    return _resolveFeedWarmIdentity(centered).activeGroupIndex;
+  }
+
+  int _resolveFeedWarmBlockIndex(int centered) {
+    return _resolveFeedWarmIdentity(centered).activeBlockIndex;
+  }
+
+  int _resolveFeedWarmGroupInBlock(int centered) {
+    return _resolveFeedWarmIdentity(centered).activeGroupInBlock;
+  }
+
+  int _resolveFeedHotWindowStart(int centered) {
+    final hotGroup = _resolveFeedWarmGroupIndex(centered);
+    return _resolveFeedWarmPostRange(
+      startGroupIndex: hotGroup,
+      hotGroupCount: _feedHotPrefetchGroupCount,
+    ).start;
+  }
+
+  List<PostsModel> _resolveFeedHotWindowPosts({
+    required int centeredIndex,
+    required int hotGroupCount,
+  }) {
+    if (agendaList.isEmpty || hotGroupCount <= 0) {
+      return const <PostsModel>[];
+    }
+    final hotGroup = _resolveFeedWarmGroupIndex(centeredIndex);
+    final range = _resolveFeedWarmPostRange(
+      startGroupIndex: hotGroup,
+      hotGroupCount: hotGroupCount,
+    );
+    return agendaList
+        .sublist(range.start, range.endExclusive)
+        .toList(growable: false);
+  }
+
+  List<PostsModel> _resolveFeedStartupWarmPosts() {
+    if (agendaList.isEmpty) return const <PostsModel>[];
+    final range = _resolveFeedWarmPostRange(
+      startGroupIndex: 0,
+      hotGroupCount: _feedStartupWarmGroupCount,
+    );
+    return agendaList
+        .sublist(range.start, range.endExclusive)
+        .toList(growable: false);
   }
 
   void primeInitialCenteredPost() {
@@ -366,26 +540,56 @@ extension AgendaControllerFeedPart on AgendaController {
           agendaList[target].docID != targetPost.docID) {
         return;
       }
-      if (canClaimPlaybackNow) {
-        _ensureFeedPlaybackForIndex(target);
-        _schedulePlaybackReassert(
+      void startPlaybackWork() {
+        if (isClosed ||
+            pauseAll.value ||
+            !isPrimaryFeedRouteVisible ||
+            centeredIndex.value != target ||
+            target < 0 ||
+            target >= agendaList.length ||
+            agendaList[target].docID != targetPost.docID) {
+          return;
+        }
+        if (canClaimPlaybackNow) {
+          _ensureFeedPlaybackForIndex(target);
+          _schedulePlaybackReassert(
+            index: target,
+            docId: targetPost.docID,
+            manager: VideoStateManager.instance,
+          );
+        }
+        _scheduleStartupAutoplayKick(
           index: target,
           docId: targetPost.docID,
-          manager: VideoStateManager.instance,
         );
       }
-      _scheduleStartupAutoplayKick(
-        index: target,
-        docId: targetPost.docID,
-      );
+
+      if (_shouldDelayStartupPlaybackWork) {
+        Future.delayed(_androidStartupPlaybackGrace, startPlaybackWork);
+        return;
+      }
+      startPlaybackWork();
     });
+  }
+
+  bool get _shouldDelayStartupPlaybackWork {
+    if (!GetPlatform.isAndroid) return false;
+    if (agendaList.isEmpty) return false;
+    if ((_lastPlaybackRowUpdateDocId?.trim().isNotEmpty ?? false)) {
+      return false;
+    }
+    final currentOwner =
+        VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    if (currentOwner.startsWith('feed:')) return false;
+    return true;
   }
 
   bool get _needsInitialFeedPlaybackPrime {
     if (agendaList.isEmpty) return false;
     final lastRowDocId = _lastPlaybackRowUpdateDocId?.trim() ?? '';
     if (lastRowDocId.isNotEmpty) return false;
-    final currentOwner = VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    final currentOwner =
+        VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
     if (currentOwner.startsWith('feed:')) return false;
     return true;
   }
@@ -558,10 +762,10 @@ extension AgendaControllerFeedPart on AgendaController {
   }) {
     if (!GetPlatform.isAndroid) return;
     final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
-    final isStartupLeadKick =
-        index == 0 &&
+    final isStartupLeadKick = index == 0 &&
         (_lastPlaybackRowUpdateDocId?.trim().isEmpty ?? true) &&
-        (VideoStateManager.instance.currentPlayingDocID?.trim().isEmpty ?? true);
+        (VideoStateManager.instance.currentPlayingDocID?.trim().isEmpty ??
+            true);
     final delays = isStartupLeadKick
         ? const <Duration>[
             Duration(milliseconds: 180),
@@ -644,7 +848,7 @@ extension AgendaControllerFeedPart on AgendaController {
         GetPlatform.isIOS && _canRetainStartupPlaybackLock;
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
-    final startupUnlockThreshold = startupLockActive ? 4.0 : 1.0;
+    final startupUnlockThreshold = startupLockActive ? 2.0 : 1.0;
     final hasMeaningfulScrollMovement =
         currentOffset.abs() > startupUnlockThreshold ||
             scrollDelta > startupUnlockThreshold;
@@ -695,75 +899,22 @@ extension AgendaControllerFeedPart on AgendaController {
     final centered = centeredIndex.value;
     final viewedCount =
         centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
-    final remainingAfterCentered = centered >= 0 && centered < agendaList.length
-        ? agendaList.length - centered - 1
-        : agendaList.length;
-    final isLeadRevealWindow =
-        agendaList.length >= FeedSnapshotRepository.startupHomeLimitValue &&
-            viewedCount > 0 &&
-            remainingAfterCentered <= _feedBufferedLeadRevealRemainingCount;
-    final leadBufferedBlockBaseCount = isLeadRevealWindow
-        ? _resolveBufferedFeedPrefetchBaseCount(agendaList.length)
-        : null;
-    final leadBufferedBlockReady = leadBufferedBlockBaseCount != null &&
-        _hasBufferedFeedBlockReadyForBase(leadBufferedBlockBaseCount);
-    final leadBufferedPrefetchInFlight = leadBufferedBlockBaseCount != null &&
-        _hasBufferedFeedBlockPrefetchInFlightForBase(
-          leadBufferedBlockBaseCount,
-        );
+    final normalTriggerReached = viewedCount >= _nextPageFetchTriggerCount;
     if (agendaList.isNotEmpty &&
         scrollController.position.hasContentDimensions &&
         hasMore.value &&
-        isLeadRevealWindow &&
-        !leadBufferedBlockReady &&
-        !leadBufferedPrefetchInFlight) {
-      _scheduleBufferedFeedBlockPrefetchAfterFrame(
-        reason: 'scroll_tail_lead',
-      );
-    }
-
-    final normalTriggerReached = viewedCount >= _nextBufferedFetchTriggerCount;
-    final bufferedPlan = (viewedCount > 0 && normalTriggerReached)
-        ? _agendaFeedApplicationService.resolveBufferedWindowPlan(
-            viewedCount: viewedCount,
-            initialCount: FeedSnapshotRepository.startupHomeLimitValue,
-            blockSize: ReadBudgetRegistry.feedLivePageLimit,
-            stepSize: ReadBudgetRegistry.feedBufferedFetchLimit,
-          )
-        : null;
-    final shouldLeadBufferedReveal = isLeadRevealWindow && leadBufferedBlockReady;
-    final triggerBlockBaseCount =
-        bufferedPlan?.blockBaseCount ?? leadBufferedBlockBaseCount;
-    final targetAgendaCount = bufferedPlan?.targetAgendaCount ??
-        (shouldLeadBufferedReveal
-            ? agendaList.length + ReadBudgetRegistry.feedBufferedFetchLimit
-            : (FeedSnapshotRepository.startupHomeLimitValue + viewedCount));
-    final canBypassLoadingForBufferedReveal =
-        triggerBlockBaseCount != null &&
-            _canBypassLoadingForBufferedReveal(
-              initial: false,
-              targetAgendaCount: targetAgendaCount,
-              bufferedBlockBaseCount: triggerBlockBaseCount,
-            );
-
-    if (agendaList.isNotEmpty &&
-        scrollController.position.hasContentDimensions &&
-        hasMore.value &&
-        (!isLoading.value || canBypassLoadingForBufferedReveal) &&
-        (normalTriggerReached || shouldLeadBufferedReveal)) {
-      final triggerCount = _nextBufferedFetchTriggerCount;
+        !isLoading.value &&
+        normalTriggerReached) {
+      final triggerCount = _nextPageFetchTriggerCount;
+      final activeBlock = _resolveFeedWarmBlockIndex(centered);
+      final activeGroupInBlock = _resolveFeedWarmGroupInBlock(centered);
       debugPrint(
         '[FeedFetchTrigger] viewedCount=$viewedCount currentCount=${agendaList.length} '
-        'pageLimit=${ReadBudgetRegistry.feedBufferedFetchLimit} '
-        'triggerCount=$triggerCount '
-        'resolvedViewedCount=$viewedCount '
-        'leadReveal=$shouldLeadBufferedReveal '
-        'remainingAfterCentered=$remainingAfterCentered '
-        'canBypassLoading=$canBypassLoadingForBufferedReveal '
-        'targetAgendaCount=$targetAgendaCount '
-        'blockBaseCount=${triggerBlockBaseCount ?? 0}',
+        'pageLimit=${ReadBudgetRegistry.feedPageFetchLimit} '
+        'triggerCount=$triggerCount block=$activeBlock group=$activeGroupInBlock '
+        'resolvedViewedCount=$viewedCount',
       );
-      _advanceBufferedFeedFetchTrigger(viewedCount);
+      _advanceFeedPageFetchTrigger(viewedCount);
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'near_end',
@@ -773,15 +924,14 @@ extension AgendaControllerFeedPart on AgendaController {
           'maxScrollExtent': scrollController.position.maxScrollExtent,
           'count': agendaList.length,
           'viewedCount': viewedCount,
-          'nextTriggerCount': _nextBufferedFetchTriggerCount,
-          'remainingAfterCentered': remainingAfterCentered,
+          'nextTriggerCount': _nextPageFetchTriggerCount,
+          'activeBlock': activeBlock,
+          'activeGroupInBlock': activeGroupInBlock,
         },
       );
       fetchAgendaBigData(
-        pageLimit: ReadBudgetRegistry.feedBufferedFetchLimit,
+        pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
         trigger: 'scroll_near_end',
-        targetAgendaCount: targetAgendaCount,
-        bufferedBlockBaseCount: triggerBlockBaseCount,
       );
     }
 
@@ -799,33 +949,10 @@ extension AgendaControllerFeedPart on AgendaController {
             ? scrollController.offset
             : currentOffset;
         final scrollDistance = settledOffset - _qaScrollStartOffset;
-        final shouldUnlockStartupPromoReveal =
-            !_startupPromoRevealUnlockedByScroll &&
-                _startupPromoRevealSawUserDrag &&
-                _qaActiveScrollToken.isNotEmpty &&
-                scrollDistance.abs() > 400.0;
         final centered = centeredIndex.value;
         final centeredDocId = centered >= 0 && centered < agendaList.length
             ? agendaList[centered].docID
             : '';
-        if (shouldUnlockStartupPromoReveal) {
-          _startupPromoRevealUnlockedByScroll = true;
-          recordQALabFeedFetchEvent(
-            stage: 'startup_promo_reveal_unlock',
-            trigger: 'user_scroll_settled',
-            metadata: <String, dynamic>{
-              'scrollToken': _qaActiveScrollToken,
-              'offset': settledOffset,
-              'distance': scrollDistance,
-              'durationMs': settledAt
-                  .difference(_qaScrollStartedAt ?? settledAt)
-                  .inMilliseconds,
-              'centeredIndex': centered,
-              'docId': centeredDocId,
-              'count': agendaList.length,
-            },
-          );
-        }
         recordQALabScrollEvent(
           surface: 'feed',
           phase: 'settled',
@@ -839,19 +966,12 @@ extension AgendaControllerFeedPart on AgendaController {
             'centeredIndex': centered,
             'docId': centeredDocId,
             'count': agendaList.length,
-            'startupPromoRevealUnlockedByScroll':
-                _startupPromoRevealUnlockedByScroll,
-            'startupPromoRevealSawUserDrag': _startupPromoRevealSawUserDrag,
           },
         );
         _qaLatestScrollToken = _qaActiveScrollToken;
         _qaScrollStartedAt = null;
         _qaScrollStartOffset = 0.0;
         _qaActiveScrollToken = '';
-        _startupPromoRevealSawUserDrag = false;
-        if (shouldUnlockStartupPromoReveal) {
-          _scheduleStartupPromoReveal();
-        }
         if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();
         }

@@ -180,7 +180,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Create player
         player = AVPlayer(playerItem: playerItem)
-        player?.automaticallyWaitsToMinimizeStalling = true
+        player?.automaticallyWaitsToMinimizeStalling = false
 
         // Create player layer
         playerLayer = AVPlayerLayer(player: player)

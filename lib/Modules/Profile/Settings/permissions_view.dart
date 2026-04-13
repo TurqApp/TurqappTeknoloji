@@ -33,7 +33,8 @@ class PermissionsView extends StatefulWidget {
   State<PermissionsView> createState() => _PermissionsViewState();
 }
 
-class _PermissionsViewState extends State<PermissionsView> {
+class _PermissionsViewState extends State<PermissionsView>
+    with WidgetsBindingObserver {
   static const String _quotaKey = 'offline_cache_quota_gb';
   static const List<int> _quotaOptions = storageBudgetPlanOptionsGb;
 
@@ -47,14 +48,22 @@ class _PermissionsViewState extends State<PermissionsView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializePermissionsView();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _quotaRefreshTimer?.cancel();
     IntegrationTestStateProbe.clearPermissionStatuses();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(_refreshStatuses());
   }
 
   void _updatePermissionsViewState(VoidCallback fn) {
@@ -175,14 +184,28 @@ class _PermissionDetailView extends StatefulWidget {
   State<_PermissionDetailView> createState() => _PermissionDetailViewState();
 }
 
-class _PermissionDetailViewState extends State<_PermissionDetailView> {
+class _PermissionDetailViewState extends State<_PermissionDetailView>
+    with WidgetsBindingObserver {
   PermissionStatus _status = PermissionStatus.denied;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(_loadStatus());
   }
 
   void _updatePermissionDetailState(VoidCallback fn) {

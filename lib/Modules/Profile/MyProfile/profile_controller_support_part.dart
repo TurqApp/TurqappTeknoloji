@@ -114,7 +114,7 @@ extension ProfileControllerSupportPart on ProfileController {
         upsertBucket(scheduledPosts, post);
       }
 
-      if (post.timeStamp <= nowMs + kProfileOwnFutureToleranceMs) {
+      if (post.timeStamp <= nowMs) {
         upsertBucket(allPosts, post);
         if (post.video.trim().isEmpty) {
           upsertBucket(photos, post);

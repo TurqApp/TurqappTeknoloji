@@ -23,6 +23,16 @@ void beginStartupSurfaceSession({
   }
 }
 
+int startupSurfaceSessionSeed({
+  required String sessionNamespace,
+}) {
+  final normalizedNamespace = sessionNamespace.trim();
+  if (normalizedNamespace.isEmpty) {
+    return _defaultStartupSurfaceOrderSeed;
+  }
+  return _startupSurfaceSeedForNamespace(normalizedNamespace);
+}
+
 int startupVariantIndexForSurface({
   required String surfaceKey,
   String? sessionNamespace,

@@ -55,14 +55,12 @@ class SurfacePolicyRegistry {
   static const int antremanCategoryPoolInitialLimit = 60;
   static const int antremanSavedQuestionInitialLimit = 60;
 
-  static const int feedHomeInitialLimit = 30;
-  static const int feedLivePageLimit = 30;
-  static const int feedBufferedFetchLimit = 10;
-  static const int feedPersistSnapshotLimit = 210;
+  static const int feedHomeInitialLimit = 15;
+  static const int feedLivePageLimit = 15;
+  static const int feedPageFetchLimit = 15;
+  static const int feedPersistSnapshotLimit = 100;
   static const int feedVisiblePublicFallbackMinLimit = 20;
   static const int feedGlobalBadgeMinLimit = 24;
-  static const int feedShuffleInitialFetchSize = 60;
-  static const int feedShuffleBackgroundFetchSize = 300;
   static const int shortHomeInitialLimit = 30;
   static const int shortBufferedFetchLimit = 15;
   static const int shortRandomReadyPoolLimit = 1000;

@@ -275,10 +275,9 @@ extension ShortsContentBodyPart on _ShortsContentState {
                           text: model.metin,
                           toggleExpandOnTextTap: true,
                           fontColor: Colors.white,
-                          hashtagColor: Colors.blue,
-                          mentionColor: Colors.blue,
+                          hashtagColor: Colors.white,
+                          mentionColor: Colors.white,
                           urlColor: Colors.blue,
-                          interactiveColor: Colors.blue,
                           expandButtonColor: Colors.white,
                           expandButtonFontSize: 13,
                           onHashtagTap: (tag) {

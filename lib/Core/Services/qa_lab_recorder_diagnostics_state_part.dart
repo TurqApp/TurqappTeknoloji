@@ -70,6 +70,13 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
             surfaceCheckpoints: surfaceCheckpoints,
             referenceTime: referenceTime,
             route: route,
+          ) &&
+          !_isTransientShortBlankSurfaceBootstrap(
+            surface: surface,
+            surfaceIssues: surfaceIssues,
+            surfaceCheckpoints: surfaceCheckpoints,
+            referenceTime: referenceTime,
+            route: route,
           )) {
         findings.add(
           QALabPinpointFinding(

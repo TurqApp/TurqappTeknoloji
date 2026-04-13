@@ -3,18 +3,18 @@ part of 'classic_content.dart';
 extension ClassicContentHeaderActionsPart on _ClassicContentState {
   Widget _buildClassicHeaderBackdrop({required Widget child}) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.02),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: Colors.white.withValues(alpha: 0.03),
             ),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           child: child,
         ),
       ),
@@ -54,9 +54,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     }
     String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} ${'common.edited'.tr}"
-        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
-            ? widget.model.izBirakYayinTarihi
-            : widget.model.timeStamp);
+        : timeAgoMetin(widget.model.timeStamp);
     void openProfile() {
       if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
@@ -75,7 +73,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     return Transform.translate(
       offset: const Offset(0, -8),
       child: Padding(
-        padding: const EdgeInsets.only(left: 8, right: 8, top: 3),
+        padding: const EdgeInsets.only(left: 5, right: 5, top: 3),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -109,8 +107,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                         child: Text(
                                           primaryName,
                                           overflow: TextOverflow.ellipsis,
-                                          style:
-                                              AppTypography.postName.copyWith(
+                                          style: _classicPostNameStyle.copyWith(
                                             color: Colors.black,
                                           ),
                                         ),
@@ -129,7 +126,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                             _relativeTimeTickService.tick.value;
                                             return Text(
                                               buildDisplayTime(),
-                                              style: AppTypography.postMeta
+                                              style: _classicPostMetaStyle
                                                   .copyWith(
                                                 color: Colors.grey,
                                               ),
@@ -145,7 +142,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                   '@$handle',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.postHandle.copyWith(
+                                  style: _classicPostHandleStyle.copyWith(
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -200,7 +197,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                             ),
                                           ),
                                         )
-                                      : Texts.followMeButtonBlack,
+                                      : _buildClassicFollowButtonBlack(),
                                 ),
                               ),
                             ),
@@ -223,7 +220,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                       widget.model.konum,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.postMeta.copyWith(
+                      style: _classicPostMetaStyle.copyWith(
                         color: Colors.black,
                       ),
                     ),
@@ -279,7 +276,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     return Transform.translate(
       offset: const Offset(0, -8),
       child: Padding(
-        padding: const EdgeInsets.only(left: 4, right: 4, top: 8, bottom: 18),
+        padding: const EdgeInsets.only(left: 5, right: 5, top: 8, bottom: 18),
         child: _buildClassicHeaderBackdrop(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +310,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                             primaryName,
                                             overflow: TextOverflow.ellipsis,
                                             style:
-                                                AppTypography.postName.copyWith(
+                                                _classicPostNameStyle.copyWith(
                                               color: Colors.white,
                                               shadows: textShadow,
                                             ),
@@ -335,8 +332,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                         '@$handle',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style:
-                                            AppTypography.postHandle.copyWith(
+                                        style: _classicPostHandleStyle.copyWith(
                                           color: Colors.white
                                               .withValues(alpha: 0.92),
                                           shadows: textShadow,
@@ -348,7 +344,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                                           return Text(
                                             buildDisplayTime(),
                                             style:
-                                                AppTypography.postMeta.copyWith(
+                                                _classicPostMetaStyle.copyWith(
                                               color: Colors.white
                                                   .withValues(alpha: 0.9),
                                               shadows: textShadow,
@@ -411,7 +407,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
                         widget.model.konum,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.postMeta.copyWith(
+                        style: _classicPostMetaStyle.copyWith(
                           color: Colors.white,
                           shadows: textShadow,
                         ),

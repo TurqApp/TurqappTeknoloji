@@ -1,22 +1,51 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  bool _shouldPreferResumePoster(
+    PostsModel post,
+    HLSVideoAdapter adapter,
+  ) {
+    final activeIndex = currentPage >= 0 && currentPage < _cachedShorts.length
+        ? currentPage
+        : -1;
+    if (_forceResumePosterOnReturn &&
+        activeIndex >= 0 &&
+        identical(post, _cachedShorts[activeIndex])) {
+      return true;
+    }
+    return false;
+  }
+
   bool _shouldKeepPosterHidden(
     HLSVideoAdapter adapter,
     PlaybackLifecycleDecision decision,
   ) {
-    if (decision.shouldHidePoster) return true;
-    return adapter.value.hasRenderedFirstFrame;
+    return decision.shouldHidePoster;
+  }
+
+  Duration _posterTransitionDuration({
+    required bool shouldHidePoster,
+    required HLSVideoAdapter adapter,
+    required bool isActivePage,
+  }) {
+    if (shouldHidePoster &&
+        isActivePage &&
+        adapter.value.hasRenderedFirstFrame) {
+      return Duration.zero;
+    }
+    return const Duration(milliseconds: 220);
   }
 
   bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
-    if (resolvedUrl.isNotEmpty || fallbackImage.isNotEmpty) {
+    final candidates = <String>[
+      if (resolvedUrl.isNotEmpty) resolvedUrl,
+      ...post.preferredVideoPosterUrls,
+    ]..removeWhere((url) => url.trim().isEmpty);
+    if (candidates.isNotEmpty) {
       return true;
     }
-    return CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim())
-        .isNotEmpty;
+    return false;
   }
 
   Widget _buildRefreshingBadge() {
@@ -42,19 +71,19 @@ extension ShortViewUiPart on _ShortViewState {
 
   Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
     final candidates = <String>[
       if (resolvedUrl.isNotEmpty) resolvedUrl,
-      if (fallbackImage.isNotEmpty && fallbackImage != resolvedUrl)
-        fallbackImage,
-      ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
+      ...post.preferredVideoPosterUrls,
     ];
     if (candidates.isEmpty) {
       return const ColoredBox(color: Colors.black);
     }
     return CacheFirstNetworkImage(
       imageUrl: candidates.first,
-      candidateUrls: candidates.skip(1).toList(growable: false),
+      candidateUrls: candidates
+          .skip(1)
+          .where((url) => url != candidates.first)
+          .toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),
@@ -84,6 +113,7 @@ extension ShortViewUiPart on _ShortViewState {
     bool hasStableVideoFrame,
   ) {
     if (!hasStableVideoFrame || idx != currentPage) return;
+    _forceResumePosterOnReturn = false;
     if (_currentScrollToken.isEmpty) return;
     if (idx < 0 || idx >= _cachedShorts.length) return;
     final docId = _cachedShorts[idx].docID.trim();
@@ -114,6 +144,7 @@ extension ShortViewUiPart on _ShortViewState {
     HLSVideoAdapter adapter,
     String keyId, {
     double? modelAspectRatio,
+    bool preferResumePoster = false,
   }) {
     final ar = (modelAspectRatio != null && modelAspectRatio > 0)
         ? modelAspectRatio
@@ -124,6 +155,7 @@ extension ShortViewUiPart on _ShortViewState {
       useAspectRatio: false,
       forceFullscreenOnAndroid: true,
       suppressLoadingOverlay: true,
+      preferResumePoster: preferResumePoster,
     );
 
     if (ar > 1.2) {
@@ -231,6 +263,8 @@ extension ShortViewUiPart on _ShortViewState {
                 );
               }
 
+              final preferResumePoster =
+                  isActivePage && _shouldPreferResumePoster(list[idx], vp);
               final videoWidget = isActivePage || isWarmNeighbor
                   ? IgnorePointer(
                       ignoring: !isActivePage,
@@ -242,6 +276,7 @@ extension ShortViewUiPart on _ShortViewState {
                           vp,
                           'vp-${list[idx].docID}',
                           modelAspectRatio: modelAr,
+                          preferResumePoster: preferResumePoster,
                         ),
                       ),
                     )
@@ -252,7 +287,8 @@ extension ShortViewUiPart on _ShortViewState {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _buildThumbOverlay(idx, thumb, modelAr),
+                    if (!preferResumePoster)
+                      _buildThumbOverlay(idx, thumb, modelAr),
                     if (isActivePage || isWarmNeighbor) videoWidget,
                     if (isActivePage || isWarmNeighbor)
                       AnimatedBuilder(
@@ -280,7 +316,11 @@ extension ShortViewUiPart on _ShortViewState {
                             ignoring: true,
                             child: AnimatedOpacity(
                               opacity: shouldHidePoster ? 0 : 1,
-                              duration: const Duration(milliseconds: 220),
+                              duration: _posterTransitionDuration(
+                                shouldHidePoster: shouldHidePoster,
+                                adapter: vp,
+                                isActivePage: isActivePage,
+                              ),
                               curve: Curves.easeOutCubic,
                               child: _buildThumbOverlay(idx, thumb, modelAr),
                             ),

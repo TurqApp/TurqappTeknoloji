@@ -11,11 +11,16 @@ class PerformanceService {
 
   static final _performance = FirebasePerformance.instance;
 
+  static bool get _tracingEnabled => !kDebugMode;
+
   /// Bir işlemi trace ile izle
   static Future<T> traceOperation<T>(
     String traceName,
     Future<T> Function() operation,
   ) async {
+    if (!_tracingEnabled) {
+      return operation();
+    }
     final trace = _performance.newTrace(traceName);
     await trace.start();
 
@@ -39,6 +44,10 @@ class PerformanceService {
   /// Açılış süresini ölç
   static Future<void> traceAppStartup(
       Future<void> Function() startupWork) async {
+    if (!_tracingEnabled) {
+      await startupWork();
+      return;
+    }
     final trace = _performance.newTrace('app_startup');
     await trace.start();
 
@@ -65,6 +74,9 @@ class PerformanceService {
     int? postCount,
     String? feedMode,
   }) async {
+    if (!_tracingEnabled) {
+      return loadOperation();
+    }
     final trace = _performance.newTrace('feed_load');
     await trace.start();
 
@@ -88,6 +100,9 @@ class PerformanceService {
 
   /// Custom HTTP trace
   static HttpMetric newHttpMetric(String url, HttpMethod method) {
+    if (!_tracingEnabled) {
+      throw UnsupportedError('Firebase Performance disabled in debug mode.');
+    }
     return _performance.newHttpMetric(url, method);
   }
 }

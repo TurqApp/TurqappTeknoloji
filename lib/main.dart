@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter/cupertino.dart';
@@ -9,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_performance/firebase_performance.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
@@ -93,61 +93,35 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
   ]);
 
-  final shouldDeferBootstrapUntilAfterFirstFrame = Platform.isIOS;
-  Completer<void>? deferredBootstrapCompleter;
-  if (shouldDeferBootstrapUntilAfterFirstFrame) {
-    deferredBootstrapCompleter = Completer<void>();
-    firebaseBootstrapFuture = deferredBootstrapCompleter.future;
-  } else {
-    // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
-    // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
-    // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
-    // cagrilip startup fallback ekranina dusuyordu.
-    firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
-    await firebaseBootstrapFuture.timeout(
-      _startupBootstrapWait,
-      onTimeout: () {
-        debugPrint('[bootstrap] startup timed out before runApp; continuing.');
-      },
-    );
-    NetworkAwarenessService.ensure();
-    await ensureInitializedAppLanguageService();
-  }
+  // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
+  // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
+  // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
+  // cagrilip startup fallback ekranina dusuyordu.
+  firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
+  await firebaseBootstrapFuture.timeout(
+    _startupBootstrapWait,
+    onTimeout: () {
+      debugPrint('[bootstrap] startup timed out before runApp; continuing.');
+    },
+  );
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
+  NetworkAwarenessService.ensure();
+  await ensureInitializedAppLanguageService();
 
   runApp(const MyApp());
   scheduleQALabAutoOpenOnLaunch();
 
   _appLifecycleListener = AppLifecycleListener(
     onResume: _handleAppResumeTransition,
-    onInactive: () => _handleAppBackgroundTransition('inactive'),
+    onInactive: _handleAppInactiveTransition,
     onPause: () => _handleAppBackgroundTransition('pause'),
     onDetach: () => _handleAppBackgroundTransition('detach'),
   );
 
   // Ilk frame sonrasi yalnizca sistem UI ayarlari.
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (shouldDeferBootstrapUntilAfterFirstFrame) {
-      unawaited(() async {
-        try {
-          await _bootstrapFirebaseAndCrashlytics().timeout(
-            _startupBootstrapWait,
-            onTimeout: () {
-              debugPrint('[bootstrap] startup timed out after first frame; continuing.');
-            },
-          );
-          deferredBootstrapCompleter?.complete();
-        } catch (error, stack) {
-          if (!(deferredBootstrapCompleter?.isCompleted ?? true)) {
-            deferredBootstrapCompleter?.completeError(error, stack);
-          }
-        }
-        NetworkAwarenessService.ensure();
-        await ensureInitializedAppLanguageService();
-      }());
-    }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -197,6 +171,13 @@ void _handleAppResumeTransition() {
   unawaited(_restorePlaybackAfterAppResume());
 }
 
+void _handleAppInactiveTransition() {
+  recordQALabLifecycleState('inactive');
+  try {
+    AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+  } catch (_) {}
+}
+
 Future<void> _restorePlaybackAfterAppResume() async {
   await Future<void>.delayed(const Duration(milliseconds: 260));
   try {
@@ -209,12 +190,6 @@ void _handleAppBackgroundTransition(String state) {
   _clearConsumedCacheIfNeeded();
   try {
     maybeFindVideoStateManager()?.pauseAllVideos(force: true);
-  } catch (_) {}
-  try {
-    final agendaController = maybeFindAgendaController();
-    if (agendaController != null) {
-      unawaited(agendaController.persistWarmLaunchCache());
-    }
   } catch (_) {}
   try {
     AudioFocusCoordinator.instance.pauseAllAudioPlayers();
@@ -235,16 +210,30 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   }
 
   if (firebaseReady) {
-    try {
-      await _activateAppCheck().timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          debugPrint('[AppCheck] activation timed out.');
-        },
-      );
-    } catch (e, st) {
-      debugPrint('[AppCheck] activation failed before handlers: $e');
-      debugPrintStack(stackTrace: st);
+    if (kDebugMode) {
+      try {
+        await FirebasePerformance.instance
+            .setPerformanceCollectionEnabled(false);
+        debugPrint('[FirebasePerformance] debug collection disabled.');
+      } catch (e, st) {
+        debugPrint('[FirebasePerformance] disable failed: $e');
+        debugPrintStack(stackTrace: st);
+      }
+    }
+    if (kDebugMode) {
+      debugPrint('[AppCheck] skipped in debug to avoid startup retries.');
+    } else {
+      try {
+        await _activateAppCheck().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () {
+            debugPrint('[AppCheck] activation timed out.');
+          },
+        );
+      } catch (e, st) {
+        debugPrint('[AppCheck] activation failed before handlers: $e');
+        debugPrintStack(stackTrace: st);
+      }
     }
   }
 

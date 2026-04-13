@@ -84,7 +84,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     final safeCurrentIndex = currentSubqueueIndex.clamp(0, subqueue.length - 1);
     try {
       unawaited(
-        prefetch.updateFeedQueueForPosts(
+        prefetch.updateQueueForPosts(
           subqueue,
           safeCurrentIndex,
           maxDocs: subqueue.length,

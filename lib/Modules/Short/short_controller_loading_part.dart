@@ -310,14 +310,7 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
-    if (preservePresentationOrder || filtered.length < 3) {
-      return filtered;
-    }
-
-    return mixShortPresentationPosts(
-      filtered,
-      sessionNamespace: 'short',
-    );
+    return filtered;
   }
 
   Future<void> reconcileVisibleShortSurface({

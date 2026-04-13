@@ -340,6 +340,9 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         "rozet": authorRozet,
         "video": "",
         "isUploading": true,
+        "hlsStatus": "none",
+        "hlsMasterUrl": "",
+        "hlsUpdatedAt": 0,
         "yorumMap": yorumMap,
         "reshareMap": reshareMap,
         if (poll.isNotEmpty) "poll": poll,
@@ -531,6 +534,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           .where((e) => e.isNotEmpty)
           .toSet()
           .toList();
+      final isPendingVideoProcessing = videoUrl.isNotEmpty;
 
       final data = {
         "arsiv": false,
@@ -564,8 +568,11 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         "thumbnail": thumbnailUrl,
         "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
-        "video": videoUrl,
-        "isUploading": false,
+        "video": isPendingVideoProcessing ? "" : videoUrl,
+        "isUploading": isPendingVideoProcessing,
+        "hlsStatus": isPendingVideoProcessing ? "processing" : "none",
+        "hlsMasterUrl": "",
+        "hlsUpdatedAt": 0,
         "yorumMap": yorumMap,
         "reshareMap": reshareMap,
         if (poll.isNotEmpty) "poll": poll,

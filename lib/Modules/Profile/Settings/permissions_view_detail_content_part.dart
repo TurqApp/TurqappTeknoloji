@@ -70,14 +70,14 @@ extension _PermissionDetailContentPart on _PermissionDetailViewState {
   }
 
   Future<void> _loadStatus() async {
-    final status = await IntegrationPermissionTestHarness.statusFor(
+    final status = await IntegrationPermissionTestHarness.refreshStatusFor(
       widget.item.permission,
       permissionId: _permissionId(widget.item.permission),
     );
     _updatePermissionDetailState(() => _status = status);
   }
 
-  bool get _enabled => _status.isGranted || _status.isLimited;
+  bool get _enabled => _isPermissionEnabled(_status);
 
   bool get _usesDeviceSettingStyle =>
       widget.item.permission == Permission.camera ||

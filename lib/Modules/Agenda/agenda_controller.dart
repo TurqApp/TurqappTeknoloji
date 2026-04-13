@@ -7,9 +7,10 @@ import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
+import 'package:turqappv2/Core/Services/feed_render_block_plan.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/feed_surface_registry.dart';
-import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
@@ -21,7 +22,6 @@ import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Utils/account_status_utils.dart';
-import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
@@ -35,7 +35,6 @@ import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 import '../../Core/Services/IndexPool/index_pool_store.dart';
 import '../../Core/Services/ContentPolicy/content_policy.dart';
-import '../../Core/Services/agenda_shuffle_cache_service.dart';
 import '../../Core/Services/user_profile_cache_service.dart';
 import '../NavBar/nav_bar_controller.dart';
 import 'AgendaContent/agenda_content_controller.dart';
@@ -45,7 +44,6 @@ part 'agenda_controller_feed_part.dart';
 part 'agenda_controller_lifecycle_part.dart';
 part 'agenda_controller_loading_part.dart';
 part 'agenda_controller_loading_cache_part.dart';
-part 'agenda_controller_loading_shuffle_part.dart';
 part 'agenda_controller_constants_part.dart';
 part 'agenda_controller_fields_part.dart';
 part 'agenda_controller_models_part.dart';
@@ -98,32 +96,7 @@ AgendaController ensureAgendaController({bool permanent = false}) {
 }
 
 extension AgendaControllerFacadePart on AgendaController {
-  int get fetchLimit => ReadBudgetRegistry.feedBufferedFetchLimit;
-
-  bool get isStartupRenderStagingActive => _startupRenderStagingActive;
-
-  int get startupRenderVisiblePostCount => _startupRenderVisiblePostCount;
-
-  List<Map<String, dynamic>> visibleStartupRenderEntries(
-    List<Map<String, dynamic>> renderEntries,
-  ) {
-    if (!_startupRenderStagingActive) {
-      return renderEntries;
-    }
-    final capped = renderEntries.length <= _startupRenderVisiblePostCount
-        ? renderEntries
-        : renderEntries
-            .take(_startupRenderVisiblePostCount)
-            .toList(growable: false);
-    debugPrint(
-      '[FeedStartupStage] status=apply visibleEntries=$_startupRenderVisiblePostCount '
-      'renderCount=${renderEntries.length} visibleRenderCount=${capped.length}',
-    );
-    return capped;
-  }
-
-  AgendaShuffleCacheService get _shuffleCache =>
-      ensureAgendaShuffleCacheService();
+  int get fetchLimit => ReadBudgetRegistry.feedPageFetchLimit;
 
   void promoteUploadedPosts(
     List<PostsModel> posts, {

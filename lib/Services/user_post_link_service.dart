@@ -103,6 +103,7 @@ class UserPostLinkService {
     bool cacheOnly = false,
   }) async {
     if (refs.isEmpty) return const [];
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     final normalizedRefs = _dedupeRefsByPostId(refs);
     final limitedRefs = normalizedRefs.length > _maxRefsPerFetch
@@ -129,7 +130,9 @@ class UserPostLinkService {
       final foundIds = <String>{};
       for (final entry in query.entries) {
         foundIds.add(entry.key);
-        result.add(entry.value);
+        if (entry.value.timeStamp <= nowMs) {
+          result.add(entry.value);
+        }
       }
 
       for (final ref in chunk) {

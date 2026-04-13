@@ -47,6 +47,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   bool _inited = false;
+  bool _initialized = false;
+  Future<void>? _initializingFuture;
+  Timer? _deferredInitializeTimer;
   static bool _bgRegistered = false;
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<User?>? _authStateSub;
@@ -68,26 +71,55 @@ class NotificationService {
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
   Future<void> initialize() async {
+    if (_initialized) return;
+    final inFlight = _initializingFuture;
+    if (inFlight != null) return inFlight;
+    final future = _performInitialize();
+    _initializingFuture = future;
+    return future;
+  }
+
+  void scheduleInitialize({
+    Duration delay = const Duration(seconds: 2),
+  }) {
+    if (_initialized || _initializingFuture != null) return;
+    _deferredInitializeTimer?.cancel();
+    _deferredInitializeTimer = Timer(delay, () {
+      _deferredInitializeTimer = null;
+      unawaited(initialize());
+    });
+  }
+
+  Future<void> _performInitialize() async {
     if (!_bgRegistered) {
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
       _bgRegistered = true;
     }
-    await _requestPermission();
-    await _configureForegroundPresentation();
-    await setupFlutterNotifications();
-    _bindTokenSyncListeners();
-    await _syncCurrentToken();
-    _setupMessageHandlers();
+    try {
+      await _requestPermission();
+      await _configureForegroundPresentation();
+      await setupFlutterNotifications();
+      _bindTokenSyncListeners();
+      await _syncCurrentToken();
+      _setupMessageHandlers();
+      _initialized = true;
+    } finally {
+      _initializingFuture = null;
+    }
   }
 
   Future<void> dispose() async {
+    _deferredInitializeTimer?.cancel();
+    _deferredInitializeTimer = null;
     await _tokenRefreshSub?.cancel();
     await _authStateSub?.cancel();
     await _foregroundMessageSub?.cancel();
     _tokenRefreshSub = null;
     _authStateSub = null;
     _foregroundMessageSub = null;
+    _initializingFuture = null;
+    _initialized = false;
   }
 
   String _tokenPrefsKey(String? uid) {

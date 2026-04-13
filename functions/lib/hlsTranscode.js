@@ -4,7 +4,6 @@ exports.onVideoUpload = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const child_process_1 = require("child_process");
-const crypto_1 = require("crypto");
 const util_1 = require("util");
 const path = require("path");
 const os = require("os");
@@ -16,35 +15,6 @@ if (admin.apps.length === 0) {
 const db = admin.firestore();
 const storage = admin.storage();
 const CDN_DOMAIN = "cdn.turqapp.com";
-const buildTokenizedCdnUrl = (bucketName, storagePath, token) => `https://${CDN_DOMAIN}/v0/b/${bucketName}/o/${encodeURIComponent(storagePath)}?alt=media&token=${encodeURIComponent(token)}`;
-const extractDownloadToken = (metadata) => {
-    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-        return "";
-    }
-    const raw = String(metadata
-        .firebaseStorageDownloadTokens || "").trim();
-    if (!raw)
-        return "";
-    return raw
-        .split(",")
-        .map((item) => item.trim())
-        .find(Boolean) || "";
-};
-const buildProtectedAssetUrl = async (bucket, storagePath) => {
-    const file = bucket.file(storagePath);
-    const [metadata] = await file.getMetadata();
-    let token = extractDownloadToken(metadata.metadata);
-    if (!token) {
-        token = (0, crypto_1.randomUUID)();
-        await file.setMetadata({
-            metadata: {
-                ...(metadata.metadata || {}),
-                firebaseStorageDownloadTokens: token,
-            },
-        });
-    }
-    return buildTokenizedCdnUrl(bucket.name, storagePath, token);
-};
 const TURQ_CLEAN_VISION = Object.freeze({
     brightness: 0.05,
     contrast: 0.88,
@@ -59,6 +29,12 @@ const clampSegment = (value, fallback) => {
     if (!Number.isFinite(n) || n <= 0)
         return fallback;
     return Math.max(1, Math.floor(n));
+};
+const clampEvenDimension = (value, fallback) => {
+    const n = Number(value);
+    const base = Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+    const safe = Math.max(2, base);
+    return safe % 2 === 0 ? safe : safe - 1;
 };
 const getVideoDurationSeconds = async (inputPath) => {
     const { stdout } = await execFileAsync("ffprobe", [
@@ -107,17 +83,14 @@ const hasAudioStream = async (inputPath) => {
             "-v",
             "error",
             "-select_streams",
-            "a",
+            "a:0",
             "-show_entries",
             "stream=index",
             "-of",
             "default=noprint_wrappers=1:nokey=1",
             inputPath,
         ]);
-        return String(stdout)
-            .split("\n")
-            .map((line) => line.trim())
-            .some(Boolean);
+        return String(stdout).trim().length > 0;
     }
     catch (_) {
         return false;
@@ -135,20 +108,6 @@ const buildTurqCleanVisionFilterComplex = (renditionLabel, scaleFilter) => {
     const outputLabel = `${renditionLabel}out`;
     return `[0:v]${scaleFilter}[${outputLabel}]`;
 };
-const buildTurqCleanVisionThumbnailFilter = () => "null";
-const runWithConcurrency = async (tasks, limit) => {
-    const running = new Set();
-    for (const task of tasks) {
-        const promise = Promise.resolve().then(task);
-        running.add(promise);
-        const cleanup = () => running.delete(promise);
-        promise.then(cleanup, cleanup);
-        if (running.size >= limit) {
-            await Promise.race(running);
-        }
-    }
-    await Promise.all(running);
-};
 function resolveTarget(filePath) {
     // Pattern 1: Posts (mevcut)
     const postMatch = filePath.match(/^posts\/([^/]+)\/video[^/]*\.mp4$/i);
@@ -159,21 +118,18 @@ function resolveTarget(filePath) {
             id: docID,
             hlsOutputPrefix: `Posts/${docID}/hls`,
             firestoreDoc: `Posts/${docID}`,
-            generateThumbnail: true,
-            thumbnailStoragePath: `Posts/${docID}/thumbnail.jpg`,
             buildProcessingData: () => ({
                 hlsStatus: "processing",
                 isUploading: true,
                 hlsUpdatedAt: Date.now(),
             }),
-            buildSuccessData: (hlsUrl, hlsSegmentCount, thumbnailUrl) => ({
+            buildSuccessData: (hlsUrl, hlsSegmentCount) => ({
                 hlsMasterUrl: hlsUrl,
                 hlsSegmentCount,
                 hlsStatus: "ready",
                 isUploading: false,
                 hlsUpdatedAt: Date.now(),
                 video: hlsUrl,
-                thumbnail: thumbnailUrl,
             }),
             buildFailData: () => ({
                 hlsStatus: "failed",
@@ -194,7 +150,6 @@ function resolveTarget(filePath) {
             firestoreDoc: `stories/${storyID}`,
             storyUid: uid,
             storyId: storyID,
-            generateThumbnail: false,
             buildProcessingData: () => ({
                 hlsStatus: "processing",
             }),
@@ -259,7 +214,6 @@ exports.onVideoUpload = functions
         ]);
         const forceKeyFrames = buildForceKeyFrames(durationSeconds, segment1, segment2);
         console.log(`[HLS] duration=${durationSeconds.toFixed(2)}s, fps=${videoFPS}, forced_keyframes=${forceKeyFrames || "none"}`);
-        // ABR multi-rendition ladder
         // Kaynak çözünürlüğünü al
         const probeResult = await execFileAsync("ffprobe", [
             "-v", "error",
@@ -269,31 +223,29 @@ exports.onVideoUpload = functions
             inputPath,
         ]);
         const [srcW, srcH] = String(probeResult.stdout).trim().split(",").map(Number);
-        const srcHeight = Math.max(srcW || 0, srcH || 0) > 0 ? Math.min(srcW || 720, srcH || 720) : 720;
         // Eğer kaynak dikey (portrait) ise width'i baz al
         const isPortrait = (srcH || 0) > (srcW || 0);
-        const srcShortSide = isPortrait ? (srcW || 720) : (srcH || 720);
-        // B2: ABR ladder — 1080p rendition eklendi, bufsize 2x bitrate (daha sıkı ABR)
-        // bufsize = 2x bitrate → ABR geçiş tepkisi iyileşir
-        const renditions = [
-            { height: 360, bitrate: 800, maxrate: 856, bufsize: 1600, label: "360p" },
-            { height: 480, bitrate: 1400, maxrate: 1498, bufsize: 2800, label: "480p" },
-            { height: 720, bitrate: 2800, maxrate: 2996, bufsize: 5600, label: "720p" },
-            { height: 1080, bitrate: 5000, maxrate: 5350, bufsize: 10000, label: "1080p" },
-        ].filter((r) => r.height <= srcShortSide + 50); // +50 tolerans
-        // Kaynak çok düşükse en az 1 rendition olsun
-        if (renditions.length === 0) {
-            renditions.push({ height: 360, bitrate: 800, maxrate: 856, bufsize: 1600, label: "360p" });
-        }
+        const sourceShortSide = isPortrait ? (srcW || 720) : (srcH || 720);
+        const targetShortSide = clampEvenDimension(Math.min(sourceShortSide || 720, 1080), 720);
+        const singleBitrate = targetShortSide >= 1080 ? 5000 :
+            targetShortSide >= 720 ? 2800 :
+                targetShortSide >= 480 ? 1400 :
+                    targetShortSide >= 360 ? 800 : 500;
+        const renditions = [{
+                height: targetShortSide,
+                bitrate: singleBitrate,
+                maxrate: Math.round(singleBitrate * 1.07),
+                bufsize: singleBitrate * 2,
+                label: "0",
+            }];
         // B2: Gerçek FPS kullan — GOP = segment_duration × actual_fps
         const gopSize = Math.round(segment2 * videoFPS);
-        const masterPlaylist = path.join(outputDir, "master.m3u8");
-        console.log(`[HLS] Starting ABR transcode (${renditions.map(r => r.label).join(", ")})...`);
+        console.log(`[HLS] Single rendition mode enabled (${targetShortSide} short-side, ${singleBitrate}k, hasAudio=${videoHasAudio})`);
         // Her rendition için ayrı dizin oluştur
         for (const r of renditions) {
             fs.mkdirSync(path.join(outputDir, r.label), { recursive: true });
         }
-        // ffmpeg multi-output ABR encoding
+        // Tek rendition HLS encoding
         const ffmpegArgs = ["-i", inputPath];
         const filterComplexParts = [];
         const outputArgs = [];
@@ -323,7 +275,7 @@ exports.onVideoUpload = functions
         await execFileAsync("ffmpeg", ffmpegArgs, { maxBuffer: 50 * 1024 * 1024 });
         console.log(`[HLS] Transcode complete. Uploading HLS files...`);
         // HLS dosyalarını Storage'a yükle (nested rendition dizinleri dahil)
-        const uploadTasks = [];
+        const uploadPromises = [];
         let hlsSegmentCount = 0;
         const walkDir = (dir, prefix) => {
             for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -343,7 +295,7 @@ exports.onVideoUpload = functions
                             ? "public, max-age=300, s-maxage=300"
                             : "public, max-age=86400, s-maxage=86400"
                         : "public, max-age=31536000, s-maxage=31536000, immutable";
-                    uploadTasks.push(() => bucket.upload(localPath, {
+                    uploadPromises.push(bucket.upload(localPath, {
                         destination: remotePath,
                         metadata: {
                             contentType: isPlaylist
@@ -356,65 +308,11 @@ exports.onVideoUpload = functions
             }
         };
         walkDir(outputDir, "");
-        await runWithConcurrency(uploadTasks, 6);
-        // Thumbnail üret (sadece post tipi için)
-        // B9: WebP + JPEG çift format — tarayıcı/istemci desteğine göre seç
-        let thumbnailUrl = "";
-        if (target.generateThumbnail && target.thumbnailStoragePath) {
-            const thumbnailJpgPath = path.join(tempDir, "thumbnail.jpg");
-            const thumbnailWebpPath = path.join(tempDir, "thumbnail.webp");
-            const thumbnailWebpStoragePath = target.thumbnailStoragePath.replace(/\.(jpg|jpeg)$/i, ".webp");
-            const thumbnailSeekSeconds = durationSeconds > 1 ? 1 : Math.max(0, durationSeconds / 2);
-            try {
-                // JPEG thumbnail (geri uyumluluk)
-                await execFileAsync("ffmpeg", [
-                    "-i", inputPath,
-                    "-ss", String(thumbnailSeekSeconds),
-                    "-vframes", "1",
-                    "-vf", buildTurqCleanVisionThumbnailFilter(),
-                    "-q:v", "2",
-                    thumbnailJpgPath,
-                ]);
-                await bucket.upload(thumbnailJpgPath, {
-                    destination: target.thumbnailStoragePath,
-                    metadata: {
-                        contentType: "image/jpeg",
-                        cacheControl: "public, max-age=86400, s-maxage=86400",
-                    },
-                });
-                thumbnailUrl = await buildProtectedAssetUrl(bucket, target.thumbnailStoragePath);
-                // B9: WebP thumbnail — JPEG'den dönüştür (ffmpeg + libwebp veya sharp)
-                try {
-                    await execFileAsync("ffmpeg", [
-                        "-i", thumbnailJpgPath,
-                        "-c:v", "libwebp",
-                        "-quality", "82", // JPEG 85 eşdeğeri kalite
-                        "-preset", "photo",
-                        "-y",
-                        thumbnailWebpPath,
-                    ]);
-                    await bucket.upload(thumbnailWebpPath, {
-                        destination: thumbnailWebpStoragePath,
-                        metadata: {
-                            contentType: "image/webp",
-                            cacheControl: "public, max-age=86400, s-maxage=86400",
-                        },
-                    });
-                    thumbnailUrl = await buildProtectedAssetUrl(bucket, thumbnailWebpStoragePath);
-                }
-                catch (e) {
-                    console.warn("[HLS] WebP thumbnail upload failed (non-fatal):", e);
-                }
-                console.log(`[HLS] Thumbnails uploaded: JPEG + WebP`);
-            }
-            catch (thumbErr) {
-                console.warn(`[HLS] Thumbnail generation failed: ${thumbErr}`);
-            }
-        }
+        await Promise.all(uploadPromises);
         // Firestore güncelle
         const hlsUrl = `https://${CDN_DOMAIN}/${target.hlsOutputPrefix}/master.m3u8`;
         if (!migrationMode) {
-            await db.doc(target.firestoreDoc).set(target.buildSuccessData(hlsUrl, hlsSegmentCount, thumbnailUrl), { merge: true });
+            await db.doc(target.firestoreDoc).set(target.buildSuccessData(hlsUrl, hlsSegmentCount), { merge: true });
         }
         // Story'de ilgili video element URL'sini HLS master URL'e çevir.
         // Böylece dokümanda MP4 URL kalmaz.

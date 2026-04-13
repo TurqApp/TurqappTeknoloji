@@ -121,6 +121,7 @@ extension PostRepositoryFacadePart on PostRepository {
     List<String> authorIds, {
     required int nowMs,
     required int cutoffMs,
+    int? maxTimeExclusive,
     int perAuthorLimit = 3,
     int maxConcurrent = 12,
     bool preferCache = true,
@@ -130,6 +131,7 @@ extension PostRepositoryFacadePart on PostRepository {
         authorIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
+        maxTimeExclusive: maxTimeExclusive,
         perAuthorLimit: perAuthorLimit,
         maxConcurrent: maxConcurrent,
         preferCache: preferCache,
@@ -164,6 +166,25 @@ extension PostRepositoryFacadePart on PostRepository {
         cutoffMs: cutoffMs,
         limit: limit,
         maxTimeExclusive: maxTimeExclusive,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+
+  Future<PostQueryPage> fetchRecentGlobalPostsPage({
+    required int nowMs,
+    required int cutoffMs,
+    int limit = 40,
+    int? maxTimeExclusive,
+    DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    bool preferCache = true,
+    bool cacheOnly = false,
+  }) =>
+      _performFetchRecentGlobalPostsPage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        maxTimeExclusive: maxTimeExclusive,
+        startAfter: startAfter,
         preferCache: preferCache,
         cacheOnly: cacheOnly,
       );

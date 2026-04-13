@@ -59,19 +59,23 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
   Future<ExploreQueryPage> fetchFloodServerPage({
     DocumentSnapshot? startAfter,
     int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,
+    int? nowMs,
   }) =>
       _fetchFloodServerPageImpl(
         startAfter: startAfter,
         pageLimit: pageLimit,
+        nowMs: nowMs,
       );
 
   Future<ExploreQueryPage> fetchFloodFallbackPage({
     DocumentSnapshot? startAfter,
     int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,
+    int? nowMs,
   }) =>
       _fetchFloodFallbackPageImpl(
         startAfter: startAfter,
         pageLimit: pageLimit,
+        nowMs: nowMs,
       );
 
   Future<Map<String, PostsModel>> fetchPostsByIds(

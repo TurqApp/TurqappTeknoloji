@@ -1,8 +1,6 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -12,6 +10,7 @@ import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
+import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
@@ -41,7 +40,6 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
       ReadBudgetRegistry.feedHomeInitialLimitValue;
   static const FeedHomeContract _homeContract =
       FeedHomeContract.primaryHybridV1;
-  static final Set<String> _hybridBackfillRequested = <String>{};
 }
 
 class _FeedSnapshotRepositoryState {

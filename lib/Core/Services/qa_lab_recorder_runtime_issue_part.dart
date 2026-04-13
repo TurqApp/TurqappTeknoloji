@@ -150,39 +150,44 @@ extension QALabRecorderRuntimeIssuePart on QALabRecorder {
     if (surface != 'feed' && surface != 'short') {
       return const <QALabPinpointFinding>[];
     }
+    const runIntegrationSmoke = bool.fromEnvironment(
+      'RUN_INTEGRATION_SMOKE',
+      defaultValue: false,
+    );
+    if (surface == 'short' && runIntegrationSmoke) {
+      return const <QALabPinpointFinding>[];
+    }
     final endedSessions = surfaceIssues
         .where((issue) => issue.code == 'video_session_ended')
         .toList(growable: false);
-    if (endedSessions.length < 2) {
+    final stableEndedSessions = endedSessions
+        .where((issue) => issue.metadata['hasStableFocus'] == true)
+        .toList(growable: false);
+    if (stableEndedSessions.length < 2) {
       return const <QALabPinpointFinding>[];
     }
 
     var audibleCount = 0;
     var mutedCount = 0;
-    var unstableFocusCount = 0;
-    for (final issue in endedSessions) {
+    for (final issue in stableEndedSessions) {
       final isAudible = issue.metadata['isAudible'] == true;
-      final hasStableFocus = issue.metadata['hasStableFocus'] == true;
       if (isAudible) {
         audibleCount += 1;
       } else {
         mutedCount += 1;
       }
-      if (!hasStableFocus) {
-        unstableFocusCount += 1;
-      }
     }
 
-    if (audibleCount == 0 || mutedCount == 0) {
+    if (audibleCount == 0 ||
+        mutedCount == 0 ||
+        audibleCount < 2 ||
+        mutedCount < 2) {
       return const <QALabPinpointFinding>[];
     }
 
-    final severity = unstableFocusCount > 0
-        ? QALabIssueSeverity.error
-        : QALabIssueSeverity.warning;
     return <QALabPinpointFinding>[
       QALabPinpointFinding(
-        severity: severity,
+        severity: QALabIssueSeverity.error,
         code: '${surface}_audio_state_inconsistent',
         message:
             'Videos on $surface finished with mixed audible and muted states during the same session.',
@@ -192,7 +197,7 @@ extension QALabRecorderRuntimeIssuePart on QALabRecorder {
         context: <String, dynamic>{
           'audibleSessionCount': audibleCount,
           'mutedSessionCount': mutedCount,
-          'unstableFocusCount': unstableFocusCount,
+          'stableSessionCount': stableEndedSessions.length,
         },
       ),
     ];

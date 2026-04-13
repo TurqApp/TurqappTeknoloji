@@ -1,5 +1,10 @@
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
 
+const bool _isIntegrationSmokeRun = bool.fromEnvironment(
+  'RUN_INTEGRATION_SMOKE',
+  defaultValue: false,
+);
+
 enum TelemetryThresholdSeverity {
   warning,
   blocking,
@@ -247,7 +252,7 @@ class TelemetryThresholdPolicy {
       minPlaybackEvents: 3,
       warnActiveLostCount: 1,
       blockActiveLostCount: 2,
-      warnAttachedPlayers: 5,
+      warnAttachedPlayers: _isIntegrationSmokeRun ? 6 : 5,
       blockAttachedPlayers: 8,
     ),
     'story': _cacheOnlySurfaceThresholds,

@@ -2,6 +2,7 @@ part of 'flood_listing_controller.dart';
 
 extension FloodListingControllerDataPart on FloodListingController {
   Future<void> getFloods(int floodCount, String anyFloodID) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     capturePendingCenteredEntry();
     floods.clear();
     _visibleFractions.clear();
@@ -25,7 +26,7 @@ extension FloodListingControllerDataPart on FloodListingController {
       final rootModel = fetched[rootID];
       if (rootModel != null) {
         final m = rootModel;
-        if (m.deletedPost != true) floods.add(m);
+        if (m.deletedPost != true && m.timeStamp <= nowMs) floods.add(m);
       }
     } catch (e) {
       print('🔥 Kök flood alınamadı: $e');
@@ -37,7 +38,7 @@ extension FloodListingControllerDataPart on FloodListingController {
         final model = fetched[docID];
         if (model != null) {
           final m = model;
-          if (m.deletedPost != true) floods.add(m);
+          if (m.deletedPost != true && m.timeStamp <= nowMs) floods.add(m);
         }
       } catch (e) {
         print('🔥 Flood verisi alınamadı: $e');

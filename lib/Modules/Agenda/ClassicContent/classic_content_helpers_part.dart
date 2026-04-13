@@ -301,10 +301,33 @@ extension ClassicContentHelpersPart on _ClassicContentState {
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: "MontserratMedium",
-                      fontSize: 14,
+                      fontSize: _classicPlatformFontSize(14),
                       height: 1,
                     ),
                   ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClassicFollowButtonBlack() {
+    return Container(
+      height: 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        border: Border.all(color: Colors.black),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: Text(
+          "Takip Et",
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: "MontserratMedium",
+            fontSize: _classicPlatformFontSize(12),
           ),
         ),
       ),

@@ -109,6 +109,31 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
     return bursts;
   }
 
+  bool _isBenignShortDuplicatePlaybackBurst(
+    Map<String, dynamic> burst, {
+    bool hasVisualConfirmation = false,
+  }) {
+    if (_asInt(burst['repeatCount']) != 2) {
+      return false;
+    }
+    final stages = (burst['stages'] as List<dynamic>? ?? const <dynamic>[])
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    if (stages.isEmpty) {
+      return false;
+    }
+    if (stages.every((stage) => stage == 'short_page_play')) {
+      return true;
+    }
+    return hasVisualConfirmation &&
+        stages.every(
+          (stage) =>
+              stage == 'short_page_play' ||
+              stage == 'short_watchdog_play_retry',
+        );
+  }
+
   bool _isIssuedPlaybackDispatch(QALabTimelineEvent event) {
     final raw = event.metadata['dispatchIssued'];
     if (raw is bool) return raw;

@@ -5,7 +5,6 @@ import '../Core/Repositories/feed_snapshot_repository.dart';
 import '../Core/Repositories/post_repository.dart';
 import '../Core/Repositories/user_repository.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
-import '../Core/Services/agenda_shuffle_cache_service.dart';
 import '../Core/Services/typesense_post_service.dart';
 import '../Core/Repositories/profile_repository.dart';
 import '../Modules/Agenda/agenda_controller.dart';
@@ -296,10 +295,6 @@ class PostDeleteService {
           await pool.removePosts(kind, ids.toList(growable: false));
         }
       }
-    } catch (_) {}
-
-    try {
-      maybeFindAgendaShuffleCacheService()?.removePosts(ids);
     } catch (_) {}
 
     if (viewerUserId.isNotEmpty) {

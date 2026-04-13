@@ -157,10 +157,6 @@ extension _SplashViewWarmPart on _SplashViewState {
       final agendaController = ensureAgendaController();
       final recommendedController = ensureRecommendedUserListController();
       final prioritizeHomeWarmups = _shouldRequireFeedReadiness();
-      final deferFeedSnapshotWarmUntilAfterFirstPaint =
-          Platform.isAndroid &&
-          prioritizeHomeWarmups &&
-          _feedStartupShardHydrated;
       final prioritizeExploreWarmups = _shouldPrioritizeExploreWarmups();
       final prioritizeProfileWarmups = _shouldPrioritizeProfileWarmups();
       final prioritizeEducationWarmups = _shouldPrioritizeEducationWarmups();
@@ -169,6 +165,8 @@ extension _SplashViewWarmPart on _SplashViewState {
       final prioritizeEducationJobWarmups =
           _shouldPrioritizeEducationJobWarmups();
       final deferShortCriticalWarmup =
+          Platform.isAndroid && prioritizeHomeWarmups;
+      final deferStoryCriticalSync =
           Platform.isAndroid && prioritizeHomeWarmups;
       final storyStartupWarmLimit = storyController == null
           ? null
@@ -182,7 +180,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (prioritizeHomeWarmups) {
         criticalSlices.add(() async {
           await _profileStartupWarmSlice('home_feed_surface', () async {
-            if (!deferFeedSnapshotWarmUntilAfterFirstPaint) {
+            if (!ContentPolicy.isConnected) {
               await _profileStartupWarmSlice('home_feed_snapshot', () async {
                 await _warmFeedSnapshotForStartup(
                   onWiFi: onWiFi,
@@ -200,15 +198,22 @@ extension _SplashViewWarmPart on _SplashViewState {
               unawaited(earlyStoryWarmFuture);
             }
             await _profileStartupWarmSlice('home_prepare_surface', () async {
-              await agendaController
+              final prepareFuture = agendaController
                   .prepareStartupSurface(
                     allowBackgroundRefresh: false,
                   )
                   .timeout(const Duration(seconds: 3), onTimeout: () {});
+              if (Platform.isAndroid && prioritizeHomeWarmups) {
+                unawaited(prepareFuture.catchError((_) {}));
+                return;
+              }
+              await prepareFuture;
             });
           });
         });
-        if (storyController != null && storyStartupWarmLimit != null) {
+        if (!deferStoryCriticalSync &&
+            storyController != null &&
+            storyStartupWarmLimit != null) {
           criticalSlices.add(() async {
             await _profileStartupWarmSlice('home_story_sync', () async {
               await _forceLoadStoriesSync(
@@ -317,17 +322,17 @@ extension _SplashViewWarmPart on _SplashViewState {
       final deferredSlices = <Future<void> Function()>[];
       final shouldDelayHomeIdentityWarmups =
           Platform.isAndroid && prioritizeHomeWarmups;
-      if (deferFeedSnapshotWarmUntilAfterFirstPaint) {
-        deferredSlices.add(() async {
-          await _profileStartupWarmSlice('home_feed_snapshot_deferred', () async {
-            await _warmFeedSnapshotForStartup(
-              onWiFi: onWiFi,
-              isFirstLaunch: isFirstLaunch,
-            );
-          });
-        });
-      }
       if (prioritizeHomeWarmups && storyController != null) {
+        if (deferStoryCriticalSync && storyStartupWarmLimit != null) {
+          deferredSlices.add(() async {
+            await _profileStartupWarmSlice('home_story_sync', () async {
+              await _forceLoadStoriesSync(
+                storyController,
+                limit: _SplashViewState._minStoryUsersForNav,
+              );
+            });
+          });
+        }
         if (shouldDelayHomeIdentityWarmups) {
           deferredSlices.add(() async {
             await Future.delayed(
@@ -902,6 +907,7 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
     required bool isFirstLaunch,
   }) async {
+    if (ContentPolicy.isConnected) return;
     try {
       final userId = CurrentUserService.instance.effectiveUserId;
       if (userId.isEmpty) return;

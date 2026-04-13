@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FeedDiversityMemoryService extends GetxService {
   static const Duration startupHeadWindow = Duration(days: 3);
@@ -12,7 +13,7 @@ class FeedDiversityMemoryService extends GetxService {
 
   static const String _startupHeadKey = 'feed_diversity_startup_heads_v1';
   static const String _weeklyWatchKey = 'feed_diversity_weekly_watches_v1';
-  static const int _maxStartupHeadRecords = 120;
+  static const int _maxStartupHeadRecords = 480;
   static const int _maxWeeklyWatchRecords = 320;
 
   SharedPreferences? _prefs;
@@ -48,6 +49,9 @@ class FeedDiversityMemoryService extends GetxService {
   bool get isReady => _ready;
 
   Set<String> startupHeadPenaltyDocIds({DateTime? now}) {
+    if (_shouldBypassPenaltyForCurrentUser()) {
+      return const <String>{};
+    }
     final cutoff = (now ?? DateTime.now()).subtract(startupHeadWindow);
     return _startupHeadRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -57,6 +61,9 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> startupHeadPenaltyFloodRootIds({DateTime? now}) {
+    if (_shouldBypassPenaltyForCurrentUser()) {
+      return const <String>{};
+    }
     final cutoff = (now ?? DateTime.now()).subtract(startupHeadWindow);
     return _startupHeadRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -66,6 +73,9 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> weeklyWatchedPenaltyDocIds({DateTime? now}) {
+    if (_shouldBypassPenaltyForCurrentUser()) {
+      return const <String>{};
+    }
     final cutoff = (now ?? DateTime.now()).subtract(weeklyWatchWindow);
     return _weeklyWatchRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -75,6 +85,9 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> weeklyWatchedFloodRootIds({DateTime? now}) {
+    if (_shouldBypassPenaltyForCurrentUser()) {
+      return const <String>{};
+    }
     final cutoff = (now ?? DateTime.now()).subtract(weeklyWatchWindow);
     return _weeklyWatchRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -83,14 +96,19 @@ class FeedDiversityMemoryService extends GetxService {
         .toSet();
   }
 
-  void rememberStartupHead(Iterable<PostsModel> posts) {
-    unawaited(_rememberStartupHead(posts));
+  void rememberStartupHead(
+    Iterable<PostsModel> posts, {
+    int limit = 20,
+  }) {
+    if (_shouldBypassPenaltyForCurrentUser()) return;
+    unawaited(_rememberStartupHead(posts, limit: limit));
   }
 
   void noteWatchedPost(
     PostsModel post, {
     required int currentSegment,
   }) {
+    if (_shouldBypassPenaltyForCurrentUser()) return;
     if (!post.hasPlayableVideo || currentSegment < 3) return;
     final docId = post.docID.trim();
     if (docId.isEmpty) return;
@@ -101,26 +119,44 @@ class FeedDiversityMemoryService extends GetxService {
     unawaited(_rememberWatchedPost(post, queuedAt: now));
   }
 
+  bool _shouldBypassPenaltyForCurrentUser() {
+    final service = maybeFindCurrentUserService();
+    if (service == null) return false;
+    final markers = <String>{
+      service.nickname.trim().toLowerCase(),
+      service.effectiveDisplayName.trim().toLowerCase(),
+      service.authDisplayName.trim().toLowerCase(),
+      service.effectiveEmail.trim().toLowerCase(),
+    }..removeWhere((value) => value.isEmpty);
+    for (final marker in markers) {
+      if (marker == 'turqapp') return true;
+      if (marker.startsWith('turqapp@')) return true;
+      if (marker.contains(' turqapp')) return true;
+      if (marker.contains('@turqapp')) return true;
+    }
+    return false;
+  }
+
   Future<void> _load() async {
     _prefs ??= await SharedPreferences.getInstance();
     _startupHeadRecords
       ..clear()
-      ..addAll(
-        _decodeRecords(_prefs!.getString(_startupHeadKey)),
-      );
+      ..addAll(_decodeRecords(_prefs!.getString(_startupHeadKey)));
     _weeklyWatchRecords
       ..clear()
-      ..addAll(
-        _decodeRecords(_prefs!.getString(_weeklyWatchKey)),
-      );
+      ..addAll(_decodeRecords(_prefs!.getString(_weeklyWatchKey)));
     _prune();
     _ready = true;
   }
 
-  Future<void> _rememberStartupHead(Iterable<PostsModel> posts) async {
+  Future<void> _rememberStartupHead(
+    Iterable<PostsModel> posts, {
+    required int limit,
+  }) async {
     await ensureReady();
     final now = DateTime.now();
-    for (final post in posts.take(20)) {
+    final normalizedLimit = limit < 1 ? 1 : limit;
+    for (final post in posts.take(normalizedLimit)) {
       final record = _recordForPost(post, at: now);
       _upsertRecord(
         _startupHeadRecords,
@@ -169,11 +205,9 @@ class FeedDiversityMemoryService extends GetxService {
     PostsModel post, {
     required DateTime at,
   }) {
-    final docId = post.docID.trim();
-    final rootId = _resolveFloodRootId(post);
     return _FeedDiversityRecord(
-      docId: docId,
-      floodRootId: rootId,
+      docId: post.docID.trim(),
+      floodRootId: _resolveFloodRootId(post),
       at: at,
     );
   }

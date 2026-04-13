@@ -17,7 +17,7 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
           DateTime.now().difference(_pageActivatedAt).inMilliseconds < 1200;
       if (justActivated) return;
       if (duration.inMilliseconds > 0 &&
-          position >= duration - const Duration(milliseconds: 300) &&
+          position >= duration - const Duration(milliseconds: 100) &&
           position.inMilliseconds > 0) {
         _completionTriggered[index] = true;
         if (index >= 0 && index < shorts.length) {

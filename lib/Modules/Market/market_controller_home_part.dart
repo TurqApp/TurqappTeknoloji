@@ -27,10 +27,6 @@ extension _MarketControllerHomePart on MarketController {
     if (!await isPasajTabEnabled(PasajTabIds.market)) {
       return;
     }
-    final shouldHoldInitialLoader = items.isEmpty && visibleItems.isEmpty;
-    if (shouldHoldInitialLoader) {
-      isLoading.value = true;
-    }
     try {
       final allowRefresh = allowBackgroundRefresh ?? false;
       await _performHydrateMarketStartupShard();
@@ -79,9 +75,6 @@ extension _MarketControllerHomePart on MarketController {
         _applyFilters();
       }
     } finally {
-      if (shouldHoldInitialLoader) {
-        isLoading.value = false;
-      }
       unawaited(_persistMarketStartupShard());
       unawaited(_recordMarketStartupSurface());
     }

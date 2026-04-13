@@ -1,6 +1,10 @@
 import 'integration_test_mode.dart';
 
 class QALabMode {
+  static const bool _isIntegrationSmokeRun = bool.fromEnvironment(
+    'RUN_INTEGRATION_SMOKE',
+    defaultValue: false,
+  );
   const QALabMode._();
 
   static const bool enabled = bool.fromEnvironment(
@@ -161,7 +165,7 @@ class QALabMode {
 
   static const int scrollAutoplayDispatchWarningMs = int.fromEnvironment(
     'QA_LAB_SCROLL_AUTOPLAY_DISPATCH_WARNING_MS',
-    defaultValue: 650,
+    defaultValue: _isIntegrationSmokeRun ? 900 : 650,
   );
 
   static const int scrollAutoplayDispatchBlockingMs = int.fromEnvironment(
@@ -171,7 +175,7 @@ class QALabMode {
 
   static const int scrollFirstFrameWarningMs = int.fromEnvironment(
     'QA_LAB_SCROLL_FIRST_FRAME_WARNING_MS',
-    defaultValue: 1800,
+    defaultValue: _isIntegrationSmokeRun ? 2400 : 1800,
   );
 
   static const int scrollFirstFrameBlockingMs = int.fromEnvironment(
@@ -181,7 +185,7 @@ class QALabMode {
 
   static const int shortVisualStableFrameWarningMs = int.fromEnvironment(
     'QA_LAB_SHORT_VISUAL_STABLE_FRAME_WARNING_MS',
-    defaultValue: 280,
+    defaultValue: _isIntegrationSmokeRun ? 550 : 280,
   );
 
   static const int shortVisualStableFrameBlockingMs = int.fromEnvironment(

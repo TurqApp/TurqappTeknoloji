@@ -26,8 +26,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _resetWifiQuotaFillPlanState();
       return;
     }
-    final usageDropThreshold =
-        ((targetBytes * 0.15).round()).clamp(32 * 1024 * 1024, 256 * 1024 * 1024);
+    final usageDropThreshold = ((targetBytes * 0.15).round())
+        .clamp(32 * 1024 * 1024, 256 * 1024 * 1024);
     final currentUsageBytes = cacheManager.totalTrackedUsageBytes;
     if (currentUsageBytes + usageDropThreshold <
         _quotaFillRemoteExhaustedUsageBytes) {
@@ -40,7 +40,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     SegmentCacheManager cacheManager,
   ) {
     if (resolved.docIDs.isEmpty) return;
-    final safeCurrent = resolved.currentIndex.clamp(0, resolved.docIDs.length - 1);
+    final safeCurrent =
+        resolved.currentIndex.clamp(0, resolved.docIDs.length - 1);
     final currentDocId = resolved.docIDs[safeCurrent];
     final queuedDocIds = _queue.map((job) => job.docID).toSet()
       ..addAll(_pendingFollowUpJobs.keys)
@@ -107,7 +108,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _resetWifiQuotaFillPlanIfNeeded(cacheManager);
 
     Future<void> seedFromLocalCandidates() async {
-      final localCandidates = cacheManager.getQuotaFillCandidatePosts(
+      final localCandidates = _selectShortQuotaFillCandidates(
+        cacheManager.getQuotaFillCandidatePosts(
+          limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+        ),
         limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
       );
       if (localCandidates.isEmpty) return;
@@ -145,22 +149,23 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (_quotaFillRemoteInFlight || !_quotaFillRemoteHasMore) return;
     _quotaFillRemoteInFlight = true;
     try {
-      final page = await ExploreRepository.ensure().fetchVideoReadyPage(
+      final page = await ensureShortRepository().fetchReadyPage(
         startAfter: _quotaFillRemoteCursor,
-        pageLimit: _prefetchSchedulerQuotaFillRemotePageLimit,
+        pageSize: _prefetchSchedulerQuotaFillRemotePageLimit,
       );
       _quotaFillRemoteCursor = page.lastDoc;
       _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
       if (!_quotaFillRemoteHasMore) {
         _markWifiQuotaFillExhausted(cacheManager);
       }
-      if (page.items.isEmpty) return;
+      if (page.posts.isEmpty) return;
 
-      cacheManager.cachePostCards(page.items);
-      final remoteCandidates = cacheManager.getQuotaFillCandidatePosts(
+      final remoteCandidates = _selectShortQuotaFillCandidates(
+        page.posts,
         limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
       );
       if (remoteCandidates.isEmpty) return;
+      cacheManager.cachePostCards(remoteCandidates);
 
       await _appendQuotaFillQueueForPosts(
         remoteCandidates,
@@ -178,6 +183,256 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     } finally {
       _quotaFillRemoteInFlight = false;
     }
+  }
+
+  List<PostsModel> _selectShortQuotaFillCandidates(
+    List<PostsModel> posts, {
+    required int limit,
+  }) {
+    if (posts.isEmpty || limit <= 0) {
+      return const <PostsModel>[];
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final excludedFeedDocIds = <String>{
+      ..._lastFeedSurfaceVideoDocIDs.map((docId) => docId.trim()),
+      ..._lastFeedBankDocIDs.map((docId) => docId.trim()),
+    }..removeWhere((docId) => docId.isEmpty);
+
+    final seen = <String>{};
+    final filtered = posts.where((post) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seen.add(docId)) return false;
+      if (excludedFeedDocIds.contains(docId)) return false;
+      if (!post.hasPlayableVideo) return false;
+      if (post.isFloodSeriesContent) return false;
+      if (post.arsiv || post.deletedPost == true || post.gizlendi == true) {
+        return false;
+      }
+      if (post.timeStamp <= 0 || post.timeStamp > nowMs) return false;
+      if (post.aspectRatio.toDouble() >
+          _prefetchSchedulerShortLandscapeAspectThreshold) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false)
+      ..sort((left, right) {
+        final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+        if (timeCompare != 0) return timeCompare;
+        return right.docID.trim().compareTo(left.docID.trim());
+      });
+
+    if (filtered.isEmpty) {
+      return const <PostsModel>[];
+    }
+
+    final anchorMs = _resolveShortQuotaFillAnchorMs();
+    final anchor = DateTime.fromMillisecondsSinceEpoch(anchorMs);
+    final launchMotorIndex = (anchor.minute ~/
+            _prefetchSchedulerShortQuotaFillBandMinutes)
+        .clamp(0, _prefetchSchedulerShortQuotaFillMinuteSets.length - 1);
+    final preferredSubsliceIndex =
+        anchor.minute % _prefetchSchedulerShortQuotaFillBandMinutes;
+    final launchWindowStartMs =
+        anchorMs - _prefetchSchedulerShortQuotaFillWindow.inMilliseconds;
+    final ownedMinutes = _prefetchSchedulerShortQuotaFillMinuteSets[
+            launchMotorIndex]
+        .toList(growable: false);
+
+    final windowed = filtered.where((post) {
+      final timestampMs = post.timeStamp.toInt();
+      return timestampMs <= anchorMs && timestampMs >= launchWindowStartMs;
+    }).toList(growable: false);
+    final source = windowed.isEmpty ? filtered : windowed;
+    final queues = _buildShortQuotaFillQueues(
+      candidates: source,
+      anchor: anchor,
+      launchWindowStartMs: launchWindowStartMs,
+      ownedMinutes: ownedMinutes,
+    );
+    if (queues.isEmpty) {
+      return _sortShortQuotaFillByAffinity(
+        source,
+        ownedMinutes: ownedMinutes,
+        preferredSubsliceIndex: preferredSubsliceIndex,
+      ).take(limit).toList(growable: false);
+    }
+
+    final ordered = <PostsModel>[];
+    final usedIds = <String>{};
+    var appended = true;
+    while (appended) {
+      appended = false;
+      for (final queue in queues) {
+        final candidate = queue.takeNext(
+          usedIds: usedIds,
+          preferredSubsliceIndex: preferredSubsliceIndex,
+          preferredSubsliceSizeMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
+        );
+        if (candidate == null) continue;
+        final docId = candidate.docID.trim();
+        if (docId.isEmpty || !usedIds.add(docId)) continue;
+        ordered.add(candidate);
+        appended = true;
+      }
+    }
+
+    final remainder = source.where((post) {
+      final docId = post.docID.trim();
+      return docId.isNotEmpty && !usedIds.contains(docId);
+    }).toList(growable: false);
+
+    return <PostsModel>[
+      ...ordered,
+      ..._sortShortQuotaFillByAffinity(
+        remainder,
+        ownedMinutes: ownedMinutes,
+        preferredSubsliceIndex: preferredSubsliceIndex,
+      ),
+    ].take(limit).toList(growable: false);
+  }
+
+  int _resolveShortQuotaFillAnchorMs() {
+    return startupSurfaceSessionSeed(
+      sessionNamespace: 'short_quota',
+    );
+  }
+
+  List<PostsModel> _sortShortQuotaFillByAffinity(
+    List<PostsModel> candidates, {
+    required List<int> ownedMinutes,
+    required int preferredSubsliceIndex,
+  }) {
+    final sorted = candidates.toList(growable: true)
+      ..sort((left, right) {
+        final leftMinuteDistance = _shortQuotaFillMinuteDistanceScore(
+          minute: DateTime.fromMillisecondsSinceEpoch(left.timeStamp.toInt())
+              .minute,
+          ownedMinutes: ownedMinutes,
+        );
+        final rightMinuteDistance = _shortQuotaFillMinuteDistanceScore(
+          minute: DateTime.fromMillisecondsSinceEpoch(right.timeStamp.toInt())
+              .minute,
+          ownedMinutes: ownedMinutes,
+        );
+        if (leftMinuteDistance != rightMinuteDistance) {
+          return leftMinuteDistance.compareTo(rightMinuteDistance);
+        }
+
+        final leftSubsliceDistance = _shortQuotaFillSubsliceDistanceScore(
+          timestampMs: left.timeStamp.toInt(),
+          preferredSubsliceIndex: preferredSubsliceIndex,
+        );
+        final rightSubsliceDistance = _shortQuotaFillSubsliceDistanceScore(
+          timestampMs: right.timeStamp.toInt(),
+          preferredSubsliceIndex: preferredSubsliceIndex,
+        );
+        if (leftSubsliceDistance != rightSubsliceDistance) {
+          return leftSubsliceDistance.compareTo(rightSubsliceDistance);
+        }
+
+        final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+        if (timeCompare != 0) return timeCompare;
+        return right.docID.trim().compareTo(left.docID.trim());
+      });
+    return sorted;
+  }
+
+  int _shortQuotaFillMinuteDistanceScore({
+    required int minute,
+    required List<int> ownedMinutes,
+  }) {
+    var best = 60;
+    for (final ownedMinute in ownedMinutes) {
+      final distance = (minute - ownedMinute).abs();
+      final wrappedDistance = 60 - distance;
+      final candidate = distance < wrappedDistance ? distance : wrappedDistance;
+      if (candidate < best) best = candidate;
+    }
+    return best;
+  }
+
+  int _shortQuotaFillSubsliceDistanceScore({
+    required int timestampMs,
+    required int preferredSubsliceIndex,
+  }) {
+    final currentSubslice =
+        ((timestampMs % 1000) ~/ _prefetchSchedulerShortQuotaFillSubsliceMs)
+            .clamp(0, 4);
+    final distance = currentSubslice - preferredSubsliceIndex;
+    return distance < 0 ? -distance : distance;
+  }
+
+  List<_ShortQuotaFillMinuteQueue> _buildShortQuotaFillQueues({
+    required List<PostsModel> candidates,
+    required DateTime anchor,
+    required int launchWindowStartMs,
+    required List<int> ownedMinutes,
+  }) {
+    final sortedOwnedMinutes = ownedMinutes.toList(growable: false)
+      ..sort((left, right) => right.compareTo(left));
+    final ownedMinuteSet = sortedOwnedMinutes.toSet();
+    final grouped = <int, List<PostsModel>>{};
+
+    for (final post in candidates) {
+      final timestampMs = post.timeStamp.toInt();
+      if (timestampMs <= 0 || timestampMs < launchWindowStartMs) continue;
+      final timestamp = DateTime.fromMillisecondsSinceEpoch(timestampMs);
+      if (!ownedMinuteSet.contains(timestamp.minute)) continue;
+      final queueAnchor = DateTime(
+        timestamp.year,
+        timestamp.month,
+        timestamp.day,
+        timestamp.hour,
+        timestamp.minute,
+      ).millisecondsSinceEpoch;
+      grouped.putIfAbsent(queueAnchor, () => <PostsModel>[]).add(post);
+    }
+
+    for (final items in grouped.values) {
+      items.sort((left, right) {
+        final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+        if (timeCompare != 0) return timeCompare;
+        return right.docID.trim().compareTo(left.docID.trim());
+      });
+    }
+
+    final queues = <_ShortQuotaFillMinuteQueue>[];
+    var hourCursor = DateTime(
+      anchor.year,
+      anchor.month,
+      anchor.day,
+      anchor.hour,
+    );
+
+    while (hourCursor.millisecondsSinceEpoch >= launchWindowStartMs) {
+      for (final minute in sortedOwnedMinutes) {
+        if (hourCursor.year == anchor.year &&
+            hourCursor.month == anchor.month &&
+            hourCursor.day == anchor.day &&
+            hourCursor.hour == anchor.hour &&
+            minute > anchor.minute) {
+          continue;
+        }
+        final queueAnchor = DateTime(
+          hourCursor.year,
+          hourCursor.month,
+          hourCursor.day,
+          hourCursor.hour,
+          minute,
+        ).millisecondsSinceEpoch;
+        final items = grouped[queueAnchor];
+        if (items == null || items.isEmpty) continue;
+        queues.add(
+          _ShortQuotaFillMinuteQueue(
+            anchorMs: queueAnchor,
+            items: items,
+          ),
+        );
+      }
+      hourCursor = hourCursor.subtract(const Duration(hours: 1));
+    }
+
+    return queues;
   }
 
   void updatePriorityWindowContext(List<String> docIDs, int currentIndex) {
@@ -424,7 +679,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _jobEnqueuedAt[docID] = DateTime.now();
     }
 
-    for (var i = 1; i <= 5; i++) {
+    for (var i = 1; i <= _prefetchSchedulerFeedRetainBehindCount; i++) {
       final idx = safeCurrent - i;
       if (idx < 0) break;
       if (idx < docIDs.length) {
@@ -462,8 +717,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     updatePriorityWindowContext(docIDs, safeCurrent);
     _lastFeedDocIDs = List<String>.from(docIDs);
     _lastFeedCurrentIndex = safeCurrent;
-    final aroundStart = (safeCurrent - 5).clamp(0, docIDs.length - 1);
-    final aroundEnd = (safeCurrent + 5).clamp(0, docIDs.length - 1);
+    final aroundStart = (safeCurrent - _prefetchSchedulerFeedAroundRadius)
+        .clamp(0, docIDs.length - 1);
+    final aroundEnd = (safeCurrent + _prefetchSchedulerFeedAroundRadius)
+        .clamp(0, docIDs.length - 1);
     final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
       0,
       docIDs.length - 1,
@@ -503,7 +760,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
 
     for (int i = aroundStart; i <= aroundEnd; i++) {
-      addJob(i, 0);
+      final distance = (i - safeCurrent).abs();
+      final priority = distance <= 2 ? 0 : 1;
+      addJob(i, priority);
     }
 
     for (int i = initialEnd + 1; i <= prepEnd; i++) {
@@ -536,7 +795,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       },
     );
 
-    for (var i = 1; i <= 5; i++) {
+    for (var i = 1; i <= _prefetchSchedulerFeedRetainBehindCount; i++) {
       final idx = safeCurrent - i;
       if (idx < 0) break;
       if (idx < docIDs.length) {

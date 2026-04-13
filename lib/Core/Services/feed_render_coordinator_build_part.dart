@@ -1,13 +1,5 @@
 part of 'feed_render_coordinator.dart';
 
-const List<String> _feedPromoCycle = <String>[
-  'ad',
-  'recommended',
-  'ad',
-  'ad',
-  'recommended',
-];
-
 extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
   List<Map<String, dynamic>> buildMergedEntries({
     required List<PostsModel> agendaList,
@@ -93,51 +85,77 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
             ? maxRenderEntries
             : null;
     final renderEntries = <Map<String, dynamic>>[];
-    for (int i = 0; i < filteredEntries.length; i++) {
-      if (normalizedMaxRenderEntries != null &&
-          renderEntries.length >= normalizedMaxRenderEntries) {
-        break;
-      }
-      final postEntry = Map<String, dynamic>.from(filteredEntries[i])
-        ..putIfAbsent('renderType', () => 'post');
-      renderEntries.add(postEntry);
+    var promoOrdinal = 0;
+    var recommendedOrdinal = 0;
+    var postCursor = 0;
+    var renderBlockIndex = 0;
+    while (postCursor < filteredEntries.length) {
+      final blockStartPostCursor = postCursor;
+      final blockPostCount = (filteredEntries.length - blockStartPostCursor) <
+              FeedRenderBlockPlan.postSlotsPerBlock
+          ? (filteredEntries.length - blockStartPostCursor)
+          : FeedRenderBlockPlan.postSlotsPerBlock;
+      for (int slotIndex = 0;
+          slotIndex < FeedRenderBlockPlan.renderSlotPlan.length;
+          slotIndex++) {
+        if (normalizedMaxRenderEntries != null &&
+            renderEntries.length >= normalizedMaxRenderEntries) {
+          _trackRenderEntries(
+            filteredCount: filteredEntries.length,
+            renderEntries: renderEntries,
+          );
+          return renderEntries;
+        }
 
-      if (normalizedMaxRenderEntries != null &&
-          renderEntries.length >= normalizedMaxRenderEntries) {
-        break;
+        final slotType = FeedRenderBlockPlan.renderSlotPlan[slotIndex];
+        final renderSlotNumber = slotIndex + 1;
+        final renderGroupNumber =
+            (slotIndex ~/ FeedRenderBlockPlan.renderSlotsPerGroup) + 1;
+
+        if (slotType == FeedRenderSlotType.post) {
+          final postsConsumedInBlock = postCursor - blockStartPostCursor;
+          if (postsConsumedInBlock >= blockPostCount) {
+            break;
+          }
+          final postEntry = Map<String, dynamic>.from(filteredEntries[postCursor])
+            ..putIfAbsent('renderType', () => 'post')
+            ..putIfAbsent('renderBlockIndex', () => renderBlockIndex)
+            ..putIfAbsent('renderSlotNumber', () => renderSlotNumber)
+            ..putIfAbsent('renderGroupNumber', () => renderGroupNumber);
+          renderEntries.add(postEntry);
+          postCursor++;
+          continue;
+        }
+
+        final requiredPostCountForPromo =
+            renderGroupNumber * FeedRenderBlockPlan.postsPerGroup;
+        if (blockPostCount < requiredPostCountForPromo) {
+          break;
+        }
+
+        final promoType = slotType == FeedRenderSlotType.recommended
+            ? 'recommended'
+            : 'ad';
+        renderEntries.add(<String, dynamic>{
+          'renderType': 'promo',
+          'promoType': promoType,
+          'slotNumber': promoOrdinal + 1,
+          'renderBlockIndex': renderBlockIndex,
+          'renderSlotNumber': renderSlotNumber,
+          'renderGroupNumber': renderGroupNumber,
+          'recommendedBatch':
+              slotType == FeedRenderSlotType.recommended
+                  ? recommendedOrdinal++
+                  : -1,
+        });
+        promoOrdinal++;
       }
-      final postNumber = i + 1;
-      if (!_shouldInsertPromoAfterPost(postNumber)) continue;
-      final promoOrdinal = (postNumber ~/ 3) - 1;
-      final slotNumber = promoOrdinal + 1;
-      final promoType = _feedPromoCycle[promoOrdinal % _feedPromoCycle.length];
-      renderEntries.add(<String, dynamic>{
-        'renderType': 'promo',
-        'promoType': promoType,
-        'slotNumber': slotNumber,
-        'recommendedBatch': _recommendedBatchForPromoOrdinal(promoOrdinal),
-      });
+      renderBlockIndex++;
     }
     _trackRenderEntries(
       filteredCount: filteredEntries.length,
       renderEntries: renderEntries,
     );
     return renderEntries;
-  }
-
-  bool _shouldInsertPromoAfterPost(int postNumber) {
-    return postNumber > 0 && postNumber % 3 == 0;
-  }
-
-  int _recommendedBatchForPromoOrdinal(int promoOrdinal) {
-    final fullCycles = promoOrdinal ~/ _feedPromoCycle.length;
-    final offset = promoOrdinal % _feedPromoCycle.length;
-    if (offset == 1) {
-      return fullCycles * 2;
-    }
-    if (offset == 4) {
-      return (fullCycles * 2) + 1;
-    }
-    return fullCycles * 2;
   }
 }

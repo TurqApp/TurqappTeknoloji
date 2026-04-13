@@ -101,9 +101,20 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final educationIndex = hasEducation ? 3 : -1;
     final profileIndex = hasEducation ? 4 : 3;
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused) {
       pauseGlobalTabMedia();
+      unawaited(
+        _persistCurrentStartupSurfacesImpl(
+          includeHomeSurfaces: true,
+        ),
+      );
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      try {
+        AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+      } catch (_) {}
       unawaited(
         _persistCurrentStartupSurfacesImpl(
           includeHomeSurfaces: true,
@@ -215,9 +226,10 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _suspendFeedForTabExitImpl() {
     final agenda = maybeFindAgendaController();
     if (agenda == null) return;
-    final prevIndex = agenda.lastCenteredIndex;
-    agenda.lastCenteredIndex = prevIndex;
-    agenda.centeredIndex.value = -1;
+    final currentCentered = agenda.centeredIndex.value;
+    if (currentCentered >= 0 && currentCentered < agenda.agendaList.length) {
+      agenda.lastCenteredIndex = currentCentered;
+    }
     agenda.suspendPlaybackForOverlay();
   }
 
