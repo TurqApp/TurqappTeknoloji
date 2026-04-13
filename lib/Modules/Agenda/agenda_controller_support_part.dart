@@ -63,6 +63,72 @@ extension AgendaControllerSupportPart on AgendaController {
     }());
   }
 
+  void _clearAgendaState({
+    required String reason,
+  }) {
+    if (agendaList.isEmpty) return;
+    debugPrint(
+      '[FeedApply] action=clear reason=$reason currentCount=${agendaList.length}',
+    );
+    agendaList.clear();
+  }
+
+  void _replaceAgendaState(
+    List<PostsModel> items, {
+    required String reason,
+    bool schedulePrefetch = false,
+  }) {
+    debugPrint(
+      '[FeedApply] action=replace reason=$reason currentCount=${agendaList.length} '
+      'nextCount=${items.length}',
+    );
+    agendaList.assignAll(items);
+    _debugAgendaKinds(reason, agendaList);
+    if (schedulePrefetch) {
+      _scheduleFeedPrefetch();
+    }
+  }
+
+  void _appendUniqueAgendaState(
+    List<PostsModel> items, {
+    required String reason,
+    bool schedulePrefetch = true,
+  }) {
+    if (items.isEmpty) return;
+    final existing = agendaList.map((post) => post.docID).toSet();
+    final unique = <PostsModel>[];
+    for (final post in items) {
+      if (existing.add(post.docID)) {
+        unique.add(post);
+      }
+    }
+    if (unique.isEmpty) return;
+    debugPrint(
+      '[FeedApply] action=append_unique reason=$reason currentCount=${agendaList.length} '
+      'addCount=${unique.length} nextCount=${agendaList.length + unique.length}',
+    );
+    agendaList.addAll(unique);
+    _debugAgendaKinds(reason, agendaList);
+    if (schedulePrefetch) {
+      _scheduleFeedPrefetch();
+    }
+  }
+
+  void _removeAgendaDocIds(
+    Set<String> docIds, {
+    required String reason,
+  }) {
+    if (docIds.isEmpty || agendaList.isEmpty) return;
+    final beforeCount = agendaList.length;
+    agendaList.removeWhere((post) => docIds.contains(post.docID));
+    if (beforeCount == agendaList.length) return;
+    debugPrint(
+      '[FeedApply] action=remove reason=$reason removedCount=${beforeCount - agendaList.length} '
+      'nextCount=${agendaList.length}',
+    );
+    _debugAgendaKinds(reason, agendaList);
+  }
+
   bool canAutoplayInTests(PostsModel post) => _canAutoplayVideoPost(post);
 
   bool _isBlurredIzBirakVideo(PostsModel post, [int? nowMs]) {
@@ -129,7 +195,9 @@ extension AgendaControllerSupportPart on AgendaController {
     for (final childId in childIds) {
       if (warmed >= _feedFloodRootChildWarmCount) break;
       final child = fetched[childId];
-      if (child == null || child.deletedPost == true || !child.hasPlayableVideo) {
+      if (child == null ||
+          child.deletedPost == true ||
+          !child.hasPlayableVideo) {
         continue;
       }
       try {
@@ -221,39 +289,6 @@ extension AgendaControllerSupportPart on AgendaController {
     }
     return post.scheduledAt.toInt() > 0;
   }
-
-  Future<List<PostsModel>> _fetchVisiblePublicIzBirakPosts({
-    required int nowMs,
-    required int cutoffMs,
-    int limit = 40,
-    bool preferCache = true,
-    bool cacheOnly = false,
-  }) async {
-    final effectivePreferCache = cacheOnly ? preferCache : false;
-    final publicIzBirakPosts =
-        await _postRepository.fetchPublicScheduledIzBirakPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      preferCache: effectivePreferCache,
-      cacheOnly: cacheOnly,
-    );
-    if (publicIzBirakPosts.isEmpty) return const <PostsModel>[];
-
-    final authorMeta = await _userSummaryResolver.resolveMany(
-      publicIzBirakPosts.map((p) => p.userID).toSet().toList(),
-      preferCache: effectivePreferCache,
-      cacheOnly: cacheOnly,
-    );
-    return publicIzBirakPosts.where((post) {
-      final meta = authorMeta[post.userID];
-      if (meta == null || meta.isDeleted) return false;
-      return isDiscoveryPublicAuthor(
-        rozet: meta.rozet,
-        isApproved: meta.isApproved,
-      );
-    }).toList(growable: false);
-  }
 }
 
 extension AgendaControllerPublicApiPart on AgendaController {
@@ -283,7 +318,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
-    if (agendaList.isEmpty && !_startupPresentationApplied) {
+    if (agendaList.isEmpty && !_startupPlannerHeadApplied) {
       final deviceSession = DeviceSessionService.instance;
       final deviceSalt = deviceSession.cachedDeviceKey;
       beginStartupSurfaceSession(
@@ -304,24 +339,36 @@ extension AgendaControllerPublicApiPart on AgendaController {
         );
       }
     }
-    await ensureFeedSurfaceReady();
+    final allowRefresh = allowBackgroundRefresh ??
+        ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed);
+    await ensureFeedSurfaceReady(
+      preferSynchronousConnectedLoad: !allowRefresh,
+    );
     _primeStartupPlaybackWindow();
     await _recordFeedStartupSurface(
       source: 'feed_surface_ready',
     );
-    final allowRefresh = allowBackgroundRefresh ??
-        ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed);
-    if (!allowRefresh || agendaList.isEmpty || _startupLiveHeadApplied) return;
-    unawaited(syncFeedHeadAfterSurfaceOpen());
+    if (!allowRefresh || agendaList.isEmpty || _startupHeadFinalized) return;
   }
 
   void _primeStartupPlaybackWindow() {
     if (agendaList.isEmpty) return;
+    if (_shouldDelayStartupPlaybackWork) {
+      Future.delayed(const Duration(milliseconds: 420), () {
+        if (isClosed || agendaList.isEmpty) return;
+        _primeStartupPlaybackWindowNow();
+      });
+      return;
+    }
+    _primeStartupPlaybackWindowNow();
+  }
+
+  void _primeStartupPlaybackWindowNow() {
+    if (agendaList.isEmpty) return;
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
-    final startupWindow = agendaList
+    final startupWindow = _resolveFeedStartupWarmPosts()
         .where((post) => _canAutoplayVideoPost(post))
-        .take(4)
         .toList(growable: false);
     if (startupWindow.isEmpty) return;
     unawaited(
@@ -341,6 +388,12 @@ extension AgendaControllerPublicApiPart on AgendaController {
         readySegments: 1,
       );
     }
+    if (startupWindow.length > 2) {
+      prefetch.boostDoc(
+        startupWindow[2].docID,
+        readySegments: 1,
+      );
+    }
   }
 
   Future<void> persistStartupShard() async {
@@ -351,6 +404,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
         FeedSnapshotRepository.startupHomeLimitValue,
       ),
     );
+    if (startupCandidates.isEmpty && ContentPolicy.isConnected) {
+      debugPrint(
+        '[FeedStartupPersist] status=preserve_previous reason=empty_connected_agenda '
+        'target=shard',
+      );
+      return;
+    }
     await _persistFeedStartupShardOnly(
       userId: userId,
       ordered: startupCandidates,
@@ -372,6 +432,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
       ),
     );
     if (ordered.isEmpty) {
+      if (ContentPolicy.isConnected) {
+        debugPrint(
+          '[FeedStartupPersist] status=preserve_previous reason=empty_connected_agenda '
+          'target=artifacts',
+        );
+        return;
+      }
       await _persistFeedStartupShardOnly(
         userId: userId,
         ordered: startupCandidates,
@@ -402,8 +469,8 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
 
-  void reshuffleVisibleHeadAfterShortReturn() =>
-      _performReshuffleVisibleHeadAfterShortReturn();
+  void resetVisibleFeedSurfaceAfterShortReturn() =>
+      _performResetVisibleFeedSurfaceAfterShortReturn();
 
   void resetSurfaceForTabTransition() => _performResetSurfaceForTabTransition();
 
@@ -455,7 +522,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     final count = itemCount ?? agendaList.length;
     bool startupShardHydrated = false;
     int? startupShardAgeMs;
-    if (count > 0) {
+    if (count > 0 && !ContentPolicy.isConnected) {
       try {
         final existingManifest =
             await ensureStartupSnapshotManifestStore().load(userId: userId);
@@ -464,11 +531,12 @@ extension AgendaControllerPublicApiPart on AgendaController {
         startupShardAgeMs = existingRecord?.startupShardAgeMs;
       } catch (_) {}
     }
+    final hasLocalSnapshot = !ContentPolicy.isConnected && count > 0;
     await ensureStartupSnapshotManifestStore().recordSurfaceState(
       surface: 'feed',
       userId: userId,
       itemCount: count,
-      hasLocalSnapshot: count > 0,
+      hasLocalSnapshot: hasLocalSnapshot,
       source: count > 0 ? source : 'none',
       startupShardHydrated: startupShardHydrated,
       startupShardAgeMs: startupShardAgeMs,
@@ -515,7 +583,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
 }
 
 extension AgendaControllerOverlayReturnPart on AgendaController {
-  void _performReshuffleVisibleHeadAfterShortReturn() {
+  void _performResetVisibleFeedSurfaceAfterShortReturn() {
     _performResetSurfaceForTabTransition();
   }
 }

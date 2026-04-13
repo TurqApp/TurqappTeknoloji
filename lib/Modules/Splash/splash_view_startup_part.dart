@@ -218,7 +218,8 @@ extension _SplashViewStartupPart on _SplashViewState {
   String _requestedStartupRouteHint() {
     return resolveStartupManifestRouteHint(
       manifestAgeMs: _previousStartupManifestAgeMs,
-      freshWindowMs: _SplashViewState._startupManifestFreshWindow.inMilliseconds,
+      freshWindowMs:
+          _SplashViewState._startupManifestFreshWindow.inMilliseconds,
       routeHint: _previousStartupRouteHint,
     );
   }

@@ -141,6 +141,63 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  Future<bool> _seedConnectedStartupHeadFromShard() async {
+    if (!ContentPolicy.isConnected ||
+        agendaList.isNotEmpty ||
+        isLoading.value) {
+      return false;
+    }
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return false;
+    final startupCandidates =
+        await _feedSnapshotRepository.inspectHomeStartupShard(
+      userId: userId,
+      limit: FeedSnapshotRepository.startupHomeLimitValue,
+    );
+    if (startupCandidates.isEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=connected_startup_shard_empty',
+      );
+      return false;
+    }
+    final startupItems = _buildStartupPlannerHead(
+      cacheCandidates: startupCandidates,
+      targetCount: min(
+        startupCandidates.length,
+        FeedSnapshotRepository.startupHomeLimitValue,
+      ),
+      allowSparseSlotFallback: true,
+    );
+    if (startupItems.isEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=connected_startup_shard_no_head '
+        'candidateCount=${startupCandidates.length}',
+      );
+      return false;
+    }
+    _startupHeadFinalized = false;
+    _startupRenderBootstrapHold = true;
+    _activateStartupRenderStages(
+      reason: 'connected_startup_shard_seed',
+    );
+    debugPrint(
+      '[FeedStartupPlanner] source=connected_startup_shard '
+      'status=apply_seeded_startup_items '
+      'rawCount=${startupCandidates.length} composedCount=${startupItems.length}',
+    );
+    _replaceAgendaState(
+      startupItems,
+      reason: 'connected_startup_shard_seed',
+    );
+    _applyStartupRenderStagesNow();
+    _scheduleInitialFeedVideoPosterWarmup(startupItems);
+    _scheduleReshareFetchForPosts(
+      startupItems,
+      perPostLimit: 1,
+    );
+    return true;
+  }
+
   bool _shouldReplaceSeededStartupHeadOnInitialBootstrap(
     List<PostsModel> currentAgenda,
   ) {
@@ -1477,13 +1534,17 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> ensureFeedSurfaceReady() async {
+  Future<void> ensureFeedSurfaceReady({
+    bool preferSynchronousConnectedLoad = false,
+  }) async {
     final inFlight = _surfaceBootstrapFuture;
     if (inFlight != null) {
       await inFlight;
       return;
     }
-    final future = _performEnsureFeedSurfaceReady();
+    final future = _performEnsureFeedSurfaceReady(
+      preferSynchronousConnectedLoad: preferSynchronousConnectedLoad,
+    );
     _surfaceBootstrapFuture = future;
     try {
       await future;
@@ -1494,7 +1555,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> _performEnsureFeedSurfaceReady() async {
+  Future<void> _performEnsureFeedSurfaceReady({
+    required bool preferSynchronousConnectedLoad,
+  }) async {
     final connectedStartup = ContentPolicy.isConnected;
     if (agendaList.isEmpty && !isLoading.value) {
       debugPrint(
@@ -1525,6 +1588,65 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     if (!isLoading.value) {
       if (connectedStartup) {
+        final seededFromShard = await _profileFeedStartupSurfaceStep(
+          'seed_connected_startup_shard',
+          _seedConnectedStartupHeadFromShard,
+        );
+        if (seededFromShard && agendaList.isNotEmpty) {
+          if (preferSynchronousConnectedLoad) {
+            await _profileFeedStartupSurfaceStep(
+              'ensure_initial_feed_loaded_connected_seed',
+              () => ensureInitialFeedLoaded(),
+            );
+            if (agendaList.isNotEmpty) {
+              await _profileFeedStartupSurfaceStep(
+                'prepare_surface_after_connected_seed_sync',
+                () async {
+                  _prepareFeedSurfaceAfterDataReady(
+                    playbackBootstrapSource:
+                        'ensure_feed_surface_ready_connected_seed_sync',
+                  );
+                },
+              );
+            }
+            return;
+          }
+          debugPrint(
+            '[FeedStartupSurface] status=kick_live_finalize_from_connected_seed '
+            'agendaCount=${agendaList.length}',
+          );
+          unawaited(
+            ensureInitialFeedLoaded(),
+          );
+          await _profileFeedStartupSurfaceStep(
+            'prepare_surface_after_connected_seed',
+            () async {
+              _prepareFeedSurfaceAfterDataReady(
+                playbackBootstrapSource:
+                    'ensure_feed_surface_ready_connected_seed',
+              );
+            },
+          );
+          return;
+        }
+        if (preferSynchronousConnectedLoad) {
+          await _profileFeedStartupSurfaceStep(
+            'ensure_initial_feed_loaded_connected',
+            () => ensureInitialFeedLoaded(),
+          );
+          if (agendaList.isNotEmpty) {
+            await _profileFeedStartupSurfaceStep(
+              'prepare_surface_after_connected_network_load',
+              () async {
+                _prepareFeedSurfaceAfterDataReady(
+                  playbackBootstrapSource:
+                      'ensure_feed_surface_ready_connected_network_load',
+                );
+              },
+            );
+          }
+          return;
+        }
         debugPrint(
           '[FeedStartupSurface] status=defer_connected_initial_load '
           'agendaEmpty=${agendaList.isEmpty}',
