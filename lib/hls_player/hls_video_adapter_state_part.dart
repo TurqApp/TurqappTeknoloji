@@ -49,9 +49,14 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
 
       final wasReady = _viewReady;
       _viewReady = state != PlayerState.idle && state != PlayerState.loading;
+      final hadVisualReadySignal =
+          _value.hasRenderedFirstFrame || _value.position > Duration.zero;
+      final inferredReady = _viewReady ||
+          _value.isInitialized ||
+          (defaultTargetPlatform == TargetPlatform.iOS && hadVisualReadySignal);
 
       _value = HLSVideoValue(
-        isInitialized: _viewReady,
+        isInitialized: inferredReady,
         isPlaying: state == PlayerState.playing,
         isBuffering: state == PlayerState.buffering,
         isCompleted: state == PlayerState.completed,
@@ -72,8 +77,10 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
 
     _posSub = _hls.onPositionChanged.listen((pos) {
       if (_disposed) return;
+      final inferredReady =
+          defaultTargetPlatform == TargetPlatform.iOS && pos > Duration.zero;
       _value = HLSVideoValue(
-        isInitialized: _value.isInitialized,
+        isInitialized: _value.isInitialized || inferredReady,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
         isCompleted: _value.isCompleted,
@@ -86,6 +93,17 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         buffered: _value.buffered,
       );
       _notifyAdapterListeners();
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          pos > Duration.zero &&
+          pos <= const Duration(milliseconds: 180) &&
+          _pendingVolume > 0.001) {
+        unawaited(_hls.setVolume(_pendingVolume));
+        if (_value.hasRenderedFirstFrame &&
+            !_value.isCompleted &&
+            !_value.isPlaying) {
+          unawaited(_hls.play());
+        }
+      }
     });
 
     _durSub = _hls.onDurationChanged.listen((dur) {
@@ -108,8 +126,10 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
 
     _firstFrameSub = _hls.onFirstFrameChanged.listen((hasRenderedFirstFrame) {
       if (_disposed) return;
+      final inferredReady =
+          defaultTargetPlatform == TargetPlatform.iOS && hasRenderedFirstFrame;
       _value = HLSVideoValue(
-        isInitialized: _value.isInitialized,
+        isInitialized: _value.isInitialized || inferredReady,
         isPlaying: _value.isPlaying,
         isBuffering: _value.isBuffering,
         isCompleted: _value.isCompleted,
@@ -122,6 +142,12 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         buffered: _value.buffered,
       );
       _notifyAdapterListeners();
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          hasRenderedFirstFrame &&
+          _hasPendingVolume &&
+          _pendingVolume > 0.001) {
+        unawaited(_performSetVolume(_pendingVolume));
+      }
     });
   }
 

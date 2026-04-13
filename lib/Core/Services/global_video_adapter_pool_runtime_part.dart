@@ -146,7 +146,24 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     for (final entry in _leasedKeys.entries) {
       if (entry.value == cacheKey) return entry.key;
     }
-    return _warmAdapters[cacheKey]?.adapter;
+    final warmAdapter = _warmAdapters[cacheKey]?.adapter;
+    if (warmAdapter != null) return warmAdapter;
+
+    final normalizedCacheKey = _stripPlaybackNamespace(cacheKey);
+    if (normalizedCacheKey.isEmpty) return null;
+
+    for (final entry in _leasedKeys.entries) {
+      if (_matchesTestingCacheKey(cacheKey, entry.value)) {
+        return entry.key;
+      }
+    }
+
+    for (final entry in _warmAdapters.entries) {
+      if (_matchesTestingCacheKey(cacheKey, entry.key)) {
+        return entry.value.adapter;
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> debugSnapshot() {
@@ -205,6 +222,21 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     final watchedRatio =
         position.inMilliseconds / duration.inMilliseconds.clamp(1, 1 << 30);
     return watchedRatio >= 0.9;
+  }
+
+  bool _matchesTestingCacheKey(String requested, String candidate) {
+    if (candidate == requested) return true;
+    if (candidate.startsWith('${requested}_')) return true;
+    return _stripPlaybackNamespace(candidate) ==
+        _stripPlaybackNamespace(requested);
+  }
+
+  String _stripPlaybackNamespace(String value) {
+    final colonIndex = value.indexOf(':');
+    if (colonIndex <= 0 || colonIndex >= value.length - 1) {
+      return value;
+    }
+    return value.substring(colonIndex + 1);
   }
 
   void _saveState(String cacheKey, HLSVideoAdapter adapter) {

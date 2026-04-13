@@ -260,9 +260,17 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   void _applyShortPlaybackPresentation(int page, HLSVideoAdapter adapter) {
     final decision = _shortPlaybackDecisionFor(page, adapter.value);
+    final shouldForceIosShortAudible =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            volume &&
+            page == currentPage &&
+            _isShortRoutePlaybackActive &&
+            adapter.value.hasRenderedFirstFrame &&
+            adapter.value.position > Duration.zero &&
+            !adapter.value.isCompleted;
     _playbackExecutionService.applyPresentation(
       adapter,
-      shouldBeAudible: decision.shouldBeAudible,
+      shouldBeAudible: decision.shouldBeAudible || shouldForceIosShortAudible,
     );
   }
 

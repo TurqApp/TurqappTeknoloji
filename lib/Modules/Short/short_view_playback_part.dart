@@ -1,6 +1,38 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _syncShortExclusivePlaybackOwner([int? preferredPage]) {
+    if (!_isShortRoutePlaybackActive || _cachedShorts.isEmpty) return;
+    final page = preferredPage ?? currentPage;
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return;
+    try {
+      _playbackRuntimeService.enterExclusiveMode(
+        controller.playbackHandleKeyForDoc(docId),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _parkShortAfterPageExit(
+    int page,
+    HLSVideoAdapter adapter,
+  ) async {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return;
+    }
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isNotEmpty) {
+      _playbackRuntimeService.clearSavedPlaybackState(
+        controller.playbackHandleKeyForDoc(docId),
+      );
+    }
+    await _releasePlayback(adapter);
+    try {
+      await adapter.seekTo(Duration.zero);
+    } catch (_) {}
+  }
+
   void _markStartupPlaybackSettled() {
     if (_startupPlaybackSettled) return;
     _startupPlaybackSettled = true;
@@ -97,10 +129,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.requestPlay(
-        playbackHandleKey,
-        HLSAdapterPlaybackHandle(adapter),
-      );
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     } catch (_) {}
   }
 
@@ -152,11 +181,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         ? ''
         : previousList[previousPage].docID.trim();
     final remappedPage = _initialDisplayIndex(nextList, update.remappedIndex);
-    final nextActiveDocId = nextList.isEmpty ||
-            remappedPage < 0 ||
-            remappedPage >= nextList.length
-        ? ''
-        : nextList[remappedPage].docID.trim();
+    final nextActiveDocId =
+        nextList.isEmpty || remappedPage < 0 || remappedPage >= nextList.length
+            ? ''
+            : nextList[remappedPage].docID.trim();
     final shouldDeferStartupSwap = !_startupPlaybackSettled &&
         previousActiveDocId.isNotEmpty &&
         nextActiveDocId.isNotEmpty &&
@@ -196,6 +224,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
     if (page == currentPage) return;
+    _forceResumePosterOnReturn = false;
     final isAutoAdvance = _pendingAutoAdvancePage == page;
     if (isAutoAdvance) {
       _pendingAutoAdvancePage = null;
@@ -208,6 +237,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _tierReconcileDebounce?.cancel();
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
+    _iosNativePlaybackGuardTimer?.cancel();
     final nextDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID
         : '';
@@ -228,12 +258,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
-      _persistShortPlaybackState(currentPage, oldVc);
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        _quietBackgroundPlayback(oldVc);
-      } else {
-        _releasePlayback(oldVc);
-      }
+      unawaited(_parkShortAfterPageExit(currentPage, oldVc));
       oldVc.removeListener(_videoEndListener);
       oldVc.removeListener(_telemetryListener);
     }
@@ -248,6 +273,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    _syncShortExclusivePlaybackOwner(page);
+    _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
     _resetShortAutoplaySegmentGate();
@@ -258,6 +285,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastPersistedProgress = 0.0;
     _lastProgressPersistAt = null;
     _engagementRescoreTimer?.cancel();
+
+    _ensureActivePageAdapterAfterBuild(page);
 
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(
@@ -322,11 +351,153 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
     if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
     try {
+      final docId = _cachedShorts[page].docID;
+      final handleKey = controller.playbackHandleKeyForDoc(docId);
+      debugPrint(
+        '[ShortResume] save page=$page doc=$docId handle=$handleKey '
+        'posMs=${adapter.value.position.inMilliseconds} '
+        'durMs=${adapter.value.duration.inMilliseconds} '
+        'playing=${adapter.value.isPlaying}',
+      );
       _playbackRuntimeService.savePlaybackState(
-        controller.playbackHandleKeyForDoc(_cachedShorts[page].docID),
+        handleKey,
         HLSAdapterPlaybackHandle(adapter),
       );
     } catch (_) {}
+  }
+
+  Duration? _savedPlaybackPositionForPage(int page, HLSVideoAdapter adapter) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return null;
+    }
+    final handleKey =
+        controller.playbackHandleKeyForDoc(_cachedShorts[page].docID);
+    final state = VideoStateManager.instance.getVideoState(
+      handleKey,
+    );
+    if (state == null || state.position <= const Duration(milliseconds: 50)) {
+      return null;
+    }
+    final duration = adapter.value.duration;
+    var target = state.position;
+    if (duration > Duration.zero) {
+      final maxSeek = duration - const Duration(milliseconds: 120);
+      if (maxSeek <= Duration.zero) return null;
+      if (target > maxSeek) {
+        target = maxSeek;
+      }
+    }
+    final currentPosition = adapter.value.position;
+    final currentMs = currentPosition.inMilliseconds;
+    final targetMs = target.inMilliseconds;
+    final forwardSkewMs = targetMs - currentMs;
+    final hasMeaningfulCurrentPosition = currentMs > 50;
+    // Resume should recover lost position, not rewind or micro-adjust an
+    // adapter that is already effectively at/after the saved timestamp.
+    if (hasMeaningfulCurrentPosition && forwardSkewMs <= 250) {
+      _playbackRuntimeService.clearSavedPlaybackState(handleKey);
+      return null;
+    }
+    if (adapter.isStopped || !adapter.value.isInitialized) {
+      return target;
+    }
+    _playbackRuntimeService.clearSavedPlaybackState(handleKey);
+    return null;
+  }
+
+  Future<void> _restoreShortPlaybackStateIfNeeded(
+    int page,
+    HLSVideoAdapter adapter,
+  ) async {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
+    final docId = _cachedShorts[page].docID;
+    final handleKey = controller.playbackHandleKeyForDoc(docId);
+    final target = _savedPlaybackPositionForPage(page, adapter);
+    debugPrint(
+      '[ShortResume] restore_check page=$page doc=$docId handle=$handleKey '
+      'savedMs=${target?.inMilliseconds ?? -1} '
+      'currentMs=${adapter.value.position.inMilliseconds} '
+      'init=${adapter.value.isInitialized}',
+    );
+    if (target == null) return;
+    try {
+      debugPrint(
+        '[ShortResume] restore_apply page=$page doc=$docId handle=$handleKey '
+        'targetMs=${target.inMilliseconds}',
+      );
+      await adapter.seekTo(target);
+      _playbackRuntimeService.clearSavedPlaybackState(handleKey);
+    } catch (_) {}
+  }
+
+  bool _shouldRestartShortFromBeginning(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return false;
+    }
+    final docId = _cachedShorts[page].docID;
+    final handleKey = controller.playbackHandleKeyForDoc(docId);
+    final savedState = _playbackRuntimeService.getSavedPlaybackState(handleKey);
+    final savedPosition = savedState?.position ?? Duration.zero;
+    if (savedPosition > Duration.zero) {
+      return false;
+    }
+    final value = adapter.value;
+    final duration = value.duration;
+    final position = value.position;
+    if (duration <= Duration.zero || position <= Duration.zero) {
+      return false;
+    }
+    final remainingMs = duration.inMilliseconds - position.inMilliseconds;
+    final progress = duration.inMilliseconds > 0
+        ? position.inMilliseconds / duration.inMilliseconds
+        : 0.0;
+    return value.isCompleted || remainingMs <= 160 || progress >= 0.985;
+  }
+
+  bool _shouldRecoverShortPlaybackOnRevisit(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (defaultTargetPlatform != TargetPlatform.iOS ||
+        page < 0 ||
+        page >= _cachedShorts.length ||
+        adapter.isDisposed) {
+      return false;
+    }
+    final docId = _cachedShorts[page].docID;
+    final handleKey = controller.playbackHandleKeyForDoc(docId);
+    final savedState = _playbackRuntimeService.getSavedPlaybackState(handleKey);
+    final savedPosition = savedState?.position ?? Duration.zero;
+    if (savedPosition > Duration.zero) {
+      return false;
+    }
+    final value = adapter.value;
+    return value.hasRenderedFirstFrame &&
+        value.position >= const Duration(milliseconds: 800) &&
+        !value.isCompleted;
+  }
+
+  bool _shouldResetArrivingShortToStart(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (!_pendingPageActivation ||
+        page < 0 ||
+        page >= _cachedShorts.length ||
+        adapter.isDisposed) {
+      return false;
+    }
+    final docId = _cachedShorts[page].docID;
+    final handleKey = controller.playbackHandleKeyForDoc(docId);
+    final savedState = _playbackRuntimeService.getSavedPlaybackState(handleKey);
+    final savedPosition = savedState?.position ?? Duration.zero;
+    if (savedPosition > Duration.zero) {
+      return false;
+    }
+    return adapter.value.position > Duration.zero;
   }
 
   void _enforceSingleActiveAudio(int activePage) {
@@ -335,12 +506,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       final vc = entry.value;
       if (idx == activePage) continue;
       try {
-        if (defaultTargetPlatform == TargetPlatform.android) {
-          _quietBackgroundPlayback(vc);
-        } else {
-          _applyShortPlaybackPresentation(idx, vc);
-          _releasePlayback(vc);
-        }
+        _applyShortPlaybackPresentation(idx, vc);
+        _releasePlayback(vc);
       } catch (_) {}
     }
   }
@@ -388,6 +555,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;
+    _syncShortExclusivePlaybackOwner(currentPage);
     if (currentPage >= 0 && currentPage < _cachedShorts.length) {
       final docId = _cachedShorts[currentPage].docID.trim();
       if (docId.isNotEmpty) {
@@ -397,7 +565,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
       }
     }
     final hadActiveAdapter = controller.cache[currentPage] != null;
-    if (defaultTargetPlatform != TargetPlatform.android) {
+    final shouldPreserveCurrentAdapterOnRouteReturn =
+        defaultTargetPlatform != TargetPlatform.android &&
+            _forceResumePosterOnReturn &&
+            hadActiveAdapter;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        !shouldPreserveCurrentAdapterOnRouteReturn) {
       await controller.keepOnlyIndex(currentPage);
     }
 
@@ -463,12 +636,28 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _schedulePlayForPage(int page) {
+    final scheduledDocId = page >= 0 && page < _cachedShorts.length
+        ? _cachedShorts[page].docID.trim()
+        : '';
+    if (_playDebounce?.isActive == true &&
+        _pendingPlayPage == page &&
+        _pendingPlayDocId == scheduledDocId) {
+      return;
+    }
     _playDebounce?.cancel();
+    _pendingPlayPage = page;
+    _pendingPlayDocId = scheduledDocId;
     _playDebounce = Timer(
       defaultTargetPlatform == TargetPlatform.android
           ? _shortPlayResumeDelayAndroid
           : _shortPlayResumeDelay,
-      () {
+      () async {
+        if (_pendingPlayPage == page) {
+          _pendingPlayPage = null;
+        }
+        if (_pendingPlayDocId == scheduledDocId) {
+          _pendingPlayDocId = null;
+        }
         if (!mounted ||
             page != currentPage ||
             isManuallyPaused ||
@@ -489,6 +678,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
             !vc.value.isPlaying &&
+            !vc.value.isInitialized &&
+            !vc.value.hasRenderedFirstFrame &&
             !_hasReadyShortSegment(page);
         if (shouldGate) {
           if (docId.isNotEmpty) {
@@ -518,6 +709,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (isManuallyPaused) return;
         _lastPrimaryPlayDocId = docId.trim().isEmpty ? null : docId.trim();
         _lastPrimaryPlayAt = DateTime.now();
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            docId.trim().isNotEmpty &&
+            _recordedVisibleShortDocIds.add(docId.trim())) {
+          unawaited(ensurePostInteractionService().recordView(docId.trim()));
+        }
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_page_play',
@@ -528,22 +724,35 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'isInitialized': vc.value.isInitialized,
           },
         );
-        if (!vc.value.isPlaying) {
-          final shouldRecoverExistingPlayback = vc.value.hasRenderedFirstFrame &&
-              vc.value.position > Duration.zero &&
-              !vc.value.isBuffering &&
-              !vc.isStopped &&
-              defaultTargetPlatform != TargetPlatform.android;
-          if (shouldRecoverExistingPlayback) {
-            vc.recoverFrozenPlayback();
-          } else {
-            _playbackExecutionService.playAdapter(vc);
-          }
+        await _restoreShortPlaybackStateIfNeeded(page, vc);
+        if (_shouldResetArrivingShortToStart(page, vc)) {
+          try {
+            await vc.seekTo(Duration.zero);
+          } catch (_) {}
         }
+        if (_shouldRestartShortFromBeginning(page, vc)) {
+          try {
+            await vc.seekTo(Duration.zero);
+          } catch (_) {}
+        }
+        var recoveredRevisitPlayback = false;
+        if (_shouldRecoverShortPlaybackOnRevisit(page, vc)) {
+          try {
+            await vc.recoverFrozenPlayback();
+            recoveredRevisitPlayback = true;
+          } catch (_) {}
+        }
+        if (!recoveredRevisitPlayback && !vc.value.isPlaying) {
+          await _playbackExecutionService.playAdapter(vc);
+        }
+        _pendingPageActivation = false;
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
+        _scheduleIosShortPresentationRestore(page, vc);
+        _scheduleIosShortAudibilityReassert(page, vc);
+        _scheduleIosNativePlaybackGuard(page, vc);
         _setupVideoEndListener(vc);
         _schedulePlaybackWatchdog(page, vc);
         _scheduleStallWatchdog(page, vc);
@@ -572,6 +781,213 @@ extension ShortViewPlaybackPart on _ShortViewState {
               page,
             );
           } catch (_) {}
+        }
+      },
+    );
+  }
+
+  void _scheduleIosShortAudibilityReassert(
+    int page,
+    HLSVideoAdapter vc, {
+    int attempt = 0,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    const attemptDelays = <Duration>[
+      Duration.zero,
+      Duration(milliseconds: 110),
+      Duration(milliseconds: 260),
+      Duration(milliseconds: 520),
+      Duration(milliseconds: 900),
+      Duration(milliseconds: 1400),
+      Duration(milliseconds: 2000),
+    ];
+    final safeAttempt = attempt.clamp(0, attemptDelays.length - 1);
+    final delay = attemptDelays[safeAttempt];
+    Future<void>.delayed(delay, () async {
+      if (!mounted ||
+          page != currentPage ||
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive ||
+          vc.isDisposed) {
+        return;
+      }
+      final decision = _shortPlaybackDecisionFor(page, vc.value);
+      if (!decision.shouldBeAudible) return;
+      _applyShortPlaybackPresentation(page, vc);
+      var stillMuted = false;
+      try {
+        stillMuted = await vc.isMutedNative();
+      } catch (_) {}
+      final shouldKickPlayback = vc.value.hasRenderedFirstFrame &&
+          vc.value.position > Duration.zero &&
+          !vc.value.isPlaying;
+      final shouldRetrySoon = attempt < attemptDelays.length - 1 &&
+          (!vc.value.hasRenderedFirstFrame ||
+              stillMuted ||
+              (vc.value.position > Duration.zero && !vc.value.isPlaying) ||
+              vc.value.position < const Duration(milliseconds: 2500));
+      if (!stillMuted && !shouldKickPlayback) {
+        if (shouldRetrySoon) {
+          _scheduleIosShortAudibilityReassert(
+            page,
+            vc,
+            attempt: attempt + 1,
+          );
+        }
+        return;
+      }
+      try {
+        final shouldRecoverFrozenPlayback = vc.value.hasRenderedFirstFrame &&
+            !vc.value.isCompleted &&
+            (vc.value.position >= const Duration(milliseconds: 2500) ||
+                vc.value.duration > const Duration(seconds: 12));
+        if (shouldRecoverFrozenPlayback) {
+          await vc.recoverFrozenPlayback();
+        } else {
+          await _playbackExecutionService.playAdapter(vc);
+        }
+      } catch (_) {}
+      if (!mounted ||
+          page != currentPage ||
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive ||
+          vc.isDisposed) {
+        return;
+      }
+      _applyShortPlaybackPresentation(page, vc);
+      final docId = page >= 0 && page < _cachedShorts.length
+          ? _cachedShorts[page].docID.trim()
+          : '';
+      if (docId.isNotEmpty) {
+        _requestExclusivePlayback(docId, vc);
+      }
+      if (attempt < attemptDelays.length - 1) {
+        _scheduleIosShortAudibilityReassert(
+          page,
+          vc,
+          attempt: attempt + 1,
+        );
+      }
+    });
+  }
+
+  void _scheduleIosShortPresentationRestore(
+    int page,
+    HLSVideoAdapter vc,
+  ) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    for (final delay in const <Duration>[
+      Duration.zero,
+      Duration(milliseconds: 120),
+      Duration(milliseconds: 320),
+    ]) {
+      Future<void>.delayed(delay, () {
+        if (!mounted ||
+            page != currentPage ||
+            vc.isDisposed ||
+            isManuallyPaused ||
+            !_isShortRoutePlaybackActive) {
+          return;
+        }
+        _applyShortPlaybackPresentation(page, vc);
+      });
+    }
+  }
+
+  void _scheduleIosNativePlaybackGuard(
+    int page,
+    HLSVideoAdapter vc, {
+    int attempt = 0,
+  }) {
+    _iosNativePlaybackGuardTimer?.cancel();
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    _iosNativePlaybackGuardTimer = Timer(
+      attempt == 0
+          ? const Duration(milliseconds: 1400)
+          : const Duration(milliseconds: 900),
+      () async {
+        if (!mounted ||
+            page != currentPage ||
+            vc.isDisposed ||
+            isManuallyPaused ||
+            !_isShortRoutePlaybackActive) {
+          return;
+        }
+
+        final beforePosition = vc.value.position;
+        Map<String, dynamic> beforeDiag = const <String, dynamic>{};
+        try {
+          beforeDiag = await vc.getPlaybackDiagnostics();
+        } catch (_) {}
+        final beforeSilenceMs =
+            (beforeDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+        final beforePlaying = (beforeDiag['isPlaying'] as bool?) ?? false;
+
+        await Future<void>.delayed(const Duration(milliseconds: 900));
+        if (!mounted ||
+            page != currentPage ||
+            vc.isDisposed ||
+            isManuallyPaused ||
+            !_isShortRoutePlaybackActive) {
+          return;
+        }
+
+        final afterPosition = vc.value.position;
+        Map<String, dynamic> afterDiag = const <String, dynamic>{};
+        try {
+          afterDiag = await vc.getPlaybackDiagnostics();
+        } catch (_) {}
+        final afterSilenceMs =
+            (afterDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+        final afterPlaying = (afterDiag['isPlaying'] as bool?) ?? false;
+        final advancedMs =
+            afterPosition.inMilliseconds - beforePosition.inMilliseconds;
+
+        final likelyFrozen = vc.value.hasRenderedFirstFrame &&
+            afterPosition >= const Duration(milliseconds: 800) &&
+            advancedMs < 180 &&
+            afterSilenceMs >= 1500 &&
+            afterSilenceMs >= beforeSilenceMs &&
+            (beforePlaying || afterPlaying || !vc.value.isPlaying);
+        if (likelyFrozen) {
+          final shouldRecoverFrozenPlayback =
+              afterPosition >= const Duration(milliseconds: 2500) ||
+                  vc.value.duration > const Duration(seconds: 12);
+          try {
+            if (shouldRecoverFrozenPlayback) {
+              await vc.recoverFrozenPlayback();
+            } else {
+              await _playbackExecutionService.playAdapter(vc);
+            }
+          } catch (_) {}
+          if (!mounted ||
+              page != currentPage ||
+              vc.isDisposed ||
+              isManuallyPaused ||
+              !_isShortRoutePlaybackActive) {
+            return;
+          }
+          _applyShortPlaybackPresentation(page, vc);
+          final docId = page >= 0 && page < _cachedShorts.length
+              ? _cachedShorts[page].docID.trim()
+              : '';
+          if (docId.isNotEmpty) {
+            _requestExclusivePlayback(docId, vc);
+            _applyShortPlaybackPresentation(page, vc);
+          }
+        }
+
+        final shouldRetryGuard = attempt < 2 &&
+            vc.value.hasRenderedFirstFrame &&
+            !vc.value.isCompleted &&
+            (vc.value.position < const Duration(milliseconds: 2500) ||
+                !vc.value.isPlaying);
+        if (shouldRetryGuard) {
+          _scheduleIosNativePlaybackGuard(
+            page,
+            vc,
+            attempt: attempt + 1,
+          );
         }
       },
     );
@@ -623,16 +1039,36 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _armStallWatchdog(page, vc);
         return;
       }
-      if (_stallWatchdogRetries >= 2) return;
+      final remaining = value.duration > Duration.zero
+          ? value.duration - value.position
+          : Duration.zero;
+      final shouldNudgeNearEndCompletion =
+          defaultTargetPlatform == TargetPlatform.iOS &&
+              value.duration > Duration.zero &&
+              remaining > Duration.zero &&
+              remaining <= const Duration(milliseconds: 700) &&
+              value.position >= const Duration(milliseconds: 800);
+      if (shouldNudgeNearEndCompletion) {
+        try {
+          await vc.seekTo(value.duration);
+        } catch (_) {}
+        _armStallWatchdog(page, vc);
+        return;
+      }
+      final maxRetries = defaultTargetPlatform == TargetPlatform.iOS ? 4 : 2;
+      if (_stallWatchdogRetries >= maxRetries) return;
       _stallWatchdogRetries++;
       try {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
-        final shouldRecoverFrozenPlayback = value.hasRenderedFirstFrame &&
-            value.position >= const Duration(milliseconds: 800) &&
-            !value.isBuffering &&
-            defaultTargetPlatform != TargetPlatform.android;
+        final shouldRecoverFrozenPlayback =
+            defaultTargetPlatform == TargetPlatform.iOS &&
+                value.hasRenderedFirstFrame &&
+                !value.isCompleted &&
+                (_stallWatchdogRetries > 1 ||
+                    value.position >= const Duration(milliseconds: 2500) ||
+                    value.duration > const Duration(seconds: 12));
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_stall_recovery_play',
@@ -645,6 +1081,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         _applyShortPlaybackPresentation(page, vc);
+        final shouldHardRestartShort =
+            defaultTargetPlatform == TargetPlatform.iOS &&
+                _stallWatchdogRetries > 1 &&
+                value.position > Duration.zero &&
+                value.position < const Duration(milliseconds: 2000);
+        if (shouldHardRestartShort) {
+          try {
+            await vc.seekTo(Duration.zero);
+          } catch (_) {}
+        }
         if (shouldRecoverFrozenPlayback) {
           await vc.recoverFrozenPlayback();
         } else {
@@ -662,12 +1108,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _schedulePlaybackWatchdog(int page, HLSVideoAdapter vc) {
     _playbackWatchdogTimer?.cancel();
     _playWatchdogRetries = 0;
-    _armPlaybackWatchdog(page, vc);
+    _playbackWatchdogBaselinePosition = vc.value.position;
+    _armPlaybackWatchdog(
+      page,
+      vc,
+      defaultTargetPlatform == TargetPlatform.android
+          ? _shortPlayWatchdogDelayAndroid
+          : _shortPlayWatchdogDelayIOS,
+    );
   }
 
-  void _armPlaybackWatchdog(int page, HLSVideoAdapter vc) {
+  void _armPlaybackWatchdog(
+    int page,
+    HLSVideoAdapter vc,
+    Duration delay,
+  ) {
     _playbackWatchdogTimer?.cancel();
-    _playbackWatchdogTimer = Timer(_shortPlayWatchdogDelay, () async {
+    _playbackWatchdogTimer = Timer(delay, () async {
       if (!mounted ||
           page != currentPage ||
           vc.isDisposed ||
@@ -676,7 +1133,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         return;
       }
       final value = vc.value;
-      final hasStarted = value.isPlaying || value.position > Duration.zero;
+      final hasProgressedPastBaseline = value.position >=
+          _playbackWatchdogBaselinePosition + const Duration(milliseconds: 220);
+      final hasStarted = value.isPlaying || hasProgressedPastBaseline;
       if (hasStarted) return;
       if (_playWatchdogRetries >= 2) return;
       _playWatchdogRetries++;
@@ -700,7 +1159,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}
-      _armPlaybackWatchdog(page, vc);
+      _armPlaybackWatchdog(page, vc, delay);
     });
   }
 
@@ -793,11 +1252,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final value = vc.value;
     final position = value.position.inMilliseconds;
     final duration = value.duration.inMilliseconds;
-    final progress =
-        duration > 0 && position > 0 ? position / duration : 0.0;
+    final progress = duration > 0 && position > 0 ? position / duration : 0.0;
     final isNearEnd = duration > 0 &&
         position > 0 &&
-        ((duration - position) <= 650 || progress >= 0.98);
+        ((duration - position) <= 100 || progress >= 0.995);
     final shouldAutoAdvance = value.isCompleted || isNearEnd;
 
     if (duration > 0 && position > 0) {
@@ -813,10 +1271,31 @@ extension ShortViewPlaybackPart on _ShortViewState {
             shouldPersistByTime || shouldPersistByDelta || progress >= 0.98;
 
         if (shouldPersist) {
+          final currentShort = _cachedShorts[currentPage];
+          debugPrint(
+            '[ShortResume] tick_save page=$currentPage doc=${currentShort.docID} '
+            'posMs=$position durMs=$duration progress=${progress.toStringAsFixed(3)}',
+          );
           _segmentCacheRuntimeService.updateWatchProgress(
-            _cachedShorts[currentPage].docID,
+            currentShort.docID,
             progress,
           );
+          _playbackRuntimeService.savePlaybackState(
+            controller.playbackHandleKeyForDoc(currentShort.docID),
+            HLSAdapterPlaybackHandle(vc),
+          );
+          final currentSegment =
+              _segmentCacheRuntimeService.estimateCurrentSegmentForDoc(
+            currentShort.docID,
+            progress: progress,
+            positionSeconds: position / 1000.0,
+          );
+          if (currentSegment != null) {
+            FeedDiversityMemoryService.ensure().noteWatchedPost(
+              currentShort,
+              currentSegment: currentSegment,
+            );
+          }
           _lastProgressPersistAt = now;
           _lastPersistedProgress = progress;
         }

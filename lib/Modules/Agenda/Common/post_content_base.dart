@@ -8,7 +8,6 @@ import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/feed_diversity_memory_service.dart';
-import '../../../Core/Services/SegmentCache/hls_segment_policy.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
@@ -101,11 +100,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _keepAliveWindowWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
+  Timer? _stallWatchdogTimer;
   Timer? _autoplaySegmentGateTimer;
   Timer? _surfaceKeepAliveTimer;
   bool _playbackIntentTracked = false;
+  bool _hasRecordedVisibleView = false;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
+  Duration _stallWatchdogLastPosition = Duration.zero;
+  int _stallWatchdogRetries = 0;
+  int _stallWatchdogBufferingCycles = 0;
   bool _dependenciesReady = false;
   VoidCallback? _keepAliveUpdateCallback;
 
@@ -123,6 +127,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _resumeSurfaceKeepAliveDebounce =
       Duration(milliseconds: 720);
   static const Duration _androidFeedOwnerGrace = Duration(milliseconds: 1100);
+  static const int _feedWarmWindowGroupPostCount = 3;
+  static const int _feedWarmWindowGroupCount = 3;
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -221,6 +227,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get isPrimaryFeedSurfaceInstance => _isPrimaryFeedSurfaceInstance;
 
+  bool get _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (agendaController.playbackSuspended.value) return true;
+    if (agendaController.centeredIndex.value != -1) return false;
+    final modelIndex = _surfaceModelIndex();
+    if (modelIndex < 0) return false;
+    return agendaController.lastCenteredIndex == modelIndex;
+  }
+
+  void _recordVisibleViewIfNeeded() {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (_hasRecordedVisibleView) return;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    _hasRecordedVisibleView = true;
+    unawaited(controller.saveSeeing());
+  }
+
   bool get _shouldBypassLocalProxyForAndroidPrimaryFeed =>
       defaultTargetPlatform == TargetPlatform.android &&
       _isPrimaryFeedSurfaceInstance;
@@ -250,10 +274,29 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (centered < 0 || agendaController.agendaList.isEmpty) return false;
     final safeCentered =
         centered.clamp(0, agendaController.agendaList.length - 1);
-    final warmStart = safeCentered < 5 ? 0 : safeCentered - 5;
-    final warmEndExclusive =
-        (safeCentered + 6).clamp(0, agendaController.agendaList.length);
+    final warmRange = _resolveFeedWarmRange(
+      safeCenteredIndex: safeCentered,
+      listLength: agendaController.agendaList.length,
+    );
+    final warmStart = warmRange.start;
+    final warmEndExclusive = warmRange.endExclusive;
     return modelIndex >= warmStart && modelIndex < warmEndExclusive;
+  }
+
+  ({int start, int endExclusive}) _resolveFeedWarmRange({
+    required int safeCenteredIndex,
+    required int listLength,
+  }) {
+    if (safeCenteredIndex < 0 || listLength <= 0) {
+      return (start: -1, endExclusive: -1);
+    }
+    final groupStart = (safeCenteredIndex ~/ _feedWarmWindowGroupPostCount) *
+        _feedWarmWindowGroupPostCount;
+    final rawEndExclusive = groupStart +
+        (_feedWarmWindowGroupPostCount * _feedWarmWindowGroupCount);
+    final endExclusive =
+        rawEndExclusive < listLength ? rawEndExclusive : listLength;
+    return (start: groupStart, endExclusive: endExclusive);
   }
 
   bool get _shouldKeepFloodSurfaceAliveInWarmWindow {
@@ -502,9 +545,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         (suspended) {
           if (suspended || !_isSurfacePlaybackAllowed) {
             if (suspended &&
-                defaultTargetPlatform == TargetPlatform.iOS &&
-                _isPrimaryFeedSurfaceInstance) {
-              unawaited(_disposePlaybackForSurfaceLoss());
+                _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition) {
+              _safePauseVideo();
               return;
             }
             _stopPlaybackForSurfaceLoss();
@@ -728,12 +770,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _lastPlaybackVisualWarning = next;
     _lastPlaybackVisualWarningAt = now;
     final safeCenteredIndex = _surfaceSafeCenteredIndex();
-    final warmWindowStart = safeCenteredIndex < 0
-        ? -1
-        : (safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5);
-    final warmWindowEndExclusive = safeCenteredIndex < 0
-        ? -1
-        : (safeCenteredIndex + 6).clamp(0, _surfaceListLength());
+    final warmRange = _isFloodSurfaceInstance
+        ? (
+            start: safeCenteredIndex < 0
+                ? -1
+                : (safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5),
+            endExclusive: safeCenteredIndex < 0
+                ? -1
+                : (safeCenteredIndex + 6).clamp(0, _surfaceListLength()),
+          )
+        : _resolveFeedWarmRange(
+            safeCenteredIndex: safeCenteredIndex,
+            listLength: _surfaceListLength(),
+          );
+    final warmWindowStart = warmRange.start;
+    final warmWindowEndExclusive = warmRange.endExclusive;
     final modelIndex = _surfaceModelIndex();
     final metadata = <String, dynamic>{
       'docId': widget.model.docID,

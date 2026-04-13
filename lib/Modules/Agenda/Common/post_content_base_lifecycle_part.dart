@@ -27,7 +27,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
-              ? Duration.zero
+              ? (_isFeedStyleInlineSurfaceInstance &&
+                      defaultTargetPlatform == TargetPlatform.android
+                  ? const Duration(milliseconds: 220)
+                  : Duration.zero)
               : const Duration(milliseconds: 150));
       _lazyInitTimer = Timer(delay, () {
         if (!mounted) return;
@@ -66,6 +69,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'init',
     );
+    _recordVisibleViewIfNeeded();
     onPostInitialized();
   }
 
@@ -83,6 +87,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _cancelSurfaceKeepAliveDebounce();
     _lazyInitTimer?.cancel();
     _playbackRecoveryTimer?.cancel();
+    _cancelFeedStallWatchdog();
     _autoplaySegmentGateTimer?.cancel();
     _replayAdHideTimer?.cancel();
     _videoAdapter?.removeListener(_onVideoUpdate);
@@ -112,6 +117,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _cancelSurfaceKeepAliveDebounce();
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
+        _recordVisibleViewIfNeeded();
         if (isStandalonePostInstance) {
           _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
         }
@@ -125,6 +131,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         if (_blockPause) return;
         if (_skipNextPause) {
           _skipNextPause = false;
+          return;
+        }
+        if (_shouldPreserveIosPrimaryFeedPlaybackForResumeTransition) {
+          _safePauseVideo();
           return;
         }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
@@ -193,7 +203,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         v.duration > Duration.zero ? v.duration - v.position : null;
     const replayAdWarmupLead = Duration(seconds: 2);
     final replayAdWarmupTarget =
-        Theme.of(context).platform == TargetPlatform.iOS ? 4 : 3;
+        defaultTargetPlatform == TargetPlatform.iOS ? 4 : 3;
 
     if (_isReplayOverlayEnabled &&
         !_replayAdPrewarmed &&
@@ -245,15 +255,19 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     }
 
-    final shouldRecoverPlayback = !_useLegacyIosFeedBehavior &&
-        widget.shouldPlay &&
-        _isSurfacePlaybackAllowed &&
-        !_manualPauseRequested &&
-        v.isInitialized &&
-        !v.isPlaying &&
-        !v.isBuffering &&
-        !v.isCompleted &&
-        (v.position > Duration.zero || v.hasRenderedFirstFrame);
+    final shouldAllowIosPrimaryFeedRecovery =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance;
+    final shouldRecoverPlayback =
+        (!_useLegacyIosFeedBehavior || shouldAllowIosPrimaryFeedRecovery) &&
+            widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            !_manualPauseRequested &&
+            v.isInitialized &&
+            !v.isPlaying &&
+            !v.isBuffering &&
+            !v.isCompleted &&
+            (v.position > Duration.zero || v.hasRenderedFirstFrame);
     if (shouldRecoverPlayback) {
       _playbackRecoveryTimer ??= Timer(const Duration(milliseconds: 260), () {
         _playbackRecoveryTimer = null;
@@ -268,6 +282,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             !current.isBuffering &&
             !current.isCompleted;
         if (!stillNeedsRecovery) return;
+        if (_shouldRecoverFrozenFeedPlayback(current)) {
+          _recoverFeedPlaybackIfNeeded(
+            adapter: adapter,
+            source: 'recovery_timer',
+          );
+          return;
+        }
         _startPlayback(source: 'recovery_timer');
       });
     } else {
@@ -275,10 +296,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _playbackRecoveryTimer = null;
     }
 
+    if (_videoAdapter != null && _shouldMonitorFeedStall(v)) {
+      _ensureFeedStallWatchdog(_videoAdapter!);
+    } else {
+      _cancelFeedStallWatchdog();
+    }
+
     if (v.isInitialized && v.duration.inMilliseconds > 0) {
       final progress = v.position.inMilliseconds / v.duration.inMilliseconds;
+      final positionSeconds = v.position.inMilliseconds / 1000.0;
       if (progress > 0) {
-        final positionSeconds = v.position.inMilliseconds / 1000.0;
         try {
           _segmentCacheRuntimeService.ensureNextSegmentReady(
             widget.model.docID,
@@ -292,15 +319,18 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             progress,
           );
         } catch (_) {}
-        try {
-          final thirdSegmentStartSeconds =
-              HlsSegmentPolicy.firstSegmentSeconds +
-                  HlsSegmentPolicy.nextSegmentSeconds;
+        final currentSegment =
+            _segmentCacheRuntimeService.estimateCurrentSegmentForDoc(
+          widget.model.docID,
+          progress: progress,
+          positionSeconds: positionSeconds,
+        );
+        if (currentSegment != null) {
           FeedDiversityMemoryService.ensure().noteWatchedPost(
             widget.model,
-            currentSegment: positionSeconds >= thirdSegmentStartSeconds ? 3 : 0,
+            currentSegment: currentSegment,
           );
-        } catch (_) {}
+        }
       }
     }
 

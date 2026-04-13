@@ -1,10 +1,10 @@
-val enforcedKotlinVersion = "2.1.0"
+val enforcedKotlinVersion = "2.3.10"
 
 buildscript {
     configurations.configureEach {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("2.1.0")
+                useVersion("2.3.10")
             }
         }
     }
@@ -25,7 +25,7 @@ subprojects {
         configurations.configureEach {
             resolutionStrategy.eachDependency {
                 if (requested.group == "org.jetbrains.kotlin") {
-                    useVersion("2.1.0")
+                    useVersion("2.3.10")
                 }
             }
         }
