@@ -41,6 +41,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var isLooping: Bool = false
     private var isAutoPlay: Bool = true
     private var didRequestInitialPlay: Bool = false
+    private var autoplayRequestWorkItem: DispatchWorkItem?
+    private var lastAutoplayRequestAt: CFTimeInterval = 0
     private var didStabilizeVisualLayer: Bool = false
     private var didRenderFirstFrame: Bool = false
     private var currentUrl: String?
@@ -491,9 +493,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private func requestAutoplayIfNeeded(force: Bool) {
         guard isAutoPlay, let player = player else { return }
         if didRequestInitialPlay && !force { return }
+        let now = CACurrentMediaTime()
+        if now - lastAutoplayRequestAt < 0.25 {
+            return
+        }
         didRequestInitialPlay = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + (force ? 0.0 : 0.05)) { [weak self] in
+        lastAutoplayRequestAt = now
+        autoplayRequestWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
             guard let self = self, let player = self.player else { return }
+            self.autoplayRequestWorkItem = nil
             if #available(iOS 10.0, *) {
                 switch player.timeControlStatus {
                 case .playing, .waitingToPlayAtSpecifiedRate:
@@ -516,6 +525,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 player.play()
             }
         }
+        autoplayRequestWorkItem = workItem
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + (force ? 0.0 : 0.05),
+            execute: workItem
+        )
     }
 
     private func handlePlaybackEnded() {
@@ -826,6 +840,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         NotificationCenter.default.removeObserver(self)
 
         // Stop player
+        autoplayRequestWorkItem?.cancel()
+        autoplayRequestWorkItem = nil
+        lastAutoplayRequestAt = 0
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         playbackWatchdog?.stop()
