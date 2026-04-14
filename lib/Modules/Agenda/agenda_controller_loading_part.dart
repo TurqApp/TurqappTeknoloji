@@ -179,6 +179,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         reason: 'connected_startup_local_fallback',
       );
     }
+    if (startupItems.length < 2) {
+      debugPrint(
+        '[FeedStartupSurface] status=connected_startup_shard_skip_single_seed '
+        'composedCount=${startupItems.length}',
+      );
+      return false;
+    }
     _startupHeadFinalized = false;
     _startupRenderBootstrapHold = true;
     _activateStartupRenderStages(
@@ -273,6 +280,13 @@ extension AgendaControllerLoadingPart on AgendaController {
       debugPrint(
         '[FeedStartupSurface] status=${reason}_no_head '
         'candidateCount=${orderedCandidates.length}',
+      );
+      return false;
+    }
+    if (startupItems.length < 2) {
+      debugPrint(
+        '[FeedStartupSurface] status=${reason}_skip_single_seed '
+        'composedCount=${startupItems.length}',
       );
       return false;
     }
