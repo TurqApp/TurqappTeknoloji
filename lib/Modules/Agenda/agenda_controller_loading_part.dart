@@ -517,22 +517,28 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     if (shouldFinalizeStartupHead) {
+      final mergedAgenda =
+          _agendaFeedApplicationService.mergeLiveItemsPreservingCurrentOrder(
+        currentItems: currentAgenda,
+        liveItems: visibleItems,
+      );
+      final nextAgenda = mergedAgenda.isNotEmpty ? mergedAgenda : visibleItems;
       debugPrint(
         '[FeedStartupPlanner] source=initial_bootstrap '
         'status=replace_seeded_head_with_live_planner '
         'currentCount=${currentAgenda.length} liveCount=${visibleItems.length} '
-        'nextCount=${visibleItems.length} '
+        'nextCount=${nextAgenda.length} '
         'currentHead=${currentAgenda.take(5).map((post) => post.docID).join(",")} '
         'liveHead=${visibleItems.take(5).map((post) => post.docID).join(",")} '
-        'nextHead=${visibleItems.take(5).map((post) => post.docID).join(",")}',
+        'nextHead=${nextAgenda.take(5).map((post) => post.docID).join(",")}',
       );
       _replaceAgendaState(
-        visibleItems,
-        reason: 'initial_seeded_head_finalized',
+        nextAgenda,
+        reason: 'initial_seeded_head_merged_live_planner',
       );
       _startupHeadFinalized = true;
       _scheduleInitialFeedVideoPosterWarmup(
-        _initialVisibleVideoWarmupWindow(visibleItems),
+        _initialVisibleVideoWarmupWindow(nextAgenda),
       );
       if (pageApplyPlan.itemsToAdd.isNotEmpty) {
         _scheduleReshareFetchForPosts(
