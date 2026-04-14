@@ -281,11 +281,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;
-      final quotaFillMode = shouldUsePrefetchQuotaFillMode(
-        isOnWiFi: _isOnWiFi,
-        mobileSeedMode: _mobileSeedMode,
-        watchProgress: watchedProgress,
-      );
+      final quotaFillMode = !_hasActiveFeedPlaybackWindow &&
+          shouldUsePrefetchQuotaFillMode(
+            isOnWiFi: _isOnWiFi,
+            mobileSeedMode: _mobileSeedMode,
+            watchProgress: watchedProgress,
+          );
       final startupBurstMode = shouldUseStartupBurstPrefetch(
         isFocusedDoc: _focusedDocID == job.docID,
         isCurrentDoc: _isCurrentPriorityDoc(job.docID),

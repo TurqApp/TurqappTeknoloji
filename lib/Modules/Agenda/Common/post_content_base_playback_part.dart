@@ -142,7 +142,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   bool _shouldMonitorFeedStall(HLSVideoValue value) {
-    return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return false;
+    if (!widget.shouldPlay) return false;
+    if (!_isSurfacePlaybackAllowed) return false;
+    if (_manualPauseRequested) return false;
+    if (!value.isInitialized) return false;
+    if (value.isCompleted) return false;
+    return true;
   }
 
   void _ensureFeedStallWatchdog(HLSVideoAdapter adapter) {
