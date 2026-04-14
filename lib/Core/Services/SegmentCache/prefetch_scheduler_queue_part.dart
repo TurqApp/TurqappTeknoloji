@@ -104,6 +104,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final cacheManager = _getCacheManager();
     if (cacheManager == null || _paused) return;
     if (!_isOnWiFi || _mobileSeedMode) return;
+    if (_hasActiveFeedPlaybackWindow) return;
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
     _resetWifiQuotaFillPlanIfNeeded(cacheManager);
 
@@ -128,20 +129,16 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       }
     }
 
-    final backlogCount = _queue.length +
-        _pendingFollowUpJobs.length +
-        _lastFeedBankDocIDs.length +
-        _activeDocRefCounts.length;
+    final backlogCount =
+        _queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length;
     if (backlogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
       return;
     }
 
     await seedFromLocalCandidates();
 
-    final refreshedBacklogCount = _queue.length +
-        _pendingFollowUpJobs.length +
-        _lastFeedBankDocIDs.length +
-        _activeDocRefCounts.length;
+    final refreshedBacklogCount =
+        _queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length;
     if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
       return;
     }
@@ -193,10 +190,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return const <PostsModel>[];
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final excludedFeedDocIds = <String>{
-      ..._lastFeedSurfaceVideoDocIDs.map((docId) => docId.trim()),
-      ..._lastFeedBankDocIDs.map((docId) => docId.trim()),
-    }..removeWhere((docId) => docId.isEmpty);
+    final excludedFeedDocIds =
+        _lastFeedSurfaceVideoDocIDs.map((docId) => docId.trim()).toSet()
+          ..removeWhere((docId) => docId.isEmpty);
 
     final seen = <String>{};
     final filtered = posts.where((post) {
@@ -528,7 +524,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         .map((post) => post.docID.trim())
         .where((docId) => docId.isNotEmpty && seenSurfaceDocIds.add(docId))
         .toList(growable: false);
-    seedFeedBankCandidates(posts, currentIndex: currentIndex);
+    _lastFeedBankDocIDs = const <String>[];
     final resolved = _resolveOfflineCandidateQueue(
       posts,
       currentIndex: currentIndex,
@@ -544,27 +540,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required int currentIndex,
     int? maxDocs,
   }) {
-    final prunedExisting = pruneSeenFeedBankDocIds(
-      bankDocIds: _lastFeedBankDocIDs,
-      posts: posts,
-      currentIndex: currentIndex,
-    );
-    final incomingDocIds = buildFeedBankDocIds(
-      posts: posts,
-      currentIndex: currentIndex,
-      maxDocs: maxDocs,
-    );
-    if (incomingDocIds.isNotEmpty) {
-      final incomingDocIdSet = incomingDocIds.toSet();
-      _getCacheManager()?.cachePostCards(
-        posts.where((post) => incomingDocIdSet.contains(post.docID.trim())),
-      );
-    }
-    _lastFeedBankDocIDs = mergeFeedBankDocIds(
-      existingDocIds: prunedExisting,
-      incomingDocIds: incomingDocIds,
-      maxDocs: maxDocs,
-    );
+    _lastFeedBankDocIDs = const <String>[];
+    return;
   }
 
   Future<void> updateQueue(List<String> docIDs, int currentIndex) async {
@@ -717,15 +694,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     updatePriorityWindowContext(docIDs, safeCurrent);
     _lastFeedDocIDs = List<String>.from(docIDs);
     _lastFeedCurrentIndex = safeCurrent;
-    final aroundStart = (safeCurrent - _prefetchSchedulerFeedAroundRadius)
+    final behindStart = (safeCurrent - _prefetchSchedulerFeedBehindCount)
         .clamp(0, docIDs.length - 1);
-    final aroundEnd = (safeCurrent + _prefetchSchedulerFeedAroundRadius)
+    final aheadEnd = (safeCurrent + _prefetchSchedulerFeedAheadCount)
         .clamp(0, docIDs.length - 1);
-    final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
-      0,
-      docIDs.length - 1,
-    );
-    final prepEnd = (initialEnd + _feedPrepWindow).clamp(0, docIDs.length - 1);
 
     final queued = <String>{};
     void addJob(int index, int priority) {
@@ -755,183 +727,21 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _jobEnqueuedAt[docID] = DateTime.now();
     }
 
-    for (int i = safeCurrent; i <= initialEnd; i++) {
-      addJob(i, 0);
-    }
-
-    for (int i = aroundStart; i <= aroundEnd; i++) {
-      final distance = (i - safeCurrent).abs();
-      final priority = distance <= 2 ? 0 : 1;
+    for (int i = safeCurrent; i <= aheadEnd; i++) {
+      final distanceAhead = i - safeCurrent;
+      final priority =
+          distanceAhead < _prefetchSchedulerFeedHardBoostCount ? 0 : 1;
       addJob(i, priority);
     }
 
-    for (int i = initialEnd + 1; i <= prepEnd; i++) {
+    for (int i = safeCurrent - 1; i >= behindStart; i--) {
       addJob(i, 1);
-    }
-
-    _appendFeedBankBatchJobs(
-      cacheManager: cacheManager,
-      currentDocId: docIDs[safeCurrent],
-      currentIndex: safeCurrent,
-      queued: queued,
-      addBankJob: (docID, readySegments, priority, bankOffset) {
-        final entry = cacheManager.getEntry(docID);
-        final targetIndex = docIDs.length + bankOffset;
-        _queue.add(_PrefetchJob(
-          docID,
-          readySegments,
-          priority,
-          _buildJobScore(
-            currentIndex: safeCurrent,
-            currentDocId: docIDs[safeCurrent],
-            targetIndex: targetIndex,
-            priority: priority,
-            watchProgress: entry?.watchProgress ?? 0.0,
-            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-            totalSegmentCount: entry?.totalSegmentCount ?? 0,
-          ),
-        ));
-        _jobEnqueuedAt[docID] = DateTime.now();
-      },
-    );
-
-    for (var i = 1; i <= _prefetchSchedulerFeedRetainBehindCount; i++) {
-      final idx = safeCurrent - i;
-      if (idx < 0) break;
-      if (idx < docIDs.length) {
-        cacheManager.touchEntry(docIDs[idx]);
-      }
     }
 
     _queue.sort(_compareJobs);
     _updateFeedReadyRatio();
     _publishPrefetchHealthIfNeeded();
     _processQueue();
-  }
-
-  void _appendFeedBankBatchJobs({
-    required SegmentCacheManager cacheManager,
-    required String currentDocId,
-    required int currentIndex,
-    required Set<String> queued,
-    required void Function(
-      String docID,
-      int readySegments,
-      int priority,
-      int bankOffset,
-    ) addBankJob,
-  }) {
-    if (_lastFeedBankDocIDs.isEmpty) return;
-
-    final pendingBankDocIds = <String>[];
-    for (final docID in _lastFeedBankDocIDs) {
-      final trimmed = docID.trim();
-      if (trimmed.isEmpty) continue;
-      final entry = cacheManager.getEntry(trimmed);
-      final cachedPost = entry?.cachedPostModel;
-      if (!_isEligibleBankQueuePost(cachedPost)) {
-        continue;
-      }
-      final targetSegments = _resolvedFeedBankReadySegments(
-        docID: trimmed,
-        cacheManager: cacheManager,
-      );
-      if ((entry?.cachedSegmentCount ?? 0) >= targetSegments) {
-        continue;
-      }
-      pendingBankDocIds.add(trimmed);
-    }
-    if (pendingBankDocIds.isEmpty) return;
-
-    final batchDocIds = pendingBankDocIds
-        .take(_prefetchSchedulerFeedBankBatchSize)
-        .toList(growable: false);
-    final firstSegmentStage = <String>[];
-    final secondSegmentStage = <String>[];
-    for (final docID in batchDocIds) {
-      final entry = cacheManager.getEntry(docID);
-      final cachedSegments = entry?.cachedSegmentCount ?? 0;
-      final targetSegments = _resolvedFeedBankReadySegments(
-        docID: docID,
-        cacheManager: cacheManager,
-      );
-      if (cachedSegments < 1) {
-        firstSegmentStage.add(docID);
-        continue;
-      }
-      if (targetSegments > 1 && cachedSegments < targetSegments) {
-        secondSegmentStage.add(docID);
-      }
-    }
-
-    final stageDocIds =
-        firstSegmentStage.isNotEmpty ? firstSegmentStage : secondSegmentStage;
-    if (stageDocIds.isEmpty) return;
-
-    final stageReadySegments = firstSegmentStage.isNotEmpty ? 1 : 2;
-    final stagePriority = firstSegmentStage.isNotEmpty ? 3 : 4;
-    var bankOffset = 0;
-    for (final docID in stageDocIds) {
-      if (!queued.add(docID)) continue;
-      addBankJob(docID, stageReadySegments, stagePriority, bankOffset);
-      bankOffset++;
-    }
-  }
-
-  bool _ensureFeedBankBatchQueuedIfNeeded(SegmentCacheManager cacheManager) {
-    if (_lastFeedDocIDs.isEmpty || _lastFeedBankDocIDs.isEmpty) {
-      return false;
-    }
-    if (_activeBankDownloads > 0) return false;
-    if (_queue.any((job) => _isBankDocId(job.docID))) return false;
-
-    final safeCurrent =
-        _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final queued = _queue.map((job) => job.docID).toSet()
-      ..addAll(_activeBankDocIDs);
-    final beforeCount = _queue.length;
-
-    _appendFeedBankBatchJobs(
-      cacheManager: cacheManager,
-      currentDocId: _lastFeedDocIDs[safeCurrent],
-      currentIndex: safeCurrent,
-      queued: queued,
-      addBankJob: (docID, readySegments, priority, bankOffset) {
-        final entry = cacheManager.getEntry(docID);
-        final targetIndex = _lastFeedDocIDs.length + bankOffset;
-        _queue.add(_PrefetchJob(
-          docID,
-          readySegments,
-          priority,
-          _buildJobScore(
-            currentIndex: safeCurrent,
-            currentDocId: _lastFeedDocIDs[safeCurrent],
-            targetIndex: targetIndex,
-            priority: priority,
-            watchProgress: entry?.watchProgress ?? 0.0,
-            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-            totalSegmentCount: entry?.totalSegmentCount ?? 0,
-          ),
-        ));
-        _jobEnqueuedAt[docID] = DateTime.now();
-      },
-    );
-
-    if (_queue.length == beforeCount) return false;
-    _queue.sort(_compareJobs);
-    return true;
-  }
-
-  int _resolvedFeedBankReadySegments({
-    required String docID,
-    required SegmentCacheManager cacheManager,
-  }) {
-    final target = _resolvedReadySegmentTarget(
-      docID: docID,
-      cacheManager: cacheManager,
-    );
-    if (target <= 1) return 1;
-    return 2;
   }
 
   void boostDoc(
@@ -1025,12 +835,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   }
 
   bool _isEligibleOfflineCandidatePost(PostsModel post) {
-    if (!post.hasPlayableVideo) return false;
-    return normalizeRozetValue(post.rozet).isNotEmpty;
-  }
-
-  bool _isEligibleBankQueuePost(PostsModel? post) {
-    if (post == null) return false;
     if (!post.hasPlayableVideo) return false;
     return normalizeRozetValue(post.rozet).isNotEmpty;
   }

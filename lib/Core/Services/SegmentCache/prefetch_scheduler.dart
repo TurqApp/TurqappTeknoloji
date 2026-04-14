@@ -12,7 +12,9 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_policy_eng
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/prefetch_scoring_engine.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 import '../network_awareness_service.dart';

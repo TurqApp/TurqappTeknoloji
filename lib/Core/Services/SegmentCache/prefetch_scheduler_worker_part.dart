@@ -2,6 +2,9 @@ part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   int _effectiveMaxConcurrent() {
+    if (_hasActiveFeedPlaybackWindow) {
+      return _maxConcurrent > 1 ? 1 : _maxConcurrent;
+    }
     if (_lastFeedWindowCount <= 0) {
       return _maxConcurrent > 1 ? 1 : _maxConcurrent;
     }
@@ -125,12 +128,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       return;
     }
     if (_automaticQuotaFillEnabled &&
+        !_hasActiveFeedPlaybackWindow &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
       await _ensureWifiQuotaFillPlan();
     }
-    _ensureFeedBankBatchQueuedIfNeeded(cacheManager);
     final effectiveMaxConcurrent = _effectiveMaxConcurrent();
     if (_paused || _queue.isEmpty) return;
     if (_activeDownloads >= effectiveMaxConcurrent) return;
@@ -509,20 +512,18 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
     final safeCurrent =
         _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final aroundStart = (safeCurrent - _prefetchSchedulerFeedAroundRadius)
+    final behindStart = (safeCurrent - _prefetchSchedulerFeedBehindCount)
         .clamp(0, _lastFeedDocIDs.length - 1);
-    final aroundEnd = (safeCurrent + _prefetchSchedulerFeedAroundRadius)
-        .clamp(0, _lastFeedDocIDs.length - 1);
-    final initialEnd = (safeCurrent + _feedFullWindow - 1).clamp(
+    final aheadEnd = (safeCurrent + _prefetchSchedulerFeedAheadCount).clamp(
       0,
       _lastFeedDocIDs.length - 1,
     );
 
     final targetIndices = <int>{};
-    for (int i = safeCurrent; i <= initialEnd; i++) {
+    for (int i = safeCurrent; i <= aheadEnd; i++) {
       targetIndices.add(i);
     }
-    for (int i = aroundStart; i <= aroundEnd; i++) {
+    for (int i = behindStart; i < safeCurrent; i++) {
       targetIndices.add(i);
     }
 

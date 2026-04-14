@@ -11,6 +11,23 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   double get avgQueueDispatchLatencyMs => _avgQueueDispatchLatencyMs;
   int get maxConcurrentDownloads => _maxConcurrent;
 
+  bool get _hasActiveFeedPlaybackWindow {
+    final hasFeedWindow =
+        _lastFeedSurfaceVideoDocIDs.isNotEmpty || _lastFeedDocIDs.isNotEmpty;
+    if (!hasFeedWindow) return false;
+    final nav = maybeFindNavBarController();
+    final feedVisible =
+        nav == null || (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
+    if (!feedVisible) return false;
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return true;
+    final current = manager.currentPlayingDocID?.trim() ?? '';
+    final target = manager.targetPlaybackDocID?.trim() ?? '';
+    return current.startsWith('feed:') ||
+        target.startsWith('feed:') ||
+        feedVisible;
+  }
+
   bool get _isOnWiFi {
     try {
       final network = NetworkAwarenessService.maybeFind();
@@ -48,20 +65,6 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
             : base
         : base;
   }
-
-  int get _feedFullWindow => _isOnWiFi
-      ? (_prefetchSchedulerFallbackFeedFullWindow <
-              _prefetchSchedulerWifiMinFeedFullWindow
-          ? _prefetchSchedulerWifiMinFeedFullWindow
-          : _prefetchSchedulerFallbackFeedFullWindow)
-      : _prefetchSchedulerFallbackFeedFullWindow;
-
-  int get _feedPrepWindow => _isOnWiFi
-      ? (_prefetchSchedulerFallbackFeedPrepWindow <
-              _prefetchSchedulerWifiMinFeedPrepWindow
-          ? _prefetchSchedulerWifiMinFeedPrepWindow
-          : _prefetchSchedulerFallbackFeedPrepWindow)
-      : _prefetchSchedulerFallbackFeedPrepWindow;
 
   SegmentCacheManager? _getCacheManager() {
     final cache = SegmentCacheManager.maybeFind();

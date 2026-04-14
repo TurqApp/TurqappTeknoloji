@@ -13,7 +13,7 @@ extension AgendaControllerFeedPart on AgendaController {
       Duration(milliseconds: 1200);
   static const int _feedBoostPlayableCount = 3;
   static const int _feedPlaybackBoostReadySegments = 2;
-  static const int _feedPlaybackBoostLookAhead = 2;
+  static const int _feedPlaybackBoostLookAhead = 4;
   static const int _feedPlannerGroupPostCount =
       FeedRenderBlockPlan.postsPerGroup;
   static const int _feedPlannerGroupsPerBlock =
@@ -314,7 +314,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final prioritizedIndices = _resolvePrioritizedPlayableFeedIndices(
       centered: centered,
       lookAheadPlayableCount: _feedPlaybackBoostLookAhead,
-      behindPlayableCount: 1,
+      behindPlayableCount: 2,
     );
     if (prioritizedIndices.isEmpty) return;
     final maxBoosted = startupWindowStabilizing
@@ -327,10 +327,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_canAutoplayVideoPost(post)) continue;
       prefetch.boostDoc(
         post.docID,
-        readySegments: _feedBoostReadySegmentsForPlayableRank(
-          playableRank,
-          startupWindowStabilizing: startupWindowStabilizing,
-        ),
+        readySegments: _feedBoostReadySegmentsForPlayableRank(playableRank),
       );
       playableRank++;
       boosted++;
@@ -383,17 +380,9 @@ extension AgendaControllerFeedPart on AgendaController {
     return indices;
   }
 
-  int _feedBoostReadySegmentsForPlayableRank(
-    int playableRank, {
-    required bool startupWindowStabilizing,
-  }) {
-    if (playableRank == 0) {
-      return startupWindowStabilizing
-          ? _feedPlaybackBoostReadySegments
-          : _feedPlaybackBoostReadySegments + 1;
-    }
-    if (playableRank == 1) {
-      return startupWindowStabilizing ? 1 : _feedPlaybackBoostReadySegments;
+  int _feedBoostReadySegmentsForPlayableRank(int playableRank) {
+    if (playableRank < _feedBoostPlayableCount) {
+      return _feedPlaybackBoostReadySegments;
     }
     return 1;
   }

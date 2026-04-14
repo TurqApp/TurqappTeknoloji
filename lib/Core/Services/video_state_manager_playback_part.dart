@@ -171,8 +171,19 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       final normalized = HlsSegmentPolicy.normalizeDocId(activeDocID);
       maybeFindHlsDataUsageProbe()?.setVisibleDoc(normalized);
       if (scheduler == null) return;
+      if (normalized == null || normalized.isEmpty) {
+        scheduler.unfocusDoc();
+        return;
+      }
+      if (activeKey.startsWith('feed:')) {
+        final feedDocIds = scheduler.currentFeedDocIds();
+        final activeIndex = feedDocIds.indexOf(normalized);
+        if (activeIndex >= 0) {
+          unawaited(scheduler.updateFeedQueue(feedDocIds, activeIndex));
+          return;
+        }
+      }
       scheduler.unfocusDoc();
-      if (normalized == null || normalized.isEmpty) return;
       if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
         final initialCachedSegments =
             cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
