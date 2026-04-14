@@ -2,6 +2,37 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  bool _shouldThrottleIosPrimaryFeedRecovery({
+    required String source,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    final lastRecoveryAt = _lastIosPrimaryFeedRecoveryAt;
+    if (lastRecoveryAt == null) return false;
+    final elapsed = DateTime.now().difference(lastRecoveryAt);
+    if (elapsed >= PostContentBaseState._iosPrimaryFeedRecoveryCooldown) {
+      return false;
+    }
+    final remaining =
+        PostContentBaseState._iosPrimaryFeedRecoveryCooldown - elapsed;
+    _recordPlaybackDispatch(
+      'feed_card_recover_skipped',
+      source: source,
+      dispatchIssued: false,
+      skipReason: 'ios_recover_cooldown',
+      metadata: <String, dynamic>{
+        'remainingMs': remaining.inMilliseconds,
+      },
+    );
+    return true;
+  }
+
+  void _markIosPrimaryFeedRecoveryAttempt() {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (!_isPrimaryFeedSurfaceInstance) return;
+    _lastIosPrimaryFeedRecoveryAt = DateTime.now();
+  }
+
   bool get _canBootstrapPrimaryFeedOwnershipClaim {
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (!widget.shouldPlay) return false;
@@ -52,8 +83,18 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     required HLSVideoAdapter adapter,
     required String source,
   }) {
+    if (_shouldThrottleIosPrimaryFeedRecovery(source: source)) {
+      return;
+    }
     if (!_shouldRecoverFrozenFeedPlayback(adapter.value)) {
+      _markIosPrimaryFeedRecoveryAttempt();
       _startPlaybackWhenReady(source: source);
+      return;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance) {
+      _markIosPrimaryFeedRecoveryAttempt();
+      _startPlaybackWhenReady(source: '$source:ios_reassert');
       return;
     }
     _recordPlaybackDispatch(
@@ -101,13 +142,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   bool _shouldMonitorFeedStall(HLSVideoValue value) {
-    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
-    if (!widget.shouldPlay) return false;
-    if (!_isSurfacePlaybackAllowed) return false;
-    if (_manualPauseRequested) return false;
-    if (!value.isInitialized || !value.hasRenderedFirstFrame) return false;
-    return !value.isCompleted;
+    return false;
   }
 
   void _ensureFeedStallWatchdog(HLSVideoAdapter adapter) {
@@ -611,7 +646,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             source: source,
             dispatchIssued: false,
           );
-          _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+          _playbackRuntimeService.requestPlay(
+            playbackHandleKey,
+            HLSAdapterPlaybackHandle(adapter),
+          );
           _applyPlaybackVolume();
           _syncRuntimeHints(
             isAudible: _resolvedPlaybackVolume() > 0.0,

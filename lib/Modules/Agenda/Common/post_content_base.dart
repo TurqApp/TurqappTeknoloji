@@ -106,6 +106,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _playbackIntentTracked = false;
   bool _hasRecordedVisibleView = false;
   bool _feedRecoverInFlight = false;
+  DateTime? _lastIosPrimaryFeedRecoveryAt;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
   Duration _stallWatchdogLastPosition = Duration.zero;
@@ -128,6 +129,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _resumeSurfaceKeepAliveDebounce =
       Duration(milliseconds: 720);
   static const Duration _androidFeedOwnerGrace = Duration(milliseconds: 1100);
+  static const Duration _iosPrimaryFeedRecoveryCooldown =
+      Duration(milliseconds: 2500);
   static const int _feedWarmWindowGroupPostCount = 3;
   static const int _feedWarmWindowGroupCount = 3;
 

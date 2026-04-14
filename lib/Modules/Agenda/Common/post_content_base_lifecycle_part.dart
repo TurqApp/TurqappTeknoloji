@@ -286,12 +286,22 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             !current.isBuffering &&
             !current.isCompleted;
         if (!stillNeedsRecovery) return;
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance) {
+          if (_shouldThrottleIosPrimaryFeedRecovery(source: 'recovery_timer')) {
+            return;
+          }
+        }
         if (_shouldRecoverFrozenFeedPlayback(current)) {
           _recoverFeedPlaybackIfNeeded(
             adapter: adapter,
             source: 'recovery_timer',
           );
           return;
+        }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance) {
+          _markIosPrimaryFeedRecoveryAttempt();
         }
         _startPlayback(source: 'recovery_timer');
       });
