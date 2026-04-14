@@ -243,9 +243,7 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         : controller.nickname.value.trim();
     String buildDisplayTime() => controller.editTime.value != 0
         ? "${timeAgoMetin(controller.editTime.value)} ${'common.edited'.tr}"
-        : timeAgoMetin(widget.model.izBirakYayinTarihi != 0
-            ? widget.model.izBirakYayinTarihi
-            : widget.model.timeStamp);
+        : timeAgoMetin(widget.model.timeStamp);
     void openProfile() {
       if (widget.model.userID != _currentUid) {
         final modelIndex = agendaController.agendaList
