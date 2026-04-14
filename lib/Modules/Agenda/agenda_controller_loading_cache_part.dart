@@ -557,8 +557,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     bool? usePrimaryFeedPaging,
     bool includeSupplementalSources = true,
   }) async {
-    final uid = CurrentUserService.instance.effectiveUserId;
-    if (uid.isEmpty) {
+    final currentUserService = CurrentUserService.instance;
+    final uid = currentUserService.effectiveUserId.trim();
+    if (uid.isEmpty || !currentUserService.hasAuthUser) {
       return _loadLegacyAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,

@@ -310,8 +310,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     /// Oynatmayı durdur ve network/decoder kaynaklarını serbest bırak.
     /// Player instance hayatta kalır, tekrar loadVideo ile yüklenebilir.
-    func stopPlayback() {
-        captureCurrentFrameSnapshot(showOverlay: true)
+    func stopPlayback(showOverlay: Bool = true) {
+        if showOverlay {
+            captureCurrentFrameSnapshot(showOverlay: true)
+        } else {
+            clearFrameSnapshot()
+        }
 
         // Time observer kaldır
         if let timeObserver = timeObserver {

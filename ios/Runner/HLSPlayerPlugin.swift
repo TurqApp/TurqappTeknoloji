@@ -99,7 +99,7 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
             handleGetProcessDiagnostics(viewId: viewId, result: result)
 
         case "stopPlayback":
-            handleStopPlayback(viewId: viewId, result: result)
+            handleStopPlayback(args: args, viewId: viewId, result: result)
 
         case "setPreferredBufferDuration":
             handleSetPreferredBufferDuration(args: args, viewId: viewId, result: result)
@@ -316,12 +316,13 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         result(playerView.getProcessDiagnostics())
     }
 
-    private func handleStopPlayback(viewId: Int64, result: FlutterResult) {
+    private func handleStopPlayback(args: [String: Any], viewId: Int64, result: FlutterResult) {
         guard let playerView = playerViews[viewId] else {
             result(FlutterError(code: "NO_PLAYER", message: "Player view not found", details: nil))
             return
         }
-        playerView.stopPlayback()
+        let preserveFrameSnapshot = args["preserveFrameSnapshot"] as? Bool ?? true
+        playerView.stopPlayback(showOverlay: preserveFrameSnapshot)
         result(nil)
     }
 

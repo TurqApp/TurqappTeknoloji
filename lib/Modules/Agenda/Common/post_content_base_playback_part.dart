@@ -25,6 +25,29 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         value.position >= const Duration(milliseconds: 800);
   }
 
+  Future<void> _runFeedRecoverOnce({
+    required HLSVideoAdapter adapter,
+    required String source,
+  }) async {
+    if (_feedRecoverInFlight) {
+      _recordPlaybackDispatch(
+        'feed_card_recover_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'recover_in_flight',
+      );
+      return;
+    }
+    _feedRecoverInFlight = true;
+    try {
+      await adapter.recoverFrozenPlayback();
+    } catch (_) {
+      // Feed recovery is best-effort.
+    } finally {
+      _feedRecoverInFlight = false;
+    }
+  }
+
   void _recoverFeedPlaybackIfNeeded({
     required HLSVideoAdapter adapter,
     required String source,
@@ -43,9 +66,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       },
     );
     unawaited(() async {
-      try {
-        await adapter.recoverFrozenPlayback();
-      } catch (_) {}
+      await _runFeedRecoverOnce(
+        adapter: adapter,
+        source: source,
+      );
       if (!mounted || _videoAdapter != adapter) return;
       if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
       _startPlaybackWhenReady(source: '$source:post_recover');
@@ -146,7 +170,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           _playbackRuntimeService.playOnlyThis(playbackHandleKey);
         }
         if (shouldRecoverFrozenPlayback) {
-          await adapter.recoverFrozenPlayback();
+          await _runFeedRecoverOnce(
+            adapter: adapter,
+            source: 'stall_watchdog',
+          );
         } else {
           await _playbackExecutionService.playAdapter(adapter);
         }
@@ -257,6 +284,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final v = _videoAdapter;
     if (v != null) {
       _cancelFeedStallWatchdog();
+      _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
       unawaited(_playbackExecutionService.quietBackgroundAdapter(v));
       _hasAutoPlayed = false;
@@ -270,6 +298,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final v = _videoAdapter;
     if (v != null) {
       _cancelFeedStallWatchdog();
+      _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
       unawaited(_playbackExecutionService.stopAdapter(v));
       _hasAutoPlayed = false;
@@ -285,6 +314,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     _cancelFeedStallWatchdog();
+    _feedRecoverInFlight = false;
     _videoAdapter = null;
     _lastAppliedPlaybackVolume = null;
     adapter.removeListener(_onVideoUpdate);

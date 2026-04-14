@@ -204,6 +204,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   void _restoreSavedPosition(String cacheKey, HLSVideoAdapter adapter) {
+    if (Platform.isIOS && cacheKey.startsWith('feed:')) return;
     final state = VideoStateManager.instance.getVideoState(cacheKey);
     if (state == null || state.position <= Duration.zero) return;
     unawaited(adapter.seekTo(state.position));

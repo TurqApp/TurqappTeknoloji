@@ -38,10 +38,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     }
   }
 
-  Future<void> _performRecoverFrozenPlayback() async {
+  Future<void> _performRecoverFrozenPlayback({
+    required bool preservePosition,
+  }) async {
     if (_disposed) return;
-    final resumeAt = _value.position;
-    await stopPlayback();
+    final resumeAt = preservePosition ? _value.position : Duration.zero;
+    await _performStopPlayback(preserveFrameSnapshot: false);
     await Future<void>.delayed(const Duration(milliseconds: 80));
     await reloadVideo();
     if (resumeAt > Duration.zero) {
@@ -204,7 +206,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     return Future.value();
   }
 
-  Future<void> _performStopPlayback() {
+  Future<void> _performStopPlayback({
+    bool preserveFrameSnapshot = true,
+  }) {
     if (_disposed) return Future.value();
     _isStopped = true;
     _pendingReloadOnReady = false;
@@ -212,7 +216,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPause = false;
     _hls.cancelPendingResume();
     if (_viewReady || _hls.currentUrl != null) {
-      return _hls.stopPlayback();
+      return _hls.stopPlayback(
+        preserveFrameSnapshot: preserveFrameSnapshot,
+      );
     }
     return Future.value();
   }
@@ -220,7 +226,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   Future<void> _performSilenceAndStopPlayback() async {
     if (_disposed) return;
     await _performForceSilence();
-    await _performStopPlayback();
+    await _performStopPlayback(preserveFrameSnapshot: false);
   }
 
   Future<void> _performReloadVideo() async {

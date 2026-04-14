@@ -136,12 +136,16 @@ extension HLSControllerPlaybackPart on HLSController {
     }
   }
 
-  Future<void> stopPlayback() async {
+  Future<void> stopPlayback({
+    bool preserveFrameSnapshot = true,
+  }) async {
     if (_isInactive || _viewId == null) return;
     cancelPendingResume();
     try {
-      await HLSController._methodChannel
-          .invokeMethod('stopPlayback', {'viewId': _viewId});
+      await HLSController._methodChannel.invokeMethod('stopPlayback', {
+        'viewId': _viewId,
+        'preserveFrameSnapshot': preserveFrameSnapshot,
+      });
     } on PlatformException catch (e) {
       _handleError('Failed to stop playback: ${e.message}');
     }

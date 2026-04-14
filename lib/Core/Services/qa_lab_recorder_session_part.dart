@@ -77,14 +77,21 @@ extension _QALabRecorderSessionPart on QALabRecorder {
     Future<void> clearChildren(
       Directory directory, {
       required String label,
+      bool suppressEntityFailures = false,
     }) async {
       if (!await directory.exists()) {
         return;
       }
       var cleared = 0;
       await for (final entity in directory.list(followLinks: false)) {
-        await entity.delete(recursive: true);
-        cleared += 1;
+        try {
+          await entity.delete(recursive: true);
+          cleared += 1;
+        } catch (_) {
+          if (!suppressEntityFailures) {
+            rethrow;
+          }
+        }
       }
       if (cleared > 0) {
         clearedTargets.add('$label:$cleared');
@@ -105,10 +112,12 @@ extension _QALabRecorderSessionPart on QALabRecorder {
     Future<void> safeCleanup(
       Future<void> Function() action, {
       required String label,
+      bool recordFailure = true,
     }) async {
       try {
         await action();
       } catch (error) {
+        if (!recordFailure) return;
         cleanupFailures.add(
           <String, String>{
             'target': label,
@@ -122,8 +131,10 @@ extension _QALabRecorderSessionPart on QALabRecorder {
       () async => clearChildren(
         await getTemporaryDirectory(),
         label: 'temp',
+        suppressEntityFailures: true,
       ),
       label: 'temp',
+      recordFailure: false,
     );
     await safeCleanup(
       () async {

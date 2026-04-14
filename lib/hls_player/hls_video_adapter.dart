@@ -113,7 +113,12 @@ class HLSVideoAdapter extends ChangeNotifier {
   Future<Map<String, dynamic>> getProcessDiagnostics() =>
       _hls.getProcessDiagnostics();
 
-  Future<void> recoverFrozenPlayback() => _performRecoverFrozenPlayback();
+  Future<void> recoverFrozenPlayback({
+    bool preservePosition = true,
+  }) =>
+      _performRecoverFrozenPlayback(
+        preservePosition: preservePosition,
+      );
 
   HLSVideoAdapter({
     required String url,

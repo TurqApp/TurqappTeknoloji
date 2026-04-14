@@ -105,6 +105,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Timer? _surfaceKeepAliveTimer;
   bool _playbackIntentTracked = false;
   bool _hasRecordedVisibleView = false;
+  bool _feedRecoverInFlight = false;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
   Duration _stallWatchdogLastPosition = Duration.zero;
@@ -253,11 +254,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       widget.model.hasPlayableVideo &&
       (widget.shouldPlay ||
           _surfaceKeepAliveDebounceActive ||
-          _shouldKeepResumeSurfaceAliveInWarmWindow ||
+          _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
           _shouldKeepFloodSurfaceAliveInWarmWindow);
 
-  bool get _shouldKeepResumeSurfaceAliveInWarmWindow {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
+  bool get _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow {
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (!widget.model.hasPlayableVideo) return false;
     final value = _videoAdapter?.value ?? const HLSVideoValue();
@@ -282,6 +282,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final warmEndExclusive = warmRange.endExclusive;
     return modelIndex >= warmStart && modelIndex < warmEndExclusive;
   }
+
+  bool get _shouldKeepIosPrimaryFeedSurfaceAliveForBackScroll =>
+      defaultTargetPlatform == TargetPlatform.iOS &&
+      _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
 
   ({int start, int endExclusive}) _resolveFeedWarmRange({
     required int safeCenteredIndex,
@@ -367,7 +371,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!widget.model.hasPlayableVideo) return;
     _surfaceKeepAliveTimer?.cancel();
     _setSurfaceKeepAliveDebounce(true);
-    final debounce = _shouldKeepResumeSurfaceAliveInWarmWindow
+    final debounce = _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow
         ? _resumeSurfaceKeepAliveDebounce
         : _surfaceKeepAliveDebounce;
     _surfaceKeepAliveTimer = Timer(debounce, () {
@@ -670,8 +674,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     String? source,
   }) {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS) return true;
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
     final modelIndex = agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,

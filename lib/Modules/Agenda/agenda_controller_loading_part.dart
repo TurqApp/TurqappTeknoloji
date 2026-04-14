@@ -158,7 +158,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       debugPrint(
         '[FeedStartupSurface] status=connected_startup_shard_empty',
       );
-      return false;
+      return _seedConnectedStartupHeadFromLocalFallback(
+        reason: 'connected_startup_local_fallback',
+      );
     }
     final startupItems = _buildStartupPlannerHead(
       cacheCandidates: startupCandidates,
@@ -173,7 +175,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         '[FeedStartupSurface] status=connected_startup_shard_no_head '
         'candidateCount=${startupCandidates.length}',
       );
-      return false;
+      return _seedConnectedStartupHeadFromLocalFallback(
+        reason: 'connected_startup_local_fallback',
+      );
     }
     _startupHeadFinalized = false;
     _startupRenderBootstrapHold = true;
@@ -196,6 +200,108 @@ extension AgendaControllerLoadingPart on AgendaController {
       perPostLimit: 1,
     );
     return true;
+  }
+
+  Future<bool> _seedConnectedStartupHeadFromLocalFallback({
+    required String reason,
+  }) async {
+    if (!ContentPolicy.isConnected || agendaList.isNotEmpty || isClosed) {
+      return false;
+    }
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return false;
+
+    final mergedById = <String, PostsModel>{};
+
+    void addCandidates(Iterable<PostsModel> posts) {
+      for (final post in posts) {
+        final docId = post.docID.trim();
+        if (docId.isEmpty) continue;
+        mergedById.putIfAbsent(docId, () => post);
+      }
+    }
+
+    try {
+      final shard = await _feedSnapshotRepository.inspectHomeStartupShard(
+        userId: userId,
+        limit: FeedSnapshotRepository.startupHomeLimitValue,
+      );
+      addCandidates(shard);
+    } catch (_) {}
+
+    try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
+      final cachePage = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: FeedSnapshotRepository.startupHomeLimitValue,
+        useStoredCursor: false,
+        preferCache: true,
+        cacheOnly: true,
+        includeSupplementalSources: true,
+      );
+      addCandidates(cachePage.items);
+    } catch (_) {}
+
+    try {
+      final warmHome = await _feedSnapshotRepository.inspectWarmHome(
+        userId: userId,
+        limit: FeedSnapshotRepository.startupHomeLimitValue,
+      );
+      addCandidates(warmHome.data ?? const <PostsModel>[]);
+    } catch (_) {}
+
+    if (mergedById.isEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=${reason}_no_candidates',
+      );
+      return false;
+    }
+
+    final orderedCandidates = mergedById.values.toList(growable: false)
+      ..sort((left, right) => right.timeStamp.compareTo(left.timeStamp));
+    final startupItems = _buildStartupPlannerHead(
+      cacheCandidates: orderedCandidates,
+      targetCount: min(
+        orderedCandidates.length,
+        FeedSnapshotRepository.startupHomeLimitValue,
+      ),
+      allowSparseSlotFallback: true,
+    );
+    if (startupItems.isEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=${reason}_no_head '
+        'candidateCount=${orderedCandidates.length}',
+      );
+      return false;
+    }
+
+    _startupHeadFinalized = false;
+    _startupRenderBootstrapHold = true;
+    _activateStartupRenderStages(reason: reason);
+    debugPrint(
+      '[FeedStartupPlanner] source=$reason '
+      'status=apply_seeded_startup_items '
+      'rawCount=${orderedCandidates.length} composedCount=${startupItems.length}',
+    );
+    _replaceAgendaState(
+      startupItems,
+      reason: reason,
+    );
+    _applyStartupRenderStagesNow();
+    _scheduleInitialFeedVideoPosterWarmup(startupItems);
+    _scheduleReshareFetchForPosts(
+      startupItems,
+      perPostLimit: 1,
+    );
+    return true;
+  }
+
+  Future<bool> _restoreConnectedStartupHeadAfterTransientFailure() {
+    return _seedConnectedStartupHeadFromLocalFallback(
+      reason: 'transient_failure_local_fallback',
+    );
   }
 
   bool _shouldReplaceSeededStartupHeadOnInitialBootstrap(
@@ -865,6 +971,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         },
       );
       if (_isTransientAgendaUnavailable(e)) {
+        var restoredFromLocalFallback = false;
+        if (agendaList.isEmpty) {
+          restoredFromLocalFallback =
+              await _restoreConnectedStartupHeadAfterTransientFailure();
+        }
         if (agendaList.isEmpty && previousAgenda.isNotEmpty) {
           _replaceAgendaState(
             previousAgenda,
@@ -879,7 +990,9 @@ extension AgendaControllerLoadingPart on AgendaController {
             primeInitialCenteredPost();
           }
         }
-        _scheduleAgendaRetry(initial: initial && agendaList.isEmpty);
+        _scheduleAgendaRetry(
+          initial: initial && agendaList.isEmpty && !restoredFromLocalFallback,
+        );
       }
     } finally {
       if (startedLoading) {

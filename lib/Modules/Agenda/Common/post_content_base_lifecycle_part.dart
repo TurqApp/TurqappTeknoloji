@@ -137,6 +137,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _safePauseVideo();
           return;
         }
+        if (_shouldKeepIosPrimaryFeedSurfaceAliveForBackScroll) {
+          _safePauseVideo();
+          return;
+        }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
             _isPrimaryFeedSurfaceInstance) {
           unawaited(_disposePlaybackForSurfaceLoss());

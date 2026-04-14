@@ -300,7 +300,12 @@ class HLSController {
     return HLSControllerPlaybackPart(this).setVolume(volume);
   }
 
-  Future<void> stopPlayback() => HLSControllerPlaybackPart(this).stopPlayback();
+  Future<void> stopPlayback({
+    bool preserveFrameSnapshot = true,
+  }) =>
+      HLSControllerPlaybackPart(this).stopPlayback(
+        preserveFrameSnapshot: preserveFrameSnapshot,
+      );
 
   Future<void> setPreferredBufferDuration(double seconds) {
     return HLSControllerPlaybackPart(this).setPreferredBufferDuration(seconds);

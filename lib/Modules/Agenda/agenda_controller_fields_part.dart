@@ -105,6 +105,10 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _usePrimaryFeedPaging => _state.usePrimaryFeedPaging;
   set _usePrimaryFeedPaging(bool value) => _state.usePrimaryFeedPaging = value;
   bool get debugUsesPrimaryFeedPaging => _usePrimaryFeedPaging;
+  bool get debugFeedIsLoading => isLoading.value;
+  bool get debugEnsureInitialLoadInFlight => _ensureInitialLoadInFlight;
+  bool get debugSurfaceBootstrapInFlight => _surfaceBootstrapFuture != null;
+  bool get debugStartupHeadFinalized => _startupHeadFinalized;
   RxBool get hasMore => _state.hasMore;
   RxBool get isLoading => _state.isLoading;
   RxBool get pauseAll => _state.pauseAll;

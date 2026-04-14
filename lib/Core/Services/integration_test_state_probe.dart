@@ -96,6 +96,10 @@ class IntegrationTestStateProbe {
     return <String, dynamic>{
       'registered': true,
       'count': items.length,
+      'isLoading': controller.debugFeedIsLoading,
+      'ensureInitialLoadInFlight': controller.debugEnsureInitialLoadInFlight,
+      'surfaceBootstrapInFlight': controller.debugSurfaceBootstrapInFlight,
+      'startupHeadFinalized': controller.debugStartupHeadFinalized,
       'centeredIndex': centeredIndex,
       'centeredDocId': centeredItem?.docID ?? '',
       'centeredHasPlayableVideo': centeredItem?.hasPlayableVideo == true,
