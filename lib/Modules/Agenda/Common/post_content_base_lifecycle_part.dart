@@ -18,17 +18,29 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       floodController?.centeredIndex ?? agendaController.centeredIndex,
       (_) {
         _keepAliveUpdateCallback?.call();
+        _maybePreloadWarmVideoController(source: 'warm_window_changed');
+      },
+    );
+    _warmPreloadAnchorWorker ??= ever<String>(
+      agendaController.feedWarmPreloadAnchorKeyRx,
+      (_) {
+        _keepAliveUpdateCallback?.call();
+        _maybePreloadWarmVideoController(source: 'warm_anchor_ready');
       },
     );
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =
           isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
+      final shouldEagerInitAndroidPrimaryFeed =
+          defaultTargetPlatform == TargetPlatform.android &&
+          _isPrimaryFeedSurfaceInstance;
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
               ? (_isFeedStyleInlineSurfaceInstance &&
-                      defaultTargetPlatform == TargetPlatform.android
+                      defaultTargetPlatform == TargetPlatform.android &&
+                      !shouldEagerInitAndroidPrimaryFeed
                   ? const Duration(milliseconds: 220)
                   : Duration.zero)
               : const Duration(milliseconds: 150));
@@ -54,6 +66,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
       });
     }
+
+    _maybePreloadWarmVideoController(source: 'init_state');
 
     if (widget.showComments) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -104,6 +118,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _playbackSuspendedWorker?.dispose();
     _navSelectionWorker?.dispose();
     _keepAliveWindowWorker?.dispose();
+    _warmPreloadAnchorWorker?.dispose();
     videoValueNotifier.dispose();
   }
 
@@ -163,6 +178,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _safePauseVideo();
       }
     }
+    _maybePreloadWarmVideoController(source: 'did_update_widget');
     _recordPlaybackVisualWarning(
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_update_widget_post',
@@ -208,6 +224,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (!mounted) return;
     final v = _videoAdapter!.value;
     _recordPlaybackVisualWarning(v);
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed &&
+        v.hasRenderedFirstFrame) {
+      agendaController.markFeedWarmPreloadAnchorReady(playbackHandleKey);
+    }
     _applyPlaybackVolume();
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;
@@ -359,5 +382,29 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_shouldSyncVideoNotifier(v)) {
       videoValueNotifier.value = v;
     }
+  }
+
+  void _maybePreloadWarmVideoController({
+    required String source,
+  }) {
+    if (_videoAdapter != null) return;
+    if (_warmPreloadInitQueued) return;
+    if (!_shouldPreloadAndroidPrimaryFeedWarmController) return;
+    _warmPreloadInitQueued = true;
+    _recordPlaybackDispatch(
+      'feed_card_warm_preload_init_requested',
+      source: source,
+      dispatchIssued: false,
+      metadata: <String, dynamic>{
+        'centeredPlaybackHandleKey': _currentCenteredFeedPlaybackHandleKey(),
+        'playableDistance': _primaryFeedDirectionalAheadPlayableVideoDistance(),
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _warmPreloadInitQueued = false;
+      if (!mounted || _videoAdapter != null) return;
+      if (!_shouldPreloadAndroidPrimaryFeedWarmController) return;
+      _initVideoController();
+    });
   }
 }

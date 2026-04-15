@@ -11,6 +11,9 @@ class _AgendaControllerState {
   final showFAB = true.obs;
   final centeredIndex = 0.obs;
   final playbackSuspended = false.obs;
+  final feedWarmPreloadAnchorKey = ''.obs;
+  final startupWarmPreloadDocIds = <String>[].obs;
+  final startupWarmPreloadPreparedDocIds = <String>{};
   int? lastCenteredIndex;
   String? lastPlaybackRowUpdateDocId;
   final isMuted = false.obs;
@@ -29,6 +32,8 @@ class _AgendaControllerState {
   Timer? resharePostsFetchTimer;
   Timer? agendaRetryTimer;
   Timer? deferredInitialNetworkBootstrapTimer;
+  Timer? startupWarmPreloadFallbackTimer;
+  Timer? startupWarmPreloadReleaseTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -65,6 +70,7 @@ class _AgendaControllerState {
   String? startupLockedFeedDocId;
   String? lastPlaybackCommandDocId;
   String? lastFloodRootWarmDocId;
+  String? startupWarmPreloadPrimaryDocId;
   bool feedModeFallbackQueued = false;
   int feedModeFallbackEpoch = 0;
   bool feedRefreshInFlight = false;
@@ -98,6 +104,11 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxBool get showFAB => _state.showFAB;
   RxInt get centeredIndex => _state.centeredIndex;
   RxBool get playbackSuspended => _state.playbackSuspended;
+  RxString get feedWarmPreloadAnchorKeyRx => _state.feedWarmPreloadAnchorKey;
+  RxList<String> get startupWarmPreloadDocIdsRx => _state.startupWarmPreloadDocIds;
+  List<String> get startupWarmPreloadDocIds =>
+      _state.startupWarmPreloadDocIds.toList(growable: false);
+  String get feedWarmPreloadAnchorKey => _state.feedWarmPreloadAnchorKey.value;
   int? get lastCenteredIndex => _state.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _state.lastCenteredIndex = value;
   String? get _lastPlaybackRowUpdateDocId => _state.lastPlaybackRowUpdateDocId;
@@ -144,6 +155,14 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.deferredInitialNetworkBootstrapTimer;
   set _deferredInitialNetworkBootstrapTimer(Timer? value) =>
       _state.deferredInitialNetworkBootstrapTimer = value;
+  Timer? get _startupWarmPreloadFallbackTimer =>
+      _state.startupWarmPreloadFallbackTimer;
+  set _startupWarmPreloadFallbackTimer(Timer? value) =>
+      _state.startupWarmPreloadFallbackTimer = value;
+  Timer? get _startupWarmPreloadReleaseTimer =>
+      _state.startupWarmPreloadReleaseTimer;
+  set _startupWarmPreloadReleaseTimer(Timer? value) =>
+      _state.startupWarmPreloadReleaseTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -158,6 +177,13 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.lastPlaybackWindowSignature;
   set _lastPlaybackWindowSignature(String? value) =>
       _state.lastPlaybackWindowSignature = value;
+
+  void markFeedWarmPreloadAnchorReady(String playbackHandleKey) {
+    final normalized = playbackHandleKey.trim();
+    if (normalized.isEmpty) return;
+    if (_state.feedWarmPreloadAnchorKey.value == normalized) return;
+    _state.feedWarmPreloadAnchorKey.value = normalized;
+  }
   String? get _pendingCenteredDocId => _state.pendingCenteredDocId;
   set _pendingCenteredDocId(String? value) =>
       _state.pendingCenteredDocId = value;
@@ -202,6 +228,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   DateTime? get _lastFloodRootWarmAt => _state.lastFloodRootWarmAt;
   set _lastFloodRootWarmAt(DateTime? value) =>
       _state.lastFloodRootWarmAt = value;
+  Set<String> get _startupWarmPreloadPreparedDocIds =>
+      _state.startupWarmPreloadPreparedDocIds;
   DateTime? get _startupPlaybackLockedAt => _state.startupPlaybackLockedAt;
   set _startupPlaybackLockedAt(DateTime? value) =>
       _state.startupPlaybackLockedAt = value;
@@ -245,6 +273,10 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
   set _startupRenderBootstrapHold(bool value) =>
       _state.startupRenderBootstrapHold = value;
+  String? get _startupWarmPreloadPrimaryDocId =>
+      _state.startupWarmPreloadPrimaryDocId;
+  set _startupWarmPreloadPrimaryDocId(String? value) =>
+      _state.startupWarmPreloadPrimaryDocId = value;
   int get _deferredInitialNetworkBootstrapToken =>
       _state.deferredInitialNetworkBootstrapToken;
   set _deferredInitialNetworkBootstrapToken(int value) =>

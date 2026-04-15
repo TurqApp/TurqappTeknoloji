@@ -5,8 +5,15 @@ extension AgendaControllerLoadingPart on AgendaController {
   static const int _connectedColdFeedStageThreeLimit = 180;
   static const int _connectedColdFeedPrimeBatchFloor = 60;
   static const int _connectedInitialCandidateFetchFloor = 45;
+  static const int _startupWarmPreloadVideoCount = 3;
   static const Duration _deferredInitialNetworkBootstrapDelay =
       Duration(milliseconds: 520);
+  static const Duration _startupWarmPreloadFallbackDelay =
+      Duration(milliseconds: 2200);
+  static const Duration _startupWarmPreloadReleaseDelay =
+      Duration(milliseconds: 220);
+  static const Duration _startupWarmPreloadRenderReleaseDelay =
+      Duration(milliseconds: 80);
 
   int _connectedColdFeedCandidateFetchLimitForTarget(int targetLimit) =>
       targetLimit + _connectedColdFeedPrimeBatchFloor;
@@ -63,6 +70,19 @@ extension AgendaControllerLoadingPart on AgendaController {
         .toList(growable: false);
   }
 
+  List<PostsModel> _startupWarmPlayerPreloadWindow(
+    List<PostsModel> posts, {
+    int limit = _startupWarmPreloadVideoCount,
+  }) {
+    if (!GetPlatform.isAndroid || posts.isEmpty || limit <= 0) {
+      return const <PostsModel>[];
+    }
+    return posts
+        .where(_canAutoplayVideoPost)
+        .take(limit)
+        .toList(growable: false);
+  }
+
   Future<void> _warmInitialFeedVideoPosters(List<PostsModel> posts) async {
     final videoPosts = posts
         .where((post) => post.hasRenderableVideoCard)
@@ -103,6 +123,106 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
     if (posts.isEmpty) return;
     unawaited(_warmInitialFeedVideoPosters(posts));
+  }
+
+  void _cancelStartupWarmPlayerPreload() {
+    _startupWarmPreloadFallbackTimer?.cancel();
+    _startupWarmPreloadFallbackTimer = null;
+    _startupWarmPreloadReleaseTimer?.cancel();
+    _startupWarmPreloadReleaseTimer = null;
+    _startupWarmPreloadPrimaryDocId = null;
+    _startupWarmPreloadPreparedDocIds.clear();
+    if (startupWarmPreloadDocIdsRx.isNotEmpty) {
+      startupWarmPreloadDocIdsRx.clear();
+    }
+  }
+
+  void _scheduleStartupWarmPlayerPreload(
+    List<PostsModel> posts, {
+    required String reason,
+  }) {
+    _cancelStartupWarmPlayerPreload();
+    final preloadPosts = _startupWarmPlayerPreloadWindow(posts);
+    if (preloadPosts.isEmpty) {
+      _applyStartupRenderStagesNow();
+      return;
+    }
+    startupWarmPreloadDocIdsRx.assignAll(
+      preloadPosts
+          .map((post) => post.docID.trim())
+          .where((docId) => docId.isNotEmpty),
+    );
+    if (startupWarmPreloadDocIdsRx.isEmpty) {
+      _applyStartupRenderStagesNow();
+      return;
+    }
+    _startupWarmPreloadPrimaryDocId = startupWarmPreloadDocIdsRx.first;
+    _startupWarmPreloadFallbackTimer = Timer(
+      _startupWarmPreloadFallbackDelay,
+      _completeStartupWarmPlayerPreload,
+    );
+  }
+
+  void _completeStartupWarmPlayerPreload() {
+    _startupWarmPreloadFallbackTimer?.cancel();
+    _startupWarmPreloadFallbackTimer = null;
+    _startupWarmPreloadReleaseTimer?.cancel();
+    _startupWarmPreloadReleaseTimer = null;
+    _startupWarmPreloadPrimaryDocId = null;
+    _startupWarmPreloadPreparedDocIds.clear();
+    if (startupWarmPreloadDocIdsRx.isEmpty) {
+      if (_startupRenderBootstrapHold) {
+        Future<void>.delayed(
+          _startupWarmPreloadRenderReleaseDelay,
+          () {
+            if (isClosed) return;
+            _applyStartupRenderStagesNow();
+          },
+        );
+      }
+      return;
+    }
+    startupWarmPreloadDocIdsRx.clear();
+    if (_startupRenderBootstrapHold) {
+      Future<void>.delayed(
+        _startupWarmPreloadRenderReleaseDelay,
+        () {
+          if (isClosed) return;
+          _applyStartupRenderStagesNow();
+        },
+      );
+    }
+  }
+
+  void markStartupWarmPlayerPrepared(String docId) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    if (!startupWarmPreloadDocIdsRx.contains(normalizedDocId)) return;
+    _startupWarmPreloadPreparedDocIds.add(normalizedDocId);
+    final primaryDocId = _startupWarmPreloadPrimaryDocId?.trim() ?? '';
+    if (primaryDocId.isEmpty || primaryDocId != normalizedDocId) return;
+    final allPrepared = startupWarmPreloadDocIdsRx.every(
+      _startupWarmPreloadPreparedDocIds.contains,
+    );
+    if (!allPrepared || _startupWarmPreloadReleaseTimer != null) return;
+    _startupWarmPreloadReleaseTimer = Timer(
+      _startupWarmPreloadReleaseDelay,
+      _completeStartupWarmPlayerPreload,
+    );
+  }
+
+  void markStartupWarmPlayerFirstFrame(String docId) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    if (!startupWarmPreloadDocIdsRx.contains(normalizedDocId)) return;
+    _startupWarmPreloadPreparedDocIds.add(normalizedDocId);
+    final primaryDocId = _startupWarmPreloadPrimaryDocId?.trim() ?? '';
+    if (primaryDocId.isEmpty || primaryDocId != normalizedDocId) return;
+    _startupWarmPreloadReleaseTimer?.cancel();
+    _startupWarmPreloadReleaseTimer = Timer(
+      _startupWarmPreloadReleaseDelay,
+      _completeStartupWarmPlayerPreload,
+    );
   }
 
   void _resumeFeedPlaybackAfterRefresh({
@@ -288,7 +408,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       startupItems,
       reason: reason,
     );
-    _applyStartupRenderStagesNow();
+    _scheduleStartupWarmPlayerPreload(
+      startupItems,
+      reason: reason,
+    );
     _scheduleInitialFeedVideoPosterWarmup(startupItems);
     _scheduleReshareFetchForPosts(
       startupItems,
@@ -320,6 +443,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   void _performResetSurfaceForTabTransition() {
     _feedMutationEpoch++;
+    _cancelStartupWarmPlayerPreload();
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
     maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
@@ -651,7 +775,10 @@ extension AgendaControllerLoadingPart on AgendaController {
           'composedCount=${startupItems.length}',
         );
       }
-      _applyStartupRenderStagesNow();
+      _scheduleStartupWarmPlayerPreload(
+        startupItems,
+        reason: 'initial_items_to_add',
+      );
       _scheduleInitialFeedVideoPosterWarmup(startupItems);
       _scheduleReshareFetchForPosts(
         startupItems,
@@ -671,7 +798,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       reason: 'initial_items_append',
     );
     if (initial) {
-      _applyStartupRenderStagesNow();
+      _scheduleStartupWarmPlayerPreload(
+        agendaList.toList(growable: false),
+        reason: 'initial_items_append',
+      );
     }
     _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
     _scheduleReshareFetchForPosts(
@@ -683,6 +813,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _applyRefreshMergedAgenda({
     required List<PostsModel> mergedAgenda,
   }) {
+    _cancelStartupWarmPlayerPreload();
     _prefetchedThumbnailPostCount = 0;
     _resetStartupRenderStages();
     _prefetchedThumbnailDocIds.clear();

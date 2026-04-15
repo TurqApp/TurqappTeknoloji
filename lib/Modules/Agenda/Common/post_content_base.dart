@@ -36,6 +36,7 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 5;
 const int _feedWarmWindowBehindCount = 3;
+const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 2;
 
 @visibleForTesting
 ({int start, int endExclusive}) resolveFeedSurfaceWarmRange({
@@ -147,6 +148,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _playbackSuspendedWorker;
   Worker? _navSelectionWorker;
   Worker? _keepAliveWindowWorker;
+  Worker? _warmPreloadAnchorWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   Timer? _stallWatchdogTimer;
@@ -155,6 +157,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _playbackIntentTracked = false;
   bool _hasRecordedVisibleView = false;
   bool _feedRecoverInFlight = false;
+  bool _warmPreloadInitQueued = false;
   Duration? _lastQueuedSavedResumePosition;
   DateTime? _lastQueuedSavedResumeAt;
   DateTime? _lastIosPrimaryFeedRecoveryAt;
@@ -309,7 +312,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       (widget.shouldPlay ||
           _surfaceKeepAliveDebounceActive ||
           _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
+          _shouldKeepPrimaryFeedSurfaceAliveForWarmPreload ||
           _shouldKeepFloodSurfaceAliveInWarmWindow);
+
+  bool get _shouldKeepPrimaryFeedSurfaceAliveForWarmPreload =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _shouldPreloadAndroidPrimaryFeedWarmController;
 
   bool get _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow {
     if (!_isPrimaryFeedSurfaceInstance) return false;
@@ -414,6 +422,66 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return maybeFindFloodListingController()?.lastCenteredIndex;
     }
     return agendaController.lastCenteredIndex;
+  }
+
+  String _currentCenteredFeedPlaybackHandleKey() {
+    if (!_isPrimaryFeedSurfaceInstance) return '';
+    final safeCentered = _surfaceSafeCenteredIndex();
+    if (safeCentered < 0 || safeCentered >= agendaController.agendaList.length) {
+      return '';
+    }
+    final centeredDocId = agendaController.agendaList[safeCentered].docID.trim();
+    if (centeredDocId.isEmpty) return '';
+    return 'feed:$centeredDocId';
+  }
+
+  bool get _isCenteredFeedWarmPreloadAnchorReady {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    final centeredPlaybackKey = _currentCenteredFeedPlaybackHandleKey();
+    if (centeredPlaybackKey.isEmpty) return false;
+    return agendaController.feedWarmPreloadAnchorKey == centeredPlaybackKey;
+  }
+
+  int? _primaryFeedDirectionalAheadPlayableVideoDistance() {
+    if (!_isPrimaryFeedSurfaceInstance) return null;
+    if (!widget.model.hasPlayableVideo) return null;
+    final modelIndex = _surfaceModelIndex();
+    final safeCentered = _surfaceSafeCenteredIndex();
+    if (modelIndex < 0 || safeCentered < 0) return null;
+    if (modelIndex == safeCentered) return 0;
+    final previousCentered = _surfacePreviousCenteredIndex() ?? safeCentered;
+    final scrollingBackward = safeCentered < previousCentered;
+    if (!scrollingBackward && modelIndex < safeCentered) return null;
+    if (scrollingBackward && modelIndex > safeCentered) return null;
+
+    int playableDistance = 0;
+    if (!scrollingBackward) {
+      for (int i = safeCentered + 1; i <= modelIndex; i++) {
+        if (agendaController.agendaList[i].hasPlayableVideo) {
+          playableDistance++;
+        }
+      }
+    } else {
+      for (int i = safeCentered - 1; i >= modelIndex; i--) {
+        if (agendaController.agendaList[i].hasPlayableVideo) {
+          playableDistance++;
+        }
+      }
+    }
+    return playableDistance;
+  }
+
+  bool get _shouldPreloadAndroidPrimaryFeedWarmController {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!widget.model.hasPlayableVideo) return false;
+    if (widget.shouldPlay) return false;
+    if (!_isSurfacePlaybackAllowed) return false;
+    if (!_isCenteredFeedWarmPreloadAnchorReady) return false;
+    final playableDistance = _primaryFeedDirectionalAheadPlayableVideoDistance();
+    if (playableDistance == null || playableDistance <= 0) return false;
+    return playableDistance <= _androidPrimaryFeedWarmPlayerAheadVideoCount;
   }
 
   void bindKeepAliveUpdater(VoidCallback callback) {
@@ -567,6 +635,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   void _initVideoController() {
     if (_videoAdapter != null) return;
+    _warmPreloadInitQueued = false;
     _lastAppliedPlaybackVolume = null;
     _videoAdapter = adapterPool.acquire(
       cacheKey: playbackHandleKey,

@@ -8,7 +8,7 @@ extension AgendaControllerFeedPart on AgendaController {
   static const Duration _startupPlaybackLockDuration =
       Duration(milliseconds: 520);
   static const Duration _androidStartupPlaybackGrace =
-      Duration(milliseconds: 420);
+      Duration(milliseconds: 120);
   static const Duration _androidCurrentRecoveryGrace =
       Duration(milliseconds: 1200);
   static const int _feedBoostPlayableCount = 3;

@@ -1,6 +1,24 @@
 part of 'agenda_view.dart';
 
 extension _AgendaViewFeedPart on AgendaView {
+  Widget _buildStartupWarmPreloadLayer() {
+    return Obx(() {
+      final docIds = controller.startupWarmPreloadDocIdsRx.toList(growable: false);
+      if (docIds.isEmpty) return const SizedBox.shrink();
+      final posts = <PostsModel>[];
+      for (final docId in docIds) {
+        final post = controller.agendaList.firstWhereOrNull(
+          (candidate) => candidate.docID == docId,
+        );
+        if (post != null && post.hasPlayableVideo) {
+          posts.add(post);
+        }
+      }
+      if (posts.isEmpty) return const SizedBox.shrink();
+      return _FeedStartupWarmPreloadLayer(posts: posts);
+    });
+  }
+
   Widget _buildRefreshableFeed(BuildContext context) {
     return RefreshIndicator(
       backgroundColor: Colors.black,
@@ -29,8 +47,10 @@ extension _AgendaViewFeedPart on AgendaView {
         );
         final displayCount = display.length;
         final filteredCount = filteredDisplay.length;
+        final startupWarmPreloadActive =
+            controller.startupWarmPreloadDocIdsRx.isNotEmpty;
 
-        if (displayCount == 0) {
+        if (displayCount == 0 || startupWarmPreloadActive) {
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(

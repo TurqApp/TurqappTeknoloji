@@ -34,6 +34,7 @@ import '../RecommendedUserList/recommended_user_list.dart';
 import '../RecommendedUserList/recommended_user_list_controller.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import 'AgendaContent/agenda_content.dart';
+import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
 part 'agenda_view_feed_part.dart';
 part 'agenda_view_header_part.dart';
@@ -140,6 +141,7 @@ class AgendaView extends StatelessWidget {
               ],
             ),
           ),
+          _buildStartupWarmPreloadLayer(),
           _buildCreateFab(),
           Positioned(
             top: 0,
@@ -148,6 +150,152 @@ class AgendaView extends StatelessWidget {
             child: GlobalLoader(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FeedStartupWarmPreloadLayer extends StatelessWidget {
+  const _FeedStartupWarmPreloadLayer({
+    required this.posts,
+  });
+
+  final List<PostsModel> posts;
+
+  @override
+  Widget build(BuildContext context) {
+    if (posts.isEmpty) return const SizedBox.shrink();
+    return IgnorePointer(
+      ignoring: true,
+      child: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: 6,
+          height: 6,
+          child: Stack(
+            children: [
+              for (int index = 0; index < posts.length; index++)
+                Positioned(
+                  left: (index % 2) * 2.0,
+                  top: (index ~/ 2) * 2.0,
+                  width: 2,
+                  height: 2,
+                  child: _FeedStartupWarmPreloadSlot(
+                    key: ValueKey('startup-warm-${posts[index].docID}'),
+                    model: posts[index],
+                    onPrepared: () => ensureAgendaController()
+                        .markStartupWarmPlayerPrepared(posts[index].docID),
+                    onFirstFrame: () => ensureAgendaController()
+                        .markStartupWarmPlayerFirstFrame(posts[index].docID),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeedStartupWarmPreloadSlot extends StatefulWidget {
+  const _FeedStartupWarmPreloadSlot({
+    super.key,
+    required this.model,
+    required this.onPrepared,
+    required this.onFirstFrame,
+  });
+
+  final PostsModel model;
+  final VoidCallback onPrepared;
+  final VoidCallback onFirstFrame;
+
+  @override
+  State<_FeedStartupWarmPreloadSlot> createState() =>
+      _FeedStartupWarmPreloadSlotState();
+}
+
+class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot> {
+  final GlobalVideoAdapterPool _adapterPool = ensureGlobalVideoAdapterPool();
+  HLSVideoAdapter? _adapter;
+  bool _reportedPrepared = false;
+  bool _reportedFirstFrame = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindAdapter();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeedStartupWarmPreloadSlot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.docID != widget.model.docID ||
+        oldWidget.model.playbackUrl != widget.model.playbackUrl) {
+      _unbindAdapter();
+      _bindAdapter();
+    }
+  }
+
+  void _bindAdapter() {
+    final cacheKey = 'feed:${widget.model.docID.trim()}';
+    if (cacheKey.trim().isEmpty || widget.model.playbackUrl.trim().isEmpty) {
+      return;
+    }
+    _reportedPrepared = false;
+    _reportedFirstFrame = false;
+    _adapter = _adapterPool.acquire(
+      cacheKey: cacheKey,
+      url: widget.model.playbackUrl,
+      autoPlay: false,
+      loop: true,
+    );
+    _adapter?.addListener(_handleAdapterUpdate);
+    unawaited(_adapter?.setVolume(0.0) ?? Future<void>.value());
+  }
+
+  void _unbindAdapter() {
+    final adapter = _adapter;
+    if (adapter == null) return;
+    adapter.removeListener(_handleAdapterUpdate);
+    unawaited(_adapterPool.release(adapter));
+    _adapter = null;
+  }
+
+  void _handleAdapterUpdate() {
+    final adapter = _adapter;
+    if (adapter == null) return;
+    final value = adapter.value;
+    if (!_reportedPrepared && value.isInitialized) {
+      _reportedPrepared = true;
+      widget.onPrepared();
+    }
+    if (!_reportedFirstFrame && value.hasRenderedFirstFrame) {
+      _reportedFirstFrame = true;
+      widget.onFirstFrame();
+    }
+  }
+
+  @override
+  void dispose() {
+    _unbindAdapter();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final adapter = _adapter;
+    if (adapter == null) return const SizedBox.shrink();
+    return ClipRect(
+      child: Opacity(
+        opacity: 0.01,
+        child: adapter.buildPlayer(
+          key: ValueKey('startup-warm-player-${widget.model.docID}'),
+          aspectRatio: 9 / 16,
+          useAspectRatio: false,
+          overrideAutoPlay: false,
+          isPrimaryFeedSurface: true,
+          suppressLoadingOverlay: true,
+        ),
       ),
     );
   }

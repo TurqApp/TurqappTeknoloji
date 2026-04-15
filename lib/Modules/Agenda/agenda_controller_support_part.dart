@@ -354,7 +354,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
   void _primeStartupPlaybackWindow() {
     if (agendaList.isEmpty) return;
     if (_shouldDelayStartupPlaybackWork) {
-      Future.delayed(const Duration(milliseconds: 420), () {
+      Future.delayed(const Duration(milliseconds: 120), () {
         if (isClosed || agendaList.isEmpty) return;
         _primeStartupPlaybackWindowNow();
       });
