@@ -74,6 +74,23 @@ extension PostRepositoryFacadePart on PostRepository {
         cacheOnly: cacheOnly,
       );
 
+  Future<TypesenseMotorCandidatesPage> fetchTypesenseMotorCandidates({
+    required String surface,
+    required List<int> ownedMinutes,
+    int limit = 40,
+    int page = 1,
+    int? nowMs,
+    int? cutoffMs,
+  }) =>
+      _performFetchTypesenseMotorCandidates(
+        surface: surface,
+        ownedMinutes: ownedMinutes,
+        limit: limit,
+        page: page,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+      );
+
   Future<PostQueryPage> fetchAgendaWindowPage({
     required int cutoffMs,
     required int nowMs,

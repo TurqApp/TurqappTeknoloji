@@ -51,6 +51,28 @@ class _CachedPostCardsResult {
       DateTime.now().difference(cachedAt) < TypesensePostService._ttl;
 }
 
+class TypesenseMotorCandidatesResult {
+  const TypesenseMotorCandidatesResult({
+    required this.surface,
+    required this.ownedMinutes,
+    required this.limit,
+    required this.page,
+    required this.found,
+    required this.outOf,
+    required this.searchTimeMs,
+    required this.hits,
+  });
+
+  final String surface;
+  final List<int> ownedMinutes;
+  final int limit;
+  final int page;
+  final int found;
+  final int outOf;
+  final int searchTimeMs;
+  final List<Map<String, dynamic>> hits;
+}
+
 class TypesensePostService {
   TypesensePostService._();
 
@@ -94,6 +116,23 @@ class TypesensePostService {
       );
 
   Future<void> syncPostById(String postId) => _performSyncPostById(postId);
+
+  Future<TypesenseMotorCandidatesResult> fetchMotorCandidates({
+    required String surface,
+    required List<int> ownedMinutes,
+    int limit = 40,
+    int page = 1,
+    int? nowMs,
+    int? cutoffMs,
+  }) =>
+      _performFetchMotorCandidates(
+        surface: surface,
+        ownedMinutes: ownedMinutes,
+        limit: limit,
+        page: page,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+      );
 
   Future<void> invalidatePostId(String postId) =>
       _performInvalidatePostId(postId);

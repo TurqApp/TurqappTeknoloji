@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f15_getPostCardsByIdsCallable = exports.f15_getLatestPostIdsCallable = exports.f15_syncPostToTypesenseCallable = exports.f14_reindexPostsToTypesenseCallable = exports.f14_searchPostsCallable = exports.f14_searchPosts = exports.f14_syncPostsToTypesense = void 0;
+exports.f15_getMotorCandidatesCallable = exports.f15_getPostCardsByIdsCallable = exports.f15_getLatestPostIdsCallable = exports.f15_syncPostToTypesenseCallable = exports.f14_reindexPostsToTypesenseCallable = exports.f14_searchPostsCallable = exports.f14_searchPosts = exports.f14_syncPostsToTypesense = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
@@ -12,6 +12,8 @@ const POSTS_COLLECTION = "posts_search";
 const USERS_COLLECTION = "users_search";
 const TAGS_COLLECTION = "tags_search";
 const MAX_LIMIT = 50;
+const MOTOR_CANDIDATE_MAX_LIMIT = 120;
+const SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD = 1.2;
 function ensureAdmin() {
     if ((0, app_1.getApps)().length === 0)
         (0, app_1.initializeApp)();
@@ -185,6 +187,8 @@ async function ensurePostsCollection() {
                 { name: "mainFlood", type: "string", optional: true },
                 { name: "contentType", type: "string", optional: true },
                 { name: "editTime", type: "int64", optional: true },
+                { name: "minuteOfHour", type: "int32", optional: true },
+                { name: "surfaceTargets", type: "string[]", optional: true },
                 { name: "timeStamp", type: "int64" },
                 { name: "createdAtTs", type: "int64" },
             ];
@@ -241,6 +245,8 @@ async function ensurePostsCollection() {
                 { name: "mainFlood", type: "string", optional: true },
                 { name: "contentType", type: "string", optional: true },
                 { name: "editTime", type: "int64", optional: true },
+                { name: "minuteOfHour", type: "int32", optional: true },
+                { name: "surfaceTargets", type: "string[]", optional: true },
                 { name: "timeStamp", type: "int64" },
                 { name: "createdAtTs", type: "int64" },
             ],
@@ -371,6 +377,31 @@ async function ensureTagsCollection() {
     });
     return tagsCollectionEnsurePromise;
 }
+function resolveMinuteOfHour(timeStamp) {
+    if (!Number.isFinite(timeStamp) || timeStamp <= 0)
+        return 0;
+    return new Date(timeStamp).getUTCMinutes();
+}
+function resolveSurfaceTargets(doc) {
+    const isVisiblePublic = doc.paylasGizliligi === 0 &&
+        !doc.arsiv &&
+        !doc.deletedPost &&
+        !doc.gizlendi &&
+        !doc.isUploading;
+    if (!isVisiblePublic) {
+        return [];
+    }
+    const targets = ["feed"];
+    const isShortEligible = doc.hasPlayableVideo &&
+        doc.hlsStatus === "ready" &&
+        doc.aspectRatio > 0 &&
+        doc.aspectRatio <= SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD &&
+        !doc.flood;
+    if (isShortEligible) {
+        targets.push("short", "quota");
+    }
+    return targets;
+}
 function buildSearchDoc(postId, data) {
     const analysis = data.analysis || {};
     const reshareMap = data.reshareMap || {};
@@ -421,6 +452,18 @@ function buildSearchDoc(postId, data) {
     const authorDisplayName = asString(data.authorDisplayName) || authorNickname;
     const authorAvatarUrl = asString(data.authorAvatarUrl);
     const rozet = asString(data.rozet);
+    const minuteOfHour = resolveMinuteOfHour(timeStamp);
+    const surfaceTargets = resolveSurfaceTargets({
+        paylasGizliligi,
+        arsiv,
+        deletedPost,
+        gizlendi,
+        isUploading,
+        hasPlayableVideo,
+        hlsStatus,
+        aspectRatio,
+        flood,
+    });
     return {
         id: postId,
         userID,
@@ -461,6 +504,8 @@ function buildSearchDoc(postId, data) {
         mainFlood: asString(data.mainFlood),
         contentType,
         editTime: asEpochMillis(data.editTime),
+        minuteOfHour,
+        surfaceTargets,
         timeStamp,
         createdAtTs,
     };
@@ -907,6 +952,150 @@ async function searchUsersFromTypesense(q, limit, page) {
         })),
     };
 }
+async function getMotorCandidatesFromTypesense(options) {
+    await ensurePostsCollection();
+    const surface = String(options.surface || "").trim().toLowerCase();
+    const ownedMinutes = Array.from(new Set((options.ownedMinutes || [])
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 59)
+        .map((value) => Math.trunc(value)))).sort((left, right) => left - right);
+    if (!surface) {
+        throw new https_1.HttpsError("invalid-argument", "surface_required");
+    }
+    if (ownedMinutes.length === 0) {
+        throw new https_1.HttpsError("invalid-argument", "owned_minutes_required");
+    }
+    const nowMs = Number(options.nowMs || Date.now());
+    const cutoffMs = Number(options.cutoffMs || 0) ||
+        nowMs - 7 * 24 * 60 * 60 * 1000;
+    const limit = Math.max(1, Math.min(MOTOR_CANDIDATE_MAX_LIMIT, Number(options.limit || 40)));
+    const page = Math.max(1, Number(options.page || 1));
+    const baseFilterParts = [
+        "paylasGizliligi:=0",
+        "arsiv:=false",
+        "deletedPost:=false",
+        "gizlendi:=false",
+        "isUploading:=false",
+        `timeStamp:>=${cutoffMs}`,
+        `timeStamp:<=${nowMs}`,
+    ];
+    const surfaceFilterParts = [...baseFilterParts];
+    const strictFilterParts = [
+        `surfaceTargets:=[${typesenseStringLiteral(surface)}]`,
+        ...baseFilterParts,
+        `minuteOfHour:=[${ownedMinutes.join(",")}]`,
+    ];
+    if (surface === "short" || surface === "quota") {
+        surfaceFilterParts.push("hasPlayableVideo:=true");
+        surfaceFilterParts.push("hlsStatus:=ready");
+        surfaceFilterParts.push(`aspectRatio:<=${SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD}`);
+        surfaceFilterParts.push("flood:=false");
+        strictFilterParts.push("hasPlayableVideo:=true");
+        strictFilterParts.push("hlsStatus:=ready");
+        strictFilterParts.push(`aspectRatio:<=${SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD}`);
+        strictFilterParts.push("flood:=false");
+    }
+    const baseUrl = getTypesenseBaseUrl();
+    const strictResp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
+        headers: headers(),
+        timeout: 10000,
+        params: {
+            q: "*",
+            query_by: "metin",
+            per_page: limit,
+            page,
+            sort_by: "timeStamp:desc",
+            filter_by: strictFilterParts.join(" && "),
+        },
+    });
+    const strictBody = strictResp.data || {};
+    const strictHits = Array.isArray(strictBody.hits) ? strictBody.hits : [];
+    if (strictHits.length >= limit || Number(strictBody.found || 0) <= limit) {
+        return {
+            surface,
+            ownedMinutes,
+            page,
+            limit,
+            found: Number(strictBody.found || 0),
+            out_of: Number(strictBody.out_of || 0),
+            search_time_ms: Number(strictBody.search_time_ms || 0),
+            hits: strictHits.map((h) => ({
+                ...(h?.document || {}),
+                text_match: h?.text_match || 0,
+            })),
+        };
+    }
+    const broadPerPage = Math.max(limit, Math.min(250, Math.max(limit * 4, 100)));
+    const collected = new Map();
+    let lastScannedPage = page;
+    let totalFound = Number(strictBody.found || 0);
+    let totalOutOf = Number(strictBody.out_of || 0);
+    let totalSearchTimeMs = Number(strictBody.search_time_ms || 0);
+    for (let broadPage = page; broadPage < page + 6 && collected.size < limit; broadPage += 1) {
+        const broadResp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
+            headers: headers(),
+            timeout: 10000,
+            params: {
+                q: "*",
+                query_by: "metin",
+                per_page: broadPerPage,
+                page: broadPage,
+                sort_by: "timeStamp:desc",
+                filter_by: surfaceFilterParts.join(" && "),
+            },
+        });
+        const broadBody = broadResp.data || {};
+        const broadHits = Array.isArray(broadBody.hits) ? broadBody.hits : [];
+        lastScannedPage = broadPage;
+        totalFound = Number(broadBody.found || totalFound || 0);
+        totalOutOf = Number(broadBody.out_of || totalOutOf || 0);
+        totalSearchTimeMs += Number(broadBody.search_time_ms || 0);
+        for (const rawHit of broadHits) {
+            const candidate = {
+                ...(rawHit?.document || {}),
+                text_match: rawHit?.text_match || 0,
+            };
+            const candidateId = String(candidate.id || "").trim();
+            if (!candidateId)
+                continue;
+            if (!ownedMinutes.includes(resolveMinuteOfHour(Number(candidate.timeStamp || 0)))) {
+                continue;
+            }
+            const targets = resolveSurfaceTargets({
+                paylasGizliligi: Number(candidate.paylasGizliligi || 0),
+                arsiv: candidate.arsiv === true,
+                deletedPost: candidate.deletedPost === true,
+                gizlendi: candidate.gizlendi === true,
+                isUploading: candidate.isUploading === true,
+                hasPlayableVideo: candidate.hasPlayableVideo === true,
+                hlsStatus: String(candidate.hlsStatus || ""),
+                aspectRatio: Number(candidate.aspectRatio || 0),
+                flood: candidate.flood === true,
+            });
+            if (!targets.includes(surface)) {
+                continue;
+            }
+            if (!collected.has(candidateId)) {
+                collected.set(candidateId, candidate);
+            }
+            if (collected.size >= limit)
+                break;
+        }
+        if (broadHits.length < broadPerPage) {
+            break;
+        }
+    }
+    return {
+        surface,
+        ownedMinutes,
+        page: lastScannedPage,
+        limit,
+        found: totalFound,
+        out_of: totalOutOf,
+        search_time_ms: totalSearchTimeMs,
+        hits: Array.from(collected.values()),
+    };
+}
 async function searchTagsFromTypesense(q, limit, page) {
     // Build tags from hashtag arrays inside posts_search.
     const base = await searchPostsFromTypesense(q, Math.max(limit * 5, 100), page);
@@ -1338,6 +1527,46 @@ exports.f15_getPostCardsByIdsCallable = (0, https_1.onCall)({
         return await getPostCardsByIdsFromTypesense(ids);
     }
     catch (err) {
+        const detail = err?.response?.data || err?.message || "unknown_error";
+        throw new https_1.HttpsError("internal", "typesense_search_failed", detail);
+    }
+});
+exports.f15_getMotorCandidatesCallable = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 30,
+    memory: "256MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+}, async (request) => {
+    const uid = requireAuth(request);
+    rateLimiter_1.RateLimits.general(uid);
+    if (!typesenseReady()) {
+        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
+    }
+    const surface = String(request.data?.surface || "").trim().toLowerCase();
+    const ownedMinutesRaw = Array.isArray(request.data?.ownedMinutes)
+        ? request.data?.ownedMinutes
+        : [];
+    const ownedMinutes = ownedMinutesRaw
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value >= 0 && value <= 59)
+        .map((value) => Math.trunc(value));
+    const limit = Math.max(1, Math.min(MOTOR_CANDIDATE_MAX_LIMIT, Number(request.data?.limit || 40)));
+    const page = Math.max(1, Number(request.data?.page || 1));
+    const nowMs = Number(request.data?.nowMs || Date.now());
+    const cutoffMs = Number(request.data?.cutoffMs || 0);
+    try {
+        return await getMotorCandidatesFromTypesense({
+            surface,
+            ownedMinutes,
+            limit,
+            page,
+            nowMs,
+            cutoffMs,
+        });
+    }
+    catch (err) {
+        if (err instanceof https_1.HttpsError)
+            throw err;
         const detail = err?.response?.data || err?.message || "unknown_error";
         throw new https_1.HttpsError("internal", "typesense_search_failed", detail);
     }

@@ -183,6 +183,40 @@ extension PostRepositoryQueryPart on PostRepository {
     return result;
   }
 
+  Future<TypesenseMotorCandidatesPage> _performFetchTypesenseMotorCandidates({
+    required String surface,
+    required List<int> ownedMinutes,
+    required int limit,
+    required int page,
+    required int? nowMs,
+    required int? cutoffMs,
+  }) async {
+    final result = await _typesensePostService.fetchMotorCandidates(
+      surface: surface,
+      ownedMinutes: ownedMinutes,
+      limit: limit,
+      page: page,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+    );
+    final items = result.hits.map((doc) {
+      final docId = (doc['id'] ?? '').toString().trim();
+      return _normalizeLikelyCompletedOwnPost(
+        PostsModel.fromMap(_typesenseDocToPostMap(doc, docId), docId),
+      );
+    }).where((post) => post.docID.trim().isNotEmpty).toList(growable: false);
+    return TypesenseMotorCandidatesPage(
+      surface: result.surface,
+      ownedMinutes: result.ownedMinutes,
+      items: items,
+      limit: result.limit,
+      page: result.page,
+      found: result.found,
+      outOf: result.outOf,
+      searchTimeMs: result.searchTimeMs,
+    );
+  }
+
   Future<PostQueryPage> _performFetchAgendaWindowPage({
     required int cutoffMs,
     required int nowMs,

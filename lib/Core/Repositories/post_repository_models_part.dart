@@ -66,6 +66,28 @@ class PostQueryPage {
   final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
 }
 
+class TypesenseMotorCandidatesPage {
+  const TypesenseMotorCandidatesPage({
+    required this.surface,
+    required this.ownedMinutes,
+    required this.items,
+    required this.limit,
+    required this.page,
+    required this.found,
+    required this.outOf,
+    required this.searchTimeMs,
+  });
+
+  final String surface;
+  final List<int> ownedMinutes;
+  final List<PostsModel> items;
+  final int limit;
+  final int page;
+  final int found;
+  final int outOf;
+  final int searchTimeMs;
+}
+
 class UserFeedReference {
   const UserFeedReference({
     required this.postId,
