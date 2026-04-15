@@ -785,6 +785,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         startupItems,
         reason: 'initial_items_to_add',
       );
+      if (GetPlatform.isAndroid) {
+        _applyStartupRenderStagesNow();
+      }
       if (_shouldFinalizeConnectedLiveStartupHead(
         initial: initial,
         currentAgenda: currentAgenda,
@@ -818,6 +821,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       pageApplyPlan.itemsToAdd,
       reason: 'initial_items_append',
     );
+    if (initial && GetPlatform.isAndroid) {
+      _applyStartupRenderStagesNow();
+    }
     if (initial) {
       _scheduleStartupWarmPlayerPreload(
         agendaList.toList(growable: false),
