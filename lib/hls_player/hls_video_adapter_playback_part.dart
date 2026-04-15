@@ -42,7 +42,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool preservePosition,
   }) async {
     if (_disposed) return;
-    final resumeAt = preservePosition ? _value.position : Duration.zero;
+    final shouldPreservePosition = preservePosition &&
+        !(defaultTargetPlatform == TargetPlatform.android &&
+            preferWarmPoolPause);
+    final resumeAt = shouldPreservePosition ? _value.position : Duration.zero;
     await _performStopPlayback(preserveFrameSnapshot: false);
     await Future<void>.delayed(const Duration(milliseconds: 80));
     await reloadVideo();

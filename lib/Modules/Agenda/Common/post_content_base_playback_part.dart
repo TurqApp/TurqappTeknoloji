@@ -165,6 +165,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   bool _shouldMonitorFeedStall(HLSVideoValue value) {
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (defaultTargetPlatform == TargetPlatform.iOS) return false;
+    if (defaultTargetPlatform == TargetPlatform.android) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
     if (_manualPauseRequested) return false;

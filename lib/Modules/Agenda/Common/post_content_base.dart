@@ -742,7 +742,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (defaultTargetPlatform == TargetPlatform.iOS) return true;
     if (defaultTargetPlatform != TargetPlatform.android) return false;
-    if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
+    // Android primary feed autoplay/resume must not re-apply saved seek hints.
+    // Route resumes and surface rebind recovery are handled by warm surfaces and
+    // fresh playback ownership, not by replaying stale saved positions.
     return true;
   }
 

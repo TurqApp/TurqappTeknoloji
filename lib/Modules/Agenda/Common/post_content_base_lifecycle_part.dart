@@ -265,11 +265,12 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     }
 
-    final disableDartRecoveryForIosPrimaryFeed =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance;
+    final disableDartRecoveryForPlatformPrimaryFeed =
+        _isPrimaryFeedSurfaceInstance &&
+            (defaultTargetPlatform == TargetPlatform.iOS ||
+                defaultTargetPlatform == TargetPlatform.android);
     final shouldRecoverPlayback =
-        !disableDartRecoveryForIosPrimaryFeed &&
+        !disableDartRecoveryForPlatformPrimaryFeed &&
             !_useLegacyIosFeedBehavior &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed &&
