@@ -3,6 +3,9 @@ part of 'agenda_view.dart';
 extension _AgendaViewFeedPart on AgendaView {
   Widget _buildStartupWarmPreloadLayer() {
     return Obx(() {
+      if (GetPlatform.isAndroid) {
+        return const SizedBox.shrink();
+      }
       final docIds = controller.startupWarmPreloadDocIdsRx.toList(growable: false);
       if (docIds.isEmpty) return const SizedBox.shrink();
       final posts = <PostsModel>[];
