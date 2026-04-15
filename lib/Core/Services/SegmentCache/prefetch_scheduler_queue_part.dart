@@ -1,6 +1,8 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerQueuePart on PrefetchScheduler {
+  bool _shouldEnqueuePrefetchJob(int readySegments) => readySegments > 0;
+
   void _resetWifiQuotaFillPlanState() {
     _quotaFillRemoteInFlight = false;
     _quotaFillRemoteHasMore = true;
@@ -57,6 +59,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         docID: docID,
         cacheManager: cacheManager,
       );
+      if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
       _queue.add(
         _PrefetchJob(
           docID,
@@ -319,17 +322,19 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         docID: focusedDocID,
         cacheManager: cacheManager,
       );
-      _queue.add(
-        _PrefetchJob(
-          focusedDocID,
-          readySegments,
-          -1,
-          (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
-              .toDouble(),
-        ),
-      );
-      _jobEnqueuedAt[focusedDocID] = DateTime.now();
-      cacheManager.touchEntry(focusedDocID);
+      if (_shouldEnqueuePrefetchJob(readySegments)) {
+        _queue.add(
+          _PrefetchJob(
+            focusedDocID,
+            readySegments,
+            -1,
+            (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
+                .toDouble(),
+          ),
+        );
+        _jobEnqueuedAt[focusedDocID] = DateTime.now();
+        cacheManager.touchEntry(focusedDocID);
+      }
     }
 
     _paused = false;
@@ -419,6 +424,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         docID: docID,
         cacheManager: cacheManager,
       );
+      if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
 
       _queue.add(_PrefetchJob(
         docID,
@@ -445,21 +451,23 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           docID: docID,
           cacheManager: cacheManager,
         );
-        _queue.add(_PrefetchJob(
-          docID,
-          readySegments,
-          1,
-          _buildJobScore(
-            currentIndex: safeCurrent,
-            currentDocId: currentDocId,
-            targetIndex: safeCurrent,
-            priority: 1,
-            watchProgress: entry?.watchProgress ?? 0.0,
-            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-            totalSegmentCount: entry?.totalSegmentCount ?? 0,
-          ),
-        ));
-        _jobEnqueuedAt[docID] = DateTime.now();
+        if (_shouldEnqueuePrefetchJob(readySegments)) {
+          _queue.add(_PrefetchJob(
+            docID,
+            readySegments,
+            1,
+            _buildJobScore(
+              currentIndex: safeCurrent,
+              currentDocId: currentDocId,
+              targetIndex: safeCurrent,
+              priority: 1,
+              watchProgress: entry?.watchProgress ?? 0.0,
+              cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+              totalSegmentCount: entry?.totalSegmentCount ?? 0,
+            ),
+          ));
+          _jobEnqueuedAt[docID] = DateTime.now();
+        }
       }
     }
 
@@ -473,6 +481,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         docID: docID,
         cacheManager: cacheManager,
       );
+      if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
 
       _queue.add(_PrefetchJob(
         docID,
@@ -563,6 +572,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         cacheManager: cacheManager,
         fallback: readySegmentFallback,
       );
+      if (!_shouldEnqueuePrefetchJob(readySegments)) return;
       _queue.add(_PrefetchJob(
         docID,
         readySegments,
@@ -629,6 +639,13 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       cacheManager: cacheManager,
       fallback: readySegments,
     );
+    if (!_shouldEnqueuePrefetchJob(resolvedReadySegments)) {
+      _queue.removeWhere((job) => job.docID == normalizedDocId);
+      _pendingFollowUpJobs.remove(normalizedDocId);
+      _jobEnqueuedAt.remove(normalizedDocId);
+      _publishPrefetchHealthIfNeeded();
+      return;
+    }
     if (entry != null && entry.cachedSegmentCount >= resolvedReadySegments) {
       return;
     }

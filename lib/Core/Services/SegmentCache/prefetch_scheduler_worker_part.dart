@@ -3,7 +3,7 @@ part of 'prefetch_scheduler.dart';
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   int _effectiveMaxConcurrent() {
     if (_hasActiveFeedPlaybackWindow) {
-      return _maxConcurrent > 1 ? 1 : _maxConcurrent;
+      return _maxConcurrent < 2 ? _maxConcurrent : 2;
     }
     if (_lastFeedWindowCount <= 0) {
       return _maxConcurrent > 1 ? 1 : _maxConcurrent;
@@ -278,6 +278,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final entryForPolicy = cacheManager.getEntry(job.docID);
       final watchedProgress = entryForPolicy?.watchProgress ?? 0.0;
       final isUnwatched = watchedProgress <= 0.01;
+      if (job.maxSegments <= 0) {
+        _clearFollowUpJob(job.docID);
+        return;
+      }
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;

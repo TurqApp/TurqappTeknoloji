@@ -6,6 +6,7 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'Referer': '$_prefetchSchedulerCdnOrigin/',
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
+const int _prefetchSchedulerFeedLeadReadySegments = 3;
 const int _prefetchSchedulerPriorityWindowSize = 5;
 const int _prefetchSchedulerWifiMinBreadthCount = 5;
 const int _prefetchSchedulerWifiMinDepthCount = 3;
@@ -105,10 +106,9 @@ bool isPriorityWindowTargetIndex({
 int resolveFeedWindowReadySegments({
   required int currentIndex,
   required int targetIndex,
-  int hardBoostCount = _prefetchSchedulerFeedHardBoostCount,
   int aheadCount = _prefetchSchedulerFeedAheadCount,
   int behindCount = _prefetchSchedulerFeedBehindCount,
-  int hardBoostReadySegments = _prefetchSchedulerTargetReadySegments,
+  int hardBoostReadySegments = _prefetchSchedulerFeedLeadReadySegments,
   int softWarmReadySegments = _prefetchSchedulerFeedSoftWarmReadySegments,
 }) {
   if (targetIndex < 0) {
