@@ -120,9 +120,30 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  Future<void> _warmInitialFeedAvatars(List<PostsModel> posts) async {
+    final avatarUrls = posts
+        .map((post) => post.authorAvatarUrl.trim())
+        .where((url) => url.isNotEmpty)
+        .toSet()
+        .take(8)
+        .toList(growable: false);
+    if (avatarUrls.isEmpty) return;
+
+    await Future.wait(
+      avatarUrls.map((url) async {
+        try {
+          await TurqImageCacheManager.warmUrl(url)
+              .timeout(const Duration(seconds: 2));
+        } catch (_) {}
+      }),
+      eagerError: false,
+    );
+  }
+
   void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
     if (posts.isEmpty) return;
     unawaited(_warmInitialFeedVideoPosters(posts));
+    unawaited(_warmInitialFeedAvatars(posts));
   }
 
   void _cancelStartupWarmPlayerPreload() {

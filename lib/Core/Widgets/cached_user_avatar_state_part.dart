@@ -348,6 +348,13 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             backgroundColor: widget.backgroundColor,
           );
     }
+    if (_resolvedFilePath.isEmpty) {
+      final rememberedPath = _rememberedFilePathFor(url);
+      if (rememberedPath.isNotEmpty) {
+        _resolvedFilePath = rememberedPath;
+        _primeResolvedFileFrame(rememberedPath);
+      }
+    }
     if (_resolvedFilePath.isNotEmpty) {
       final file = File(_resolvedFilePath);
       if (file.existsSync()) {
