@@ -471,7 +471,18 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void suspendPlaybackForOverlay() => _performSuspendPlaybackForOverlay();
 
-  void resumePlaybackAfterOverlay() => _performResumePlaybackAfterOverlay();
+  void resumePlaybackAfterOverlay() {
+    final binding = WidgetsBinding.instance;
+    if (binding.schedulerPhase == SchedulerPhase.idle ||
+        binding.schedulerPhase == SchedulerPhase.postFrameCallbacks) {
+      _performResumePlaybackAfterOverlay();
+      return;
+    }
+    binding.addPostFrameCallback((_) {
+      if (isClosed) return;
+      _performResumePlaybackAfterOverlay();
+    });
+  }
 
   void resetVisibleFeedSurfaceAfterShortReturn() =>
       _performResetVisibleFeedSurfaceAfterShortReturn();

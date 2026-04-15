@@ -190,7 +190,8 @@ extension _SplashViewWarmPart on _SplashViewState {
             }
             if (storyController != null &&
                 storyStartupWarmLimit != null &&
-                earlyStoryWarmFuture == null) {
+                earlyStoryWarmFuture == null &&
+                !(Platform.isAndroid && prioritizeHomeWarmups)) {
               earlyStoryWarmFuture = _forceLoadStoriesSync(
                 storyController,
                 limit: storyStartupWarmLimit,
@@ -325,6 +326,11 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (prioritizeHomeWarmups && storyController != null) {
         if (deferStoryCriticalSync && storyStartupWarmLimit != null) {
           deferredSlices.add(() async {
+            if (Platform.isAndroid && prioritizeHomeWarmups) {
+              await Future.delayed(
+                Duration(milliseconds: onWiFi ? 1200 : 800),
+              );
+            }
             await _profileStartupWarmSlice('home_story_sync', () async {
               await _forceLoadStoriesSync(
                 storyController,
