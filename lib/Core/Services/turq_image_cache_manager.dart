@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/avatar_url.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
 class TurqImageCacheManager {
@@ -10,6 +12,12 @@ class TurqImageCacheManager {
   static CacheManager? _instance;
   static final Map<String, String> _resolvedFilePathByUrl = <String, String>{};
   static CacheManager? maybeFind() => _instance;
+
+  static String _normalizeRememberedUrlKey(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty || isDefaultAvatarUrl(trimmed)) return '';
+    return CdnUrlBuilder.toCdnUrl(trimmed);
+  }
 
   static CacheManager ensure() =>
       maybeFind() ??
@@ -24,7 +32,7 @@ class TurqImageCacheManager {
   static CacheManager get instance => ensure();
 
   static void rememberResolvedFile(String url, String filePath) {
-    final normalizedUrl = url.trim();
+    final normalizedUrl = _normalizeRememberedUrlKey(url);
     final normalizedPath = filePath.trim();
     if (normalizedUrl.isEmpty || normalizedPath.isEmpty) return;
     if (!File(normalizedPath).existsSync()) return;
@@ -32,9 +40,17 @@ class TurqImageCacheManager {
   }
 
   static String rememberedResolvedFilePathForUrl(String url) {
-    final normalized = url.trim();
+    final normalized = _normalizeRememberedUrlKey(url);
     if (normalized.isEmpty) return '';
-    final remembered = _resolvedFilePathByUrl[normalized] ?? '';
+    var remembered = _resolvedFilePathByUrl[normalized] ?? '';
+    if (remembered.isEmpty) {
+      final legacyKey = url.trim();
+      remembered = _resolvedFilePathByUrl[legacyKey] ?? '';
+      if (remembered.isNotEmpty) {
+        _resolvedFilePathByUrl[normalized] = remembered;
+        _resolvedFilePathByUrl.remove(legacyKey);
+      }
+    }
     if (remembered.isEmpty) return '';
     if (!File(remembered).existsSync()) {
       _resolvedFilePathByUrl.remove(normalized);
@@ -54,14 +70,14 @@ class TurqImageCacheManager {
   }
 
   static Future<File> warmUrl(String url) async {
-    final normalized = url.trim();
+    final normalized = _normalizeRememberedUrlKey(url);
     final file = await instance.getSingleFile(normalized);
     rememberResolvedFile(normalized, file.path);
     return file;
   }
 
   static Future<void> removeUrl(String url) async {
-    final normalized = url.trim();
+    final normalized = _normalizeRememberedUrlKey(url);
     if (normalized.isEmpty) return;
     try {
       _resolvedFilePathByUrl.remove(normalized);

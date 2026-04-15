@@ -140,6 +140,47 @@ extension AgendaControllerLoadingPart on AgendaController {
     );
   }
 
+  Future<void> _primeInitialVisibleCardImageHints(
+    List<PostsModel> posts,
+  ) async {
+    final visiblePosts = posts.take(3).toList(growable: false);
+    if (visiblePosts.isEmpty) return;
+
+    final avatarUrls = visiblePosts
+        .map((post) => post.authorAvatarUrl.trim())
+        .where((url) => url.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    final posterUrls = visiblePosts
+        .where((post) => post.hasRenderableVideoCard)
+        .expand((post) => post.preferredVideoPosterUrls.map((url) => url.trim()))
+        .where((url) => url.isNotEmpty)
+        .take(3)
+        .toList(growable: false);
+
+    await Future.wait(
+      <Future<void>>[
+        ...avatarUrls.map(_primeCachedImageHint),
+        ...posterUrls.map(_primeCachedImageHint),
+      ],
+      eagerError: false,
+    );
+  }
+
+  Future<void> _primeCachedImageHint(String url) async {
+    final normalized = url.trim();
+    if (normalized.isEmpty) return;
+    try {
+      final cached = await TurqImageCacheManager.instance
+          .getFileFromCache(normalized)
+          .timeout(const Duration(milliseconds: 120));
+      final file = cached?.file;
+      if (file != null && file.existsSync()) {
+        TurqImageCacheManager.rememberResolvedFile(normalized, file.path);
+      }
+    } catch (_) {}
+  }
+
   void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
     if (posts.isEmpty) return;
     unawaited(_warmInitialFeedVideoPosters(posts));
@@ -781,6 +822,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         'rawCount=${pageApplyPlan.itemsToAdd.length} '
         'composedCount=${startupItems.length}',
       );
+      unawaited(_primeInitialVisibleCardImageHints(startupItems));
       _replaceAgendaState(
         startupItems,
         reason: 'initial_items_to_add',
@@ -821,6 +863,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       pageApplyPlan.itemsToAdd,
       reason: 'initial_items_append',
     );
+    if (initial) {
+      unawaited(_primeInitialVisibleCardImageHints(pageApplyPlan.itemsToAdd));
+    }
     if (initial && GetPlatform.isAndroid) {
       _applyStartupRenderStagesNow();
     }
