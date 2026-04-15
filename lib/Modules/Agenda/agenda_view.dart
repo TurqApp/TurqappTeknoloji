@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -250,6 +252,7 @@ class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot
     if (cacheKey.trim().isEmpty || widget.model.playbackUrl.trim().isEmpty) {
       return;
     }
+    final useLocalProxy = defaultTargetPlatform != TargetPlatform.android;
     _reportedPrepared = false;
     _reportedFirstFrame = false;
     _adapter = _adapterPool.acquire(
@@ -257,6 +260,7 @@ class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot
       url: widget.model.playbackUrl,
       autoPlay: false,
       loop: true,
+      useLocalProxy: useLocalProxy,
     );
     _adapter?.addListener(_handleAdapterUpdate);
     unawaited(_adapter?.setVolume(0.0) ?? Future<void>.value());

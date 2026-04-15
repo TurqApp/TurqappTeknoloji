@@ -31,6 +31,20 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
   }) {
+    final sharedLeasedAdapter = _findReusableLeasedAdapter(
+      cacheKey: cacheKey,
+      requestedUrl: url,
+      useLocalProxy: useLocalProxy,
+      coordinateAudioFocus: coordinateAudioFocus,
+    );
+    if (sharedLeasedAdapter != null) {
+      _leasedKeys[sharedLeasedAdapter] = cacheKey;
+      _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
+      unawaited(sharedLeasedAdapter.setLooping(loop));
+      _restoreSavedPosition(cacheKey, sharedLeasedAdapter);
+      return sharedLeasedAdapter;
+    }
+
     final warmEntry = _warmAdapters.remove(cacheKey);
     _warmOrder.remove(cacheKey);
 
@@ -72,6 +86,34 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
     _restoreSavedPosition(cacheKey, adapter);
     return adapter;
+  }
+
+  HLSVideoAdapter? _findReusableLeasedAdapter({
+    required String cacheKey,
+    required String requestedUrl,
+    required bool useLocalProxy,
+    required bool coordinateAudioFocus,
+  }) {
+    for (final entry in _leasedKeys.entries) {
+      if (entry.value != cacheKey) continue;
+      final adapter = entry.key;
+      if (adapter.isDisposed) continue;
+      final leasedEntry = _WarmAdapterEntry(
+        adapter: adapter,
+        requestUrl: adapter.originalUrl,
+        useLocalProxy: adapter.usesLocalProxy,
+        coordinateAudioFocus: adapter.coordinateAudioFocus,
+      );
+      if (_isReusable(
+        leasedEntry,
+        requestedUrl,
+        useLocalProxy,
+        coordinateAudioFocus,
+      )) {
+        return adapter;
+      }
+    }
+    return null;
   }
 
   Future<void> release(
