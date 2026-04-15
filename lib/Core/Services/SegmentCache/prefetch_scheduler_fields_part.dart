@@ -20,6 +20,7 @@ class _PrefetchSchedulerState {
   String? focusedDocID;
   bool restrictToFocusedDoc = false;
   int lastFeedCurrentIndex = 0;
+  int lastFeedPreviousIndex = 0;
   int lastFeedReadyCount = 0;
   int lastFeedWindowCount = 0;
   double lastFeedReadyRatio = 0.0;
@@ -76,6 +77,8 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   set _restrictToFocusedDoc(bool value) => _state.restrictToFocusedDoc = value;
   int get _lastFeedCurrentIndex => _state.lastFeedCurrentIndex;
   set _lastFeedCurrentIndex(int value) => _state.lastFeedCurrentIndex = value;
+  int get _lastFeedPreviousIndex => _state.lastFeedPreviousIndex;
+  set _lastFeedPreviousIndex(int value) => _state.lastFeedPreviousIndex = value;
   int get _lastFeedReadyCount => _state.lastFeedReadyCount;
   set _lastFeedReadyCount(int value) => _state.lastFeedReadyCount = value;
   int get _lastFeedWindowCount => _state.lastFeedWindowCount;

@@ -513,9 +513,16 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
     final safeCurrent =
         _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final behindStart = (safeCurrent - _prefetchSchedulerFeedBehindCount)
+    final directionalWindow = resolveDirectionalFeedWindowCounts(
+      previousIndex: _lastFeedPreviousIndex.clamp(
+        0,
+        _lastFeedDocIDs.length - 1,
+      ),
+      currentIndex: safeCurrent,
+    );
+    final behindStart = (safeCurrent - directionalWindow.behindCount)
         .clamp(0, _lastFeedDocIDs.length - 1);
-    final aheadEnd = (safeCurrent + _prefetchSchedulerFeedAheadCount).clamp(
+    final aheadEnd = (safeCurrent + directionalWindow.aheadCount).clamp(
       0,
       _lastFeedDocIDs.length - 1,
     );

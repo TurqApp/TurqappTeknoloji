@@ -526,6 +526,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _jobEnqueuedAt.clear();
 
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+    final previousIndex = _lastFeedCurrentIndex.clamp(0, docIDs.length - 1);
+    final directionalWindow = resolveDirectionalFeedWindowCounts(
+      previousIndex: previousIndex,
+      currentIndex: safeCurrent,
+    );
     final priorityWindow = resolveFeedPriorityWindowContext(
       docIDs: docIDs,
       currentIndex: safeCurrent,
@@ -535,10 +540,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       priorityWindow.currentIndex,
     );
     _lastFeedDocIDs = List<String>.from(docIDs);
+    _lastFeedPreviousIndex = previousIndex;
     _lastFeedCurrentIndex = safeCurrent;
-    final behindStart = (safeCurrent - _prefetchSchedulerFeedBehindCount)
+    final behindStart = (safeCurrent - directionalWindow.behindCount)
         .clamp(0, docIDs.length - 1);
-    final aheadEnd = (safeCurrent + _prefetchSchedulerFeedAheadCount)
+    final aheadEnd = (safeCurrent + directionalWindow.aheadCount)
         .clamp(0, docIDs.length - 1);
 
     final queued = <String>{};

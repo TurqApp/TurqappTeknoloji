@@ -11,8 +11,8 @@ const int _prefetchSchedulerWifiMinBreadthCount = 5;
 const int _prefetchSchedulerWifiMinDepthCount = 3;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 3;
 const int _prefetchSchedulerFeedRetainBehindCount = 2;
-const int _prefetchSchedulerFeedAheadCount = 4;
-const int _prefetchSchedulerFeedBehindCount = 2;
+const int _prefetchSchedulerFeedAheadCount = 5;
+const int _prefetchSchedulerFeedBehindCount = 3;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
 const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
 const int _prefetchSchedulerQuotaFillBurstSegments = 4;
@@ -83,6 +83,25 @@ bool isPriorityWindowTargetIndex({
 }
 
 @visibleForTesting
+({int aheadCount, int behindCount}) resolveDirectionalFeedWindowCounts({
+  required int previousIndex,
+  required int currentIndex,
+  int aheadCount = _prefetchSchedulerFeedAheadCount,
+  int behindCount = _prefetchSchedulerFeedBehindCount,
+}) {
+  if (currentIndex < previousIndex) {
+    return (
+      aheadCount: behindCount,
+      behindCount: aheadCount,
+    );
+  }
+  return (
+    aheadCount: aheadCount,
+    behindCount: behindCount,
+  );
+}
+
+@visibleForTesting
 int resolveFeedWindowReadySegments({
   required int currentIndex,
   required int targetIndex,
@@ -100,14 +119,11 @@ int resolveFeedWindowReadySegments({
     return hardBoostReadySegments;
   }
   if (distance > 0) {
-    if (distance < hardBoostCount) {
-      return hardBoostReadySegments;
-    }
     if (distance <= aheadCount) {
       return softWarmReadySegments;
     }
   } else if (-distance <= behindCount) {
-    return softWarmReadySegments;
+    return 0;
   }
   return softWarmReadySegments;
 }

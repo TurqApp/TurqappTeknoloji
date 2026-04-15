@@ -105,19 +105,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     unawaited(_warmInitialFeedVideoPosters(posts));
   }
 
-  bool _hasSameDocOrder(
-    List<PostsModel> currentItems,
-    List<PostsModel> nextItems,
-  ) {
-    if (currentItems.length != nextItems.length) return false;
-    for (var index = 0; index < currentItems.length; index++) {
-      if (currentItems[index].docID != nextItems[index].docID) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   void _resumeFeedPlaybackAfterRefresh({
     required int expectedEpoch,
   }) {
@@ -200,315 +187,10 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   Future<bool> _seedConnectedStartupHeadFromShard() async {
-    if (!ContentPolicy.isConnected ||
-        agendaList.isNotEmpty ||
-        isLoading.value) {
-      return false;
-    }
-    if (await _seedConnectedStartupHeadFromLivePrimary(
-      reason: 'connected_startup_live_primary',
-    )) {
-      return true;
-    }
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return false;
-    final startupCandidates =
-        await _feedSnapshotRepository.inspectHomeStartupShard(
-      userId: userId,
-      limit: FeedSnapshotRepository.startupHomeLimitValue,
-    );
-    if (startupCandidates.isEmpty) {
-      debugPrint(
-        '[FeedStartupSurface] status=connected_startup_shard_empty',
-      );
-      return _seedConnectedStartupHeadFromLocalFallback(
-        reason: 'connected_startup_local_fallback',
-      );
-    }
-    final startupItems = _buildStartupPlannerHead(
-      cacheCandidates: startupCandidates,
-      targetCount: min(
-        startupCandidates.length,
-        FeedSnapshotRepository.startupHomeLimitValue,
-      ),
-      allowSparseSlotFallback: true,
-    );
-    if (startupItems.isEmpty) {
-      debugPrint(
-        '[FeedStartupSurface] status=connected_startup_shard_no_head '
-        'candidateCount=${startupCandidates.length}',
-      );
-      return _seedConnectedStartupHeadFromLocalFallback(
-        reason: 'connected_startup_local_fallback',
-      );
-    }
-    if (startupItems.length < 2) {
-      debugPrint(
-        '[FeedStartupSurface] status=connected_startup_shard_skip_single_seed '
-        'composedCount=${startupItems.length}',
-      );
-      return false;
-    }
-    _startupHeadFinalized = false;
-    _startupPlannerHeadApplied = startupItems.isNotEmpty;
-    _startupRenderBootstrapHold = true;
-    _activateStartupRenderStages(
-      reason: 'connected_startup_shard_seed',
-    );
     debugPrint(
-      '[FeedStartupPlanner] source=connected_startup_shard '
-      'status=apply_seeded_startup_items '
-      'rawCount=${startupCandidates.length} composedCount=${startupItems.length}',
+      '[FeedStartupSurface] status=connected_seed_disabled_runtime',
     );
-    _replaceAgendaState(
-      startupItems,
-      reason: 'connected_startup_shard_seed',
-    );
-    _applyStartupRenderStagesNow();
-    _scheduleInitialFeedVideoPosterWarmup(startupItems);
-    _scheduleReshareFetchForPosts(
-      startupItems,
-      perPostLimit: 1,
-    );
-    return true;
-  }
-
-  Future<bool> _seedConnectedStartupHeadFromLivePrimary({
-    required String reason,
-  }) async {
-    if (!ContentPolicy.isConnected ||
-        agendaList.isNotEmpty ||
-        isClosed ||
-        isLoading.value) {
-      return false;
-    }
-
-    try {
-      await _awaitFeedAuthReadiness();
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final cutoffMs = _agendaCutoffMs(nowMs);
-      final startupSource = _resolveConnectedStartupPrimarySource();
-      debugPrint(
-        '[FeedStartupSurface] status=primary_source_selected '
-        'source=${startupSource.name}',
-      );
-      if (startupSource == FeedPrimarySourceMode.typesense) {
-        final typesenseSeed = await _loadConnectedStartupTypesenseCandidates(
-          currentUserId: CurrentUserService.instance.effectiveUserId.trim(),
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-        );
-        final typesenseStartupItems = _applyConnectedStartupSeedItems(
-          reason: '${reason}_typesense',
-          rawItems: typesenseSeed.items,
-          itemsPreplanned: false,
-        );
-        if (typesenseStartupItems != null) {
-          unawaited(
-            _storeColdFeedPlanWindow(
-              seedPosts: typesenseStartupItems,
-              fetchedPosts: typesenseSeed.items,
-              lastDoc: null,
-              nextTypesensePage: typesenseSeed.nextTypesensePage,
-              usesPrimaryFeed: true,
-              targetLimit: _connectedColdFeedStageThreeLimit,
-              logLabel: 'FeedColdPlanTypesense',
-            ),
-          );
-          return true;
-        }
-        if (!FeedSnapshotRepository.typesenseFirestoreFallbackEnabled) {
-          debugPrint(
-            '[FeedStartupSurface] status=${reason}_typesense_no_fallback',
-          );
-          return false;
-        }
-      }
-      final livePage = await _loadAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: FeedSnapshotRepository.startupHomeLimitValue,
-        useStoredCursor: false,
-        preferCache: false,
-        cacheOnly: false,
-        includeSupplementalSources: true,
-        bypassInitialPrimaryCursorShift: true,
-        primarySourceOverride: startupSource == FeedPrimarySourceMode.typesense
-            ? FeedPrimarySourceMode.firestore
-            : FeedPrimarySourceMode.firestore,
-      );
-      return _applyConnectedStartupSeedItems(
-            reason: reason,
-            rawItems: livePage.items,
-            itemsPreplanned: livePage.itemsPreplanned,
-          ) !=
-          null;
-    } catch (error) {
-      debugPrint(
-        '[FeedStartupSurface] status=${reason}_fetch_failed error=$error',
-      );
-      return false;
-    }
-  }
-
-  FeedPrimarySourceMode _resolveConnectedStartupPrimarySource() {
-    if (FeedSnapshotRepository.typesensePrimaryEnabled) {
-      return FeedPrimarySourceMode.typesense;
-    }
-    return FeedPrimarySourceMode.firestore;
-  }
-
-  Future<({List<PostsModel> items, int? nextTypesensePage})>
-      _loadConnectedStartupTypesenseCandidates({
-    required String currentUserId,
-    required int nowMs,
-    required int cutoffMs,
-  }) async {
-    if (currentUserId.isEmpty) {
-      return (items: const <PostsModel>[], nextTypesensePage: null);
-    }
-    try {
-      final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
-      final ownedMinutes = _agendaFeedApplicationService
-          .resolveLaunchMotorOwnedMinutes(anchorMs: anchorMs);
-      final page = await _profileFeedStartupSurfaceStep(
-          'fetch_typesense_motor_seed', () {
-        return _postRepository.fetchTypesenseMotorCandidates(
-          surface: 'feed',
-          ownedMinutes: ownedMinutes,
-          limit: _connectedInitialCandidateFetchLimit,
-          page: 1,
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-        );
-      });
-      debugPrint(
-        '[FeedStartupSurface] status=typesense_motor_seed '
-        'surface=${page.surface} ownedMinutes=${page.ownedMinutes.join(",")} '
-        'count=${page.items.length} found=${page.found} '
-        'outOf=${page.outOf} searchTimeMs=${page.searchTimeMs}',
-      );
-      final nextTypesensePage =
-          FeedTypesensePagingContract.resolveNextTypesensePage(
-        itemCount: page.items.length,
-        limit: _connectedInitialCandidateFetchLimit,
-        page: page.page,
-        found: page.found,
-      );
-      if (page.items.isEmpty) {
-        return (items: const <PostsModel>[], nextTypesensePage: null);
-      }
-      final visible = await _profileFeedStartupSurfaceStep(
-        'filter_typesense_motor_seed',
-        () async {
-          final filtered = <PostsModel>[];
-          for (final post in page.items) {
-            if (!_isEligibleAgendaPost(post, nowMs)) {
-              continue;
-            }
-            if (!await _canViewerSeePost(post)) {
-              continue;
-            }
-            filtered.add(post);
-          }
-          return filtered;
-        },
-      );
-      debugPrint(
-        '[FeedStartupSurface] status=typesense_motor_seed_visible '
-        'count=${visible.length} sample=${visible.take(5).map((post) => post.docID).join(",")}',
-      );
-      return (
-        items: visible,
-        nextTypesensePage: nextTypesensePage,
-      );
-    } catch (error) {
-      debugPrint(
-        '[FeedStartupSurface] status=typesense_motor_seed_failed error=$error',
-      );
-      return (items: const <PostsModel>[], nextTypesensePage: null);
-    }
-  }
-
-  List<PostsModel>? _applyConnectedStartupSeedItems({
-    required String reason,
-    required List<PostsModel> rawItems,
-    required bool itemsPreplanned,
-  }) {
-    final startupItems = itemsPreplanned
-        ? _normalizeConnectedStartupSeedItems(
-            rawItems,
-            targetCount: FeedSnapshotRepository.startupHomeLimitValue,
-          )
-        : _buildStartupPlannerHead(
-            cacheCandidates: const <PostsModel>[],
-            liveCandidates: rawItems,
-            targetCount: min(
-              rawItems.length,
-              FeedSnapshotRepository.startupHomeLimitValue,
-            ),
-            allowSparseSlotFallback: true,
-          );
-    if (startupItems.isEmpty) {
-      debugPrint(
-        '[FeedStartupSurface] status=${reason}_no_head '
-        'candidateCount=${rawItems.length}',
-      );
-      return null;
-    }
-    if (startupItems.length < 2) {
-      debugPrint(
-        '[FeedStartupSurface] status=${reason}_skip_single_seed '
-        'composedCount=${startupItems.length}',
-      );
-      return null;
-    }
-    _startupHeadFinalized = false;
-    _startupPlannerHeadApplied = startupItems.isNotEmpty;
-    _startupRenderBootstrapHold = true;
-    _activateStartupRenderStages(reason: reason);
-    debugPrint(
-      '[FeedStartupPlanner] source=$reason '
-      'status=apply_seeded_startup_items '
-      'rawCount=${rawItems.length} composedCount=${startupItems.length}',
-    );
-    _replaceAgendaState(
-      startupItems,
-      reason: reason,
-    );
-    _applyStartupRenderStagesNow();
-    _scheduleInitialFeedVideoPosterWarmup(startupItems);
-    _scheduleReshareFetchForPosts(
-      startupItems,
-      perPostLimit: 1,
-    );
-    return startupItems;
-  }
-
-  List<PostsModel> _normalizeConnectedStartupSeedItems(
-    List<PostsModel> items, {
-    required int targetCount,
-  }) {
-    if (items.isEmpty || targetCount <= 0) {
-      return const <PostsModel>[];
-    }
-    final seenIds = <String>{};
-    final normalized = <PostsModel>[];
-    for (final post in items) {
-      final docId = post.docID.trim();
-      if (docId.isEmpty || !seenIds.add(docId)) {
-        continue;
-      }
-      normalized.add(post);
-    }
-    normalized.sort((left, right) {
-      final timeCompare = right.timeStamp.compareTo(left.timeStamp);
-      if (timeCompare != 0) {
-        return timeCompare;
-      }
-      return right.docID.trim().compareTo(left.docID.trim());
-    });
-    return normalized.take(targetCount).toList(growable: false);
+    return false;
   }
 
   Future<bool> _seedConnectedStartupHeadFromLocalFallback({
@@ -897,46 +579,36 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     if (shouldFinalizeStartupHead) {
-      final mergedAgenda =
-          _agendaFeedApplicationService.mergeLiveItemsPreservingCurrentOrder(
-        currentItems: currentAgenda,
-        liveItems: visibleItems,
-        liveItemsPreplanned: pageApplyPlan.pageItemsPreplanned,
-      );
-      final preservesDocOrder = _hasSameDocOrder(currentAgenda, mergedAgenda);
       final appendedItems = pageApplyPlan.itemsToAdd;
+      final replacementAgenda = pageApplyPlan.pageItemsPreplanned
+          ? _agendaFeedApplicationService.buildPlannerPageItems(
+              visibleItems,
+              currentItemCount: 0,
+            )
+          : _agendaFeedApplicationService.buildPlannerPageItems(
+              visibleItems,
+              currentItemCount: 0,
+            );
       debugPrint(
         '[FeedStartupPlanner] source=initial_bootstrap '
-        'status=deferred_live_merge_for_seeded_head '
+        'status=bypass_seeded_head_with_live_pool '
         'currentCount=${currentAgenda.length} liveCount=${visibleItems.length} '
-        'mergedCount=${mergedAgenda.length} appendCount=${appendedItems.length} '
-        'preservesDocOrder=$preservesDocOrder '
+        'replacementCount=${replacementAgenda.length} appendCount=${appendedItems.length} '
         'currentHead=${currentAgenda.take(5).map((post) => post.docID).join(",")} '
         'liveHead=${visibleItems.take(5).map((post) => post.docID).join(",")}',
       );
-      if (appendedItems.isEmpty && preservesDocOrder) {
-        _replaceAgendaState(
-          mergedAgenda,
-          reason: 'initial_seeded_head_refresh_same_order',
-        );
-      } else if (appendedItems.isNotEmpty) {
-        _replaceAgendaState(
-          mergedAgenda,
-          reason: 'initial_seeded_head_deferred_merge_latest_first',
-        );
-      }
+      _replaceAgendaState(
+        replacementAgenda,
+        reason: 'initial_seeded_head_bypass_live_pool',
+      );
       _startupHeadFinalized = true;
+      _scheduleInitialFeedVideoPosterWarmup(
+        _initialVisibleVideoWarmupWindow(replacementAgenda),
+      );
       if (appendedItems.isNotEmpty) {
-        _scheduleInitialFeedVideoPosterWarmup(
-          _initialVisibleVideoWarmupWindow(mergedAgenda),
-        );
         _scheduleReshareFetchForPosts(
           appendedItems,
           perPostLimit: 1,
-        );
-      } else if (preservesDocOrder) {
-        _scheduleInitialFeedVideoPosterWarmup(
-          _initialVisibleVideoWarmupWindow(mergedAgenda),
         );
       }
       return;
@@ -2211,47 +1883,10 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     if (!isLoading.value) {
       if (connectedStartup) {
-        final seededFromShard = await _profileFeedStartupSurfaceStep(
-          'seed_connected_startup_shard',
+        await _profileFeedStartupSurfaceStep(
+          'connected_seed_disabled',
           _seedConnectedStartupHeadFromShard,
         );
-        if (seededFromShard && agendaList.isNotEmpty) {
-          if (preferSynchronousConnectedLoad) {
-            await _profileFeedStartupSurfaceStep(
-              'ensure_initial_feed_loaded_connected_seed',
-              () => ensureInitialFeedLoaded(),
-            );
-            if (agendaList.isNotEmpty) {
-              await _profileFeedStartupSurfaceStep(
-                'prepare_surface_after_connected_seed_sync',
-                () async {
-                  _prepareFeedSurfaceAfterDataReady(
-                    playbackBootstrapSource:
-                        'ensure_feed_surface_ready_connected_seed_sync',
-                  );
-                },
-              );
-            }
-            return;
-          }
-          debugPrint(
-            '[FeedStartupSurface] status=kick_live_finalize_from_connected_seed '
-            'agendaCount=${agendaList.length}',
-          );
-          _scheduleDeferredInitialNetworkBootstrap(
-            reason: 'connected_seed_after_shard',
-          );
-          await _profileFeedStartupSurfaceStep(
-            'prepare_surface_after_connected_seed',
-            () async {
-              _prepareFeedSurfaceAfterDataReady(
-                playbackBootstrapSource:
-                    'ensure_feed_surface_ready_connected_seed',
-              );
-            },
-          );
-          return;
-        }
         if (preferSynchronousConnectedLoad) {
           await _profileFeedStartupSurfaceStep(
             'ensure_initial_feed_loaded_connected',
