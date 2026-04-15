@@ -25,23 +25,32 @@ import 'package:turqappv2/Core/Services/deep_link_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 class DependencyRegistrar {
-  DependencyRegistrar({
-    void Function()? registerDependencies,
-  }) : _registerDependencies =
-            registerDependencies ?? _defaultRegisterDependencies;
+  DependencyRegistrar();
+  bool _startupDependenciesRegistered = false;
+  bool _deferredDependenciesRegistered = false;
 
-  final void Function() _registerDependencies;
+  void register() {
+    registerStartupDependencies();
+    registerDeferredDependencies();
+  }
 
-  void register() => _registerDependencies();
+  void registerStartupDependencies() {
+    if (_startupDependenciesRegistered) return;
+    _startupDependenciesRegistered = true;
+    _registerStartupDependencies();
+  }
 
-  static void _defaultRegisterDependencies() {
+  void registerDeferredDependencies() {
+    if (_deferredDependenciesRegistered) return;
+    _deferredDependenciesRegistered = true;
+    _registerDeferredDependencies();
+  }
+
+  static void _registerStartupDependencies() {
     Get.lazyPut(() => NetworkAwarenessService());
     Get.lazyPut(() => OfflineModeService.instance);
 
     GlobalLoaderController.ensure();
-    ensureAdmobBannerWarmupService();
-    ensureAdmobUnitConfigService(permanent: true);
-    ensureStoryInteractionOptimizer();
     Get.lazyPut(() => UnreadMessagesController());
     if (maybeFindNavBarController() == null) {
       Get.put(NavBarController(), permanent: true);
@@ -57,6 +66,12 @@ class DependencyRegistrar {
     Get.lazyPut(() => SavedPostsController());
     Get.lazyPut(() => JobFinderController());
     Get.lazyPut(() => StoryRowController(), fenix: true);
+  }
+
+  static void _registerDeferredDependencies() {
+    ensureAdmobBannerWarmupService();
+    ensureAdmobUnitConfigService(permanent: true);
+    ensureStoryInteractionOptimizer();
     const UploadQueueRuntimeService().ensureReady(permanent: true);
     ensureDeepLinkServiceStarted();
     IndexPoolStore.ensure(permanent: true);

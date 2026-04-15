@@ -104,7 +104,7 @@ class SplashStartupOrchestrator {
         ),
       );
       await _profileStartupPhase('dependency_registration', () async {
-        _dependencyRegistrar.register();
+        _dependencyRegistrar.registerStartupDependencies();
       });
       await _profileStartupPhase(
         'prepare_startup_before_navigation',
@@ -127,6 +127,10 @@ class SplashStartupOrchestrator {
 
     if (!isMounted()) return;
     await navigateToPrimaryRoute();
+    unawaited(_startupBootstrap.initializeDeferredAudioContext());
+    unawaited(Future<void>(() {
+      _dependencyRegistrar.registerDeferredDependencies();
+    }));
     if (shouldScheduleBackgroundInit) {
       _postLoginWarmup.scheduleBackgroundInit(
         isFirstLaunch: scheduledBackgroundInitFirstLaunch,

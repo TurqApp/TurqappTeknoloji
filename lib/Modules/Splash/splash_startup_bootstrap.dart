@@ -39,9 +39,12 @@ class StartupBootstrap {
         await _initializeFirestoreConfig();
       })(),
       _readPreferences().then((value) => prefs = value),
-      _initializeAudioContext().catchError((_) {}),
     ]);
     return prefs;
+  }
+
+  Future<void> initializeDeferredAudioContext() async {
+    await _initializeAudioContext().catchError((_) {});
   }
 
   static Future<void> _defaultInitializeFirestoreConfig() async {
