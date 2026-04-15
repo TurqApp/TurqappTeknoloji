@@ -2,11 +2,12 @@ part of 'agenda_view.dart';
 
 extension _AgendaViewFeedPart on AgendaView {
   Widget _buildStartupWarmPreloadLayer() {
+    if (GetPlatform.isAndroid) {
+      return const SizedBox.shrink();
+    }
     return Obx(() {
-      if (GetPlatform.isAndroid) {
-        return const SizedBox.shrink();
-      }
-      final docIds = controller.startupWarmPreloadDocIdsRx.toList(growable: false);
+      final docIds =
+          controller.startupWarmPreloadDocIdsRx.toList(growable: false);
       if (docIds.isEmpty) return const SizedBox.shrink();
       final posts = <PostsModel>[];
       for (final docId in docIds) {
@@ -53,7 +54,7 @@ extension _AgendaViewFeedPart on AgendaView {
         final filteredCount = filteredDisplay.length;
         final startupWarmPreloadActive =
             controller.startupRenderBootstrapHold &&
-            controller.startupWarmPreloadDocIdsRx.isNotEmpty;
+                controller.startupWarmPreloadDocIdsRx.isNotEmpty;
 
         if (displayCount == 0 || startupWarmPreloadActive) {
           return SingleChildScrollView(
