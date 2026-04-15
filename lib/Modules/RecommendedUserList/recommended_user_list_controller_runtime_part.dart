@@ -10,6 +10,37 @@ extension _RecommendedUserListControllerRuntimeX
     });
   }
 
+  Future<bool> _hydrateFromLocalCacheOnly({
+    required int requiredCount,
+  }) async {
+    final currentUserId = CurrentUserService.instance.effectiveUserId;
+    final cached =
+        await ensureRecommendedUsersRepository().loadCachedCandidates(
+      limit: requiredCount < usersWarmCount ? usersWarmCount : requiredCount,
+      allowStale: true,
+    );
+    if (cached.isEmpty) {
+      debugPrint(
+        '[RecommendedUsers] status=local_cache_miss required=$requiredCount',
+      );
+      return false;
+    }
+    final filtered = _filterCandidates(cached, currentUserId);
+    if (filtered.isEmpty) {
+      debugPrint(
+        '[RecommendedUsers] status=local_cache_filtered_empty required=$requiredCount '
+        'candidateCount=${cached.length}',
+      );
+      return false;
+    }
+    list.assignAll(filtered);
+    debugPrint(
+      '[RecommendedUsers] status=local_cache_applied required=$requiredCount '
+      'candidateCount=${cached.length} filteredCount=${filtered.length}',
+    );
+    return true;
+  }
+
   bool _isCacheValid() {
     if (_lastLoadTime == null) return false;
     return DateTime.now().difference(_lastLoadTime!) < _cacheValidDuration;
@@ -60,7 +91,10 @@ extension _RecommendedUserListControllerRuntimeX
     }
   }
 
-  Future<void> getUsers({int? limit}) async {
+  Future<void> getUsers({
+    int? limit,
+    bool allowFullRefill = true,
+  }) async {
     final requiredCount = limit ?? usersWarmCount;
     if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
     if (isLoading.value) return;
@@ -85,7 +119,9 @@ extension _RecommendedUserListControllerRuntimeX
           );
 
       var filtered = _filterCandidates(candidates, currentUserId);
-      if (filtered.length < requiredCount && fetchLimit < usersLimitFull) {
+      if (allowFullRefill &&
+          filtered.length < requiredCount &&
+          fetchLimit < usersLimitFull) {
         candidates = await ensureRecommendedUsersRepository()
             .fetchCandidates(limit: usersLimitFull, preferCache: false)
             .timeout(
@@ -109,22 +145,49 @@ extension _RecommendedUserListControllerRuntimeX
     final requiredCount = limit ?? usersWarmCount;
     if (_isCacheValid() && _hasEnoughUsers(requiredCount)) return;
     if (loadedOnce && _hasEnoughUsers(requiredCount)) {
-      _scheduleBackgroundUsersLoad();
+      _scheduleBackgroundUsersLoad(
+        delay: const Duration(seconds: 4),
+        limit: usersReadyCount,
+      );
       return;
     }
 
-    await getUsers(limit: requiredCount);
+    final hydratedLocally = await _hydrateFromLocalCacheOnly(
+      requiredCount: requiredCount,
+    );
     loadedOnce = true;
-    _scheduleBackgroundUsersLoad();
+    _scheduleBackgroundUsersLoad(
+      delay: hydratedLocally
+          ? const Duration(seconds: 2)
+          : const Duration(milliseconds: 900),
+      limit: requiredCount,
+      allowFullRefill: true,
+    );
   }
 
-  void _scheduleBackgroundUsersLoad() {
+  void _scheduleBackgroundUsersLoad({
+    Duration delay = const Duration(seconds: 5),
+    int? limit,
+    bool allowFullRefill = true,
+  }) {
     if (_bgScheduled) return;
     _bgScheduled = true;
-    Future.delayed(const Duration(seconds: 5), () async {
+    final requiredCount = limit ?? usersLimitFull;
+    debugPrint(
+      '[RecommendedUsers] status=background_scheduled delayMs=${delay.inMilliseconds} '
+      'required=$requiredCount allowFullRefill=$allowFullRefill',
+    );
+    Future.delayed(delay, () async {
       try {
         if (!_isCacheValid()) {
-          await getUsers(limit: usersLimitFull);
+          debugPrint(
+            '[RecommendedUsers] status=background_load_start required=$requiredCount '
+            'allowFullRefill=$allowFullRefill currentCount=${list.length}',
+          );
+          await getUsers(
+            limit: requiredCount,
+            allowFullRefill: allowFullRefill,
+          );
         }
       } catch (_) {
       } finally {

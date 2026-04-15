@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/feed_render_block_plan.dart';
+import 'package:turqappv2/Core/Services/launch_motor_selection_service.dart';
+import 'package:turqappv2/Core/Services/launch_motor_surface_contract.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 
@@ -16,6 +18,7 @@ class AgendaFeedPageApplyPlan {
     required this.hasMore,
     required this.lastDoc,
     required this.usesPrimaryFeed,
+    required this.pageItemsPreplanned,
   });
 
   final List<PostsModel> itemsToAdd;
@@ -23,6 +26,7 @@ class AgendaFeedPageApplyPlan {
   final bool hasMore;
   final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
   final bool usesPrimaryFeed;
+  final bool pageItemsPreplanned;
 }
 
 class AgendaFeedRefreshPlan {
@@ -62,25 +66,50 @@ class AgendaFeedApplicationService {
 
   static const int _feedPlannerShuffleWindow = 24;
   static const Duration _livePlannerWindow = Duration(days: 3);
-  static const Duration _feedLaunchMotorWindow = Duration(days: 7);
-  static const int _feedLaunchMotorBandMinutes = 5;
-  static const int _feedLaunchMotorSubsliceMs = 200;
-  static const List<List<int>> _feedLaunchMotorMinuteSets = <List<int>>[
-    <int>[0, 19, 26, 45, 52],
-    <int>[1, 14, 33, 40, 59],
-    <int>[2, 21, 28, 47, 54],
-    <int>[3, 16, 35, 42, 49],
-    <int>[4, 23, 30, 37, 56],
-    <int>[5, 18, 25, 44, 51],
-    <int>[6, 13, 32, 39, 58],
-    <int>[7, 20, 27, 46, 53],
-    <int>[8, 15, 34, 41, 48],
-    <int>[9, 22, 29, 36, 55],
-    <int>[10, 12, 31, 43, 50],
-    <int>[11, 17, 24, 38, 57],
-  ];
+  static final Duration _feedLaunchMotorWindow = feedLaunchMotorContract.window;
+  static final int _feedLaunchMotorBandMinutes =
+      feedLaunchMotorContract.bandMinutes;
+  static final int _feedLaunchMotorSubsliceMs =
+      feedLaunchMotorContract.subsliceMs;
+  static final List<List<int>> _feedLaunchMotorMinuteSets =
+      feedLaunchMotorContract.minuteSets;
 
   final int Function()? _nowMsProvider;
+
+  int resolveLaunchMotorAnchorMs() =>
+      (_nowMsProvider ?? _defaultNowMsProvider).call();
+
+  int resolveLaunchMotorIndex({int? anchorMs}) {
+    final resolvedAnchorMs = anchorMs ?? resolveLaunchMotorAnchorMs();
+    return LaunchMotorSelectionService.resolveMotorIndex(
+      anchorMs: resolvedAnchorMs,
+      bandMinutes: _feedLaunchMotorBandMinutes,
+      minuteSets: _feedLaunchMotorMinuteSets,
+    );
+  }
+
+  List<int> resolveLaunchMotorOwnedMinutes({int? anchorMs}) {
+    final resolvedAnchorMs = anchorMs ?? resolveLaunchMotorAnchorMs();
+    return LaunchMotorSelectionService.resolveOwnedMinutes(
+      anchorMs: resolvedAnchorMs,
+      bandMinutes: _feedLaunchMotorBandMinutes,
+      minuteSets: _feedLaunchMotorMinuteSets,
+    );
+  }
+
+  List<PostsModel> buildLaunchMotorPool({
+    required List<PostsModel> primaryCandidates,
+    required List<PostsModel> fallbackCandidates,
+    required int targetCount,
+    bool allowSparseSlotFallback = false,
+  }) {
+    return _buildLatestOrderedItems(
+      primaryCandidates: primaryCandidates,
+      fallbackCandidates: fallbackCandidates,
+      targetCount: targetCount,
+      allowSparseSlotFallback: allowSparseSlotFallback,
+    );
+  }
 
   AgendaFeedPageApplyPlan buildPageApplyPlan({
     required List<PostsModel> currentItems,
@@ -94,7 +123,7 @@ class AgendaFeedApplicationService {
   }) {
     final existingIds = currentItems.map((post) => post.docID).toSet();
     final arrangedPageItems = pageItemsPreplanned
-        ? _dedupePosts(pageItems)
+        ? _normalizeFeedDisplayOrder(pageItems)
         : buildPlannerPageItems(
             pageItems,
             currentItemCount: currentItems.length,
@@ -126,6 +155,7 @@ class AgendaFeedApplicationService {
       hasMore: lastDoc != null && pageItems.length >= loadLimit,
       lastDoc: lastDoc,
       usesPrimaryFeed: usesPrimaryFeed,
+      pageItemsPreplanned: pageItemsPreplanned,
     );
   }
 
@@ -168,14 +198,15 @@ class AgendaFeedApplicationService {
     }
 
     final existingIds = currentItems.map((post) => post.docID).toSet();
+    final orderedFetchedPosts = _normalizeFeedDisplayOrder(fetchedPosts);
     final fetchedById = <String, PostsModel>{
-      for (final post in fetchedPosts) post.docID: post,
+      for (final post in orderedFetchedPosts) post.docID: post,
     };
     final freshScheduledIds = <String>[];
     final fifteenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
     final newHeadItems = <PostsModel>[];
 
-    for (final post in fetchedPosts) {
+    for (final post in orderedFetchedPosts) {
       if (existingIds.contains(post.docID)) {
         continue;
       }
@@ -238,21 +269,27 @@ class AgendaFeedApplicationService {
   List<PostsModel> mergeLiveItemsPreservingCurrentOrder({
     required List<PostsModel> currentItems,
     required List<PostsModel> liveItems,
+    bool liveItemsPreplanned = false,
   }) {
     if (currentItems.isEmpty) {
-      return buildPlannerPageItems(
-        liveItems,
-        currentItemCount: 0,
-      );
+      final arrangedLiveItems = liveItemsPreplanned
+          ? _normalizeFeedDisplayOrder(liveItems)
+          : buildPlannerPageItems(
+              liveItems,
+              currentItemCount: 0,
+            );
+      return _normalizeFeedDisplayOrder(arrangedLiveItems);
     }
     if (liveItems.isEmpty) {
       return currentItems;
     }
 
-    final arrangedLiveItems = buildPlannerPageItems(
-      liveItems,
-      currentItemCount: currentItems.length,
-    );
+    final arrangedLiveItems = liveItemsPreplanned
+        ? _normalizeFeedDisplayOrder(liveItems)
+        : buildPlannerPageItems(
+            liveItems,
+            currentItemCount: currentItems.length,
+          );
     final liveById = <String, PostsModel>{
       for (final post in arrangedLiveItems)
         if (post.docID.trim().isNotEmpty) post.docID.trim(): post,
@@ -277,20 +314,14 @@ class AgendaFeedApplicationService {
       merged.add(live);
     }
 
-    return merged;
+    return _normalizeFeedDisplayOrder(merged);
   }
 
   List<PostsModel> buildPlannerPageItems(
     List<PostsModel> pageItems, {
     required int currentItemCount,
   }) {
-    return buildPlannerSlice(
-      pageItems,
-      currentItemCount: currentItemCount,
-      targetCount: pageItems.length,
-      includeStartupHeadPenalty: true,
-      allowSparseSlotFallback: true,
-    );
+    return _normalizeFeedDisplayOrder(pageItems);
   }
 
   List<PostsModel> buildPlannerSlice(
@@ -425,7 +456,7 @@ class AgendaFeedApplicationService {
     required bool allowSparseSlotFallback,
     Set<String>? cacheReadyVideoDocIds,
   }) {
-    final latestLiveFirst = _buildLatestOrderedItems(
+    final latestLiveFirst = buildLaunchMotorPool(
       primaryCandidates: liveCandidates,
       fallbackCandidates: cacheCandidates,
       targetCount: targetCount,
@@ -477,37 +508,30 @@ class AgendaFeedApplicationService {
       return const <PostsModel>[];
     }
 
-    final launchAnchorMs = (_nowMsProvider ?? _defaultNowMsProvider).call();
-    final launchAnchor = DateTime.fromMillisecondsSinceEpoch(launchAnchorMs);
-    final launchMotorIndex = min(
-      launchAnchor.minute ~/ _feedLaunchMotorBandMinutes,
-      _feedLaunchMotorMinuteSets.length - 1,
+    final snapshot = LaunchMotorSelectionService.analyzePool(
+      latestPool: latestPool,
+      anchorMs: resolveLaunchMotorAnchorMs(),
+      window: _feedLaunchMotorWindow,
+      bandMinutes: _feedLaunchMotorBandMinutes,
+      subsliceMs: _feedLaunchMotorSubsliceMs,
+      minuteSets: _feedLaunchMotorMinuteSets,
     );
-    final launchSubsliceIndex =
-        launchAnchor.minute % _feedLaunchMotorBandMinutes;
-    final ownedMinutes =
-        _feedLaunchMotorMinuteSets[launchMotorIndex].toList(growable: false);
-    final launchWindowStartMs =
-        launchAnchorMs - _feedLaunchMotorWindow.inMilliseconds;
-    final windowedPool = latestPool.where((post) {
-      final timestampMs = post.timeStamp.toInt();
-      return timestampMs > 0 &&
-          timestampMs <= launchAnchorMs &&
-          timestampMs >= launchWindowStartMs;
-    }).toList(growable: false);
-    if (windowedPool.isEmpty) {
+    if (snapshot.normalizedPool.isEmpty) {
+      return const <PostsModel>[];
+    }
+    if (snapshot.windowedPool.isEmpty) {
       if (allowSparseSlotFallback) {
         final ownedMinuteBackfill = _backfillOwnedMinuteCandidates(
-          latestPool: latestPool,
-          launchAnchorMs: launchAnchorMs,
-          launchMotorIndex: launchMotorIndex,
+          latestPool: snapshot.normalizedPool,
+          launchAnchorMs: snapshot.anchorMs,
+          launchMotorIndex: snapshot.motorIndex,
           targetCount: targetCount,
         );
         if (ownedMinuteBackfill.isNotEmpty) {
           debugPrint(
             '[FeedLaunchMotor] status=owned_minute_backfill_window_empty '
-            'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-            'subslice=$launchSubsliceIndex orderedCount=${ownedMinuteBackfill.length} '
+            'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+            'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
             'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
           );
           return ownedMinuteBackfill;
@@ -515,31 +539,24 @@ class AgendaFeedApplicationService {
       }
       debugPrint(
         '[FeedLaunchMotor] status=empty_window_all_pool '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex pool=${latestPool.length}',
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} pool=${snapshot.normalizedPool.length}',
       );
       return const <PostsModel>[];
     }
-
-    final queues = _buildLaunchMotorQueues(
-      candidates: windowedPool,
-      launchAnchor: launchAnchor,
-      launchWindowStartMs: launchWindowStartMs,
-      launchMotorIndex: launchMotorIndex,
-    );
-    if (queues.isEmpty) {
+    if (!snapshot.hasQueues) {
       if (allowSparseSlotFallback) {
         final ownedMinuteBackfill = _backfillOwnedMinuteCandidates(
-          latestPool: latestPool,
-          launchAnchorMs: launchAnchorMs,
-          launchMotorIndex: launchMotorIndex,
+          latestPool: snapshot.normalizedPool,
+          launchAnchorMs: snapshot.anchorMs,
+          launchMotorIndex: snapshot.motorIndex,
           targetCount: targetCount,
         );
         if (ownedMinuteBackfill.isNotEmpty) {
           debugPrint(
             '[FeedLaunchMotor] status=owned_minute_backfill_no_queues '
-            'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-            'subslice=$launchSubsliceIndex orderedCount=${ownedMinuteBackfill.length} '
+            'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+            'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
             'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
           );
           return ownedMinuteBackfill;
@@ -547,21 +564,22 @@ class AgendaFeedApplicationService {
       }
       debugPrint(
         '[FeedLaunchMotor] status=no_queues_strict '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex pool=${windowedPool.length}',
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
       );
       if (allowSparseSlotFallback) {
         return const <PostsModel>[];
       }
-      final fallback = _sortByLaunchMotorAffinity(
-        windowedPool,
-        ownedMinutes: ownedMinutes,
-        preferredSubsliceIndex: launchSubsliceIndex,
+      final fallback = LaunchMotorSelectionService.sortByAffinity(
+        snapshot.windowedPool,
+        ownedMinutes: snapshot.ownedMinutes,
+        preferredSubsliceIndex: snapshot.subsliceIndex,
+        subsliceMs: _feedLaunchMotorSubsliceMs,
       ).take(targetCount).toList(growable: false);
       debugPrint(
         '[FeedLaunchMotor] status=affinity_fallback '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex orderedCount=${fallback.length} '
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
         'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
       );
       return fallback;
@@ -569,45 +587,23 @@ class AgendaFeedApplicationService {
 
     debugPrint(
       '[FeedLaunchMotor] status=queues_ready '
-      'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-      'subslice=$launchSubsliceIndex pool=${windowedPool.length} '
-      'queues=${queues.length}',
+      'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+      'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length} '
+      'queues=${snapshot.queueCount}',
     );
-
-    final selected = <PostsModel>[];
-    final usedIds = <String>{};
-    var appended = true;
-    while (appended) {
-      appended = false;
-      for (final queue in queues) {
-        final candidate = queue.takeNext(
-          usedIds: usedIds,
-          preferredSubsliceIndex: launchSubsliceIndex,
-          preferredSubsliceSizeMs: _feedLaunchMotorSubsliceMs,
-        );
-        if (candidate == null) {
-          continue;
-        }
-        final docId = candidate.docID.trim();
-        if (docId.isEmpty || !usedIds.add(docId)) {
-          continue;
-        }
-        selected.add(candidate);
-        appended = true;
-      }
-    }
 
     // Keep feed motor strict once it found owned queues; do not backfill
     // non-owned candidates into the visible order.
-    final strictSelection = selected.take(targetCount).toList(growable: false);
+    final strictSelection =
+        snapshot.strictSelection.take(targetCount).toList(growable: false);
     if (!allowSparseSlotFallback || strictSelection.length >= targetCount) {
-      return _sortLaunchMotorSelectionLatestFirst(strictSelection);
+      return LaunchMotorSelectionService.sortLatestFirst(strictSelection);
     }
 
     final ownedMinuteBackfill = _backfillOwnedMinuteCandidates(
-      latestPool: latestPool,
-      launchAnchorMs: launchAnchorMs,
-      launchMotorIndex: launchMotorIndex,
+      latestPool: snapshot.normalizedPool,
+      launchAnchorMs: snapshot.anchorMs,
+      launchMotorIndex: snapshot.motorIndex,
       targetCount: targetCount - strictSelection.length,
       excludeDocIds: strictSelection.map((post) => post.docID.trim()).toSet(),
     );
@@ -617,12 +613,12 @@ class AgendaFeedApplicationService {
     ];
     debugPrint(
       '[FeedLaunchMotor] status=owned_minute_backfill_strict '
-      'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-      'subslice=$launchSubsliceIndex strictCount=${strictSelection.length} '
+      'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+      'subslice=${snapshot.subsliceIndex} strictCount=${strictSelection.length} '
       'backfillCount=${ownedMinuteBackfill.length} '
       'orderedCount=${combined.length}',
     );
-    return _sortLaunchMotorSelectionLatestFirst(
+    return LaunchMotorSelectionService.sortLatestFirst(
       combined.take(targetCount).toList(growable: false),
     );
   }
@@ -661,10 +657,16 @@ class AgendaFeedApplicationService {
         break;
       }
     }
-    return _sortLaunchMotorSelectionLatestFirst(ownedCandidates);
+    return LaunchMotorSelectionService.sortLatestFirst(ownedCandidates);
   }
 
   static int _defaultNowMsProvider() => DateTime.now().millisecondsSinceEpoch;
+
+  List<PostsModel> _normalizeFeedDisplayOrder(List<PostsModel> items) {
+    return LaunchMotorSelectionService.sortLatestFirst(
+      _dedupePosts(items),
+    );
+  }
 
   List<PostsModel> _sortLaunchMotorSelectionLatestFirst(
     List<PostsModel> items,

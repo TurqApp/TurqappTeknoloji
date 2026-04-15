@@ -2,6 +2,11 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  bool get _useNativeIosPrimaryFeedRecoveryAuthority =>
+      defaultTargetPlatform == TargetPlatform.iOS &&
+      _isPrimaryFeedSurfaceInstance &&
+      !_useLegacyIosFeedBehavior;
+
   bool _shouldThrottleIosPrimaryFeedRecovery({
     required String source,
   }) {
@@ -545,10 +550,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           'positionMs': adapter.value.position.inMilliseconds,
         },
       );
-      _recoverFeedPlaybackIfNeeded(
-        adapter: adapter,
-        source: '$source:resume_initialized',
-      );
+      if (_useNativeIosPrimaryFeedRecoveryAuthority) {
+        _startPlaybackWhenReady(source: '$source:resume_initialized');
+      } else {
+        _recoverFeedPlaybackIfNeeded(
+          adapter: adapter,
+          source: '$source:resume_initialized',
+        );
+      }
       return;
     }
 
@@ -826,6 +835,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void tryAutoPlayWhenBuffered() {
     if (_videoAdapter != null) {
+      if (_useNativeIosPrimaryFeedRecoveryAuthority) {
+        _recordPlaybackDispatch(
+          'feed_card_buffer_ready_skipped',
+          source: 'buffer_ready',
+          dispatchIssued: false,
+          skipReason: 'ios_native_recovery_authority',
+        );
+        return;
+      }
       _recordPlaybackDispatch(
         'feed_card_buffer_ready_play',
         source: 'buffer_ready',

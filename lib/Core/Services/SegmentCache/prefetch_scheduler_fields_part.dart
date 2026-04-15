@@ -35,7 +35,7 @@ class _PrefetchSchedulerState {
   QueryDocumentSnapshot<Map<String, dynamic>>? quotaFillRemoteCursor;
   int quotaFillRemoteExhaustedUsageBytes = 0;
   int quotaFillRemoteExhaustedTargetBytes = 0;
-  bool automaticQuotaFillEnabled = true;
+  bool automaticQuotaFillEnabled = false;
 }
 
 extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {

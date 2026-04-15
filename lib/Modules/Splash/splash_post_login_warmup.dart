@@ -232,7 +232,12 @@ class PostLoginWarmup {
       await cache.init();
       await _applyGlobalMediaCacheQuota();
 
-      ensurePrefetchScheduler(permanent: true);
+      ensurePrefetchScheduler(
+        permanent: true,
+      ).setAutomaticQuotaFillEnabled(
+        false,
+        reason: 'splash_cache_proxy_init',
+      );
       final server = ensureHlsProxyServer(permanent: true);
       if (!server.isStarted) {
         await server.start();

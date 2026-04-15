@@ -532,9 +532,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     for (final idx in targetIndices) {
       final docID = _lastFeedDocIDs[idx];
       final entry = cacheManager.getEntry(docID);
+      final readySegmentFallback = resolveFeedWindowReadySegments(
+        currentIndex: safeCurrent,
+        targetIndex: idx,
+      );
       final readySegments = _resolvedReadySegmentTarget(
         docID: docID,
         cacheManager: cacheManager,
+        fallback: readySegmentFallback,
       );
       if (entry != null && entry.cachedSegmentCount >= readySegments) {
         ready++;
@@ -624,6 +629,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'queueSize': _queue.length,
         'activeDownloads': _activeDownloads,
         'maxConcurrent': _maxConcurrent,
+        'effectiveMaxConcurrent': _effectiveMaxConcurrent(),
+        'automaticQuotaFillEnabled': _automaticQuotaFillEnabled,
+        'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
         'feedReadyRatio': _lastFeedReadyRatio,
         'feedReadyCount': _lastFeedReadyCount,
         'feedWindowCount': _lastFeedWindowCount,

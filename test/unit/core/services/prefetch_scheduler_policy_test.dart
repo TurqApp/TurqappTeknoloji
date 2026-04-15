@@ -89,6 +89,70 @@ void main() {
     });
   });
 
+  group('feed priority window helpers', () {
+    test('keeps follow-up priority inside a single batch only', () {
+      expect(
+        isPriorityWindowTargetIndex(currentIndex: 2, targetIndex: 4),
+        isTrue,
+      );
+      expect(
+        isPriorityWindowTargetIndex(currentIndex: 2, targetIndex: 5),
+        isFalse,
+      );
+    });
+
+    test('scopes feed priority context to the visible window', () {
+      final context = resolveFeedPriorityWindowContext(
+        docIDs: const <String>[
+          'p0',
+          'p1',
+          'p2',
+          'p3',
+          'p4',
+          'p5',
+          'p6',
+          'p7',
+        ],
+        currentIndex: 3,
+      );
+
+      expect(
+          context.docIDs, <String>['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']);
+      expect(context.currentIndex, 2);
+    });
+
+    test('keeps hard boost on current and next two, soft warm elsewhere', () {
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 10),
+        2,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 11),
+        2,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 12),
+        2,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 13),
+        1,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 14),
+        1,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 9),
+        1,
+      );
+      expect(
+        resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 8),
+        1,
+      );
+    });
+  });
+
   group('shouldUseStartupBurstPrefetch', () {
     test('enables startup burst for the active first-segment doc', () {
       final result = shouldUseStartupBurstPrefetch(

@@ -7,7 +7,10 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/feed_typesense_paging_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/launch_motor_selection_service.dart';
+import 'package:turqappv2/Core/Services/launch_motor_surface_contract.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
@@ -36,6 +39,25 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
+  static const bool typesensePrimaryEnabled = true;
+  static const bool typesenseFirestoreFallbackEnabled = false;
+  static FeedPrimarySourceMode resolvePrimarySourceMode({
+    required Object? startAfter,
+    FeedPrimarySourceMode? override,
+    int? typesensePage,
+  }) {
+    if (override != null) {
+      return override;
+    }
+    if (typesensePage != null && typesensePage > 0) {
+      return FeedPrimarySourceMode.typesense;
+    }
+    if (typesensePrimaryEnabled && startAfter == null) {
+      return FeedPrimarySourceMode.typesense;
+    }
+    return FeedPrimarySourceMode.firestore;
+  }
+
   static int get startupHomeLimitValue =>
       ReadBudgetRegistry.feedHomeInitialLimitValue;
   static const FeedHomeContract _homeContract =
@@ -250,14 +272,23 @@ class FeedSnapshotQuery {
       );
 }
 
+enum FeedPrimarySourceMode {
+  firestore,
+  typesense,
+}
+
 class FeedSourcePage {
   const FeedSourcePage({
     required this.items,
     required this.lastDoc,
     required this.usesPrimaryFeed,
+    required this.itemsPreplanned,
+    this.nextTypesensePage,
   });
 
   final List<PostsModel> items;
   final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
   final bool usesPrimaryFeed;
+  final bool itemsPreplanned;
+  final int? nextTypesensePage;
 }

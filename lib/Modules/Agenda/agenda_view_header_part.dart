@@ -348,7 +348,9 @@ class _DeferredNotificationInboxActionsState
           Get.to(() => ChatListing())?.then((_) {
             widget.agendaController.resumePlaybackAfterOverlay();
             try {
-              ensureRecommendedUserListController().getUsers();
+              unawaited(
+                ensureRecommendedUserListController().ensureLoaded(),
+              );
             } catch (_) {}
           });
         },
@@ -360,7 +362,9 @@ class _DeferredNotificationInboxActionsState
           Get.to(() => InAppNotifications())?.then((_) {
             widget.agendaController.resumePlaybackAfterOverlay();
             try {
-              ensureRecommendedUserListController().getUsers();
+              unawaited(
+                ensureRecommendedUserListController().ensureLoaded(),
+              );
             } catch (_) {}
           });
         },

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -32,6 +33,27 @@ import 'post_content_controller.dart';
 part 'post_content_base_lifecycle_part.dart';
 part 'post_content_base_playback_part.dart';
 part 'post_content_base_visibility_part.dart';
+
+const int _feedWarmWindowAheadCount = 4;
+const int _feedWarmWindowBehindCount = 2;
+
+@visibleForTesting
+({int start, int endExclusive}) resolveFeedSurfaceWarmRange({
+  required int centeredIndex,
+  required int listLength,
+  int behindCount = _feedWarmWindowBehindCount,
+  int aheadCount = _feedWarmWindowAheadCount,
+}) {
+  if (centeredIndex < 0 || listLength <= 0) {
+    return (start: -1, endExclusive: -1);
+  }
+  final start =
+      centeredIndex - behindCount < 0 ? 0 : centeredIndex - behindCount;
+  final rawEndExclusive = centeredIndex + aheadCount + 1;
+  final endExclusive =
+      rawEndExclusive > listLength ? listLength : rawEndExclusive;
+  return (start: start, endExclusive: endExclusive);
+}
 
 /// Base widget/state that encapsulates the shared behaviour between
 /// Modern (AgendaContent) and Classic content cards.
@@ -131,8 +153,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   static const Duration _androidFeedOwnerGrace = Duration(milliseconds: 1100);
   static const Duration _iosPrimaryFeedRecoveryCooldown =
       Duration(milliseconds: 2500);
-  static const int _feedWarmWindowGroupPostCount = 3;
-  static const int _feedWarmWindowGroupCount = 3;
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -294,16 +314,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     required int safeCenteredIndex,
     required int listLength,
   }) {
-    if (safeCenteredIndex < 0 || listLength <= 0) {
-      return (start: -1, endExclusive: -1);
-    }
-    final groupStart = (safeCenteredIndex ~/ _feedWarmWindowGroupPostCount) *
-        _feedWarmWindowGroupPostCount;
-    final rawEndExclusive = groupStart +
-        (_feedWarmWindowGroupPostCount * _feedWarmWindowGroupCount);
-    final endExclusive =
-        rawEndExclusive < listLength ? rawEndExclusive : listLength;
-    return (start: groupStart, endExclusive: endExclusive);
+    return resolveFeedSurfaceWarmRange(
+      centeredIndex: safeCenteredIndex,
+      listLength: listLength,
+    );
   }
 
   bool get _shouldKeepFloodSurfaceAliveInWarmWindow {

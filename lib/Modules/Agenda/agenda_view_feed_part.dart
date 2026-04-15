@@ -13,7 +13,11 @@ extension _AgendaViewFeedPart on AgendaView {
             await maybeFindStoryRowController()?.loadStories();
           },
           () async {
-            await recommendedController.getUsers();
+            unawaited(
+              recommendedController.ensureLoaded(
+                limit: recommendedController.usersWarmCount,
+              ),
+            );
           },
         ],
       ),
@@ -270,48 +274,61 @@ extension _AgendaViewFeedPart on AgendaView {
   Widget _buildPromoSlot(Map<String, dynamic> entry) {
     final promoType = (entry['promoType'] ?? '').toString();
     final slotNumber = (entry['slotNumber'] ?? 0) as int;
+    final renderBlockIndex = (entry['renderBlockIndex'] ?? 0) as int;
+    final renderGroupNumber = (entry['renderGroupNumber'] ?? 0) as int;
     final isModernView =
         CurrentUserService.instance.effectiveViewSelection == 1;
     final liveAdOffsetX = isModernView ? 5.0 : 5.0;
     final edgeInsets = isModernView
         ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
         : const EdgeInsets.fromLTRB(5, 8, 5, 0);
-    if (promoType == 'ad') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: edgeInsets,
-            child: AdmobKare(
-              key: ValueKey('agenda-feed-ad-$slotNumber'),
-              contentPadding: EdgeInsets.zero,
-              liveAdOffsetX: liveAdOffsetX,
-              promoFallbackOffsetX: 0,
-              promoFallbackExtraWidth: 0,
-              forceSingleLinePromoChips: true,
-              suggestionPlacementId: 'feed',
+    final promoChild = promoType == 'ad'
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: edgeInsets,
+                child: AdmobKare(
+                  key: ValueKey('agenda-feed-ad-$slotNumber'),
+                  contentPadding: EdgeInsets.zero,
+                  liveAdOffsetX: liveAdOffsetX,
+                  promoFallbackOffsetX: 0,
+                  promoFallbackExtraWidth: 0,
+                  forceSingleLinePromoChips: true,
+                  suggestionPlacementId: 'feed',
+                ),
+              ),
+              if (!isModernView) ...[
+                const SizedBox(height: 7),
+                Divider(
+                  color: Colors.grey.withAlpha(20),
+                  height: 3,
+                ),
+                const SizedBox(height: 13),
+              ],
+            ],
+          )
+        : Padding(
+            padding: isModernView
+                ? const EdgeInsets.fromLTRB(5, 2, 5, 10)
+                : const EdgeInsets.only(top: 2, bottom: 10),
+            child: RecommendedUserList(
+              key: ValueKey('recommendedUserList-${entry['recommendedBatch']}'),
+              batch: (entry['recommendedBatch'] ?? 0) as int,
             ),
-          ),
-          if (!isModernView) ...[
-            const SizedBox(height: 7),
-            Divider(
-              color: Colors.grey.withAlpha(20),
-              height: 3,
-            ),
-            const SizedBox(height: 13),
-          ],
-        ],
-      );
-    }
-    final recommendedBatch = (entry['recommendedBatch'] ?? 0) as int;
-    return Padding(
-      padding: isModernView
-          ? const EdgeInsets.fromLTRB(5, 2, 5, 10)
-          : const EdgeInsets.only(top: 2, bottom: 10),
-      child: RecommendedUserList(
-        key: ValueKey('recommendedUserList-$recommendedBatch'),
-        batch: recommendedBatch,
-      ),
+          );
+    return VisibilityDetector(
+      key: Key('promo_visibility_${promoType}_$slotNumber'),
+      onVisibilityChanged: (info) {
+        controller.maybeTriggerFeedGrowthFromPromo(
+          promoType: promoType,
+          slotNumber: slotNumber,
+          renderBlockIndex: renderBlockIndex,
+          renderGroupNumber: renderGroupNumber,
+          visibleFraction: info.visibleFraction,
+        );
+      },
+      child: promoChild,
     );
   }
 

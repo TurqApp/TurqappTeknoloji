@@ -43,6 +43,56 @@ extension AgendaControllerFeedPart on AgendaController {
     _nextPageFetchTriggerCount = nextTrigger;
   }
 
+  void maybeTriggerFeedGrowthFromPromo({
+    required String promoType,
+    required int slotNumber,
+    required int renderBlockIndex,
+    required int renderGroupNumber,
+    required double visibleFraction,
+  }) {
+    if (visibleFraction < 0.55) return;
+    if (agendaList.isEmpty || !hasMore.value || isLoading.value) return;
+    final viewedCount = FeedGrowthTriggerService.estimateViewedCountAtPromo(
+      renderBlockIndex: renderBlockIndex,
+      renderGroupNumber: renderGroupNumber,
+    );
+    final triggerCount = _nextPageFetchTriggerCount;
+    if (!FeedGrowthTriggerService.shouldTriggerFallback(
+      viewedCount: viewedCount,
+      nextTriggerCount: triggerCount,
+    )) {
+      return;
+    }
+    debugPrint(
+      '[FeedFetchTrigger] source=promo_near_end '
+      'promoType=$promoType slotNumber=$slotNumber '
+      'block=$renderBlockIndex group=$renderGroupNumber '
+      'viewedCount=$viewedCount currentCount=${agendaList.length} '
+      'pageLimit=${ReadBudgetRegistry.feedPageFetchLimit} '
+      'triggerCount=$triggerCount visibleFraction=${visibleFraction.toStringAsFixed(2)}',
+    );
+    _advanceFeedPageFetchTrigger(viewedCount);
+    recordQALabScrollEvent(
+      surface: 'feed',
+      phase: 'near_end',
+      metadata: <String, dynamic>{
+        'trigger': 'promo_near_end',
+        'promoType': promoType,
+        'slotNumber': slotNumber,
+        'renderBlockIndex': renderBlockIndex,
+        'renderGroupNumber': renderGroupNumber,
+        'viewedCount': viewedCount,
+        'count': agendaList.length,
+        'nextTriggerCount': _nextPageFetchTriggerCount,
+        'visibleFraction': visibleFraction,
+      },
+    );
+    fetchAgendaBigData(
+      pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
+      trigger: 'promo_near_end',
+    );
+  }
+
   bool _reclaimFeedPlaybackFromExternalOwner(
     VideoStateManager manager, {
     required String source,
@@ -439,7 +489,12 @@ extension AgendaControllerFeedPart on AgendaController {
       }
     }
     try {
-      maybeFindPrefetchScheduler()?.updateFeedQueueForPosts(
+      final scheduler = maybeFindPrefetchScheduler();
+      scheduler?.setAutomaticQuotaFillEnabled(
+        false,
+        reason: 'feed_surface_active',
+      );
+      scheduler?.updateFeedQueueForPosts(
         videoPosts,
         safeCurrent,
       );

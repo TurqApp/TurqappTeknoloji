@@ -395,11 +395,9 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }
 
   List<PostsModel> _applyStartupPlannerHeadOrder(
-    List<PostsModel> posts,
-    {
+    List<PostsModel> posts, {
     bool allowSparseSlotFallback = false,
-  }
-  ) {
+  }) {
     if (_startupPlannerHeadApplied || posts.length < 2) {
       return posts;
     }
@@ -551,11 +549,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int cutoffMs,
     required int limit,
     DocumentSnapshot<Map<String, dynamic>>? startAfter,
+    int? typesensePage,
     bool useStoredCursor = true,
     bool preferCache = true,
     bool cacheOnly = false,
     bool? usePrimaryFeedPaging,
     bool includeSupplementalSources = true,
+    bool bypassInitialPrimaryCursorShift = false,
+    FeedPrimarySourceMode? primarySourceOverride,
   }) async {
     final currentUserService = CurrentUserService.instance;
     final uid = currentUserService.effectiveUserId.trim();
@@ -570,6 +571,16 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       );
     }
 
+    final resolvedStartAfter = startAfter ??
+        (typesensePage == null &&
+                useStoredCursor &&
+                lastDoc is DocumentSnapshot<Map<String, dynamic>>
+            ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
+            : null);
+    final resolvedTypesensePage = typesensePage ??
+        (resolvedStartAfter == null && useStoredCursor
+            ? _feedTypesenseNextPage
+            : null);
     final page = await _feedSnapshotRepository.fetchHomePage(
       userId: uid,
       followingIds: const <String>{},
@@ -577,19 +588,23 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
       limit: limit,
-      startAfter: startAfter ??
-          (useStoredCursor && lastDoc is DocumentSnapshot<Map<String, dynamic>>
-              ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
-              : null),
+      startAfter: resolvedStartAfter,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
       usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
       includeSupplementalSources: includeSupplementalSources,
+      bypassInitialPrimaryCursorShift: bypassInitialPrimaryCursorShift,
+      primarySourceOverride: cacheOnly && primarySourceOverride == null
+          ? FeedPrimarySourceMode.firestore
+          : primarySourceOverride,
+      typesensePage: resolvedTypesensePage,
     );
     return _AgendaSourcePage(
       page.items,
       page.lastDoc,
       page.usesPrimaryFeed,
+      page.itemsPreplanned,
+      page.nextTypesensePage,
     );
   }
 
@@ -617,6 +632,8 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           .toList(growable: false),
       page.lastDoc,
       false,
+      false,
+      null,
     );
   }
 

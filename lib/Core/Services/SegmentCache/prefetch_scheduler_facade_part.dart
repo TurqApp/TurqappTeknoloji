@@ -41,4 +41,24 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
   Future<void> ensureWifiQuotaFillPlan() => _ensureWifiQuotaFillPlan();
 
   void resetWifiQuotaFillPlan() => _resetWifiQuotaFillPlanState();
+
+  bool get automaticQuotaFillEnabled => _automaticQuotaFillEnabled;
+
+  void setAutomaticQuotaFillEnabled(
+    bool enabled, {
+    String reason = 'manual',
+  }) {
+    if (_automaticQuotaFillEnabled == enabled) return;
+    _state.automaticQuotaFillEnabled = enabled;
+    if (!enabled) {
+      _resetWifiQuotaFillPlanState();
+    }
+    debugPrint(
+      '[Prefetch] automaticQuotaFillEnabled=$enabled reason=$reason',
+    );
+    _publishPrefetchHealthIfNeeded(force: true);
+    if (enabled) {
+      _processQueue();
+    }
+  }
 }

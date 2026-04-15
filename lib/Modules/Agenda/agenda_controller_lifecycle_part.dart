@@ -52,6 +52,10 @@ extension AgendaControllerLifecyclePart on AgendaController {
   }
 
   void _handleLifecycleClose() {
+    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
+      false,
+      reason: 'feed_controller_close',
+    );
     _mergedFeedWorker?.dispose();
     _filteredFeedWorker?.dispose();
     _renderFeedWorker?.dispose();
@@ -62,6 +66,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _reshareWarmupTimer?.cancel();
     _resharePostsFetchTimer?.cancel();
     _agendaRetryTimer?.cancel();
+    _deferredInitialNetworkBootstrapTimer?.cancel();
     _disposeFeedScrollControllerSafely();
   }
 

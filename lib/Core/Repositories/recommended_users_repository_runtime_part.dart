@@ -60,8 +60,19 @@ extension RecommendedUsersRepositoryFacadePart on RecommendedUsersRepository {
   Future<List<RecommendedUserModel>> fetchCandidates({
     int limit = 500,
     bool preferCache = true,
+    bool cacheOnly = false,
   }) =>
-      _fetchCandidatesImpl(limit: limit, preferCache: preferCache);
+      _fetchCandidatesImpl(
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+      );
+
+  Future<List<RecommendedUserModel>> loadCachedCandidates({
+    int limit = 500,
+    bool allowStale = false,
+  }) =>
+      _loadCachedCandidatesImpl(limit: limit, allowStale: allowStale);
 
   Future<void> invalidate() => _invalidateImpl();
 }
@@ -93,8 +104,13 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
   Future<List<RecommendedUserModel>> _fetchCandidatesImpl({
     required int limit,
     required bool preferCache,
+    required bool cacheOnly,
   }) async {
     await _ensureInitialized();
+
+    if (cacheOnly) {
+      return _loadCachedCandidatesImpl(limit: limit, allowStale: true);
+    }
 
     if (preferCache && _isFresh && _memory.length >= limit) {
       return List<RecommendedUserModel>.from(_memory.take(limit));
@@ -117,6 +133,20 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
     _cachedAt = DateTime.now();
     await _persistToPrefs();
     return List<RecommendedUserModel>.from(fetched);
+  }
+
+  Future<List<RecommendedUserModel>> _loadCachedCandidatesImpl({
+    required int limit,
+    required bool allowStale,
+  }) async {
+    await _ensureInitialized();
+    if (_memory.isEmpty) {
+      return const <RecommendedUserModel>[];
+    }
+    if (!_isFresh && !allowStale) {
+      return const <RecommendedUserModel>[];
+    }
+    return List<RecommendedUserModel>.from(_memory.take(limit));
   }
 
   void _restoreFromPrefs() {

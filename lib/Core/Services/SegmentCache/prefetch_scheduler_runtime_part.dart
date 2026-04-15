@@ -11,21 +11,26 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   double get avgQueueDispatchLatencyMs => _avgQueueDispatchLatencyMs;
   int get maxConcurrentDownloads => _maxConcurrent;
 
+  bool get _isFeedSurfaceVisible {
+    final nav = maybeFindNavBarController();
+    return nav == null ||
+        (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
+  }
+
   bool get _hasActiveFeedPlaybackWindow {
+    if (!_isFeedSurfaceVisible) return false;
     final hasFeedWindow =
         _lastFeedSurfaceVideoDocIDs.isNotEmpty || _lastFeedDocIDs.isNotEmpty;
-    if (!hasFeedWindow) return false;
-    final nav = maybeFindNavBarController();
-    final feedVisible =
-        nav == null || (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
-    if (!feedVisible) return false;
+    if (!hasFeedWindow) {
+      return true;
+    }
     final manager = maybeFindVideoStateManager();
     if (manager == null) return true;
     final current = manager.currentPlayingDocID?.trim() ?? '';
     final target = manager.targetPlaybackDocID?.trim() ?? '';
     return current.startsWith('feed:') ||
         target.startsWith('feed:') ||
-        feedVisible;
+        _isFeedSurfaceVisible;
   }
 
   bool get _isOnWiFi {

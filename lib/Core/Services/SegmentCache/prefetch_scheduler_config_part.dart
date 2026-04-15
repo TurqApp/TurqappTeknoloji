@@ -7,37 +7,28 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
 const int _prefetchSchedulerPriorityWindowSize = 5;
-const int _prefetchSchedulerPriorityPromotionOffset = 2;
 const int _prefetchSchedulerWifiMinBreadthCount = 5;
 const int _prefetchSchedulerWifiMinDepthCount = 3;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 3;
-const int _prefetchSchedulerFeedRetainBehindCount = 5;
+const int _prefetchSchedulerFeedRetainBehindCount = 2;
 const int _prefetchSchedulerFeedAheadCount = 4;
 const int _prefetchSchedulerFeedBehindCount = 2;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
+const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
 const int _prefetchSchedulerQuotaFillBurstSegments = 4;
 const int _prefetchSchedulerQuotaFillBoostReadySegments = 2;
 const int _prefetchSchedulerQuotaFillRemotePageLimit = 40;
 const int _prefetchSchedulerQuotaFillPlanningDocLimit = 180;
 const int _prefetchSchedulerQuotaFillLowWatermark = 16;
 const double _prefetchSchedulerShortLandscapeAspectThreshold = 1.2;
-const Duration _prefetchSchedulerShortQuotaFillWindow = Duration(days: 7);
-const int _prefetchSchedulerShortQuotaFillBandMinutes = 5;
-const int _prefetchSchedulerShortQuotaFillSubsliceMs = 200;
-const List<List<int>> _prefetchSchedulerShortQuotaFillMinuteSets =
-    <List<int>>[
-  <int>[1, 14, 33, 40, 59],
-  <int>[2, 21, 28, 47, 54],
-  <int>[3, 16, 35, 42, 49],
-  <int>[4, 23, 30, 37, 56],
-  <int>[5, 18, 25, 44, 51],
-  <int>[6, 13, 32, 39, 58],
-  <int>[7, 20, 27, 46, 53],
-  <int>[8, 15, 34, 41, 48],
-  <int>[9, 22, 29, 36, 55],
-  <int>[10, 12, 31, 43, 50],
-  <int>[11, 17, 24, 38, 57],
-  <int>[0, 19, 26, 45, 52],
+final Duration _prefetchSchedulerShortQuotaFillWindow =
+    shortQuotaLaunchMotorContract.window;
+final int _prefetchSchedulerShortQuotaFillBandMinutes =
+    shortQuotaLaunchMotorContract.bandMinutes;
+final int _prefetchSchedulerShortQuotaFillSubsliceMs =
+    shortQuotaLaunchMotorContract.subsliceMs;
+final List<List<int>> _prefetchSchedulerShortQuotaFillMinuteSets = <List<int>>[
+  ...shortQuotaLaunchMotorContract.minuteSets,
 ];
 
 @visibleForTesting
@@ -58,27 +49,67 @@ bool isPriorityWindowTargetIndex({
   required int currentIndex,
   required int targetIndex,
 }) {
+  if (currentIndex < 0 || targetIndex < 0) {
+    return false;
+  }
   final batchStart = (currentIndex ~/ _prefetchSchedulerPriorityWindowSize) *
       _prefetchSchedulerPriorityWindowSize;
-  final currentBatchEnd = batchStart + _prefetchSchedulerPriorityWindowSize;
-  final nextBatchStart = currentBatchEnd;
-  final nextBatchEnd = nextBatchStart + _prefetchSchedulerPriorityWindowSize;
+  final batchEnd = batchStart + _prefetchSchedulerPriorityWindowSize;
+  return targetIndex >= batchStart && targetIndex < batchEnd;
+}
 
-  final isInCurrentBatch =
-      targetIndex >= batchStart && targetIndex < currentBatchEnd;
-  if (isInCurrentBatch) {
-    return true;
+@visibleForTesting
+({List<String> docIDs, int currentIndex}) resolveFeedPriorityWindowContext({
+  required List<String> docIDs,
+  required int currentIndex,
+  int behindCount = _prefetchSchedulerFeedBehindCount,
+  int aheadCount = _prefetchSchedulerFeedAheadCount,
+}) {
+  if (docIDs.isEmpty) {
+    return (docIDs: const <String>[], currentIndex: 0);
   }
+  final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
+  final start = safeCurrent - behindCount < 0 ? 0 : safeCurrent - behindCount;
+  final rawEndExclusive = safeCurrent + aheadCount + 1;
+  final endExclusive =
+      rawEndExclusive > docIDs.length ? docIDs.length : rawEndExclusive;
+  return (
+    docIDs: List<String>.from(
+      docIDs.sublist(start, endExclusive),
+      growable: false,
+    ),
+    currentIndex: safeCurrent - start,
+  );
+}
 
-  final shouldPromoteNextBatch =
-      currentIndex >= batchStart + _prefetchSchedulerPriorityPromotionOffset;
-  final isInNextBatch =
-      targetIndex >= nextBatchStart && targetIndex < nextBatchEnd;
-  if (shouldPromoteNextBatch && isInNextBatch) {
-    return true;
+@visibleForTesting
+int resolveFeedWindowReadySegments({
+  required int currentIndex,
+  required int targetIndex,
+  int hardBoostCount = _prefetchSchedulerFeedHardBoostCount,
+  int aheadCount = _prefetchSchedulerFeedAheadCount,
+  int behindCount = _prefetchSchedulerFeedBehindCount,
+  int hardBoostReadySegments = _prefetchSchedulerTargetReadySegments,
+  int softWarmReadySegments = _prefetchSchedulerFeedSoftWarmReadySegments,
+}) {
+  if (targetIndex < 0) {
+    return hardBoostReadySegments;
   }
-
-  return false;
+  final distance = targetIndex - currentIndex;
+  if (distance == 0) {
+    return hardBoostReadySegments;
+  }
+  if (distance > 0) {
+    if (distance < hardBoostCount) {
+      return hardBoostReadySegments;
+    }
+    if (distance <= aheadCount) {
+      return softWarmReadySegments;
+    }
+  } else if (-distance <= behindCount) {
+    return softWarmReadySegments;
+  }
+  return softWarmReadySegments;
 }
 
 @visibleForTesting

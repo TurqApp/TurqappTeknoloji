@@ -28,6 +28,7 @@ class _AgendaControllerState {
   Timer? reshareWarmupTimer;
   Timer? resharePostsFetchTimer;
   Timer? agendaRetryTimer;
+  Timer? deferredInitialNetworkBootstrapTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -72,11 +73,14 @@ class _AgendaControllerState {
   bool startupPlannerHeadApplied = false;
   bool startupHeadFinalized = false;
   bool startupRenderBootstrapHold = false;
+  int deferredInitialNetworkBootstrapToken = 0;
   final startupCacheOriginVideoDocIds = <String>{};
   int nextPageFetchTriggerCount = ReadBudgetRegistry.feedPageFetchLimit;
   final plannedColdFeedWindow = <PostsModel>[];
+  int? feedTypesenseNextPage;
   DocumentSnapshot<Map<String, dynamic>>? plannedColdFeedLastDoc;
   bool plannedColdFeedUsesPrimaryFeed = true;
+  int? plannedColdFeedNextTypesensePage;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -102,6 +106,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxBool get isMuted => _state.isMuted;
   DocumentSnapshot? get lastDoc => _state.lastDoc;
   set lastDoc(DocumentSnapshot? value) => _state.lastDoc = value;
+  int? get _feedTypesenseNextPage => _state.feedTypesenseNextPage;
+  set _feedTypesenseNextPage(int? value) =>
+      _state.feedTypesenseNextPage = value;
   bool get _usePrimaryFeedPaging => _state.usePrimaryFeedPaging;
   set _usePrimaryFeedPaging(bool value) => _state.usePrimaryFeedPaging = value;
   bool get debugUsesPrimaryFeedPaging => _usePrimaryFeedPaging;
@@ -133,6 +140,10 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.resharePostsFetchTimer = value;
   Timer? get _agendaRetryTimer => _state.agendaRetryTimer;
   set _agendaRetryTimer(Timer? value) => _state.agendaRetryTimer = value;
+  Timer? get _deferredInitialNetworkBootstrapTimer =>
+      _state.deferredInitialNetworkBootstrapTimer;
+  set _deferredInitialNetworkBootstrapTimer(Timer? value) =>
+      _state.deferredInitialNetworkBootstrapTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -234,6 +245,10 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
   set _startupRenderBootstrapHold(bool value) =>
       _state.startupRenderBootstrapHold = value;
+  int get _deferredInitialNetworkBootstrapToken =>
+      _state.deferredInitialNetworkBootstrapToken;
+  set _deferredInitialNetworkBootstrapToken(int value) =>
+      _state.deferredInitialNetworkBootstrapToken = value;
   Set<String> get _startupCacheOriginVideoDocIds =>
       _state.startupCacheOriginVideoDocIds;
   int get _nextPageFetchTriggerCount => _state.nextPageFetchTriggerCount;
@@ -248,6 +263,10 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.plannedColdFeedUsesPrimaryFeed;
   set _plannedColdFeedUsesPrimaryFeed(bool value) =>
       _state.plannedColdFeedUsesPrimaryFeed = value;
+  int? get _plannedColdFeedNextTypesensePage =>
+      _state.plannedColdFeedNextTypesensePage;
+  set _plannedColdFeedNextTypesensePage(int? value) =>
+      _state.plannedColdFeedNextTypesensePage = value;
 
   bool isStartupCacheOriginVideoDoc(String docId) {
     final normalized = docId.trim();

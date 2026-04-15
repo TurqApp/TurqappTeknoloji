@@ -7,12 +7,38 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _cacheDir = '${appDir.path}/hls_cache';
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
+    _resetWatchStateForSessionStart();
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
     _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
       unawaited(_runPeriodicMaintenance());
     });
     _isReady = true;
+  }
+
+  void _resetWatchStateForSessionStart() {
+    var resetCount = 0;
+    for (final entry in _index.entries.values) {
+      final hadProgress = entry.watchProgress > 0.0;
+      final wasWatchedLikeState = entry.state == VideoCacheState.watched ||
+          entry.state == VideoCacheState.playing;
+      if (!hadProgress && !wasWatchedLikeState) {
+        continue;
+      }
+      entry.watchProgress = 0.0;
+      entry.state = _restingStateForEntry(entry);
+      resetCount++;
+    }
+
+    _recentlyPlayed.clear();
+    _lastPersistedProgress.clear();
+    _lastPersistedProgressAt.clear();
+
+    if (resetCount <= 0) return;
+    _markDirty();
+    debugPrint(
+      '[CacheManager] Session watch state reset: $resetCount entries',
+    );
   }
 
   Future<void> _recoverAndPurgeExpiredEntries() async {
