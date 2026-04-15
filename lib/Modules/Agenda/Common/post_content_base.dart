@@ -36,7 +36,7 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 5;
 const int _feedWarmWindowBehindCount = 3;
-const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 2;
+const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
 
 @visibleForTesting
 ({int start, int endExclusive}) resolveFeedSurfaceWarmRange({
