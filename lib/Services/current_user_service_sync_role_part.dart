@@ -60,9 +60,11 @@ class CurrentUserSyncRole {
       final cacheLoaded = await CurrentUserCacheStore(service)
           .loadFromCache(expectedUid: firebaseUser.uid);
 
-      await service
-          ._primeViewSelectionFromFirestore(firebaseUser.uid)
-          .timeout(const Duration(milliseconds: 350), onTimeout: () {});
+      unawaited(
+        service
+            ._primeViewSelectionFromFirestore(firebaseUser.uid)
+            .timeout(const Duration(milliseconds: 350), onTimeout: () {}),
+      );
 
       unawaited(service.refreshEmailVerificationStatus(reloadAuthUser: false));
       unawaited(service._loadEmailVerifyConfig());

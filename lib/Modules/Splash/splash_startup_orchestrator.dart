@@ -87,11 +87,13 @@ class SplashStartupOrchestrator {
   Future<void> initializeApp() async {
     var shouldScheduleBackgroundInit = false;
     var scheduledBackgroundInitFirstLaunch = false;
+    SharedPreferences? startupPrefs;
     try {
       final prefs = await _profileStartupPhase(
         'startup_bootstrap',
         () => _startupBootstrap.run(),
       );
+      startupPrefs = prefs;
       final sessionResult = await _profileStartupPhase(
         'session_bootstrap',
         () => _bootstrapSession(prefs: prefs),
@@ -127,6 +129,14 @@ class SplashStartupOrchestrator {
 
     if (!isMounted()) return;
     await navigateToPrimaryRoute();
+    final deferredPrefs = startupPrefs;
+    if (deferredPrefs != null) {
+      unawaited(
+        _sessionBootstrap.initializeDeferredSurfacePolicies(
+          prefs: deferredPrefs,
+        ),
+      );
+    }
     unawaited(_startupBootstrap.initializeDeferredAudioContext());
     unawaited(Future<void>(() {
       _dependencyRegistrar.registerDeferredDependencies();

@@ -69,7 +69,6 @@ class SessionBootstrap {
   Future<SessionBootstrapResult> run({
     required SharedPreferences prefs,
   }) async {
-    await ensureSurfacePolicyOverrideService().ensureReady(prefs: prefs);
     await _initializeAccountCenter();
     final hadReturningSessionHint = _hasReturningSessionHint(prefs);
 
@@ -105,6 +104,12 @@ class SessionBootstrap {
       isFirstLaunch: isFirstLaunch,
       loggedIn: loggedIn,
     );
+  }
+
+  Future<void> initializeDeferredSurfacePolicies({
+    required SharedPreferences prefs,
+  }) async {
+    await ensureSurfacePolicyOverrideService().ensureReady(prefs: prefs);
   }
 
   Duration _authRestoreWaitFor({
