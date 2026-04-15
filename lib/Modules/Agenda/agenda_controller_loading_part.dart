@@ -5,15 +5,15 @@ extension AgendaControllerLoadingPart on AgendaController {
   static const int _connectedColdFeedStageThreeLimit = 180;
   static const int _connectedColdFeedPrimeBatchFloor = 60;
   static const int _connectedInitialCandidateFetchFloor = 45;
-  static const int _startupWarmPreloadVideoCount = 2;
+  static const int _startupWarmPreloadVideoCount = 1;
   static const Duration _deferredInitialNetworkBootstrapDelay =
       Duration(milliseconds: 520);
   static const Duration _startupWarmPreloadFallbackDelay =
-      Duration(milliseconds: 2200);
+      Duration(milliseconds: 900);
   static const Duration _startupWarmPreloadReleaseDelay =
-      Duration(milliseconds: 220);
+      Duration(milliseconds: 120);
   static const Duration _startupWarmPreloadRenderReleaseDelay =
-      Duration(milliseconds: 80);
+      Duration(milliseconds: 32);
 
   int _connectedColdFeedCandidateFetchLimitForTarget(int targetLimit) =>
       targetLimit + _connectedColdFeedPrimeBatchFloor;
