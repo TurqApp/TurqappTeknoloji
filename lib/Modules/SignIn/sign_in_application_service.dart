@@ -427,19 +427,21 @@ class SignInApplicationService {
     try {
       final agendaController =
           maybeFindAgendaController() ?? ensureAgendaController();
-      final refreshFuture = agendaController.refreshAgenda();
+      final warmFuture = agendaController.agendaList.isEmpty
+          ? agendaController.ensureInitialFeedLoaded()
+          : agendaController.refreshAgenda();
       if (timeout == null) {
-        await refreshFuture;
+        await warmFuture;
       } else {
         await Future.any([
-          refreshFuture,
+          warmFuture,
           Future.delayed(timeout),
         ]);
       }
       if (retryUntilFilled) {
         var retries = 0;
         while (agendaController.agendaList.isEmpty && retries < 3) {
-          await agendaController.fetchAgendaBigData(initial: true);
+          await agendaController.ensureInitialFeedLoaded();
           if (agendaController.agendaList.isEmpty && retries < 2) {
             await Future<void>.delayed(const Duration(milliseconds: 500));
           }
@@ -448,7 +450,7 @@ class SignInApplicationService {
         return;
       }
       if (agendaController.agendaList.isEmpty) {
-        unawaited(agendaController.fetchAgendaBigData(initial: true));
+        unawaited(agendaController.ensureInitialFeedLoaded());
       }
     } catch (_) {}
   }
