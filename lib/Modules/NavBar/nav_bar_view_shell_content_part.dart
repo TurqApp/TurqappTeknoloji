@@ -315,12 +315,26 @@ extension _NavBarViewShellContentPart on NavBarView {
   }) async {
     if (index == 0 && controller.selectedIndex.value == 0) {
       final agendaCtrl = maybeFindAgendaController();
-      if (agendaCtrl != null && agendaCtrl.scrollController.hasClients) {
-        await agendaCtrl.scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeOut,
-        );
+      if (agendaCtrl != null) {
+        final scrollController = agendaCtrl.scrollController;
+        if (scrollController.hasClients) {
+          final currentOffset = scrollController.offset;
+          if (currentOffset > 8) {
+            await scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOut,
+            );
+          } else {
+            scrollController.jumpTo(0);
+          }
+        }
+        final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
+        if (!didShowRefresh) {
+          await agendaCtrl.refreshAgenda(
+            forceNewLaunchSession: true,
+          );
+        }
         return;
       }
     }

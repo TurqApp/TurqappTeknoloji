@@ -44,6 +44,15 @@ class AgendaView extends StatelessWidget {
   static bool _androidVisibilityTuned = false;
   static bool _feedEntryWarmQueued = false;
   static bool _primarySurfaceBootstrapQueued = false;
+  static final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
+  static Future<bool> showFeedRefreshIndicator() async {
+    final state = _refreshIndicatorKey.currentState;
+    if (state == null) return false;
+    await state.show();
+    return true;
+  }
 
   AgendaController get controller {
     return ensureAgendaController();

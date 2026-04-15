@@ -2057,10 +2057,35 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
-  Future<void> refreshAgenda() async {
+  Future<void> refreshAgenda({
+    bool forceNewLaunchSession = false,
+  }) async {
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
     try {
+      if (forceNewLaunchSession) {
+        final deviceSession = DeviceSessionService.instance;
+        final deviceSalt = deviceSession.cachedDeviceKey;
+        beginStartupSurfaceSession(
+          sessionNamespace: 'feed',
+          deviceSalt: deviceSalt,
+          forceNew: true,
+        );
+        if (deviceSalt.isEmpty) {
+          unawaited(
+            deviceSession.warmDeviceKey().then((_) {
+              final warmedSalt = deviceSession.cachedDeviceKey;
+              if (warmedSalt.isEmpty) return;
+              beginStartupSurfaceSession(
+                sessionNamespace: 'feed',
+                deviceSalt: warmedSalt,
+              );
+            }),
+          );
+        }
+      }
+      _cancelStartupWarmPlayerPreload();
+      _startupRenderBootstrapHold = false;
       _resetFeedPageFetchTrigger();
       _cancelDeferredInitialNetworkBootstrap();
       _feedRefreshInFlight = true;
