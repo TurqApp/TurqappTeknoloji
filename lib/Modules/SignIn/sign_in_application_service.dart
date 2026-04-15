@@ -3,6 +3,14 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
+import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
@@ -308,7 +316,10 @@ class SignInApplicationService {
       await _registerCurrentDeviceSession();
     }
     await persistStoredSessionHint(email: email);
-    await _warmStoryRowAfterAuth();
+    await Future.wait<void>(<Future<void>>[
+      _warmStoryRowAfterAuth(),
+      _warmPrimaryPasajSurfacesAfterAuth(),
+    ], eagerError: false);
     await _warmAgendaAfterAuth(retryUntilFilled: true);
     _startUnreadListenersAfterAuth();
     NotificationService.instance.scheduleInitialize(
@@ -349,7 +360,7 @@ class SignInApplicationService {
         ),
       );
       unawaited(MandatoryFollowService.instance.enforceForCurrentUser());
-      unawaited(_postLoginWarmup());
+      unawaited(_warmLightweightHomeAfterSignIn());
       await runStep(
         'trackCurrentAccountForDevice',
         trackCurrentAccountForDevice,
@@ -366,34 +377,6 @@ class SignInApplicationService {
 
       _startUnreadListenersAfterAuth();
     }());
-  }
-
-  Future<void> _postLoginWarmup() async {
-    try {
-      await Future.any([
-        _ensureCurrentUserService().initialize(),
-        Future.delayed(const Duration(seconds: 3)),
-      ]);
-      NotificationService.instance.scheduleInitialize(
-        delay: const Duration(seconds: 2),
-      );
-      unawaited(_clearSessionCachesAfterAccountSwitch());
-      final resolveCurrentUserFuture = _ensureCurrentUserService()
-          .ensureResolvedCurrentUser(
-            expectedUid: _authUserIdProvider(),
-            reloadEmailVerification: true,
-          );
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        await Future.any([
-          resolveCurrentUserFuture,
-          Future.delayed(const Duration(seconds: 2)),
-        ]);
-      } else {
-        unawaited(resolveCurrentUserFuture);
-      }
-      await _warmStoryRowAfterAuth(timeout: const Duration(seconds: 3));
-      await _warmAgendaAfterAuth(timeout: const Duration(seconds: 3));
-    } catch (_) {}
   }
 
   Future<void> _warmStoryRowAfterAuth({
@@ -451,6 +434,86 @@ class SignInApplicationService {
       }
       if (agendaController.agendaList.isEmpty) {
         unawaited(agendaController.ensureInitialFeedLoaded());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmLightweightHomeAfterSignIn() async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      await Future.wait<void>(<Future<void>>[
+        _warmStoryRowAfterAuth(timeout: const Duration(seconds: 2)),
+        _warmAgendaAfterAuth(timeout: const Duration(seconds: 2)),
+        _warmShortsAfterAuth(timeout: const Duration(seconds: 2)),
+      ], eagerError: false);
+    } catch (_) {}
+  }
+
+  Future<void> _warmShortsAfterAuth({
+    Duration? timeout,
+  }) async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      final loadShortsFuture = ensureShortSnapshotRepository().loadHome(
+        userId: userId,
+        forceSync: true,
+      );
+      if (timeout == null) {
+        await loadShortsFuture;
+      } else {
+        await Future.any([
+          loadShortsFuture,
+          Future.delayed(timeout),
+        ]);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmPrimaryPasajSurfacesAfterAuth({
+    Duration? timeout,
+  }) async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      final loadPasajFuture = Future.wait<dynamic>(<Future<dynamic>>[
+        MarketSnapshotRepository.ensure().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensureJobHomeSnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensureScholarshipSnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensureTutoringSnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensureAnswerKeySnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensurePracticeExamSnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+        ensureCikmisSorularSnapshotRepository().loadHome(
+          userId: userId,
+          forceSync: true,
+        ),
+      ], eagerError: false);
+      if (timeout == null) {
+        await loadPasajFuture;
+      } else {
+        await Future.any([
+          loadPasajFuture,
+          Future.delayed(timeout),
+        ]);
       }
     } catch (_) {}
   }
