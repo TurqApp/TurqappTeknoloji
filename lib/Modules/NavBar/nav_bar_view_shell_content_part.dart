@@ -331,9 +331,7 @@ extension _NavBarViewShellContentPart on NavBarView {
         }
         final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
         if (!didShowRefresh) {
-          await agendaCtrl.refreshAgenda(
-            forceNewLaunchSession: true,
-          );
+          await agendaCtrl.refreshAgendaFromUserAction();
         }
         return;
       }

@@ -127,7 +127,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get debugEnsureInitialLoadInFlight => _ensureInitialLoadInFlight;
   bool get debugSurfaceBootstrapInFlight => _surfaceBootstrapFuture != null;
   bool get debugStartupHeadFinalized => _startupHeadFinalized;
-  bool get debugStartupRenderBootstrapHold => _startupRenderBootstrapHold;
+  bool get startupRenderBootstrapHold => _startupRenderBootstrapHold;
   RxBool get hasMore => _state.hasMore;
   RxBool get isLoading => _state.isLoading;
   RxBool get pauseAll => _state.pauseAll;

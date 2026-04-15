@@ -25,9 +25,7 @@ extension _AgendaViewFeedPart on AgendaView {
       backgroundColor: Colors.black,
       color: Colors.white,
       onRefresh: () => runSurfaceRefresh(
-        primaryRefresh: () => controller.refreshAgenda(
-          forceNewLaunchSession: true,
-        ),
+        primaryRefresh: controller.refreshAgendaFromUserAction,
         backgroundRefreshes: [
           unreadController.refreshUnreadCount,
           () async {
@@ -51,7 +49,7 @@ extension _AgendaViewFeedPart on AgendaView {
         final displayCount = display.length;
         final filteredCount = filteredDisplay.length;
         final startupWarmPreloadActive =
-            controller.debugStartupRenderBootstrapHold &&
+            controller.startupRenderBootstrapHold &&
             controller.startupWarmPreloadDocIdsRx.isNotEmpty;
 
         if (displayCount == 0 || startupWarmPreloadActive) {

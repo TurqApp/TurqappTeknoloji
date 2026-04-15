@@ -2120,6 +2120,10 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  Future<void> refreshAgendaFromUserAction() {
+    return refreshAgenda(forceNewLaunchSession: true);
+  }
+
   Future<void> _refreshAgendaFromLiveSource({
     required int refreshEpoch,
   }) async {
