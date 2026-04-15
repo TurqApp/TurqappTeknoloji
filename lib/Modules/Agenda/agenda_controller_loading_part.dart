@@ -2,9 +2,15 @@ part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
   static const int _connectedColdFeedStageOneLimit = 60;
+  static const int _connectedColdFeedStageTwoLimit = 120;
   static const int _connectedColdFeedStageThreeLimit = 180;
+  static const int _connectedColdFeedStageFourLimit = 240;
+  static const int _connectedColdFeedStageThreeViewedTrigger = 50;
+  static const int _connectedColdFeedStageFourViewedTrigger = 110;
+  static const int _connectedColdFeedStageFourReadyViewedCheckpoint = 170;
   static const int _connectedColdFeedPrimeBatchFloor = 60;
   static const int _connectedInitialCandidateFetchFloor = 45;
+  static const int _feedIdentityWarmPriorityCount = 5;
   static const int _startupWarmPreloadVideoCount = 1;
   static const Duration _deferredInitialNetworkBootstrapDelay =
       Duration(milliseconds: 520);
@@ -56,6 +62,121 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
   }
 
+  void _recordFeedMotorSignal({
+    required String name,
+    required String status,
+    String reason = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final normalizedReason = reason.trim();
+    debugPrint(
+      '[FeedMotorSignal] name=$name status=$status '
+      'reason=${normalizedReason.isEmpty ? "none" : normalizedReason} '
+      'metadata=$metadata',
+    );
+    recordQALabFeedFetchEvent(
+      stage: 'motor_signal_$name',
+      trigger: normalizedReason.isEmpty ? name : normalizedReason,
+      metadata: <String, dynamic>{
+        'status': status,
+        ...metadata,
+      },
+    );
+    if (status == 'ok') return;
+    _invariantGuard.record(
+      surface: 'feed',
+      invariantKey: 'feed_motor_$name',
+      message: 'Feed motor signal reported $status',
+      payload: <String, dynamic>{
+        'reason': normalizedReason,
+        'status': status,
+        ...metadata,
+      },
+    );
+  }
+
+  void _recordFeedMotorContractSnapshot({required String reason}) {
+    const expectedStageOne = 60;
+    const expectedStageTwo = 120;
+    const expectedStageThree = 180;
+    const expectedStageFour = 240;
+    const expectedTriggerThree = 50;
+    const expectedTriggerFour = 110;
+    const expectedStageFourReadyCheckpoint = 170;
+    const expectedPostsPerBlock = 15;
+    const expectedVisualPriority = 5;
+    final contract = <String, dynamic>{
+      'typesensePrimaryEnabled': FeedSnapshotRepository.typesensePrimaryEnabled,
+      'typesenseFirestoreFallbackEnabled':
+          FeedSnapshotRepository.typesenseFirestoreFallbackEnabled,
+      'connectedSeedEnabled': false,
+      'stageOneLimit': _connectedColdFeedStageOneLimit,
+      'stageTwoLimit': _connectedColdFeedStageTwoLimit,
+      'stageThreeLimit': _connectedColdFeedStageThreeLimit,
+      'stageFourLimit': _connectedColdFeedStageFourLimit,
+      'stageThreeViewedTrigger': _connectedColdFeedStageThreeViewedTrigger,
+      'stageFourViewedTrigger': _connectedColdFeedStageFourViewedTrigger,
+      'stageFourReadyViewedCheckpoint':
+          _connectedColdFeedStageFourReadyViewedCheckpoint,
+      'stageBatchFloor': _connectedColdFeedPrimeBatchFloor,
+      'postsPerBlock': FeedRenderBlockPlan.postSlotsPerBlock,
+      'visualPriorityCount': _feedIdentityWarmPriorityCount,
+    };
+    _recordFeedMotorSignal(
+      name: 'contract_snapshot',
+      status: 'ok',
+      reason: reason,
+      metadata: contract,
+    );
+
+    void assertRule(bool condition, String key, String message) {
+      if (condition) return;
+      _invariantGuard.record(
+        surface: 'feed',
+        invariantKey: key,
+        message: message,
+        payload: contract,
+      );
+    }
+
+    assertRule(
+      FeedSnapshotRepository.typesensePrimaryEnabled,
+      'feed_motor_typesense_primary_disabled',
+      'Feed motor Typesense primary source is disabled',
+    );
+    assertRule(
+      !FeedSnapshotRepository.typesenseFirestoreFallbackEnabled,
+      'feed_motor_firestore_fallback_enabled',
+      'Feed motor Firestore fallback is enabled',
+    );
+    assertRule(
+      _connectedColdFeedStageOneLimit == expectedStageOne &&
+          _connectedColdFeedStageTwoLimit == expectedStageTwo &&
+          _connectedColdFeedStageThreeLimit == expectedStageThree &&
+          _connectedColdFeedStageFourLimit == expectedStageFour,
+      'feed_motor_stage_limits_changed',
+      'Feed motor staged reservoir limits changed',
+    );
+    assertRule(
+      _connectedColdFeedStageThreeViewedTrigger == expectedTriggerThree &&
+          _connectedColdFeedStageFourViewedTrigger == expectedTriggerFour &&
+          _connectedColdFeedStageFourReadyViewedCheckpoint ==
+              expectedStageFourReadyCheckpoint,
+      'feed_motor_stage_triggers_changed',
+      'Feed motor staged reservoir triggers changed',
+    );
+    assertRule(
+      FeedRenderBlockPlan.postSlotsPerBlock == expectedPostsPerBlock,
+      'feed_motor_render_block_changed',
+      'Feed render block size changed',
+    );
+    assertRule(
+      _feedIdentityWarmPriorityCount == expectedVisualPriority,
+      'feed_motor_visual_priority_changed',
+      'Feed visual warm priority count changed',
+    );
+  }
+
   int get _refreshPlannerMergeLimit =>
       min(8, ReadBudgetRegistry.feedLivePageLimit);
 
@@ -83,61 +204,154 @@ extension AgendaControllerLoadingPart on AgendaController {
         .toList(growable: false);
   }
 
-  Future<void> _warmInitialFeedVideoPosters(List<PostsModel> posts) async {
-    final videoPosts = posts
-        .where((post) => post.hasRenderableVideoCard)
+  Future<void> _warmInitialFeedVisuals(List<PostsModel> posts) async {
+    final windowPosts = posts
+        .take(FeedRenderBlockPlan.postSlotsPerBlock)
         .toList(growable: false);
-    if (videoPosts.isEmpty) return;
+    if (windowPosts.isEmpty) return;
 
-    final priorityPosts = videoPosts.take(5).toList(growable: false);
-    final deferredPosts = videoPosts.skip(priorityPosts.length).toList(
+    final priorityPosts = windowPosts
+        .take(_feedIdentityWarmPriorityCount)
+        .toList(growable: false);
+    final deferredPosts = windowPosts.skip(priorityPosts.length).toList(
           growable: false,
         );
 
-    await Future.wait(
-      priorityPosts.map(_warmFeedPosterForPost),
-      eagerError: false,
+    final priorityStats = await _warmFeedVisualBatch(
+      priorityPosts,
+      parallel: true,
+    );
+    debugPrint(
+      '[FeedVisualWarm15x5] status=priority_ready '
+      'priority=${priorityPosts.length} total=${windowPosts.length} '
+      'avatarBytes=${priorityStats.avatarBytes} '
+      'thumbnailBytes=${priorityStats.thumbnailBytes}',
+    );
+    _recordFeedMotorSignal(
+      name: 'visual_priority_ready',
+      status: 'ok',
+      metadata: <String, dynamic>{
+        'priority': priorityPosts.length,
+        'total': windowPosts.length,
+        'avatarBytes': priorityStats.avatarBytes,
+        'thumbnailBytes': priorityStats.thumbnailBytes,
+      },
     );
 
-    if (deferredPosts.isNotEmpty) {
-      unawaited(
-        Future.wait(
-          deferredPosts.map(_warmFeedPosterForPost),
-          eagerError: false,
+    if (deferredPosts.isEmpty) return;
+    unawaited(
+      _warmFeedVisualBatch(deferredPosts).then((deferredStats) {
+        debugPrint(
+          '[FeedVisualWarm15x5] status=deferred_ready '
+          'deferred=${deferredPosts.length} total=${windowPosts.length} '
+          'avatarBytes=${deferredStats.avatarBytes} '
+          'thumbnailBytes=${deferredStats.thumbnailBytes}',
+        );
+        _recordFeedMotorSignal(
+          name: 'visual_deferred_ready',
+          status: 'ok',
+          metadata: <String, dynamic>{
+            'deferred': deferredPosts.length,
+            'total': windowPosts.length,
+            'avatarBytes': deferredStats.avatarBytes,
+            'thumbnailBytes': deferredStats.thumbnailBytes,
+          },
+        );
+      }),
+    );
+  }
+
+  Future<({int avatarBytes, int thumbnailBytes})> _warmFeedVisualBatch(
+    List<PostsModel> posts, {
+    bool parallel = false,
+  }) async {
+    if (parallel) {
+      final stats = await Future.wait(
+        posts.map(_warmFeedVisualsForPost),
+        eagerError: false,
+      );
+      return (
+        avatarBytes: stats.fold<int>(
+          0,
+          (total, stat) => total + stat.avatarBytes,
+        ),
+        thumbnailBytes: stats.fold<int>(
+          0,
+          (total, stat) => total + stat.thumbnailBytes,
         ),
       );
     }
-  }
 
-  Future<void> _warmFeedPosterForPost(PostsModel post) async {
-    for (final url in post.preferredVideoPosterUrls) {
-      if (url.trim().isEmpty) continue;
-      try {
-        await TurqImageCacheManager.warmUrl(url)
-            .timeout(const Duration(seconds: 2));
-        return;
-      } catch (_) {}
+    var avatarBytes = 0;
+    var thumbnailBytes = 0;
+    for (final post in posts) {
+      final stats = await _warmFeedVisualsForPost(post);
+      avatarBytes += stats.avatarBytes;
+      thumbnailBytes += stats.thumbnailBytes;
     }
+    return (
+      avatarBytes: avatarBytes,
+      thumbnailBytes: thumbnailBytes,
+    );
   }
 
-  Future<void> _warmInitialFeedAvatars(List<PostsModel> posts) async {
-    final avatarUrls = posts
-        .map((post) => post.authorAvatarUrl.trim())
-        .where((url) => url.isNotEmpty)
-        .toSet()
-        .take(8)
-        .toList(growable: false);
-    if (avatarUrls.isEmpty) return;
-
-    await Future.wait(
-      avatarUrls.map((url) async {
-        try {
-          await TurqImageCacheManager.warmUrl(url)
-              .timeout(const Duration(seconds: 2));
-        } catch (_) {}
-      }),
+  Future<({int avatarBytes, int thumbnailBytes})> _warmFeedVisualsForPost(
+    PostsModel post,
+  ) async {
+    final results = await Future.wait<int>(
+      [
+        _warmFeedAvatarForPost(post),
+        _warmFeedPosterForPost(post),
+      ],
       eagerError: false,
     );
+    return (
+      avatarBytes: results[0],
+      thumbnailBytes: results[1],
+    );
+  }
+
+  List<String> _preferredFeedThumbnailUrlsForPost(PostsModel post) {
+    final urls = <String>[];
+    for (final url in post.preferredVideoPosterUrls) {
+      final normalized = url.trim();
+      if (normalized.isNotEmpty && !urls.contains(normalized)) {
+        urls.add(normalized);
+      }
+    }
+    return urls;
+  }
+
+  Future<int> _warmFeedPosterForPost(PostsModel post) async {
+    for (final url in _preferredFeedThumbnailUrlsForPost(post)) {
+      if (url.trim().isEmpty) continue;
+      try {
+        final file = await TurqImageCacheManager.warmUrl(url)
+            .timeout(const Duration(seconds: 2));
+        try {
+          return await file.length();
+        } catch (_) {
+          return 0;
+        }
+      } catch (_) {}
+    }
+    return 0;
+  }
+
+  Future<int> _warmFeedAvatarForPost(PostsModel post) async {
+    final url = post.authorAvatarUrl.trim();
+    if (url.isEmpty) return 0;
+    try {
+      final file = await TurqImageCacheManager.warmUrl(url)
+          .timeout(const Duration(seconds: 2));
+      try {
+        return await file.length();
+      } catch (_) {
+        return 0;
+      }
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> _primeInitialVisibleCardImageHints(
@@ -153,7 +367,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         .toList(growable: false);
     final posterUrls = visiblePosts
         .where((post) => post.hasRenderableVideoCard)
-        .expand((post) => post.preferredVideoPosterUrls.map((url) => url.trim()))
+        .expand(
+            (post) => post.preferredVideoPosterUrls.map((url) => url.trim()))
         .where((url) => url.isNotEmpty)
         .take(3)
         .toList(growable: false);
@@ -183,8 +398,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   void _scheduleInitialFeedVideoPosterWarmup(List<PostsModel> posts) {
     if (posts.isEmpty) return;
-    unawaited(_warmInitialFeedVideoPosters(posts));
-    unawaited(_warmInitialFeedAvatars(posts));
+    unawaited(_warmInitialFeedVisuals(posts));
   }
 
   void _cancelStartupWarmPlayerPreload() {
@@ -727,6 +941,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     int? pageLimit,
     int? expectedMutationEpoch,
   }) {
+    if (initial) {
+      _recordFeedMotorContractSnapshot(reason: trigger);
+    }
     debugPrint(
       '[FeedBootstrapRequest] trigger=$trigger initial=$initial '
       'pageLimit=${pageLimit ?? 0} agendaCount=${agendaList.length} '
@@ -822,6 +1039,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         'rawCount=${pageApplyPlan.itemsToAdd.length} '
         'composedCount=${startupItems.length}',
       );
+      _scheduleInitialFeedVideoPosterWarmup(startupItems);
       unawaited(_primeInitialVisibleCardImageHints(startupItems));
       _replaceAgendaState(
         startupItems,
@@ -845,7 +1063,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         startupItems,
         reason: 'initial_items_to_add',
       );
-      _scheduleInitialFeedVideoPosterWarmup(startupItems);
       _scheduleReshareFetchForPosts(
         startupItems,
         perPostLimit: 1,
@@ -865,6 +1082,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         itemCount: pageApplyPlan.itemsToAdd.length,
       );
     }
+    _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
     _appendUniqueAgendaState(
       pageApplyPlan.itemsToAdd,
       reason: 'initial_items_append',
@@ -881,7 +1099,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         reason: 'initial_items_append',
       );
     }
-    _scheduleInitialFeedVideoPosterWarmup(pageApplyPlan.itemsToAdd);
     _scheduleReshareFetchForPosts(
       pageApplyPlan.itemsToAdd,
       perPostLimit: 1,
@@ -973,6 +1190,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       _plannedColdFeedLastDoc = null;
       _plannedColdFeedUsesPrimaryFeed = true;
       _plannedColdFeedNextTypesensePage = null;
+      _connectedFeedReservoirWarmTarget = 0;
+      _connectedFeedReservoirWarmInFlight = false;
+      _connectedFeedStageFourReadyCheckpointLogged = false;
       _prefetchedThumbnailPostCount = 0;
       _prefetchedThumbnailDocIds.clear();
       if (!preserveVisibleSeededHeadOnInitialBootstrap) {
@@ -1067,7 +1287,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           .map((post) => post.docID.trim())
           .where((docId) => docId.isNotEmpty)
           .toSet();
-      final plannedColdPage = initial || liveConnected
+      final plannedColdPage = initial
           ? null
           : _loadPlannedColdFeedPage(
               currentAgenda: currentAgenda,
@@ -1241,7 +1461,7 @@ extension AgendaControllerLoadingPart on AgendaController {
             _remainingPlannedColdFeedCount(seenDocIds: consumedDocIds);
         final hasPlannedRemaining = remainingPlannedCount > 0;
         final canGrowConnectedPlan = ContentPolicy.isConnected &&
-            currentAgenda.length < _connectedColdFeedStageThreeLimit;
+            currentAgenda.length < _connectedColdFeedStageFourLimit;
         effectiveLastDoc = _plannedColdFeedLastDoc;
         effectiveNextTypesensePage = _plannedColdFeedNextTypesensePage;
         effectiveUsesPrimaryFeed = _plannedColdFeedUsesPrimaryFeed;
@@ -1292,6 +1512,12 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
 
       hasMore.value = effectiveHasMore;
+      if (initial && liveConnected && effectiveHasMore) {
+        _scheduleConnectedFeedReservoirStageWarmup(
+          targetLimit: _connectedColdFeedStageTwoLimit,
+          reason: 'initial_page2_ready_before_50',
+        );
+      }
       _clearAgendaRetry();
       recordQALabFeedFetchEvent(
         stage: 'completed',
@@ -1484,6 +1710,231 @@ extension AgendaControllerLoadingPart on AgendaController {
         ),
       );
     });
+  }
+
+  void _maybeScheduleConnectedFeedReservoirForViewedCount(int viewedCount) {
+    _maybeRecordConnectedFeedStageFourReadyCheckpoint(viewedCount);
+    if (viewedCount >= _connectedColdFeedStageFourViewedTrigger) {
+      _scheduleConnectedFeedReservoirStageWarmup(
+        targetLimit: _connectedColdFeedStageFourLimit,
+        reason:
+            'viewed_${_connectedColdFeedStageFourViewedTrigger}_page4_ready_before_170',
+      );
+      return;
+    }
+    if (viewedCount >= _connectedColdFeedStageThreeViewedTrigger) {
+      _scheduleConnectedFeedReservoirStageWarmup(
+        targetLimit: _connectedColdFeedStageThreeLimit,
+        reason:
+            'viewed_${_connectedColdFeedStageThreeViewedTrigger}_page3_ready_before_110',
+      );
+    }
+  }
+
+  void _maybeRecordConnectedFeedStageFourReadyCheckpoint(int viewedCount) {
+    if (_connectedFeedStageFourReadyCheckpointLogged ||
+        viewedCount < _connectedColdFeedStageFourReadyViewedCheckpoint) {
+      return;
+    }
+    _connectedFeedStageFourReadyCheckpointLogged = true;
+    final planned = _plannedColdFeedWindow.length;
+    final ready = planned >= _connectedColdFeedStageFourLimit ||
+        agendaList.length >= _connectedColdFeedStageFourLimit;
+    _recordFeedMotorSignal(
+      name: ready
+          ? 'stage_four_ready_at_170'
+          : 'stage_four_not_ready_at_170',
+      status: ready ? 'ok' : 'warn',
+      reason: 'viewed_170_stage4_checkpoint',
+      metadata: <String, dynamic>{
+        'viewedCount': viewedCount,
+        'currentCount': agendaList.length,
+        'planned': planned,
+        'target': _connectedColdFeedStageFourLimit,
+        'warmTarget': _connectedFeedReservoirWarmTarget,
+        'warmInFlight': _connectedFeedReservoirWarmInFlight,
+      },
+    );
+  }
+
+  void _scheduleConnectedFeedReservoirStageWarmup({
+    required int targetLimit,
+    required String reason,
+  }) {
+    if (!ContentPolicy.isConnected) return;
+    if (targetLimit <= FeedSnapshotRepository.startupHomeLimitValue) return;
+    if (_plannedColdFeedWindow.length >= targetLimit) return;
+    if (_connectedFeedReservoirWarmTarget >= targetLimit) return;
+    if (_connectedFeedReservoirWarmInFlight) return;
+    if (agendaList.isEmpty) return;
+    final nextTypesensePage =
+        _plannedColdFeedNextTypesensePage ?? _feedTypesenseNextPage;
+    if (nextTypesensePage == null && lastDoc == null) return;
+    _connectedFeedReservoirWarmTarget = targetLimit;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      unawaited(
+        _warmConnectedFeedReservoirStage(
+          targetLimit: targetLimit,
+          reason: reason,
+        ),
+      );
+    });
+  }
+
+  Future<void> _warmConnectedFeedReservoirStage({
+    required int targetLimit,
+    required String reason,
+  }) async {
+    if (!ContentPolicy.isConnected || agendaList.isEmpty) return;
+    if (_connectedFeedReservoirWarmInFlight) return;
+    _connectedFeedReservoirWarmInFlight = true;
+    try {
+      final nextTypesensePage =
+          _plannedColdFeedNextTypesensePage ?? _feedTypesenseNextPage;
+      final cursor = _plannedColdFeedLastDoc ??
+          (lastDoc is DocumentSnapshot<Map<String, dynamic>>
+              ? lastDoc as DocumentSnapshot<Map<String, dynamic>>
+              : null);
+      if (nextTypesensePage == null && cursor == null) return;
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final cutoffMs = _agendaCutoffMs(nowMs);
+      final seedPosts = _plannedColdFeedWindow.isNotEmpty
+          ? _plannedColdFeedWindow.toList(growable: false)
+          : agendaList.toList(growable: false);
+      debugPrint(
+        '[FeedTypesenseStageWarm] status=start reason=$reason '
+        'target=$targetLimit seed=${seedPosts.length} '
+        'nextTypesensePage=${nextTypesensePage ?? 0}',
+      );
+      _recordFeedMotorSignal(
+        name: 'reservoir_stage_start',
+        status: 'ok',
+        reason: reason,
+        metadata: <String, dynamic>{
+          'target': targetLimit,
+          'seed': seedPosts.length,
+          'nextTypesensePage': nextTypesensePage ?? 0,
+          'batchLimit': _connectedColdFeedPrimeBatchFloor,
+        },
+      );
+      final page = await _loadAgendaSourcePage(
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: _connectedColdFeedPrimeBatchFloor,
+        startAfter: cursor,
+        typesensePage: nextTypesensePage,
+        useStoredCursor: false,
+        preferCache: false,
+        cacheOnly: false,
+        usePrimaryFeedPaging: true,
+        includeSupplementalSources: false,
+      );
+      if (page.items.isEmpty) {
+        debugPrint(
+          '[FeedTypesenseStageWarm] status=empty reason=$reason '
+          'target=$targetLimit',
+        );
+        _recordFeedMotorSignal(
+          name: 'reservoir_stage_empty',
+          status: 'warn',
+          reason: reason,
+          metadata: <String, dynamic>{
+            'target': targetLimit,
+            'planned': _plannedColdFeedWindow.length,
+            'nextTypesensePage': page.nextTypesensePage ?? 0,
+          },
+        );
+        return;
+      }
+      await _storeColdFeedPlanWindow(
+        seedPosts: seedPosts,
+        fetchedPosts: page.items,
+        lastDoc: page.lastDoc,
+        nextTypesensePage: page.nextTypesensePage,
+        usesPrimaryFeed: page.usesPrimaryFeed,
+        targetLimit: targetLimit,
+        logLabel: 'FeedTypesenseStageWarm',
+      );
+      debugPrint(
+        '[FeedTypesenseStageWarm] status=ready reason=$reason '
+        'target=$targetLimit fetched=${page.items.length} '
+        'planned=${_plannedColdFeedWindow.length} '
+        'nextTypesensePage=${page.nextTypesensePage ?? 0}',
+      );
+      _recordFeedMotorSignal(
+        name: 'reservoir_stage_ready',
+        status: 'ok',
+        reason: reason,
+        metadata: <String, dynamic>{
+          'target': targetLimit,
+          'fetched': page.items.length,
+          'planned': _plannedColdFeedWindow.length,
+          'nextTypesensePage': page.nextTypesensePage ?? 0,
+          'usesPrimaryFeed': page.usesPrimaryFeed,
+          'itemsPreplanned': page.itemsPreplanned,
+        },
+      );
+      _maybeTriggerFeedGrowthAfterReservoirReady(reason: reason);
+    } catch (error) {
+      debugPrint(
+        '[FeedTypesenseStageWarm] status=failed reason=$reason '
+        'target=$targetLimit error=$error',
+      );
+      _recordFeedMotorSignal(
+        name: 'reservoir_stage_failed',
+        status: 'error',
+        reason: reason,
+        metadata: <String, dynamic>{
+          'target': targetLimit,
+          'error': error.toString(),
+        },
+      );
+    } finally {
+      if (_plannedColdFeedWindow.length < targetLimit &&
+          _connectedFeedReservoirWarmTarget == targetLimit) {
+        _connectedFeedReservoirWarmTarget = _plannedColdFeedWindow.length;
+      }
+      _connectedFeedReservoirWarmInFlight = false;
+    }
+  }
+
+  void _maybeTriggerFeedGrowthAfterReservoirReady({required String reason}) {
+    if (isClosed ||
+        agendaList.isEmpty ||
+        isLoading.value ||
+        !hasMore.value ||
+        _plannedColdFeedWindow.isEmpty) {
+      return;
+    }
+    final centered = centeredIndex.value;
+    final viewedCount =
+        centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
+    if (viewedCount < _nextPageFetchTriggerCount) return;
+    final triggerCount = _nextPageFetchTriggerCount;
+    debugPrint(
+      '[FeedFetchTrigger] source=reservoir_ready '
+      'reason=$reason viewedCount=$viewedCount '
+      'currentCount=${agendaList.length} '
+      'planned=${_plannedColdFeedWindow.length} '
+      'triggerCount=$triggerCount',
+    );
+    _recordFeedMotorSignal(
+      name: 'reservoir_growth_trigger',
+      status: 'ok',
+      reason: reason,
+      metadata: <String, dynamic>{
+        'viewedCount': viewedCount,
+        'currentCount': agendaList.length,
+        'planned': _plannedColdFeedWindow.length,
+        'triggerCount': triggerCount,
+      },
+    );
+    _advanceFeedPageFetchTrigger(viewedCount);
+    fetchAgendaBigData(
+      pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
+      trigger: 'reservoir_ready',
+    );
   }
 
   Future<void> _warmConnectedColdFeedReservoir({
@@ -2224,6 +2675,18 @@ extension AgendaControllerLoadingPart on AgendaController {
         usePrimaryFeedPaging: true,
       );
       if (page.items.isEmpty) {
+        _recordFeedMotorSignal(
+          name: 'refresh_empty_page',
+          status: previousAgenda.isEmpty ? 'ok' : 'warn',
+          reason: 'refresh',
+          metadata: <String, dynamic>{
+            'previousCount': previousAgenda.length,
+            'refreshEpoch': refreshEpoch,
+            'usesPrimaryFeed': page.usesPrimaryFeed,
+            'itemsPreplanned': page.itemsPreplanned,
+            'nextTypesensePage': page.nextTypesensePage ?? 0,
+          },
+        );
         return;
       }
 

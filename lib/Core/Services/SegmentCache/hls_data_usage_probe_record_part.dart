@@ -1,9 +1,48 @@
 part of 'hls_data_usage_probe.dart';
 
 extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
+  static const Duration _offscreenLeakAlertCooldown = Duration(seconds: 3);
+
   String _currentNetworkTypeName() {
     final network = NetworkAwarenessService.maybeFind();
     return (network?.currentNetwork ?? NetworkType.none).name;
+  }
+
+  void _recordOffscreenLeakSignal(HlsTransferEvent event) {
+    if (event.kind != 'segment' || event.cacheHit || event.isVisibleAtTransfer) {
+      return;
+    }
+    final visibleDocId = (event.visibleDocId ?? '').trim();
+    final docId = event.docId.trim();
+    if (docId.isEmpty || visibleDocId.isEmpty || visibleDocId == docId) {
+      return;
+    }
+    final alertKey = '$docId|$visibleDocId|${event.source.name}';
+    final now = DateTime.now();
+    final previous = _offscreenLeakAlerts[alertKey];
+    if (previous != null &&
+        now.difference(previous) < _offscreenLeakAlertCooldown) {
+      return;
+    }
+    _offscreenLeakAlerts[alertKey] = now;
+    final payload = <String, dynamic>{
+      'docId': docId,
+      'visibleDocId': visibleDocId,
+      'source': event.source.name,
+      'bytes': event.bytes,
+      'networkType': event.networkType,
+      'segmentKey': event.pathKey,
+      'label': _label,
+    };
+    debugPrint(
+      '[HlsOffscreenLeak] signal=offscreen_segment_leak_after_stop payload=$payload',
+    );
+    ensureRuntimeInvariantGuard().record(
+      surface: 'feed',
+      invariantKey: 'offscreen_segment_leak_after_stop',
+      message: 'Off-screen segment transfer continued for a non-visible doc',
+      payload: payload,
+    );
   }
 
   Future<void> maybeApplyDebugDelay({
@@ -130,6 +169,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       networkType: _currentNetworkTypeName(),
     );
     _events.add(event);
+    _recordOffscreenLeakSignal(event);
 
     final doc =
         _docUsage.putIfAbsent(docId, () => _DocAccumulator(docId: docId));

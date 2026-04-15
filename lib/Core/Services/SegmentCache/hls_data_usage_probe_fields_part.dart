@@ -20,6 +20,7 @@ class _HlsDataUsageProbeState {
   int variantSwitchesObserved = 0;
   String? lastVisibleVariantKey;
   String? mobileBytesKpiSignature;
+  final Map<String, DateTime> offscreenLeakAlerts = <String, DateTime>{};
 }
 
 extension _HlsDataUsageProbeFieldsPart on HlsDataUsageProbe {
@@ -68,4 +69,6 @@ extension _HlsDataUsageProbeFieldsPart on HlsDataUsageProbe {
   String? get _mobileBytesKpiSignature => _state.mobileBytesKpiSignature;
   set _mobileBytesKpiSignature(String? value) =>
       _state.mobileBytesKpiSignature = value;
+
+  Map<String, DateTime> get _offscreenLeakAlerts => _state.offscreenLeakAlerts;
 }

@@ -20,10 +20,12 @@ extension AgendaControllerFeedPart on AgendaController {
       FeedRenderBlockPlan.groupsPerBlock;
   static const int _feedHotPrefetchGroupCount = 3;
   static const int _feedStartupWarmGroupCount = 2;
+  static const int _feedGrowthRunwayPostCount =
+      FeedRenderBlockPlan.postsPerGroup * 3;
 
   int get _feedInitialPageFetchTriggerCount {
-    final trigger = ReadBudgetRegistry.feedPageFetchLimit -
-        (FeedRenderBlockPlan.postsPerGroup * 2);
+    final trigger =
+        ReadBudgetRegistry.feedPageFetchLimit - _feedGrowthRunwayPostCount;
     return trigger > FeedRenderBlockPlan.postsPerGroup
         ? trigger
         : FeedRenderBlockPlan.postsPerGroup;
@@ -91,6 +93,7 @@ extension AgendaControllerFeedPart on AgendaController {
       pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
       trigger: 'promo_near_end',
     );
+    _maybeScheduleConnectedFeedReservoirForViewedCount(viewedCount);
   }
 
   bool _reclaimFeedPlaybackFromExternalOwner(
@@ -978,6 +981,7 @@ extension AgendaControllerFeedPart on AgendaController {
         trigger: 'scroll_near_end',
       );
     }
+    _maybeScheduleConnectedFeedReservoirForViewedCount(viewedCount);
 
     final shouldShowFab = currentOffset <= 1000;
     if (showFAB.value != shouldShowFab) {

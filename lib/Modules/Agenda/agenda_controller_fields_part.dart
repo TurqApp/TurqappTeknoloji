@@ -81,7 +81,10 @@ class _AgendaControllerState {
   bool startupHeadFinalized = false;
   bool startupRenderBootstrapHold = false;
   bool growthRenderAppendHold = false;
+  bool connectedFeedReservoirWarmInFlight = false;
+  bool connectedFeedStageFourReadyCheckpointLogged = false;
   int growthRenderAppendEpoch = 0;
+  int connectedFeedReservoirWarmTarget = 0;
   int deferredInitialNetworkBootstrapToken = 0;
   final startupCacheOriginVideoDocIds = <String>{};
   int nextPageFetchTriggerCount = ReadBudgetRegistry.feedPageFetchLimit;
@@ -108,7 +111,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxInt get centeredIndex => _state.centeredIndex;
   RxBool get playbackSuspended => _state.playbackSuspended;
   RxString get feedWarmPreloadAnchorKeyRx => _state.feedWarmPreloadAnchorKey;
-  RxList<String> get startupWarmPreloadDocIdsRx => _state.startupWarmPreloadDocIds;
+  RxList<String> get startupWarmPreloadDocIdsRx =>
+      _state.startupWarmPreloadDocIds;
   List<String> get startupWarmPreloadDocIds =>
       _state.startupWarmPreloadDocIds.toList(growable: false);
   String get feedWarmPreloadAnchorKey => _state.feedWarmPreloadAnchorKey.value;
@@ -191,6 +195,7 @@ extension AgendaControllerFieldsPart on AgendaController {
     if (_state.feedWarmPreloadAnchorKey.value == normalized) return;
     _state.feedWarmPreloadAnchorKey.value = normalized;
   }
+
   String? get _pendingCenteredDocId => _state.pendingCenteredDocId;
   set _pendingCenteredDocId(String? value) =>
       _state.pendingCenteredDocId = value;
@@ -283,9 +288,21 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _growthRenderAppendHold => _state.growthRenderAppendHold;
   set _growthRenderAppendHold(bool value) =>
       _state.growthRenderAppendHold = value;
+  bool get _connectedFeedReservoirWarmInFlight =>
+      _state.connectedFeedReservoirWarmInFlight;
+  set _connectedFeedReservoirWarmInFlight(bool value) =>
+      _state.connectedFeedReservoirWarmInFlight = value;
+  bool get _connectedFeedStageFourReadyCheckpointLogged =>
+      _state.connectedFeedStageFourReadyCheckpointLogged;
+  set _connectedFeedStageFourReadyCheckpointLogged(bool value) =>
+      _state.connectedFeedStageFourReadyCheckpointLogged = value;
   int get _growthRenderAppendEpoch => _state.growthRenderAppendEpoch;
   set _growthRenderAppendEpoch(int value) =>
       _state.growthRenderAppendEpoch = value;
+  int get _connectedFeedReservoirWarmTarget =>
+      _state.connectedFeedReservoirWarmTarget;
+  set _connectedFeedReservoirWarmTarget(int value) =>
+      _state.connectedFeedReservoirWarmTarget = value;
   String? get _startupWarmPreloadPrimaryDocId =>
       _state.startupWarmPreloadPrimaryDocId;
   set _startupWarmPreloadPrimaryDocId(String? value) =>

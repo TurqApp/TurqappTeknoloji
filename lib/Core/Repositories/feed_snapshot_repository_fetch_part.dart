@@ -535,7 +535,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       bandMinutes: feedLaunchMotorContract.bandMinutes,
       minuteSets: feedLaunchMotorContract.minuteSets,
     );
-    final candidateLimit = limit < 60 ? 60 : limit;
+    const minTypesenseMotorCandidateLimit = 60;
+    final candidateLimit = limit < minTypesenseMotorCandidateLimit
+        ? minTypesenseMotorCandidateLimit
+        : limit;
     final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
       surface: 'feed',
       ownedMinutes: ownedMinutes,
@@ -549,7 +552,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         '[FeedSnapshotTypesense] uid=$currentUserId '
         'ownedMinutes=${motorPage.ownedMinutes.join(",")} '
         'raw=${motorPage.items.length} found=${motorPage.found} '
-        'outOf=${motorPage.outOf} searchTimeMs=${motorPage.searchTimeMs}',
+        'outOf=${motorPage.outOf} searchTimeMs=${motorPage.searchTimeMs} '
+        'requestedLimit=$limit candidateLimit=$candidateLimit',
       );
     }
     if (motorPage.items.isEmpty) {
@@ -571,7 +575,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       cutoffMs: cutoffMs,
       limit: candidateLimit,
       summaryCacheOnly: false,
-      refreshNonPublicCachedSummaries: true,
+      refreshNonPublicCachedSummaries: false,
     );
     final selection = LaunchMotorSelectionService.buildPoolFillResult(
       latestPool: visible,

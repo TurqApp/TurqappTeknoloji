@@ -33,6 +33,7 @@ extension HlsDataUsageProbeFacadePart on HlsDataUsageProbe {
     _variantSwitchesObserved = 0;
     _lastVisibleVariantKey = null;
     _mobileBytesKpiSignature = null;
+    _offscreenLeakAlerts.clear();
   }
 
   void setVisibleDoc(String? docId) {
