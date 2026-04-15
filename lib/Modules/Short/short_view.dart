@@ -172,6 +172,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   DateTime? _lastExclusivePlayAt;
   String? _lastPrimaryPlayDocId;
   DateTime? _lastPrimaryPlayAt;
+  String? _lastShortPlaybackAttemptToken;
+  DateTime? _lastShortPlaybackAttemptAt;
   String? _lastAutoplayBootstrapToken;
   DateTime? _lastAutoplayBootstrapAt;
   String _currentScrollToken = '';
@@ -270,17 +272,15 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   void _applyShortPlaybackPresentation(int page, HLSVideoAdapter adapter) {
     final decision = _shortPlaybackDecisionFor(page, adapter.value);
-    final shouldForceIosShortAudible =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            volume &&
+    final shouldForceActiveShortAudible =
+        volume &&
             page == currentPage &&
             _isShortRoutePlaybackActive &&
-            adapter.value.hasRenderedFirstFrame &&
-            adapter.value.position > Duration.zero &&
+            !isManuallyPaused &&
             !adapter.value.isCompleted;
     _playbackExecutionService.applyPresentation(
       adapter,
-      shouldBeAudible: decision.shouldBeAudible || shouldForceIosShortAudible,
+      shouldBeAudible: decision.shouldBeAudible || shouldForceActiveShortAudible,
     );
   }
 

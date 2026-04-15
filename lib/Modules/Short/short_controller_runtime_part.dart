@@ -55,7 +55,6 @@ extension _ShortControllerRuntimeX on ShortController {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         prefetch.resetWifiQuotaFillPlan();
-        unawaited(prefetch.ensureWifiQuotaFillPlan());
       }
     } catch (e) {
       _log('Shorts cache quota apply error: $e');

@@ -266,10 +266,41 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   void _applySingleShortPlaybackPresentation(
       int page, HLSVideoAdapter adapter) {
     final decision = _singleShortPlaybackDecisionFor(page, adapter.value);
+    final shouldForceActiveShortAudible =
+        volume &&
+            page == currentPage &&
+            _isSingleShortRoutePlaybackActive &&
+            !adapter.value.isCompleted;
     _playbackExecutionService.applyPresentation(
       adapter,
-      shouldBeAudible: decision.shouldBeAudible,
+      shouldBeAudible: decision.shouldBeAudible || shouldForceActiveShortAudible,
     );
+  }
+
+  Future<void> _reassertSingleShortAudibility(
+    int page,
+    HLSVideoAdapter adapter,
+  ) async {
+    if (!mounted ||
+        page != currentPage ||
+        !_isSingleShortRoutePlaybackActive ||
+        adapter.isDisposed) {
+      return;
+    }
+    try {
+      await adapter.setVolume(volume ? 1.0 : 0.0);
+    } catch (_) {}
+    _applySingleShortPlaybackPresentation(page, adapter);
+  }
+
+  void _scheduleDelayedSingleShortAudibilityReassert(
+    int page,
+    HLSVideoAdapter adapter, {
+    Duration delay = const Duration(milliseconds: 260),
+  }) {
+    Future<void>.delayed(delay, () async {
+      await _reassertSingleShortAudibility(page, adapter);
+    });
   }
 
   @override

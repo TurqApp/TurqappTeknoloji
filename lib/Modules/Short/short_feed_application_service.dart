@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/launch_motor_selection_service.dart';
+import 'package:turqappv2/Core/Services/launch_motor_surface_contract.dart';
 
 import '../../Models/posts_model.dart';
 
@@ -41,35 +43,61 @@ class ShortFeedApplicationService {
     int Function()? nowMsProvider,
   }) : _nowMsProvider = nowMsProvider;
 
-  static const Duration _shortLaunchMotorWindow = Duration(days: 7);
-  static const int _shortLaunchMotorBandMinutes = 5;
-  static const int _shortLaunchMotorSubsliceMs = 200;
-  static const List<List<int>> _shortLaunchMotorMinuteSets = <List<int>>[
-    <int>[4, 23, 30, 37, 56],
-    <int>[5, 18, 25, 44, 51],
-    <int>[6, 13, 32, 39, 58],
-    <int>[7, 20, 27, 46, 53],
-    <int>[8, 15, 34, 41, 48],
-    <int>[9, 22, 29, 36, 55],
-    <int>[10, 12, 31, 43, 50],
-    <int>[11, 17, 24, 38, 57],
-    <int>[0, 19, 26, 45, 52],
-    <int>[1, 14, 33, 40, 59],
-    <int>[2, 21, 28, 47, 54],
-    <int>[3, 16, 35, 42, 49],
-  ];
+  static final Duration _shortLaunchMotorWindow =
+      shortLaunchMotorContract.window;
+  static final int _shortLaunchMotorBandMinutes =
+      shortLaunchMotorContract.bandMinutes;
+  static final int _shortLaunchMotorSubsliceMs =
+      shortLaunchMotorContract.subsliceMs;
+  static final List<List<int>> _shortLaunchMotorMinuteSets =
+      shortLaunchMotorContract.minuteSets;
 
   final int Function()? _nowMsProvider;
+
+  int resolveLaunchMotorAnchorMs() => _resolveShortLaunchAnchorMs();
+
+  int resolveLaunchMotorIndex({int? anchorMs}) {
+    final resolvedAnchorMs = anchorMs ?? resolveLaunchMotorAnchorMs();
+    return LaunchMotorSelectionService.resolveMotorIndex(
+      anchorMs: resolvedAnchorMs,
+      bandMinutes: _shortLaunchMotorBandMinutes,
+      minuteSets: _shortLaunchMotorMinuteSets,
+    );
+  }
+
+  List<int> resolveLaunchMotorOwnedMinutes({int? anchorMs}) {
+    final resolvedAnchorMs = anchorMs ?? resolveLaunchMotorAnchorMs();
+    return LaunchMotorSelectionService.resolveOwnedMinutes(
+      anchorMs: resolvedAnchorMs,
+      bandMinutes: _shortLaunchMotorBandMinutes,
+      minuteSets: _shortLaunchMotorMinuteSets,
+    );
+  }
+
+  List<PostsModel> buildLaunchMotorPool(
+    List<PostsModel> latestPool, {
+    required int targetCount,
+  }) {
+    return _buildLaunchMotorOrderedItems(
+      latestPool,
+      targetCount: targetCount,
+    );
+  }
 
   ShortInitialLoadPlan buildInitialLoadPlan({
     required List<PostsModel> currentShorts,
     required List<PostsModel> snapshotPosts,
     required bool Function(PostsModel post) isEligiblePost,
+    bool snapshotPostsPreplanned = false,
   }) {
-    final filteredSnapshot = _buildLaunchMotorOrderedItems(
-      snapshotPosts.where(isEligiblePost).toList(growable: false),
-      targetCount: snapshotPosts.length,
-    );
+    final eligibleSnapshot =
+        snapshotPosts.where(isEligiblePost).toList(growable: false);
+    final filteredSnapshot = snapshotPostsPreplanned
+        ? _dedupePreservingOrder(eligibleSnapshot)
+        : buildLaunchMotorPool(
+            eligibleSnapshot,
+            targetCount: snapshotPosts.length,
+          );
     if (currentShorts.isEmpty) {
       if (filteredSnapshot.isNotEmpty) {
         return ShortInitialLoadPlan(
@@ -110,11 +138,14 @@ class ShortFeedApplicationService {
     required List<PostsModel> previousShorts,
     required List<PostsModel> fetchedPosts,
     required int previousIndex,
+    bool fetchedPostsPreplanned = false,
   }) {
-    final orderedFetchedPosts = _buildLaunchMotorOrderedItems(
-      fetchedPosts,
-      targetCount: fetchedPosts.length,
-    );
+    final orderedFetchedPosts = fetchedPostsPreplanned
+        ? _dedupePreservingOrder(fetchedPosts)
+        : buildLaunchMotorPool(
+            fetchedPosts,
+            targetCount: fetchedPosts.length,
+          );
     final boundedPreviousIndex = previousShorts.isEmpty
         ? 0
         : previousIndex.clamp(0, previousShorts.length - 1);
@@ -137,6 +168,7 @@ class ShortFeedApplicationService {
     required List<PostsModel> currentShorts,
     required List<PostsModel> fetchedPosts,
     required bool Function(PostsModel post) isEligiblePost,
+    bool fetchedPostsPreplanned = false,
   }) {
     final existingIds = currentShorts.map((post) => post.docID).toSet();
     final incoming = fetchedPosts
@@ -145,10 +177,12 @@ class ShortFeedApplicationService {
         .toList(growable: false);
 
     return ShortAppendPlan(
-      itemsToAppend: _buildLaunchMotorOrderedItems(
-        incoming,
-        targetCount: incoming.length,
-      ),
+      itemsToAppend: fetchedPostsPreplanned
+          ? _dedupePreservingOrder(incoming)
+          : buildLaunchMotorPool(
+              incoming,
+              targetCount: incoming.length,
+            ),
     );
   }
 
@@ -160,60 +194,41 @@ class ShortFeedApplicationService {
       return const <PostsModel>[];
     }
 
-    final normalizedPool = _dedupeByDocId(latestPool)
-      ..sort(_compareLatestPosts);
-    if (normalizedPool.isEmpty) {
+    final snapshot = LaunchMotorSelectionService.analyzePool(
+      latestPool: latestPool,
+      anchorMs: resolveLaunchMotorAnchorMs(),
+      window: _shortLaunchMotorWindow,
+      bandMinutes: _shortLaunchMotorBandMinutes,
+      subsliceMs: _shortLaunchMotorSubsliceMs,
+      minuteSets: _shortLaunchMotorMinuteSets,
+    );
+    if (snapshot.normalizedPool.isEmpty) {
       return const <PostsModel>[];
     }
-
-    final launchAnchorMs = _resolveShortLaunchAnchorMs();
-    final launchAnchor = DateTime.fromMillisecondsSinceEpoch(launchAnchorMs);
-    final launchMotorIndex = math.min(
-      launchAnchor.minute ~/ _shortLaunchMotorBandMinutes,
-      _shortLaunchMotorMinuteSets.length - 1,
-    );
-    final launchSubsliceIndex =
-        launchAnchor.minute % _shortLaunchMotorBandMinutes;
-    final ownedMinutes =
-        _shortLaunchMotorMinuteSets[launchMotorIndex].toList(growable: false);
-    final launchWindowStartMs =
-        launchAnchorMs - _shortLaunchMotorWindow.inMilliseconds;
-    final windowedPool = normalizedPool.where((post) {
-      final timestampMs = post.timeStamp.toInt();
-      return timestampMs > 0 &&
-          timestampMs <= launchAnchorMs &&
-          timestampMs >= launchWindowStartMs;
-    }).toList(growable: false);
-    if (windowedPool.isEmpty) {
+    if (snapshot.windowedPool.isEmpty) {
       debugPrint(
         '[ShortLaunchMotor] status=empty_window_all_pool '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex pool=${normalizedPool.length}',
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} pool=${snapshot.normalizedPool.length}',
       );
       return const <PostsModel>[];
     }
-
-    final queues = _buildLaunchMotorQueues(
-      candidates: windowedPool,
-      launchAnchor: launchAnchor,
-      launchWindowStartMs: launchWindowStartMs,
-      launchMotorIndex: launchMotorIndex,
-    );
-    if (queues.isEmpty) {
+    if (!snapshot.hasQueues) {
       debugPrint(
         '[ShortLaunchMotor] status=no_queues_strict '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex pool=${windowedPool.length}',
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
       );
-      final fallback = _sortByLaunchMotorAffinity(
-        windowedPool,
-        ownedMinutes: ownedMinutes,
-        preferredSubsliceIndex: launchSubsliceIndex,
+      final fallback = LaunchMotorSelectionService.sortByAffinity(
+        snapshot.windowedPool,
+        ownedMinutes: snapshot.ownedMinutes,
+        preferredSubsliceIndex: snapshot.subsliceIndex,
+        subsliceMs: _shortLaunchMotorSubsliceMs,
       ).take(targetCount).toList(growable: false);
       debugPrint(
         '[ShortLaunchMotor] status=affinity_fallback '
-        'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-        'subslice=$launchSubsliceIndex orderedCount=${fallback.length} '
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
         'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
       );
       return fallback;
@@ -221,36 +236,14 @@ class ShortFeedApplicationService {
 
     debugPrint(
       '[ShortLaunchMotor] status=queues_ready '
-      'anchor=${launchAnchor.toIso8601String()} motor=$launchMotorIndex '
-      'subslice=$launchSubsliceIndex pool=${windowedPool.length} '
-      'queues=${queues.length}',
+      'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+      'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length} '
+      'queues=${snapshot.queueCount}',
     );
-    final selected = <PostsModel>[];
-    final usedIds = <String>{};
-    var appended = true;
-    while (appended) {
-      appended = false;
-      for (final queue in queues) {
-        final candidate = queue.takeNext(
-          usedIds: usedIds,
-          preferredSubsliceIndex: launchSubsliceIndex,
-          preferredSubsliceSizeMs: _shortLaunchMotorSubsliceMs,
-        );
-        if (candidate == null) {
-          continue;
-        }
-        final docId = candidate.docID.trim();
-        if (docId.isEmpty || !usedIds.add(docId)) {
-          continue;
-        }
-        selected.add(candidate);
-        appended = true;
-      }
-    }
     // Keep short motor strict once it found owned queues; do not backfill
     // non-owned candidates into the visible order.
-    final sortedCombined = _sortLaunchMotorSelectionLatestFirst(
-      selected.take(targetCount).toList(growable: false),
+    final sortedCombined = LaunchMotorSelectionService.sortLatestFirst(
+      snapshot.strictSelection.take(targetCount).toList(growable: false),
     );
     debugPrint(
       '[ShortLaunchMotor] status=applied targetCount=$targetCount '
@@ -266,172 +259,20 @@ class ShortFeedApplicationService {
 
   static int _defaultNowMsProvider() => DateTime.now().millisecondsSinceEpoch;
 
-  List<_ShortLaunchMinuteQueue> _buildLaunchMotorQueues({
-    required List<PostsModel> candidates,
-    required DateTime launchAnchor,
-    required int launchWindowStartMs,
-    required int launchMotorIndex,
-  }) {
-    final ownedMinutes = _shortLaunchMotorMinuteSets[launchMotorIndex]
-        .toList(growable: false)
-      ..sort((left, right) => right.compareTo(left));
-    final ownedMinuteSet = ownedMinutes.toSet();
-    final grouped = <int, List<PostsModel>>{};
-
-    for (final post in candidates) {
-      final timestampMs = post.timeStamp.toInt();
-      if (timestampMs <= 0 || timestampMs < launchWindowStartMs) {
-        continue;
-      }
-      final timestamp = DateTime.fromMillisecondsSinceEpoch(timestampMs);
-      if (!ownedMinuteSet.contains(timestamp.minute)) {
-        continue;
-      }
-      final queueAnchor = DateTime(
-        timestamp.year,
-        timestamp.month,
-        timestamp.day,
-        timestamp.hour,
-        timestamp.minute,
-      ).millisecondsSinceEpoch;
-      grouped.putIfAbsent(queueAnchor, () => <PostsModel>[]).add(post);
+  List<PostsModel> _dedupePreservingOrder(List<PostsModel> posts) {
+    if (posts.isEmpty) {
+      return const <PostsModel>[];
     }
-
-    for (final items in grouped.values) {
-      items.sort(_compareLatestPosts);
-    }
-
-    final queues = <_ShortLaunchMinuteQueue>[];
-    var hourCursor = DateTime(
-      launchAnchor.year,
-      launchAnchor.month,
-      launchAnchor.day,
-      launchAnchor.hour,
-    );
-
-    while (hourCursor.millisecondsSinceEpoch >= launchWindowStartMs) {
-      for (final minute in ownedMinutes) {
-        if (hourCursor.year == launchAnchor.year &&
-            hourCursor.month == launchAnchor.month &&
-            hourCursor.day == launchAnchor.day &&
-            hourCursor.hour == launchAnchor.hour &&
-            minute > launchAnchor.minute) {
-          continue;
-        }
-        final queueAnchor = DateTime(
-          hourCursor.year,
-          hourCursor.month,
-          hourCursor.day,
-          hourCursor.hour,
-          minute,
-        ).millisecondsSinceEpoch;
-        final items = grouped[queueAnchor];
-        if (items == null || items.isEmpty) {
-          continue;
-        }
-        queues.add(
-          _ShortLaunchMinuteQueue(
-            anchorMs: queueAnchor,
-            items: items,
-          ),
-        );
-      }
-      hourCursor = hourCursor.subtract(const Duration(hours: 1));
-    }
-
-    return queues;
-  }
-
-  List<PostsModel> _dedupeByDocId(List<PostsModel> posts) {
+    final ordered = <PostsModel>[];
     final seenIds = <String>{};
-    final deduped = <PostsModel>[];
     for (final post in posts) {
       final docId = post.docID.trim();
       if (docId.isEmpty || !seenIds.add(docId)) {
         continue;
       }
-      deduped.add(post);
+      ordered.add(post);
     }
-    return deduped;
-  }
-
-  int _compareLatestPosts(PostsModel left, PostsModel right) {
-    final timeCompare = right.timeStamp.compareTo(left.timeStamp);
-    if (timeCompare != 0) {
-      return timeCompare;
-    }
-    return right.docID.trim().compareTo(left.docID.trim());
-  }
-
-  List<PostsModel> _sortByLaunchMotorAffinity(
-    List<PostsModel> candidates, {
-    required List<int> ownedMinutes,
-    required int preferredSubsliceIndex,
-  }) {
-    final sorted = candidates.toList(growable: true)
-      ..sort((left, right) {
-        final leftMinuteDistance = _launchMotorMinuteDistanceScore(
-          minute: DateTime.fromMillisecondsSinceEpoch(left.timeStamp.toInt())
-              .minute,
-          ownedMinutes: ownedMinutes,
-        );
-        final rightMinuteDistance = _launchMotorMinuteDistanceScore(
-          minute: DateTime.fromMillisecondsSinceEpoch(right.timeStamp.toInt())
-              .minute,
-          ownedMinutes: ownedMinutes,
-        );
-        if (leftMinuteDistance != rightMinuteDistance) {
-          return leftMinuteDistance.compareTo(rightMinuteDistance);
-        }
-
-        final leftSubsliceDistance = _launchMotorSubsliceDistanceScore(
-          timestampMs: left.timeStamp.toInt(),
-          preferredSubsliceIndex: preferredSubsliceIndex,
-        );
-        final rightSubsliceDistance = _launchMotorSubsliceDistanceScore(
-          timestampMs: right.timeStamp.toInt(),
-          preferredSubsliceIndex: preferredSubsliceIndex,
-        );
-        if (leftSubsliceDistance != rightSubsliceDistance) {
-          return leftSubsliceDistance.compareTo(rightSubsliceDistance);
-        }
-
-        return _compareLatestPosts(left, right);
-      });
-    return sorted;
-  }
-
-  int _launchMotorMinuteDistanceScore({
-    required int minute,
-    required List<int> ownedMinutes,
-  }) {
-    var best = 60;
-    for (final ownedMinute in ownedMinutes) {
-      final distance = (minute - ownedMinute).abs();
-      final wrappedDistance = 60 - distance;
-      best = math.min(best, math.min(distance, wrappedDistance));
-    }
-    return best;
-  }
-
-  int _launchMotorSubsliceDistanceScore({
-    required int timestampMs,
-    required int preferredSubsliceIndex,
-  }) {
-    final currentSubslice =
-        ((timestampMs % 1000) ~/ _shortLaunchMotorSubsliceMs).clamp(0, 4);
-    return (currentSubslice - preferredSubsliceIndex).abs();
-  }
-
-  List<PostsModel> _sortLaunchMotorSelectionLatestFirst(
-    List<PostsModel> items,
-  ) {
-    if (items.length < 2) {
-      return items;
-    }
-    final sorted = items.toList(growable: false);
-    sorted.sort(_compareLatestPosts);
-    return sorted;
+    return ordered;
   }
 
   bool _hasSameDocOrder(
@@ -443,55 +284,5 @@ class ShortFeedApplicationService {
       if (left[i].docID != right[i].docID) return false;
     }
     return true;
-  }
-}
-
-class _ShortLaunchMinuteQueue {
-  _ShortLaunchMinuteQueue({
-    required this.anchorMs,
-    required List<PostsModel> items,
-  }) : _pending = items.toList(growable: true);
-
-  final int anchorMs;
-  final List<PostsModel> _pending;
-  bool _servedInitialPick = false;
-
-  PostsModel? takeNext({
-    required Set<String> usedIds,
-    required int preferredSubsliceIndex,
-    required int preferredSubsliceSizeMs,
-  }) {
-    if (_pending.isEmpty) {
-      return null;
-    }
-
-    if (!_servedInitialPick) {
-      _servedInitialPick = true;
-      final preferredStartMs = preferredSubsliceIndex * preferredSubsliceSizeMs;
-      final preferredEndMs = preferredStartMs + preferredSubsliceSizeMs;
-      for (var index = 0; index < _pending.length; index++) {
-        final candidate = _pending[index];
-        final docId = candidate.docID.trim();
-        if (docId.isEmpty || usedIds.contains(docId)) {
-          continue;
-        }
-        final millisecondOfSecond = candidate.timeStamp.toInt() % 1000;
-        if (millisecondOfSecond >= preferredStartMs &&
-            millisecondOfSecond < preferredEndMs) {
-          return _pending.removeAt(index);
-        }
-      }
-    }
-
-    for (var index = 0; index < _pending.length; index++) {
-      final candidate = _pending[index];
-      final docId = candidate.docID.trim();
-      if (docId.isEmpty || usedIds.contains(docId)) {
-        continue;
-      }
-      return _pending.removeAt(index);
-    }
-
-    return null;
   }
 }

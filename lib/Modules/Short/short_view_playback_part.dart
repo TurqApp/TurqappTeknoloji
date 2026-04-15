@@ -1,6 +1,32 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  Future<void> _reassertActiveShortAudibility(
+    int page,
+    HLSVideoAdapter adapter,
+  ) async {
+    if (!mounted ||
+        page != currentPage ||
+        !_isShortRoutePlaybackActive ||
+        adapter.isDisposed) {
+      return;
+    }
+    try {
+      await adapter.setVolume(volume ? 1.0 : 0.0);
+    } catch (_) {}
+    _applyShortPlaybackPresentation(page, adapter);
+  }
+
+  void _scheduleDelayedShortAudibilityReassert(
+    int page,
+    HLSVideoAdapter adapter, {
+    Duration delay = const Duration(milliseconds: 260),
+  }) {
+    Future<void>.delayed(delay, () async {
+      await _reassertActiveShortAudibility(page, adapter);
+    });
+  }
+
   void _syncShortExclusivePlaybackOwner([int? preferredPage]) {
     if (!_isShortRoutePlaybackActive || _cachedShorts.isEmpty) return;
     final page = preferredPage ?? currentPage;
@@ -110,6 +136,28 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return true;
   }
 
+  bool _shouldSuppressShortPlaybackAttempt(
+    int page,
+    String docId, {
+    required String source,
+    Duration minSpacing = const Duration(milliseconds: 650),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return false;
+    final token = '$page:$trimmed';
+    final lastToken = _lastShortPlaybackAttemptToken;
+    final lastAt = _lastShortPlaybackAttemptAt;
+    final now = DateTime.now();
+    if (lastToken == token &&
+        lastAt != null &&
+        now.difference(lastAt) < minSpacing) {
+      return true;
+    }
+    _lastShortPlaybackAttemptToken = token;
+    _lastShortPlaybackAttemptAt = now;
+    return false;
+  }
+
   void _requestExclusivePlayback(
     String docId,
     HLSVideoAdapter adapter, {
@@ -130,6 +178,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayAt = now;
     try {
       _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+    } catch (_) {}
+  }
+
+  bool _shouldTrimShortAttachedPlayers(int page) {
+    if (!_isShortRoutePlaybackActive) return false;
+    return defaultTargetPlatform == TargetPlatform.android;
+  }
+
+  Future<void> _trimShortAttachedPlayers(int page) async {
+    if (!_shouldTrimShortAttachedPlayers(page)) return;
+    try {
+      await controller.keepOnlyIndex(page);
     } catch (_) {}
   }
 
@@ -540,6 +600,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         page,
         suppressWarmPause: suppressWarmPause,
       );
+      await _trimShortAttachedPlayers(page);
       if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
         return;
       }
@@ -576,6 +637,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     await controller.ensureActiveAdapterReady(currentPage);
     if (!mounted) return;
+    final currentAdapter = controller.cache[currentPage];
+    if (currentAdapter != null) {
+      await _reassertActiveShortAudibility(currentPage, currentAdapter);
+    }
     _setStateIfActiveAdapterChanged(currentPage, hadActiveAdapter,
         force: false);
     _scheduleTierReconcile(
@@ -584,6 +649,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
 
     _schedulePlayForPage(currentPage);
+    if (currentAdapter != null) {
+      _scheduleDelayedShortAudibilityReassert(currentPage, currentAdapter);
+    }
   }
 
   void _setStateIfActiveAdapterChanged(
@@ -616,6 +684,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         } catch (_) {}
         final hadActiveAdapter = controller.cache[page] != null;
         await controller.ensureActiveAdapterReady(page);
+        await _trimShortAttachedPlayers(page);
         if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
           return;
         }
@@ -670,11 +739,20 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
+        if (_shouldSuppressShortPlaybackAttempt(
+          page,
+          docId,
+          source: 'primary',
+        )) {
+          _applyShortPlaybackPresentation(page, vc);
+          return;
+        }
         if (_shouldSuppressDuplicatePrimaryPlay(docId, vc)) {
           _applyShortPlaybackPresentation(page, vc);
           return;
         }
         _applyShortPlaybackPresentation(page, vc);
+        await _reassertActiveShortAudibility(page, vc);
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&
             !vc.value.isPlaying &&
@@ -748,6 +826,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _pendingPageActivation = false;
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId, vc);
+          await _reassertActiveShortAudibility(page, vc);
+          _scheduleDelayedShortAudibilityReassert(page, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
         _scheduleIosShortPresentationRestore(page, vc);
@@ -1143,6 +1223,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
+        if (_shouldSuppressShortPlaybackAttempt(
+          page,
+          docId,
+          source: 'watchdog',
+        )) {
+          _armPlaybackWatchdog(page, vc, delay);
+          return;
+        }
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_watchdog_play_retry',
@@ -1156,6 +1244,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         await _playbackExecutionService.playAdapter(vc);
         if (docId.isNotEmpty) {
           _requestExclusivePlayback(docId, vc);
+          await _reassertActiveShortAudibility(page, vc);
+          _scheduleDelayedShortAudibilityReassert(page, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
       } catch (_) {}

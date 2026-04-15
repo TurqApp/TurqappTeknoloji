@@ -62,9 +62,11 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       ctrl,
       preferredIndex: index,
     );
+    await _reassertSingleShortAudibility(index, ctrl);
     await _restoreSingleShortPlaybackStateIfNeeded(index, ctrl);
     await _playbackExecutionService.playAdapter(ctrl);
     _requestExclusivePlayback(shorts[index].docID);
+    _scheduleDelayedSingleShortAudibilityReassert(index, ctrl);
     _applySingleShortPlaybackPresentation(index, ctrl);
     if (index == currentPage) {
       _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);

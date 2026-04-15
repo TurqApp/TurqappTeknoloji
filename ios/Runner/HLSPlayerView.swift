@@ -43,6 +43,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var didRequestInitialPlay: Bool = false
     private var autoplayRequestWorkItem: DispatchWorkItem?
     private var lastAutoplayRequestAt: CFTimeInterval = 0
+    private var lastExplicitPlayAt: CFTimeInterval = 0
+    private var lastExplicitPlayUrl: String?
+    private var lastRecoveryPlayAt: CFTimeInterval = 0
+    private var lastEmittedPlayAt: CFTimeInterval = 0
+    private var lastEmittedPlayUrl: String?
     private var didStabilizeVisualLayer: Bool = false
     private var didRenderFirstFrame: Bool = false
     private var currentUrl: String?
@@ -158,6 +163,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             )
         }
         didRequestInitialPlay = false
+        lastExplicitPlayAt = 0
+        lastExplicitPlayUrl = nil
+        lastRecoveryPlayAt = 0
+        lastEmittedPlayAt = 0
+        lastEmittedPlayUrl = nil
         didStabilizeVisualLayer = false
         didRenderFirstFrame = false
         bufferingEventsCount = 0
@@ -209,6 +219,20 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     // MARK: - Player Controls
     func play() {
         log("play url=\(currentUrl ?? "-")")
+        let now = CACurrentMediaTime()
+        let normalizedUrl = currentUrl ?? ""
+        if !normalizedUrl.isEmpty,
+           lastExplicitPlayUrl == normalizedUrl,
+           now - lastExplicitPlayAt < 0.35 {
+            log("playDeduped url=\(normalizedUrl)")
+            return
+        }
+        lastExplicitPlayAt = now
+        lastExplicitPlayUrl = normalizedUrl
+        didRequestInitialPlay = true
+        lastAutoplayRequestAt = now
+        autoplayRequestWorkItem?.cancel()
+        autoplayRequestWorkItem = nil
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: false)
@@ -375,7 +399,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 case .readyToPlay:
                     self?.log("readyToPlay url=\(self?.currentUrl ?? "-") duration=\(item.duration.seconds)")
                     self?.refreshPlayerLayer(forceReattach: false)
-                    self?.requestAutoplayIfNeeded(force: true)
+                    self?.requestAutoplayIfNeeded(force: false)
                     self?.sendEvent([
                         "event": "ready",
                         "duration": item.duration.seconds.isFinite ? item.duration.seconds : 0.0
@@ -405,7 +429,6 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackLikelyToKeepUpObserver = playerItem.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackLikelyToKeepUp {
                 self?.log("likelyToKeepUp url=\(self?.currentUrl ?? "-")")
-                self?.requestAutoplayIfNeeded(force: false)
                 self?.sendEvent(["event": "buffering", "isBuffering": false])
             }
         }
@@ -420,7 +443,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                         if self?.didRenderFirstFrame == false {
                             self?.scheduleVisualLayerStabilization(forceReattach: false)
                         }
-                        self?.sendEvent(["event": "play"])
+                        self?.emitPlayEventIfNeeded()
                     case .paused:
                         self?.log("timeControlStatus=paused url=\(self?.currentUrl ?? "-")")
                         self?.sendEvent(["event": "pause"])
@@ -484,14 +507,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         ) { [weak self] _ in
             self?.log("playbackStalled url=\(self?.currentUrl ?? "-")")
             self?.playbackStallCount += 1
-            self?.didRequestInitialPlay = false
-            self?.requestAutoplayIfNeeded(force: true)
+            self?.requestRecoveryAutoplayIfNeeded(source: "playbackStalled")
             self?.sendEvent(["event": "buffering", "isBuffering": true])
         }
     }
 
     private func requestAutoplayIfNeeded(force: Bool) {
-        guard isAutoPlay, let player = player else { return }
+        guard (isAutoPlay || force), let player = player else { return }
         if didRequestInitialPlay && !force { return }
         let now = CACurrentMediaTime()
         if now - lastAutoplayRequestAt < 0.25 {
@@ -530,6 +552,39 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             deadline: .now() + (force ? 0.0 : 0.05),
             execute: workItem
         )
+    }
+
+    private func requestRecoveryAutoplayIfNeeded(source: String) {
+        guard let player = player else { return }
+        let now = CACurrentMediaTime()
+        if now - lastRecoveryPlayAt < 1.2 {
+            log("recoveryPlaySkipped source=\(source) url=\(currentUrl ?? "-")")
+            return
+        }
+        if #available(iOS 10.0, *) {
+            if player.timeControlStatus == .playing {
+                return
+            }
+        } else if player.rate > 0 {
+            return
+        }
+        lastRecoveryPlayAt = now
+        didRequestInitialPlay = false
+        requestAutoplayIfNeeded(force: true)
+    }
+
+    private func emitPlayEventIfNeeded() {
+        let now = CACurrentMediaTime()
+        let normalizedUrl = currentUrl ?? ""
+        if !normalizedUrl.isEmpty,
+           lastEmittedPlayUrl == normalizedUrl,
+           now - lastEmittedPlayAt < 0.35 {
+            log("playEventDeduped url=\(normalizedUrl)")
+            return
+        }
+        lastEmittedPlayAt = now
+        lastEmittedPlayUrl = normalizedUrl
+        sendEvent(["event": "play"])
     }
 
     private func handlePlaybackEnded() {

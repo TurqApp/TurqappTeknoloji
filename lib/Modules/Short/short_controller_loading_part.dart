@@ -22,7 +22,16 @@ extension ShortControllerLoadingPart on ShortController {
   Future<List<PostsModel>> _excludeFeedVisibleSnapshotConflicts(
     List<PostsModel> posts,
   ) async {
-    return posts;
+    if (posts.isEmpty) {
+      return posts;
+    }
+    final feedVisibleVideoDocIds =
+        await loadWarmFeedVisibleVideoDocIdsForShort(_currentUserId);
+    return excludeFeedVisibleShortConflicts(
+      posts,
+      feedVisibleVideoDocIds,
+      fallbackToOriginalWhenEmpty: false,
+    );
   }
 
   Future<bool> _tryRestoreVisibleSnapshotIfCurrentListCollapsed({
@@ -166,6 +175,46 @@ extension ShortControllerLoadingPart on ShortController {
     }
   }
 
+  void _logShortLaunchMotorInputSnapshot(
+    List<PostsModel> posts, {
+    required String trigger,
+    required QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
+  }) {
+    if (!kDebugMode || posts.isEmpty) {
+      return;
+    }
+    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'short');
+    final snapshot = LaunchMotorSelectionService.analyzePool(
+      latestPool: posts,
+      anchorMs: anchorMs,
+      window: shortLaunchMotorContract.window,
+      bandMinutes: shortLaunchMotorContract.bandMinutes,
+      subsliceMs: shortLaunchMotorContract.subsliceMs,
+      minuteSets: shortLaunchMotorContract.minuteSets,
+    );
+    debugPrint(
+      '[ShortLaunchMotorInput] '
+      'trigger=$trigger startAfter=${startAfter?.id ?? ''} '
+      'anchor=${DateTime.fromMillisecondsSinceEpoch(anchorMs).toIso8601String()} '
+      'motor=${snapshot.motorIndex} ownedMinutes=${snapshot.ownedMinutes.join(",")} '
+      'visibleCount=${posts.length} strictCount=${snapshot.strictSelection.length} '
+      'queueCount=${snapshot.queueCount} '
+      'sample=${snapshot.strictSelection.take(5).map((post) => post.docID).join(",")}',
+    );
+  }
+
+  LaunchMotorPoolFillResult _buildShortLaunchMotorPoolFill(
+    List<PostsModel> posts, {
+    required int targetCount,
+  }) {
+    return LaunchMotorSelectionService.buildPoolFillResult(
+      latestPool: posts,
+      anchorMs: startupSurfaceSessionSeed(sessionNamespace: 'short'),
+      contract: shortLaunchMotorContract,
+      targetCount: targetCount,
+    );
+  }
+
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
     int? pageSizeOverride,
@@ -180,6 +229,7 @@ extension ShortControllerLoadingPart on ShortController {
     final collected = <PostsModel>[];
     final seenDocIds = <String>{};
     List<PostsModel>? fallbackPosts;
+    LaunchMotorPoolFillResult? poolFillResult;
 
     for (int attempt = 0; attempt < maxPageScans; attempt++) {
       final page = await _shortRepository.fetchReadyPage(
@@ -235,11 +285,24 @@ extension ShortControllerLoadingPart on ShortController {
           for (final post in filtered) {
             if (!seenDocIds.add(post.docID)) continue;
             collected.add(post);
-            if (collected.length >= effectivePageSize) {
+          }
+          poolFillResult = _buildShortLaunchMotorPoolFill(
+            collected,
+            targetCount: effectivePageSize,
+          );
+          if (!poolFillResult.needsTopUp(effectivePageSize)) {
+            final resultPosts = poolFillResult.selectedPool;
+            if (resultPosts.isNotEmpty) {
+              _logShortLaunchMotorInputSnapshot(
+                resultPosts,
+                trigger: trigger,
+                startAfter: startAfter,
+              );
               return _ShortPageResult(
-                collected.take(effectivePageSize).toList(growable: false),
+                resultPosts,
                 lastDoc,
                 hasMoreDocs,
+                postsPreplanned: true,
               );
             }
           }
@@ -260,26 +323,46 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     if (collected.isEmpty && fallbackPosts != null) {
+      final resultPosts = _buildShortLaunchMotorPoolFill(
+        fallbackPosts,
+        targetCount: effectivePageSize,
+      ).selectedPool;
+      _logShortLaunchMotorInputSnapshot(
+        resultPosts,
+        trigger: '${trigger}_fallback',
+        startAfter: startAfter,
+      );
       return _ShortPageResult(
-        fallbackPosts.take(effectivePageSize).toList(growable: false),
+        resultPosts,
         lastDoc,
         hasMoreDocs,
+        postsPreplanned: true,
       );
     }
 
+    final resultPosts = (poolFillResult ??
+            _buildShortLaunchMotorPoolFill(
+              collected,
+              targetCount: effectivePageSize,
+            ))
+        .selectedPool;
+    _logShortLaunchMotorInputSnapshot(
+      resultPosts,
+      trigger: trigger,
+      startAfter: startAfter,
+    );
     return _ShortPageResult(
-      collected.take(effectivePageSize).toList(growable: false),
+      resultPosts,
       lastDoc,
       hasMoreDocs,
+      postsPreplanned: true,
     );
   }
 
   Future<List<PostsModel>> _filterVisibleShortPosts(
-    List<PostsModel> posts,
-    {
+    List<PostsModel> posts, {
     bool preservePresentationOrder = false,
-  }
-  ) async {
+  }) async {
     if (posts.isEmpty) return const <PostsModel>[];
     final authorIds =
         posts.map((e) => e.userID).toSet().toList(growable: false);
@@ -466,6 +549,7 @@ extension ShortControllerLoadingPart on ShortController {
         currentShorts: shorts.toList(growable: false),
         snapshotPosts: visibleSnapshotPosts,
         isEligiblePost: _isEligibleShortPost,
+        snapshotPostsPreplanned: visibleSnapshotPosts.isNotEmpty,
       );
       if (initialPlan.replacementItems != null) {
         _replaceShorts(
@@ -598,8 +682,14 @@ extension ShortControllerLoadingPart on ShortController {
         previousShorts: previousShorts,
         fetchedPosts: result.posts,
         previousIndex: lastIndex.value,
+        fetchedPostsPreplanned: result.postsPreplanned,
       );
       final newList = refreshPlan.replacementItems;
+      _log(
+        '[ShortLaunchMotorApply] mode=refresh '
+        'prefilled=${result.postsPreplanned} fetched=${result.posts.length} '
+        'replacement=${newList.length} remappedIndex=${refreshPlan.remappedIndex}',
+      );
 
       _replaceShorts(newList, remapCache: true);
 
@@ -759,6 +849,12 @@ extension ShortControllerLoadingPart on ShortController {
         currentShorts: shorts.toList(growable: false),
         fetchedPosts: result.posts,
         isEligiblePost: _isEligibleShortPost,
+        fetchedPostsPreplanned: result.postsPreplanned,
+      );
+      _log(
+        '[ShortLaunchMotorApply] mode=append '
+        'prefilled=${result.postsPreplanned} fetched=${result.posts.length} '
+        'added=${appendPlan.itemsToAppend.length} current=${shorts.length}',
       );
       if (appendPlan.itemsToAppend.isNotEmpty) {
         final nextItems = shorts.isEmpty
