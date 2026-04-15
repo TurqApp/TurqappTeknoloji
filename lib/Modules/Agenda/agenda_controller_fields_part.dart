@@ -34,6 +34,7 @@ class _AgendaControllerState {
   Timer? deferredInitialNetworkBootstrapTimer;
   Timer? startupWarmPreloadFallbackTimer;
   Timer? startupWarmPreloadReleaseTimer;
+  Timer? growthRenderReleaseTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -79,6 +80,8 @@ class _AgendaControllerState {
   bool startupPlannerHeadApplied = false;
   bool startupHeadFinalized = false;
   bool startupRenderBootstrapHold = false;
+  bool growthRenderAppendHold = false;
+  int growthRenderAppendEpoch = 0;
   int deferredInitialNetworkBootstrapToken = 0;
   final startupCacheOriginVideoDocIds = <String>{};
   int nextPageFetchTriggerCount = ReadBudgetRegistry.feedPageFetchLimit;
@@ -164,6 +167,9 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.startupWarmPreloadReleaseTimer;
   set _startupWarmPreloadReleaseTimer(Timer? value) =>
       _state.startupWarmPreloadReleaseTimer = value;
+  Timer? get _growthRenderReleaseTimer => _state.growthRenderReleaseTimer;
+  set _growthRenderReleaseTimer(Timer? value) =>
+      _state.growthRenderReleaseTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;
@@ -274,6 +280,12 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
   set _startupRenderBootstrapHold(bool value) =>
       _state.startupRenderBootstrapHold = value;
+  bool get _growthRenderAppendHold => _state.growthRenderAppendHold;
+  set _growthRenderAppendHold(bool value) =>
+      _state.growthRenderAppendHold = value;
+  int get _growthRenderAppendEpoch => _state.growthRenderAppendEpoch;
+  set _growthRenderAppendEpoch(int value) =>
+      _state.growthRenderAppendEpoch = value;
   String? get _startupWarmPreloadPrimaryDocId =>
       _state.startupWarmPreloadPrimaryDocId;
   set _startupWarmPreloadPrimaryDocId(String? value) =>

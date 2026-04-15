@@ -36,7 +36,16 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 5;
 const int _feedWarmWindowBehindCount = 3;
+const int _feedStrongAheadCount = 5;
+const int _feedStrongOppositeCount = 3;
+const int _feedCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
+
+enum _FeedNativeWarmTier {
+  off,
+  cacheOnly,
+  strong,
+}
 
 @visibleForTesting
 ({int start, int endExclusive}) resolveFeedSurfaceWarmRange({
@@ -332,17 +341,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       (p) => p.docID == widget.model.docID,
     );
     if (modelIndex < 0) return false;
-    final centered = agendaController.centeredIndex.value;
-    if (centered < 0 || agendaController.agendaList.isEmpty) return false;
-    final safeCentered =
-        centered.clamp(0, agendaController.agendaList.length - 1);
-    final warmRange = _resolveFeedWarmRange(
-      safeCenteredIndex: safeCentered,
-      listLength: agendaController.agendaList.length,
-    );
-    final warmStart = warmRange.start;
-    final warmEndExclusive = warmRange.endExclusive;
-    return modelIndex >= warmStart && modelIndex < warmEndExclusive;
+    final warmTier = _resolvePrimaryFeedNativeWarmTier(modelIndex: modelIndex);
+    return warmTier == _FeedNativeWarmTier.strong;
   }
 
   bool get _shouldKeepIosPrimaryFeedSurfaceAliveForBackScroll =>
@@ -371,16 +371,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!widget.model.hasPlayableVideo) return false;
     final modelIndex = _surfaceModelIndex();
     if (modelIndex < 0) return false;
-    final safeCenteredIndex = _surfaceSafeCenteredIndex();
-    if (safeCenteredIndex < 0) return false;
-    final warmRange = resolveFeedSurfaceWarmRange(
-      centeredIndex: safeCenteredIndex,
-      listLength: _surfaceListLength(),
+    final warmTier = _resolveDirectionalNativeWarmTier(
+      modelIndex: modelIndex,
+      centeredIndex: _surfaceSafeCenteredIndex(),
       previousCenteredIndex: _surfacePreviousCenteredIndex(),
     );
-    final warmWindowStart = warmRange.start;
-    final warmWindowEndExclusive = warmRange.endExclusive;
-    return modelIndex >= warmWindowStart && modelIndex < warmWindowEndExclusive;
+    return warmTier == _FeedNativeWarmTier.strong;
   }
 
   int _surfaceListLength() {
@@ -470,6 +466,46 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       }
     }
     return playableDistance;
+  }
+
+  _FeedNativeWarmTier _resolvePrimaryFeedNativeWarmTier({
+    required int modelIndex,
+  }) {
+    return _resolveDirectionalNativeWarmTier(
+      modelIndex: modelIndex,
+      centeredIndex: _surfaceSafeCenteredIndex(),
+      previousCenteredIndex: _surfacePreviousCenteredIndex(),
+    );
+  }
+
+  _FeedNativeWarmTier _resolveDirectionalNativeWarmTier({
+    required int modelIndex,
+    required int centeredIndex,
+    required int? previousCenteredIndex,
+  }) {
+    if (modelIndex < 0 || centeredIndex < 0) {
+      return _FeedNativeWarmTier.off;
+    }
+    final delta = modelIndex - centeredIndex;
+    if (delta == 0) {
+      return _FeedNativeWarmTier.strong;
+    }
+    final previous = previousCenteredIndex ?? centeredIndex;
+    final scrollingBackward = centeredIndex < previous;
+    final isMotionSide = scrollingBackward ? delta < 0 : delta > 0;
+    final distance = delta.abs();
+    if (isMotionSide) {
+      return distance <= _feedStrongAheadCount
+          ? _FeedNativeWarmTier.strong
+          : _FeedNativeWarmTier.off;
+    }
+    if (distance <= _feedStrongOppositeCount) {
+      return _FeedNativeWarmTier.strong;
+    }
+    if (distance <= _feedStrongOppositeCount + _feedCacheOnlyOppositeCount) {
+      return _FeedNativeWarmTier.cacheOnly;
+    }
+    return _FeedNativeWarmTier.off;
   }
 
   bool get _shouldPreloadAndroidPrimaryFeedWarmController {

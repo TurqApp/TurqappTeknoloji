@@ -1,6 +1,9 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
+  static const Duration _growthRenderReleaseDelay =
+      Duration(milliseconds: 34);
+
   void _activateStartupRenderStages({String reason = 'unknown'}) {
     debugPrint(
       '[FeedStartupStage] status=activate reason=$reason '
@@ -25,6 +28,29 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _resetStartupRenderStages() {
     _startupRenderBootstrapHold = false;
+  }
+
+  void _scheduleGrowthRenderRelease({
+    required String reason,
+    required int itemCount,
+  }) {
+    _growthRenderReleaseTimer?.cancel();
+    _growthRenderAppendHold = true;
+    final token = _growthRenderAppendEpoch + 1;
+    _growthRenderAppendEpoch = token;
+    debugPrint(
+      '[FeedGrowthRender] status=hold reason=$reason itemCount=$itemCount '
+      'delayMs=${_growthRenderReleaseDelay.inMilliseconds}',
+    );
+    _growthRenderReleaseTimer = Timer(_growthRenderReleaseDelay, () {
+      if (isClosed || _growthRenderAppendEpoch != token) return;
+      _growthRenderReleaseTimer = null;
+      _growthRenderAppendHold = false;
+      debugPrint(
+        '[FeedGrowthRender] status=release reason=$reason itemCount=$itemCount',
+      );
+      _rebuildRenderFeedEntries(ignoreGrowthAppendHold: true);
+    });
   }
 
   void _performBindMergedFeedEntries() {
@@ -117,8 +143,12 @@ extension AgendaControllerRenderPart on AgendaController {
 
   void _performRebuildRenderFeedEntries({
     bool ignoreStartupBootstrapHold = false,
+    bool ignoreGrowthAppendHold = false,
   }) {
     if (_startupRenderBootstrapHold && !ignoreStartupBootstrapHold) {
+      return;
+    }
+    if (_growthRenderAppendHold && !ignoreGrowthAppendHold) {
       return;
     }
     if (filteredFeedEntries.isEmpty) {
@@ -126,6 +156,7 @@ extension AgendaControllerRenderPart on AgendaController {
         return;
       }
       _resetStartupRenderStages();
+      _growthRenderAppendHold = false;
       renderFeedEntries.clear();
       return;
     }

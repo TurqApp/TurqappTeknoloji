@@ -162,6 +162,15 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _safePauseVideo();
           return;
         }
+        if (defaultTargetPlatform == TargetPlatform.android &&
+            (_isPrimaryFeedSurfaceInstance || _isFloodSurfaceInstance)) {
+          unawaited(
+            _disposePlaybackForSurfaceLoss(
+              clearSavedState: _isFloodSurfaceInstance,
+            ),
+          );
+          return;
+        }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
             _isPrimaryFeedSurfaceInstance) {
           unawaited(_disposePlaybackForSurfaceLoss());

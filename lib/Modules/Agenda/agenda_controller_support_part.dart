@@ -523,9 +523,11 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void _rebuildRenderFeedEntries({
     bool ignoreStartupBootstrapHold = false,
+    bool ignoreGrowthAppendHold = false,
   }) =>
       _performRebuildRenderFeedEntries(
         ignoreStartupBootstrapHold: ignoreStartupBootstrapHold,
+        ignoreGrowthAppendHold: ignoreGrowthAppendHold,
       );
 
   Future<void> _recordFeedStartupSurface({

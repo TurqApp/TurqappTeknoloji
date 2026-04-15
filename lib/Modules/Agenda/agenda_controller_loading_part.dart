@@ -859,6 +859,12 @@ extension AgendaControllerLoadingPart on AgendaController {
         reason: 'initial_items_to_add',
       );
     }
+    if (!initial && pageApplyPlan.itemsToAdd.length >= 3) {
+      _scheduleGrowthRenderRelease(
+        reason: 'append_growth_items',
+        itemCount: pageApplyPlan.itemsToAdd.length,
+      );
+    }
     _appendUniqueAgendaState(
       pageApplyPlan.itemsToAdd,
       reason: 'initial_items_append',

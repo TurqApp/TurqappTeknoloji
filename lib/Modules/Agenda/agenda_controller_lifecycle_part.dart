@@ -69,6 +69,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _deferredInitialNetworkBootstrapTimer?.cancel();
     _startupWarmPreloadFallbackTimer?.cancel();
     _startupWarmPreloadReleaseTimer?.cancel();
+    _growthRenderReleaseTimer?.cancel();
     _disposeFeedScrollControllerSafely();
   }
 
