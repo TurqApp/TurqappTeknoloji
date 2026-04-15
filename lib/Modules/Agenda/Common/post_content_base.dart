@@ -34,25 +34,52 @@ part 'post_content_base_lifecycle_part.dart';
 part 'post_content_base_playback_part.dart';
 part 'post_content_base_visibility_part.dart';
 
-const int _feedWarmWindowAheadCount = 4;
-const int _feedWarmWindowBehindCount = 2;
+const int _feedWarmWindowAheadCount = 5;
+const int _feedWarmWindowBehindCount = 3;
 
 @visibleForTesting
 ({int start, int endExclusive}) resolveFeedSurfaceWarmRange({
   required int centeredIndex,
   required int listLength,
+  int? previousCenteredIndex,
   int behindCount = _feedWarmWindowBehindCount,
   int aheadCount = _feedWarmWindowAheadCount,
 }) {
   if (centeredIndex < 0 || listLength <= 0) {
     return (start: -1, endExclusive: -1);
   }
-  final start =
-      centeredIndex - behindCount < 0 ? 0 : centeredIndex - behindCount;
-  final rawEndExclusive = centeredIndex + aheadCount + 1;
+  final resolvedPrevious = previousCenteredIndex ?? centeredIndex;
+  final directionalWindow = _resolveDirectionalFeedWarmWindowCounts(
+    previousIndex: resolvedPrevious,
+    currentIndex: centeredIndex,
+    aheadCount: aheadCount,
+    behindCount: behindCount,
+  );
+  final start = centeredIndex - directionalWindow.behindCount < 0
+      ? 0
+      : centeredIndex - directionalWindow.behindCount;
+  final rawEndExclusive = centeredIndex + directionalWindow.aheadCount + 1;
   final endExclusive =
       rawEndExclusive > listLength ? listLength : rawEndExclusive;
   return (start: start, endExclusive: endExclusive);
+}
+
+({int aheadCount, int behindCount}) _resolveDirectionalFeedWarmWindowCounts({
+  required int previousIndex,
+  required int currentIndex,
+  required int aheadCount,
+  required int behindCount,
+}) {
+  if (currentIndex < previousIndex) {
+    return (
+      aheadCount: behindCount,
+      behindCount: aheadCount,
+    );
+  }
+  return (
+    aheadCount: aheadCount,
+    behindCount: behindCount,
+  );
 }
 
 /// Base widget/state that encapsulates the shared behaviour between
@@ -128,6 +155,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _playbackIntentTracked = false;
   bool _hasRecordedVisibleView = false;
   bool _feedRecoverInFlight = false;
+  Duration? _lastQueuedSavedResumePosition;
+  DateTime? _lastQueuedSavedResumeAt;
   DateTime? _lastIosPrimaryFeedRecoveryAt;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
@@ -152,6 +181,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 720);
   static const Duration _androidFeedOwnerGrace = Duration(milliseconds: 1100);
   static const Duration _iosPrimaryFeedRecoveryCooldown =
+      Duration(milliseconds: 2500);
+  static const Duration _androidSavedResumeSeekCooldown =
       Duration(milliseconds: 2500);
 
   AgendaController _resolveAgendaController() {
@@ -310,6 +341,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       defaultTargetPlatform == TargetPlatform.iOS &&
       _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
 
+  bool get _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _isPrimaryFeedSurfaceInstance &&
+      _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
+
   ({int start, int endExclusive}) _resolveFeedWarmRange({
     required int safeCenteredIndex,
     required int listLength,
@@ -317,6 +353,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return resolveFeedSurfaceWarmRange(
       centeredIndex: safeCenteredIndex,
       listLength: listLength,
+      previousCenteredIndex: _surfacePreviousCenteredIndex(),
     );
   }
 
@@ -328,9 +365,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (modelIndex < 0) return false;
     final safeCenteredIndex = _surfaceSafeCenteredIndex();
     if (safeCenteredIndex < 0) return false;
-    final warmWindowStart = safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5;
-    final warmWindowEndExclusive =
-        (safeCenteredIndex + 6).clamp(0, _surfaceListLength());
+    final warmRange = resolveFeedSurfaceWarmRange(
+      centeredIndex: safeCenteredIndex,
+      listLength: _surfaceListLength(),
+      previousCenteredIndex: _surfacePreviousCenteredIndex(),
+    );
+    final warmWindowStart = warmRange.start;
+    final warmWindowEndExclusive = warmRange.endExclusive;
     return modelIndex >= warmWindowStart && modelIndex < warmWindowEndExclusive;
   }
 
@@ -366,6 +407,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final centered = _surfaceCurrentCenteredIndex();
     if (centered < 0) return -1;
     return centered.clamp(0, length - 1);
+  }
+
+  int? _surfacePreviousCenteredIndex() {
+    if (_isFloodSurfaceInstance) {
+      return maybeFindFloodListingController()?.lastCenteredIndex;
+    }
+    return agendaController.lastCenteredIndex;
   }
 
   void bindKeepAliveUpdater(VoidCallback callback) {
@@ -670,7 +718,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     required Duration threshold,
     String? source,
   }) {
-    if (_shouldBypassSavedResumeHintForPrimaryFeedLead(
+    if (_shouldBypassSavedResumeHintForPrimaryFeed(
       value,
       source: source,
     )) {
@@ -687,7 +735,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return (savedState?.position ?? Duration.zero) > threshold;
   }
 
-  bool _shouldBypassSavedResumeHintForPrimaryFeedLead(
+  bool _shouldBypassSavedResumeHintForPrimaryFeed(
     HLSVideoValue value, {
     String? source,
   }) {
@@ -695,10 +743,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (defaultTargetPlatform == TargetPlatform.iOS) return true;
     if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
-    final modelIndex = agendaController.agendaList.indexWhere(
-      (p) => p.docID == widget.model.docID,
-    );
-    return modelIndex == 0;
+    return true;
   }
 
   bool _isExplicitResumeRecoveryContext(
@@ -793,13 +838,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _lastPlaybackVisualWarningAt = now;
     final safeCenteredIndex = _surfaceSafeCenteredIndex();
     final warmRange = _isFloodSurfaceInstance
-        ? (
-            start: safeCenteredIndex < 0
-                ? -1
-                : (safeCenteredIndex < 5 ? 0 : safeCenteredIndex - 5),
-            endExclusive: safeCenteredIndex < 0
-                ? -1
-                : (safeCenteredIndex + 6).clamp(0, _surfaceListLength()),
+        ? resolveFeedSurfaceWarmRange(
+            centeredIndex: safeCenteredIndex,
+            listLength: _surfaceListLength(),
+            previousCenteredIndex: _surfacePreviousCenteredIndex(),
           )
         : _resolveFeedWarmRange(
             safeCenteredIndex: safeCenteredIndex,

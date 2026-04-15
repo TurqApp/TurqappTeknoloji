@@ -6,9 +6,17 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid || Platform.isIOS) {
       if (Platform.isAndroid && adapter.preferWarmPoolPause) {
+        debugPrint(
+          '[PlaybackStopTrace] source=pool_park action=force_silence '
+          'preferWarm=${adapter.preferWarmPoolPause}',
+        );
         await adapter.forceSilence();
         return;
       }
+      debugPrint(
+        '[PlaybackStopTrace] source=pool_park action=stop_playback '
+        'preferWarm=${adapter.preferWarmPoolPause}',
+      );
       await adapter.silenceAndStopPlayback();
       return;
     }
@@ -71,7 +79,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     bool keepWarm = true,
     bool clearSavedState = false,
   }) async {
-    final cacheKey = _leasedKeys.remove(adapter);
+    final cacheKey = _leasedKeys[adapter];
     if (cacheKey == null) {
       if (!adapter.isDisposed) {
         if (keepWarm) {
@@ -84,11 +92,25 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     }
 
     final remaining = (_leaseCounts[cacheKey] ?? 1) - 1;
+    final activeAdapterCountForKey =
+        _leasedKeys.values.where((key) => key == cacheKey).length;
+    final adapterStillSharedBySameKey =
+        remaining > 0 && activeAdapterCountForKey <= 1;
+    debugPrint(
+      '[PlaybackStopTrace] source=pool_release cacheKey=$cacheKey '
+      'keepWarm=$keepWarm remaining=$remaining '
+      'activeForKey=$activeAdapterCountForKey '
+      'sharedSameAdapter=$adapterStillSharedBySameKey',
+    );
     if (remaining > 0) {
       _leaseCounts[cacheKey] = remaining;
+      if (adapterStillSharedBySameKey) {
+        return;
+      }
     } else {
       _leaseCounts.remove(cacheKey);
     }
+    _leasedKeys.remove(adapter);
 
     if (adapter.isDisposed) return;
 

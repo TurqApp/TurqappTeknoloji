@@ -127,10 +127,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _manualPauseRequested = false;
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
-        _playbackRuntimeService.requestStop(playbackHandleKey);
+        if (!_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind) {
+          _playbackRuntimeService.requestStop(playbackHandleKey);
+        }
         if (_blockPause) return;
         if (_skipNextPause) {
           _skipNextPause = false;
+          return;
+        }
+        if (_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind) {
+          _safePauseVideo();
           return;
         }
         if (_shouldPreserveIosPrimaryFeedPlaybackForResumeTransition) {

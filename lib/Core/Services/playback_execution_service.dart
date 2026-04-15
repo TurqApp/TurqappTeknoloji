@@ -145,11 +145,8 @@ class _BasePlaybackExecutionStrategy implements PlaybackExecutionStrategy {
     } catch (_) {}
 
     if (handle is HLSAdapterPlaybackHandle) {
-      final shouldPreferWarmPause =
-          defaultTargetPlatform == TargetPlatform.android &&
-          handle.adapter.preferWarmPoolPause;
       unawaited(
-        (stopPlayback && !shouldPreferWarmPause)
+        stopPlayback
             ? stopAdapter(handle.adapter)
             : quietBackgroundAdapter(handle.adapter),
       );

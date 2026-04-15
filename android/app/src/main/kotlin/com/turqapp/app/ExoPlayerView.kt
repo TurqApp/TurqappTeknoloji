@@ -1085,6 +1085,27 @@ class ExoPlayerView(
                 hasReusableVideoFrame()
         handler.post {
             try {
+                if (!preserveVisibleRecovery) {
+                    Log.w(
+                        "ExoPlayerView#$viewId",
+                        "startupSoftNudge position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"
+                    )
+                    sendEvent(
+                        mapOf(
+                            "event" to "startupSoftNudge",
+                            "position" to (currentPosition / 1000.0),
+                            "recoveryAttempt" to startupRecoveryAttempts,
+                            "recoveryKind" to "startup_timeout",
+                        )
+                    )
+                    p.playWhenReady = true
+                    if (!p.isPlaying) {
+                        p.play()
+                    }
+                    lastVideoFrameAtMs = System.currentTimeMillis()
+                    lastWatchdogPositionMs = p.currentPosition
+                    return@post
+                }
                 Log.w(
                     "ExoPlayerView#$viewId",
                     "startupSurfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$startupRecoveryAttempts"

@@ -2,6 +2,22 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  bool _shouldQueueSavedResumeSeek(Duration savedPosition) {
+    if (savedPosition <= Duration.zero) return false;
+    final lastPosition = _lastQueuedSavedResumePosition;
+    final lastQueuedAt = _lastQueuedSavedResumeAt;
+    if (lastPosition == null || lastQueuedAt == null) {
+      return true;
+    }
+    final isSamePosition =
+        (lastPosition - savedPosition).inMilliseconds.abs() <= 80;
+    if (!isSamePosition) {
+      return true;
+    }
+    final elapsed = DateTime.now().difference(lastQueuedAt);
+    return elapsed >= PostContentBaseState._androidSavedResumeSeekCooldown;
+  }
+
   bool get _useNativeIosPrimaryFeedRecoveryAuthority =>
       defaultTargetPlatform == TargetPlatform.iOS &&
       _isPrimaryFeedSurfaceInstance &&
@@ -344,6 +360,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
+      debugPrint(
+        '[PlaybackStopTrace] source=surface_loss doc=${widget.model.docID} '
+        'modelIndex=${_surfaceModelIndex()}',
+      );
       _cancelFeedStallWatchdog();
       _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
@@ -683,19 +703,26 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
               VideoStateManager.instance.getVideoState(playbackHandleKey);
           final savedPosition = savedState?.position ?? Duration.zero;
           final shouldUseSavedResumeSeek =
-              !_shouldBypassSavedResumeHintForPrimaryFeedLead(
+              !_shouldBypassSavedResumeHintForPrimaryFeed(
             adapter.value,
             source: source,
           );
-          if (shouldUseSavedResumeSeek && savedPosition > Duration.zero) {
+          final shouldQueueSavedSeek = shouldUseSavedResumeSeek &&
+              _shouldQueueSavedResumeSeek(savedPosition);
+          if (shouldQueueSavedSeek) {
             adapter.queueSeekAndPlay(savedPosition);
+            _lastQueuedSavedResumePosition = savedPosition;
+            _lastQueuedSavedResumeAt = DateTime.now();
+            VideoStateManager.instance.clearVideoState(playbackHandleKey);
           }
           _recordPlaybackDispatch(
             'feed_card_adapter_restart_stopped',
             source: source,
             metadata: <String, dynamic>{
               'savedPositionMs': savedPosition.inMilliseconds,
-              'usedSavedResumeSeek': shouldUseSavedResumeSeek,
+              'usedSavedResumeSeek': shouldQueueSavedSeek,
+              'savedResumeSeekSuppressed':
+                  shouldUseSavedResumeSeek && !shouldQueueSavedSeek,
             },
           );
           _hasAutoPlayed = true;
