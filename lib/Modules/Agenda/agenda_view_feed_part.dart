@@ -5,7 +5,9 @@ extension _AgendaViewFeedPart on AgendaView {
     return Obx(() {
       final docIds =
           controller.startupWarmPreloadDocIdsRx.toList(growable: false);
-      if (docIds.isEmpty) return const SizedBox.shrink();
+      if (!controller.startupRenderBootstrapHold || docIds.isEmpty) {
+        return const SizedBox.shrink();
+      }
       final posts = <PostsModel>[];
       for (final docId in docIds) {
         final post = controller.agendaList.firstWhereOrNull(

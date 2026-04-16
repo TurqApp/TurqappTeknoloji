@@ -17,7 +17,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   static const Duration _startupWarmPreloadFallbackDelay =
       Duration(milliseconds: 900);
   static const Duration _startupWarmPreloadReleaseDelay =
-      Duration(milliseconds: 120);
+      Duration(milliseconds: 16);
   static const Duration _startupWarmPreloadRenderReleaseDelay =
       Duration(milliseconds: 32);
 
