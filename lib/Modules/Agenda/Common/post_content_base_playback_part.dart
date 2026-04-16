@@ -2,6 +2,43 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  bool _restoreSavedResumeSeekIfEligible(
+    HLSVideoAdapter adapter, {
+    required String source,
+  }) {
+    if (!GetPlatform.isAndroid) return false;
+    if (!_controllerOwnsInlinePlayback) return false;
+    if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
+      return false;
+    }
+
+    final savedState = VideoStateManager.instance.getVideoState(playbackHandleKey);
+    final savedPosition = savedState?.position ?? Duration.zero;
+    final shouldUseSavedResumeSeek = !_shouldBypassSavedResumeHintForPrimaryFeed(
+      adapter.value,
+      source: source,
+    );
+    final shouldQueueSavedSeek =
+        shouldUseSavedResumeSeek && _shouldQueueSavedResumeSeek(savedPosition);
+    if (!shouldQueueSavedSeek) {
+      return false;
+    }
+
+    adapter.queueSeekAndPlay(savedPosition);
+    _lastQueuedSavedResumePosition = savedPosition;
+    _lastQueuedSavedResumeAt = DateTime.now();
+    VideoStateManager.instance.clearVideoState(playbackHandleKey);
+    _recordPlaybackDispatch(
+      'feed_card_restore_saved_seek',
+      source: source,
+      dispatchIssued: false,
+      metadata: <String, dynamic>{
+        'savedPositionMs': savedPosition.inMilliseconds,
+      },
+    );
+    return true;
+  }
+
   bool _shouldQueueSavedResumeSeek(Duration savedPosition) {
     if (savedPosition <= Duration.zero) return false;
     final lastPosition = _lastQueuedSavedResumePosition;
@@ -289,6 +326,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    _restoreSavedResumeSeekIfEligible(adapter, source: '$source:prestart');
     if (_requiredAutoplaySegmentCount > 1) {
       try {
         _segmentCacheRuntimeService.ensureMinimumReadySegments(
@@ -534,6 +572,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         skipReason: 'adapter_missing',
       );
       _initVideoController();
+      final initializedAdapter = _videoAdapter;
+      if (initializedAdapter != null) {
+        _restoreSavedResumeSeekIfEligible(
+          initializedAdapter,
+          source: '$source:init_requested',
+        );
+      }
       return;
     }
 

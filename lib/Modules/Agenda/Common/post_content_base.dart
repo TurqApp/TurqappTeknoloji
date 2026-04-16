@@ -830,11 +830,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return false;
     }
     if (value.position > threshold) return true;
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance &&
-        !_isExplicitResumeRecoveryContext(value, source: source)) {
-      return false;
-    }
     final savedState =
         playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     return (savedState?.position ?? Duration.zero) > threshold;
@@ -844,13 +839,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     String? source,
   }) {
-    if (!_isPrimaryFeedSurfaceInstance) return false;
     if (defaultTargetPlatform == TargetPlatform.iOS) return true;
     if (defaultTargetPlatform != TargetPlatform.android) return false;
-    // Android primary feed autoplay/resume must not re-apply saved seek hints.
-    // Route resumes and surface rebind recovery are handled by warm surfaces and
-    // fresh playback ownership, not by replaying stale saved positions.
-    return true;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
+    if (!isStartupCacheOriginVideo) return false;
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    return modelIndex == 0;
   }
 
   bool _isExplicitResumeRecoveryContext(
@@ -909,7 +906,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     );
     final pinnedPoster = !isStandalonePostInstance &&
         (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
-    if (pinnedPoster) return 'poster';
+    if (pinnedPoster) {
+      return hasResumeHint ? 'resume_poster' : 'poster';
+    }
 
     final hasStableVideo = value.hasRenderedFirstFrame &&
         widget.shouldPlay &&
