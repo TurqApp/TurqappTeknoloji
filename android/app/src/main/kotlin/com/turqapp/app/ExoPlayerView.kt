@@ -1242,16 +1242,30 @@ class ExoPlayerView(
         // Non-fullscreen card surfaces detach/rebind frequently during route and
         // back/focus transitions. Avoid TextureView.getBitmap() there because it
         // can block frame acquisition on the UI thread and cascade into ANR.
-        if (!forceFullscreen) return false
+        if (!forceFullscreen && !isPrimaryFeedSurface) return false
         val cacheKey = currentUrl ?: return false
         val textureView = playerView.videoSurfaceView as? TextureView ?: return false
         if (!textureView.isAvailable || textureView.width <= 0 || textureView.height <= 0) {
             return false
         }
+        val targetWidth =
+            if (forceFullscreen) {
+                textureView.width
+            } else {
+                textureView.width.coerceAtMost(360)
+            }
+        val targetHeight =
+            if (forceFullscreen) {
+                textureView.height
+            } else {
+                ((targetWidth.toFloat() / textureView.width.toFloat()) * textureView.height)
+                    .toInt()
+                    .coerceAtLeast(1)
+            }
         val rawBitmap = try {
             val target = Bitmap.createBitmap(
-                textureView.width,
-                textureView.height,
+                targetWidth,
+                targetHeight,
                 Bitmap.Config.ARGB_8888
             )
             textureView.getBitmap(target) ?: target
@@ -1288,7 +1302,7 @@ class ExoPlayerView(
     }
 
     private fun showCachedResumeFrameOverlay(url: String, source: String): Boolean {
-        if (!forceFullscreen || !preferResumePoster) return false
+        if ((!forceFullscreen && !isPrimaryFeedSurface) || !preferResumePoster) return false
         val cachedBitmap = synchronized(resumeFrameCache) {
             resumeFrameCache[url]
         } ?: return false
