@@ -43,6 +43,7 @@ const int _androidPrimaryFeedNativeStrongAheadCount = 1;
 const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
+const int _androidProfileWarmPlayerAheadVideoCount = 1;
 
 enum _FeedNativeWarmTier {
   off,
@@ -348,12 +349,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           _surfaceKeepAliveDebounceActive ||
           _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
           _shouldKeepProfileSurfaceAliveInWarmWindow ||
-          _shouldKeepPrimaryFeedSurfaceAliveForWarmPreload ||
+          _shouldKeepWarmSurfaceAliveForWarmPreload ||
           _shouldKeepFloodSurfaceAliveInWarmWindow);
 
-  bool get _shouldKeepPrimaryFeedSurfaceAliveForWarmPreload =>
+  bool get _shouldKeepWarmSurfaceAliveForWarmPreload =>
       defaultTargetPlatform == TargetPlatform.android &&
-      _shouldPreloadAndroidPrimaryFeedWarmController;
+      _shouldPreloadAndroidWarmController;
 
   bool get _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow {
     if (!_isPrimaryFeedSurfaceInstance) return false;
@@ -524,8 +525,36 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return agendaController.feedWarmPreloadAnchorKey == centeredPlaybackKey;
   }
 
-  int? _primaryFeedDirectionalAheadPlayableVideoDistance() {
-    if (!_isPrimaryFeedSurfaceInstance) return null;
+  bool _surfaceEntryHasPlayableVideo(int index) {
+    if (index < 0) return false;
+    if (_isFloodSurfaceInstance) {
+      final posts = maybeFindFloodListingController()?.floods;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
+    if (_isProfileSurfaceInstance) {
+      final entries = ProfileController.maybeFind()?.mergedPosts;
+      if (entries == null || index >= entries.length) return false;
+      final post = entries[index]['post'];
+      return post is PostsModel &&
+          post.hasPlayableVideo &&
+          !post.deletedPost &&
+          !post.arsiv;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      final entries = _resolveSocialProfileController()?.combinedFeedEntries;
+      if (entries == null || index >= entries.length) return false;
+      final post = entries[index]['post'];
+      return post is PostsModel &&
+          post.hasPlayableVideo &&
+          !post.deletedPost &&
+          !post.arsiv;
+    }
+    if (index >= agendaController.agendaList.length) return false;
+    return agendaController.agendaList[index].hasPlayableVideo;
+  }
+
+  int? _surfaceDirectionalAheadPlayableVideoDistance() {
     if (!widget.model.hasPlayableVideo) return null;
     final modelIndex = _surfaceModelIndex();
     final safeCentered = _surfaceSafeCenteredIndex();
@@ -539,13 +568,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     int playableDistance = 0;
     if (!scrollingBackward) {
       for (int i = safeCentered + 1; i <= modelIndex; i++) {
-        if (agendaController.agendaList[i].hasPlayableVideo) {
+        if (_surfaceEntryHasPlayableVideo(i)) {
           playableDistance++;
         }
       }
     } else {
       for (int i = safeCentered - 1; i >= modelIndex; i--) {
-        if (agendaController.agendaList[i].hasPlayableVideo) {
+        if (_surfaceEntryHasPlayableVideo(i)) {
           playableDistance++;
         }
       }
@@ -605,16 +634,40 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return _FeedNativeWarmTier.off;
   }
 
-  bool get _shouldPreloadAndroidPrimaryFeedWarmController {
+  bool get _shouldPreloadAndroidWarmController {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    final isSupportedSurface = _isPrimaryFeedSurfaceInstance ||
+        _isProfileSurfaceInstance ||
+        _isSocialProfileSurfaceInstance;
+    if (!isSupportedSurface) return false;
     if (!widget.model.hasPlayableVideo) return false;
     if (widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
-    if (!_isCenteredFeedWarmPreloadAnchorReady) return false;
-    final playableDistance = _primaryFeedDirectionalAheadPlayableVideoDistance();
+    if (_isPrimaryFeedSurfaceInstance && !_isCenteredFeedWarmPreloadAnchorReady) {
+      return false;
+    }
+    final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
     if (playableDistance == null || playableDistance <= 0) return false;
-    return playableDistance <= _androidPrimaryFeedWarmPlayerAheadVideoCount;
+    final maxAheadPlayableCount = _isPrimaryFeedSurfaceInstance
+        ? _androidPrimaryFeedWarmPlayerAheadVideoCount
+        : _androidProfileWarmPlayerAheadVideoCount;
+    return playableDistance <= maxAheadPlayableCount;
+  }
+
+  RxInt _surfaceCenteredIndexSignal() {
+    if (_isFloodSurfaceInstance) {
+      return maybeFindFloodListingController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isProfileSurfaceInstance) {
+      return ProfileController.maybeFind()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      return _resolveSocialProfileController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    return agendaController.centeredIndex;
   }
 
   void bindKeepAliveUpdater(VoidCallback callback) {

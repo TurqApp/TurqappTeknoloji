@@ -12,10 +12,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       controller.arsiv.value = false;
     }
 
-    final floodController =
-        _isFloodSurfaceInstance ? maybeFindFloodListingController() : null;
     _keepAliveWindowWorker ??= ever<int>(
-      floodController?.centeredIndex ?? agendaController.centeredIndex,
+      _surfaceCenteredIndexSignal(),
       (_) {
         _keepAliveUpdateCallback?.call();
         _maybePreloadWarmVideoController(source: 'warm_window_changed');
@@ -35,12 +33,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       final shouldEagerInitAndroidPrimaryFeed =
           defaultTargetPlatform == TargetPlatform.android &&
           _isPrimaryFeedSurfaceInstance;
+      final shouldEagerInitAndroidProfileFamily =
+          defaultTargetPlatform == TargetPlatform.android &&
+          (_isProfileSurfaceInstance || _isSocialProfileSurfaceInstance);
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
               ? (_isFeedStyleInlineSurfaceInstance &&
                       defaultTargetPlatform == TargetPlatform.android &&
-                      !shouldEagerInitAndroidPrimaryFeed
+                      !shouldEagerInitAndroidPrimaryFeed &&
+                      !shouldEagerInitAndroidProfileFamily
                   ? const Duration(milliseconds: 220)
                   : Duration.zero)
               : const Duration(milliseconds: 150));
@@ -398,7 +400,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }) {
     if (_videoAdapter != null) return;
     if (_warmPreloadInitQueued) return;
-    if (!_shouldPreloadAndroidPrimaryFeedWarmController) return;
+    if (!_shouldPreloadAndroidWarmController) return;
     _warmPreloadInitQueued = true;
     _recordPlaybackDispatch(
       'feed_card_warm_preload_init_requested',
@@ -406,13 +408,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       dispatchIssued: false,
       metadata: <String, dynamic>{
         'centeredPlaybackHandleKey': _currentCenteredFeedPlaybackHandleKey(),
-        'playableDistance': _primaryFeedDirectionalAheadPlayableVideoDistance(),
+        'playableDistance': _surfaceDirectionalAheadPlayableVideoDistance(),
       },
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _warmPreloadInitQueued = false;
       if (!mounted || _videoAdapter != null) return;
-      if (!_shouldPreloadAndroidPrimaryFeedWarmController) return;
+      if (!_shouldPreloadAndroidWarmController) return;
       _initVideoController();
     });
   }
