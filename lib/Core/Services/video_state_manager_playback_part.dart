@@ -318,6 +318,15 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _pauseAllVideos({bool force = false}) {
+    final currentPlayingDocId = _currentPlayingDocID?.trim() ?? '';
+    if (currentPlayingDocId.startsWith('feed:')) {
+      debugPrint(
+        '[PlaybackStopTrace] source=pause_all_videos '
+        'force=$force current=$currentPlayingDocId '
+        'target=${_targetPlaybackDocID ?? ''} '
+        'exclusive=${_exclusiveDocID ?? ''}',
+      );
+    }
     if (!force && _exclusiveMode) {
       if (_exclusiveDocID != null) {
         _pauseAllExcept(_exclusiveDocID);

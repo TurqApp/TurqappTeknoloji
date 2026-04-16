@@ -8,6 +8,16 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
 
+  String _formatFeedMotorSampleWithMinute(
+    Iterable<PostsModel> posts,
+  ) {
+    return posts.take(5).map((post) {
+      final minuteOfHour =
+          DateTime.fromMillisecondsSinceEpoch(post.timeStamp.toInt()).minute;
+      return '${post.docID}:m$minuteOfHour';
+    }).join(',');
+  }
+
   Future<T> _profileFeedSnapshotStep<T>(
     String label,
     Future<T> Function() action,
@@ -51,7 +61,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       'motor=${snapshot.motorIndex} ownedMinutes=${snapshot.ownedMinutes.join(",")} '
       'visibleCount=${visiblePosts.length} strictCount=${snapshot.strictSelection.length} '
       'queueCount=${snapshot.queueCount} limit=$limit '
-      'sample=${snapshot.strictSelection.take(5).map((post) => post.docID).join(",")}',
+      'sample=${_formatFeedMotorSampleWithMinute(snapshot.strictSelection)}',
     );
   }
 

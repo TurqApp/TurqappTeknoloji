@@ -13,6 +13,8 @@ extension AgendaControllerFeedPart on AgendaController {
       Duration(milliseconds: 120);
   static const Duration _androidCurrentRecoveryGrace =
       Duration(milliseconds: 1200);
+  static const Duration _androidCenteredGapPlaybackGrace =
+      Duration(milliseconds: 900);
   static const int _feedBoostPlayableCount = 3;
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 4;
@@ -135,6 +137,19 @@ extension AgendaControllerFeedPart on AgendaController {
     final key = playbackHandleKey?.trim() ?? '';
     if (key.isEmpty) return false;
     return !key.startsWith('feed:');
+  }
+
+  bool _shouldPreserveFeedPlaybackAcrossCenteredGap(
+    VideoStateManager manager,
+  ) {
+    final currentPlayingDocId = manager.currentPlayingDocID?.trim() ?? '';
+    if (!currentPlayingDocId.startsWith('feed:')) return false;
+    return manager.shouldKeepAudiblePlayback(
+      currentPlayingDocId,
+      grace: GetPlatform.isAndroid
+          ? _androidCenteredGapPlaybackGrace
+          : const Duration(milliseconds: 480),
+    );
   }
 
   ({int activeGroupIndex, int activeBlockIndex, int activeGroupInBlock})
@@ -316,6 +331,8 @@ extension AgendaControllerFeedPart on AgendaController {
             videoManager,
             source: 'centered_index_empty',
           );
+        } else if (_shouldPreserveFeedPlaybackAcrossCenteredGap(videoManager)) {
+          _scheduleFeedPrefetch();
         } else if (!preserveExternalPlayback) {
           videoManager.pauseAllVideos();
         }
@@ -333,6 +350,8 @@ extension AgendaControllerFeedPart on AgendaController {
               videoManager,
               source: 'centered_index_non_playable',
             );
+          } else if (_shouldPreserveFeedPlaybackAcrossCenteredGap(videoManager)) {
+            _scheduleFeedPrefetch();
           } else {
             videoManager.pauseAllVideos();
           }
