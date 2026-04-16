@@ -304,12 +304,21 @@ extension HLSControllerEventsPart on HLSController {
     required bool resumePlay,
   }) async {
     if (_viewId == null) return;
+    final shouldRestoreFromReattach = _awaitingFreshFrameAfterReattach;
     final currentPosition = _currentPosition.isFinite ? _currentPosition : 0.0;
     final hasStableVisualResume =
         _hasRenderedFirstFrame && currentPosition > 0.05;
     final seekAlreadyApplied = seekSeconds != null &&
         seekSeconds > 0.05 &&
         (currentPosition - seekSeconds).abs() <= 0.18;
+    if (!shouldRestoreFromReattach) {
+      if (resumePlay) {
+        try {
+          await play();
+        } catch (_) {}
+      }
+      return;
+    }
     if (hasStableVisualResume && seekAlreadyApplied) {
       return;
     }
