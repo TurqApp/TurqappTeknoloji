@@ -98,22 +98,15 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
-    final initialLimit =
-        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
     final seededFreshSession = _ensureShortLaunchSessionFresh(
       reason: shorts.isEmpty && !_startupPresentationApplied
           ? 'startup'
           : 'surface_visible',
       forceNew: shorts.isEmpty && !_startupPresentationApplied,
     );
-    final restoredSnapshot =
-        await _tryRestoreVisibleSnapshotIfCurrentListCollapsed(
-      limit: initialLimit,
-      trigger: 'primary_surface_visible',
-    );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
-    if (!restoredSnapshot && shorts.isEmpty) {
+    if (shorts.isEmpty) {
       if (_backgroundPreloadFuture != null) {
         await _backgroundPreloadFuture;
       } else {
@@ -147,17 +140,17 @@ extension ShortControllerPublicApiPart on ShortController {
       source: 'short_surface_ready',
     );
     if (seededFreshSession &&
-        !restoredSnapshot &&
         shorts.isNotEmpty &&
         !isRefreshing.value &&
         !isLoading.value) {
       unawaited(refreshShorts());
     }
     if (!allowRefresh || shorts.isEmpty) return;
-    if (restoredSnapshot && shorts.length < initialLimit) {
+    if (shorts.length < ContentPolicy.initialPoolLimit(ContentScreenKind.shorts)) {
       unawaited(
         warmStart(
-          targetCount: initialLimit,
+          targetCount:
+              ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
           maxPages: 2,
         ),
       );

@@ -1,23 +1,6 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  Widget _buildEntryShellPoster(PostsModel post) {
-    final aspectRatio =
-        post.aspectRatio > 0 ? post.aspectRatio.toDouble() : (9 / 16);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _buildThumbOverlay(0, post.thumbnail, aspectRatio),
-        const IgnorePointer(
-          ignoring: true,
-          child: Center(
-            child: CupertinoActivityIndicator(color: Colors.white, radius: 10),
-          ),
-        ),
-      ],
-    );
-  }
-
   bool _shouldPreferResumePoster(
     PostsModel post,
     HLSVideoAdapter adapter,
@@ -206,10 +189,6 @@ extension ShortViewUiPart on _ShortViewState {
 
           if (list.isEmpty) {
             if (isLoadingNow || hasMoreNow) {
-              final entryShellPost = _entryShellPost;
-              if (entryShellPost != null) {
-                return _buildEntryShellPoster(entryShellPost);
-              }
               return const Center(
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
