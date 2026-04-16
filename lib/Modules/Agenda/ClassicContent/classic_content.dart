@@ -85,13 +85,16 @@ class ClassicContent extends PostContentBase {
     required super.model,
     required super.isPreview,
     required super.shouldPlay,
+    super.instanceTag,
     this.floodHostSurface = FloodListingHostSurface.generic,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
+    bool? showComments = false,
+    bool? showArchivePost = false,
   }) : super(
           isReshared: isYenidenPaylasilanPost,
-          showComments: false,
-          showArchivePost: false,
+          showComments: showComments ?? false,
+          showArchivePost: showArchivePost ?? false,
         );
 
   @override
