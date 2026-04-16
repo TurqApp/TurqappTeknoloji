@@ -953,7 +953,6 @@ async function searchUsersFromTypesense(q, limit, page) {
     };
 }
 async function getMotorCandidatesFromTypesense(options) {
-    await ensurePostsCollection();
     const surface = String(options.surface || "").trim().toLowerCase();
     const ownedMinutes = Array.from(new Set((options.ownedMinutes || [])
         .map((value) => Number(value))

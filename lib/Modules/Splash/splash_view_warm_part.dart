@@ -164,6 +164,8 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationMarketWarmups();
       final prioritizeEducationJobWarmups =
           _shouldPrioritizeEducationJobWarmups();
+      final deferFeedSnapshotInspection =
+          Platform.isAndroid && prioritizeHomeWarmups;
       final deferShortCriticalWarmup =
           Platform.isAndroid && prioritizeHomeWarmups;
       final deferStoryCriticalSync =
@@ -180,7 +182,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (prioritizeHomeWarmups) {
         criticalSlices.add(() async {
           await _profileStartupWarmSlice('home_feed_surface', () async {
-            if (!ContentPolicy.isConnected) {
+            if (!ContentPolicy.isConnected && !deferFeedSnapshotInspection) {
               await _profileStartupWarmSlice('home_feed_snapshot', () async {
                 await _warmFeedSnapshotForStartup(
                   onWiFi: onWiFi,
@@ -324,6 +326,19 @@ extension _SplashViewWarmPart on _SplashViewState {
       final shouldDelayHomeIdentityWarmups =
           Platform.isAndroid && prioritizeHomeWarmups;
       if (prioritizeHomeWarmups && storyController != null) {
+        if (!ContentPolicy.isConnected && deferFeedSnapshotInspection) {
+          deferredSlices.add(() async {
+            await Future.delayed(
+              Duration(milliseconds: onWiFi ? 900 : 650),
+            );
+            await _profileStartupWarmSlice('home_feed_snapshot', () async {
+              await _warmFeedSnapshotForStartup(
+                onWiFi: onWiFi,
+                isFirstLaunch: isFirstLaunch,
+              );
+            });
+          });
+        }
         if (deferStoryCriticalSync && storyStartupWarmLimit != null) {
           deferredSlices.add(() async {
             if (Platform.isAndroid && prioritizeHomeWarmups) {

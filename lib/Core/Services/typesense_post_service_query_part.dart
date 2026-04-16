@@ -30,7 +30,13 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
 
     Object? lastError;
     for (final target in _targets) {
+      final startedAt = DateTime.now();
       try {
+        debugPrint(
+          '[TypesenseMotorCall] status=start target=${target.label} '
+          'surface=$normalizedSurface page=$page limit=$limit '
+          'ownedMinutes=${normalizedMinutes.join(",")}',
+        );
         final response =
             await target.fn.httpsCallable('f15_getMotorCandidatesCallable').call(
           <String, dynamic>{
@@ -57,6 +63,12 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
             .map((value) => int.tryParse('$value') ?? 0)
             .where((value) => value >= 0 && value <= 59)
             .toList(growable: false);
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[TypesenseMotorCall] status=ok target=${target.label} '
+          'elapsedMs=$elapsedMs found=${data['found'] ?? 0} '
+          'outOf=${data['out_of'] ?? 0} searchTimeMs=${data['search_time_ms'] ?? 0}',
+        );
         return TypesenseMotorCandidatesResult(
           surface: (data['surface'] ?? normalizedSurface).toString(),
           ownedMinutes: responseMinutes,
@@ -68,6 +80,11 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
           hits: hits,
         );
       } catch (e) {
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[TypesenseMotorCall] status=fail target=${target.label} '
+          'elapsedMs=$elapsedMs error=$e',
+        );
         lastError = e;
       }
     }

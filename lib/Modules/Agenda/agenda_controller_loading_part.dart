@@ -996,7 +996,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         '[FeedStartupPlanner] source=initial_bootstrap '
         'status=bypass_seeded_head_with_live_pool '
         'currentCount=${currentAgenda.length} liveCount=${visibleItems.length} '
-        'replacementCount=${replacementAgenda.length} appendCount=${appendedItems.length} '
+        'replacementCount=${replacementAgenda.length} '
+        'appendCount=${appendedItems.length} '
         'currentHead=${currentAgenda.take(5).map((post) => post.docID).join(",")} '
         'liveHead=${visibleItems.take(5).map((post) => post.docID).join(",")}',
       );

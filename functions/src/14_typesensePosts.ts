@@ -1122,8 +1122,6 @@ async function getMotorCandidatesFromTypesense(options: {
   nowMs?: number;
   cutoffMs?: number;
 }) {
-  await ensurePostsCollection();
-
   const surface = String(options.surface || "").trim().toLowerCase();
   const ownedMinutes = Array.from(
     new Set(

@@ -7,6 +7,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   static const Duration _startupPlaybackLockDuration =
       Duration(milliseconds: 520);
+  static const Duration _androidStartupPlaybackPendingLockDuration =
+      Duration(milliseconds: 2400);
   static const Duration _androidStartupPlaybackGrace =
       Duration(milliseconds: 120);
   static const Duration _androidCurrentRecoveryGrace =
@@ -179,7 +181,6 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   bool get _canRetainStartupPlaybackLock {
-    if (!GetPlatform.isIOS) return false;
     if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
       return false;
     }
@@ -188,7 +189,21 @@ extension AgendaControllerFeedPart on AgendaController {
     if (lockedDocId.isEmpty || lockedAt == null) {
       return false;
     }
-    if (DateTime.now().difference(lockedAt) > _startupPlaybackLockDuration) {
+    var lockDuration = _startupPlaybackLockDuration;
+    if (GetPlatform.isAndroid && agendaList.isNotEmpty) {
+      final lockedIndex = agendaList.indexWhere(
+        (post) => post.docID == lockedDocId,
+      );
+      if (lockedIndex >= 0 && lockedIndex < agendaList.length) {
+        final lockedPlaybackKey = _feedPlaybackHandleKeyForDoc(lockedDocId);
+        final lockedTargetActive = VideoStateManager.instance
+            .isPlaybackTargetActive(lockedPlaybackKey);
+        if (!lockedTargetActive) {
+          lockDuration = _androidStartupPlaybackPendingLockDuration;
+        }
+      }
+    }
+    if (DateTime.now().difference(lockedAt) > lockDuration) {
       _startupLockedFeedDocId = null;
       _startupPlaybackLockedAt = null;
       return false;
@@ -197,7 +212,6 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _lockStartupPlaybackTargetForIndex(int index) {
-    if (!GetPlatform.isIOS) return;
     if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
       return;
     }
@@ -891,8 +905,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
     final scrollDelta = (currentOffset - lastOffset).abs();
-    final startupLockActive =
-        GetPlatform.isIOS && _canRetainStartupPlaybackLock;
+    final startupLockActive = _canRetainStartupPlaybackLock;
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
     final startupUnlockThreshold = startupLockActive ? 2.0 : 1.0;
