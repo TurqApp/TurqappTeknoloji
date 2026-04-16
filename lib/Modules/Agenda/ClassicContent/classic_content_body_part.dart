@@ -188,7 +188,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         ),
                       ),
                     ),
-                    if (widget.model.floodCount > 1)
+                    if (!widget.suppressFloodBadge &&
+                        widget.model.floodCount > 1)
                       Positioned(
                         left: 8,
                         bottom: 8,
@@ -255,7 +256,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         );
                       },
                     ),
-                    if (widget.model.floodCount > 1)
+                    if (!widget.suppressFloodBadge &&
+                        widget.model.floodCount > 1)
                       Align(
                         alignment: Alignment.bottomLeft,
                         child: Padding(
@@ -567,6 +569,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
+                      if (widget.hideVideoPoster) {
+                        return const SizedBox.shrink();
+                      }
                       final shouldHidePoster = shouldHidePlaybackPoster(v);
                       final posterFadeDuration =
                           GetPlatform.isAndroid && isPrimaryFeedSurfaceInstance
@@ -606,7 +611,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     right: 8,
                     child: buildUploadIndicator(),
                   ),
-                if (videoController != null &&
+                if (!widget.suppressFloodBadge &&
+                    videoController != null &&
                     !_shouldBlurIzBirakPost &&
                     widget.model.floodCount > 1)
                   Positioned(

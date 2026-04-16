@@ -79,6 +79,8 @@ part 'classic_content_body_part.dart';
 part 'classic_content_helpers_part.dart';
 
 class ClassicContent extends PostContentBase {
+  final bool hideVideoPoster;
+  final bool suppressFloodBadge;
   final FloodListingHostSurface floodHostSurface;
   const ClassicContent({
     super.key,
@@ -86,6 +88,8 @@ class ClassicContent extends PostContentBase {
     required super.isPreview,
     required super.shouldPlay,
     super.instanceTag,
+    this.hideVideoPoster = false,
+    this.suppressFloodBadge = false,
     this.floodHostSurface = FloodListingHostSurface.generic,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
