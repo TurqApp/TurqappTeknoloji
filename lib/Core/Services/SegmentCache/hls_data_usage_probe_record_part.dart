@@ -28,8 +28,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     }
     _offscreenLeakAlerts[alertKey] = now;
     final scheduler = maybeFindPrefetchScheduler();
-    final tierInfo = scheduler?.classifyFeedTransferDoc(docId) ??
-        scheduler?.classifyShortTransferDoc(docId);
+    final tierInfo = scheduler?.classifyTransferDoc(docId);
+    final ownerInfo = scheduler?.describeTransferOwner(docId);
     final allowedSegmentWarm = tierInfo?['allowedSegmentWarm'] == true;
     final payload = <String, dynamic>{
       'docId': docId,
@@ -40,6 +40,13 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'segmentKey': event.pathKey,
       'feedTier': tierInfo?['tier'] ?? 'unknown',
       'feedDistance': tierInfo?['distance'],
+      'owner': ownerInfo?['owner'] ?? 'unknown',
+      'inShortWindow': ownerInfo?['inShortWindow'],
+      'inFeedWindow': ownerInfo?['inFeedWindow'],
+      'inFeedBank': ownerInfo?['inFeedBank'],
+      'pendingPrefetch': ownerInfo?['pendingPrefetch'],
+      'activeDownload': ownerInfo?['activeDownload'],
+      'hasActiveFeedPlaybackWindow': ownerInfo?['hasActiveFeedPlaybackWindow'],
       'allowedSegmentWarm': allowedSegmentWarm,
       'allowedCacheOnly': tierInfo?['allowedCacheOnly'],
       'label': _label,

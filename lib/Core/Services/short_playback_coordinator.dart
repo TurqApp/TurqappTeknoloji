@@ -30,8 +30,8 @@ class ShortPlaybackCoordinator {
   factory ShortPlaybackCoordinator.forCurrentPlatform() {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return ShortPlaybackCoordinator(
-        hotAhead: 4,
-        hotBehind: 2,
+        hotAhead: 1,
+        hotBehind: 1,
         warmBehind: 3,
         maxAttachedPlayers: 5,
         budgetPolicy: PlayerBudgetPolicy.forSurface(
@@ -40,8 +40,8 @@ class ShortPlaybackCoordinator {
       );
     }
     return ShortPlaybackCoordinator(
-      hotAhead: 4,
-      hotBehind: 2,
+      hotAhead: 1,
+      hotBehind: 1,
       warmBehind: 3,
       maxAttachedPlayers: 5,
       budgetPolicy: PlayerBudgetPolicy.forSurface(

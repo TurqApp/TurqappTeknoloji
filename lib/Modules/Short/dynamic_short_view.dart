@@ -151,13 +151,17 @@ class DynamicShortViewState extends State<DynamicShortView> {
     // Aktif controller henüz oluşturulmadıysa loading göster
     final controller = controllers[currentPage];
     if (controller == null) {
+      final hasThumb = widget.startList[currentPage].thumbnail.trim().isNotEmpty;
       return Scaffold(
         backgroundColor: Colors.black,
         body: Stack(
           fit: StackFit.expand,
           children: [
             _buildThumb(widget.startList[currentPage]),
-            const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+            if (!hasThumb)
+              const Center(
+                child: CupertinoActivityIndicator(color: Colors.white),
+              ),
           ],
         ),
       );
@@ -201,12 +205,15 @@ class DynamicShortViewState extends State<DynamicShortView> {
 
           // Controller yoksa henüz preload edilmemiş — loading göster
           if (ctrl == null) {
+            final hasThumb = widget.startList[idx].thumbnail.trim().isNotEmpty;
             return Stack(
               fit: StackFit.expand,
               children: [
                 _buildThumb(widget.startList[idx]),
-                const Center(
-                    child: CupertinoActivityIndicator(color: Colors.white)),
+                if (!hasThumb)
+                  const Center(
+                    child: CupertinoActivityIndicator(color: Colors.white),
+                  ),
                 preloadLabel,
               ],
             );
@@ -242,8 +249,10 @@ class DynamicShortViewState extends State<DynamicShortView> {
               ),
               // Henüz hazır değilse loading overlay
               if (!isReady)
-                const Center(
-                    child: CupertinoActivityIndicator(color: Colors.white)),
+                if (widget.startList[idx].thumbnail.trim().isEmpty)
+                  const Center(
+                    child: CupertinoActivityIndicator(color: Colors.white),
+                  ),
               preloadLabel,
               if (currentPage == idx)
                 Positioned(

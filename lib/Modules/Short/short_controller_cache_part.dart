@@ -275,6 +275,66 @@ extension ShortControllerCachePart on ShortController {
     await updateCacheTiers(index);
   }
 
+  void primeStartupReadyMagazine(
+    int anchorIndex, {
+    int count = _startupReadyMagazineCount,
+    int minimumSegmentCount = 1,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final safeCount = count.clamp(1, shorts.length);
+    final endExclusive = math.min(shorts.length, safeAnchor + safeCount);
+    for (int i = safeAnchor; i < endExclusive; i++) {
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+    }
+  }
+
+  void primeForwardReadyMagazine(
+    int anchorIndex, {
+    int aheadCount = _startupReadyMagazineCount,
+    int minimumSegmentCount = 1,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final endExclusive = math.min(shorts.length, safeAnchor + aheadCount + 1);
+    for (int i = safeAnchor + 1; i < endExclusive; i++) {
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+    }
+  }
+
+  void primePlaybackWindowReadySegments(
+    int anchorIndex, {
+    int minimumSegmentCount = SegmentCacheRuntimeService.globalReadySegmentCount,
+    int aheadCount = 5,
+    int hotBehindCount = 3,
+    int warmBehindCount = 5,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final hotStart = math.max(0, safeAnchor - hotBehindCount);
+    final hotEnd = math.min(shorts.length - 1, safeAnchor + aheadCount);
+    final warmStart = math.max(0, safeAnchor - warmBehindCount);
+
+    for (int i = warmStart; i < hotStart; i++) {
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+    }
+    for (int i = hotStart; i <= hotEnd; i++) {
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+    }
+  }
+
   Future<void> keepOnlyIndex(int index) async {
     final keys = cache.keys.toList(growable: false);
     for (final key in keys) {

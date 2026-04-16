@@ -166,8 +166,7 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationJobWarmups();
       final deferFeedSnapshotInspection =
           Platform.isAndroid && prioritizeHomeWarmups;
-      final deferShortCriticalWarmup =
-          Platform.isAndroid && prioritizeHomeWarmups;
+      final deferShortCriticalWarmup = false;
       final deferStoryCriticalSync =
           Platform.isAndroid && prioritizeHomeWarmups;
       final storyStartupWarmLimit = storyController == null
@@ -231,8 +230,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         if (!deferShortCriticalWarmup) {
           criticalSlices.add(() async {
             await _profileStartupWarmSlice('home_short_surface', () async {
-              final shorts = maybeFindShortController();
-              if (shorts == null) return;
+              final shorts = ensureShortController();
               await _warmShortSnapshotForStartup(
                 onWiFi: onWiFi,
                 isFirstLaunch: isFirstLaunch,
@@ -479,8 +477,8 @@ extension _SplashViewWarmPart on _SplashViewState {
 
       if (!deferShortWarmStart) {
         warmSlices.add(() async {
-          final shorts = maybeFindShortController();
-          if (shorts == null || shorts.shorts.length >= shortTarget) return;
+          final shorts = ensureShortController();
+          if (shorts.shorts.length >= shortTarget) return;
           await shorts.warmStart(
             targetCount: shortTarget,
             maxPages: ReadBudgetRegistry.shortWarmMaxPages(onWiFi: onWiFi),
@@ -598,6 +596,12 @@ extension _SplashViewWarmPart on _SplashViewState {
       _ensureMinSplashDuration(),
     ]);
 
+    if (_shouldRequireFeedReadiness()) {
+      await _waitForShortReadiness(
+        timeout: const Duration(milliseconds: 900),
+      );
+    }
+
     unawaited(
       _waitForCriticalDataReadiness(
         timeout: _SplashViewState._syncStartupMaxWait,
@@ -636,6 +640,18 @@ extension _SplashViewWarmPart on _SplashViewState {
         return;
       }
       await Future.delayed(const Duration(milliseconds: 140));
+    }
+  }
+
+  Future<void> _waitForShortReadiness({
+    required Duration timeout,
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (_isShortsReady()) {
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 80));
     }
   }
 
@@ -774,14 +790,15 @@ extension _SplashViewWarmPart on _SplashViewState {
       var file =
           await TurqImageCacheManager.instance.getFileFromCache(normalized);
       File? resolved = file?.file;
-      if ((resolved == null || !resolved.existsSync()) && allowNetwork && onWiFi) {
+      if ((resolved == null || !resolved.existsSync()) &&
+          allowNetwork &&
+          onWiFi) {
         resolved = await TurqImageCacheManager.instance
             .getSingleFile(normalized)
             .timeout(const Duration(milliseconds: 180));
       }
-      final path = (resolved != null && resolved.existsSync())
-          ? resolved.path
-          : '';
+      final path =
+          (resolved != null && resolved.existsSync()) ? resolved.path : '';
       if (path.isNotEmpty) {
         TurqImageCacheManager.rememberResolvedFile(normalized, path);
       }

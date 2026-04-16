@@ -2,6 +2,7 @@ part of 'short_controller.dart';
 
 const bool _verboseShortLogs = false;
 const int _initialPreloadCount = 3;
+const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
@@ -123,7 +124,16 @@ extension ShortControllerPublicApiPart on ShortController {
       trigger: 'primary_surface_visible_reconcile',
     );
     if (shorts.isNotEmpty) {
-      await preloadRange(_currentVisibleShortIndex(this), range: 0);
+      primeStartupReadyMagazine(
+        _currentVisibleShortIndex(this),
+        count: _startupReadyMagazineCount,
+        minimumSegmentCount: 1,
+      );
+      primePlaybackWindowReadySegments(
+        _currentVisibleShortIndex(this),
+        minimumSegmentCount: 2,
+      );
+      unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
       unawaited(
         Future<void>.delayed(const Duration(milliseconds: 700)).then((_) async {
           if (shorts.isEmpty) return;

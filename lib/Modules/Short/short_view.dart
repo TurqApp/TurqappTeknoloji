@@ -18,8 +18,10 @@ import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -187,6 +189,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
+  PostsModel? _entryShellPost;
   final Set<String> _recordedVisibleShortDocIds = <String>{};
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
@@ -272,15 +275,15 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   void _applyShortPlaybackPresentation(int page, HLSVideoAdapter adapter) {
     final decision = _shortPlaybackDecisionFor(page, adapter.value);
-    final shouldForceActiveShortAudible =
-        volume &&
-            page == currentPage &&
-            _isShortRoutePlaybackActive &&
-            !isManuallyPaused &&
-            !adapter.value.isCompleted;
+    final shouldForceActiveShortAudible = volume &&
+        page == currentPage &&
+        _isShortRoutePlaybackActive &&
+        !isManuallyPaused &&
+        !adapter.value.isCompleted;
     _playbackExecutionService.applyPresentation(
       adapter,
-      shouldBeAudible: decision.shouldBeAudible || shouldForceActiveShortAudible,
+      shouldBeAudible:
+          decision.shouldBeAudible || shouldForceActiveShortAudible,
     );
   }
 
@@ -319,6 +322,41 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     });
   }
 
+  Future<void> _primeEntryShellPoster() async {
+    if (_entryShellPost != null ||
+        _cachedShorts.isNotEmpty ||
+        controller.shorts.isNotEmpty) {
+      return;
+    }
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final snapshot = await ensureShortSnapshotRepository().loadHome(
+        userId: userId,
+        limit: 5,
+      );
+      if (!mounted ||
+          _entryShellPost != null ||
+          _cachedShorts.isNotEmpty ||
+          controller.shorts.isNotEmpty) {
+        return;
+      }
+      final post = (snapshot.data ?? const <PostsModel>[])
+          .where(
+            (item) =>
+                item.hasPlayableVideo &&
+                !item.isFloodSeriesContent &&
+                item.aspectRatio.toDouble() <= 1.2,
+          )
+          .cast<PostsModel?>()
+          .firstWhere((item) => item != null, orElse: () => null);
+      if (post == null) return;
+      setState(() {
+        _entryShellPost = post;
+      });
+    } catch (_) {}
+  }
+
   void _syncShortSurfaceAfterStartup() {
     if (!mounted) return;
     final nextList = List<PostsModel>.from(controller.shorts);
@@ -334,6 +372,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       setState(() {});
     } else {
       _applyRenderListUpdate(nextList);
+    }
+    if (_entryShellPost != null && nextList.isNotEmpty) {
+      _entryShellPost = null;
     }
     if (_cachedShorts.isNotEmpty && _isShortRoutePlaybackActive) {
       unawaited(controller.ensureActiveAdapterReady(currentPage));
@@ -393,6 +434,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     controller.lastIndex.value = currentPage;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     pageController = PageController(initialPage: initialIndex);
+    if (_cachedShorts.isEmpty) {
+      unawaited(_primeEntryShellPoster());
+    }
 
     controller.onPrimarySurfaceVisible().then((_) {
       _syncShortSurfaceAfterStartup();
@@ -404,6 +448,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _shortsWorker = ever(controller.shorts, (_) {
       if (!mounted) return;
       final newList = List<PostsModel>.from(controller.shorts);
+      if (_entryShellPost != null && newList.isNotEmpty) {
+        _entryShellPost = null;
+      }
       _applyRenderListUpdate(newList);
     });
   }

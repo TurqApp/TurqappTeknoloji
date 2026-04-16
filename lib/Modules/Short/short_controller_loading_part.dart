@@ -167,7 +167,7 @@ extension ShortControllerLoadingPart on ShortController {
         source: CachedResourceSource.scopedDisk,
       );
     }
-    await preloadRange(_currentVisibleShortIndex(this), range: 0);
+    unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
     return true;
   }
 
@@ -587,7 +587,7 @@ extension ShortControllerLoadingPart on ShortController {
         _replaceShorts(
           _applyStartupShortPresentationOrder(initialPlan.replacementItems!),
         );
-        await preloadRange(_currentVisibleShortIndex(this), range: 0);
+        unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
         if (initialPlan.shouldScheduleBackgroundRefresh &&
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts)) {
           unawaited(_loadNextPage(trigger: 'background_refresh'));
@@ -627,7 +627,7 @@ extension ShortControllerLoadingPart on ShortController {
         }
       }
       _log('[Shorts] Liste zaten var (${shorts.length} video) - korunuyor');
-      await preloadRange(_currentVisibleShortIndex(this), range: 0);
+      unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
     }
 
     _log(

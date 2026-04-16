@@ -38,6 +38,57 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     return _queue.any((job) => job.docID == normalized);
   }
 
+  Map<String, dynamic>? describeTransferOwner(String docID) {
+    final normalized = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalized == null || normalized.isEmpty) return null;
+
+    final inShortWindow = _lastShortDocIDs.contains(normalized);
+    final inFeedWindow = _lastFeedDocIDs.contains(normalized);
+    final inFeedBank = _lastFeedBankDocIDs.contains(normalized);
+    final pendingPrefetch = hasPendingPrefetchForDoc(normalized);
+    final activeDownload = isActivelyDownloadingDoc(normalized);
+
+    String owner;
+    if (inShortWindow) {
+      owner = 'short';
+    } else if (inFeedWindow || inFeedBank) {
+      owner = 'feed';
+    } else if (!_hasActiveFeedPlaybackWindow &&
+        (pendingPrefetch || activeDownload)) {
+      owner = 'quota';
+    } else {
+      owner = 'unknown';
+    }
+
+    return <String, dynamic>{
+      'owner': owner,
+      'inShortWindow': inShortWindow,
+      'inFeedWindow': inFeedWindow,
+      'inFeedBank': inFeedBank,
+      'pendingPrefetch': pendingPrefetch,
+      'activeDownload': activeDownload,
+      'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
+    };
+  }
+
+  Map<String, dynamic>? classifyTransferDoc(String docID) {
+    final ownerInfo = describeTransferOwner(docID);
+    final owner = (ownerInfo?['owner'] ?? 'unknown').toString();
+    if (owner == 'short') {
+      return classifyShortTransferDoc(docID);
+    }
+    if (owner == 'feed') {
+      return classifyFeedTransferDoc(docID);
+    }
+    final shortTier = classifyShortTransferDoc(docID);
+    if (shortTier != null &&
+        shortTier['targetIndex'] != null &&
+        shortTier['targetIndex'] != -1) {
+      return shortTier;
+    }
+    return classifyFeedTransferDoc(docID) ?? shortTier;
+  }
+
   Map<String, dynamic>? classifyFeedTransferDoc(String docID) {
     final normalized = HlsSegmentPolicy.normalizeDocId(docID);
     if (normalized == null || normalized.isEmpty) return null;

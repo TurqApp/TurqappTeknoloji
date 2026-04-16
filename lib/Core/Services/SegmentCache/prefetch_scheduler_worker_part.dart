@@ -382,8 +382,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       for (final segUri in dispatchNow) {
         if (_paused) break;
         if (!quotaFillMode) {
-          final shortTier = classifyShortTransferDoc(job.docID);
-          if (shortTier != null && shortTier['allowedSegmentWarm'] != true) {
+          final tierInfo = classifyTransferDoc(job.docID);
+          if (tierInfo != null && tierInfo['allowedSegmentWarm'] != true) {
             _clearFollowUpJob(job.docID);
             _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
             break;

@@ -47,12 +47,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
       return;
     }
-    final docId = _cachedShorts[page].docID.trim();
-    if (docId.isNotEmpty) {
-      _playbackRuntimeService.clearSavedPlaybackState(
-        controller.playbackHandleKeyForDoc(docId),
-      );
-    }
+    _persistShortPlaybackState(page, adapter);
     await _releasePlayback(adapter);
     try {
       await adapter.seekTo(Duration.zero);
@@ -333,6 +328,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    controller.primeForwardReadyMagazine(
+      currentPage,
+      aheadCount: 5,
+      minimumSegmentCount: 1,
+    );
+    controller.primePlaybackWindowReadySegments(
+      currentPage,
+      minimumSegmentCount: 2,
+    );
     _syncShortExclusivePlaybackOwner(page);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;

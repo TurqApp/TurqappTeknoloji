@@ -166,13 +166,29 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
+    debugPrint(
+      '[ShortRouteGate] begin count=${shortController.shorts.length}',
+    );
     try {
-      unawaited(
-        shortController.prepareStartupSurface(
-          allowBackgroundRefresh: false,
-        ),
+      await shortController.prepareStartupSurface(
+        allowBackgroundRefresh: false,
       );
     } catch (_) {}
+    final shortReadyTarget = ReadBudgetRegistry.shortReadyForNavCount;
+    final deadline = DateTime.now().add(const Duration(milliseconds: 1500));
+    while (shortController.shorts.length < shortReadyTarget &&
+        DateTime.now().isBefore(deadline)) {
+      await Future.delayed(const Duration(milliseconds: 80));
+      try {
+        await shortController.prepareStartupSurface(
+          allowBackgroundRefresh: false,
+        );
+      } catch (_) {}
+    }
+    debugPrint(
+      '[ShortRouteGate] ready count=${shortController.shorts.length} '
+      'target=$shortReadyTarget',
+    );
     try {
       final initialIndex = shortController.shorts.isEmpty
           ? 0
@@ -185,6 +201,7 @@ extension _NavBarViewShellContentPart on NavBarView {
 
     controller.suspendFeedForTabExit();
     controller.pauseGlobalTabMedia();
+    debugPrint('[ShortRouteGate] push_short_route');
     await Get.to(() => const ShortView());
     maybeFindAgendaController()?.resetVisibleFeedSurfaceAfterShortReturn();
     controller.resumeFeedIfNeeded();
