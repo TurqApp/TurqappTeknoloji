@@ -1,53 +1,6 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  bool _shouldPreferResumePoster(
-    PostsModel post,
-    HLSVideoAdapter adapter,
-  ) {
-    final activeIndex = currentPage >= 0 && currentPage < _cachedShorts.length
-        ? currentPage
-        : -1;
-    if (_forceResumePosterOnReturn &&
-        activeIndex >= 0 &&
-        identical(post, _cachedShorts[activeIndex])) {
-      return true;
-    }
-    return false;
-  }
-
-  bool _shouldKeepPosterHidden(
-    HLSVideoAdapter adapter,
-    PlaybackLifecycleDecision decision,
-  ) {
-    return decision.shouldHidePoster;
-  }
-
-  Duration _posterTransitionDuration({
-    required bool shouldHidePoster,
-    required HLSVideoAdapter adapter,
-    required bool isActivePage,
-  }) {
-    if (shouldHidePoster &&
-        isActivePage &&
-        adapter.value.hasRenderedFirstFrame) {
-      return Duration.zero;
-    }
-    return const Duration(milliseconds: 220);
-  }
-
-  bool _hasThumbCandidate(PostsModel post, {String? overrideUrl}) {
-    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final candidates = <String>[
-      if (resolvedUrl.isNotEmpty) resolvedUrl,
-      ...post.preferredVideoPosterUrls,
-    ]..removeWhere((url) => url.trim().isEmpty);
-    if (candidates.isNotEmpty) {
-      return true;
-    }
-    return false;
-  }
-
   Widget _buildRefreshingBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -66,44 +19,6 @@ extension ShortViewUiPart on _ShortViewState {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
-    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final candidates = <String>[
-      if (resolvedUrl.isNotEmpty) resolvedUrl,
-      ...post.preferredVideoPosterUrls,
-    ];
-    if (candidates.isEmpty) {
-      return const ColoredBox(color: Colors.black);
-    }
-    return CacheFirstNetworkImage(
-      imageUrl: candidates.first,
-      candidateUrls: candidates
-          .skip(1)
-          .where((url) => url != candidates.first)
-          .toList(growable: false),
-      cacheManager: TurqImageCacheManager.instance,
-      fit: BoxFit.cover,
-      fallback: const ColoredBox(color: Colors.black),
-    );
-  }
-
-  Widget _buildThumbOverlay(int idx, String thumb, double modelAr) {
-    if (!_hasThumbCandidate(_cachedShorts[idx], overrideUrl: thumb)) {
-      return const ColoredBox(color: Colors.black);
-    }
-    if (modelAr > 1.2) {
-      return Center(
-        child: AspectRatio(
-          aspectRatio: modelAr,
-          child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
-        ),
-      );
-    }
-    return SizedBox.expand(
-      child: _cachedThumb(_cachedShorts[idx], overrideUrl: thumb),
     );
   }
 
@@ -246,7 +161,6 @@ extension ShortViewUiPart on _ShortViewState {
             onPageChanged: _onPageChanged,
             itemBuilder: (_, idx) {
               final vp = controller.cache[idx];
-              final thumb = list[idx].thumbnail;
               final modelAr = list[idx].aspectRatio > 0
                   ? list[idx].aspectRatio.toDouble()
                   : (9 / 16);
@@ -257,14 +171,17 @@ extension ShortViewUiPart on _ShortViewState {
                 if (isActivePage) {
                   _ensureActivePageAdapterAfterBuild(idx);
                 }
-                return Stack(
+                return const Stack(
                   fit: StackFit.expand,
-                  children: [_buildThumbOverlay(idx, thumb, modelAr)],
+                  children: [
+                    ColoredBox(color: Colors.black),
+                    Center(
+                      child: CupertinoActivityIndicator(color: Colors.white),
+                    ),
+                  ],
                 );
               }
 
-              final preferResumePoster =
-                  isActivePage && _shouldPreferResumePoster(list[idx], vp);
               final videoWidget = isActivePage || isWarmNeighbor
                   ? IgnorePointer(
                       ignoring: !isActivePage,
@@ -276,7 +193,7 @@ extension ShortViewUiPart on _ShortViewState {
                           vp,
                           'vp-${list[idx].docID}',
                           modelAspectRatio: modelAr,
-                          preferResumePoster: preferResumePoster,
+                          preferResumePoster: false,
                         ),
                       ),
                     )
@@ -287,10 +204,8 @@ extension ShortViewUiPart on _ShortViewState {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (!preferResumePoster)
-                      _buildThumbOverlay(idx, thumb, modelAr),
                     if (isActivePage || isWarmNeighbor) videoWidget,
-                    if (isActivePage || isWarmNeighbor)
+                    if (isActivePage)
                       AnimatedBuilder(
                         animation: vp,
                         builder: (_, __) {
@@ -302,35 +217,6 @@ extension ShortViewUiPart on _ShortViewState {
                             vp,
                             decision.hasStableVisualFrame,
                           );
-                          final shouldHidePoster = _shouldKeepPosterHidden(
-                            vp,
-                            decision,
-                          );
-                          if (!_hasThumbCandidate(
-                            list[idx],
-                            overrideUrl: thumb,
-                          )) {
-                            return const SizedBox.shrink();
-                          }
-                          return IgnorePointer(
-                            ignoring: true,
-                            child: AnimatedOpacity(
-                              opacity: shouldHidePoster ? 0 : 1,
-                              duration: _posterTransitionDuration(
-                                shouldHidePoster: shouldHidePoster,
-                                adapter: vp,
-                                isActivePage: isActivePage,
-                              ),
-                              curve: Curves.easeOutCubic,
-                              child: _buildThumbOverlay(idx, thumb, modelAr),
-                            ),
-                          );
-                        },
-                      ),
-                    if (isActivePage)
-                      AnimatedBuilder(
-                        animation: vp,
-                        builder: (_, __) {
                           return const SizedBox.shrink();
                         },
                       ),

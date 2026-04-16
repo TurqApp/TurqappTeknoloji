@@ -756,25 +756,11 @@ extension _SplashViewWarmPart on _SplashViewState {
       for (final user in storyController.users.take(4)) user.avatarUrl.trim(),
     }..removeWhere((url) => url.isEmpty);
 
-    final posterUrls = <String>{
-      for (final post in agendaController.agendaList
-          .where((post) => post.hasRenderableVideoCard)
-          .take(2))
-        ...post.preferredVideoPosterUrls.map((url) => url.trim()),
-    }..removeWhere((url) => url.isEmpty);
-
     for (final url in avatarUrls.take(onWiFi ? 4 : 2)) {
       await _primeCriticalImageHint(
         url,
         onWiFi: onWiFi,
         allowNetwork: onWiFi,
-      );
-    }
-    for (final url in posterUrls.take(onWiFi ? 2 : 1)) {
-      await _primeCriticalImageHint(
-        url,
-        onWiFi: onWiFi,
-        allowNetwork: false,
       );
     }
   }
