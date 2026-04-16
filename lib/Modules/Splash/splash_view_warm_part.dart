@@ -201,15 +201,17 @@ extension _SplashViewWarmPart on _SplashViewState {
               unawaited(earlyStoryWarmFuture);
             }
             await _profileStartupWarmSlice('home_prepare_surface', () async {
+              if (Platform.isAndroid && prioritizeHomeWarmups) {
+                debugPrint(
+                  '[FeedStartupSurface] status=defer_home_prepare_surface_android',
+                );
+                return;
+              }
               final prepareFuture = agendaController
                   .prepareStartupSurface(
                     allowBackgroundRefresh: false,
                   )
                   .timeout(const Duration(seconds: 3), onTimeout: () {});
-              if (Platform.isAndroid && prioritizeHomeWarmups) {
-                unawaited(prepareFuture.catchError((_) {}));
-                return;
-              }
               await prepareFuture;
             });
           });

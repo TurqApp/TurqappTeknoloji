@@ -811,6 +811,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         targetCount: min(candidates.length, targetCount),
         startupVariantOverride: _feedStartupVariantOverride(),
         allowSparseSlotFallback: true,
+        emitLaunchMotorDiagnostics: false,
       );
       return preview.length;
     }
@@ -1367,6 +1368,7 @@ extension AgendaControllerLoadingPart on AgendaController {
                   ),
                   startupVariantOverride: _feedStartupVariantOverride(),
                   allowSparseSlotFallback: true,
+                  emitLaunchMotorDiagnostics: false,
                 )
                 .length;
         if (startupPreviewCount < startupTargetCount &&
@@ -2190,6 +2192,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         targetCount: blockTarget,
         includeStartupHeadPenalty: false,
         allowSparseSlotFallback: false,
+        emitLaunchMotorDiagnostics: false,
       );
       final score = _scoreColdPlanBlock(
         plannedBlock,
@@ -2225,6 +2228,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           targetCount: blockTarget,
           includeStartupHeadPenalty: false,
           allowSparseSlotFallback: true,
+          emitLaunchMotorDiagnostics: false,
         );
         if (rescueBlock.length > best.length) {
           best = rescueBlock.take(blockTarget).toList(growable: false);

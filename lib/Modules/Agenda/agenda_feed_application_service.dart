@@ -102,12 +102,14 @@ class AgendaFeedApplicationService {
     required List<PostsModel> fallbackCandidates,
     required int targetCount,
     bool allowSparseSlotFallback = false,
+    bool emitLaunchMotorDiagnostics = true,
   }) {
     return _buildLatestOrderedItems(
       primaryCandidates: primaryCandidates,
       fallbackCandidates: fallbackCandidates,
       targetCount: targetCount,
       allowSparseSlotFallback: allowSparseSlotFallback,
+      emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
     );
   }
 
@@ -247,6 +249,7 @@ class AgendaFeedApplicationService {
     int? startupVariantOverride,
     Set<String>? cacheReadyVideoDocIds,
     bool allowSparseSlotFallback = false,
+    bool emitLaunchMotorDiagnostics = true,
   }) {
     if (targetCount <= 0) return const <PostsModel>[];
     final startupVariant = startupVariantOverride ??
@@ -263,6 +266,7 @@ class AgendaFeedApplicationService {
       includeStartupHeadPenalty: true,
       allowSparseSlotFallback: allowSparseSlotFallback,
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
+      emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
     );
   }
 
@@ -330,6 +334,7 @@ class AgendaFeedApplicationService {
     required int targetCount,
     required bool includeStartupHeadPenalty,
     required bool allowSparseSlotFallback,
+    bool emitLaunchMotorDiagnostics = true,
   }) {
     if (targetCount <= 0 || candidates.isEmpty) {
       return const <PostsModel>[];
@@ -353,6 +358,7 @@ class AgendaFeedApplicationService {
       variantSeed: variant,
       includeStartupHeadPenalty: includeStartupHeadPenalty,
       allowSparseSlotFallback: allowSparseSlotFallback,
+      emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
     );
   }
 
@@ -455,12 +461,14 @@ class AgendaFeedApplicationService {
     required bool includeStartupHeadPenalty,
     required bool allowSparseSlotFallback,
     Set<String>? cacheReadyVideoDocIds,
+    required bool emitLaunchMotorDiagnostics,
   }) {
     final latestLiveFirst = buildLaunchMotorPool(
       primaryCandidates: liveCandidates,
       fallbackCandidates: cacheCandidates,
       targetCount: targetCount,
       allowSparseSlotFallback: allowSparseSlotFallback,
+      emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
     );
     if (latestLiveFirst.isNotEmpty) {
       return latestLiveFirst;
@@ -473,6 +481,7 @@ class AgendaFeedApplicationService {
     required List<PostsModel> fallbackCandidates,
     required int targetCount,
     required bool allowSparseSlotFallback,
+    required bool emitLaunchMotorDiagnostics,
   }) {
     if (targetCount <= 0) {
       return const <PostsModel>[];
@@ -490,12 +499,15 @@ class AgendaFeedApplicationService {
       latestPool,
       targetCount: targetCount,
       allowSparseSlotFallback: allowSparseSlotFallback,
+      emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
     );
-    debugPrint(
-      '[FeedLaunchMotor] status=applied targetCount=$targetCount '
-      'orderedCount=${launchMotorOrdered.length} '
-      'sample=${launchMotorOrdered.take(5).map((post) => post.docID).join(",")}',
-    );
+    if (emitLaunchMotorDiagnostics) {
+      debugPrint(
+        '[FeedLaunchMotor] status=applied targetCount=$targetCount '
+        'orderedCount=${launchMotorOrdered.length} '
+        'sample=${launchMotorOrdered.take(5).map((post) => post.docID).join(",")}',
+      );
+    }
     return launchMotorOrdered;
   }
 
@@ -503,6 +515,7 @@ class AgendaFeedApplicationService {
     List<PostsModel> latestPool, {
     required int targetCount,
     required bool allowSparseSlotFallback,
+    required bool emitLaunchMotorDiagnostics,
   }) {
     if (latestPool.isEmpty || targetCount <= 0) {
       return const <PostsModel>[];
@@ -528,20 +541,24 @@ class AgendaFeedApplicationService {
           targetCount: targetCount,
         );
         if (ownedMinuteBackfill.isNotEmpty) {
-          debugPrint(
-            '[FeedLaunchMotor] status=owned_minute_backfill_window_empty '
-            'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-            'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
-            'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
-          );
+          if (emitLaunchMotorDiagnostics) {
+            debugPrint(
+              '[FeedLaunchMotor] status=owned_minute_backfill_window_empty '
+              'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+              'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
+              'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
+            );
+          }
           return ownedMinuteBackfill;
         }
       }
-      debugPrint(
-        '[FeedLaunchMotor] status=empty_window_all_pool '
-        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-        'subslice=${snapshot.subsliceIndex} pool=${snapshot.normalizedPool.length}',
-      );
+      if (emitLaunchMotorDiagnostics) {
+        debugPrint(
+          '[FeedLaunchMotor] status=empty_window_all_pool '
+          'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+          'subslice=${snapshot.subsliceIndex} pool=${snapshot.normalizedPool.length}',
+        );
+      }
       return const <PostsModel>[];
     }
     if (!snapshot.hasQueues) {
@@ -553,20 +570,24 @@ class AgendaFeedApplicationService {
           targetCount: targetCount,
         );
         if (ownedMinuteBackfill.isNotEmpty) {
-          debugPrint(
-            '[FeedLaunchMotor] status=owned_minute_backfill_no_queues '
-            'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-            'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
-            'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
-          );
+          if (emitLaunchMotorDiagnostics) {
+            debugPrint(
+              '[FeedLaunchMotor] status=owned_minute_backfill_no_queues '
+              'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+              'subslice=${snapshot.subsliceIndex} orderedCount=${ownedMinuteBackfill.length} '
+              'sample=${ownedMinuteBackfill.take(5).map((post) => post.docID).join(",")}',
+            );
+          }
           return ownedMinuteBackfill;
         }
       }
-      debugPrint(
-        '[FeedLaunchMotor] status=no_queues_strict '
-        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-        'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
-      );
+      if (emitLaunchMotorDiagnostics) {
+        debugPrint(
+          '[FeedLaunchMotor] status=no_queues_strict '
+          'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+          'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
+        );
+      }
       if (allowSparseSlotFallback) {
         return const <PostsModel>[];
       }
@@ -576,21 +597,25 @@ class AgendaFeedApplicationService {
         preferredSubsliceIndex: snapshot.subsliceIndex,
         subsliceMs: _feedLaunchMotorSubsliceMs,
       ).take(targetCount).toList(growable: false);
-      debugPrint(
-        '[FeedLaunchMotor] status=affinity_fallback '
-        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-        'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
-        'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
-      );
+      if (emitLaunchMotorDiagnostics) {
+        debugPrint(
+          '[FeedLaunchMotor] status=affinity_fallback '
+          'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+          'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
+          'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
+        );
+      }
       return fallback;
     }
 
-    debugPrint(
-      '[FeedLaunchMotor] status=queues_ready '
-      'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-      'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length} '
-      'queues=${snapshot.queueCount}',
-    );
+    if (emitLaunchMotorDiagnostics) {
+      debugPrint(
+        '[FeedLaunchMotor] status=queues_ready '
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length} '
+        'queues=${snapshot.queueCount}',
+      );
+    }
 
     // Keep feed motor strict once it found owned queues; do not backfill
     // non-owned candidates into the visible order.
@@ -611,13 +636,15 @@ class AgendaFeedApplicationService {
       ...strictSelection,
       ...ownedMinuteBackfill,
     ];
-    debugPrint(
-      '[FeedLaunchMotor] status=owned_minute_backfill_strict '
-      'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-      'subslice=${snapshot.subsliceIndex} strictCount=${strictSelection.length} '
-      'backfillCount=${ownedMinuteBackfill.length} '
-      'orderedCount=${combined.length}',
-    );
+    if (emitLaunchMotorDiagnostics) {
+      debugPrint(
+        '[FeedLaunchMotor] status=owned_minute_backfill_strict '
+        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
+        'subslice=${snapshot.subsliceIndex} strictCount=${strictSelection.length} '
+        'backfillCount=${ownedMinuteBackfill.length} '
+        'orderedCount=${combined.length}',
+      );
+    }
     return LaunchMotorSelectionService.sortLatestFirst(
       combined.take(targetCount).toList(growable: false),
     );
