@@ -211,9 +211,6 @@ class _ClassicContentState extends State<ClassicContent>
   static const EducationFeedCtaNavigationService _ctaNavigationService =
       EducationFeedCtaNavigationService();
 
-  @override
-  bool get enableBufferedAutoplay => false;
-
   static const double _reelPortraitFrameAspectRatio = 5 / 8;
   static const double _feedPortraitFrameAspectRatio = 4 / 5;
   static const double _squareFrameAspectRatio = 0.92;
