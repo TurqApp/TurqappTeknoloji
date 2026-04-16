@@ -42,7 +42,7 @@ const int _feedCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedNativeStrongAheadCount = 1;
 const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 2;
+const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
 
 enum _FeedNativeWarmTier {
   off,
@@ -340,6 +340,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (!widget.model.hasPlayableVideo) return false;
     final value = _videoAdapter?.value ?? const HLSVideoValue();
+    if (!value.hasRenderedFirstFrame) return false;
     final hasResumeHint = _hasResumePositionHint(
       value,
       threshold: _stableFramePositionThreshold,
