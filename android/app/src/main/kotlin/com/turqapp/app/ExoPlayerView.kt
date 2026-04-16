@@ -133,7 +133,7 @@ class ExoPlayerView(
     }
 
     private fun shouldUseResumeVisualChoreography(): Boolean {
-        return forceFullscreen
+        return forceFullscreen || (isPrimaryFeedSurface && preferResumePoster)
     }
 
     private fun shouldKeepStartupPlaybackAcrossDetach(): Boolean {

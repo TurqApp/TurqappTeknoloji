@@ -15,13 +15,19 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     final pendingSeek = _pendingSeek;
     final hasPendingVolume = _hasPendingVolume;
     final pendingVolume = _pendingVolume;
+    final shouldDeferAutoplayUntilSeek =
+        autoPlay && pendingSeek != null && pendingSeek > Duration.zero;
 
     _pendingReloadOnReady = false;
     _isStopped = false;
     _wantPlay = autoPlay;
     _wantPause = false;
 
-    await _hls.loadVideo(url, autoPlay: autoPlay, loop: loop);
+    await _hls.loadVideo(
+      url,
+      autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
+      loop: loop,
+    );
 
     if (hasPendingVolume) {
       await _hls.setVolume(pendingVolume);
@@ -33,6 +39,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     }
 
     if (autoPlay) {
+      if (shouldDeferAutoplayUntilSeek) {
+        await _hls.play();
+      }
       _wantPlay = false;
       _wantPause = false;
     }
