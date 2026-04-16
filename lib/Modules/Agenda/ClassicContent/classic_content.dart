@@ -35,6 +35,7 @@ import '../Common/post_content_controller.dart';
 import '../Common/post_action_style.dart';
 import 'package:turqappv2/Modules/Agenda/Common/reshare_attribution.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
+import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing_controller.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
@@ -115,6 +116,7 @@ class _ClassicContentState extends State<ClassicContent>
   bool _isFullscreen = false;
   bool _isCaptionExpanded = false;
   bool _isQuoteExpanded = false;
+  bool _pauseQueuedAfterBuild = false;
   late final RelativeTimeTickService _relativeTimeTickService;
   Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
   String _quotedSourceProfileUserId = '';
@@ -267,12 +269,21 @@ class _ClassicContentState extends State<ClassicContent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    // Gizli, arşivli veya silindi ise videoyu durdur
+    // Agenda ile aynı güvenli davranış: build sırasında doğrudan pause etme.
     if (controller.gizlendi.value ||
         controller.arsiv.value ||
         controller.silindi.value ||
         _shouldBlurIzBirakPost) {
-      videoController?.pause();
+      if (!_pauseQueuedAfterBuild) {
+        _pauseQueuedAfterBuild = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pauseQueuedAfterBuild = false;
+          if (!mounted) return;
+          try {
+            videoController?.pause();
+          } catch (_) {}
+        });
+      }
     }
     return Obx(() {
       return Column(

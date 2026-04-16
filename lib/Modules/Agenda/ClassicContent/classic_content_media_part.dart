@@ -96,6 +96,31 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       );
       return;
     }
+
+    final floodController = maybeFindFloodListingController();
+    final isFloodSurface =
+        floodController != null &&
+        (widget.instanceTag?.startsWith('flood_') ?? false);
+
+    if (isFloodSurface) {
+      floodController.capturePendingCenteredEntry(model: widget.model);
+      _pauseFeedBeforeFullscreen();
+      final visibleList = floodController.floods
+          .where((val) =>
+              val.deletedPost == false &&
+              val.arsiv == false &&
+              val.gizlendi == false &&
+              val.img.isNotEmpty)
+          .toList();
+
+      await Get.to(() => PhotoShorts(
+            fetchedList: visibleList.isNotEmpty ? visibleList : [widget.model],
+            startModel: widget.model,
+          ));
+      floodController.resumeCenteredPost();
+      return;
+    }
+
     _openImageMedia();
   }
 
@@ -135,27 +160,26 @@ extension _ClassicContentMediaPart on _ClassicContentState {
 
     if (candidates.isEmpty) return [widget.model];
 
-    final ids = candidates.map((p) => p.docID).toList();
-    final fetched = await _postRepository.fetchPostCardsByIds(ids);
-    final freshById = <String, PostsModel>{};
-    fetched.forEach((key, model) {
-      if (model.deletedPost == false &&
-          model.arsiv == false &&
-          model.gizlendi == false &&
-          model.hasPlayableVideo) {
-        freshById[key] = model;
-      }
-    });
+    final ids = candidates.map((p) => p.docID).toSet().toList();
+    final freshById = await _postRepository.fetchPostCardsByIds(
+      ids,
+      preferCache: true,
+    );
 
-    final List<PostsModel> ordered = candidates
-        .map<PostsModel>((p) => freshById[p.docID] ?? p)
-        .where((p) => p.hasPlayableVideo)
+    final refreshed = candidates
+        .map((p) => freshById[p.docID] ?? p)
+        .where((p) =>
+            p.deletedPost == false &&
+            p.arsiv == false &&
+            p.gizlendi == false &&
+            p.hasPlayableVideo)
         .toList();
 
-    if (ordered.any((p) => p.docID == widget.model.docID)) {
-      return ordered;
-    }
-    return [widget.model, ...ordered];
+    final tapped = freshById[widget.model.docID] ?? widget.model;
+    final rest = refreshed.where((p) => p.docID != tapped.docID).toList()
+      ..shuffle();
+
+    return [tapped, ...rest];
   }
 
   Future<void> _openVideoMedia() async {
