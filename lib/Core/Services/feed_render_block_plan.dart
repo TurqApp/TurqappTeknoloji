@@ -48,10 +48,6 @@ class FeedRenderBlockPlan {
     FeedRenderSlotType.post,
     FeedRenderSlotType.post,
     FeedRenderSlotType.post,
-    FeedRenderSlotType.recommended,
-    FeedRenderSlotType.post,
-    FeedRenderSlotType.post,
-    FeedRenderSlotType.post,
     FeedRenderSlotType.ad,
     FeedRenderSlotType.post,
     FeedRenderSlotType.post,
@@ -60,6 +56,10 @@ class FeedRenderBlockPlan {
     FeedRenderSlotType.post,
     FeedRenderSlotType.post,
     FeedRenderSlotType.post,
-    FeedRenderSlotType.recommended,
+    FeedRenderSlotType.ad,
+    FeedRenderSlotType.post,
+    FeedRenderSlotType.post,
+    FeedRenderSlotType.post,
+    FeedRenderSlotType.ad,
   ];
 }
