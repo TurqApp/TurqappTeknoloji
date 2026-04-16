@@ -2,6 +2,19 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  Duration _resolveSavedResumePosition(HLSVideoAdapter adapter) {
+    final savedState = VideoStateManager.instance.getVideoState(playbackHandleKey);
+    final savedPosition = savedState?.position ?? Duration.zero;
+    if (savedPosition > Duration.zero) {
+      return savedPosition;
+    }
+    final adapterPosition = adapter.value.position;
+    if (adapterPosition > Duration.zero) {
+      return adapterPosition;
+    }
+    return Duration.zero;
+  }
+
   bool _restoreSavedResumeSeekIfEligible(
     HLSVideoAdapter adapter, {
     required String source,
@@ -12,8 +25,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return false;
     }
 
-    final savedState = VideoStateManager.instance.getVideoState(playbackHandleKey);
-    final savedPosition = savedState?.position ?? Duration.zero;
+    final savedPosition = _resolveSavedResumePosition(adapter);
     final shouldUseSavedResumeSeek = !_shouldBypassSavedResumeHintForPrimaryFeed(
       adapter.value,
       source: source,
@@ -715,6 +727,36 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       final pendingClaim = _playbackRuntimeService.hasPendingPlayFor(
         playbackHandleKey,
       );
+      final shouldForceAndroidFeedResumeReassert = GetPlatform.isAndroid &&
+          _isPrimaryFeedSurfaceInstance &&
+          currentOwner &&
+          adapter.value.position >=
+              PostContentBaseState._stableFramePositionThreshold &&
+          !adapter.value.isCompleted;
+      if (shouldForceAndroidFeedResumeReassert) {
+        final resumePosition = adapter.value.position;
+        _recordPlaybackDispatch(
+          'feed_card_resume_reassert_position',
+          source: source,
+          dispatchIssued: false,
+          metadata: <String, dynamic>{
+            'positionMs': resumePosition.inMilliseconds,
+          },
+        );
+        unawaited(adapter.seekTo(resumePosition));
+        _hasAutoPlayed = true;
+        unawaited(_playbackExecutionService.playAdapter(adapter));
+        _applyPlaybackVolume();
+        _syncRuntimeHints(
+          isAudible: _resolvedPlaybackVolume() > 0.0,
+          hasStableFocus: true,
+        );
+        _trackPlaybackIntent();
+        try {
+          _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+        } catch (_) {}
+        return;
+      }
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (!resumedByManager) {
@@ -745,9 +787,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 (!adapter.value.isInitialized &&
                     adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final savedState =
-              VideoStateManager.instance.getVideoState(playbackHandleKey);
-          final savedPosition = savedState?.position ?? Duration.zero;
+          final savedPosition = _resolveSavedResumePosition(adapter);
           final shouldUseSavedResumeSeek =
               !_shouldBypassSavedResumeHintForPrimaryFeed(
             adapter.value,
