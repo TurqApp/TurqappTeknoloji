@@ -73,12 +73,27 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   ) {
     final followUpJob = _pendingFollowUpJobs.remove(docID);
     if (followUpJob == null) return;
+    final liveReadySegments = _resolveLiveFeedReadySegmentsForDoc(
+      docID,
+      cacheManager,
+    );
+    if (liveReadySegments != null && liveReadySegments <= 0) {
+      return;
+    }
+    final targetReadySegments = liveReadySegments ?? followUpJob.maxSegments;
     final entry = cacheManager.getEntry(docID);
     final cachedSegments = entry?.cachedSegmentCount ?? 0;
     final totalSegments = entry?.totalSegmentCount ?? 0;
-    if (cachedSegments >= followUpJob.maxSegments) return;
+    if (cachedSegments >= targetReadySegments) return;
     if (totalSegments > 0 && cachedSegments >= totalSegments) return;
-    _requeueJob(followUpJob);
+    _requeueJob(
+      _PrefetchJob(
+        docID,
+        targetReadySegments,
+        _followUpPriorityForJob(followUpJob),
+        -1000000.0,
+      ),
+    );
   }
 
   void _requeueJob(_PrefetchJob job) {
@@ -498,6 +513,26 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _queueLatencySamples += 1;
     _avgQueueDispatchLatencyMs +=
         (latencyMs - _avgQueueDispatchLatencyMs) / _queueLatencySamples;
+  }
+
+  int? _resolveLiveFeedReadySegmentsForDoc(
+    String docID,
+    SegmentCacheManager cacheManager,
+  ) {
+    if (_lastFeedDocIDs.isEmpty) return null;
+    final targetIndex = _lastFeedDocIDs.indexOf(docID);
+    if (targetIndex < 0) return null;
+    final safeCurrent =
+        _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final readySegmentFallback = resolveFeedWindowReadySegments(
+      currentIndex: safeCurrent,
+      targetIndex: targetIndex,
+    );
+    return _resolvedReadySegmentTarget(
+      docID: docID,
+      cacheManager: cacheManager,
+      fallback: readySegmentFallback,
+    );
   }
 
   void _updateFeedReadyRatio() {
