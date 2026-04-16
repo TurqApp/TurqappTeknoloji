@@ -25,6 +25,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       return;
     }
     _offscreenLeakAlerts[alertKey] = now;
+    final feedTier = maybeFindPrefetchScheduler()?.classifyFeedTransferDoc(docId);
+    final allowedSegmentWarm = feedTier?['allowedSegmentWarm'] == true;
     final payload = <String, dynamic>{
       'docId': docId,
       'visibleDocId': visibleDocId,
@@ -32,11 +34,18 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'bytes': event.bytes,
       'networkType': event.networkType,
       'segmentKey': event.pathKey,
+      'feedTier': feedTier?['tier'] ?? 'unknown',
+      'feedDistance': feedTier?['distance'],
+      'allowedSegmentWarm': allowedSegmentWarm,
+      'allowedCacheOnly': feedTier?['allowedCacheOnly'],
       'label': _label,
     };
     debugPrint(
-      '[HlsOffscreenLeak] signal=offscreen_segment_leak_after_stop payload=$payload',
+      '[HlsOffscreenLeak] signal=${allowedSegmentWarm ? 'offscreen_segment_allowed_window' : 'offscreen_segment_leak_after_stop'} payload=$payload',
     );
+    if (allowedSegmentWarm) {
+      return;
+    }
     ensureRuntimeInvariantGuard().record(
       surface: 'feed',
       invariantKey: 'offscreen_segment_leak_after_stop',

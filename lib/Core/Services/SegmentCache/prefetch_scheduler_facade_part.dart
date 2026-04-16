@@ -38,6 +38,87 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     return _queue.any((job) => job.docID == normalized);
   }
 
+  Map<String, dynamic>? classifyFeedTransferDoc(String docID) {
+    final normalized = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalized == null || normalized.isEmpty) return null;
+    if (_lastFeedDocIDs.isEmpty) return null;
+    final targetIndex = _lastFeedDocIDs.indexOf(normalized);
+    if (targetIndex < 0) {
+      return <String, dynamic>{
+        'targetIndex': -1,
+        'currentIndex': _lastFeedCurrentIndex,
+        'distance': null,
+        'tier': 'not_in_feed_window',
+        'allowedSegmentWarm': false,
+        'allowedCacheOnly': false,
+      };
+    }
+
+    final safeCurrent = _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final previousIndex = _lastFeedPreviousIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final distance = targetIndex - safeCurrent;
+    if (distance == 0) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'visible',
+        'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    final scrollingBackward = safeCurrent < previousIndex;
+    final isMotionSide = scrollingBackward ? distance < 0 : distance > 0;
+    final absDistance = distance.abs();
+    final strongMotionLimit = _prefetchSchedulerFeedAheadCount;
+    final strongOppositeLimit = _prefetchSchedulerFeedBehindCount;
+    const int cacheOnlyOppositeLimit = 2;
+
+    if (isMotionSide && absDistance <= strongMotionLimit) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'motion_strong',
+        'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    if (!isMotionSide && absDistance <= strongOppositeLimit) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'opposite_strong',
+        'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    if (!isMotionSide &&
+        absDistance <= strongOppositeLimit + cacheOnlyOppositeLimit) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'opposite_cache_only',
+        'allowedSegmentWarm': false,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    return <String, dynamic>{
+      'targetIndex': targetIndex,
+      'currentIndex': safeCurrent,
+      'distance': distance,
+      'tier': 'outside_window',
+      'allowedSegmentWarm': false,
+      'allowedCacheOnly': false,
+    };
+  }
+
   Future<void> ensureWifiQuotaFillPlan() => _ensureWifiQuotaFillPlan();
 
   void resetWifiQuotaFillPlan() => _resetWifiQuotaFillPlanState();

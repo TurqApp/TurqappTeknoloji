@@ -39,7 +39,7 @@ const int _feedWarmWindowBehindCount = 3;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
+const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 2;
 
 enum _FeedNativeWarmTier {
   off,
@@ -956,6 +956,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final warmWindowStart = warmRange.start;
     final warmWindowEndExclusive = warmRange.endExclusive;
     final modelIndex = _surfaceModelIndex();
+    final previousCenteredIndex = _surfacePreviousCenteredIndex();
+    final distanceFromCenter = modelIndex >= 0 && safeCenteredIndex >= 0
+        ? modelIndex - safeCenteredIndex
+        : null;
+    final nativeWarmTier = modelIndex >= 0 && safeCenteredIndex >= 0
+        ? _resolveDirectionalNativeWarmTier(
+            modelIndex: modelIndex,
+            centeredIndex: safeCenteredIndex,
+            previousCenteredIndex: previousCenteredIndex,
+          )
+        : _FeedNativeWarmTier.off;
     final metadata = <String, dynamic>{
       'docId': widget.model.docID,
       'instanceTag': widget.instanceTag ?? '',
@@ -983,7 +994,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         source: source,
       ),
       'centeredIndex': safeCenteredIndex,
+      'previousCenteredIndex': previousCenteredIndex,
       'modelIndex': modelIndex,
+      'distanceFromCenter': distanceFromCenter,
+      'nativeWarmTier': nativeWarmTier.name,
       'warmWindowStart': warmWindowStart,
       'warmWindowEndExclusive': warmWindowEndExclusive,
       'insideWarmWindow': modelIndex >= 0 &&

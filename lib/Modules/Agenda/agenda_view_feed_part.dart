@@ -2,9 +2,6 @@ part of 'agenda_view.dart';
 
 extension _AgendaViewFeedPart on AgendaView {
   Widget _buildStartupWarmPreloadLayer() {
-    if (GetPlatform.isAndroid) {
-      return const SizedBox.shrink();
-    }
     return Obx(() {
       final docIds =
           controller.startupWarmPreloadDocIdsRx.toList(growable: false);
@@ -28,22 +25,25 @@ extension _AgendaViewFeedPart on AgendaView {
       key: AgendaView._refreshIndicatorKey,
       backgroundColor: Colors.black,
       color: Colors.white,
-      onRefresh: () => runSurfaceRefresh(
-        primaryRefresh: controller.refreshAgendaFromUserAction,
-        backgroundRefreshes: [
-          unreadController.refreshUnreadCount,
-          () async {
-            await maybeFindStoryRowController()?.loadStories();
-          },
-          () async {
-            unawaited(
-              recommendedController.ensureLoaded(
-                limit: recommendedController.usersWarmCount,
-              ),
-            );
-          },
-        ],
-      ),
+      onRefresh: () {
+        AgendaView.markFeedRefreshIndicatorInvoked();
+        return runSurfaceRefresh(
+          primaryRefresh: controller.refreshAgendaFromUserAction,
+          backgroundRefreshes: [
+            unreadController.refreshUnreadCount,
+            () async {
+              await maybeFindStoryRowController()?.loadStories();
+            },
+            () async {
+              unawaited(
+                recommendedController.ensureLoaded(
+                  limit: recommendedController.usersWarmCount,
+                ),
+              );
+            },
+          ],
+        );
+      },
       child: Obx(() {
         final display = controller.mergedFeedEntries;
         final filteredDisplay = controller.filteredFeedEntries;

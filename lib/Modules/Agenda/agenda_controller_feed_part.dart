@@ -448,6 +448,9 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   int _feedBoostReadySegmentsForPlayableRank(int playableRank) {
+    if (playableRank <= 1) {
+      return _feedPlaybackBoostReadySegments + 1;
+    }
     if (playableRank < _feedBoostPlayableCount) {
       return _feedPlaybackBoostReadySegments;
     }
@@ -625,7 +628,13 @@ extension AgendaControllerFeedPart on AgendaController {
         );
       }
 
-      if (_shouldDelayStartupPlaybackWork) {
+      final isAndroidStartupLead =
+          GetPlatform.isAndroid &&
+          target == 0 &&
+          ((_lastPlaybackRowUpdateDocId?.trim().isEmpty ?? true)) &&
+          ((VideoStateManager.instance.currentPlayingDocID?.trim().isEmpty ??
+              true));
+      if (_shouldDelayStartupPlaybackWork && !isAndroidStartupLead) {
         Future.delayed(_androidStartupPlaybackGrace, startPlaybackWork);
         return;
       }

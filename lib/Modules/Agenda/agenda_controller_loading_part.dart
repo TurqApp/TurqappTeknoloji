@@ -419,12 +419,21 @@ extension AgendaControllerLoadingPart on AgendaController {
   }) {
     _cancelStartupWarmPlayerPreload();
     final preloadPosts = _startupWarmPlayerPreloadWindow(posts);
-    if (preloadPosts.isEmpty) {
+    final effectivePreloadPosts = GetPlatform.isAndroid
+        ? preloadPosts.take(1).toList(growable: false)
+        : preloadPosts;
+    if (GetPlatform.isAndroid) {
+      debugPrint(
+        '[FeedStartupWarmPreload] status=android_singleton_hidden_layer '
+        'reason=$reason requested=${preloadPosts.length} effective=${effectivePreloadPosts.length}',
+      );
+    }
+    if (effectivePreloadPosts.isEmpty) {
       _applyStartupRenderStagesNow();
       return;
     }
     startupWarmPreloadDocIdsRx.assignAll(
-      preloadPosts
+      effectivePreloadPosts
           .map((post) => post.docID.trim())
           .where((docId) => docId.isNotEmpty),
     );
@@ -2672,7 +2681,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       final previousAgenda = agendaList.toList(growable: false);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);
-      final loadLimit = _refreshPlannerMergeLimit;
+      final loadLimit = forceNewLaunchSession
+          ? _connectedInitialCandidateFetchLimit
+          : _refreshPlannerMergeLimit;
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,

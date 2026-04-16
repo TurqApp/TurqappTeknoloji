@@ -353,7 +353,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   void _primeStartupPlaybackWindow() {
     if (agendaList.isEmpty) return;
-    if (_shouldDelayStartupPlaybackWork) {
+    if (_shouldDelayStartupPlaybackWork && !GetPlatform.isAndroid) {
       Future.delayed(const Duration(milliseconds: 120), () {
         if (isClosed || agendaList.isEmpty) return;
         _primeStartupPlaybackWindowNow();
@@ -389,7 +389,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     if (startupWindow.length > 1) {
       prefetch.boostDoc(
         startupWindow[1].docID,
-        readySegments: 1,
+        readySegments: 2,
       );
     }
     if (startupWindow.length > 2) {

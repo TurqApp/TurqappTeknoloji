@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 
 import 'hls_segment_policy.dart';
 import 'm3u8_parser.dart';
