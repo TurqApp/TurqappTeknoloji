@@ -220,7 +220,6 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (postSelection.value != 0) return;
     if (pausetheall.value || showPfImage.value) return;
     if (modelIndex < 0 || modelIndex >= mergedPosts.length) return;
-    if (!_performCanAutoplayMergedEntry(mergedPosts[modelIndex])) return;
 
     final prev = _visibleFractions[modelIndex];
     if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
@@ -279,19 +278,35 @@ extension ProfileControllerSelectionPart on ProfileController {
       final currentEntry = mergedPosts[current];
       final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
       if (currentDocId.isNotEmpty) {
+        final dominantVisibleIndex = _visibleFractions.entries
+            .where((entry) => entry.key >= 0 && entry.key < mergedPosts.length)
+            .fold<int>(
+              -1,
+              (bestIndex, entry) {
+                if (bestIndex == -1) return entry.key;
+                final bestFraction = _visibleFractions[bestIndex] ?? 0.0;
+                return entry.value > bestFraction ? entry.key : bestIndex;
+              },
+            );
+        final dominantVisibleIsNonPlayable = dominantVisibleIndex >= 0 &&
+            dominantVisibleIndex < mergedPosts.length &&
+            !_performCanAutoplayMergedEntry(mergedPosts[dominantVisibleIndex]) &&
+            (_visibleFractions[dominantVisibleIndex] ?? 0.0) >=
+                FeedPlaybackSelectionPolicy.secondaryThreshold;
         final currentPlaybackKey = agendaInstanceTag(
           docId: currentDocId,
           isReshare: currentEntry['isReshare'] == true,
         );
         final currentFraction = _visibleFractions[current] ?? 0.0;
-        if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
-          lastCommandAt: _lastPlaybackCommandAt,
-          lastCommandDocId: _lastPlaybackCommandDocId,
-          currentDocId: currentPlaybackKey,
-          isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
-          currentFraction: currentFraction,
-          stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-        )) {
+        if (!dominantVisibleIsNonPlayable &&
+            FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+              lastCommandAt: _lastPlaybackCommandAt,
+              lastCommandDocId: _lastPlaybackCommandDocId,
+              currentDocId: currentPlaybackKey,
+              isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
+              currentFraction: currentFraction,
+              stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            )) {
           lastCenteredIndex = current;
           currentVisibleIndex.value = current;
           return;
@@ -306,6 +321,7 @@ extension ProfileControllerSelectionPart on ProfileController {
       canAutoplayIndex: (index) =>
           _performCanAutoplayMergedEntry(mergedPosts[index]),
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable: true,
     );
 
     if (targetIndex >= 0 && targetIndex < mergedPosts.length) {
@@ -322,6 +338,8 @@ extension ProfileControllerSelectionPart on ProfileController {
       }
     } else {
       centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
+      VideoStateManager.instance.pauseAllVideos(force: true);
     }
   }
 

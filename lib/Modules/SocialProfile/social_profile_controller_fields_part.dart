@@ -8,6 +8,7 @@ class _SocialProfileStatsState {
   final totalFollowing = 0.obs;
   final postSelection = 0.obs;
   final showPfImage = false.obs;
+  final surfacePlaybackSuspended = false.obs;
 }
 
 class _SocialProfileScrollState {
@@ -86,6 +87,7 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   RxInt get totalFollowing => _stats.totalFollowing;
   RxInt get postSelection => _stats.postSelection;
   RxBool get showPfImage => _stats.showPfImage;
+  RxBool get surfacePlaybackSuspended => _stats.surfacePlaybackSuspended;
 
   RxInt get currentVisibleIndex => _scrollState.currentVisibleIndex;
   RxInt get centeredIndex => _scrollState.centeredIndex;

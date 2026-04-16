@@ -43,12 +43,6 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       socialMediaController = ensureSocialMediaController();
       _ownsSocialMediaController = true;
     }
-    try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
-    } catch (_) {}
-    try {
-      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-    } catch (_) {}
     _scheduleOnScroll();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_isProfileSurfaceActive()) {
@@ -66,12 +60,6 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
         if (!_isProfileSurfaceActive()) {
           controller.setPrimarySurfaceActive(false);
           _suspendProfileFeedForRoute();
-          try {
-            VideoStateManager.instance.pauseAllVideos(force: true);
-          } catch (_) {}
-          try {
-            AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-          } catch (_) {}
           return;
         }
         controller.setPrimarySurfaceActive(true);
@@ -145,6 +133,9 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
         ? controller.currentVisibleIndex.value
         : controller.lastCenteredIndex;
+    if (controller.pausetheall.value && controller.centeredIndex.value == -1) {
+      return;
+    }
     controller.pausetheall.value = true;
     controller.centeredIndex.value = -1;
     try {

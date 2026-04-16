@@ -280,6 +280,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isProfileSurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_');
 
+  bool get _isSocialProfileSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('social_');
+
+  SocialProfileController? _resolveSocialProfileController() {
+    final reshareUserId = (widget.reshareUserID ?? '').trim();
+    if (reshareUserId.isNotEmpty) {
+      final byReshareUser =
+          maybeFindSocialProfileController(tag: reshareUserId);
+      if (byReshareUser != null) return byReshareUser;
+    }
+    final modelUserId = widget.model.userID.trim();
+    if (modelUserId.isNotEmpty) {
+      final byModelUser = maybeFindSocialProfileController(tag: modelUserId);
+      if (byModelUser != null) return byModelUser;
+    }
+    return maybeFindSocialProfileController();
+  }
+
   bool get _isFloodSurfaceInstance => _surfaceInstanceTag.startsWith('flood_');
 
   bool get _isExploreSeriesSurfaceInstance =>
@@ -329,6 +347,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       (widget.shouldPlay ||
           _surfaceKeepAliveDebounceActive ||
           _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
+          _shouldKeepProfileSurfaceAliveInWarmWindow ||
           _shouldKeepPrimaryFeedSurfaceAliveForWarmPreload ||
           _shouldKeepFloodSurfaceAliveInWarmWindow);
 
@@ -388,9 +407,38 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return warmTier == _FeedNativeWarmTier.strong;
   }
 
+  bool get _shouldKeepProfileSurfaceAliveInWarmWindow {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!_isProfileSurfaceInstance && !_isSocialProfileSurfaceInstance) {
+      return false;
+    }
+    if (!widget.model.hasPlayableVideo) return false;
+    final value = _videoAdapter?.value ?? const HLSVideoValue();
+    if (!value.hasRenderedFirstFrame) return false;
+    final hasResumeHint = _hasResumePositionHint(
+      value,
+      threshold: _stableFramePositionThreshold,
+    );
+    if (!hasResumeHint) return false;
+    final modelIndex = _surfaceModelIndex();
+    if (modelIndex < 0) return false;
+    final warmTier = _resolveDirectionalNativeWarmTier(
+      modelIndex: modelIndex,
+      centeredIndex: _surfaceSafeCenteredIndex(),
+      previousCenteredIndex: _surfacePreviousCenteredIndex(),
+    );
+    return warmTier == _FeedNativeWarmTier.strong;
+  }
+
   int _surfaceListLength() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.floods.length ?? 0;
+    }
+    if (_isProfileSurfaceInstance) {
+      return ProfileController.maybeFind()?.mergedPosts.length ?? 0;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      return _resolveSocialProfileController()?.combinedFeedEntries.length ?? 0;
     }
     return agendaController.agendaList.length;
   }
@@ -402,6 +450,22 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
               ) ??
           -1;
     }
+    if (_isProfileSurfaceInstance) {
+      final profileController = ProfileController.maybeFind();
+      if (profileController == null) return -1;
+      return profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      final socialProfileController = _resolveSocialProfileController();
+      if (socialProfileController == null) return -1;
+      return socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+    }
     return agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
@@ -410,6 +474,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int _surfaceCurrentCenteredIndex() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.centeredIndex.value ?? -1;
+    }
+    if (_isProfileSurfaceInstance) {
+      return ProfileController.maybeFind()?.centeredIndex.value ?? -1;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      return _resolveSocialProfileController()?.centeredIndex.value ?? -1;
     }
     return agendaController.centeredIndex.value;
   }
@@ -425,6 +495,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int? _surfacePreviousCenteredIndex() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.lastCenteredIndex;
+    }
+    if (_isProfileSurfaceInstance) {
+      return ProfileController.maybeFind()?.lastCenteredIndex;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      return _resolveSocialProfileController()?.lastCenteredIndex;
     }
     return agendaController.lastCenteredIndex;
   }

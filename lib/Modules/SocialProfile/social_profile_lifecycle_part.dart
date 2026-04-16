@@ -223,11 +223,27 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     } else {
       controller.capturePendingCenteredEntry();
     }
-    _setCenteredIndex(-1);
+    _updateSocialProfileState(() {
+      if (controller.surfacePlaybackSuspended.value &&
+          controller.centeredIndex.value == -1) {
+        return;
+      }
+      controller.surfacePlaybackSuspended.value = true;
+      controller.centeredIndex.value = -1;
+    });
+    try {
+      VideoStateManager.instance.pauseAllVideos(force: true);
+    } catch (_) {}
+    try {
+      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
+    } catch (_) {}
   }
 
   void _resumeCenteredPostAfterRoute() {
-    _updateSocialProfileState(controller.resumeCenteredPost);
+    _updateSocialProfileState(() {
+      controller.surfacePlaybackSuspended.value = false;
+      controller.resumeCenteredPost();
+    });
   }
 
   void _showProfileImagePreview() {
@@ -237,6 +253,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       controller.lastCenteredIndex = controller.currentVisibleIndex.value >= 0
           ? controller.currentVisibleIndex.value
           : controller.lastCenteredIndex;
+      controller.surfacePlaybackSuspended.value = true;
       controller.showPfImage.value = true;
       controller.centeredIndex.value = -1;
     });
@@ -244,6 +261,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
 
   void _hideProfileImagePreview() {
     _updateSocialProfileState(() {
+      controller.surfacePlaybackSuspended.value = false;
       controller.showPfImage.value = false;
       controller.resumeCenteredPost();
     });

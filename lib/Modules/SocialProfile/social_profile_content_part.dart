@@ -177,7 +177,6 @@ extension _SocialProfileContentPart on _SocialProfileState {
                     'social-profile-visibility-${controller.combinedEntryIdentity(docId: model.docID, isReshare: isReshare)}',
                   ),
                   onVisibilityChanged: (info) {
-                    if (!model.hasPlayableVideo) return;
                     controller.onPostVisibilityChanged(
                       actualIndex,
                       info.visibleFraction,
@@ -195,6 +194,8 @@ extension _SocialProfileContentPart on _SocialProfileState {
                       final shouldPlay =
                           FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
                         isCentered: isCentered,
+                        isSurfacePlaybackSuspended:
+                            socialController.surfacePlaybackSuspended.value,
                         isOverlayBlockingPlayback:
                             socialController.showPfImage.value,
                       );

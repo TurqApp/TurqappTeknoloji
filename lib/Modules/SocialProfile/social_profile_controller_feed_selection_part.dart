@@ -81,6 +81,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
     capturePendingCenteredEntry(preferredIndex: target);
+    surfacePlaybackSuspended.value = false;
     _invariantGuard.assertCenteredSelection(
       surface: 'social_profile',
       invariantKey: 'resume_centered_post',
@@ -165,10 +166,9 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
 
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (postSelection.value != 0) return;
-    if (showPfImage.value) return;
+    if (surfacePlaybackSuspended.value || showPfImage.value) return;
     final activeEntries = combinedFeedEntries;
     if (modelIndex < 0 || modelIndex >= activeEntries.length) return;
-    if (!_performCanAutoplayCombinedEntry(activeEntries[modelIndex])) return;
 
     final prev = _visibleFractions[modelIndex];
     if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
@@ -206,6 +206,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
 
   void _performEvaluateCenteredPlayback() {
     if (postSelection.value != 0) return;
+    if (surfacePlaybackSuspended.value || showPfImage.value) return;
     final activeEntries = combinedFeedEntries;
     if (activeEntries.isEmpty) return;
     final current = centeredIndex.value;
@@ -213,19 +214,35 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       final currentEntry = activeEntries[current];
       final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
       if (currentDocId.isNotEmpty) {
+        final dominantVisibleIndex = _visibleFractions.entries
+            .where((entry) => entry.key >= 0 && entry.key < activeEntries.length)
+            .fold<int>(
+              -1,
+              (bestIndex, entry) {
+                if (bestIndex == -1) return entry.key;
+                final bestFraction = _visibleFractions[bestIndex] ?? 0.0;
+                return entry.value > bestFraction ? entry.key : bestIndex;
+              },
+            );
+        final dominantVisibleIsNonPlayable = dominantVisibleIndex >= 0 &&
+            dominantVisibleIndex < activeEntries.length &&
+            !_performCanAutoplayCombinedEntry(activeEntries[dominantVisibleIndex]) &&
+            (_visibleFractions[dominantVisibleIndex] ?? 0.0) >=
+                FeedPlaybackSelectionPolicy.secondaryThreshold;
         final currentPlaybackKey = _performAgendaInstanceTag(
           docId: currentDocId,
           isReshare: currentEntry['isReshare'] == true,
         );
         final currentFraction = _visibleFractions[current] ?? 0.0;
-        if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
-          lastCommandAt: _lastPlaybackCommandAt,
-          lastCommandDocId: _lastPlaybackCommandDocId,
-          currentDocId: currentPlaybackKey,
-          isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
-          currentFraction: currentFraction,
-          stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-        )) {
+        if (!dominantVisibleIsNonPlayable &&
+            FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
+              lastCommandAt: _lastPlaybackCommandAt,
+              lastCommandDocId: _lastPlaybackCommandDocId,
+              currentDocId: currentPlaybackKey,
+              isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
+              currentFraction: currentFraction,
+              stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            )) {
           lastCenteredIndex = current;
           currentVisibleIndex.value = current;
           return;
@@ -243,6 +260,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
             canAutoplayIndex: (index) =>
                 _performCanAutoplayCombinedEntry(activeEntries[index]),
             stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            preferDominantVisibleIndexWhenNonPlayable: true,
           );
 
     if (targetIndex >= 0 && targetIndex < activeEntries.length) {
@@ -259,6 +277,8 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       }
     } else {
       centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
+      VideoStateManager.instance.pauseAllVideos(force: true);
     }
   }
 
