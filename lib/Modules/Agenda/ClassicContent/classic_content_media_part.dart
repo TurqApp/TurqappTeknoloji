@@ -72,7 +72,10 @@ extension _ClassicContentMediaPart on _ClassicContentState {
             startModel: widget.model,
           ))?.then((_) => _restoreClassicFeedCenter());
     } else if (widget.model.floodCount > 1) {
-      Get.to(() => FloodListing(mainModel: widget.model))
+      Get.to(() => FloodListing(
+            mainModel: widget.model,
+            hostSurface: widget.floodHostSurface,
+          ))
           ?.then((_) => _restoreClassicFeedCenter());
     } else {
       Get.to(() => PhotoShorts(
@@ -195,7 +198,10 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       }
       agendaController.centeredIndex.value = -1;
       videoController?.pause();
-      await Get.to(() => FloodListing(mainModel: widget.model));
+      await Get.to(() => FloodListing(
+            mainModel: widget.model,
+            hostSurface: widget.floodHostSurface,
+          ));
       _restoreClassicFeedCenter();
       return;
     }

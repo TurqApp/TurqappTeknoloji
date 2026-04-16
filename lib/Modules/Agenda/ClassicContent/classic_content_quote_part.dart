@@ -340,7 +340,10 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       } catch (_) {}
 
       if (model.floodCount > 1) {
-        await Get.to(() => FloodListing(mainModel: model));
+        await Get.to(() => FloodListing(
+              mainModel: model,
+              hostSurface: widget.floodHostSurface,
+            ));
       } else {
         await Get.to(() => SinglePost(model: model, showComments: false));
       }

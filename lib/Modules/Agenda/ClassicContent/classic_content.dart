@@ -79,11 +79,13 @@ part 'classic_content_body_part.dart';
 part 'classic_content_helpers_part.dart';
 
 class ClassicContent extends PostContentBase {
+  final FloodListingHostSurface floodHostSurface;
   const ClassicContent({
     super.key,
     required super.model,
     required super.isPreview,
     required super.shouldPlay,
+    this.floodHostSurface = FloodListingHostSurface.generic,
     bool isYenidenPaylasilanPost = false,
     super.reshareUserID,
   }) : super(
