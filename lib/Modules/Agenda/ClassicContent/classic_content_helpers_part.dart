@@ -191,6 +191,204 @@ extension ClassicContentHelpersPart on _ClassicContentState {
     return storyUser != null && storyUser.stories.isNotEmpty;
   }
 
+  void _suspendEmbeddedFeedContextsForRoute() {
+    final floodController = maybeFindFloodListingController();
+    if (floodController != null) {
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.capturePendingCenteredEntry(model: widget.model);
+        floodController.lastCenteredIndex = floodIndex;
+        floodController.centeredIndex.value = -1;
+      }
+    }
+
+    final profileController = ProfileController.maybeFind();
+    if (profileController != null) {
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (profileIndex >= 0) {
+        profileController.lastCenteredIndex = profileIndex;
+        profileController.currentVisibleIndex.value = -1;
+        profileController.centeredIndex.value = -1;
+        profileController.pausetheall.value = true;
+      }
+    }
+
+    final socialProfileController = maybeFindSocialProfileController();
+    if (socialProfileController != null) {
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (socialIndex >= 0) {
+        socialProfileController.lastCenteredIndex = socialIndex;
+        socialProfileController.currentVisibleIndex.value = -1;
+        socialProfileController.centeredIndex.value = -1;
+      }
+    }
+
+    final archiveController = maybeFindArchiveController();
+    if (archiveController != null) {
+      final archiveIndex =
+          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.capturePendingCenteredEntry(model: widget.model);
+        archiveController.lastCenteredIndex = archiveIndex;
+        archiveController.centeredIndex.value = -1;
+      }
+    }
+
+    final likedController = maybeFindLikedPostControllers();
+    if (likedController != null) {
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.capturePendingCenteredEntry(model: widget.model);
+        likedController.lastCenteredIndex = likedIndex;
+        likedController.currentVisibleIndex.value = -1;
+        likedController.centeredIndex.value = -1;
+      }
+    }
+
+    final topTagsController = maybeFindTopTagsController();
+    if (topTagsController != null) {
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.capturePendingCenteredEntry(model: widget.model);
+        topTagsController.lastCenteredIndex = topTagsIndex;
+        topTagsController.currentVisibleIndex.value = -1;
+        topTagsController.centeredIndex.value = -1;
+      }
+    }
+
+    final tagPostsController = maybeFindTagPostsController();
+    if (tagPostsController != null) {
+      final tagPostIndex =
+          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.capturePendingCenteredEntry(model: widget.model);
+        tagPostsController.lastCenteredIndex = tagPostIndex;
+        tagPostsController.currentVisibleIndex.value = -1;
+        tagPostsController.centeredIndex.value = -1;
+      }
+    }
+
+    final exploreController = maybeFindExploreController();
+    if (exploreController != null) {
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.capturePendingFloodEntry(model: widget.model);
+        exploreController.lastFloodVisibleIndex = exploreIndex;
+        exploreController.floodsVisibleIndex.value = -1;
+      }
+    }
+  }
+
+  void _restoreEmbeddedFeedContexts() {
+    final floodController = maybeFindFloodListingController();
+    if (floodController != null) {
+      final floodIndex = floodController.floods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (floodIndex >= 0) {
+        floodController.capturePendingCenteredEntry(model: widget.model);
+        floodController.centeredIndex.value = floodIndex;
+        floodController.currentVisibleIndex.value = floodIndex;
+        floodController.lastCenteredIndex = floodIndex;
+      }
+    }
+
+    final profileController = ProfileController.maybeFind();
+    if (profileController != null) {
+      final profileIndex = profileController.indexOfMergedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (profileIndex >= 0) {
+        profileController.lastCenteredIndex = profileIndex;
+        profileController.currentVisibleIndex.value = profileIndex;
+        profileController.centeredIndex.value = profileIndex;
+        profileController.pausetheall.value = false;
+      }
+    }
+
+    final socialProfileController = maybeFindSocialProfileController();
+    if (socialProfileController != null) {
+      final socialIndex = socialProfileController.indexOfCombinedEntry(
+        docId: widget.model.docID,
+        isReshare: widget.isReshared,
+      );
+      if (socialIndex >= 0) {
+        socialProfileController.lastCenteredIndex = socialIndex;
+        socialProfileController.currentVisibleIndex.value = socialIndex;
+        socialProfileController.centeredIndex.value = socialIndex;
+      }
+    }
+
+    final archiveController = maybeFindArchiveController();
+    if (archiveController != null) {
+      final archiveIndex =
+          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.capturePendingCenteredEntry(model: widget.model);
+        archiveController.lastCenteredIndex = archiveIndex;
+        archiveController.currentVisibleIndex.value = archiveIndex;
+        archiveController.centeredIndex.value = archiveIndex;
+      }
+    }
+
+    final likedController = maybeFindLikedPostControllers();
+    if (likedController != null) {
+      final likedIndex =
+          likedController.all.indexWhere((p) => p.docID == widget.model.docID);
+      if (likedIndex >= 0) {
+        likedController.capturePendingCenteredEntry(model: widget.model);
+        likedController.lastCenteredIndex = likedIndex;
+        likedController.currentVisibleIndex.value = likedIndex;
+        likedController.centeredIndex.value = likedIndex;
+      }
+    }
+
+    final topTagsController = maybeFindTopTagsController();
+    if (topTagsController != null) {
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.capturePendingCenteredEntry(model: widget.model);
+        topTagsController.lastCenteredIndex = topTagsIndex;
+        topTagsController.currentVisibleIndex.value = topTagsIndex;
+        topTagsController.centeredIndex.value = topTagsIndex;
+      }
+    }
+
+    final tagPostsController = maybeFindTagPostsController();
+    if (tagPostsController != null) {
+      final tagPostIndex =
+          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.capturePendingCenteredEntry(model: widget.model);
+        tagPostsController.lastCenteredIndex = tagPostIndex;
+        tagPostsController.currentVisibleIndex.value = tagPostIndex;
+        tagPostsController.centeredIndex.value = tagPostIndex;
+      }
+    }
+
+    final exploreController = maybeFindExploreController();
+    if (exploreController != null) {
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.capturePendingFloodEntry(model: widget.model);
+        exploreController.floodsVisibleIndex.value = exploreIndex;
+        exploreController.lastFloodVisibleIndex = exploreIndex;
+      }
+    }
+  }
+
   void _restoreClassicFeedCenter() {
     final last = agendaController.lastCenteredIndex;
     int target = -1;
@@ -211,6 +409,7 @@ extension ClassicContentHelpersPart on _ClassicContentState {
       agendaController.centeredIndex.value = target;
       agendaController.lastCenteredIndex = target;
     }
+    _restoreEmbeddedFeedContexts();
   }
 
   void _openAvatarStoryOrProfile() {
@@ -219,14 +418,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
         (storyUser == null || storyUser.stories.isEmpty)) {
       return;
     }
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.lastCenteredIndex = modelIndex;
-    }
-    agendaController.centeredIndex.value = -1;
+    _suspendClassicFeedForRoute();
     if (storyUser != null && storyUser.stories.isNotEmpty) {
-      videoController?.pause();
       final users = maybeFindStoryRowController()?.users.toList(
                 growable: false,
               ) ??
@@ -240,11 +433,21 @@ extension ClassicContentHelpersPart on _ClassicContentState {
       return;
     }
 
-    videoController?.pause();
     final route = Get.to(() => SocialProfile(userID: widget.model.userID));
     route?.then((_) {
       _restoreClassicFeedCenter();
     });
+  }
+
+  void _suspendClassicFeedForRoute() {
+    final modelIndex = agendaController.agendaList
+        .indexWhere((p) => p.docID == widget.model.docID);
+    if (modelIndex >= 0) {
+      agendaController.lastCenteredIndex = modelIndex;
+    }
+    agendaController.centeredIndex.value = -1;
+    _suspendEmbeddedFeedContextsForRoute();
+    videoController?.pause();
   }
 
   Widget _buildClassicWhiteBadge(double size) {

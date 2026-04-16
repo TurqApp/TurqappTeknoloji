@@ -12,21 +12,32 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     }
   }
 
-  void _refreshQuotedSourceProfileFuture() {
+  void _refreshQuotedSourceFuture() {
     final sourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
         ? widget.model.quotedSourceUserID.trim()
         : widget.model.originalUserID.trim();
-    _quotedSourceProfileUserId = sourceUserId;
+    final sourcePostId = widget.model.originalPostID.trim();
+
+    _quotedSourceFutureUserId = sourceUserId;
+    _quotedSourceFuturePostId = sourcePostId;
     if (sourceUserId.isEmpty) {
-      _quotedSourceProfileFuture = null;
+      _quotedSourceFuture = null;
       return;
     }
 
     final profileCache = ensureUserProfileCacheService();
-    _quotedSourceProfileFuture = profileCache.getProfile(
-      sourceUserId,
-      preferCache: true,
-    );
+    final postRepository = PostRepository.ensure();
+    _quotedSourceFuture = Future.wait<dynamic>([
+      profileCache.getProfile(
+        sourceUserId,
+        preferCache: true,
+        cacheOnly: false,
+      ),
+      if (sourcePostId.isNotEmpty)
+        postRepository.fetchPostCardsByIds([sourcePostId], preferCache: true)
+      else
+        Future.value(null),
+    ]);
   }
 
   Widget _buildClassicInlineCaption({
@@ -146,13 +157,26 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       height: 1.35,
     );
 
-    String resolveSourceNickname(Map<String, dynamic>? profile) {
-      final raw = (profile?['nickname'] ??
-              profile?['displayName'] ??
-              profile?['username'] ??
-              '')
-          .toString()
-          .trim();
+    String resolveSourceNickname(
+      Map<String, dynamic>? profile,
+      Map<String, dynamic>? sourcePostData,
+    ) {
+      String firstNonEmpty(List<dynamic> values) {
+        for (final value in values) {
+          final text = (value ?? '').toString().trim();
+          if (text.isNotEmpty) return text;
+        }
+        return '';
+      }
+
+      final raw = firstNonEmpty([
+        widget.model.quotedSourceUsername,
+        profile?['username'],
+        sourcePostData?['username'],
+        sourcePostData?['authorNickname'],
+        profile?['nickname'],
+        profile?['displayName'],
+      ]);
       if (raw.isNotEmpty) return raw;
       final fallback =
           widget.model.quotedSourceUserID.trim() == widget.model.userID
@@ -163,14 +187,24 @@ extension _ClassicContentQuotePart on _ClassicContentState {
       return fallback;
     }
 
-    final future = sourceUserId.trim() == _quotedSourceProfileUserId
-        ? _quotedSourceProfileFuture
+    final future = sourceUserId.trim() == _quotedSourceFutureUserId
+        ? _quotedSourceFuture
         : null;
 
-    return FutureBuilder<Map<String, dynamic>?>(
+    return FutureBuilder<List<dynamic>>(
       future: future,
       builder: (context, snapshot) {
-        final sourceNickname = resolveSourceNickname(snapshot.data);
+        final profile = (snapshot.data != null && snapshot.data!.isNotEmpty
+                ? snapshot.data!.first
+                : null) as Map<String, dynamic>? ??
+            const <String, dynamic>{};
+        final sourcePostMap = snapshot.data != null && snapshot.data!.length > 1
+            ? snapshot.data![1] as Map<String, PostsModel>?
+            : null;
+        final sourcePostData =
+            sourcePostMap?[_quotedSourceFuturePostId]?.toMap() ??
+                const <String, dynamic>{};
+        final sourceNickname = resolveSourceNickname(profile, sourcePostData);
         final quotedSpan = <InlineSpan>[
           if (sourceNickname.isNotEmpty)
             TextSpan(text: '$sourceNickname ', style: nickStyle),
@@ -272,44 +306,48 @@ extension _ClassicContentQuotePart on _ClassicContentState {
   String _buildClassicBottomTimeLabel() {
     final sourceMs = controller.editTime.value != 0
         ? controller.editTime.value
-        : (widget.model.izBirakYayinTarihi != 0
-            ? widget.model.izBirakYayinTarihi
-            : widget.model.timeStamp);
-    final publishedAt = DateTime.fromMillisecondsSinceEpoch(sourceMs.toInt());
-    final now = DateTime.now();
-    final diff = now.difference(publishedAt);
+        : widget.model.timeStamp;
+    return timeAgoMetin(sourceMs);
+  }
 
-    if (diff.inMinutes < 60) {
-      final minutes = diff.inMinutes.clamp(1, 59);
-      return '$minutes dakika önce';
-    }
-    if (diff.inHours < 24) {
-      return '${diff.inHours} saat önce';
-    }
-    if (diff.inDays < 7) {
-      return '${diff.inDays} gün önce';
+  Future<void> _openQuotedOriginalPost() async {
+    final originalPostId = widget.model.originalPostID.trim();
+    if (originalPostId.isEmpty) {
+      AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
+      return;
     }
 
-    const months = <String>[
-      'Ocak',
-      'Şubat',
-      'Mart',
-      'Nisan',
-      'Mayıs',
-      'Haziran',
-      'Temmuz',
-      'Ağustos',
-      'Eylül',
-      'Ekim',
-      'Kasım',
-      'Aralık',
-    ];
+    try {
+      final model = await PostRepository.ensure().fetchPostById(
+        originalPostId,
+        preferCache: true,
+      );
+      if (model == null) {
+        AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
+        return;
+      }
+      if (model.deletedPost) {
+        AppSnackbar('common.info'.tr, 'post.source_deleted'.tr);
+        return;
+      }
 
-    final monthLabel = months[publishedAt.month - 1];
-    if (publishedAt.year == now.year) {
-      return '${publishedAt.day} $monthLabel';
+      _suspendClassicFeedForRoute();
+      try {
+        playbackRuntimeService.pauseAll(force: true);
+      } catch (_) {}
+      try {
+        agendaController.pauseAll.value = false;
+      } catch (_) {}
+
+      if (model.floodCount > 1) {
+        await Get.to(() => FloodListing(mainModel: model));
+      } else {
+        await Get.to(() => SinglePost(model: model, showComments: false));
+      }
+      _restoreClassicFeedCenter();
+    } catch (_) {
+      AppSnackbar('common.info'.tr, 'post.source_unavailable'.tr);
     }
-    return '${publishedAt.day} $monthLabel ${publishedAt.year}';
   }
 
   Widget _buildClassicMetaSection() {
@@ -340,9 +378,13 @@ extension _ClassicContentQuotePart on _ClassicContentState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (hasQuotedText)
-            _buildClassicQuotedText(
-              quotedText,
-              sourceUserId: widget.model.quotedSourceUserID.trim(),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _openQuotedOriginalPost,
+              child: _buildClassicQuotedText(
+                quotedText,
+                sourceUserId: widget.model.quotedSourceUserID.trim(),
+              ),
             ),
           if (hasQuotedText && hasCaption) const SizedBox(height: 4),
           if (hasCaption)

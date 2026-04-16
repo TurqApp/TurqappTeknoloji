@@ -21,22 +21,10 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
     );
   }
 
-  void _suspendClassicFeedForRoute() {
-    final modelIndex = agendaController.agendaList
-        .indexWhere((p) => p.docID == widget.model.docID);
-    if (modelIndex >= 0) {
-      agendaController.lastCenteredIndex = modelIndex;
-    }
-    agendaController.centeredIndex.value = -1;
-    videoController?.pause();
-  }
-
   Widget headerUserInfoBar() {
-    final primaryName = widget.model.authorDisplayName.trim().isNotEmpty
-        ? widget.model.authorDisplayName.trim().replaceAll("  ", " ")
-        : controller.fullName.value.trim().isNotEmpty
-            ? controller.fullName.value.replaceAll("  ", " ")
-            : controller.nickname.value.trim();
+    final primaryName = controller.fullName.value.trim().isNotEmpty
+        ? controller.fullName.value.replaceAll("  ", " ")
+        : controller.nickname.value.trim();
     final handle = controller.nickname.value.trim().isNotEmpty
         ? controller.nickname.value.trim()
         : controller.username.value.trim();

@@ -38,11 +38,18 @@ import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing_controller.dart';
 import 'package:turqappv2/Modules/Agenda/PostLikeListing/post_like_listing.dart';
 import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing.dart';
+import 'package:turqappv2/Modules/Agenda/SinglePost/single_post.dart';
+import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts_controller.dart';
+import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_contoller.dart';
+import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Profile/Archives/archives_controller.dart';
+import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart';
+import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
+import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
@@ -118,8 +125,9 @@ class _ClassicContentState extends State<ClassicContent>
   bool _isQuoteExpanded = false;
   bool _pauseQueuedAfterBuild = false;
   late final RelativeTimeTickService _relativeTimeTickService;
-  Future<Map<String, dynamic>?>? _quotedSourceProfileFuture;
-  String _quotedSourceProfileUserId = '';
+  Future<List<dynamic>>? _quotedSourceFuture;
+  String _quotedSourceFutureUserId = '';
+  String _quotedSourceFuturePostId = '';
   final Set<String> _avatarSyncLoggedHeaderDocIds = <String>{};
 
   bool get _useAndroidClassicTypography => GetPlatform.isAndroid;
@@ -185,7 +193,7 @@ class _ClassicContentState extends State<ClassicContent>
     super.initState();
     bindKeepAliveUpdater(updateKeepAlive);
     _relativeTimeTickService = RelativeTimeTickService.ensure();
-    _refreshQuotedSourceProfileFuture();
+    _refreshQuotedSourceFuture();
   }
 
   @override
@@ -261,8 +269,10 @@ class _ClassicContentState extends State<ClassicContent>
     final newSourceUserId = widget.model.quotedSourceUserID.trim().isNotEmpty
         ? widget.model.quotedSourceUserID.trim()
         : widget.model.originalUserID.trim();
-    if (oldSourceUserId != newSourceUserId) {
-      _refreshQuotedSourceProfileFuture();
+    final oldSourcePostId = oldWidget.model.originalPostID.trim();
+    final newSourcePostId = widget.model.originalPostID.trim();
+    if (oldSourceUserId != newSourceUserId || oldSourcePostId != newSourcePostId) {
+      _refreshQuotedSourceFuture();
     }
   }
 
