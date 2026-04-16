@@ -9,7 +9,9 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
   }
 
   void _recordOffscreenLeakSignal(HlsTransferEvent event) {
-    if (event.kind != 'segment' || event.cacheHit || event.isVisibleAtTransfer) {
+    if (event.kind != 'segment' ||
+        event.cacheHit ||
+        event.isVisibleAtTransfer) {
       return;
     }
     final visibleDocId = (event.visibleDocId ?? '').trim();
@@ -25,8 +27,10 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       return;
     }
     _offscreenLeakAlerts[alertKey] = now;
-    final feedTier = maybeFindPrefetchScheduler()?.classifyFeedTransferDoc(docId);
-    final allowedSegmentWarm = feedTier?['allowedSegmentWarm'] == true;
+    final scheduler = maybeFindPrefetchScheduler();
+    final tierInfo = scheduler?.classifyFeedTransferDoc(docId) ??
+        scheduler?.classifyShortTransferDoc(docId);
+    final allowedSegmentWarm = tierInfo?['allowedSegmentWarm'] == true;
     final payload = <String, dynamic>{
       'docId': docId,
       'visibleDocId': visibleDocId,
@@ -34,10 +38,10 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'bytes': event.bytes,
       'networkType': event.networkType,
       'segmentKey': event.pathKey,
-      'feedTier': feedTier?['tier'] ?? 'unknown',
-      'feedDistance': feedTier?['distance'],
+      'feedTier': tierInfo?['tier'] ?? 'unknown',
+      'feedDistance': tierInfo?['distance'],
       'allowedSegmentWarm': allowedSegmentWarm,
-      'allowedCacheOnly': feedTier?['allowedCacheOnly'],
+      'allowedCacheOnly': tierInfo?['allowedCacheOnly'],
       'label': _label,
     };
     debugPrint(

@@ -115,6 +115,11 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
         totalSizeBytes: entry.totalSizeBytes,
         lastAccessedAt: entry.lastAccessedAt,
         lastUserInteractionAt: entry.lastUserInteractionAt,
+        servedInShortAt: entry.servedInShortAt,
+        servedInFeedAt: entry.servedInFeedAt,
+        shortConsumedAt: entry.shortConsumedAt,
+        reservedForShortAt: entry.reservedForShortAt,
+        reservedForFeedAt: entry.reservedForFeedAt,
         watchProgress: entry.watchProgress,
         state: entry.state,
       );

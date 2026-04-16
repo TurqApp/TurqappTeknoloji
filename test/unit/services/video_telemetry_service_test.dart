@@ -37,6 +37,7 @@ void main() {
     final metrics = VideoSessionMetrics(
       videoId: 'telemetry_startup_buffering',
       videoUrl: 'https://cdn.example.com/startup.m3u8',
+      qaSurface: 'test',
     );
 
     metrics.onBufferingStart();

@@ -96,10 +96,6 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       merged.addAll(widget.startList!);
       shorts.assignAll(merged);
       _configureInitialForList(merged);
-    } else if (widget.startModel != null) {
-      final merged = <PostsModel>[widget.startModel!];
-      shorts.assignAll(merged);
-      _configureInitialForList(merged);
     }
 
     ever<List<PostsModel>>(shorts, _handleShortsChange);

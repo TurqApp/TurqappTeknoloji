@@ -119,6 +119,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
       );
       if (localCandidates.isEmpty) return;
+      for (final post in localCandidates) {
+        cacheManager.markReservedForShort(post.docID);
+      }
       await _appendQuotaFillQueueForPosts(
         localCandidates,
         0,
@@ -168,6 +171,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       );
       if (remoteCandidates.isEmpty) return;
       cacheManager.cachePostCards(remoteCandidates);
+      for (final post in remoteCandidates) {
+        cacheManager.markReservedForShort(post.docID);
+      }
 
       await _appendQuotaFillQueueForPosts(
         remoteCandidates,
@@ -235,37 +241,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       subsliceMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
       minuteSets: _prefetchSchedulerShortQuotaFillMinuteSets,
     );
-    final source = snapshot.windowedPool.isEmpty
-        ? snapshot.normalizedPool
-        : snapshot.windowedPool;
     if (!snapshot.hasQueues) {
-      return LaunchMotorSelectionService.sortByAffinity(
-        source,
-        ownedMinutes: snapshot.ownedMinutes,
-        preferredSubsliceIndex: snapshot.subsliceIndex,
-        subsliceMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
-      ).take(limit).toList(growable: false);
+      return const <PostsModel>[];
     }
 
-    final ordered = snapshot.strictSelection;
-    final orderedDocIds = ordered
-        .map((post) => post.docID.trim())
-        .where((docId) => docId.isNotEmpty)
-        .toSet();
-    final remainder = source.where((post) {
-      final docId = post.docID.trim();
-      return docId.isNotEmpty && !orderedDocIds.contains(docId);
-    }).toList(growable: false);
-
-    return <PostsModel>[
-      ...ordered,
-      ...LaunchMotorSelectionService.sortByAffinity(
-        remainder,
-        ownedMinutes: snapshot.ownedMinutes,
-        preferredSubsliceIndex: snapshot.subsliceIndex,
-        subsliceMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
-      ),
-    ].take(limit).toList(growable: false);
+    return snapshot.strictSelection.take(limit).toList(growable: false);
   }
 
   int _resolveShortQuotaFillAnchorMs() {
@@ -396,6 +376,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
     final currentDocId = docIDs[safeCurrent];
     updatePriorityWindowContext(docIDs, safeCurrent);
+    _lastShortDocIDs = List<String>.from(docIDs);
+    _lastShortCurrentIndex = safeCurrent;
 
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);

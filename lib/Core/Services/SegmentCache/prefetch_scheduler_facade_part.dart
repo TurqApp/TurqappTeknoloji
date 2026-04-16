@@ -54,8 +54,10 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       };
     }
 
-    final safeCurrent = _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
-    final previousIndex = _lastFeedPreviousIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final safeCurrent =
+        _lastFeedCurrentIndex.clamp(0, _lastFeedDocIDs.length - 1);
+    final previousIndex =
+        _lastFeedPreviousIndex.clamp(0, _lastFeedDocIDs.length - 1);
     final distance = targetIndex - safeCurrent;
     if (distance == 0) {
       return <String, dynamic>{
@@ -105,6 +107,58 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
         'distance': distance,
         'tier': 'opposite_cache_only',
         'allowedSegmentWarm': false,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    return <String, dynamic>{
+      'targetIndex': targetIndex,
+      'currentIndex': safeCurrent,
+      'distance': distance,
+      'tier': 'outside_window',
+      'allowedSegmentWarm': false,
+      'allowedCacheOnly': false,
+    };
+  }
+
+  Map<String, dynamic>? classifyShortTransferDoc(String docID) {
+    final normalized = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalized == null || normalized.isEmpty) return null;
+    if (_lastShortDocIDs.isEmpty) return null;
+    final targetIndex = _lastShortDocIDs.indexOf(normalized);
+    if (targetIndex < 0) {
+      return <String, dynamic>{
+        'targetIndex': -1,
+        'currentIndex': _lastShortCurrentIndex,
+        'distance': null,
+        'tier': 'not_in_short_window',
+        'allowedSegmentWarm': false,
+        'allowedCacheOnly': false,
+      };
+    }
+
+    final safeCurrent =
+        _lastShortCurrentIndex.clamp(0, _lastShortDocIDs.length - 1);
+    final distance = targetIndex - safeCurrent;
+    if (distance == 0) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'visible',
+        'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    final maxAhead = math.max(_breadthCount, _depthCount - 1);
+    if (distance > 0 && distance <= maxAhead) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'ahead_prefetch',
+        'allowedSegmentWarm': true,
         'allowedCacheOnly': true,
       };
     }

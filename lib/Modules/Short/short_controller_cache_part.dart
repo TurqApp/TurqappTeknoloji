@@ -6,7 +6,8 @@ extension ShortControllerCachePart on ShortController {
 
   void _ensureReadySegmentsForIndex(
     int index, {
-    int minimumSegmentCount = SegmentCacheRuntimeService.globalReadySegmentCount,
+    int minimumSegmentCount =
+        SegmentCacheRuntimeService.globalReadySegmentCount,
   }) {
     if (index < 0 || index >= shorts.length) return;
     final docId = shorts[index].docID.trim();
@@ -70,6 +71,7 @@ extension ShortControllerCachePart on ShortController {
         autoPlay: false,
         loop: false,
       );
+      adapter.hlsController.setTelemetryVideoId(short.docID);
       cacheTarget[index] = adapter;
       _registerPlaybackHandleForIndex(index, adapter);
 
@@ -117,7 +119,8 @@ extension ShortControllerCachePart on ShortController {
     await existing.setPreferredBufferDuration(_activeBufferSeconds);
   }
 
-  Future<void> prepareNeighborAdapter(int activeIndex, int neighborIndex) async {
+  Future<void> prepareNeighborAdapter(
+      int activeIndex, int neighborIndex) async {
     if (shorts.isEmpty) return;
     final safeActiveIndex = activeIndex.clamp(0, shorts.length - 1);
     if (neighborIndex < 0 || neighborIndex >= shorts.length) return;
@@ -221,7 +224,7 @@ extension ShortControllerCachePart on ShortController {
         _tiers.remove(k);
         if (adapter != null) {
           _unregisterPlaybackHandleForIndex(k);
-          unawaited(_videoPool.release(adapter));
+          unawaited(_videoPool.release(adapter, keepWarm: false));
         }
       }
     }

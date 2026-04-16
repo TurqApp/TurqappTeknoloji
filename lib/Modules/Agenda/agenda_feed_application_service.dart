@@ -588,24 +588,7 @@ class AgendaFeedApplicationService {
           'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
         );
       }
-      if (allowSparseSlotFallback) {
-        return const <PostsModel>[];
-      }
-      final fallback = LaunchMotorSelectionService.sortByAffinity(
-        snapshot.windowedPool,
-        ownedMinutes: snapshot.ownedMinutes,
-        preferredSubsliceIndex: snapshot.subsliceIndex,
-        subsliceMs: _feedLaunchMotorSubsliceMs,
-      ).take(targetCount).toList(growable: false);
-      if (emitLaunchMotorDiagnostics) {
-        debugPrint(
-          '[FeedLaunchMotor] status=affinity_fallback '
-          'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-          'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
-          'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
-        );
-      }
-      return fallback;
+      return const <PostsModel>[];
     }
 
     if (emitLaunchMotorDiagnostics) {

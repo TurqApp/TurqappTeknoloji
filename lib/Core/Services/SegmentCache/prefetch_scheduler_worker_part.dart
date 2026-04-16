@@ -381,6 +381,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
       for (final segUri in dispatchNow) {
         if (_paused) break;
+        if (!quotaFillMode) {
+          final shortTier = classifyShortTransferDoc(job.docID);
+          if (shortTier != null && shortTier['allowedSegmentWarm'] != true) {
+            _clearFollowUpJob(job.docID);
+            _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+            break;
+          }
+        }
         if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
           _publishPrefetchHealthIfNeeded(force: true);
           break;

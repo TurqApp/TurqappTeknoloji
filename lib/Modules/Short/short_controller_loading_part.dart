@@ -6,6 +6,8 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  static const double _cellularOfflineQuotaFloor = 0.10;
+
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
   ) {
@@ -16,8 +18,36 @@ extension ShortControllerLoadingPart on ShortController {
     return posts;
   }
 
-  bool get _shouldPreferOfflineCache =>
-      NetworkAwarenessService.maybeFind()?.isConnected == false;
+  bool get _shouldPreferOfflineCache {
+    final network = NetworkAwarenessService.maybeFind();
+    if (network?.isConnected == false) {
+      return true;
+    }
+    if (CacheNetworkPolicy.cacheOnlyMode) {
+      return true;
+    }
+    if (!(network?.isOnCellular ?? false)) {
+      return false;
+    }
+    final cacheManager = SegmentCacheManager.maybeFind();
+    if (cacheManager == null || !cacheManager.isReady) {
+      return false;
+    }
+    final minimumOfflineReady = math.min(_initialPreloadCount, 2);
+    final offlineReadyCount = cacheManager
+        .getOfflineReadyDocIdsForShort(limit: minimumOfflineReady)
+        .length;
+    if (offlineReadyCount < minimumOfflineReady) {
+      return false;
+    }
+    final softLimitBytes = cacheManager.softLimitBytes;
+    if (softLimitBytes <= 0) {
+      return true;
+    }
+    final quotaFillRatio =
+        (cacheManager.totalTrackedUsageBytes / softLimitBytes).clamp(0.0, 1.0);
+    return quotaFillRatio >= _cellularOfflineQuotaFloor;
+  }
 
   Future<List<PostsModel>> _excludeFeedVisibleSnapshotConflicts(
     List<PostsModel> posts,
@@ -212,6 +242,8 @@ extension ShortControllerLoadingPart on ShortController {
       anchorMs: startupSurfaceSessionSeed(sessionNamespace: 'short'),
       contract: shortLaunchMotorContract,
       targetCount: targetCount,
+      fallbackToAffinityWhenSparse: false,
+      fallbackToLatestWhenEmpty: false,
     );
   }
 
@@ -430,7 +462,7 @@ extension ShortControllerLoadingPart on ShortController {
     if (cacheManager == null || !cacheManager.isReady)
       return const <PostsModel>[];
 
-    final docIds = cacheManager.getOfflineReadyDocIds(limit: limit);
+    final docIds = cacheManager.getOfflineReadyDocIdsForShort(limit: limit);
     if (docIds.isEmpty) {
       _recordShortFetchEvent(
         stage: 'offline_cache_empty',
@@ -439,7 +471,7 @@ extension ShortControllerLoadingPart on ShortController {
       return const <PostsModel>[];
     }
 
-    final cachedPosts = cacheManager.getOfflineReadyPosts(limit: limit);
+    final cachedPosts = cacheManager.getOfflineReadyPostsForShort(limit: limit);
     final byId = <String, PostsModel>{
       for (final post in cachedPosts) post.docID: post,
     };
@@ -665,6 +697,10 @@ extension ShortControllerLoadingPart on ShortController {
     isRefreshing.value = true;
 
     try {
+      _ensureShortLaunchSessionFresh(
+        reason: 'refresh',
+        forceNew: true,
+      );
       isLoading.value = false;
       hasMore.value = true;
       _lastDoc = null;

@@ -218,12 +218,22 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
 
   /// Kullanıcının tükettiği içerikleri cache'ten temizler.
   Future<void> clearConsumedCache({double progressThreshold = 0.50}) async {
+    final reservedShortCount = _reservedShortCount();
+    final reservedFeedCount = _reservedFeedCount();
     final toRemove = <VideoCacheEntry>[];
     for (final entry in _index.entries.values) {
       final consumed = entry.state == VideoCacheState.watched ||
+          entry.shortConsumedAt != null ||
           entry.watchProgress >= progressThreshold;
       if (!consumed) continue;
       if (entry.state == VideoCacheState.playing) continue;
+      if (_isReserveProtected(
+        entry,
+        reservedShortCount: reservedShortCount,
+        reservedFeedCount: reservedFeedCount,
+      )) {
+        continue;
+      }
       toRemove.add(entry);
     }
 

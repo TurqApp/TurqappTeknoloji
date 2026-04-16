@@ -296,6 +296,14 @@ class SegmentCacheRuntimeService {
     return cachedSegmentCount(docId) >= minimumSegmentCount;
   }
 
+  VideoCacheEntry? getEntry(String docId) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return null;
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return null;
+    return cache.getEntry(normalizedDocId);
+  }
+
   int? estimateCurrentSegmentForDoc(
     String docId, {
     required double progress,
@@ -369,6 +377,30 @@ class SegmentCacheRuntimeService {
 
   void updateWatchProgress(String docId, double progress) {
     _updateWatchProgress(docId, progress);
+  }
+
+  void markServedInShort(String docId) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.markServedInShort(normalizedDocId);
+  }
+
+  void markServedInFeed(String docId) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.markServedInFeed(normalizedDocId);
+  }
+
+  void markShortConsumed(String docId) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.markShortConsumed(normalizedDocId);
   }
 
   void ensureNextSegmentReady(

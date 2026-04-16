@@ -219,19 +219,7 @@ class ShortFeedApplicationService {
         'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
         'subslice=${snapshot.subsliceIndex} pool=${snapshot.windowedPool.length}',
       );
-      final fallback = LaunchMotorSelectionService.sortByAffinity(
-        snapshot.windowedPool,
-        ownedMinutes: snapshot.ownedMinutes,
-        preferredSubsliceIndex: snapshot.subsliceIndex,
-        subsliceMs: _shortLaunchMotorSubsliceMs,
-      ).take(targetCount).toList(growable: false);
-      debugPrint(
-        '[ShortLaunchMotor] status=affinity_fallback '
-        'anchor=${snapshot.anchor.toIso8601String()} motor=${snapshot.motorIndex} '
-        'subslice=${snapshot.subsliceIndex} orderedCount=${fallback.length} '
-        'sample=${fallback.take(5).map((post) => post.docID).join(",")}',
-      );
-      return fallback;
+      return const <PostsModel>[];
     }
 
     debugPrint(

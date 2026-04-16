@@ -3,7 +3,8 @@ part of 'post_content_base.dart';
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
   Duration _resolveSavedResumePosition(HLSVideoAdapter adapter) {
-    final savedState = VideoStateManager.instance.getVideoState(playbackHandleKey);
+    final savedState =
+        VideoStateManager.instance.getVideoState(playbackHandleKey);
     final savedPosition = savedState?.position ?? Duration.zero;
     if (savedPosition > Duration.zero) {
       return savedPosition;
@@ -26,7 +27,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     final savedPosition = _resolveSavedResumePosition(adapter);
-    final shouldUseSavedResumeSeek = !_shouldBypassSavedResumeHintForPrimaryFeed(
+    final shouldUseSavedResumeSeek =
+        !_shouldBypassSavedResumeHintForPrimaryFeed(
       adapter.value,
       source: source,
     );
@@ -754,6 +756,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         _trackPlaybackIntent();
         try {
           _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+          _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
         } catch (_) {}
         return;
       }
@@ -821,6 +824,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           _trackPlaybackIntent();
           try {
             _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+            _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
           } catch (_) {}
           return;
         }
@@ -865,6 +869,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _trackPlaybackIntent();
       try {
         _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+        _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
       } catch (_) {}
       return;
     }
@@ -932,6 +937,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _trackPlaybackIntent();
     try {
       _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+      _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
     } catch (_) {}
   }
 

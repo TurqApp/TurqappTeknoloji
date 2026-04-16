@@ -164,6 +164,11 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
           totalSizeBytes: existing.totalSizeBytes,
           lastAccessedAt: existing.lastAccessedAt,
           lastUserInteractionAt: existing.lastUserInteractionAt,
+          servedInShortAt: existing.servedInShortAt,
+          servedInFeedAt: existing.servedInFeedAt,
+          shortConsumedAt: existing.shortConsumedAt,
+          reservedForShortAt: existing.reservedForShortAt,
+          reservedForFeedAt: existing.reservedForFeedAt,
           watchProgress: existing.watchProgress,
           state: existing.state,
         );
@@ -210,6 +215,11 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
       totalSizeBytes: existing.totalSizeBytes,
       lastAccessedAt: existing.lastAccessedAt,
       lastUserInteractionAt: existing.lastUserInteractionAt,
+      servedInShortAt: existing.servedInShortAt,
+      servedInFeedAt: existing.servedInFeedAt,
+      shortConsumedAt: existing.shortConsumedAt,
+      reservedForShortAt: existing.reservedForShortAt,
+      reservedForFeedAt: existing.reservedForFeedAt,
       watchProgress: existing.watchProgress,
       state: existing.state,
     );
@@ -269,6 +279,56 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     final now = DateTime.now();
     entry.lastAccessedAt = now;
     entry.lastUserInteractionAt = now;
+    _markDirty();
+  }
+
+  void markServedInShort(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
+    entry.servedInShortAt ??= now;
+    entry.reservedForShortAt = null;
+    _markDirty();
+  }
+
+  void markServedInFeed(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
+    entry.servedInFeedAt ??= now;
+    entry.reservedForFeedAt = null;
+    _markDirty();
+  }
+
+  void markShortConsumed(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
+    entry.shortConsumedAt ??= now;
+    _markDirty();
+  }
+
+  void markReservedForShort(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.reservedForShortAt ??= now;
+    _markDirty();
+  }
+
+  void markReservedForFeed(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.reservedForFeedAt ??= now;
     _markDirty();
   }
 

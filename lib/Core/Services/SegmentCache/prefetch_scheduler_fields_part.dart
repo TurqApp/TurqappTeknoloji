@@ -17,10 +17,12 @@ class _PrefetchSchedulerState {
   List<String> lastFeedDocIDs = const <String>[];
   List<String> lastFeedSurfaceVideoDocIDs = const <String>[];
   List<String> lastFeedBankDocIDs = const <String>[];
+  List<String> lastShortDocIDs = const <String>[];
   String? focusedDocID;
   bool restrictToFocusedDoc = false;
   int lastFeedCurrentIndex = 0;
   int lastFeedPreviousIndex = 0;
+  int lastShortCurrentIndex = 0;
   int lastFeedReadyCount = 0;
   int lastFeedWindowCount = 0;
   double lastFeedReadyRatio = 0.0;
@@ -71,6 +73,8 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   List<String> get _lastFeedBankDocIDs => _state.lastFeedBankDocIDs;
   set _lastFeedBankDocIDs(List<String> value) =>
       _state.lastFeedBankDocIDs = value;
+  List<String> get _lastShortDocIDs => _state.lastShortDocIDs;
+  set _lastShortDocIDs(List<String> value) => _state.lastShortDocIDs = value;
   String? get _focusedDocID => _state.focusedDocID;
   set _focusedDocID(String? value) => _state.focusedDocID = value;
   bool get _restrictToFocusedDoc => _state.restrictToFocusedDoc;
@@ -79,6 +83,8 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   set _lastFeedCurrentIndex(int value) => _state.lastFeedCurrentIndex = value;
   int get _lastFeedPreviousIndex => _state.lastFeedPreviousIndex;
   set _lastFeedPreviousIndex(int value) => _state.lastFeedPreviousIndex = value;
+  int get _lastShortCurrentIndex => _state.lastShortCurrentIndex;
+  set _lastShortCurrentIndex(int value) => _state.lastShortCurrentIndex = value;
   int get _lastFeedReadyCount => _state.lastFeedReadyCount;
   set _lastFeedReadyCount(int value) => _state.lastFeedReadyCount = value;
   int get _lastFeedWindowCount => _state.lastFeedWindowCount;
@@ -109,7 +115,8 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
       _state.quotaFillRemoteHasMore = value;
   QueryDocumentSnapshot<Map<String, dynamic>>? get _quotaFillRemoteCursor =>
       _state.quotaFillRemoteCursor;
-  set _quotaFillRemoteCursor(QueryDocumentSnapshot<Map<String, dynamic>>? value) =>
+  set _quotaFillRemoteCursor(
+          QueryDocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.quotaFillRemoteCursor = value;
   int get _quotaFillRemoteExhaustedUsageBytes =>
       _state.quotaFillRemoteExhaustedUsageBytes;

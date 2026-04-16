@@ -13,6 +13,44 @@ SegmentCacheManager ensureSegmentCacheManager() {
 }
 
 extension SegmentCacheManagerFacadePart on SegmentCacheManager {
+  List<VideoCacheEntry> _offlineReadyEntries({
+    int limit = 0,
+    bool forShort = false,
+    bool forFeed = false,
+  }) {
+    final entries = _index.entries.values
+        .where((entry) => entry.isFullyCached)
+        .where((entry) => entry.cachedPostModel != null)
+        .where((entry) => !forShort || entry.servedInShortAt == null)
+        .where((entry) => !forFeed || entry.servedInFeedAt == null)
+        .toList(growable: false)
+      ..sort((a, b) {
+        final aReservedAt = forShort
+            ? a.reservedForShortAt
+            : forFeed
+                ? a.reservedForFeedAt
+                : null;
+        final bReservedAt = forShort
+            ? b.reservedForShortAt
+            : forFeed
+                ? b.reservedForFeedAt
+                : null;
+        final aReserved = aReservedAt != null ? 0 : 1;
+        final bReserved = bReservedAt != null ? 0 : 1;
+        final reservedCompare = aReserved.compareTo(bReserved);
+        if (reservedCompare != 0) return reservedCompare;
+        if (aReservedAt != null && bReservedAt != null) {
+          final reserveTimeCompare = bReservedAt.compareTo(aReservedAt);
+          if (reserveTimeCompare != 0) return reserveTimeCompare;
+        }
+        return b.lastAccessedAt.compareTo(a.lastAccessedAt);
+      });
+    if (limit <= 0 || entries.length <= limit) {
+      return entries;
+    }
+    return entries.take(limit).toList(growable: false);
+  }
+
   Future<void> init() => _SegmentCacheManagerRuntimeX(this).init();
 
   bool get isReady => _SegmentCacheManagerRuntimeX(this).isReady;
@@ -51,34 +89,52 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
       );
 
   List<String> getOfflineReadyDocIds({int limit = 0}) {
-    final entries = _index.entries.values
-        .where((entry) => entry.isFullyCached)
-        .toList(growable: false)
-      ..sort((a, b) => b.lastAccessedAt.compareTo(a.lastAccessedAt));
+    final entries = _offlineReadyEntries(limit: limit);
     final docIds = entries
         .map((entry) => entry.docID.trim())
         .where((docId) => docId.isNotEmpty)
         .toList(growable: false);
-    if (limit <= 0 || docIds.length <= limit) {
-      return docIds;
-    }
-    return docIds.take(limit).toList(growable: false);
+    return docIds;
   }
 
   List<PostsModel> getOfflineReadyPosts({int limit = 0}) {
-    final entries = _index.entries.values
-        .where((entry) => entry.isFullyCached)
-        .toList(growable: false)
-      ..sort((a, b) => b.lastAccessedAt.compareTo(a.lastAccessedAt));
+    final entries = _offlineReadyEntries(limit: limit);
     final posts = entries
         .map((entry) => entry.cachedPostModel)
         .whereType<PostsModel>()
         .where((post) => post.docID.trim().isNotEmpty)
         .toList(growable: false);
-    if (limit <= 0 || posts.length <= limit) {
-      return posts;
-    }
-    return posts.take(limit).toList(growable: false);
+    return posts;
+  }
+
+  List<String> getOfflineReadyDocIdsForShort({int limit = 0}) {
+    return _offlineReadyEntries(limit: limit, forShort: true)
+        .map((entry) => entry.docID.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<PostsModel> getOfflineReadyPostsForShort({int limit = 0}) {
+    return _offlineReadyEntries(limit: limit, forShort: true)
+        .map((entry) => entry.cachedPostModel)
+        .whereType<PostsModel>()
+        .where((post) => post.docID.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> getOfflineReadyDocIdsForFeed({int limit = 0}) {
+    return _offlineReadyEntries(limit: limit, forFeed: true)
+        .map((entry) => entry.docID.trim())
+        .where((docId) => docId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<PostsModel> getOfflineReadyPostsForFeed({int limit = 0}) {
+    return _offlineReadyEntries(limit: limit, forFeed: true)
+        .map((entry) => entry.cachedPostModel)
+        .whereType<PostsModel>()
+        .where((post) => post.docID.trim().isNotEmpty)
+        .toList(growable: false);
   }
 
   List<PostsModel> getQuotaFillCandidatePosts({int limit = 0}) {
@@ -128,6 +184,21 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
 
   void touchUserEntry(String docID) =>
       _SegmentCacheManagerRuntimeX(this).touchUserEntry(docID);
+
+  void markServedInShort(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markServedInShort(docID);
+
+  void markServedInFeed(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markServedInFeed(docID);
+
+  void markShortConsumed(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markShortConsumed(docID);
+
+  void markReservedForShort(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markReservedForShort(docID);
+
+  void markReservedForFeed(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markReservedForFeed(docID);
 
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? softLimitBytes;

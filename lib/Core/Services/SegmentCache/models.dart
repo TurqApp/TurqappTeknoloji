@@ -58,6 +58,11 @@ class VideoCacheEntry {
   int totalSizeBytes;
   DateTime lastAccessedAt;
   DateTime? lastUserInteractionAt;
+  DateTime? servedInShortAt;
+  DateTime? servedInFeedAt;
+  DateTime? shortConsumedAt;
+  DateTime? reservedForShortAt;
+  DateTime? reservedForFeedAt;
   double watchProgress; // 0.0 - 1.0
   VideoCacheState state;
 
@@ -105,6 +110,11 @@ class VideoCacheEntry {
     this.totalSizeBytes = 0,
     DateTime? lastAccessedAt,
     this.lastUserInteractionAt,
+    this.servedInShortAt,
+    this.servedInFeedAt,
+    this.shortConsumedAt,
+    this.reservedForShortAt,
+    this.reservedForFeedAt,
     this.watchProgress = 0.0,
     this.state = VideoCacheState.uncached,
   })  : segments = _cloneSegments(segments ?? const <String, CachedSegment>{}),
@@ -124,6 +134,11 @@ class VideoCacheEntry {
         'totalSizeBytes': totalSizeBytes,
         'lastAccessedAt': lastAccessedAt.millisecondsSinceEpoch,
         'lastUserInteractionAt': lastUserInteractionAt?.millisecondsSinceEpoch,
+        'servedInShortAt': servedInShortAt?.millisecondsSinceEpoch,
+        'servedInFeedAt': servedInFeedAt?.millisecondsSinceEpoch,
+        'shortConsumedAt': shortConsumedAt?.millisecondsSinceEpoch,
+        'reservedForShortAt': reservedForShortAt?.millisecondsSinceEpoch,
+        'reservedForFeedAt': reservedForFeedAt?.millisecondsSinceEpoch,
         'watchProgress': watchProgress,
         'state': state.name,
       };
@@ -164,6 +179,46 @@ class VideoCacheEntry {
           ? DateTime.fromMillisecondsSinceEpoch(
               _asInt(
                 json['lastUserInteractionAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      servedInShortAt: json['servedInShortAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['servedInShortAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      servedInFeedAt: json['servedInFeedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['servedInFeedAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      shortConsumedAt: json['shortConsumedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['shortConsumedAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      reservedForShortAt: json['reservedForShortAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['reservedForShortAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      reservedForFeedAt: json['reservedForFeedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['reservedForFeedAt'],
                 fallback: DateTime.now().millisecondsSinceEpoch,
               ),
             )

@@ -3,6 +3,7 @@ part of 'short_controller.dart';
 const bool _verboseShortLogs = false;
 const int _initialPreloadCount = 3;
 const double _shortLandscapeAspectThreshold = 1.2;
+const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 5.0 : 4.8;
 final double _neighborBufferSeconds =
@@ -98,27 +99,12 @@ extension ShortControllerPublicApiPart on ShortController {
   }) async {
     final initialLimit =
         ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
-    if (shorts.isEmpty && !_startupPresentationApplied) {
-      final deviceSession = DeviceSessionService.instance;
-      final deviceSalt = deviceSession.cachedDeviceKey;
-      beginStartupSurfaceSession(
-        sessionNamespace: 'short',
-        deviceSalt: deviceSalt,
-        forceNew: true,
-      );
-      if (deviceSalt.isEmpty) {
-        unawaited(
-          deviceSession.warmDeviceKey().then((_) {
-            final warmedSalt = deviceSession.cachedDeviceKey;
-            if (warmedSalt.isEmpty) return;
-            beginStartupSurfaceSession(
-              sessionNamespace: 'short',
-              deviceSalt: warmedSalt,
-            );
-          }),
-        );
-      }
-    }
+    final seededFreshSession = _ensureShortLaunchSessionFresh(
+      reason: shorts.isEmpty && !_startupPresentationApplied
+          ? 'startup'
+          : 'surface_visible',
+      forceNew: shorts.isEmpty && !_startupPresentationApplied,
+    );
     final restoredSnapshot =
         await _tryRestoreVisibleSnapshotIfCurrentListCollapsed(
       limit: initialLimit,
@@ -150,6 +136,13 @@ extension ShortControllerPublicApiPart on ShortController {
     await _recordShortStartupSurface(
       source: 'short_surface_ready',
     );
+    if (seededFreshSession &&
+        !restoredSnapshot &&
+        shorts.isNotEmpty &&
+        !isRefreshing.value &&
+        !isLoading.value) {
+      unawaited(refreshShorts());
+    }
     if (!allowRefresh || shorts.isEmpty) return;
     if (restoredSnapshot && shorts.length < initialLimit) {
       unawaited(
@@ -161,6 +154,44 @@ extension ShortControllerPublicApiPart on ShortController {
       return;
     }
     unawaited(backgroundPreload());
+  }
+
+  bool _ensureShortLaunchSessionFresh({
+    required String reason,
+    bool forceNew = false,
+  }) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final currentSeed = startupSurfaceSessionSeed(sessionNamespace: 'short');
+    final ageMs = nowMs - currentSeed;
+    final shouldRotate = forceNew ||
+        ageMs < 0 ||
+        ageMs >= _shortLaunchSessionMaxAge.inMilliseconds;
+    final deviceSession = DeviceSessionService.instance;
+    final deviceSalt = deviceSession.cachedDeviceKey;
+    if (shouldRotate) {
+      beginStartupSurfaceSession(
+        sessionNamespace: 'short',
+        deviceSalt: deviceSalt,
+        forceNew: true,
+      );
+      _log(
+        '[ShortLaunchMotorSession] reason=$reason forceNew=true '
+        'ageMs=$ageMs seed=${startupSurfaceSessionSeed(sessionNamespace: 'short')}',
+      );
+    }
+    if (deviceSalt.isEmpty) {
+      unawaited(
+        deviceSession.warmDeviceKey().then((_) {
+          final warmedSalt = deviceSession.cachedDeviceKey;
+          if (warmedSalt.isEmpty) return;
+          beginStartupSurfaceSession(
+            sessionNamespace: 'short',
+            deviceSalt: warmedSalt,
+          );
+        }),
+      );
+    }
+    return shouldRotate;
   }
 
   Future<void> persistStartupShard() async {

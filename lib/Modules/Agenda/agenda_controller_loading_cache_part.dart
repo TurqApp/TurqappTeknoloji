@@ -97,6 +97,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           liveCandidates: liveCandidates,
         ),
       );
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager != null) {
+      for (final docId in _startupCacheOriginVideoDocIds) {
+        cacheManager.markReservedForFeed(docId);
+      }
+    }
     _startupPlannerHeadApplied = shownItems.isNotEmpty;
     assert(() {
       final cacheDocIds = <String>{
@@ -599,6 +605,29 @@ extension AgendaControllerLoadingCachePart on AgendaController {
           : primarySourceOverride,
       typesensePage: resolvedTypesensePage,
     );
+    if (cacheOnly && page.items.isEmpty) {
+      final cacheManager = maybeFindSegmentCacheManager();
+      if (cacheManager != null) {
+        final offlineFeedItems = cacheManager
+            .getOfflineReadyPostsForFeed(limit: limit)
+            .where((p) => _isEligibleAgendaPost(p, nowMs))
+            .where((p) => !hiddenPosts.contains(p.docID))
+            .where((p) => p.deletedPost != true)
+            .toList(growable: false);
+        if (offlineFeedItems.isNotEmpty) {
+          for (final post in offlineFeedItems) {
+            cacheManager.markReservedForFeed(post.docID);
+          }
+          return _AgendaSourcePage(
+            offlineFeedItems,
+            null,
+            false,
+            true,
+            resolvedTypesensePage,
+          );
+        }
+      }
+    }
     return _AgendaSourcePage(
       page.items,
       page.lastDoc,

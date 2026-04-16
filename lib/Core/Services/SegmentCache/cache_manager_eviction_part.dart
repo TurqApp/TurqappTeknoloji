@@ -1,11 +1,42 @@
 part of 'cache_manager.dart';
 
 const Duration _userInteractionEvictionGracePeriod = Duration(hours: 6);
+const int _shortOfflineReserveFloor = 24;
+const int _feedOfflineReserveFloor = 18;
 
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
+  int _reservedShortCount() => _index.entries.values
+      .where((entry) => entry.reservedForShortAt != null)
+      .length;
+
+  int _reservedFeedCount() => _index.entries.values
+      .where((entry) => entry.reservedForFeedAt != null)
+      .length;
+
+  bool _isReserveProtected(
+    VideoCacheEntry entry, {
+    required int reservedShortCount,
+    required int reservedFeedCount,
+  }) {
+    final protectsShort = entry.reservedForShortAt != null &&
+        reservedShortCount <= _shortOfflineReserveFloor;
+    final protectsFeed = entry.reservedForFeedAt != null &&
+        reservedFeedCount <= _feedOfflineReserveFloor;
+    return protectsShort || protectsFeed;
+  }
+
   Future<void> purgeExpiredEntries() async {
     final now = DateTime.now();
+    final reservedShortCount = _reservedShortCount();
+    final reservedFeedCount = _reservedFeedCount();
     final expired = _index.entries.values
+        .where(
+          (entry) => !_isReserveProtected(
+            entry,
+            reservedShortCount: reservedShortCount,
+            reservedFeedCount: reservedFeedCount,
+          ),
+        )
         .where((entry) => _shouldPurgeExpiredEntry(entry, now: now))
         .toList(growable: false);
     if (expired.isEmpty) return;
@@ -26,6 +57,8 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     VideoCacheEntry? worst;
     double worstScore = double.infinity;
     final now = DateTime.now();
+    final reservedShortCount = _reservedShortCount();
+    final reservedFeedCount = _reservedFeedCount();
 
     Iterable<VideoCacheEntry> candidates = _index.entries.values.where(
       (entry) {
@@ -37,6 +70,18 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
             _userInteractionEvictionGracePeriod;
       },
     );
+    final nonProtectedCandidates = candidates
+        .where(
+          (entry) => !_isReserveProtected(
+            entry,
+            reservedShortCount: reservedShortCount,
+            reservedFeedCount: reservedFeedCount,
+          ),
+        )
+        .toList(growable: false);
+    if (nonProtectedCandidates.isNotEmpty) {
+      candidates = nonProtectedCandidates;
+    }
     if (preferLowQuality) {
       final lowQuality = candidates.where(_isLowQualityEntry).toList();
       if (lowQuality.isNotEmpty) {
@@ -102,7 +147,8 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     if (entry.state == VideoCacheState.playing) return false;
     final userInteractionAt = entry.lastUserInteractionAt;
     if (userInteractionAt == null) return false;
-    if (now.difference(userInteractionAt) < _userInteractionEvictionGracePeriod) {
+    if (now.difference(userInteractionAt) <
+        _userInteractionEvictionGracePeriod) {
       return false;
     }
     if (entry.state == VideoCacheState.watched) {
