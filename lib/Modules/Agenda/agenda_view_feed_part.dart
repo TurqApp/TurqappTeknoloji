@@ -1,30 +1,5 @@
 part of 'agenda_view.dart';
 
-class _FeedMomentumClampingScrollPhysics extends ClampingScrollPhysics {
-  const _FeedMomentumClampingScrollPhysics({
-    this.flingVelocityScale = 0.82,
-    super.parent,
-  });
-
-  final double flingVelocityScale;
-
-  @override
-  _FeedMomentumClampingScrollPhysics applyTo(ScrollPhysics? ancestor) {
-    return _FeedMomentumClampingScrollPhysics(
-      flingVelocityScale: flingVelocityScale,
-      parent: buildParent(ancestor),
-    );
-  }
-
-  @override
-  double carriedMomentum(double existingVelocity) {
-    return super.carriedMomentum(existingVelocity) * flingVelocityScale;
-  }
-
-  @override
-  double get maxFlingVelocity => super.maxFlingVelocity * flingVelocityScale;
-}
-
 extension _AgendaViewFeedPart on AgendaView {
   Widget _buildStartupWarmPreloadLayer() {
     return Obx(() {
@@ -108,7 +83,7 @@ extension _AgendaViewFeedPart on AgendaView {
         return ListView.builder(
           controller: controller.scrollController,
           physics: GetPlatform.isAndroid
-              ? const _FeedMomentumClampingScrollPhysics(
+              ? const ClampingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics(),
                 )
               : const AlwaysScrollableScrollPhysics(),
