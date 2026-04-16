@@ -342,9 +342,10 @@ class ExoPlayerView(
                 smokeProbe?.onSurfaceDetached()
                 isSmokeRegistryActive = false
                 ExoPlayerSmokeRegistry.clear(context, smokeMonitor)
-                if (!keepStartupPlaybackAlive &&
-                    (isPrimaryFeedSurface || !preserveVisibleFrame)
-                ) {
+                val shouldSoftHoldOnDetach =
+                    !keepStartupPlaybackAlive &&
+                        (!isPrimaryFeedSurface || !preserveVisibleFrame)
+                if (shouldSoftHoldOnDetach) {
                     softHold()
                 }
             }
