@@ -359,7 +359,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         if (shouldDelayHomeIdentityWarmups) {
           deferredSlices.add(() async {
             await Future.delayed(
-              Duration(milliseconds: onWiFi ? 1200 : 800),
+              Duration(milliseconds: onWiFi ? 4200 : 2400),
             );
           });
         }

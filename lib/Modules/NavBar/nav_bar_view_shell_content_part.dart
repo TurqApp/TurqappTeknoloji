@@ -62,26 +62,27 @@ extension _NavBarViewShellContentPart on NavBarView {
       selected: selected,
       hasEducation: hasEducation,
     );
+    controller.rememberPrimaryTabStackMounted(selectedStackIndex);
     final pages = <Widget>[
-      _buildIntegrationSmokeTabPage(
+      _buildPrimaryTabPage(
         stackIndex: 0,
         selectedStackIndex: selectedStackIndex,
         child: AgendaView(key: const PageStorageKey<String>('nav-agenda')),
       ),
-      _buildIntegrationSmokeTabPage(
+      _buildPrimaryTabPage(
         stackIndex: 1,
         selectedStackIndex: selectedStackIndex,
         child: ExploreView(key: const PageStorageKey<String>('nav-explore')),
       ),
       if (hasEducation)
-        _buildIntegrationSmokeTabPage(
+        _buildPrimaryTabPage(
           stackIndex: 2,
           selectedStackIndex: selectedStackIndex,
           child: EducationView(
             key: const PageStorageKey<String>('nav-education'),
           ),
         ),
-      _buildIntegrationSmokeTabPage(
+      _buildPrimaryTabPage(
         stackIndex: hasEducation ? 3 : 2,
         selectedStackIndex: selectedStackIndex,
         child: ProfileView(key: const PageStorageKey<String>('nav-profile')),
@@ -94,18 +95,20 @@ extension _NavBarViewShellContentPart on NavBarView {
     );
   }
 
-  Widget _buildIntegrationSmokeTabPage({
+  Widget _buildPrimaryTabPage({
     required int stackIndex,
     required int selectedStackIndex,
     required Widget child,
   }) {
-    if (!IntegrationTestMode.enabled) {
+    final shouldBuild = stackIndex == selectedStackIndex ||
+        controller.isPrimaryTabStackMounted(stackIndex);
+    if (!shouldBuild) {
+      return const SizedBox.shrink();
+    }
+    if (!IntegrationTestMode.enabled || stackIndex == selectedStackIndex) {
       return child;
     }
-    if (stackIndex == selectedStackIndex) {
-      return child;
-    }
-    return const SizedBox.shrink();
+    return child;
   }
 
   Future<bool> _handleBackNavigation() async {

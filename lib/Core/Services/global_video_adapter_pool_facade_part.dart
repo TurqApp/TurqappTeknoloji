@@ -16,8 +16,11 @@ Future<void> resetPlaybackForSurfaceRefresh() async {
 Future<void> runSurfaceRefresh({
   required Future<void> Function() primaryRefresh,
   List<Future<void> Function()> backgroundRefreshes = const [],
+  bool resetPlayback = true,
 }) async {
-  await resetPlaybackForSurfaceRefresh();
+  if (resetPlayback) {
+    await resetPlaybackForSurfaceRefresh();
+  }
   await primaryRefresh();
   for (final refresh in backgroundRefreshes) {
     unawaited(Future<void>(() async {

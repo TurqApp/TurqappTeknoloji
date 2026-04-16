@@ -268,6 +268,7 @@ class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot
       loop: true,
       useLocalProxy: useLocalProxy,
     );
+    _adapter?.hlsController.setTelemetryVideoId(widget.model.docID);
     _adapter?.addListener(_handleAdapterUpdate);
     unawaited(_adapter?.setVolume(0.0) ?? Future<void>.value());
   }
@@ -311,7 +312,7 @@ class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot
           key: ValueKey('startup-warm-player-${widget.model.docID}'),
           aspectRatio: 9 / 16,
           useAspectRatio: false,
-          overrideAutoPlay: false,
+          overrideAutoPlay: true,
           isPrimaryFeedSurface: true,
           suppressLoadingOverlay: true,
         ),

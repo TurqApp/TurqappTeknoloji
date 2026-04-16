@@ -2631,7 +2631,6 @@ extension AgendaControllerLoadingPart on AgendaController {
       _startupRenderBootstrapHold = false;
       _resetFeedPageFetchTrigger();
       _cancelDeferredInitialNetworkBootstrap();
-      _feedRefreshInFlight = true;
       _pendingCenteredDocId = null;
       _startupLockedFeedDocId = null;
       _startupPlaybackLockedAt = null;
@@ -2747,6 +2746,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         lastDoc: pageApplyPlan.lastDoc,
         nextTypesensePage: page.nextTypesensePage,
       );
+      _feedRefreshInFlight = true;
       _applyRefreshMergedAgenda(
         mergedAgenda: mergedAgenda,
       );
@@ -2762,7 +2762,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         _lastPlaybackWindowSignature = null;
         _lastPlaybackRowUpdateDocId = null;
         lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
-        centeredIndex.value = -1;
+        centeredIndex.value =
+            refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
       }
 
       if (refreshPlan.freshScheduledIds.isNotEmpty) {

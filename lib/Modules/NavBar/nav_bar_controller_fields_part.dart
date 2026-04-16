@@ -4,6 +4,7 @@ class _NavBarControllerState {
   final selectedIndex = 0.obs;
   final showBar = true.obs;
   final mediaOverlayDepth = 0.obs;
+  final Set<int> mountedPrimaryTabStackIndexes = <int>{0};
   ShortController? shortCtrl;
   final fullText = 'TurqApp';
   late Rx<AnimationController> typingController;
@@ -95,6 +96,16 @@ extension NavBarControllerFieldsPart on NavBarController {
   set _feedResumeRetryTimer(Timer? value) => _state.feedResumeRetryTimer = value;
   int get _feedResumeRetryEpoch => _state.feedResumeRetryEpoch;
   set _feedResumeRetryEpoch(int value) => _state.feedResumeRetryEpoch = value;
+  Set<int> get _mountedPrimaryTabStackIndexes =>
+      _state.mountedPrimaryTabStackIndexes;
 
   bool get mediaOverlayActive => _mediaOverlayDepth.value > 0;
+
+  bool isPrimaryTabStackMounted(int stackIndex) =>
+      _mountedPrimaryTabStackIndexes.contains(stackIndex);
+
+  void rememberPrimaryTabStackMounted(int stackIndex) {
+    if (stackIndex < 0) return;
+    _mountedPrimaryTabStackIndexes.add(stackIndex);
+  }
 }

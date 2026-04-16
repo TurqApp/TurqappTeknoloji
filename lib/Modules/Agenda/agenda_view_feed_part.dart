@@ -29,6 +29,7 @@ extension _AgendaViewFeedPart on AgendaView {
         AgendaView.markFeedRefreshIndicatorInvoked();
         return runSurfaceRefresh(
           primaryRefresh: controller.refreshAgendaFromUserAction,
+          resetPlayback: false,
           backgroundRefreshes: [
             unreadController.refreshUnreadCount,
             () async {

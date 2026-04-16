@@ -138,9 +138,12 @@ class ExoPlayerView(
 
     private fun shouldKeepStartupPlaybackAcrossDetach(): Boolean {
         if (!isPrimaryFeedSurface) return false
-        if (didRenderFirstFrame) return false
         val p = player ?: return false
         if (!p.playWhenReady) return false
+        val withinStartupHandoffWindow =
+            startupRecoveryAttempts == 0 &&
+                p.currentPosition <= startupRecoveryMaxResumePositionMs
+        if (didRenderFirstFrame && !withinStartupHandoffWindow) return false
         return p.playbackState == Player.STATE_BUFFERING ||
             p.playbackState == Player.STATE_READY
     }
