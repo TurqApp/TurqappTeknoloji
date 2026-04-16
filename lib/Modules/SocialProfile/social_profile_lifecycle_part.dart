@@ -2,12 +2,6 @@ part of 'social_profile.dart';
 
 extension _SocialProfileLifecyclePart on _SocialProfileState {
   void _initializeSocialProfile() {
-    try {
-      VideoStateManager.instance.pauseAllVideos(force: true);
-    } catch (_) {}
-    try {
-      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-    } catch (_) {}
     final existingChatListing = ChatListingController.maybeFind();
     if (existingChatListing != null) {
       chatListingController = existingChatListing;
