@@ -2637,7 +2637,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       final uid = CurrentUserService.instance.effectiveUserId;
       if (uid.isNotEmpty) unawaited(_fetchFollowingAndReshares(uid));
 
-      await _refreshAgendaFromLiveSource(refreshEpoch: refreshEpoch);
+      await _refreshAgendaFromLiveSource(
+        refreshEpoch: refreshEpoch,
+        forceNewLaunchSession: forceNewLaunchSession,
+      );
       _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
       unawaited(Future<void>(() async {
@@ -2660,6 +2663,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   Future<void> _refreshAgendaFromLiveSource({
     required int refreshEpoch,
+    bool forceNewLaunchSession = false,
   }) async {
     if (isLoading.value) return;
 
@@ -2709,12 +2713,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         fetchedPosts: page.items,
         nowMs: nowMs,
       );
-      final mergedAgenda =
-          _agendaFeedApplicationService.mergeLiveItemsPreservingCurrentOrder(
-        currentItems: previousAgenda,
-        liveItems: page.items,
-        liveItemsPreplanned: page.itemsPreplanned,
-      );
+      final mergedAgenda = forceNewLaunchSession
+          ? refreshPlan.replacementItems
+          : _agendaFeedApplicationService.mergeLiveItemsPreservingCurrentOrder(
+              currentItems: previousAgenda,
+              liveItems: page.items,
+              liveItemsPreplanned: page.itemsPreplanned,
+            );
       final refreshTargetIndex = mergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );
