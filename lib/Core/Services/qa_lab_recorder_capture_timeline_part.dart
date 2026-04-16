@@ -7,7 +7,10 @@ extension QALabRecorderCaptureTimelinePart on QALabRecorder {
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) {
     final snapshot = IntegrationTestStateProbe.snapshot();
-    final surface = _inferSurfaceFromSnapshot(snapshot);
+    final surfaceOverride = (metadata['surface'] ?? '').toString().trim();
+    final surface = surfaceOverride.isNotEmpty
+        ? surfaceOverride
+        : _inferSurfaceFromSnapshot(snapshot);
     final videoId =
         ((metadata['videoId'] ?? metadata['docId']) ?? '').toString().trim();
     if ((code == 'video_buffering_started' ||

@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class VideoSessionMetrics {
   final String videoId;
   final String videoUrl;
+  final String qaSurface;
   final DateTime sessionStart;
   DateTime? firstFrameAt;
   int rebufferCount = 0;
@@ -20,7 +22,11 @@ class VideoSessionMetrics {
   bool hasStableFocus = false;
   DateTime? _lastBufferStart;
 
-  VideoSessionMetrics({required this.videoId, required this.videoUrl})
+  VideoSessionMetrics({
+    required this.videoId,
+    required this.videoUrl,
+    required this.qaSurface,
+  })
       : sessionStart = DateTime.now();
 
   int get ttffMs => firstFrameAt != null
@@ -125,45 +131,69 @@ class VideoTelemetryService {
 
   /// Start tracking a video session.
   void startSession(String videoId, String videoUrl) {
+    final qaSurface = _inferQALabSurface();
     _activeSessions[videoId] =
-        VideoSessionMetrics(videoId: videoId, videoUrl: videoUrl);
+        VideoSessionMetrics(
+          videoId: videoId,
+          videoUrl: videoUrl,
+          qaSurface: qaSurface,
+        );
     recordQALabVideoEvent(
       code: 'video_session_started',
       message: 'Video session started',
       metadata: <String, dynamic>{
         'videoId': videoId,
         'videoUrl': videoUrl,
+        'surface': qaSurface,
       },
     );
   }
 
   /// Record first frame rendered (TTFF).
   void onFirstFrame(String videoId) {
-    _activeSessions[videoId]?.markFirstFrame();
+    final session = _activeSessions[videoId];
+    session?.markFirstFrame();
     recordQALabVideoEvent(
       code: 'video_first_frame',
       message: 'Video rendered first frame',
-      metadata: <String, dynamic>{'videoId': videoId},
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'surface': session?.qaSurface ?? _inferQALabSurface(),
+      },
     );
   }
 
   /// Record buffering start.
   void onBufferingStart(String videoId) {
-    _activeSessions[videoId]?.onBufferingStart();
+    final session = _activeSessions[videoId];
+    session?.onBufferingStart();
+    if (session == null || session.firstFrameAt == null) {
+      return;
+    }
     recordQALabVideoEvent(
       code: 'video_buffering_started',
       message: 'Video buffering started',
-      metadata: <String, dynamic>{'videoId': videoId},
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'surface': session.qaSurface,
+      },
     );
   }
 
   /// Record buffering end.
   void onBufferingEnd(String videoId) {
-    _activeSessions[videoId]?.onBufferingEnd();
+    final session = _activeSessions[videoId];
+    session?.onBufferingEnd();
+    if (session == null || session.firstFrameAt == null) {
+      return;
+    }
     recordQALabVideoEvent(
       code: 'video_buffering_ended',
       message: 'Video buffering ended',
-      metadata: <String, dynamic>{'videoId': videoId},
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'surface': session.qaSurface,
+      },
     );
   }
 
@@ -184,11 +214,15 @@ class VideoTelemetryService {
 
   /// Record error.
   void onError(String videoId, String message) {
-    _activeSessions[videoId]?.onError(message);
+    final session = _activeSessions[videoId];
+    session?.onError(message);
     recordQALabVideoEvent(
       code: 'video_error',
       message: message,
-      metadata: <String, dynamic>{'videoId': videoId},
+      metadata: <String, dynamic>{
+        'videoId': videoId,
+        'surface': session?.qaSurface ?? _inferQALabSurface(),
+      },
     );
   }
 
@@ -236,6 +270,7 @@ class VideoTelemetryService {
         'completed': session.completed,
         'isAudible': session.isAudible,
         'hasStableFocus': session.hasStableFocus,
+        'surface': session.qaSurface,
       },
     );
     await _flush(session);
@@ -270,5 +305,26 @@ class VideoTelemetryService {
     } catch (_) {
       // Silent fail for analytics
     }
+  }
+
+  String _inferQALabSurface() {
+    final snapshot = IntegrationTestStateProbe.snapshot();
+    final route = (snapshot['currentRoute'] ?? '').toString().trim().toLowerCase();
+
+    bool registered(String key) =>
+        (snapshot[key] as Map<String, dynamic>? ??
+            const <String, dynamic>{})['registered'] ==
+        true;
+
+    if (route.contains('socialprofile')) return 'social_profile';
+    if (route.contains('profile')) return 'profile';
+    if (route.contains('short')) return 'short';
+    if (route.contains('explore')) return 'explore';
+    if (registered('socialProfile')) return 'social_profile';
+    if (registered('profile')) return 'profile';
+    if (registered('short')) return 'short';
+    if (registered('explore')) return 'explore';
+    if (registered('feed')) return 'feed';
+    return 'app';
   }
 }
