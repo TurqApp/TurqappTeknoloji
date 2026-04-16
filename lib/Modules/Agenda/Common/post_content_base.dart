@@ -39,6 +39,9 @@ const int _feedWarmWindowBehindCount = 3;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
+const int _androidPrimaryFeedNativeStrongAheadCount = 1;
+const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
+const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 2;
 
 enum _FeedNativeWarmTier {
@@ -233,6 +236,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (defaultTargetPlatform != TargetPlatform.android) return true;
     if (!_isPrimaryFeedSurfaceInstance) return true;
     if (!widget.model.hasPlayableVideo) return false;
+    final normalizedDocId = widget.model.docID.trim();
+    if (normalizedDocId.isNotEmpty &&
+        agendaController.startupWarmPreloadDocIds.contains(normalizedDocId)) {
+      return false;
+    }
     final modelIndex = agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
@@ -494,15 +502,27 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final scrollingBackward = centeredIndex < previous;
     final isMotionSide = scrollingBackward ? delta < 0 : delta > 0;
     final distance = delta.abs();
+    final isAndroidPrimaryFeed =
+        defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance;
+    final strongAheadCount = isAndroidPrimaryFeed
+        ? _androidPrimaryFeedNativeStrongAheadCount
+        : _feedStrongAheadCount;
+    final strongOppositeCount = isAndroidPrimaryFeed
+        ? _androidPrimaryFeedNativeStrongOppositeCount
+        : _feedStrongOppositeCount;
+    final cacheOnlyOppositeCount = isAndroidPrimaryFeed
+        ? _androidPrimaryFeedNativeCacheOnlyOppositeCount
+        : _feedCacheOnlyOppositeCount;
     if (isMotionSide) {
-      return distance <= _feedStrongAheadCount
+      return distance <= strongAheadCount
           ? _FeedNativeWarmTier.strong
           : _FeedNativeWarmTier.off;
     }
-    if (distance <= _feedStrongOppositeCount) {
+    if (distance <= strongOppositeCount) {
       return _FeedNativeWarmTier.strong;
     }
-    if (distance <= _feedStrongOppositeCount + _feedCacheOnlyOppositeCount) {
+    if (distance <= strongOppositeCount + cacheOnlyOppositeCount) {
       return _FeedNativeWarmTier.cacheOnly;
     }
     return _FeedNativeWarmTier.off;

@@ -945,6 +945,8 @@ class ExoPlayerView(
                         frameSilenceMs >= 1800L
 
                 if (rendererFrozenAfterAdvance || playbackClockStalled) {
+                    val shouldUseHardSurfaceRebind =
+                        playbackClockStalled || (isPrimaryFeedSurface && rendererFrozenAfterAdvance)
                     Log.w(
                         "ExoPlayerView#$viewId",
                         "rendererStall kind=${if (playbackClockStalled) "clock_stalled" else "renderer_frozen"} position=${positionMs / 1000.0} frameSilenceMs=$frameSilenceMs firstFrameAgeMs=$firstFrameAgeMs advancedMs=$advancedMs recoveryAttempt=${stallRecoveries + 1}"
@@ -960,7 +962,7 @@ class ExoPlayerView(
                             "recoveryAttempt" to (stallRecoveries + 1),
                         )
                     )
-                    recoverFromRendererStall(hardSurfaceRebind = playbackClockStalled)
+                    recoverFromRendererStall(hardSurfaceRebind = shouldUseHardSurfaceRebind)
                 }
 
                 lastWatchdogPositionMs = p.currentPosition
