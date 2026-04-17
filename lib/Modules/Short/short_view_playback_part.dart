@@ -265,7 +265,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
 
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
+    _renderItems = _composeRenderItems(_cachedShorts);
     currentPage = remappedPage;
+    _currentRenderPage = _renderIndexForOrganicIndex(remappedPage);
     controller.lastIndex.value = currentPage;
 
     _updateShortViewState(() {});
@@ -274,7 +276,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !pageController.hasClients) return;
         try {
-          pageController.jumpToPage(remappedPage);
+          pageController.jumpToPage(_currentRenderPage);
         } catch (_) {}
       });
     }
@@ -287,13 +289,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _onPageChanged(int page) {
     if (_cachedShorts.isEmpty) return;
-    if (page == currentPage) return;
+    if (page == _currentRenderPage) return;
     _forceResumePosterOnReturn = false;
-    final isAutoAdvance = _pendingAutoAdvancePage == page;
+    final nextOrganicPage = _organicIndexForRenderIndex(page);
+    final isAdPage = nextOrganicPage == null;
+    final isAutoAdvance = !isAdPage && _pendingAutoAdvancePage == nextOrganicPage;
     if (isAutoAdvance) {
       _pendingAutoAdvancePage = null;
     }
-    if (_preparedAutoAdvancePage == page) {
+    if (!isAdPage && _preparedAutoAdvancePage == nextOrganicPage) {
       _preparedAutoAdvancePage = null;
     }
     _playDebounce?.cancel();
@@ -302,9 +306,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
-    final nextDocId = page >= 0 && page < _cachedShorts.length
-        ? _cachedShorts[page].docID
-        : '';
+    final nextDocId = nextOrganicPage != null &&
+            nextOrganicPage >= 0 &&
+            nextOrganicPage < _cachedShorts.length
+        ? _cachedShorts[nextOrganicPage].docID
+        : 'ad_slot_${page + 1}';
     _currentScrollToken = nextDocId.isEmpty
         ? ''
         : '${DateTime.now().microsecondsSinceEpoch}:$page:$nextDocId';
@@ -312,11 +318,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
       surface: 'short',
       phase: 'settled',
       metadata: <String, dynamic>{
-        'fromIndex': currentPage,
+        'fromIndex': _currentRenderPage,
         'toIndex': page,
         'docId': nextDocId,
-        'count': _cachedShorts.length,
+        'count': _renderItems.length,
         'scrollToken': _currentScrollToken,
+        'isAdPage': isAdPage,
       },
     );
 
@@ -332,11 +339,28 @@ extension ShortViewPlaybackPart on _ShortViewState {
           .endSession(_cachedShorts[currentPage].docID);
     }
 
+    if (isAdPage) {
+      debugPrint(
+        '[ShortAdSlots] settled renderIndex=$page organicIndex=none '
+        'currentOrganic=$currentPage preloadBaseOrganic=$currentPage',
+      );
+      _updateShortViewState(() {
+        _currentRenderPage = page;
+        _showOverlayControls = false;
+      });
+      return;
+    }
+
     _updateShortViewState(() {
-      currentPage = page;
+      _currentRenderPage = page;
+      currentPage = nextOrganicPage;
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    debugPrint(
+      '[ShortAdSlots] settled renderIndex=$page organicIndex=$currentPage '
+      'preloadBaseOrganic=$currentPage',
+    );
     controller.primeForwardReadyMagazine(
       currentPage,
       aheadCount: 5,
@@ -1468,7 +1492,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       }
       try {
         if (pageController.hasClients) {
-          pageController.jumpToPage(nextPage);
+          pageController.jumpToPage(_renderIndexForOrganicIndex(nextPage));
         }
       } catch (_) {}
       _isTransitioning = false;

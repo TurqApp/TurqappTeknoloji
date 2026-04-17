@@ -1130,6 +1130,8 @@ class _AdmobKareState extends State<AdmobKare> {
     switch (placementId) {
       case 'feed':
         return const Color(0xFF0F766E);
+      case 'shorts':
+        return const Color(0xFF7C3AED);
       case 'profile':
         return const Color(0xFF2563EB);
       case 'market':
@@ -1164,6 +1166,8 @@ class _AdmobKareState extends State<AdmobKare> {
         return 'Seçili içerikleri aç';
       case 'feed':
         return 'Bugünün öne çıkanları';
+      case 'shorts':
+        return 'Short önerilerini gör';
     }
     return 'Şimdi keşfet';
   }

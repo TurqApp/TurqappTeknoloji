@@ -26,6 +26,12 @@ class TurqAppSuggestionPlacements {
     sliderId: 'ads_feed',
     surfaceSummary: 'Agenda, Classic, Seri gönderi',
   );
+  static const TurqAppSuggestionPlacement shorts = TurqAppSuggestionPlacement(
+    id: 'shorts',
+    title: 'Short',
+    sliderId: 'ads_shorts',
+    surfaceSummary: 'Dikey short akışı sponsorlu kart alanı',
+  );
   static const TurqAppSuggestionPlacement profile = TurqAppSuggestionPlacement(
     id: 'profile',
     title: 'Profil',
@@ -75,6 +81,7 @@ class TurqAppSuggestionPlacements {
   static const List<TurqAppSuggestionPlacement> entries =
       <TurqAppSuggestionPlacement>[
     feed,
+    shorts,
     profile,
     market,
     scholarship,
@@ -405,6 +412,8 @@ class TurqAppSuggestionConfig {
     switch (placement.id) {
       case 'feed':
         return 'Günün öne çıkanlarını tek akışta keşfet';
+      case 'shorts':
+        return 'Short akışında öne çıkan fırsatları keşfet';
       case 'profile':
         return 'Profillerde öne çıkan içerikler burada';
       case 'market':
@@ -427,6 +436,8 @@ class TurqAppSuggestionConfig {
     switch (placement.id) {
       case 'feed':
         return 'Gündemden fırsatlara kadar öne çıkan içerikleri senin için topladık.';
+      case 'shorts':
+        return 'Short akışında gösterilen seçili fırsat ve önerileri burada bulabilirsin.';
       case 'profile':
         return 'Takip ettiğin alanlara yakın önerileri ve dikkat çeken içerikleri burada bul.';
       case 'market':
