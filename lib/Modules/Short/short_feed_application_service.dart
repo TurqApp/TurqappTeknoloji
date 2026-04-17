@@ -230,7 +230,7 @@ class ShortFeedApplicationService {
     );
     // Keep short motor strict once it found owned queues; do not backfill
     // non-owned candidates into the visible order.
-    final sortedCombined = _sortOldestFirst(
+    final sortedCombined = _sortNewestFirst(
       snapshot.strictSelection.take(targetCount).toList(growable: false),
     );
     debugPrint(
@@ -241,13 +241,13 @@ class ShortFeedApplicationService {
     return sortedCombined;
   }
 
-  List<PostsModel> _sortOldestFirst(List<PostsModel> items) {
+  List<PostsModel> _sortNewestFirst(List<PostsModel> items) {
     if (items.length < 2) {
       return items.toList(growable: false);
     }
     final sorted = items.toList(growable: false)
       ..sort((left, right) =>
-          LaunchMotorSelectionService.compareLatestPosts(right, left));
+          LaunchMotorSelectionService.compareLatestPosts(left, right));
     return sorted;
   }
 

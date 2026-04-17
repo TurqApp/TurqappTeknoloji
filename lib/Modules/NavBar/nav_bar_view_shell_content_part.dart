@@ -166,10 +166,32 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
+    const shortReadyTarget = 5;
     try {
-      unawaited(shortController.prepareStartupSurface(
-        allowBackgroundRefresh: false,
-      ));
+      await shortController
+          .prepareStartupSurface(
+            allowBackgroundRefresh: false,
+          )
+          .timeout(
+            const Duration(milliseconds: 900),
+            onTimeout: () {},
+          );
+      final deadline = DateTime.now().add(const Duration(milliseconds: 1200));
+      while (shortController.shorts.length < shortReadyTarget &&
+          DateTime.now().isBefore(deadline)) {
+        await shortController
+            .ensureStartupReadyForRoute(
+              minimumCount: shortReadyTarget,
+            )
+            .timeout(
+              const Duration(milliseconds: 350),
+              onTimeout: () {},
+            );
+        if (shortController.shorts.length >= shortReadyTarget) {
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 60));
+      }
     } catch (_) {}
     try {
       final initialIndex = shortController.shorts.isEmpty
@@ -178,7 +200,10 @@ extension _NavBarViewShellContentPart on NavBarView {
               0,
               shortController.shorts.length - 1,
             );
-      unawaited(shortController.ensureActiveAdapterReady(initialIndex));
+      await shortController.ensureActiveAdapterReady(initialIndex).timeout(
+            const Duration(milliseconds: 450),
+            onTimeout: () {},
+          );
     } catch (_) {}
 
     controller.suspendFeedForTabExit();

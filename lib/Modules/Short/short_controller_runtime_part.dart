@@ -117,6 +117,11 @@ extension _ShortControllerRuntimeX on ShortController {
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  Future<void> ensureStartupReadyForRoute({
+    int minimumCount = _initialPreloadCount,
+  }) =>
+      ensureShortSurfaceReady(minimumCount: minimumCount);
+
   void handleNetworkPolicyTransition(NetworkType networkType) {
     debugPrint(
       '[ShortNetworkPolicy] status=dispatch network=${networkType.name} '

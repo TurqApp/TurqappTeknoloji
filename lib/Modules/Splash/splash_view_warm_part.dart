@@ -208,6 +208,7 @@ extension _SplashViewWarmPart on _SplashViewState {
                   )
                   .timeout(const Duration(seconds: 3), onTimeout: () {});
               await prepareFuture;
+              await _primeFeedStartupSegments(agendaController);
             });
           });
         });
@@ -482,6 +483,50 @@ extension _SplashViewWarmPart on _SplashViewState {
         debugPrint(
           '[ShortOnYukleme] phase=splash_startup count=${warmLogs.length} '
           'entries=${warmLogs.join(' | ')}',
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _primeFeedStartupSegments(
+      AgendaController agendaController) async {
+    try {
+      final prefetch = maybeFindPrefetchScheduler();
+      if (prefetch == null) return;
+      final cacheManager = maybeFindSegmentCacheManager();
+      final startupWindow = agendaController.agendaList
+          .where(agendaController.canAutoplayInTests)
+          .take(_SplashViewState._mandatoryStartupVideoWarmCount)
+          .toList(growable: false);
+      if (startupWindow.isEmpty) return;
+      for (final post in startupWindow) {
+        final docId = post.docID.trim();
+        final playbackUrl = post.playbackUrl.trim();
+        if (cacheManager != null &&
+            cacheManager.isReady &&
+            docId.isNotEmpty &&
+            playbackUrl.isNotEmpty) {
+          cacheManager.cachePostCards(<PostsModel>[post]);
+          cacheManager.cacheHlsEntry(docId, playbackUrl);
+        }
+      }
+      await prefetch.updateFeedQueueForPosts(
+        startupWindow,
+        0,
+        maxDocs: startupWindow.length,
+      );
+      final warmLogs = <String>[];
+      for (final post in startupWindow) {
+        prefetch.boostDoc(
+          post.docID,
+          readySegments: 1,
+        );
+        warmLogs.add('${post.docID}:segments=1');
+      }
+      if (warmLogs.isNotEmpty) {
+        debugPrint(
+          '[FeedOnYukleme] phase=splash_startup_guaranteed '
+          'count=${warmLogs.length} entries=${warmLogs.join(' | ')}',
         );
       }
     } catch (_) {}

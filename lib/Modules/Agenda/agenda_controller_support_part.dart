@@ -403,6 +403,18 @@ extension AgendaControllerPublicApiPart on AgendaController {
         .take(AgendaControllerFeedPart._feedSplashWarmPlayableCount)
         .toList(growable: false);
     if (startupWindow.isEmpty) return;
+    final cacheManager = maybeFindSegmentCacheManager();
+    for (final post in startupWindow) {
+      final docId = post.docID.trim();
+      final playbackUrl = post.playbackUrl.trim();
+      if (cacheManager != null &&
+          cacheManager.isReady &&
+          docId.isNotEmpty &&
+          playbackUrl.isNotEmpty) {
+        cacheManager.cachePostCards(<PostsModel>[post]);
+        cacheManager.cacheHlsEntry(docId, playbackUrl);
+      }
+    }
     unawaited(
       prefetch.updateFeedQueueForPosts(
         startupWindow,

@@ -1,38 +1,42 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  String _resolvePendingShortPreviewUrl(PostsModel model) {
+  List<String> _resolvePendingShortPreviewUrls(PostsModel model) {
     final candidates = <String>[
       model.thumbnail.trim(),
       ...model.preferredVideoPosterUrls.map((url) => url.trim()),
       ...model.img.map((url) => url.trim()),
-    ]..removeWhere((url) => url.isEmpty);
-    return candidates.isNotEmpty ? candidates.first : '';
+      ...CdnUrlBuilder.buildThumbnailUrlCandidates(model.docID),
+    ]
+        .map(CdnUrlBuilder.toCdnUrl)
+        .where((url) => url.trim().isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    return candidates;
   }
 
   Widget _buildPendingShortSurface(PostsModel model) {
-    final previewUrl = _resolvePendingShortPreviewUrl(model);
+    final previewUrls = _resolvePendingShortPreviewUrls(model);
     assert(() {
       debugPrint(
         '[ShortPendingSurface] doc=${model.docID} '
-        'hasPreview=${previewUrl.isNotEmpty} preview=$previewUrl',
+        'previewCount=${previewUrls.length} '
+        'preview=${previewUrls.isEmpty ? '' : previewUrls.first}',
       );
       return true;
     }());
-    if (previewUrl.isEmpty) {
+    if (previewUrls.isEmpty) {
       return const SizedBox.expand(
-        child: ColoredBox(color: Colors.transparent),
+        child: ColoredBox(color: Colors.black),
       );
     }
     return SizedBox.expand(
-      child: Image.network(
-        previewUrl,
+      child: CacheFirstNetworkImage(
+        imageUrl: previewUrls.first,
+        candidateUrls: previewUrls.skip(1).toList(growable: false),
+        cacheManager: TurqImageCacheManager.instance,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return const SizedBox.shrink();
-        },
+        fallback: const ColoredBox(color: Colors.black),
       ),
     );
   }
@@ -118,33 +122,32 @@ extension ShortViewUiPart on _ShortViewState {
 
           if (list.isEmpty) {
             if (isLoadingNow || hasMoreNow) {
-              return const Center(
-                child: CupertinoActivityIndicator(color: Colors.white),
-              );
-            } else {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.video_library_outlined,
-                      color: Colors.white,
-                      size: 64,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'short.empty_title'.tr,
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'short.empty_body'.tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ],
-                ),
+              return const SizedBox.expand(
+                child: ColoredBox(color: Colors.black),
               );
             }
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.video_library_outlined,
+                    color: Colors.white,
+                    size: 64,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'short.empty_title'.tr,
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'short.empty_body'.tr,
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
           }
 
           if (currentPage >= list.length) {

@@ -194,17 +194,17 @@ extension ShortControllerLoadingPart on ShortController {
     );
     return LaunchMotorPoolFillResult(
       snapshot: result.snapshot,
-      selectedPool: _sortShortOldestFirst(result.selectedPool),
+      selectedPool: _sortShortNewestFirst(result.selectedPool),
     );
   }
 
-  List<PostsModel> _sortShortOldestFirst(List<PostsModel> items) {
+  List<PostsModel> _sortShortNewestFirst(List<PostsModel> items) {
     if (items.length < 2) {
       return items.toList(growable: false);
     }
     final sorted = items.toList(growable: false)
       ..sort((left, right) =>
-          LaunchMotorSelectionService.compareLatestPosts(right, left));
+          LaunchMotorSelectionService.compareLatestPosts(left, right));
     return sorted;
   }
 
@@ -472,7 +472,7 @@ extension ShortControllerLoadingPart on ShortController {
       await _loadNextPage(trigger: 'initial_empty_bootstrap');
     } else {
       _log('[Shorts] Motor öncesi seed kapalı - mevcut liste korunuyor');
-      final sortedExisting = _sortShortOldestFirst(
+      final sortedExisting = _sortShortNewestFirst(
         shorts.toList(growable: false),
       );
       _replaceShorts(sortedExisting, remapCache: true);
