@@ -346,6 +346,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage,
       minimumSegmentCount: 2,
     );
+    unawaited(
+      controller.ensureShortMotorStageForViewedIndex(
+        currentPage,
+        trigger: 'page_changed',
+      ),
+    );
     _syncShortExclusivePlaybackOwner(page);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
@@ -1411,6 +1417,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
               currentShort,
               currentSegment: currentSegment,
             );
+            if (currentSegment >= 3 || progress >= 0.80) {
+              _segmentCacheRuntimeService.markShortConsumed(
+                currentShort.docID,
+              );
+            }
           }
           _lastProgressPersistAt = now;
           _lastPersistedProgress = progress;
@@ -1422,6 +1433,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     if (shouldAutoAdvance) {
       _isTransitioning = true;
+      if (currentPage >= 0 && currentPage < _cachedShorts.length) {
+        _segmentCacheRuntimeService.markShortConsumed(
+          _cachedShorts[currentPage].docID,
+        );
+      }
       VideoTelemetryService.instance
           .onCompleted(_cachedShorts[currentPage].docID);
       vc.removeListener(_videoEndListener);

@@ -114,9 +114,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     Future<void> seedFromLocalCandidates() async {
       final localCandidates = _selectShortQuotaFillCandidates(
         cacheManager.getQuotaFillCandidatePosts(
-          limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+          limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
         ),
-        limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+        limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
       );
       if (localCandidates.isEmpty) return;
       for (final post in localCandidates) {
@@ -154,20 +154,32 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (_quotaFillRemoteInFlight || !_quotaFillRemoteHasMore) return;
     _quotaFillRemoteInFlight = true;
     try {
-      final page = await ensureShortRepository().fetchReadyPage(
-        startAfter: _quotaFillRemoteCursor,
-        pageSize: _prefetchSchedulerQuotaFillRemotePageLimit,
-      );
-      _quotaFillRemoteCursor = page.lastDoc;
-      _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
-      if (!_quotaFillRemoteHasMore) {
-        _markWifiQuotaFillExhausted(cacheManager);
+      final remoteSeedPosts = <PostsModel>[];
+      while (remoteSeedPosts.length < _prefetchSchedulerQuotaFillPlanningBatchSize &&
+          _quotaFillRemoteHasMore) {
+        final page = await ensureShortRepository().fetchReadyPage(
+          startAfter: _quotaFillRemoteCursor,
+          pageSize: _prefetchSchedulerQuotaFillRemotePageLimit,
+        );
+        _quotaFillRemoteCursor = page.lastDoc;
+        _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
+        if (page.posts.isEmpty) {
+          if (!_quotaFillRemoteHasMore) {
+            _markWifiQuotaFillExhausted(cacheManager);
+          }
+          break;
+        }
+        remoteSeedPosts.addAll(page.posts);
+        if (!_quotaFillRemoteHasMore) {
+          _markWifiQuotaFillExhausted(cacheManager);
+          break;
+        }
       }
-      if (page.posts.isEmpty) return;
+      if (remoteSeedPosts.isEmpty) return;
 
       final remoteCandidates = _selectShortQuotaFillCandidates(
-        page.posts,
-        limit: _prefetchSchedulerQuotaFillPlanningDocLimit,
+        remoteSeedPosts,
+        limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
       );
       if (remoteCandidates.isEmpty) return;
       cacheManager.cachePostCards(remoteCandidates);

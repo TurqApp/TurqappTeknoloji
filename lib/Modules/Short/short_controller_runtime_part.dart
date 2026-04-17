@@ -98,6 +98,7 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    _recordShortMotorContractSnapshot(reason: 'prepare_startup_surface');
     final seededFreshSession = _ensureShortLaunchSessionFresh(
       reason: shorts.isEmpty && !_startupPresentationApplied
           ? 'startup'
@@ -113,12 +114,12 @@ extension ShortControllerPublicApiPart on ShortController {
         await _runInitialLoadOnce();
       }
     }
-    if (shorts.length < _startupReadyMagazineCount &&
+    if (shorts.length < shortMotorStageOneLimit() &&
         hasMore.value &&
         !isLoading.value) {
       await warmStart(
-        targetCount: _startupReadyMagazineCount,
-        maxPages: 2,
+        targetCount: shortMotorStageOneLimit(),
+        maxPages: 4,
       );
     }
     await reconcileVisibleShortSurface(
@@ -161,12 +162,11 @@ extension ShortControllerPublicApiPart on ShortController {
       unawaited(refreshShorts());
     }
     if (!allowRefresh || shorts.isEmpty) return;
-    if (shorts.length <
-        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts)) {
+    if (shorts.length < shortMotorStageOneLimit()) {
       unawaited(
         warmStart(
-          targetCount: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-          maxPages: 2,
+          targetCount: shortMotorStageOneLimit(),
+          maxPages: 4,
         ),
       );
       return;

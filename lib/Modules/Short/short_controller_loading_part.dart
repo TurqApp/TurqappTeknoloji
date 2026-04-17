@@ -6,6 +6,13 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  static const int _shortMotorStageOneLimit = 60;
+  static const int _shortMotorStageTwoLimit = 120;
+  static const int _shortMotorStageThreeLimit = 180;
+  static const int _shortMotorStageTwoViewedTrigger = 50;
+  static const int _shortMotorStageThreeViewedTrigger = 110;
+  static const int _shortMotorStageThreeReadyCheckpoint = 170;
+
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
   ) {
@@ -26,6 +33,91 @@ extension ShortControllerLoadingPart on ShortController {
       stage: stage,
       trigger: trigger,
       metadata: metadata,
+    );
+  }
+
+  void _recordShortMotorContractSnapshot({required String reason}) {
+    const expectedStageOne = 60;
+    const expectedStageTwo = 120;
+    const expectedStageThree = 180;
+    const expectedTriggerTwo = 50;
+    const expectedTriggerThree = 110;
+    const expectedReadyCheckpoint = 170;
+    final contract = <String, dynamic>{
+      'stageOneLimit': _shortMotorStageOneLimit,
+      'stageTwoLimit': _shortMotorStageTwoLimit,
+      'stageThreeLimit': _shortMotorStageThreeLimit,
+      'stageTwoViewedTrigger': _shortMotorStageTwoViewedTrigger,
+      'stageThreeViewedTrigger': _shortMotorStageThreeViewedTrigger,
+      'stageThreeReadyCheckpoint': _shortMotorStageThreeReadyCheckpoint,
+    };
+    debugPrint(
+      '[ShortMotorSignal] name=contract_snapshot status=ok '
+      'reason=$reason metadata=$contract',
+    );
+    _invariantGuard.record(
+      surface: 'short',
+      invariantKey: 'short_motor_contract_snapshot',
+      message: 'Short motor contract snapshot recorded',
+      payload: <String, dynamic>{
+        'reason': reason,
+        ...contract,
+      },
+    );
+    if (_shortMotorStageOneLimit != expectedStageOne ||
+        _shortMotorStageTwoLimit != expectedStageTwo ||
+        _shortMotorStageThreeLimit != expectedStageThree) {
+      _invariantGuard.record(
+        surface: 'short',
+        invariantKey: 'short_motor_stage_limits_changed',
+        message: 'Short motor stage limits changed',
+        payload: contract,
+      );
+    }
+    if (_shortMotorStageTwoViewedTrigger != expectedTriggerTwo ||
+        _shortMotorStageThreeViewedTrigger != expectedTriggerThree ||
+        _shortMotorStageThreeReadyCheckpoint != expectedReadyCheckpoint) {
+      _invariantGuard.record(
+        surface: 'short',
+        invariantKey: 'short_motor_stage_triggers_changed',
+        message: 'Short motor stage triggers changed',
+        payload: contract,
+      );
+    }
+  }
+
+  int shortMotorStageOneLimit() => _shortMotorStageOneLimit;
+
+  Future<void> ensureShortMotorStageForViewedIndex(
+    int viewedIndex, {
+    String trigger = 'runtime',
+  }) async {
+    final viewedCount = viewedIndex + 1;
+    var targetCount = _shortMotorStageOneLimit;
+    var maxPages = 4;
+    var stageLabel = 'stage_one';
+    if (viewedCount >= _shortMotorStageThreeViewedTrigger) {
+      targetCount = _shortMotorStageThreeLimit;
+      maxPages = 8;
+      stageLabel = viewedCount >= _shortMotorStageThreeReadyCheckpoint
+          ? 'stage_three_checkpoint'
+          : 'stage_three';
+    } else if (viewedCount >= _shortMotorStageTwoViewedTrigger) {
+      targetCount = _shortMotorStageTwoLimit;
+      maxPages = 6;
+      stageLabel = 'stage_two';
+    }
+
+    debugPrint(
+      '[ShortMotorSignal] name=stage_gate status=ok '
+      'reason=$trigger metadata={viewedCount: $viewedCount, targetCount: $targetCount, currentCount: ${shorts.length}, stage: $stageLabel}',
+    );
+    if (shorts.length >= targetCount || isLoading.value || !hasMore.value) {
+      return;
+    }
+    await warmStart(
+      targetCount: targetCount,
+      maxPages: maxPages,
     );
   }
 
@@ -272,7 +364,7 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
-    return filtered;
+    return excludePersistedShortRewatchPosts(filtered);
   }
 
   Future<void> reconcileVisibleShortSurface({

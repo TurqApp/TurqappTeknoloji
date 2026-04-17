@@ -1,4 +1,5 @@
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/feed_surface_registry.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
@@ -80,6 +81,38 @@ Future<Set<String>> loadWarmFeedVisibleVideoDocIdsForShort(
   };
 }
 
+Future<List<PostsModel>> excludePersistedShortRewatchPosts(
+  List<PostsModel> posts, {
+  bool fallbackToOriginalWhenEmpty = false,
+}) async {
+  if (posts.isEmpty) return const <PostsModel>[];
+
+  final diversityMemory = FeedDiversityMemoryService.ensure();
+  await diversityMemory.ensureReady();
+  final watchedDocIds = diversityMemory.weeklyWatchedPenaltyDocIds();
+  final watchedFloodRootIds = diversityMemory.weeklyWatchedFloodRootIds();
+  final cacheManager = SegmentCacheManager.maybeFind();
+
+  final filtered = posts.where((post) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return false;
+    if (watchedDocIds.contains(docId)) {
+      return false;
+    }
+    final floodRootId = _resolveShortFloodRootId(post);
+    if (floodRootId.isNotEmpty && watchedFloodRootIds.contains(floodRootId)) {
+      return false;
+    }
+    final entry = cacheManager?.getEntry(docId);
+    if (entry?.shortConsumedAt != null) {
+      return false;
+    }
+    return true;
+  }).toList(growable: false);
+
+  return filtered.isEmpty && fallbackToOriginalWhenEmpty ? posts : filtered;
+}
+
 List<PostsModel> excludeFeedVisibleShortConflicts(
   List<PostsModel> posts,
   Set<String> feedVisibleVideoDocIds, {
@@ -106,6 +139,14 @@ ShortMixBucket resolveShortMixBucket(PostsModel post) {
     return ShortMixBucket.warm;
   }
   return ShortMixBucket.fresh;
+}
+
+String _resolveShortFloodRootId(PostsModel post) {
+  if (!post.isFloodSeriesContent) return '';
+  final mainFlood = post.mainFlood.trim();
+  if (mainFlood.isNotEmpty) return mainFlood;
+  if (post.isFloodSeriesRoot) return post.docID.trim();
+  return post.docID.trim().replaceFirst(RegExp(r'_\d+$'), '');
 }
 
 Map<ShortMixBucket, double> resolveShortMixWeights({
