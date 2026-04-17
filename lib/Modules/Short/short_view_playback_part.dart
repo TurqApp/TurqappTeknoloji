@@ -1,6 +1,20 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _scheduleShortDeviceDrain(
+    PostsModel shortPost, {
+    required int currentSegment,
+    required double positionSeconds,
+  }) {
+    final docId = shortPost.docID.trim();
+    if (docId.isEmpty) return;
+    if (positionSeconds <= 2.0 && currentSegment < 2) return;
+    if (!_deviceDrainedShortDocIds.add(docId)) return;
+    unawaited(controller.pruneShortWarmArtifactsForDoc(docId));
+    _segmentCacheRuntimeService.markShortConsumed(docId);
+    _segmentCacheRuntimeService.scheduleDrainAfterPlayback(docId);
+  }
+
   Future<void> _reassertActiveShortAudibility(
     int page,
     HLSVideoAdapter adapter,
@@ -1416,6 +1430,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
             FeedDiversityMemoryService.ensure().noteWatchedPost(
               currentShort,
               currentSegment: currentSegment,
+            );
+            _scheduleShortDeviceDrain(
+              currentShort,
+              currentSegment: currentSegment,
+              positionSeconds: position / 1000.0,
             );
             if (currentSegment >= 3 || progress >= 0.80) {
               _segmentCacheRuntimeService.markShortConsumed(

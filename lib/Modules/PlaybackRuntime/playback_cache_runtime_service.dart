@@ -403,6 +403,14 @@ class SegmentCacheRuntimeService {
     cache.markShortConsumed(normalizedDocId);
   }
 
+  void scheduleDrainAfterPlayback(String docId) {
+    final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
+    if (normalizedDocId == null) return;
+    final cache = maybeFindSegmentCacheManager();
+    if (cache == null || !cache.isReady) return;
+    cache.scheduleDrainAfterPlayback(normalizedDocId);
+  }
+
   void ensureNextSegmentReady(
     String docId,
     double progress, {

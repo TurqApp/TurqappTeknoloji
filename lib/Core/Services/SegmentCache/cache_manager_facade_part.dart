@@ -194,6 +194,9 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   void markShortConsumed(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markShortConsumed(docID);
 
+  void scheduleDrainAfterPlayback(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).scheduleDrainAfterPlayback(docID);
+
   void markReservedForShort(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markReservedForShort(docID);
 

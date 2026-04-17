@@ -79,3 +79,28 @@ abstract class ScopedSnapshotStore<T> {
     String? userId,
   });
 }
+
+class NoopScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
+  @override
+  Future<ScopedSnapshotRecord<T>?> read(
+    ScopedSnapshotKey key, {
+    bool allowStale = true,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> write(
+    ScopedSnapshotKey key,
+    ScopedSnapshotRecord<T> record,
+  ) async {}
+
+  @override
+  Future<void> clearScope(ScopedSnapshotKey key) async {}
+
+  @override
+  Future<void> clearSurface(
+    String surfaceKey, {
+    String? userId,
+  }) async {}
+}

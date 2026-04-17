@@ -63,11 +63,7 @@ class _ShortSnapshotRepositoryShellState {
         visibilityPolicy = VisibilityPolicyService.ensure(),
         warmLaunchPool = ensureWarmLaunchPool(),
         memoryStore = MemoryScopedSnapshotStore<List<PostsModel>>(),
-        snapshotStore = SharedPrefsScopedSnapshotStore<List<PostsModel>>(
-          prefsPrefix: 'short_snapshot_v1',
-          encode: _performEncodePosts,
-          decode: _performDecodePosts,
-        ) {
+        snapshotStore = NoopScopedSnapshotStore<List<PostsModel>>() {
     coordinator = CacheFirstCoordinator<List<PostsModel>>(
       memoryStore: memoryStore,
       snapshotStore: snapshotStore,
@@ -100,7 +96,7 @@ class _ShortSnapshotRepositoryShellState {
   final VisibilityPolicyService visibilityPolicy;
   final WarmLaunchPool warmLaunchPool;
   final MemoryScopedSnapshotStore<List<PostsModel>> memoryStore;
-  final SharedPrefsScopedSnapshotStore<List<PostsModel>> snapshotStore;
+  final ScopedSnapshotStore<List<PostsModel>> snapshotStore;
   late CacheFirstCoordinator<List<PostsModel>> coordinator;
   late CacheFirstQueryPipeline<ShortSnapshotQuery, List<PostsModel>,
       List<PostsModel>> homePipeline;
@@ -123,7 +119,7 @@ extension ShortSnapshotRepositoryFieldsPart on ShortSnapshotRepository {
   WarmLaunchPool get _warmLaunchPool => _shellState.warmLaunchPool;
   MemoryScopedSnapshotStore<List<PostsModel>> get _memoryStore =>
       _shellState.memoryStore;
-  SharedPrefsScopedSnapshotStore<List<PostsModel>> get _snapshotStore =>
+  ScopedSnapshotStore<List<PostsModel>> get _snapshotStore =>
       _shellState.snapshotStore;
   CacheFirstCoordinator<List<PostsModel>> get _coordinator =>
       _shellState.coordinator;

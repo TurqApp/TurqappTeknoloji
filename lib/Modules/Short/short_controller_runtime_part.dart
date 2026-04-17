@@ -42,6 +42,7 @@ extension _ShortControllerRuntimeX on ShortController {
   void handleOnInit() {
     applyUserCacheQuota();
     unawaited(DeviceSessionService.instance.warmDeviceKey());
+    unawaited(_clearShortWarmArtifactsForCurrentUser());
     _log('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
     _bindNetworkAwareness();
@@ -148,6 +149,22 @@ extension ShortControllerPublicApiPart on ShortController {
         allowBackgroundRefresh:
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
       );
+
+  Future<void> pruneShortWarmArtifactsForDoc(String docId) async {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    await _shortSnapshotRepository.pruneLaunchArtifacts(
+      userId: userId,
+      docIds: <String>[normalizedDocId],
+      additionalLimits: <int>{
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: true),
+        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: false),
+      },
+    );
+  }
 
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,
@@ -281,45 +298,23 @@ extension ShortControllerPublicApiPart on ShortController {
   }
 
   Future<void> persistStartupShard() async {
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return;
-    final ordered = shorts.toList(growable: false);
-    await _persistShortStartupShardOnly(
-      userId: userId,
-      ordered: ordered,
-      snapshotAt: DateTime.now(),
-      source: 'short_runtime',
-    );
+    await _clearShortWarmArtifactsForCurrentUser();
   }
 
   Future<void> persistStartupArtifacts() async {
+    await _clearShortWarmArtifactsForCurrentUser();
+  }
+
+  Future<void> _clearShortWarmArtifactsForCurrentUser() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final snapshotAt = DateTime.now();
-    final ordered = shorts.toList(growable: false);
-    if (ordered.isEmpty) {
-      await _persistShortStartupShardOnly(
-        userId: userId,
-        ordered: ordered,
-        snapshotAt: snapshotAt,
-        source: 'none',
-      );
-      return;
-    }
-    final snapshotLimit =
-        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts);
-    await _shortSnapshotRepository.persistHomeSnapshot(
+    await _shortSnapshotRepository.clearLaunchArtifacts(
       userId: userId,
-      posts: ordered,
-      limit: snapshotLimit,
-      source: CachedResourceSource.memory,
-      snapshotAt: snapshotAt,
-    );
-    await _persistShortStartupShardOnly(
-      userId: userId,
-      ordered: ordered,
-      snapshotAt: snapshotAt,
-      source: 'short_runtime',
+      additionalLimits: <int>{
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: true),
+        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: false),
+      },
     );
   }
 
@@ -349,42 +344,6 @@ extension ShortControllerPublicApiPart on ShortController {
       source: count > 0 ? source : 'none',
       startupShardHydrated: startupShardHydrated,
       startupShardAgeMs: startupShardAgeMs,
-    );
-  }
-
-  Future<void> _persistShortStartupShardOnly({
-    required String userId,
-    required List<PostsModel> ordered,
-    required DateTime snapshotAt,
-    required String source,
-  }) async {
-    final shardLimit = ordered.length >= 6 ? 6 : ordered.length;
-    if (shardLimit <= 0) {
-      await ensureStartupSnapshotShardStore().clear(
-        surface: 'short',
-        userId: userId,
-      );
-      await _recordShortStartupSurface(
-        source: 'none',
-        itemCount: 0,
-      );
-      return;
-    }
-    await ensureStartupSnapshotShardStore().save(
-      surface: 'short',
-      userId: userId,
-      itemCount: ordered.length,
-      limit: shardLimit,
-      source: source,
-      snapshotAt: snapshotAt,
-      payload: _shortSnapshotRepository.encodeHomeStartupPayload(
-        ordered,
-        limit: shardLimit,
-      ),
-    );
-    await _recordShortStartupSurface(
-      source: source,
-      itemCount: ordered.length,
     );
   }
 }

@@ -146,69 +146,6 @@ extension _SplashViewStartupPart on _SplashViewState {
         DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
   }
 
-  Future<void> _primeShortStartupShard({
-    required StartupSnapshotShardStore shardStore,
-    required String userId,
-    required bool onWiFi,
-  }) async {
-    final shard = await shardStore.load(
-      surface: 'short',
-      userId: userId,
-      maxAge: StartupSnapshotShardStore.defaultFreshWindow,
-    );
-    if (shard == null || shard.itemCount <= 0) return;
-    final didPrime =
-        await ensureShortSnapshotRepository().primeHomeFromStartupPayload(
-      userId: userId,
-      payload: shard.payload,
-      limit: _shortStartupShardLimit(onWiFi: onWiFi),
-      additionalLimits:
-          ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: onWiFi),
-      snapshotAt: shard.snapshotAt,
-    );
-    if (!didPrime) return;
-    _shortStartupShardHydrated = true;
-    _shortStartupShardAgeMs =
-        DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
-  }
-
-  int _shortStartupShardLimit({
-    required bool onWiFi,
-  }) {
-    return ReadBudgetRegistry.shortStartupShardLimit(onWiFi: onWiFi);
-  }
-
-  Future<void> _persistShortStartupShard(
-    CachedResource<List<PostsModel>> resource, {
-    required bool onWiFi,
-  }) async {
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return;
-    final shardStore = ensureStartupSnapshotShardStore();
-    final posts = resource.data ?? const <PostsModel>[];
-    if (posts.isEmpty) {
-      await shardStore.clear(
-        surface: 'short',
-        userId: userId,
-      );
-      return;
-    }
-    final limit = _shortStartupShardLimit(onWiFi: onWiFi);
-    if (limit <= 0) return;
-    await shardStore.save(
-      surface: 'short',
-      userId: userId,
-      itemCount: posts.length < limit ? posts.length : limit,
-      limit: limit,
-      source: resource.source.name,
-      snapshotAt: resource.snapshotAt,
-      payload: ensureShortSnapshotRepository().encodeHomeStartupPayload(
-        posts,
-        limit: limit,
-      ),
-    );
-  }
-
   String _requestedStartupRouteHint() {
     return resolveStartupManifestRouteHint(
       manifestAgeMs: _previousStartupManifestAgeMs,

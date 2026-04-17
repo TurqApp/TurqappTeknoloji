@@ -189,6 +189,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
+  final Set<String> _deviceDrainedShortDocIds = <String>{};
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;

@@ -17,6 +17,8 @@ class _SegmentCacheManagerState {
   final recentlyPlayed = <String>[];
   final lastPersistedProgress = <String, double>{};
   final lastPersistedProgressAt = <String, DateTime>{};
+  final pendingDrainDocIds = <String>{};
+  Future<void>? pendingDrainInFlight;
 }
 
 extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
@@ -49,4 +51,8 @@ extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
       _state.lastPersistedProgress;
   Map<String, DateTime> get _lastPersistedProgressAt =>
       _state.lastPersistedProgressAt;
+  Set<String> get _pendingDrainDocIds => _state.pendingDrainDocIds;
+  Future<void>? get _pendingDrainInFlight => _state.pendingDrainInFlight;
+  set _pendingDrainInFlight(Future<void>? value) =>
+      _state.pendingDrainInFlight = value;
 }
