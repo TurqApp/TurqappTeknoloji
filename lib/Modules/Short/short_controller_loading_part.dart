@@ -6,14 +6,6 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
-  static const int _shortMotorStageOneLimit = 60;
-  static const int _shortMotorStageTwoLimit = 120;
-  static const int _shortMotorStageThreeLimit = 180;
-  static const int _shortMotorStageFourLimit = 240;
-  static const int _shortMotorStageThreeViewedTrigger = 50;
-  static const int _shortMotorStageFourViewedTrigger = 110;
-  static const int _shortMotorStageFourReadyCheckpoint = 170;
-
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
   ) {
@@ -38,21 +30,25 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   void _recordShortMotorContractSnapshot({required String reason}) {
+    const expectedInitialBlock = 15;
+    const expectedRunway = 9;
     const expectedStageOne = 60;
     const expectedStageTwo = 120;
     const expectedStageThree = 180;
     const expectedStageFour = 240;
-    const expectedTriggerThree = 50;
-    const expectedTriggerFour = 110;
-    const expectedReadyCheckpoint = 170;
+    const expectedTriggerTwo = 50;
+    const expectedTriggerThree = 110;
+    const expectedTriggerFour = 170;
     final contract = <String, dynamic>{
-      'stageOneLimit': _shortMotorStageOneLimit,
-      'stageTwoLimit': _shortMotorStageTwoLimit,
-      'stageThreeLimit': _shortMotorStageThreeLimit,
-      'stageFourLimit': _shortMotorStageFourLimit,
-      'stageThreeViewedTrigger': _shortMotorStageThreeViewedTrigger,
-      'stageFourViewedTrigger': _shortMotorStageFourViewedTrigger,
-      'stageFourReadyCheckpoint': _shortMotorStageFourReadyCheckpoint,
+      'initialBlockSize': ShortGrowthPolicy.initialBlockSize,
+      'growthRunwayCount': ShortGrowthPolicy.growthRunwayCount,
+      'stageOneLimit': ShortGrowthPolicy.stageOneLimit,
+      'stageTwoLimit': ShortGrowthPolicy.stageTwoLimit,
+      'stageThreeLimit': ShortGrowthPolicy.stageThreeLimit,
+      'stageFourLimit': ShortGrowthPolicy.stageFourLimit,
+      'stageTwoViewedTrigger': ShortGrowthPolicy.stageTwoViewedTrigger,
+      'stageThreeViewedTrigger': ShortGrowthPolicy.stageThreeViewedTrigger,
+      'stageFourViewedTrigger': ShortGrowthPolicy.stageFourViewedTrigger,
     };
     debugPrint(
       '[ShortMotorSignal] name=contract_snapshot status=ok '
@@ -67,10 +63,10 @@ extension ShortControllerLoadingPart on ShortController {
         ...contract,
       },
     );
-    if (_shortMotorStageOneLimit != expectedStageOne ||
-        _shortMotorStageTwoLimit != expectedStageTwo ||
-        _shortMotorStageThreeLimit != expectedStageThree ||
-        _shortMotorStageFourLimit != expectedStageFour) {
+    if (ShortGrowthPolicy.stageOneLimit != expectedStageOne ||
+        ShortGrowthPolicy.stageTwoLimit != expectedStageTwo ||
+        ShortGrowthPolicy.stageThreeLimit != expectedStageThree ||
+        ShortGrowthPolicy.stageFourLimit != expectedStageFour) {
       _invariantGuard.record(
         surface: 'short',
         invariantKey: 'short_motor_stage_limits_changed',
@@ -78,9 +74,9 @@ extension ShortControllerLoadingPart on ShortController {
         payload: contract,
       );
     }
-    if (_shortMotorStageThreeViewedTrigger != expectedTriggerThree ||
-        _shortMotorStageFourViewedTrigger != expectedTriggerFour ||
-        _shortMotorStageFourReadyCheckpoint != expectedReadyCheckpoint) {
+    if (ShortGrowthPolicy.stageTwoViewedTrigger != expectedTriggerTwo ||
+        ShortGrowthPolicy.stageThreeViewedTrigger != expectedTriggerThree ||
+        ShortGrowthPolicy.stageFourViewedTrigger != expectedTriggerFour) {
       _invariantGuard.record(
         surface: 'short',
         invariantKey: 'short_motor_stage_triggers_changed',
@@ -88,37 +84,45 @@ extension ShortControllerLoadingPart on ShortController {
         payload: contract,
       );
     }
+    if (ShortGrowthPolicy.initialBlockSize != expectedInitialBlock ||
+        ShortGrowthPolicy.growthRunwayCount != expectedRunway) {
+      _invariantGuard.record(
+        surface: 'short',
+        invariantKey: 'short_motor_growth_profile_changed',
+        message: 'Short motor growth profile changed',
+        payload: contract,
+      );
+    }
   }
 
-  int shortMotorStageOneLimit() => _shortMotorStageOneLimit;
+  int shortMotorStageOneLimit() => ShortGrowthPolicy.stageOneLimit;
 
   Future<void> ensureShortMotorStageForViewedIndex(
     int viewedIndex, {
     String trigger = 'runtime',
   }) async {
     final viewedCount = viewedIndex + 1;
-    var targetCount = _shortMotorStageOneLimit;
-    var maxPages = 4;
+    final targetCount = ShortGrowthPolicy.targetCountForViewedCount(viewedCount);
+    var stageLimit = ShortGrowthPolicy.stageOneLimit;
+    var maxPages = 1;
     var stageLabel = 'stage_one';
-    if (viewedCount >= _shortMotorStageFourViewedTrigger) {
-      targetCount = _shortMotorStageFourLimit;
-      maxPages = 10;
-      stageLabel = viewedCount >= _shortMotorStageFourReadyCheckpoint
-          ? 'stage_four_checkpoint'
-          : 'stage_four';
-    } else if (viewedCount >= _shortMotorStageThreeViewedTrigger) {
-      targetCount = _shortMotorStageThreeLimit;
-      maxPages = 8;
+    if (viewedCount >= ShortGrowthPolicy.stageFourViewedTrigger) {
+      stageLimit = ShortGrowthPolicy.stageFourLimit;
+      maxPages = 1;
+      stageLabel = 'stage_four';
+    } else if (viewedCount >= ShortGrowthPolicy.stageThreeViewedTrigger) {
+      stageLimit = ShortGrowthPolicy.stageThreeLimit;
+      maxPages = 1;
       stageLabel = 'stage_three';
-    } else if (shorts.length < _shortMotorStageTwoLimit) {
-      targetCount = _shortMotorStageTwoLimit;
-      maxPages = 6;
+    } else if (viewedCount >= ShortGrowthPolicy.stageTwoViewedTrigger) {
+      stageLimit = ShortGrowthPolicy.stageTwoLimit;
+      maxPages = 1;
       stageLabel = 'stage_two';
     }
 
     debugPrint(
       '[ShortMotorSignal] name=stage_gate status=ok '
-      'reason=$trigger metadata={viewedCount: $viewedCount, targetCount: $targetCount, currentCount: ${shorts.length}, stage: $stageLabel}',
+      'reason=$trigger metadata={viewedCount: $viewedCount, targetCount: $targetCount, stageLimit: $stageLimit, currentCount: ${shorts.length}, stage: $stageLabel}',
     );
     if (shorts.length >= targetCount || isLoading.value || !hasMore.value) {
       return;
@@ -617,12 +621,12 @@ extension ShortControllerLoadingPart on ShortController {
       return;
     }
     final remainingAfterCurrent = shorts.length - currentIndex - 1;
-    if (remainingAfterCurrent <= bufferedPageSize) {
+    if (remainingAfterCurrent <= ShortGrowthPolicy.growthRunwayCount) {
       _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
       await _loadNextPage(trigger: 'scroll_near_end');
     } else {
       _log(
-        '[Shorts] loadMoreIfNeeded - Not yet time to load (remaining: $remainingAfterCurrent, triggerRemaining: $bufferedPageSize, at: $currentIndex)',
+        '[Shorts] loadMoreIfNeeded - Not yet time to load (remaining: $remainingAfterCurrent, triggerRemaining: ${ShortGrowthPolicy.growthRunwayCount}, at: $currentIndex)',
       );
     }
   }

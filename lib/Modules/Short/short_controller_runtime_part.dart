@@ -181,13 +181,13 @@ extension ShortControllerPublicApiPart on ShortController {
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
     await ensureShortSurfaceReady(minimumCount: _initialPreloadCount);
-    if (shorts.length < shortMotorStageOneLimit() &&
+    if (shorts.length < ShortGrowthPolicy.initialBlockSize &&
         hasMore.value &&
         !isLoading.value) {
       unawaited(
         warmStart(
-          targetCount: shortMotorStageOneLimit(),
-          maxPages: 4,
+          targetCount: ShortGrowthPolicy.initialBlockSize,
+          maxPages: 1,
         ),
       );
     }
@@ -231,11 +231,11 @@ extension ShortControllerPublicApiPart on ShortController {
       unawaited(refreshShorts());
     }
     if (!allowRefresh || shorts.isEmpty) return;
-    if (shorts.length < shortMotorStageOneLimit()) {
+    if (shorts.length < ShortGrowthPolicy.initialBlockSize) {
       unawaited(
         warmStart(
-          targetCount: shortMotorStageOneLimit(),
-          maxPages: 4,
+          targetCount: ShortGrowthPolicy.initialBlockSize,
+          maxPages: 1,
         ),
       );
       return;
