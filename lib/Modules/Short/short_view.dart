@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
@@ -43,25 +42,6 @@ const Duration _shortPlayWatchdogDelayAndroid = Duration(milliseconds: 450);
 const Duration _shortPlayWatchdogDelayIOS = Duration(milliseconds: 900);
 const Duration _shortProgressPersistInterval = Duration(seconds: 2);
 const double _shortProgressPersistDelta = 0.10;
-const int _shortAdInsertionFrequency = 5;
-
-class _ShortRenderItem {
-  const _ShortRenderItem.short({
-    required this.post,
-    required this.organicIndex,
-  }) : adOrdinal = null;
-
-  const _ShortRenderItem.ad({
-    required this.adOrdinal,
-  })  : post = null,
-        organicIndex = null;
-
-  final PostsModel? post;
-  final int? organicIndex;
-  final int? adOrdinal;
-
-  bool get isAd => post == null;
-}
 
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
@@ -205,9 +185,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
-  List<_ShortRenderItem> _renderItems = const <_ShortRenderItem>[];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
-  int _currentRenderPage = 0;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -245,48 +223,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int _initialDisplayIndex(List<PostsModel> list, int rawIndex) {
     if (list.isEmpty) return 0;
     return rawIndex.clamp(0, list.length - 1);
-  }
-
-  List<_ShortRenderItem> _composeRenderItems(List<PostsModel> posts) {
-    if (posts.isEmpty) return const <_ShortRenderItem>[];
-    final items = <_ShortRenderItem>[];
-    var organicCount = 0;
-    var adOrdinal = 0;
-    for (int i = 0; i < posts.length; i++) {
-      items.add(_ShortRenderItem.short(post: posts[i], organicIndex: i));
-      organicCount++;
-      final shouldInsertAd = organicCount % _shortAdInsertionFrequency == 0 &&
-          i < posts.length - 1;
-      if (shouldInsertAd) {
-        adOrdinal++;
-        items.add(_ShortRenderItem.ad(adOrdinal: adOrdinal));
-      }
-    }
-    assert(() {
-      debugPrint(
-        '[ShortAdSlots] organicCount=${posts.length} renderCount=${items.length} '
-        'adCount=$adOrdinal frequency=$_shortAdInsertionFrequency',
-      );
-      return true;
-    }());
-    return items;
-  }
-
-  int _renderIndexForOrganicIndex(int organicIndex) {
-    if (organicIndex <= 0) return 0;
-    return organicIndex + (organicIndex ~/ _shortAdInsertionFrequency);
-  }
-
-  int? _organicIndexForRenderIndex(int renderIndex) {
-    if (renderIndex < 0 || renderIndex >= _renderItems.length) {
-      return null;
-    }
-    return _renderItems[renderIndex].organicIndex;
-  }
-
-  int _clampRenderIndex(int renderIndex) {
-    if (_renderItems.isEmpty) return 0;
-    return renderIndex.clamp(0, _renderItems.length - 1);
   }
 
   bool get _isShortRoutePlaybackActive {
@@ -386,13 +322,11 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     final nextList = List<PostsModel>.from(controller.shorts);
     if (_cachedShorts.isEmpty) {
       _cachedShorts = nextList;
-      _renderItems = _composeRenderItems(_cachedShorts);
       currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
-      _currentRenderPage = _renderIndexForOrganicIndex(currentPage);
       controller.lastIndex.value = currentPage;
       if (pageController.hasClients) {
         try {
-          pageController.jumpToPage(_currentRenderPage);
+          pageController.jumpToPage(currentPage);
         } catch (_) {}
       }
       setState(() {});
@@ -454,11 +388,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
             controller.lastIndex.value,
           );
     currentPage = initialIndex;
-    _currentRenderPage = _renderIndexForOrganicIndex(currentPage);
     controller.lastIndex.value = currentPage;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
-    _renderItems = _composeRenderItems(_cachedShorts);
-    pageController = PageController(initialPage: _currentRenderPage);
+    pageController = PageController(initialPage: initialIndex);
     controller.onPrimarySurfaceVisible().then((_) {
       _syncShortSurfaceAfterStartup();
     }).catchError((_) {
