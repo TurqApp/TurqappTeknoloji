@@ -545,10 +545,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       bandMinutes: feedLaunchMotorContract.bandMinutes,
       minuteSets: feedLaunchMotorContract.minuteSets,
     );
-    const minTypesenseMotorCandidateLimit = 60;
-    final candidateLimit = limit < minTypesenseMotorCandidateLimit
-        ? minTypesenseMotorCandidateLimit
-        : limit;
+    final candidateLimit = FeedTypesensePolicy.resolveCandidateLimit(limit);
     final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
       surface: 'feed',
       ownedMinutes: ownedMinutes,

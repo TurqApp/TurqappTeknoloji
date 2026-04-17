@@ -6,42 +6,41 @@ extension AgendaControllerFeedPart on AgendaController {
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
-      Duration(milliseconds: 520);
-  static const Duration _androidStartupPlaybackPendingLockDuration =
-      Duration(milliseconds: 2400);
-  static const Duration _androidStartupPlaybackGrace =
-      Duration(milliseconds: 120);
-  static const Duration _androidCurrentRecoveryGrace =
-      Duration(milliseconds: 1200);
-  static const Duration _androidCenteredGapPlaybackGrace =
-      Duration(milliseconds: 900);
-  static const int _feedBoostPlayableCount = 5;
-  static const int _feedPlaybackBoostReadySegments = 2;
-  static const int _feedPlaybackBoostLookAhead = 5;
-  static const int _feedSplashWarmPlayableCount = 5;
-  static const int _feedOnYuklemeStartupCount = 5;
-  static const int _feedOnYuklemeAheadFirstSegmentCount = 5;
-  static const int _feedOnYuklemeActiveReadySegments = 3;
-  static const List<int> _feedSecondSegmentAheadPlayableOffsets = <int>[
-    2,
-    3,
-    5,
-  ];
+      Duration(milliseconds: StartupRouteGatePolicy.feedStartupPlaybackLockMs);
+  static const Duration _androidStartupPlaybackPendingLockDuration = Duration(
+    milliseconds:
+        StartupRouteGatePolicy.androidFeedStartupPlaybackPendingLockMs,
+  );
+  static const Duration _androidStartupPlaybackGrace = Duration(
+    milliseconds: StartupRouteGatePolicy.androidFeedStartupPlaybackGraceMs,
+  );
+  static const Duration _androidCurrentRecoveryGrace = Duration(
+    milliseconds: StartupRouteGatePolicy.androidFeedCurrentRecoveryGraceMs,
+  );
+  static const Duration _androidCenteredGapPlaybackGrace = Duration(
+    milliseconds: StartupRouteGatePolicy.androidFeedCenteredGapPlaybackGraceMs,
+  );
+  static const int _feedBoostPlayableCount =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
+  static const int _feedPlaybackBoostLookAhead =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
+  static const int _feedSplashWarmPlayableCount =
+      StartupPreloadPolicy.startupWarmCount;
+  static const List<int> _feedSecondSegmentAheadPlayableOffsets =
+      StartupPreloadPolicy.secondSegmentAheadOffsets;
   static const int _feedPlannerGroupPostCount =
       FeedRenderBlockPlan.postsPerGroup;
   static const int _feedPlannerGroupsPerBlock =
       FeedRenderBlockPlan.groupsPerBlock;
-  static const int _feedHotPrefetchGroupCount = 3;
-  static const int _feedStartupWarmGroupCount = 2;
-  static const int _feedGrowthRunwayPostCount =
-      FeedRenderBlockPlan.postsPerGroup * 3;
+  static const int _feedHotPrefetchGroupCount =
+      FeedGrowthPolicy.hotPrefetchGroupCount;
+  static const int _feedStartupWarmGroupCount =
+      FeedGrowthPolicy.startupWarmGroupCount;
 
   int get _feedInitialPageFetchTriggerCount {
-    final trigger =
-        ReadBudgetRegistry.feedPageFetchLimit - _feedGrowthRunwayPostCount;
-    return trigger > FeedRenderBlockPlan.postsPerGroup
-        ? trigger
-        : FeedRenderBlockPlan.postsPerGroup;
+    return FeedGrowthPolicy.initialPageFetchTriggerCount(
+      ReadBudgetRegistry.feedPageFetchLimit,
+    );
   }
 
   void _resetFeedPageFetchTrigger() {
@@ -49,13 +48,11 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _advanceFeedPageFetchTrigger(int viewedCount) {
-    final stride = ReadBudgetRegistry.feedPageFetchLimit;
-    if (stride <= 0) return;
-    var nextTrigger = _nextPageFetchTriggerCount;
-    while (nextTrigger <= viewedCount) {
-      nextTrigger += stride;
-    }
-    _nextPageFetchTriggerCount = nextTrigger;
+    _nextPageFetchTriggerCount = FeedGrowthPolicy.advancePageFetchTrigger(
+      currentTriggerCount: _nextPageFetchTriggerCount,
+      viewedCount: viewedCount,
+      pageFetchLimit: ReadBudgetRegistry.feedPageFetchLimit,
+    );
   }
 
   void maybeTriggerFeedGrowthFromPromo({
@@ -537,7 +534,7 @@ extension AgendaControllerFeedPart on AgendaController {
       return 0;
     }
     if (index == centered) {
-      return _feedOnYuklemeActiveReadySegments;
+      return StartupPreloadPolicy.activeReadySegments;
     }
     if (index < centered) {
       return 0;
@@ -549,13 +546,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
       playableOffset++;
       if (candidate != index) continue;
-      if (secondSegmentAheadOffsets.contains(playableOffset)) {
-        return _feedPlaybackBoostReadySegments;
-      }
-      if (playableOffset <= _feedOnYuklemeAheadFirstSegmentCount) {
-        return 1;
-      }
-      return 0;
+      return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
     }
     return 0;
   }
@@ -581,10 +572,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
-    if (playableRank < _feedOnYuklemeStartupCount) {
-      return 1;
-    }
-    return 0;
+    return StartupPreloadPolicy.startupReadySegmentsForRank(playableRank);
   }
 
   void _prefetchCurrentPoster() {

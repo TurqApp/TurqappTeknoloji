@@ -1,13 +1,18 @@
 part of 'short_controller.dart';
 
 extension ShortControllerCachePart on ShortController {
-  static const int _androidActiveReadySegments = 3;
-  static const int _androidNeighborReadySegments = 3;
-  static const int _startupFirstVideoWindowCount = 5;
-  static const int _onYuklemeStartupCount = 5;
-  static const int _onYuklemeAheadFirstSegmentCount = 5;
-  static const int _onYuklemeActiveReadySegments = 3;
-  static const List<int> _onYuklemeSecondSegmentAheadOffsets = <int>[2, 3, 5];
+  static const int _androidActiveReadySegments =
+      StartupPreloadPolicy.activeReadySegments;
+  static const int _androidNeighborReadySegments =
+      StartupPreloadPolicy.neighborReadySegments;
+  static const int _startupFirstVideoWindowCount =
+      StartupPreloadPolicy.startupWarmCount;
+  static const int _onYuklemeStartupCount =
+      StartupPreloadPolicy.startupWarmCount;
+  static const int _onYuklemeAheadFirstSegmentCount =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
+  static const int _onYuklemeActiveReadySegments =
+      StartupPreloadPolicy.activeReadySegments;
 
   void _seedCacheEntryForIndex(int index) {
     if (index < 0 || index >= shorts.length) return;
@@ -22,16 +27,7 @@ extension ShortControllerCachePart on ShortController {
   }
 
   int _onYuklemeReadySegmentsForOffset(int playableOffset) {
-    if (playableOffset <= 0) {
-      return _onYuklemeActiveReadySegments;
-    }
-    if (_onYuklemeSecondSegmentAheadOffsets.contains(playableOffset)) {
-      return 2;
-    }
-    if (playableOffset <= _onYuklemeAheadFirstSegmentCount) {
-      return 1;
-    }
-    return 0;
+    return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
 
   void primeOnYuklemeWindow(int anchorIndex) {

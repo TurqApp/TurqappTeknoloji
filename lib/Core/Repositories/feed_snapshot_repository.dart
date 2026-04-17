@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
+import 'package:turqappv2/Core/Services/feed_typesense_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/feed_typesense_paging_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
@@ -39,8 +40,10 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
-  static const bool typesensePrimaryEnabled = true;
-  static const bool typesenseFirestoreFallbackEnabled = false;
+  static const bool typesensePrimaryEnabled =
+      FeedTypesensePolicy.primaryEnabled;
+  static const bool typesenseFirestoreFallbackEnabled =
+      FeedTypesensePolicy.firestoreFallbackEnabled;
   static FeedPrimarySourceMode resolvePrimarySourceMode({
     required Object? startAfter,
     FeedPrimarySourceMode? override,

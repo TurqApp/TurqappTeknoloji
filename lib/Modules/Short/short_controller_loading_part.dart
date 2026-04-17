@@ -189,8 +189,9 @@ extension ShortControllerLoadingPart on ShortController {
       targetCount: targetCount,
       // Keep short startup inside the motor window, but when strict queues are
       // sparse do not leave the launch surface underfilled.
-      fallbackToAffinityWhenSparse: true,
-      fallbackToLatestWhenEmpty: true,
+      fallbackToAffinityWhenSparse:
+          ShortFetchPolicy.fallbackToAffinityWhenSparse,
+      fallbackToLatestWhenEmpty: ShortFetchPolicy.fallbackToLatestWhenEmpty,
     );
     return LaunchMotorPoolFillResult(
       snapshot: result.snapshot,
@@ -217,7 +218,7 @@ extension ShortControllerLoadingPart on ShortController {
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
     QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
     bool hasMoreDocs = true;
-    const int maxPageScans = 8;
+    const int maxPageScans = ShortFetchPolicy.maxPageScans;
     final effectivePageSize = pageSizeOverride ?? pageSize;
     final collected = <PostsModel>[];
     final seenDocIds = <String>{};

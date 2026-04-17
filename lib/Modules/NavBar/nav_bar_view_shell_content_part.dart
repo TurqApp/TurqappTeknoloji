@@ -166,17 +166,23 @@ extension _NavBarViewShellContentPart on NavBarView {
 
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
-    const shortReadyTarget = 5;
+    const shortReadyTarget = StartupRouteGatePolicy.shortReadyTarget;
     try {
       await shortController
           .prepareStartupSurface(
             allowBackgroundRefresh: false,
           )
           .timeout(
-            const Duration(milliseconds: 900),
+            const Duration(
+              milliseconds: StartupRouteGatePolicy.shortPrepareTimeoutMs,
+            ),
             onTimeout: () {},
           );
-      final deadline = DateTime.now().add(const Duration(milliseconds: 1200));
+      final deadline = DateTime.now().add(
+        const Duration(
+          milliseconds: StartupRouteGatePolicy.shortReadinessLoopWindowMs,
+        ),
+      );
       while (shortController.shorts.length < shortReadyTarget &&
           DateTime.now().isBefore(deadline)) {
         await shortController
@@ -184,13 +190,20 @@ extension _NavBarViewShellContentPart on NavBarView {
               minimumCount: shortReadyTarget,
             )
             .timeout(
-              const Duration(milliseconds: 350),
+              const Duration(
+                milliseconds:
+                    StartupRouteGatePolicy.shortReadinessAttemptTimeoutMs,
+              ),
               onTimeout: () {},
             );
         if (shortController.shorts.length >= shortReadyTarget) {
           break;
         }
-        await Future.delayed(const Duration(milliseconds: 60));
+        await Future.delayed(
+          const Duration(
+            milliseconds: StartupRouteGatePolicy.shortReadinessPollMs,
+          ),
+        );
       }
     } catch (_) {}
     try {
@@ -201,7 +214,10 @@ extension _NavBarViewShellContentPart on NavBarView {
               shortController.shorts.length - 1,
             );
       await shortController.ensureActiveAdapterReady(initialIndex).timeout(
-            const Duration(milliseconds: 450),
+            const Duration(
+              milliseconds:
+                  StartupRouteGatePolicy.shortActiveAdapterReadyTimeoutMs,
+            ),
             onTimeout: () {},
           );
     } catch (_) {}

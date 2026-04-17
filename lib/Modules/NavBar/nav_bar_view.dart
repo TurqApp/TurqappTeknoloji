@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
+import 'package:turqappv2/Core/Services/startup_route_gate_policy.dart';
 import 'nav_bar_controller.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';

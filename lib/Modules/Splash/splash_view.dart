@@ -16,9 +16,11 @@ import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/startup_preload_policy.dart';
 import 'package:turqappv2/Core/Services/profile_posts_cache_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
+import 'package:turqappv2/Core/Services/startup_route_gate_policy.dart';
 import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 
 import '../../Core/Repositories/feed_snapshot_repository.dart';
@@ -59,10 +61,17 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> {
-  static const int _mandatoryStartupVideoWarmCount = 5;
-  static const Duration _syncStartupMaxWait = Duration(milliseconds: 900);
-  static const Duration _syncMinSplashDuration = Duration(milliseconds: 120);
-  static const Duration _syncMinLaunchToNavDuration = Duration.zero;
+  static const int _mandatoryStartupVideoWarmCount =
+      StartupPreloadPolicy.startupWarmCount;
+  static const Duration _syncStartupMaxWait = Duration(
+    milliseconds: StartupRouteGatePolicy.splashStartupMaxWaitMs,
+  );
+  static const Duration _syncMinSplashDuration = Duration(
+    milliseconds: StartupRouteGatePolicy.splashMinDurationMs,
+  );
+  static const Duration _syncMinLaunchToNavDuration = Duration(
+    milliseconds: StartupRouteGatePolicy.splashMinLaunchToNavDurationMs,
+  );
   static const Duration _startupManifestFreshWindow = Duration(hours: 18);
   static const String _splashWord = 'TurqApp';
   static const int _minFeedPostsForNav =
