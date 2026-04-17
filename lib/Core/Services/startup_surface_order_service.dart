@@ -1,10 +1,23 @@
 import 'dart:math';
 
-final int _defaultStartupSurfaceOrderSeed = DateTime.now().millisecondsSinceEpoch;
+import 'package:shared_preferences/shared_preferences.dart';
+
+final int _defaultStartupSurfaceOrderSeed =
+    DateTime.now().millisecondsSinceEpoch;
 String _defaultStartupSurfaceDeviceSalt = '';
 final Map<String, int> _startupSurfaceOrderSeedByNamespace = <String, int>{};
 final Map<String, String> _startupSurfaceDeviceSaltByNamespace =
     <String, String>{};
+const Map<String, int> _startupSurfaceBandMinutesByNamespace = <String, int>{
+  'feed': 10,
+  'short': 10,
+  'short_quota': 10,
+};
+const Map<String, int> _startupSurfaceMotorCountByNamespace = <String, int>{
+  'feed': 6,
+  'short': 6,
+  'short_quota': 6,
+};
 
 void beginStartupSurfaceSession({
   required String sessionNamespace,
@@ -18,8 +31,32 @@ void beginStartupSurfaceSession({
     _startupSurfaceDeviceSaltByNamespace[normalizedNamespace] = normalizedSalt;
   }
   if (forceNew) {
-    _startupSurfaceOrderSeedByNamespace[normalizedNamespace] =
+    _startupSurfaceOrderSeedByNamespace[normalizedNamespace] ??=
         DateTime.now().millisecondsSinceEpoch;
+  }
+}
+
+Future<void> rotateStartupMotorSessionsOnAppLaunch({
+  SharedPreferences? prefs,
+  String? deviceSalt,
+}) async {
+  final effectivePrefs = prefs ?? await SharedPreferences.getInstance();
+  final normalizedSalt = (deviceSalt ?? '').trim();
+  for (final entry in _startupSurfaceMotorCountByNamespace.entries) {
+    final namespace = entry.key;
+    final motorCount = entry.value;
+    final bandMinutes = _startupSurfaceBandMinutesByNamespace[namespace] ?? 10;
+    final key = 'startup_motor_cycle_$namespace';
+    final previousIndex = effectivePrefs.getInt(key) ?? -1;
+    final nextIndex = (previousIndex + 1) % motorCount;
+    await effectivePrefs.setInt(key, nextIndex);
+    if (normalizedSalt.isNotEmpty) {
+      _startupSurfaceDeviceSaltByNamespace[namespace] = normalizedSalt;
+    }
+    _startupSurfaceOrderSeedByNamespace[namespace] = _seedForMotorIndex(
+      motorIndex: nextIndex,
+      bandMinutes: bandMinutes,
+    );
   }
 }
 
@@ -127,4 +164,23 @@ int _startupSurfaceSeedForNamespace(String namespace) {
 String _startupSurfaceDeviceSaltForNamespace(String namespace) {
   return _startupSurfaceDeviceSaltByNamespace[namespace] ??
       _defaultStartupSurfaceDeviceSalt;
+}
+
+int _seedForMotorIndex({
+  required int motorIndex,
+  required int bandMinutes,
+}) {
+  final now = DateTime.now();
+  final targetMinute = ((motorIndex * bandMinutes) % 60).clamp(0, 59);
+  final adjusted = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    now.hour,
+    targetMinute,
+    now.second,
+    now.millisecond,
+    now.microsecond,
+  );
+  return adjusted.millisecondsSinceEpoch;
 }

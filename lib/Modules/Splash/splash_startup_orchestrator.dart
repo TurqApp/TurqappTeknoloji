@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
+import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'package:turqappv2/Modules/Splash/splash_dependency_registrar.dart';
@@ -97,6 +99,10 @@ class SplashStartupOrchestrator {
       final sessionResult = await _profileStartupPhase(
         'session_bootstrap',
         () => _bootstrapSession(prefs: prefs),
+      );
+      await rotateStartupMotorSessionsOnAppLaunch(
+        prefs: prefs,
+        deviceSalt: DeviceSessionService.instance.cachedDeviceKey,
       );
 
       await _profileStartupPhase(
