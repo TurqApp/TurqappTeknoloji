@@ -339,9 +339,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     unawaited(controller.saveSeeing());
   }
 
-  bool get _shouldBypassLocalProxyForAndroidPrimaryFeed =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      _isPrimaryFeedSurfaceInstance;
+  bool get _shouldBypassLocalProxyForAndroidPrimaryFeed => false;
 
   bool get shouldKeepVideoSurfaceAlive =>
       widget.model.hasPlayableVideo &&
