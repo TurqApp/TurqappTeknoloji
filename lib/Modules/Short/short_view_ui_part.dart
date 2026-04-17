@@ -1,27 +1,6 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
-  Widget _buildRefreshingBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CupertinoActivityIndicator(color: Colors.white, radius: 10),
-          SizedBox(width: 8),
-          Text(
-            'Yenileniyor...',
-            style: TextStyle(color: Colors.white, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _reportStableShortFrameIfNeeded(
     int idx,
     HLSVideoAdapter adapter,
@@ -96,7 +75,6 @@ extension ShortViewUiPart on _ShortViewState {
         key: const ValueKey(IntegrationTestKeys.screenShort),
         backgroundColor: Colors.black,
         body: Obx(() {
-          final isRefreshingNow = controller.isRefreshing.value;
           final isLoadingNow = controller.isLoading.value;
           final hasMoreNow = controller.hasMore.value;
 
@@ -330,16 +308,6 @@ extension ShortViewUiPart on _ShortViewState {
                 ignoring: true,
                 child: ShortsAdPlacementHook(index: currentPage),
               ),
-              if (isRefreshingNow)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 24,
-                  left: 0,
-                  right: 0,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: _buildRefreshingBadge(),
-                  ),
-                ),
               if (kDebugMode)
                 Positioned(
                   bottom: MediaQuery.of(context).padding.bottom + 60,

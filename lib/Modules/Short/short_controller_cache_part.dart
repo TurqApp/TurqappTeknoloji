@@ -3,6 +3,7 @@ part of 'short_controller.dart';
 extension ShortControllerCachePart on ShortController {
   static const int _androidActiveReadySegments = 3;
   static const int _androidNeighborReadySegments = 3;
+  static const int _startupFirstVideoWindowCount = 5;
 
   void _ensureReadySegmentsForIndex(
     int index, {
@@ -275,6 +276,54 @@ extension ShortControllerCachePart on ShortController {
     await updateCacheTiers(index);
   }
 
+  Future<void> warmStartupFirstSegments(
+    int anchorIndex, {
+    int count = _startupFirstVideoWindowCount,
+    int minimumSegmentCount = 1,
+  }) async {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final endExclusive = math.min(shorts.length, safeAnchor + count);
+    final futures = <Future<void>>[];
+
+    for (int i = safeAnchor; i < endExclusive; i++) {
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: minimumSegmentCount,
+      );
+
+      final existing = cache[i];
+      if (existing == null) {
+        futures.add(() async {
+          final adapter = await _preloadSingleVideoWithCache(i, shorts[i]);
+          if (adapter == null) return;
+          _tiers[i] = i == safeAnchor ? _CacheTier.hot : _CacheTier.warm;
+          await adapter.setPreferredBufferDuration(
+            i == safeAnchor ? _activeBufferSeconds : _neighborBufferSeconds,
+          );
+        }());
+        continue;
+      }
+
+      futures.add(() async {
+        if (existing.isStopped ||
+            (defaultTargetPlatform == TargetPlatform.android &&
+                !existing.value.isInitialized &&
+                !existing.value.hasRenderedFirstFrame)) {
+          await existing.reloadVideo();
+        }
+        _tiers[i] = i == safeAnchor ? _CacheTier.hot : _CacheTier.warm;
+        await existing.setPreferredBufferDuration(
+          i == safeAnchor ? _activeBufferSeconds : _neighborBufferSeconds,
+        );
+      }());
+    }
+
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
+    }
+  }
+
   void primeStartupReadyMagazine(
     int anchorIndex, {
     int count = _startupReadyMagazineCount,
@@ -310,7 +359,8 @@ extension ShortControllerCachePart on ShortController {
 
   void primePlaybackWindowReadySegments(
     int anchorIndex, {
-    int minimumSegmentCount = SegmentCacheRuntimeService.globalReadySegmentCount,
+    int minimumSegmentCount =
+        SegmentCacheRuntimeService.globalReadySegmentCount,
     int aheadCount = 5,
     int hotBehindCount = 3,
     int warmBehindCount = 5,

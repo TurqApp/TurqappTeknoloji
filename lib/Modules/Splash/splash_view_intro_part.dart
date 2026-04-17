@@ -1,16 +1,26 @@
 part of 'splash_view.dart';
 
 extension _SplashViewIntroPart on _SplashViewState {
+  void _completeSplashIntroIfNeeded() {
+    if (!_introCompleted.isCompleted) {
+      _introCompleted.complete();
+    }
+  }
+
+  Future<void> _waitForSplashIntroCompletion() => _introCompleted.future;
+
   void _disposeSplashTimers() {
     _startupWatchdogTimer?.cancel();
     _typingTimer?.cancel();
     _cursorTimer?.cancel();
+    _completeSplashIntroIfNeeded();
   }
 
   void _performStartTypewriter() {
     if (_remainingIntroBudget <= Duration.zero) {
       _typedLength = _SplashViewState._splashWord.length;
       _showCursor = false;
+      _completeSplashIntroIfNeeded();
       return;
     }
 
@@ -21,6 +31,7 @@ extension _SplashViewIntroPart on _SplashViewState {
     );
     if (remainingChars == 0) {
       _showCursor = false;
+      _completeSplashIntroIfNeeded();
       return;
     }
 
@@ -37,6 +48,7 @@ extension _SplashViewIntroPart on _SplashViewState {
       if (_typedLength >= _SplashViewState._splashWord.length) {
         _showCursor = false;
         timer.cancel();
+        _completeSplashIntroIfNeeded();
         _updateSplashState(() {});
         return;
       }
@@ -53,6 +65,7 @@ extension _SplashViewIntroPart on _SplashViewState {
       if (_typedLength >= _SplashViewState._splashWord.length) {
         _showCursor = false;
         timer.cancel();
+        _completeSplashIntroIfNeeded();
         _updateSplashState(() {});
         return;
       }

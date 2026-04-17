@@ -200,12 +200,6 @@ extension _SplashViewWarmPart on _SplashViewState {
               unawaited(earlyStoryWarmFuture);
             }
             await _profileStartupWarmSlice('home_prepare_surface', () async {
-              if (Platform.isAndroid && prioritizeHomeWarmups) {
-                debugPrint(
-                  '[FeedStartupSurface] status=defer_home_prepare_surface_android',
-                );
-                return;
-              }
               final prepareFuture = agendaController
                   .prepareStartupSurface(
                     allowBackgroundRefresh: false,
@@ -243,6 +237,16 @@ extension _SplashViewWarmPart on _SplashViewState {
                     Duration(seconds: onWiFi ? 4 : 2),
                     onTimeout: () {},
                   );
+              shorts.primeStartupReadyMagazine(
+                0,
+                count: _SplashViewState._mandatoryStartupVideoWarmCount,
+                minimumSegmentCount: 1,
+              );
+              await shorts.warmStartupFirstSegments(
+                0,
+                count: _SplashViewState._mandatoryStartupVideoWarmCount,
+                minimumSegmentCount: 1,
+              );
               _primeShortVideoSegments(shorts);
             });
           });
@@ -432,7 +436,8 @@ extension _SplashViewWarmPart on _SplashViewState {
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch == null) return;
       final startupWindow = shorts.shorts
-          .take(ReadBudgetRegistry.shortReadyForNavCount)
+          .where((post) => post.hasPlayableVideo)
+          .take(_SplashViewState._mandatoryStartupVideoWarmCount)
           .toList(growable: false);
       if (startupWindow.isEmpty) return;
       unawaited(prefetch.updateQueueForPosts(
@@ -440,6 +445,10 @@ extension _SplashViewWarmPart on _SplashViewState {
         0,
         maxDocs: startupWindow.length,
       ));
+      debugPrint(
+        '[ShortSegmentWarm] phase=splash_queue count=${startupWindow.length} '
+        'docs=${startupWindow.map((post) => post.docID).join(' | ')}',
+      );
       _primeShortStartupSegments(shorts, prefetch);
     } catch (_) {}
   }
@@ -451,12 +460,20 @@ extension _SplashViewWarmPart on _SplashViewState {
     try {
       final startupWindow = shorts.shorts
           .where((post) => post.hasPlayableVideo)
-          .take(ReadBudgetRegistry.shortReadyForNavCount)
+          .take(_SplashViewState._mandatoryStartupVideoWarmCount)
           .toList(growable: false);
+      final warmLogs = <String>[];
       for (final post in startupWindow) {
         prefetch.boostDoc(
           post.docID,
-          readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+          readySegments: 1,
+        );
+        warmLogs.add('${post.docID}:segments=1');
+      }
+      if (warmLogs.isNotEmpty) {
+        debugPrint(
+          '[ShortSegmentWarm] phase=splash_startup count=${warmLogs.length} '
+          'entries=${warmLogs.join(' | ')}',
         );
       }
     } catch (_) {}

@@ -1,7 +1,7 @@
 part of 'short_controller.dart';
 
 const bool _verboseShortLogs = false;
-const int _initialPreloadCount = 3;
+const int _initialPreloadCount = 5;
 const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
@@ -126,6 +126,13 @@ extension ShortControllerPublicApiPart on ShortController {
         _currentVisibleShortIndex(this),
         minimumSegmentCount: 2,
       );
+      unawaited(
+        warmStartupFirstSegments(
+          _currentVisibleShortIndex(this),
+          count: _initialPreloadCount,
+          minimumSegmentCount: 1,
+        ),
+      );
       unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
       unawaited(
         Future<void>.delayed(const Duration(milliseconds: 700)).then((_) async {
@@ -146,11 +153,11 @@ extension ShortControllerPublicApiPart on ShortController {
       unawaited(refreshShorts());
     }
     if (!allowRefresh || shorts.isEmpty) return;
-    if (shorts.length < ContentPolicy.initialPoolLimit(ContentScreenKind.shorts)) {
+    if (shorts.length <
+        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts)) {
       unawaited(
         warmStart(
-          targetCount:
-              ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
+          targetCount: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
           maxPages: 2,
         ),
       );

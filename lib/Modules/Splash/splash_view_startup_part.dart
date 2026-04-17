@@ -437,13 +437,7 @@ extension _SplashViewStartupPart on _SplashViewState {
     if (!mounted || _didNavigate || _navigationScheduled) return;
     _navigationScheduled = true;
 
-    final elapsed = Duration(
-      milliseconds: DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs,
-    );
-    final remaining = _introRevealDuration - elapsed;
-    if (remaining > Duration.zero) {
-      await Future.delayed(remaining);
-    }
+    await _waitForSplashIntroCompletion();
     if (!mounted || _didNavigate) return;
 
     var loggedIn = false;

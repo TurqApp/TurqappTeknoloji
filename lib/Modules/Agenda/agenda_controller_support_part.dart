@@ -373,6 +373,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     );
     final startupWindow = _resolveFeedStartupWarmPosts()
         .where((post) => _canAutoplayVideoPost(post))
+        .take(AgendaControllerFeedPart._feedSplashWarmPlayableCount)
         .toList(growable: false);
     if (startupWindow.isEmpty) return;
     unawaited(
@@ -382,20 +383,22 @@ extension AgendaControllerPublicApiPart on AgendaController {
         maxDocs: startupWindow.length,
       ),
     );
-    prefetch.boostDoc(
-      startupWindow.first.docID,
-      readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
-    );
-    if (startupWindow.length > 1) {
+    final startupWarmLogs = <String>[];
+    for (var i = 0; i < startupWindow.length; i++) {
+      final readySegments = _feedStartupReadySegmentsForPlayableRank(i);
+      if (readySegments <= 0) continue;
       prefetch.boostDoc(
-        startupWindow[1].docID,
-        readySegments: 2,
+        startupWindow[i].docID,
+        readySegments: readySegments,
+      );
+      startupWarmLogs.add(
+        '${i + 1}:${startupWindow[i].docID}:segments=$readySegments',
       );
     }
-    if (startupWindow.length > 2) {
-      prefetch.boostDoc(
-        startupWindow[2].docID,
-        readySegments: 1,
+    if (startupWarmLogs.isNotEmpty) {
+      debugPrint(
+        '[FeedSegmentWarm] phase=splash_startup count=${startupWarmLogs.length} '
+        'entries=${startupWarmLogs.join(' | ')}',
       );
     }
   }

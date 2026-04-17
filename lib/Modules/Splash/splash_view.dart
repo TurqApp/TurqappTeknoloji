@@ -43,7 +43,6 @@ import '../../Models/posts_model.dart';
 import '../../Modules/Education/pasaj_tabs.dart';
 import '../../Modules/JobFinder/job_finder_controller.dart';
 import '../../Modules/Market/market_controller.dart';
-import '../../Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import '../Explore/explore_controller.dart';
 import '../../main.dart';
 
@@ -59,6 +58,7 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> {
+  static const int _mandatoryStartupVideoWarmCount = 5;
   static const Duration _syncStartupMaxWait = Duration(milliseconds: 900);
   static const Duration _syncMinSplashDuration = Duration(milliseconds: 120);
   static const Duration _syncMinLaunchToNavDuration = Duration.zero;
@@ -96,6 +96,7 @@ class _SplashViewState extends State<SplashView> {
   Timer? _startupWatchdogTimer;
   Timer? _typingTimer;
   Timer? _cursorTimer;
+  final Completer<void> _introCompleted = Completer<void>();
   bool _didNavigate = false;
   bool _navigationScheduled = false;
   int _typedLength = 0;

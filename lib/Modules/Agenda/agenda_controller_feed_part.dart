@@ -15,9 +15,15 @@ extension AgendaControllerFeedPart on AgendaController {
       Duration(milliseconds: 1200);
   static const Duration _androidCenteredGapPlaybackGrace =
       Duration(milliseconds: 900);
-  static const int _feedBoostPlayableCount = 3;
+  static const int _feedBoostPlayableCount = 5;
   static const int _feedPlaybackBoostReadySegments = 2;
-  static const int _feedPlaybackBoostLookAhead = 4;
+  static const int _feedPlaybackBoostLookAhead = 5;
+  static const int _feedSplashWarmPlayableCount = 5;
+  static const List<int> _feedSecondSegmentAheadPlayableOffsets = <int>[
+    2,
+    3,
+    5,
+  ];
   static const int _feedPlannerGroupPostCount =
       FeedRenderBlockPlan.postsPerGroup;
   static const int _feedPlannerGroupsPerBlock =
@@ -400,26 +406,57 @@ extension AgendaControllerFeedPart on AgendaController {
     final prioritizedIndices = _resolvePrioritizedPlayableFeedIndices(
       centered: centered,
       lookAheadPlayableCount: _feedPlaybackBoostLookAhead,
-      behindPlayableCount: 2,
+      behindPlayableCount: 0,
     );
     if (prioritizedIndices.isEmpty) return;
+    final targetOffsets = _resolveAheadPlayableOffsets(
+      centered: centered,
+      maxAheadPlayableCount: _feedPlaybackBoostLookAhead,
+    );
+    final secondSegmentOffsets = targetOffsets
+        .where(
+          (offset) => _feedSecondSegmentAheadPlayableOffsets.contains(offset),
+        )
+        .toSet();
     final maxBoosted = startupWindowStabilizing
         ? _feedPlaybackBoostLookAhead + 1
-        : _feedBoostPlayableCount;
+        : _feedBoostPlayableCount + 1;
     var boosted = 0;
-    var playableRank = 0;
+    final boostLogs = <String>[];
     for (final index in prioritizedIndices) {
       final post = agendaList[index];
       if (!_canAutoplayVideoPost(post)) continue;
+      final readySegments = _feedReadySegmentsForIndex(
+        centered: centered,
+        index: index,
+        secondSegmentAheadOffsets: secondSegmentOffsets,
+      );
+      if (readySegments <= 0) {
+        continue;
+      }
       prefetch.boostDoc(
         post.docID,
-        readySegments: _feedBoostReadySegmentsForPlayableRank(playableRank),
+        readySegments: readySegments,
       );
-      playableRank++;
+      final playableOffset = index == centered
+          ? 0
+          : _resolvePlayableOffsetFromCentered(
+              centered: centered,
+              targetIndex: index,
+            );
+      boostLogs.add(
+        'idx=$index offset=$playableOffset doc=${post.docID} segments=$readySegments',
+      );
       boosted++;
-      if (boosted >= min(maxBoosted, _feedBoostPlayableCount)) {
+      if (boosted >= maxBoosted) {
         break;
       }
+    }
+    if (boostLogs.isNotEmpty) {
+      debugPrint(
+        '[FeedSegmentWarm] phase=playback_horizon centered=$centered '
+        'stabilizing=$startupWindowStabilizing entries=${boostLogs.join(' | ')}',
+      );
     }
   }
 
@@ -466,14 +503,86 @@ extension AgendaControllerFeedPart on AgendaController {
     return indices;
   }
 
-  int _feedBoostReadySegmentsForPlayableRank(int playableRank) {
-    if (playableRank <= 1) {
+  List<int> _resolveAheadPlayableOffsets({
+    required int centered,
+    required int maxAheadPlayableCount,
+  }) {
+    if (agendaList.isEmpty || maxAheadPlayableCount <= 0) {
+      return const <int>[];
+    }
+    final safeCentered = centered.clamp(0, agendaList.length - 1);
+    final offsets = <int>[];
+    var playableOffset = 0;
+    for (int index = safeCentered + 1;
+        index < agendaList.length && playableOffset < maxAheadPlayableCount;
+        index++) {
+      if (!_canAutoplayVideoPost(agendaList[index])) continue;
+      playableOffset++;
+      offsets.add(playableOffset);
+    }
+    return offsets;
+  }
+
+  int _feedReadySegmentsForIndex({
+    required int centered,
+    required int index,
+    required Set<int> secondSegmentAheadOffsets,
+  }) {
+    if (index < 0 || index >= agendaList.length) {
+      return 0;
+    }
+    if (index == centered) {
       return _feedPlaybackBoostReadySegments + 1;
     }
-    if (playableRank < _feedBoostPlayableCount) {
+    if (index < centered) {
+      return 0;
+    }
+    var playableOffset = 0;
+    for (int candidate = centered + 1;
+        candidate <= index && candidate < agendaList.length;
+        candidate++) {
+      if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
+      playableOffset++;
+      if (candidate != index) continue;
+      if (secondSegmentAheadOffsets.contains(playableOffset)) {
+        return _feedPlaybackBoostReadySegments;
+      }
+      if (playableOffset <= _feedPlaybackBoostLookAhead) {
+        return 1;
+      }
+      return 0;
+    }
+    return 0;
+  }
+
+  int _resolvePlayableOffsetFromCentered({
+    required int centered,
+    required int targetIndex,
+  }) {
+    if (targetIndex <= centered) {
+      return targetIndex == centered ? 0 : -1;
+    }
+    var playableOffset = 0;
+    for (int candidate = centered + 1;
+        candidate <= targetIndex && candidate < agendaList.length;
+        candidate++) {
+      if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
+      playableOffset++;
+      if (candidate == targetIndex) {
+        return playableOffset;
+      }
+    }
+    return -1;
+  }
+
+  int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
+    if (playableRank == 0) {
       return _feedPlaybackBoostReadySegments;
     }
-    return 1;
+    if (playableRank < _feedSplashWarmPlayableCount) {
+      return 1;
+    }
+    return 0;
   }
 
   void _prefetchCurrentPoster() {
