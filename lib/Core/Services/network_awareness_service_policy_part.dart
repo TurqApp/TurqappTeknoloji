@@ -45,6 +45,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     if (_debugOverrideNetwork != null) {
       return;
     }
+    final previousNetwork = _currentNetwork.value;
     if (results.contains(ConnectivityResult.wifi) ||
         results.contains(ConnectivityResult.ethernet)) {
       _currentNetwork.value = NetworkType.wifi;
@@ -64,9 +65,20 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler != null) {
       if (_currentNetwork.value == NetworkType.wifi) {
-        scheduler.resume();
+        final enteredWifi = previousNetwork != NetworkType.wifi;
+        if (enteredWifi && !scheduler.automaticQuotaFillEnabled) {
+          scheduler.setAutomaticQuotaFillEnabled(
+            true,
+            reason: 'wifi_network_transition',
+          );
+        }
+        if (enteredWifi || scheduler.isPaused) {
+          scheduler.resume();
+        }
       } else {
-        scheduler.pause();
+        if (!scheduler.isPaused) {
+          scheduler.pause();
+        }
       }
     }
 
@@ -94,9 +106,19 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
     if (isOnWiFi) {
-      scheduler.resume();
+      if (!scheduler.automaticQuotaFillEnabled) {
+        scheduler.setAutomaticQuotaFillEnabled(
+          true,
+          reason: 'wifi_debug_override',
+        );
+      }
+      if (scheduler.isPaused) {
+        scheduler.resume();
+      }
     } else {
-      scheduler.pause();
+      if (!scheduler.isPaused) {
+        scheduler.pause();
+      }
     }
   }
 
