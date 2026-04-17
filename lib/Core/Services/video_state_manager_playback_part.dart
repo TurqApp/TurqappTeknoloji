@@ -150,10 +150,13 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         }
         if (handle.isInitialized) {
           final controllerKey = entry.key.trim();
+          final isScrollableVideoSurface =
+              controllerKey.startsWith('short:') ||
+                  controllerKey.startsWith('feed:');
           final shouldStopPlayback =
-              !(defaultTargetPlatform == TargetPlatform.android &&
-                  (controllerKey.startsWith('short:') ||
-                      controllerKey.startsWith('feed:')));
+              !((defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS) &&
+                  isScrollableVideoSurface);
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '

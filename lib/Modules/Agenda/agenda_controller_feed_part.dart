@@ -580,7 +580,7 @@ extension AgendaControllerFeedPart on AgendaController {
 
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
     if (playableRank < _feedOnYuklemeStartupCount) {
-      return 1;
+      return 2;
     }
     return 0;
   }
