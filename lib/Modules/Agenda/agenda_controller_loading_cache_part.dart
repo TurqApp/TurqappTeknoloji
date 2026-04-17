@@ -177,14 +177,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     return targets;
   }
 
-  int _startupSupportFallbackCutoffMs(int nowMs) =>
-      nowMs - const Duration(days: 7).inMilliseconds;
-
-  int _startupFloodSupportFetchLimit(int targetCount) {
-    final normalizedTarget = targetCount < 1 ? 1 : targetCount;
-    return max(normalizedTarget * 3, 120);
-  }
-
   String? _startupSupportKind(PostsModel post) {
     if (post.isFloodSeriesContent) return 'flood';
     if (post.hasPlayableVideo) return null;
@@ -244,13 +236,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     Set<String> excludeDocIds = const <String>{},
     DocumentSnapshot<Map<String, dynamic>>? fallbackStartAfter,
   }) async {
-    final supportFallbackCutoffMs = _startupSupportFallbackCutoffMs(nowMs);
     final seenDocIds = <String>{
       for (final docId in excludeDocIds)
         if (docId.trim().isNotEmpty) docId.trim(),
     };
     final primaryCandidates = <PostsModel>[];
-    final fallbackPool = <PostsModel>[];
 
     for (final post in candidates) {
       final docId = post.docID.trim();
@@ -265,20 +255,13 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         primaryCandidates.add(post);
         continue;
       }
-      if (ts < supportFallbackCutoffMs) {
-        continue;
-      }
-      if (kind == null) {
-        continue;
-      }
-      fallbackPool.add(post);
     }
 
     if (primaryCandidates.length != candidates.length) {
       debugPrint(
         '[FeedStartupWindow] primary=${primaryCandidates.length} '
-        'fallbackPool=${fallbackPool.length} '
-        'dropped=${candidates.length - primaryCandidates.length - fallbackPool.length}',
+        'fallbackPool=0 '
+        'dropped=${candidates.length - primaryCandidates.length}',
       );
     }
 
@@ -288,116 +271,18 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     );
     debugPrint(
       '[FeedStartupSupport] primaryCounts=${_startupSupportCounts(primaryCandidates)} '
-      'fallbackPoolCounts=${_startupSupportCounts(fallbackPool)} '
+      'fallbackPoolCounts={} '
       'deficits=$deficits targetCount=$targetCount',
     );
-    if (deficits.isEmpty) {
-      return primaryCandidates;
-    }
-
-    final fallbackLimit =
-        max(FeedSnapshotRepository.startupHomeLimitValue * 4, 120);
-    final remaining = Map<String, int>.from(deficits);
-    final additions = <PostsModel>[];
-
-    for (final post in fallbackPool) {
-      final kind = _startupSupportKind(post);
-      if (kind == null) continue;
-      final missing = remaining[kind] ?? 0;
-      if (missing <= 0) continue;
-      additions.add(post);
-      remaining[kind] = missing - 1;
-      if (remaining.values.every((value) => value <= 0)) {
-        break;
-      }
-    }
-
-    if (remaining.values.every((value) => value <= 0)) {
-      return <PostsModel>[
-        ...primaryCandidates,
-        ...additions,
-      ];
-    }
-
-    if (!allowNetworkFallbackFetch) {
-      return <PostsModel>[
-        ...primaryCandidates,
-        ...additions,
-      ];
-    }
-
-    final missingFloodCount = remaining['flood'] ?? 0;
-    if (missingFloodCount > 0) {
-      final floodRoots = await _postRepository.fetchFloodSeriesRoots(
-        limit: _startupFloodSupportFetchLimit(targetCount),
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      for (final post in floodRoots) {
-        final docId = post.docID.trim();
-        if (docId.isEmpty || !seenDocIds.add(docId)) continue;
-        additions.add(post);
-        remaining['flood'] = (remaining['flood'] ?? 0) - 1;
-        if ((remaining['flood'] ?? 0) <= 0) {
-          break;
-        }
-      }
-      if (remaining.values.every((value) => value <= 0)) {
-        return <PostsModel>[
-          ...primaryCandidates,
-          ...additions,
-        ];
-      }
-    }
-
-    final page = await _loadAgendaSourcePage(
-      nowMs: nowMs,
-      cutoffMs: supportFallbackCutoffMs,
-      limit: fallbackLimit,
-      startAfter: fallbackStartAfter,
-      useStoredCursor: false,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    if (page.items.isEmpty) {
+    if (deficits.isNotEmpty) {
       debugPrint(
-        '[FeedStartupSupport] fallbackPageCounts={} remaining=$remaining',
-      );
-      return <PostsModel>[
-        ...primaryCandidates,
-        ...additions,
-      ];
-    }
-
-    debugPrint(
-      '[FeedStartupSupport] fallbackPageCounts=${_startupSupportCounts(page.items)} '
-      'remainingBeforeScan=$remaining',
-    );
-
-    for (final post in page.items) {
-      final docId = post.docID.trim();
-      if (docId.isEmpty || !seenDocIds.add(docId)) continue;
-      final ts = post.timeStamp.toInt();
-      if (ts < supportFallbackCutoffMs) continue;
-      final kind = _startupSupportKind(post);
-      if (kind == null) continue;
-      final missing = remaining[kind] ?? 0;
-      if (missing <= 0) continue;
-      additions.add(post);
-      remaining[kind] = missing - 1;
-      if (remaining.values.every((value) => value <= 0)) {
-        break;
-      }
-    }
-
-    if (additions.isNotEmpty) {
-      debugPrint(
-        '[FeedStartupSupportFallback] primary=${primaryCandidates.length} '
-        'added=${additions.length} deficits=$deficits '
-        'remaining=$remaining sample=${additions.take(5).map((post) => post.docID).join(',')}',
+        '[FeedStartupSupport] status=disabled_live_motor_only '
+        'remaining=$deficits allowNetworkFallbackFetch=$allowNetworkFallbackFetch '
+        'preferCache=$preferCache cacheOnly=$cacheOnly '
+        'fallbackStartAfter=${fallbackStartAfter?.id ?? "none"}',
       );
     }
-    return <PostsModel>[...primaryCandidates, ...additions];
+    return primaryCandidates;
   }
 
   List<PostsModel> _applyStartupPlannerHeadOrder(

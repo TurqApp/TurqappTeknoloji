@@ -465,7 +465,7 @@ class AgendaFeedApplicationService {
   }) {
     final latestLiveFirst = buildLaunchMotorPool(
       primaryCandidates: liveCandidates,
-      fallbackCandidates: cacheCandidates,
+      fallbackCandidates: const <PostsModel>[],
       targetCount: targetCount,
       allowSparseSlotFallback: allowSparseSlotFallback,
       emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
@@ -486,10 +486,7 @@ class AgendaFeedApplicationService {
     if (targetCount <= 0) {
       return const <PostsModel>[];
     }
-    final latestPool = _dedupePosts(<PostsModel>[
-      ...primaryCandidates,
-      ...fallbackCandidates,
-    ]).toList(growable: true)
+    final latestPool = _dedupePosts(primaryCandidates).toList(growable: true)
       ..sort(_compareLatestPosts);
     if (latestPool.isEmpty) {
       return const <PostsModel>[];
