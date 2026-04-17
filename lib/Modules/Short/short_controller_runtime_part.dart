@@ -113,6 +113,14 @@ extension ShortControllerPublicApiPart on ShortController {
         await _runInitialLoadOnce();
       }
     }
+    if (shorts.length < _startupReadyMagazineCount &&
+        hasMore.value &&
+        !isLoading.value) {
+      await warmStart(
+        targetCount: _startupReadyMagazineCount,
+        maxPages: 2,
+      );
+    }
     await reconcileVisibleShortSurface(
       trigger: 'primary_surface_visible_reconcile',
     );

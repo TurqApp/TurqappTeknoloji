@@ -87,7 +87,9 @@ extension ShortControllerLoadingPart on ShortController {
       anchorMs: startupSurfaceSessionSeed(sessionNamespace: 'short'),
       contract: shortLaunchMotorContract,
       targetCount: targetCount,
-      fallbackToAffinityWhenSparse: false,
+      // Keep short startup inside the motor window, but when strict queues are
+      // sparse do not leave the launch surface underfilled.
+      fallbackToAffinityWhenSparse: true,
       fallbackToLatestWhenEmpty: false,
     );
   }

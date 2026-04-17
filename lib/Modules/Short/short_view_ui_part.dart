@@ -1,6 +1,42 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  String _resolvePendingShortPreviewUrl(PostsModel model) {
+    final candidates = <String>[
+      model.thumbnail.trim(),
+      ...model.preferredVideoPosterUrls.map((url) => url.trim()),
+      ...model.img.map((url) => url.trim()),
+    ]..removeWhere((url) => url.isEmpty);
+    return candidates.isNotEmpty ? candidates.first : '';
+  }
+
+  Widget _buildPendingShortSurface(PostsModel model) {
+    final previewUrl = _resolvePendingShortPreviewUrl(model);
+    assert(() {
+      debugPrint(
+        '[ShortPendingSurface] doc=${model.docID} '
+        'hasPreview=${previewUrl.isNotEmpty} preview=$previewUrl',
+      );
+      return true;
+    }());
+    if (previewUrl.isEmpty) {
+      return const SizedBox.expand(
+        child: ColoredBox(color: Colors.transparent),
+      );
+    }
+    return SizedBox.expand(
+      child: Image.network(
+        previewUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
   void _reportStableShortFrameIfNeeded(
     int idx,
     HLSVideoAdapter adapter,
@@ -149,15 +185,7 @@ extension ShortViewUiPart on _ShortViewState {
                 if (isActivePage) {
                   _ensureActivePageAdapterAfterBuild(idx);
                 }
-                return const Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ColoredBox(color: Colors.black),
-                    Center(
-                      child: CupertinoActivityIndicator(color: Colors.white),
-                    ),
-                  ],
-                );
+                return _buildPendingShortSurface(list[idx]);
               }
 
               final videoWidget = isActivePage || isWarmNeighbor
@@ -177,6 +205,8 @@ extension ShortViewUiPart on _ShortViewState {
                     )
                   : const SizedBox.shrink();
 
+              final pendingSurface = _buildPendingShortSurface(list[idx]);
+
               return KeyedSubtree(
                 key: ValueKey('short-page-${list[idx].docID}'),
                 child: Stack(
@@ -195,7 +225,15 @@ extension ShortViewUiPart on _ShortViewState {
                             vp,
                             decision.hasStableVisualFrame,
                           );
-                          return const SizedBox.shrink();
+                          return IgnorePointer(
+                            ignoring: true,
+                            child: AnimatedOpacity(
+                              opacity: decision.shouldHidePoster ? 0.0 : 1.0,
+                              duration: const Duration(milliseconds: 90),
+                              curve: Curves.easeOut,
+                              child: pendingSurface,
+                            ),
+                          );
                         },
                       ),
                     if (isActivePage)

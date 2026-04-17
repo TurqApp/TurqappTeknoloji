@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
+import '../Core/Services/SegmentCache/cache_manager.dart';
 import '../Core/Services/SegmentCache/hls_proxy_server.dart';
 import '../Core/Services/audio_focus_coordinator.dart';
 
@@ -85,6 +86,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   bool _viewReady = false;
   bool _disposed = false;
   bool _isStopped = false;
+  bool _loggedProxyFallback = false;
   bool _preferWarmPoolPause = false;
   bool get isDisposed => _disposed;
 

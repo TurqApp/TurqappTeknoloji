@@ -149,19 +149,23 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           }
         }
         if (handle.isInitialized) {
+          final shouldStopPlayback =
+              !(defaultTargetPlatform == TargetPlatform.android &&
+                  entry.key.trim().startsWith('short:'));
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '
               'allowed=$allowedDocID stopping=${entry.key} '
               'playing=${handle.isPlaying} '
               'buffering=${handle.adapter.value.isBuffering} '
-              'preferWarm=${handle.adapter.preferWarmPoolPause}',
+              'preferWarm=${handle.adapter.preferWarmPoolPause} '
+              'stopPlayback=$shouldStopPlayback',
             );
           }
           _playbackExecutionService.quietHandle(
             handle,
             persistState: () => _saveVideoState(entry.key, handle),
-            stopPlayback: true,
+            stopPlayback: shouldStopPlayback,
           );
         }
       } catch (_) {}

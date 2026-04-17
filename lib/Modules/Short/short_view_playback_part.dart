@@ -48,6 +48,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
     _persistShortPlaybackState(page, adapter);
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        await adapter.pause();
+      } catch (_) {}
+      try {
+        await adapter.setVolume(0.0);
+      } catch (_) {}
+      return;
+    }
     await _releasePlayback(adapter);
     try {
       await adapter.seekTo(Duration.zero);
@@ -178,7 +187,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   bool _shouldTrimShortAttachedPlayers(int page) {
     if (!_isShortRoutePlaybackActive) return false;
-    return defaultTargetPlatform == TargetPlatform.android;
+    return false;
   }
 
   Future<void> _trimShortAttachedPlayers(int page) async {
@@ -351,6 +360,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _engagementRescoreTimer?.cancel();
 
     _ensureActivePageAdapterAfterBuild(page);
+    _prepareUpcomingVideoForSwipe(activePageOverride: page);
 
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(
@@ -379,6 +389,25 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _setStateIfActiveAdapterChanged(nextPage, hadActiveAdapter);
   }
 
+  void _prepareUpcomingVideoForSwipe({
+    int? activePageOverride,
+  }) {
+    final activePage = activePageOverride ?? currentPage;
+    final nextPage = activePage + 1;
+    if (nextPage >= _cachedShorts.length) return;
+    if (_preparedAutoAdvancePage == nextPage) return;
+    _preparedAutoAdvancePage = nextPage;
+    unawaited(() async {
+      try {
+        await _prepareNextVideoForAutoAdvance(activePage, nextPage);
+      } catch (_) {
+        if (_preparedAutoAdvancePage == nextPage) {
+          _preparedAutoAdvancePage = null;
+        }
+      }
+    }());
+  }
+
   void _maybePrepareNextVideoForAutoAdvance(double progress) {
     if (progress < 0.90) return;
     final nextPage = currentPage + 1;
@@ -397,19 +426,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
-    final nextPage = currentPage + 1;
-    if (nextPage >= _cachedShorts.length) return;
-    if (_preparedAutoAdvancePage == nextPage) return;
-    _preparedAutoAdvancePage = nextPage;
-    unawaited(() async {
-      try {
-        await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
-      } catch (_) {
-        if (_preparedAutoAdvancePage == nextPage) {
-          _preparedAutoAdvancePage = null;
-        }
-      }
-    }());
+    _prepareUpcomingVideoForSwipe();
   }
 
   void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
@@ -571,7 +588,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (idx == activePage) continue;
       try {
         _applyShortPlaybackPresentation(idx, vc);
-        _releasePlayback(vc);
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          unawaited(vc.forceSilence());
+        } else {
+          _releasePlayback(vc);
+        }
       } catch (_) {}
     }
   }
@@ -651,6 +672,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage,
       suppressWarmPause: true,
     );
+    _prepareUpcomingVideoForSwipe(activePageOverride: currentPage);
 
     _schedulePlayForPage(currentPage);
     if (currentAdapter != null) {

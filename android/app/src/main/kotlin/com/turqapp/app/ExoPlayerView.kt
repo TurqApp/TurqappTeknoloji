@@ -136,6 +136,16 @@ class ExoPlayerView(
         return forceFullscreen || (isPrimaryFeedSurface && preferResumePoster)
     }
 
+    private fun shouldStartWithHiddenPlayerSurface(): Boolean {
+        if (forceFullscreen && !preferResumePoster) return false
+        return forceFullscreen
+    }
+
+    private fun shouldCaptureResumeOverlayForStallRebind(): Boolean {
+        if (isPrimaryFeedSurface && !forceFullscreen) return false
+        return shouldUseResumeVisualChoreography()
+    }
+
     private fun shouldKeepStartupPlaybackAcrossDetach(): Boolean {
         if (!isPrimaryFeedSurface) return false
         val p = player ?: return false
@@ -146,6 +156,15 @@ class ExoPlayerView(
         if (didRenderFirstFrame && !withinStartupHandoffWindow) return false
         return p.playbackState == Player.STATE_BUFFERING ||
             p.playbackState == Player.STATE_READY
+    }
+
+    private fun shouldTreatSurfaceDetachAsTransient(): Boolean {
+        if (!forceFullscreen) return false
+        val p = player ?: return true
+        return p.playbackState == Player.STATE_BUFFERING ||
+            p.playbackState == Player.STATE_READY ||
+            p.isPlaying ||
+            hasReusableVideoFrame()
     }
 
     private inline fun runOnMain(crossinline block: () -> Unit) {
@@ -176,8 +195,19 @@ class ExoPlayerView(
         }
     }
 
-    private fun shouldUseStartupRecoveryWatchdog(): Boolean =
-        forceFullscreen || (isPrimaryFeedSurface && startupRecoveryWatchdogEnabled)
+    private fun shouldUseStartupRecoveryWatchdog(): Boolean {
+        if (!startupRecoveryWatchdogEnabled) {
+            return false
+        }
+        // Fullscreen short surface now starts visible and already has Flutter-side
+        // poster/pending fallbacks. The native startup watchdog was firing too
+        // early here and creating false "startupSoftNudge" recoveries even when
+        // the launch motor and warm window were healthy.
+        if (forceFullscreen) {
+            return false
+        }
+        return isPrimaryFeedSurface
+    }
 
     private fun publishSmokeSnapshot(monitor: PlaybackHealthMonitor) {
         if (!isSmokeRegistryActive) {
@@ -262,7 +292,7 @@ class ExoPlayerView(
             setShutterBackgroundColor(Color.TRANSPARENT)
             setBackgroundColor(Color.TRANSPARENT)
             setKeepContentOnPlayerReset(true)
-            alpha = if (forceFullscreen) 0f else 1f
+            alpha = if (shouldStartWithHiddenPlayerSurface()) 0f else 1f
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
@@ -318,6 +348,15 @@ class ExoPlayerView(
             override fun onViewDetachedFromWindow(v: View) {
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
+                if (shouldTreatSurfaceDetachAsTransient()) {
+                    handler.post {
+                        pendingRevealRunnable?.let(handler::removeCallbacks)
+                        pendingRevealRunnable = null
+                        playerView.animate().cancel()
+                        playerView.alpha = 1f
+                    }
+                    return
+                }
                 val keepStartupPlaybackAlive = shouldKeepStartupPlaybackAcrossDetach()
                 val preserveVisibleFrame =
                     shouldUseResumeVisualChoreography() &&
@@ -1024,6 +1063,8 @@ class ExoPlayerView(
         val preserveVisibleRecovery =
             currentPosition > 0L &&
                 hasReusableVideoFrame()
+        val captureResumeOverlay =
+            preserveVisibleRecovery && shouldCaptureResumeOverlayForStallRebind()
         handler.post {
             try {
                 if (!hardSurfaceRebind) {
@@ -1043,7 +1084,7 @@ class ExoPlayerView(
                     "ExoPlayerView#$viewId",
                     "surfaceRebind position=${currentPosition / 1000.0} recoveryAttempt=$stallRecoveries"
                 )
-                if (preserveVisibleRecovery) {
+                if (captureResumeOverlay) {
                     val captured = captureResumeFrameOverlay(source = "stall_rebind")
                     if (!captured) {
                         recordNativeVisualPhase(
@@ -1051,6 +1092,11 @@ class ExoPlayerView(
                             source = "stall_rebind_capture_failed",
                         )
                     }
+                } else if (preserveVisibleRecovery) {
+                    Log.i(
+                        "ExoPlayerView#$viewId",
+                        "surfaceRebind skipResumeOverlay primaryFeed=$isPrimaryFeedSurface recoveryAttempt=$stallRecoveries"
+                    )
                 }
                 if (!preserveVisibleRecovery) {
                     didRenderFirstFrame = false
@@ -1213,6 +1259,7 @@ class ExoPlayerView(
             pendingRevealRunnable = revealRunnable
             // Stabil yüzey yakalanırsa hızlı aç; gelmezse READY fallback ile beyaz ekranı bırakma.
             val revealDelayMs = when {
+                forceFullscreen && !preferResumePoster -> 0L
                 preferResumePoster && didRenderFirstFrame -> 0L
                 didRenderFirstFrame -> 0L
                 hasStableSurfaceLayout -> 32L

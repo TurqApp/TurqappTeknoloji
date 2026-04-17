@@ -5,12 +5,51 @@ extension ShortControllerCachePart on ShortController {
   static const int _androidNeighborReadySegments = 3;
   static const int _startupFirstVideoWindowCount = 5;
 
+  void _seedCacheEntryForIndex(int index) {
+    if (index < 0 || index >= shorts.length) return;
+    final post = shorts[index];
+    final docId = post.docID.trim();
+    final playbackUrl = post.playbackUrl.trim();
+    if (docId.isEmpty || playbackUrl.isEmpty) return;
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null || !cacheManager.isReady) return;
+    cacheManager.cachePostCards(<PostsModel>[post]);
+    cacheManager.cacheHlsEntry(docId, playbackUrl);
+  }
+
+  void _logReadySegmentWindow(
+    String reason, {
+    required int anchorIndex,
+    required int startIndex,
+    required int endIndexInclusive,
+  }) {
+    if (!kDebugMode || shorts.isEmpty) return;
+    final safeStart = math.max(0, startIndex);
+    final safeEnd = math.min(shorts.length - 1, endIndexInclusive);
+    if (safeStart > safeEnd) return;
+    final segmentRuntime = const SegmentCacheRuntimeService();
+    final sample = <String>[];
+    for (int i = safeStart; i <= safeEnd; i++) {
+      final docId = shorts[i].docID.trim();
+      if (docId.isEmpty) continue;
+      final entry = segmentRuntime.getEntry(docId);
+      final ready = entry?.cachedSegmentCount ?? 0;
+      final total = entry?.totalSegmentCount ?? 0;
+      sample.add('$i:${docId.substring(0, math.min(6, docId.length))}:$ready/$total');
+    }
+    debugPrint(
+      '[ShortReadyWindow] reason=$reason anchor=$anchorIndex '
+      'range=$safeStart-$safeEnd sample=${sample.join(",")}',
+    );
+  }
+
   void _ensureReadySegmentsForIndex(
     int index, {
     int minimumSegmentCount =
         SegmentCacheRuntimeService.globalReadySegmentCount,
   }) {
     if (index < 0 || index >= shorts.length) return;
+    _seedCacheEntryForIndex(index);
     final docId = shorts[index].docID.trim();
     if (docId.isEmpty) return;
     try {
@@ -49,6 +88,10 @@ extension ShortControllerCachePart on ShortController {
   }
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await adapter.forceSilence();
+      return;
+    }
     await adapter.silenceAndStopPlayback();
   }
 
@@ -144,10 +187,6 @@ extension ShortControllerCachePart on ShortController {
       await activeAdapter.setPreferredBufferDuration(_activeBufferSeconds);
     }
 
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return;
-    }
-
     final existingNeighbor = cache[neighborIndex];
     if (existingNeighbor == null) {
       final adapter = await _preloadSingleVideoWithCache(
@@ -155,13 +194,13 @@ extension ShortControllerCachePart on ShortController {
         shorts[neighborIndex],
       );
       if (adapter == null) return;
-      _tiers[neighborIndex] = _CacheTier.hot;
+      _tiers[neighborIndex] = _CacheTier.warm;
       await adapter.setPreferredBufferDuration(_neighborBufferSeconds);
     } else {
       if (existingNeighbor.isStopped) {
         await existingNeighbor.reloadVideo();
       }
-      _tiers[neighborIndex] = _CacheTier.hot;
+      _tiers[neighborIndex] = _CacheTier.warm;
       await existingNeighbor.setPreferredBufferDuration(_neighborBufferSeconds);
     }
 
@@ -322,6 +361,12 @@ extension ShortControllerCachePart on ShortController {
     if (futures.isNotEmpty) {
       await Future.wait(futures);
     }
+    _logReadySegmentWindow(
+      'startup_first_segments',
+      anchorIndex: safeAnchor,
+      startIndex: safeAnchor,
+      endIndexInclusive: endExclusive - 1,
+    );
   }
 
   void primeStartupReadyMagazine(
@@ -355,6 +400,12 @@ extension ShortControllerCachePart on ShortController {
         minimumSegmentCount: minimumSegmentCount,
       );
     }
+    _logReadySegmentWindow(
+      'forward_magazine',
+      anchorIndex: safeAnchor,
+      startIndex: safeAnchor + 1,
+      endIndexInclusive: endExclusive - 1,
+    );
   }
 
   void primePlaybackWindowReadySegments(
@@ -383,6 +434,12 @@ extension ShortControllerCachePart on ShortController {
         minimumSegmentCount: minimumSegmentCount,
       );
     }
+    _logReadySegmentWindow(
+      'playback_window',
+      anchorIndex: safeAnchor,
+      startIndex: warmStart,
+      endIndexInclusive: hotEnd,
+    );
   }
 
   Future<void> keepOnlyIndex(int index) async {

@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Runtime/startup_session_failure.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';

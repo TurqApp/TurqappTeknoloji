@@ -458,12 +458,22 @@ extension _SplashViewWarmPart on _SplashViewState {
     PrefetchScheduler prefetch,
   ) {
     try {
+      final cacheManager = maybeFindSegmentCacheManager();
       final startupWindow = shorts.shorts
           .where((post) => post.hasPlayableVideo)
           .take(_SplashViewState._mandatoryStartupVideoWarmCount)
           .toList(growable: false);
       final warmLogs = <String>[];
       for (final post in startupWindow) {
+        final docId = post.docID.trim();
+        final playbackUrl = post.playbackUrl.trim();
+        if (cacheManager != null &&
+            cacheManager.isReady &&
+            docId.isNotEmpty &&
+            playbackUrl.isNotEmpty) {
+          cacheManager.cachePostCards(<PostsModel>[post]);
+          cacheManager.cacheHlsEntry(docId, playbackUrl);
+        }
         prefetch.boostDoc(
           post.docID,
           readySegments: 1,
@@ -693,8 +703,10 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool isFirstLaunch,
     required bool onWiFi,
   }) async {
-    final shouldDeferCacheProxyUntilAfterFirstPaint =
-        Platform.isAndroid && _shouldRequireFeedReadiness();
+    // Short/feed startup segment readiness depends on proxy metadata being
+    // available before the first adapters are created. Keep proxy boot eager
+    // even on Android home startup; the init itself is already fire-and-forget.
+    const shouldDeferCacheProxyUntilAfterFirstPaint = false;
     debugPrint(
       '[StartupWarm] minimum_startup_begin '
       'firstLaunch=$isFirstLaunch onWiFi=$onWiFi '

@@ -6,8 +6,23 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       _originalUrl,
       useLocalProxy: _useLocalProxy,
     );
+    if (_useLocalProxy &&
+        _originalUrl.contains('cdn.turqapp.com') &&
+        next == _originalUrl &&
+        !_loggedProxyFallback) {
+      final proxy = maybeFindHlsProxyServer();
+      final cache = SegmentCacheManager.maybeFind();
+      debugPrint(
+        '[HLSAdapter] Proxy fallback kept original url='
+        '$_originalUrl proxyRegistered=${proxy != null} '
+        'proxyStarted=${proxy?.isStarted ?? false} '
+        'cacheReady=${cache?.isReady ?? false}',
+      );
+      _loggedProxyFallback = true;
+    }
     if (next != _effectiveUrl) {
       _effectiveUrl = next;
+      _loggedProxyFallback = false;
       debugPrint('[HLSAdapter] Proxy URL aktif: $_effectiveUrl');
     }
   }
