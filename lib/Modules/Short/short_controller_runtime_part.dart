@@ -150,22 +150,6 @@ extension ShortControllerPublicApiPart on ShortController {
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),
       );
 
-  Future<void> pruneShortWarmArtifactsForDoc(String docId) async {
-    final normalizedDocId = docId.trim();
-    if (normalizedDocId.isEmpty) return;
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return;
-    await _shortSnapshotRepository.pruneLaunchArtifacts(
-      userId: userId,
-      docIds: <String>[normalizedDocId],
-      additionalLimits: <int>{
-        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: true),
-        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: false),
-      },
-    );
-  }
-
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) {

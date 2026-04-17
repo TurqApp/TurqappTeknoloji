@@ -33,7 +33,6 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _recentlyPlayed.clear();
     _lastPersistedProgress.clear();
     _lastPersistedProgressAt.clear();
-    _pendingDrainDocIds.clear();
 
     if (resetCount <= 0) return;
     _markDirty();
@@ -228,12 +227,10 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   void markPlaying(String docID) {
-    var normalizedOthers = false;
     for (final candidate in _index.entries.values) {
       if (candidate.docID == docID) continue;
       if (candidate.state != VideoCacheState.playing) continue;
       candidate.state = _restingStateForEntry(candidate);
-      normalizedOthers = true;
     }
     final entry = _index.entries[docID];
     if (entry == null) return;
@@ -245,9 +242,6 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _recentlyPlayed.add(docID);
     if (_recentlyPlayed.length > _recentPlayCount) {
       _recentlyPlayed.removeAt(0);
-    }
-    if (normalizedOthers) {
-      unawaited(_drainPendingConsumedEntries());
     }
     _markDirty();
   }
@@ -323,48 +317,6 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     entry.lastUserInteractionAt = now;
     entry.shortConsumedAt ??= now;
     _markDirty();
-  }
-
-  void scheduleDrainAfterPlayback(String docID) {
-    final normalizedDocId = docID.trim();
-    if (normalizedDocId.isEmpty) return;
-    final entry = _index.entries[normalizedDocId];
-    if (entry == null) return;
-    final now = DateTime.now();
-    entry.lastAccessedAt = now;
-    entry.lastUserInteractionAt = now;
-    entry.shortConsumedAt ??= now;
-    _pendingDrainDocIds.add(normalizedDocId);
-    _markDirty();
-    unawaited(_drainPendingConsumedEntries());
-  }
-
-  Future<void> _drainPendingConsumedEntries() async {
-    if (_pendingDrainInFlight != null) return;
-    final future = _performDrainPendingConsumedEntries();
-    _pendingDrainInFlight = future;
-    await future.whenComplete(() {
-      if (identical(_pendingDrainInFlight, future)) {
-        _pendingDrainInFlight = null;
-      }
-    });
-  }
-
-  Future<void> _performDrainPendingConsumedEntries() async {
-    if (_pendingDrainDocIds.isEmpty) return;
-    final pending = _pendingDrainDocIds.toList(growable: false);
-    for (final docId in pending) {
-      final entry = _index.entries[docId];
-      if (entry == null) {
-        _pendingDrainDocIds.remove(docId);
-        continue;
-      }
-      if (entry.state == VideoCacheState.playing) {
-        continue;
-      }
-      await _evictEntry(entry);
-      _pendingDrainDocIds.remove(docId);
-    }
   }
 
   void markReservedForShort(String docID) {
