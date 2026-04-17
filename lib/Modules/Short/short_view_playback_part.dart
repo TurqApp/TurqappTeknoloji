@@ -371,11 +371,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
 
-    final activatedOrganicPage = nextOrganicPage;
     _updateShortViewState(() {
       _currentRenderPage = page;
       _isAdPageActive = false;
-      currentPage = activatedOrganicPage;
+      currentPage = nextOrganicPage;
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
@@ -398,7 +397,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         trigger: 'page_changed',
       ),
     );
-    _syncShortExclusivePlaybackOwner(activatedOrganicPage);
+    _syncShortExclusivePlaybackOwner(page);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
@@ -411,8 +410,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastProgressPersistAt = null;
     _engagementRescoreTimer?.cancel();
 
-    _ensureActivePageAdapterAfterBuild(activatedOrganicPage);
-    _prepareUpcomingVideoForSwipe(activePageOverride: activatedOrganicPage);
+    _ensureActivePageAdapterAfterBuild(page);
+    _prepareUpcomingVideoForSwipe(activePageOverride: page);
 
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(
@@ -422,11 +421,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
       () {
         if (!mounted) return;
 
-        if (currentPage != activatedOrganicPage) return;
-        _enforceSingleActiveAudio(activatedOrganicPage);
-        _schedulePlayForPage(activatedOrganicPage);
-        _scheduleTierUpdate(activatedOrganicPage);
-        controller.loadMoreIfNeeded(activatedOrganicPage);
+        _enforceSingleActiveAudio(page);
+        _schedulePlayForPage(currentPage);
+        _scheduleTierUpdate(currentPage);
+        controller.loadMoreIfNeeded(currentPage);
       },
     );
   }
