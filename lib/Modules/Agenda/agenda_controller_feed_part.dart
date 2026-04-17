@@ -19,6 +19,9 @@ extension AgendaControllerFeedPart on AgendaController {
   static const int _feedPlaybackBoostReadySegments = 2;
   static const int _feedPlaybackBoostLookAhead = 5;
   static const int _feedSplashWarmPlayableCount = 5;
+  static const int _feedOnYuklemeStartupCount = 5;
+  static const int _feedOnYuklemeAheadFirstSegmentCount = 5;
+  static const int _feedOnYuklemeActiveReadySegments = 3;
   static const List<int> _feedSecondSegmentAheadPlayableOffsets = <int>[
     2,
     3,
@@ -454,7 +457,7 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     if (boostLogs.isNotEmpty) {
       debugPrint(
-        '[FeedSegmentWarm] phase=playback_horizon centered=$centered '
+        '[FeedOnYukleme] phase=playback_horizon centered=$centered '
         'stabilizing=$startupWindowStabilizing entries=${boostLogs.join(' | ')}',
       );
     }
@@ -532,7 +535,7 @@ extension AgendaControllerFeedPart on AgendaController {
       return 0;
     }
     if (index == centered) {
-      return _feedPlaybackBoostReadySegments + 1;
+      return _feedOnYuklemeActiveReadySegments;
     }
     if (index < centered) {
       return 0;
@@ -547,7 +550,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (secondSegmentAheadOffsets.contains(playableOffset)) {
         return _feedPlaybackBoostReadySegments;
       }
-      if (playableOffset <= _feedPlaybackBoostLookAhead) {
+      if (playableOffset <= _feedOnYuklemeAheadFirstSegmentCount) {
         return 1;
       }
       return 0;
@@ -576,10 +579,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
-    if (playableRank == 0) {
-      return _feedPlaybackBoostReadySegments;
-    }
-    if (playableRank < _feedSplashWarmPlayableCount) {
+    if (playableRank < _feedOnYuklemeStartupCount) {
       return 1;
     }
     return 0;

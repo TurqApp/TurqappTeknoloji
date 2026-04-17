@@ -235,17 +235,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get shouldEnableStartupRecoveryWatchdog {
     if (defaultTargetPlatform != TargetPlatform.android) return true;
-    if (!_isPrimaryFeedSurfaceInstance) return true;
-    if (!widget.model.hasPlayableVideo) return false;
-    final normalizedDocId = widget.model.docID.trim();
-    if (normalizedDocId.isNotEmpty &&
-        agendaController.startupWarmPreloadDocIds.contains(normalizedDocId)) {
+    if (_isPrimaryFeedSurfaceInstance) {
+      // Feed already keeps a Flutter-side poster overlay and segment gate.
+      // Native startup nudge/rebind recovery here adds churn and shows up as
+      // startupSoftNudge on cold surface bring-up.
       return false;
     }
-    final modelIndex = agendaController.agendaList.indexWhere(
-      (p) => p.docID == widget.model.docID,
-    );
-    return modelIndex == 0;
+    return true;
   }
 
   int get cachedSegmentCountForCurrentVideo {
@@ -1035,11 +1031,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get shouldSuppressGenericResumeThumbnail {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (!_isPrimaryFeedSurfaceInstance) return false;
-    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
-    return _hasResumePositionHint(
-      _videoAdapter?.value ?? const HLSVideoValue(),
-      threshold: _stableFramePositionThreshold,
-    );
+    return false;
   }
 
   String _resolvePlaybackVisualWarning(

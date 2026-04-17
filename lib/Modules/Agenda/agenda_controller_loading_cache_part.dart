@@ -1,6 +1,9 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingCachePart on AgendaController {
+  static const bool _feedSeededStartupHeadEnabled = false;
+  static const bool _feedStartupSupportFallbackEnabled = false;
+
   int _startupSeedLoadLimit(int targetCount) {
     if (targetCount <= 0) return 0;
     return max(targetCount * 5, 100);
@@ -69,6 +72,12 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     required int targetCount,
     bool allowSparseSlotFallback = false,
   }) {
+    if (!_feedSeededStartupHeadEnabled && cacheCandidates.isNotEmpty) {
+      debugPrint(
+        '[FeedStartupPlanner] status=ignore_cache_candidates_live_motor_only '
+        'cacheCount=${cacheCandidates.length}',
+      );
+    }
     if ((cacheCandidates.isEmpty && liveCandidates.isEmpty) ||
         targetCount <= 0) {
       _startupPlannerHeadApplied = false;
@@ -77,12 +86,13 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     }
     final startupVariant = _feedStartupVariantOverride();
     final cacheReadyVideoDocIds = _startupCacheReadyVideoDocIds(<PostsModel>[
-      ...cacheCandidates,
       ...liveCandidates,
     ]);
     final shownItems = _agendaFeedApplicationService.buildStartupPlannerHead(
       liveCandidates: liveCandidates,
-      cacheCandidates: cacheCandidates,
+      cacheCandidates: _feedSeededStartupHeadEnabled
+          ? cacheCandidates
+          : const <PostsModel>[],
       targetCount: targetCount,
       startupVariantOverride: startupVariant,
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
@@ -236,6 +246,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     Set<String> excludeDocIds = const <String>{},
     DocumentSnapshot<Map<String, dynamic>>? fallbackStartAfter,
   }) async {
+    assert(
+      !_feedStartupSupportFallbackEnabled,
+      'Feed startup support fallback must stay disabled.',
+    );
     final seenDocIds = <String>{
       for (final docId in excludeDocIds)
         if (docId.trim().isNotEmpty) docId.trim(),

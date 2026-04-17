@@ -482,7 +482,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       }
       if (warmLogs.isNotEmpty) {
         debugPrint(
-          '[ShortSegmentWarm] phase=splash_startup count=${warmLogs.length} '
+          '[ShortOnYukleme] phase=splash_startup count=${warmLogs.length} '
           'entries=${warmLogs.join(' | ')}',
         );
       }

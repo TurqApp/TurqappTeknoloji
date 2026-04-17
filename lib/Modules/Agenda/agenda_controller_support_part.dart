@@ -397,7 +397,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
     }
     if (startupWarmLogs.isNotEmpty) {
       debugPrint(
-        '[FeedSegmentWarm] phase=splash_startup count=${startupWarmLogs.length} '
+        '[FeedOnYukleme] phase=splash_startup count=${startupWarmLogs.length} '
         'entries=${startupWarmLogs.join(' | ')}',
       );
     }

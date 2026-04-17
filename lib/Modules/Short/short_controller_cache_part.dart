@@ -4,6 +4,10 @@ extension ShortControllerCachePart on ShortController {
   static const int _androidActiveReadySegments = 3;
   static const int _androidNeighborReadySegments = 3;
   static const int _startupFirstVideoWindowCount = 5;
+  static const int _onYuklemeStartupCount = 5;
+  static const int _onYuklemeAheadFirstSegmentCount = 5;
+  static const int _onYuklemeActiveReadySegments = 3;
+  static const List<int> _onYuklemeSecondSegmentAheadOffsets = <int>[2, 3, 5];
 
   void _seedCacheEntryForIndex(int index) {
     if (index < 0 || index >= shorts.length) return;
@@ -17,29 +21,61 @@ extension ShortControllerCachePart on ShortController {
     cacheManager.cacheHlsEntry(docId, playbackUrl);
   }
 
-  void _logReadySegmentWindow(
-    String reason, {
-    required int anchorIndex,
-    required int startIndex,
-    required int endIndexInclusive,
-  }) {
-    if (!kDebugMode || shorts.isEmpty) return;
-    final safeStart = math.max(0, startIndex);
-    final safeEnd = math.min(shorts.length - 1, endIndexInclusive);
-    if (safeStart > safeEnd) return;
-    final segmentRuntime = const SegmentCacheRuntimeService();
-    final sample = <String>[];
-    for (int i = safeStart; i <= safeEnd; i++) {
-      final docId = shorts[i].docID.trim();
-      if (docId.isEmpty) continue;
-      final entry = segmentRuntime.getEntry(docId);
-      final ready = entry?.cachedSegmentCount ?? 0;
-      final total = entry?.totalSegmentCount ?? 0;
-      sample.add('$i:${docId.substring(0, math.min(6, docId.length))}:$ready/$total');
+  int _onYuklemeReadySegmentsForOffset(int playableOffset) {
+    if (playableOffset <= 0) {
+      return _onYuklemeActiveReadySegments;
+    }
+    if (_onYuklemeSecondSegmentAheadOffsets.contains(playableOffset)) {
+      return 2;
+    }
+    if (playableOffset <= _onYuklemeAheadFirstSegmentCount) {
+      return 1;
+    }
+    return 0;
+  }
+
+  void primeOnYuklemeWindow(int anchorIndex) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    _ensureReadySegmentsForIndex(
+      safeAnchor,
+      minimumSegmentCount: _onYuklemeActiveReadySegments,
+    );
+    final warmLogs = <String>[
+      'idx=$safeAnchor offset=0 doc=${shorts[safeAnchor].docID} segments=$_onYuklemeActiveReadySegments',
+    ];
+    for (int offset = 1; offset <= _onYuklemeAheadFirstSegmentCount; offset++) {
+      final targetIndex = safeAnchor + offset;
+      if (targetIndex < 0 || targetIndex >= shorts.length) break;
+      final readySegments = _onYuklemeReadySegmentsForOffset(offset);
+      if (readySegments <= 0) continue;
+      _ensureReadySegmentsForIndex(
+        targetIndex,
+        minimumSegmentCount: readySegments,
+      );
+      warmLogs.add(
+        'idx=$targetIndex offset=$offset doc=${shorts[targetIndex].docID} segments=$readySegments',
+      );
     }
     debugPrint(
-      '[ShortReadyWindow] reason=$reason anchor=$anchorIndex '
-      'range=$safeStart-$safeEnd sample=${sample.join(",")}',
+      '[ShortOnYukleme] reason=window anchor=$safeAnchor entries=${warmLogs.join(' | ')}',
+    );
+  }
+
+  void primeOnYuklemeStartupWindow(int anchorIndex) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final endExclusive = math.min(
+      shorts.length,
+      safeAnchor + _onYuklemeStartupCount,
+    );
+    final warmLogs = <String>[];
+    for (int i = safeAnchor; i < endExclusive; i++) {
+      _ensureReadySegmentsForIndex(i, minimumSegmentCount: 1);
+      warmLogs.add('idx=$i doc=${shorts[i].docID} segments=1');
+    }
+    debugPrint(
+      '[ShortOnYukleme] reason=startup anchor=$safeAnchor entries=${warmLogs.join(' | ')}',
     );
   }
 
@@ -361,12 +397,7 @@ extension ShortControllerCachePart on ShortController {
     if (futures.isNotEmpty) {
       await Future.wait(futures);
     }
-    _logReadySegmentWindow(
-      'startup_first_segments',
-      anchorIndex: safeAnchor,
-      startIndex: safeAnchor,
-      endIndexInclusive: endExclusive - 1,
-    );
+    primeOnYuklemeStartupWindow(safeAnchor);
   }
 
   void primeStartupReadyMagazine(
@@ -392,20 +423,7 @@ extension ShortControllerCachePart on ShortController {
     int minimumSegmentCount = 1,
   }) {
     if (shorts.isEmpty) return;
-    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final endExclusive = math.min(shorts.length, safeAnchor + aheadCount + 1);
-    for (int i = safeAnchor + 1; i < endExclusive; i++) {
-      _ensureReadySegmentsForIndex(
-        i,
-        minimumSegmentCount: minimumSegmentCount,
-      );
-    }
-    _logReadySegmentWindow(
-      'forward_magazine',
-      anchorIndex: safeAnchor,
-      startIndex: safeAnchor + 1,
-      endIndexInclusive: endExclusive - 1,
-    );
+    primeOnYuklemeWindow(anchorIndex.clamp(0, shorts.length - 1));
   }
 
   void primePlaybackWindowReadySegments(
@@ -416,30 +434,7 @@ extension ShortControllerCachePart on ShortController {
     int hotBehindCount = 3,
     int warmBehindCount = 5,
   }) {
-    if (shorts.isEmpty) return;
-    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final hotStart = math.max(0, safeAnchor - hotBehindCount);
-    final hotEnd = math.min(shorts.length - 1, safeAnchor + aheadCount);
-    final warmStart = math.max(0, safeAnchor - warmBehindCount);
-
-    for (int i = warmStart; i < hotStart; i++) {
-      _ensureReadySegmentsForIndex(
-        i,
-        minimumSegmentCount: minimumSegmentCount,
-      );
-    }
-    for (int i = hotStart; i <= hotEnd; i++) {
-      _ensureReadySegmentsForIndex(
-        i,
-        minimumSegmentCount: minimumSegmentCount,
-      );
-    }
-    _logReadySegmentWindow(
-      'playback_window',
-      anchorIndex: safeAnchor,
-      startIndex: warmStart,
-      endIndexInclusive: hotEnd,
-    );
+    primeOnYuklemeWindow(anchorIndex);
   }
 
   Future<void> keepOnlyIndex(int index) async {

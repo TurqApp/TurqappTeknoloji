@@ -1,6 +1,9 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerLoadingPart on AgendaController {
+  static const bool _feedSeededStartupHeadEnabled = false;
+  static const bool _feedStartupSupportFallbackEnabled = false;
+  static const bool _feedLaunchFallbackCandidatesEnabled = false;
   static const int _connectedColdFeedStageOneLimit = 60;
   static const int _connectedColdFeedStageTwoLimit = 120;
   static const int _connectedColdFeedStageThreeLimit = 180;
@@ -109,7 +112,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       'typesensePrimaryEnabled': FeedSnapshotRepository.typesensePrimaryEnabled,
       'typesenseFirestoreFallbackEnabled':
           FeedSnapshotRepository.typesenseFirestoreFallbackEnabled,
-      'connectedSeedEnabled': false,
+      'connectedSeedEnabled': _feedSeededStartupHeadEnabled,
+      'startupSupportFallbackEnabled': _feedStartupSupportFallbackEnabled,
+      'launchFallbackCandidatesEnabled': _feedLaunchFallbackCandidatesEnabled,
       'stageOneLimit': _connectedColdFeedStageOneLimit,
       'stageTwoLimit': _connectedColdFeedStageTwoLimit,
       'stageThreeLimit': _connectedColdFeedStageThreeLimit,
@@ -139,6 +144,21 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
     }
 
+    assertRule(
+      !_feedSeededStartupHeadEnabled,
+      'feed_motor_seeded_startup_head_enabled',
+      'Feed seeded startup head must stay disabled',
+    );
+    assertRule(
+      !_feedStartupSupportFallbackEnabled,
+      'feed_motor_startup_support_fallback_enabled',
+      'Feed startup support fallback must stay disabled',
+    );
+    assertRule(
+      !_feedLaunchFallbackCandidatesEnabled,
+      'feed_motor_launch_fallback_candidates_enabled',
+      'Feed launch fallback candidates must stay disabled',
+    );
     assertRule(
       FeedSnapshotRepository.typesensePrimaryEnabled,
       'feed_motor_typesense_primary_disabled',

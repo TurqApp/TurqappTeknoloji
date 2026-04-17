@@ -64,6 +64,7 @@ class AgendaFeedApplicationService {
     int Function()? nowMsProvider,
   }) : _nowMsProvider = nowMsProvider;
 
+  static const bool _feedLaunchFallbackCandidatesEnabled = false;
   static const int _feedPlannerShuffleWindow = 24;
   static const Duration _livePlannerWindow = Duration(days: 3);
   static final Duration _feedLaunchMotorWindow = feedLaunchMotorContract.window;
@@ -104,9 +105,17 @@ class AgendaFeedApplicationService {
     bool allowSparseSlotFallback = false,
     bool emitLaunchMotorDiagnostics = true,
   }) {
+    if (!_feedLaunchFallbackCandidatesEnabled && fallbackCandidates.isNotEmpty) {
+      debugPrint(
+        '[FeedLaunchMotor] status=ignore_fallback_candidates_live_motor_only '
+        'fallbackCount=${fallbackCandidates.length}',
+      );
+    }
     return _buildLatestOrderedItems(
       primaryCandidates: primaryCandidates,
-      fallbackCandidates: fallbackCandidates,
+      fallbackCandidates: _feedLaunchFallbackCandidatesEnabled
+          ? fallbackCandidates
+          : const <PostsModel>[],
       targetCount: targetCount,
       allowSparseSlotFallback: allowSparseSlotFallback,
       emitLaunchMotorDiagnostics: emitLaunchMotorDiagnostics,
