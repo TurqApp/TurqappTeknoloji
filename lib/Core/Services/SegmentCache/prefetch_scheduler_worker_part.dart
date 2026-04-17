@@ -132,7 +132,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processQueue() async {
-    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
       pause();
       return;
     }
@@ -143,7 +143,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       return;
     }
     if (_automaticQuotaFillEnabled &&
-        !_hasActiveFeedPlaybackWindow &&
+        _shouldAllowBackgroundQuotaFill &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
@@ -189,7 +189,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processJob(_PrefetchJob job) async {
-    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
       pause();
       return;
     }
@@ -300,7 +300,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;
-      final quotaFillMode = !_hasActiveFeedPlaybackWindow &&
+      final quotaFillMode = _shouldAllowBackgroundQuotaFill &&
           shouldUsePrefetchQuotaFillMode(
             isOnWiFi: _isOnWiFi,
             mobileSeedMode: _mobileSeedMode,

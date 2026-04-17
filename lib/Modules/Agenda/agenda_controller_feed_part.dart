@@ -359,7 +359,8 @@ extension AgendaControllerFeedPart on AgendaController {
               videoManager,
               source: 'centered_index_non_playable',
             );
-          } else if (_shouldPreserveFeedPlaybackAcrossCenteredGap(videoManager)) {
+          } else if (_shouldPreserveFeedPlaybackAcrossCenteredGap(
+              videoManager)) {
             _scheduleFeedPrefetch();
           } else {
             videoManager.pauseAllVideos();
@@ -373,6 +374,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _scheduleFeedPrefetch({int attempt = 0}) {
+    if (_renderWindowFrozenOnCellular) return;
     final readyForFeedPrefetch = !isLoading.value &&
         lastCenteredIndex != null &&
         renderFeedEntries.isNotEmpty &&
@@ -756,8 +758,7 @@ extension AgendaControllerFeedPart on AgendaController {
         );
       }
 
-      final isAndroidStartupLead =
-          GetPlatform.isAndroid &&
+      final isAndroidStartupLead = GetPlatform.isAndroid &&
           target == 0 &&
           ((_lastPlaybackRowUpdateDocId?.trim().isEmpty ?? true)) &&
           ((VideoStateManager.instance.currentPlayingDocID?.trim().isEmpty ??
@@ -894,6 +895,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void ensureFeedCacheWarm() {
+    if (_renderWindowFrozenOnCellular) return;
     _scheduleFeedPrefetch();
   }
 

@@ -44,6 +44,7 @@ extension _ShortControllerRuntimeX on ShortController {
     unawaited(DeviceSessionService.instance.warmDeviceKey());
     _log('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
+    _bindNetworkAwareness();
   }
 
   Future<void> applyUserCacheQuota() async {
@@ -68,10 +69,55 @@ extension _ShortControllerRuntimeX on ShortController {
     _playbackCoordinator.reset();
     clearCache();
     _state.followingSub?.cancel();
+    _networkWorker?.dispose();
+  }
+
+  void _bindNetworkAwareness() {
+    final network = NetworkAwarenessService.maybeFind();
+    if (network == null) return;
+    _networkWorker?.dispose();
+    _networkWorker = ever<NetworkType>(
+      network.currentNetworkRx,
+      (networkType) {
+        if (networkType == NetworkType.cellular) {
+          _renderWindowFrozenOnCellular = true;
+          _log('[Shorts] Cellular freeze enabled - keep current list only');
+          return;
+        }
+        final shouldResume =
+            networkType == NetworkType.wifi && _renderWindowFrozenOnCellular;
+        _renderWindowFrozenOnCellular = false;
+        if (!shouldResume) return;
+        _log('[Shorts] Wi-Fi restored - short motor resumes');
+        unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+      },
+    );
   }
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  void handleNetworkPolicyTransition(NetworkType networkType) {
+    debugPrint(
+      '[ShortNetworkPolicy] status=dispatch network=${networkType.name} '
+      'frozen=$_renderWindowFrozenOnCellular count=${shorts.length}',
+    );
+    if (networkType == NetworkType.cellular) {
+      if (_renderWindowFrozenOnCellular) return;
+      _renderWindowFrozenOnCellular = true;
+      debugPrint(
+        '[ShortNetworkPolicy] status=cellular_freeze count=${shorts.length}',
+      );
+      return;
+    }
+    final shouldResume =
+        networkType == NetworkType.wifi && _renderWindowFrozenOnCellular;
+    _renderWindowFrozenOnCellular = false;
+    if (!shouldResume) return;
+    debugPrint(
+        '[ShortNetworkPolicy] status=wifi_resume count=${shorts.length}');
+    unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+  }
+
   Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
         allowBackgroundRefresh:
             ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts),

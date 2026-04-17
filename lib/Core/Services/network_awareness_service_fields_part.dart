@@ -10,6 +10,7 @@ class _NetworkAwarenessServiceState {
   ).obs;
 
   StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
+  Timer? connectivityPollTimer;
   NetworkType? debugOverrideNetwork;
 }
 
@@ -23,6 +24,9 @@ extension _NetworkAwarenessServiceFieldsPart on NetworkAwarenessService {
     StreamSubscription<List<ConnectivityResult>>? value,
   ) =>
       _state.connectivitySubscription = value;
+  Timer? get _connectivityPollTimer => _state.connectivityPollTimer;
+  set _connectivityPollTimer(Timer? value) =>
+      _state.connectivityPollTimer = value;
   NetworkType? get _debugOverrideNetwork => _state.debugOverrideNetwork;
   set _debugOverrideNetwork(NetworkType? value) =>
       _state.debugOverrideNetwork = value;

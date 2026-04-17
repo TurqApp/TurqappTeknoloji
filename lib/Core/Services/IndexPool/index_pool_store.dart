@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 enum IndexPoolKind {
   feed,
@@ -92,6 +93,16 @@ dynamic _cloneIndexPoolValue(dynamic value) {
 }
 
 class IndexPoolStore {
+  bool get _isOnWiFi {
+    try {
+      final network = NetworkAwarenessService.maybeFind();
+      if (network != null) {
+        return network.isOnWiFi;
+      }
+    } catch (_) {}
+    return true;
+  }
+
   static IndexPoolStore? maybeFind() {
     final isRegistered = Get.isRegistered<IndexPoolStore>();
     if (!isRegistered) return null;
@@ -264,6 +275,7 @@ class IndexPoolStore {
     int limit = 20,
     bool allowStale = true,
   }) async {
+    if (!_isOnWiFi) return const <PostsModel>[];
     final k = kind.name;
     final all = await _loadAll(allowStale: allowStale);
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -310,6 +322,7 @@ class IndexPoolStore {
     List<PostsModel> posts, {
     Map<String, Map<String, dynamic>> userMeta = const {},
   }) async {
+    if (!_isOnWiFi) return;
     if (posts.isEmpty) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     final k = kind.name;

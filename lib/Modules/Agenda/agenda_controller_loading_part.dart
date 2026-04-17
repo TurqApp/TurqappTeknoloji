@@ -1072,6 +1072,23 @@ extension AgendaControllerLoadingPart on AgendaController {
     String trigger = 'manual',
     int? expectedMutationEpoch,
   }) async {
+    if (_renderWindowFrozenOnCellular && !initial) {
+      recordQALabFeedFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'reason': 'cellular_render_freeze',
+          'currentCount': agendaList.length,
+        },
+      );
+      debugPrint(
+        '[FeedBootstrapRequest] status=skip_cellular_render_freeze '
+        'trigger=$trigger agendaCount=${agendaList.length}',
+      );
+      return;
+    }
     if (initial && agendaList.isNotEmpty && _startupHeadFinalized) {
       recordQALabFeedFetchEvent(
         stage: 'skipped',
@@ -1383,6 +1400,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
         return;
       }
+      if (_renderWindowFrozenOnCellular && !initial) {
+        debugPrint(
+          '[FeedBootstrapRequest] status=skip_cellular_render_freeze_after_fetch '
+          'trigger=$trigger agendaCount=${agendaList.length}',
+        );
+        return;
+      }
 
       if (usesPlannedColdPage) {
         final consumedDocIds = <String>{
@@ -1675,9 +1699,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final ready = planned >= _connectedColdFeedStageFourLimit ||
         agendaList.length >= _connectedColdFeedStageFourLimit;
     _recordFeedMotorSignal(
-      name: ready
-          ? 'stage_four_ready_at_170'
-          : 'stage_four_not_ready_at_170',
+      name: ready ? 'stage_four_ready_at_170' : 'stage_four_not_ready_at_170',
       status: ready ? 'ok' : 'warn',
       reason: 'viewed_170_stage4_checkpoint',
       metadata: <String, dynamic>{
@@ -2684,8 +2706,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         _lastPlaybackWindowSignature = null;
         _lastPlaybackRowUpdateDocId = null;
         lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
-        centeredIndex.value =
-            refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
+        centeredIndex.value = refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
       }
 
       if (refreshPlan.freshScheduledIds.isNotEmpty) {

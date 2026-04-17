@@ -33,6 +33,21 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         _isFeedSurfaceVisible;
   }
 
+  bool get _hasAnyActivePlaybackFocus {
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return false;
+    final current = manager.currentPlayingDocID?.trim() ?? '';
+    final target = manager.targetPlaybackDocID?.trim() ?? '';
+    if (current.isEmpty && target.isEmpty) return false;
+    return current.startsWith('feed:') ||
+        current.startsWith('short:') ||
+        target.startsWith('feed:') ||
+        target.startsWith('short:');
+  }
+
+  bool get _shouldAllowBackgroundQuotaFill =>
+      !_hasActiveFeedPlaybackWindow && !_hasAnyActivePlaybackFocus;
+
   bool get _isOnWiFi {
     try {
       final network = NetworkAwarenessService.maybeFind();

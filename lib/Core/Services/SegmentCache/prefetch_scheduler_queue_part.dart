@@ -107,7 +107,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final cacheManager = _getCacheManager();
     if (cacheManager == null || _paused) return;
     if (!_isOnWiFi || _mobileSeedMode) return;
-    if (_hasActiveFeedPlaybackWindow) return;
+    if (!_shouldAllowBackgroundQuotaFill) return;
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
     _resetWifiQuotaFillPlanIfNeeded(cacheManager);
 
@@ -155,7 +155,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _quotaFillRemoteInFlight = true;
     try {
       final remoteSeedPosts = <PostsModel>[];
-      while (remoteSeedPosts.length < _prefetchSchedulerQuotaFillPlanningBatchSize &&
+      while (remoteSeedPosts.length <
+              _prefetchSchedulerQuotaFillPlanningBatchSize &&
           _quotaFillRemoteHasMore) {
         final page = await ensureShortRepository().fetchReadyPage(
           startAfter: _quotaFillRemoteCursor,
@@ -394,7 +395,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
 
-    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
       pause();
       return;
     }
@@ -514,7 +515,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
 
-    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
       pause();
       return;
     }
@@ -621,7 +622,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       cacheManager: cacheManager,
     );
 
-    if (!CacheNetworkPolicy.canPrefetch && !_mobileSeedMode) {
+    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
       return;
     }
 
@@ -740,6 +741,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
+    if (!_isOnWiFi) return false;
     if (!_restrictToFocusedDoc) return false;
     final focusedDocId = _focusedDocID?.trim() ?? '';
     if (focusedDocId.isEmpty) return false;

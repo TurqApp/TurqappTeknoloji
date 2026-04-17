@@ -1,13 +1,44 @@
 part of 'network_awareness_service.dart';
 
 extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
+  static const Duration _connectivityPollInterval = Duration(seconds: 3);
+
   void _startNetworkMonitoring() async {
     final connectivity = await Connectivity().checkConnectivity();
+    debugPrint(
+      '[NetworkAwareness] source=initial_check results=${connectivity.map((e) => e.name).join(",")} '
+      'current=${_currentNetwork.value.name}',
+    );
     _updateNetworkType(connectivity);
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
-          _updateNetworkType,
+      (results) {
+        debugPrint(
+          '[NetworkAwareness] source=connectivity_stream results=${results.map((e) => e.name).join(",")} '
+          'previous=${_currentNetwork.value.name}',
         );
+        _updateNetworkType(results);
+      },
+    );
+    _connectivityPollTimer?.cancel();
+    _connectivityPollTimer = Timer.periodic(
+      _connectivityPollInterval,
+      (_) => _refreshNetworkTypeFromPoll(),
+    );
+  }
+
+  Future<void> _refreshNetworkTypeFromPoll() async {
+    if (_debugOverrideNetwork != null) return;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      debugPrint(
+        '[NetworkAwareness] source=poll_check results=${results.map((e) => e.name).join(",")} '
+        'previous=${_currentNetwork.value.name}',
+      );
+      _updateNetworkType(results);
+    } catch (e) {
+      debugPrint('[NetworkAwareness] source=poll_check_failed error=$e');
+    }
   }
 
   void _updateNetworkType(List<ConnectivityResult> results) {
@@ -25,12 +56,36 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       _currentNetwork.value = NetworkType.none;
     }
 
+    debugPrint(
+      '[NetworkAwareness] source=network_update resolved=${_currentNetwork.value.name} '
+      'results=${results.map((e) => e.name).join(",")}',
+    );
+
     final scheduler = maybeFindPrefetchScheduler();
-    if (scheduler == null) return;
-    if (_currentNetwork.value == NetworkType.wifi) {
-      scheduler.resume();
-    } else {
-      scheduler.pause();
+    if (scheduler != null) {
+      if (_currentNetwork.value == NetworkType.wifi) {
+        scheduler.resume();
+      } else {
+        scheduler.pause();
+      }
+    }
+
+    final shortController = maybeFindShortController();
+    debugPrint(
+      '[NetworkAwareness] dispatch=short found=${shortController != null} '
+      'network=${_currentNetwork.value.name}',
+    );
+    if (shortController != null) {
+      shortController.handleNetworkPolicyTransition(_currentNetwork.value);
+    }
+
+    final agendaController = maybeFindAgendaController();
+    debugPrint(
+      '[NetworkAwareness] dispatch=feed found=${agendaController != null} '
+      'network=${_currentNetwork.value.name}',
+    );
+    if (agendaController != null) {
+      agendaController.handleNetworkPolicyTransition(_currentNetwork.value);
     }
   }
 

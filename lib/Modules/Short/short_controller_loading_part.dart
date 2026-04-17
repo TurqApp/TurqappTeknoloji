@@ -370,6 +370,7 @@ extension ShortControllerLoadingPart on ShortController {
   Future<void> reconcileVisibleShortSurface({
     required String trigger,
   }) async {
+    if (_renderWindowFrozenOnCellular) return;
     final currentShorts = shorts.toList(growable: false);
     if (currentShorts.isEmpty) return;
 
@@ -394,6 +395,7 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> backgroundPreload() async {
+    if (_renderWindowFrozenOnCellular) return;
     if (_isFirstVideoReady()) {
       return;
     }
@@ -510,6 +512,7 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> refreshShorts() async {
+    if (_renderWindowFrozenOnCellular) return;
     if (isRefreshing.value || isLoading.value) {
       return;
     }
@@ -573,6 +576,10 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> loadMoreIfNeeded(int currentIndex) async {
+    if (_renderWindowFrozenOnCellular) {
+      _log('[Shorts] loadMore blocked - cellular freeze active');
+      return;
+    }
     _log(
       '[Shorts] loadMoreIfNeeded called - currentIndex: $currentIndex, shorts.length: ${shorts.length}, isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
@@ -594,6 +601,7 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> warmStart({int targetCount = 20, int maxPages = 2}) async {
+    if (_renderWindowFrozenOnCellular) return;
     try {
       if (shorts.isEmpty) {
         if (_backgroundPreloadFuture != null) {
@@ -614,6 +622,17 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _loadNextPage({String trigger = 'manual'}) async {
+    if (_renderWindowFrozenOnCellular) {
+      _recordShortFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'reason': 'cellular_render_freeze',
+          'currentCount': shorts.length,
+        },
+      );
+      return;
+    }
     _log(
       '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
@@ -652,6 +671,17 @@ extension ShortControllerLoadingPart on ShortController {
         pageSizeOverride: bufferedPageSize,
         trigger: trigger,
       );
+      if (_renderWindowFrozenOnCellular) {
+        _recordShortFetchEvent(
+          stage: 'skipped',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'reason': 'cellular_render_freeze_after_fetch',
+            'currentCount': shorts.length,
+          },
+        );
+        return;
+      }
 
       if (result.posts.isEmpty) {
         hasMore.value = result.hasMore;

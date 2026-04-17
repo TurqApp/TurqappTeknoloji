@@ -28,6 +28,8 @@ class _ShortControllerState {
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   bool startupPresentationApplied = false;
+  Worker? networkWorker;
+  bool renderWindowFrozenOnCellular = false;
 }
 
 extension ShortControllerFieldsPart on ShortController {
@@ -71,4 +73,9 @@ extension ShortControllerFieldsPart on ShortController {
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
   set _startupPresentationApplied(bool value) =>
       _state.startupPresentationApplied = value;
+  Worker? get _networkWorker => _state.networkWorker;
+  set _networkWorker(Worker? value) => _state.networkWorker = value;
+  bool get _renderWindowFrozenOnCellular => _state.renderWindowFrozenOnCellular;
+  set _renderWindowFrozenOnCellular(bool value) =>
+      _state.renderWindowFrozenOnCellular = value;
 }

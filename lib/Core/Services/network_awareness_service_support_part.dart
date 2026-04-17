@@ -4,6 +4,8 @@ const String _networkAwarenessSettingsKey = 'network_settings';
 const String _networkAwarenessDataUsageKey = 'data_usage_stats';
 
 extension NetworkAwarenessServiceSupportPart on NetworkAwarenessService {
+  Rx<NetworkType> get currentNetworkRx => _currentNetwork;
+
   NetworkType get currentNetwork =>
       _debugOverrideNetwork ?? _currentNetwork.value;
 

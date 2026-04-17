@@ -93,6 +93,8 @@ class _AgendaControllerState {
   DocumentSnapshot<Map<String, dynamic>>? plannedColdFeedLastDoc;
   bool plannedColdFeedUsesPrimaryFeed = true;
   int? plannedColdFeedNextTypesensePage;
+  Worker? networkWorker;
+  bool renderWindowFrozenOnCellular = false;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -329,6 +331,11 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.plannedColdFeedNextTypesensePage;
   set _plannedColdFeedNextTypesensePage(int? value) =>
       _state.plannedColdFeedNextTypesensePage = value;
+  Worker? get _networkWorker => _state.networkWorker;
+  set _networkWorker(Worker? value) => _state.networkWorker = value;
+  bool get _renderWindowFrozenOnCellular => _state.renderWindowFrozenOnCellular;
+  set _renderWindowFrozenOnCellular(bool value) =>
+      _state.renderWindowFrozenOnCellular = value;
 
   bool isStartupCacheOriginVideoDoc(String docId) {
     final normalized = docId.trim();
