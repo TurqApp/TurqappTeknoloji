@@ -93,6 +93,27 @@ extension _ShortControllerRuntimeX on ShortController {
       },
     );
   }
+
+  Future<void> ensureShortSurfaceReady({
+    required int minimumCount,
+  }) async {
+    if (shorts.isEmpty) {
+      if (_backgroundPreloadFuture != null) {
+        await _backgroundPreloadFuture;
+      } else {
+        await _runInitialLoadOnce();
+      }
+    }
+
+    var attempts = 0;
+    while (shorts.length < minimumCount &&
+        hasMore.value &&
+        !isLoading.value &&
+        attempts < 6) {
+      await _loadNextPage(trigger: 'startup_surface_ready_gate');
+      attempts++;
+    }
+  }
 }
 
 extension ShortControllerPublicApiPart on ShortController {
@@ -153,19 +174,15 @@ extension ShortControllerPublicApiPart on ShortController {
     );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
-    if (shorts.isEmpty) {
-      if (_backgroundPreloadFuture != null) {
-        await _backgroundPreloadFuture;
-      } else {
-        await _runInitialLoadOnce();
-      }
-    }
+    await ensureShortSurfaceReady(minimumCount: _initialPreloadCount);
     if (shorts.length < shortMotorStageOneLimit() &&
         hasMore.value &&
         !isLoading.value) {
-      await warmStart(
-        targetCount: shortMotorStageOneLimit(),
-        maxPages: 4,
+      unawaited(
+        warmStart(
+          targetCount: shortMotorStageOneLimit(),
+          maxPages: 4,
+        ),
       );
     }
     await reconcileVisibleShortSurface(

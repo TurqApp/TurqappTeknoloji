@@ -109,7 +109,7 @@ class FeedDiversityMemoryService extends GetxService {
     required int currentSegment,
   }) {
     if (_shouldBypassPenaltyForCurrentUser()) return;
-    if (!post.hasPlayableVideo || currentSegment < 3) return;
+    if (!post.hasPlayableVideo || currentSegment < 1) return;
     final docId = post.docID.trim();
     if (docId.isEmpty) return;
     if (_pendingWeeklyWatchDocIds.contains(docId)) return;

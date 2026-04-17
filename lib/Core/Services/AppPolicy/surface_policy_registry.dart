@@ -117,7 +117,7 @@ class SurfacePolicyRegistry {
 
   static const int feedReadyForNavCount = 3;
   static const int storyReadyForNavCount = 1;
-  static const int shortReadyForNavCount = 1;
+  static const int shortReadyForNavCount = 5;
 
   static const int marketStartupShardLimit = 4;
   static const int jobStartupShardLimit = 4;

@@ -73,19 +73,18 @@ Future<List<PostsModel>> _performFilterEligiblePosts(
   }
   final deduped =
       excludeFeedVisibleShortConflicts(visible, warmFeedVisibleVideoDocIds);
-  final rewatchFiltered = await excludePersistedShortRewatchPosts(deduped);
   repository._invariantGuard.assertNotEmptyAfterRefresh(
     surface: 'short',
     invariantKey: 'eligible_visible_after_filter',
     hadSnapshot: normalized.isNotEmpty,
     previousCount: normalized.length,
-    nextCount: rewatchFiltered.length,
+    nextCount: deduped.length,
     payload: <String, dynamic>{
       'currentUserId': currentUserId,
       'followingCount': followingIds.length,
     },
   );
-  return rewatchFiltered;
+  return deduped;
 }
 
 List<PostsModel> _performNormalizePosts(List<PostsModel> posts) {

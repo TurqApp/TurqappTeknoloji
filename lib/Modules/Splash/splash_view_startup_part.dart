@@ -117,15 +117,9 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
 
     final shardStore = ensureStartupSnapshotShardStore();
-    final onWiFi = _isOnWiFiNow();
     await _primeFeedStartupShard(
       shardStore: shardStore,
       userId: userId,
-    );
-    await _primeShortStartupShard(
-      shardStore: shardStore,
-      userId: userId,
-      onWiFi: onWiFi,
     );
   }
 

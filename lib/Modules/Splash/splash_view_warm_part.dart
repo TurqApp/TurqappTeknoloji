@@ -29,9 +29,11 @@ extension _SplashViewWarmPart on _SplashViewState {
   Future<void> _runWarmSlices(
     Iterable<Future<void> Function()> slices,
   ) async {
+    final futures = <Future<void>>[];
     for (final slice in slices) {
-      await _runWarmSlice(slice);
+      futures.add(_runWarmSlice(slice));
     }
+    await Future.wait(futures);
   }
 
   Future<Map<String, bool>> _loadSplashPasajVisibilitySnapshot({
@@ -225,10 +227,6 @@ extension _SplashViewWarmPart on _SplashViewState {
           criticalSlices.add(() async {
             await _profileStartupWarmSlice('home_short_surface', () async {
               final shorts = ensureShortController();
-              await _warmShortSnapshotForStartup(
-                onWiFi: onWiFi,
-                isFirstLaunch: isFirstLaunch,
-              );
               await shorts
                   .prepareStartupSurface(
                     allowBackgroundRefresh: false,
@@ -990,36 +988,9 @@ extension _SplashViewWarmPart on _SplashViewState {
     required bool onWiFi,
     required bool isFirstLaunch,
   }) async {
-    try {
-      final userId = CurrentUserService.instance.effectiveUserId;
-      if (userId.isEmpty) return;
-      final warmLimit = ReadBudgetRegistry.shortStartupSnapshotLimit(
-        onWiFi: onWiFi,
-        isFirstLaunch: isFirstLaunch,
-      );
-      final snapshot = await ensureShortSnapshotRepository().bootstrapHome(
-        userId: userId,
-        limit: warmLimit,
-      );
-      _shortWarmSnapshotHit = snapshot.hasLocalSnapshot;
-      _shortWarmSnapshotSource = snapshot.source.name;
-      _shortWarmSnapshotAgeMs = snapshot.snapshotAt == null
-          ? null
-          : DateTime.now().difference(snapshot.snapshotAt!).inMilliseconds;
-      _trackStartupSnapshot(
-        surface: 'short',
-        resource: snapshot,
-        itemCount: (snapshot.data ?? const <dynamic>[]).length,
-        startupShardHydrated: _shortStartupShardHydrated,
-        startupShardAgeMs: _shortStartupShardAgeMs,
-      );
-      unawaited(
-        _persistShortStartupShard(
-          snapshot,
-          onWiFi: onWiFi,
-        ),
-      );
-    } catch (_) {}
+    _shortWarmSnapshotHit = false;
+    _shortWarmSnapshotSource = 'disabled';
+    _shortWarmSnapshotAgeMs = null;
   }
 
   void _trackStartupSnapshot<T>({

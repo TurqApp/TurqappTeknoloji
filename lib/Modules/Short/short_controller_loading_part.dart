@@ -9,9 +9,10 @@ extension ShortControllerLoadingPart on ShortController {
   static const int _shortMotorStageOneLimit = 60;
   static const int _shortMotorStageTwoLimit = 120;
   static const int _shortMotorStageThreeLimit = 180;
-  static const int _shortMotorStageTwoViewedTrigger = 50;
-  static const int _shortMotorStageThreeViewedTrigger = 110;
-  static const int _shortMotorStageThreeReadyCheckpoint = 170;
+  static const int _shortMotorStageFourLimit = 240;
+  static const int _shortMotorStageThreeViewedTrigger = 50;
+  static const int _shortMotorStageFourViewedTrigger = 110;
+  static const int _shortMotorStageFourReadyCheckpoint = 170;
 
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
@@ -40,16 +41,18 @@ extension ShortControllerLoadingPart on ShortController {
     const expectedStageOne = 60;
     const expectedStageTwo = 120;
     const expectedStageThree = 180;
-    const expectedTriggerTwo = 50;
-    const expectedTriggerThree = 110;
+    const expectedStageFour = 240;
+    const expectedTriggerThree = 50;
+    const expectedTriggerFour = 110;
     const expectedReadyCheckpoint = 170;
     final contract = <String, dynamic>{
       'stageOneLimit': _shortMotorStageOneLimit,
       'stageTwoLimit': _shortMotorStageTwoLimit,
       'stageThreeLimit': _shortMotorStageThreeLimit,
-      'stageTwoViewedTrigger': _shortMotorStageTwoViewedTrigger,
+      'stageFourLimit': _shortMotorStageFourLimit,
       'stageThreeViewedTrigger': _shortMotorStageThreeViewedTrigger,
-      'stageThreeReadyCheckpoint': _shortMotorStageThreeReadyCheckpoint,
+      'stageFourViewedTrigger': _shortMotorStageFourViewedTrigger,
+      'stageFourReadyCheckpoint': _shortMotorStageFourReadyCheckpoint,
     };
     debugPrint(
       '[ShortMotorSignal] name=contract_snapshot status=ok '
@@ -66,7 +69,8 @@ extension ShortControllerLoadingPart on ShortController {
     );
     if (_shortMotorStageOneLimit != expectedStageOne ||
         _shortMotorStageTwoLimit != expectedStageTwo ||
-        _shortMotorStageThreeLimit != expectedStageThree) {
+        _shortMotorStageThreeLimit != expectedStageThree ||
+        _shortMotorStageFourLimit != expectedStageFour) {
       _invariantGuard.record(
         surface: 'short',
         invariantKey: 'short_motor_stage_limits_changed',
@@ -74,9 +78,9 @@ extension ShortControllerLoadingPart on ShortController {
         payload: contract,
       );
     }
-    if (_shortMotorStageTwoViewedTrigger != expectedTriggerTwo ||
-        _shortMotorStageThreeViewedTrigger != expectedTriggerThree ||
-        _shortMotorStageThreeReadyCheckpoint != expectedReadyCheckpoint) {
+    if (_shortMotorStageThreeViewedTrigger != expectedTriggerThree ||
+        _shortMotorStageFourViewedTrigger != expectedTriggerFour ||
+        _shortMotorStageFourReadyCheckpoint != expectedReadyCheckpoint) {
       _invariantGuard.record(
         surface: 'short',
         invariantKey: 'short_motor_stage_triggers_changed',
@@ -96,13 +100,17 @@ extension ShortControllerLoadingPart on ShortController {
     var targetCount = _shortMotorStageOneLimit;
     var maxPages = 4;
     var stageLabel = 'stage_one';
-    if (viewedCount >= _shortMotorStageThreeViewedTrigger) {
+    if (viewedCount >= _shortMotorStageFourViewedTrigger) {
+      targetCount = _shortMotorStageFourLimit;
+      maxPages = 10;
+      stageLabel = viewedCount >= _shortMotorStageFourReadyCheckpoint
+          ? 'stage_four_checkpoint'
+          : 'stage_four';
+    } else if (viewedCount >= _shortMotorStageThreeViewedTrigger) {
       targetCount = _shortMotorStageThreeLimit;
       maxPages = 8;
-      stageLabel = viewedCount >= _shortMotorStageThreeReadyCheckpoint
-          ? 'stage_three_checkpoint'
-          : 'stage_three';
-    } else if (viewedCount >= _shortMotorStageTwoViewedTrigger) {
+      stageLabel = 'stage_three';
+    } else if (shorts.length < _shortMotorStageTwoLimit) {
       targetCount = _shortMotorStageTwoLimit;
       maxPages = 6;
       stageLabel = 'stage_two';
@@ -174,7 +182,7 @@ extension ShortControllerLoadingPart on ShortController {
     List<PostsModel> posts, {
     required int targetCount,
   }) {
-    return LaunchMotorSelectionService.buildPoolFillResult(
+    final result = LaunchMotorSelectionService.buildPoolFillResult(
       latestPool: posts,
       anchorMs: startupSurfaceSessionSeed(sessionNamespace: 'short'),
       contract: shortLaunchMotorContract,
@@ -182,8 +190,22 @@ extension ShortControllerLoadingPart on ShortController {
       // Keep short startup inside the motor window, but when strict queues are
       // sparse do not leave the launch surface underfilled.
       fallbackToAffinityWhenSparse: true,
-      fallbackToLatestWhenEmpty: false,
+      fallbackToLatestWhenEmpty: true,
     );
+    return LaunchMotorPoolFillResult(
+      snapshot: result.snapshot,
+      selectedPool: _sortShortOldestFirst(result.selectedPool),
+    );
+  }
+
+  List<PostsModel> _sortShortOldestFirst(List<PostsModel> items) {
+    if (items.length < 2) {
+      return items.toList(growable: false);
+    }
+    final sorted = items.toList(growable: false)
+      ..sort((left, right) =>
+          LaunchMotorSelectionService.compareLatestPosts(right, left));
+    return sorted;
   }
 
   Future<_ShortPageResult> _fetchPage({
@@ -195,7 +217,7 @@ extension ShortControllerLoadingPart on ShortController {
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
     QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
     bool hasMoreDocs = true;
-    const int maxPageScans = 4;
+    const int maxPageScans = 8;
     final effectivePageSize = pageSizeOverride ?? pageSize;
     final collected = <PostsModel>[];
     final seenDocIds = <String>{};
@@ -364,7 +386,7 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
-    return excludePersistedShortRewatchPosts(filtered);
+    return filtered;
   }
 
   Future<void> reconcileVisibleShortSurface({
@@ -440,7 +462,7 @@ extension ShortControllerLoadingPart on ShortController {
       '[Shorts] Current shorts list IDs BEFORE: ${shorts.map((s) => s.docID).take(5).toList()}',
     );
 
-    if (shorts.isEmpty) {
+    if (shorts.isEmpty || shorts.length < _initialPreloadCount) {
       _log('[Shorts] Motor öncesi seed kapalı - liste sıfırlanıyor');
       isLoading.value = false;
       hasMore.value = true;
@@ -450,6 +472,10 @@ extension ShortControllerLoadingPart on ShortController {
       await _loadNextPage(trigger: 'initial_empty_bootstrap');
     } else {
       _log('[Shorts] Motor öncesi seed kapalı - mevcut liste korunuyor');
+      final sortedExisting = _sortShortOldestFirst(
+        shorts.toList(growable: false),
+      );
+      _replaceShorts(sortedExisting, remapCache: true);
       unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
     }
 
@@ -818,14 +844,7 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _persistVisibleSnapshot() async {
-    final userId = _currentUserId;
-    if (userId.isEmpty || shorts.isEmpty) return;
-    await _shortSnapshotRepository.persistHomeSnapshot(
-      userId: userId,
-      posts: shorts.toList(growable: false),
-      limit: ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-      source: CachedResourceSource.server,
-    );
+    return;
   }
 
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
