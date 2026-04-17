@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FeedDiversityMemoryService extends GetxService {
   static const Duration startupHeadWindow = Duration(days: 3);
@@ -119,6 +120,20 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   bool _shouldBypassPenaltyForCurrentUser() {
+    final service = maybeFindCurrentUserService();
+    if (service == null) return false;
+    final markers = <String>{
+      service.nickname.trim().toLowerCase(),
+      service.effectiveDisplayName.trim().toLowerCase(),
+      service.authDisplayName.trim().toLowerCase(),
+      service.effectiveEmail.trim().toLowerCase(),
+    }..removeWhere((value) => value.isEmpty);
+    for (final marker in markers) {
+      if (marker == 'turqapp') return true;
+      if (marker.startsWith('turqapp@')) return true;
+      if (marker.contains(' turqapp')) return true;
+      if (marker.contains('@turqapp')) return true;
+    }
     return false;
   }
 

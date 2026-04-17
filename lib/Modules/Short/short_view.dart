@@ -40,7 +40,7 @@ const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);
 const Duration _shortTierReconcileDelay = Duration(milliseconds: 220);
 const Duration _shortEngagementRescoreDelay = Duration(milliseconds: 2500);
 const Duration _shortPlayWatchdogDelayAndroid = Duration(milliseconds: 450);
-const Duration _shortPlayWatchdogDelayIOS = Duration(milliseconds: 1600);
+const Duration _shortPlayWatchdogDelayIOS = Duration(milliseconds: 900);
 const Duration _shortProgressPersistInterval = Duration(seconds: 2);
 const double _shortProgressPersistDelta = 0.10;
 const int _shortAdInsertionFrequency = 5;
@@ -208,7 +208,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   List<_ShortRenderItem> _renderItems = const <_ShortRenderItem>[];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
   int _currentRenderPage = 0;
-  bool _isAdPageActive = false;
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;

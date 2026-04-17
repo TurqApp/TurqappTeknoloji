@@ -240,12 +240,12 @@ extension _SplashViewWarmPart on _SplashViewState {
               shorts.primeStartupReadyMagazine(
                 0,
                 count: _SplashViewState._mandatoryStartupVideoWarmCount,
-                minimumSegmentCount: 2,
+                minimumSegmentCount: 1,
               );
               await shorts.warmStartupFirstSegments(
                 0,
                 count: _SplashViewState._mandatoryStartupVideoWarmCount,
-                minimumSegmentCount: 2,
+                minimumSegmentCount: 1,
               );
               _primeShortVideoSegments(shorts);
             });
@@ -476,9 +476,9 @@ extension _SplashViewWarmPart on _SplashViewState {
         }
         prefetch.boostDoc(
           post.docID,
-          readySegments: 2,
+          readySegments: 1,
         );
-        warmLogs.add('${post.docID}:segments=2');
+        warmLogs.add('${post.docID}:segments=1');
       }
       if (warmLogs.isNotEmpty) {
         debugPrint(
