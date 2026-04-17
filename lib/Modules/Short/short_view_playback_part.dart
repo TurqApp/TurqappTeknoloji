@@ -344,6 +344,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         '[ShortAdSlots] settled renderIndex=$page organicIndex=none '
         'currentOrganic=$currentPage preloadBaseOrganic=$currentPage',
       );
+      _prepareUpcomingVideoForSwipe(activePageOverride: currentPage);
       _updateShortViewState(() {
         _currentRenderPage = page;
         _showOverlayControls = false;
