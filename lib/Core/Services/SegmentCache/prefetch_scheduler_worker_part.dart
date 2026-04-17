@@ -126,6 +126,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   void resume() {
     _paused = false;
+    if (!_automaticQuotaFillEnabled) {
+      setAutomaticQuotaFillEnabled(
+        true,
+        reason: 'wifi_resume',
+      );
+    }
     debugPrint('[Prefetch] Resumed (Wi-Fi)');
     _publishPrefetchHealthIfNeeded(force: true);
     _processQueue();
