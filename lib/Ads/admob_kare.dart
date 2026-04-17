@@ -94,7 +94,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
-  static const double _promoSlotHeight = 276;
+  static const double _promoSlotHeight = 270;
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;

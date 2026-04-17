@@ -242,8 +242,7 @@ extension ShortViewUiPart on _ShortViewState {
                   ? post.aspectRatio.toDouble()
                   : (9 / 16);
               final isActivePage = idx == _currentRenderPage;
-              final isWarmNeighbor =
-                  !isActivePage && (organicIndex - currentPage).abs() <= 1;
+              final isWarmNeighbor = (idx - _currentRenderPage).abs() <= 1;
 
               if (vp == null) {
                 if (isActivePage) {
