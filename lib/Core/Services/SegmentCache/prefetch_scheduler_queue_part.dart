@@ -74,6 +74,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
             cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
             totalSegmentCount: entry?.totalSegmentCount ?? 0,
           ),
+          source: 'quota',
         ),
       );
       _jobEnqueuedAt[docID] = DateTime.now();
@@ -348,6 +349,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
             -1,
             (1000000 + readySegments - (entry?.cachedSegmentCount ?? 0))
                 .toDouble(),
+            source: 'short',
           ),
         );
         _jobEnqueuedAt[focusedDocID] = DateTime.now();
@@ -416,6 +418,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     updatePriorityWindowContext(docIDs, safeCurrent);
     _lastShortDocIDs = List<String>.from(docIDs);
     _lastShortCurrentIndex = safeCurrent;
+    _abortStalePrefetchActivity(reason: 'short_window_update');
 
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
@@ -459,6 +462,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
           totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
+        source: 'short',
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -485,6 +489,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
               cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
               totalSegmentCount: entry?.totalSegmentCount ?? 0,
             ),
+            source: 'short',
           ));
           _jobEnqueuedAt[docID] = DateTime.now();
         }
@@ -516,6 +521,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
           totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
+        source: 'short',
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -571,6 +577,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _lastFeedDocIDs = List<String>.from(docIDs);
     _lastFeedPreviousIndex = previousIndex;
     _lastFeedCurrentIndex = safeCurrent;
+    _abortStalePrefetchActivity(reason: 'feed_window_update');
     final behindStart = (safeCurrent - directionalWindow.behindCount)
         .clamp(0, docIDs.length - 1);
     final aheadEnd = (safeCurrent + directionalWindow.aheadCount)
@@ -606,6 +613,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
           totalSegmentCount: entry?.totalSegmentCount ?? 0,
         ),
+        source: 'feed',
       ));
       _jobEnqueuedAt[docID] = DateTime.now();
     }
@@ -679,6 +687,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         -1,
         (1000000 + resolvedReadySegments - (entry?.cachedSegmentCount ?? 0))
             .toDouble(),
+        source: 'feed',
       ),
     );
     _jobEnqueuedAt[normalizedDocId] = DateTime.now();

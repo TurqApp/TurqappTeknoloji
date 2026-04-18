@@ -192,6 +192,21 @@ extension _ShortControllerRuntimeX on ShortController {
     );
     return true;
   }
+
+  bool _promoteShortSessionToWifiLive({
+    required String reason,
+  }) {
+    if (_shortSessionSourceMode == _ShortSessionSourceMode.wifiLive) {
+      return false;
+    }
+    _shortSessionSourceMode = _ShortSessionSourceMode.wifiLive;
+    _renderWindowFrozenOnCellular = false;
+    debugPrint(
+      '[ShortSessionSource] status=promoted reason=$reason '
+      'mode=${_shortSessionSourceMode.name}',
+    );
+    return true;
+  }
 }
 
 extension ShortControllerPublicApiPart on ShortController {
@@ -212,6 +227,17 @@ extension ShortControllerPublicApiPart on ShortController {
         '[ShortNetworkPolicy] status=deferred_until_session_resolution '
         'network=${networkType.name}',
       );
+      return;
+    }
+    if (networkType == NetworkType.wifi &&
+        _promoteShortSessionToWifiLive(
+          reason: 'runtime_network_${networkType.name}',
+        )) {
+      debugPrint(
+        '[ShortNetworkPolicy] status=session_upgraded_to_wifi_live '
+        'network=${networkType.name} count=${shorts.length}',
+      );
+      unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
       return;
     }
     if (mode == _ShortSessionSourceMode.mobileCacheOnly) {

@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_servic
 import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/playback_execution_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
+import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';

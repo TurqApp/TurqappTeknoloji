@@ -8,7 +8,11 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     return (network?.currentNetwork ?? NetworkType.none).name;
   }
 
-  void _recordOffscreenLeakSignal(HlsTransferEvent event) {
+  void _recordOffscreenLeakSignal(
+    HlsTransferEvent event, {
+    Map<String, dynamic>? ownerInfoOverride,
+    Map<String, dynamic>? tierInfoOverride,
+  }) {
     if (event.kind != 'segment' ||
         event.cacheHit ||
         event.isVisibleAtTransfer) {
@@ -28,9 +32,13 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     }
     _offscreenLeakAlerts[alertKey] = now;
     final scheduler = maybeFindPrefetchScheduler();
-    final tierInfo = scheduler?.classifyTransferDoc(docId);
-    final ownerInfo = scheduler?.describeTransferOwner(docId);
+    final tierInfo = tierInfoOverride ?? scheduler?.classifyTransferDoc(docId);
+    final ownerInfo =
+        ownerInfoOverride ?? scheduler?.describeTransferOwner(docId);
+    final owner = ownerInfo?['owner'] ?? 'unknown';
     final allowedSegmentWarm = tierInfo?['allowedSegmentWarm'] == true;
+    final isQuotaBackgroundTransfer =
+        owner == 'quota' && event.source == HlsTrafficSource.prefetch;
     final payload = <String, dynamic>{
       'docId': docId,
       'visibleDocId': visibleDocId,
@@ -40,7 +48,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'segmentKey': event.pathKey,
       'feedTier': tierInfo?['tier'] ?? 'unknown',
       'feedDistance': tierInfo?['distance'],
-      'owner': ownerInfo?['owner'] ?? 'unknown',
+      'owner': owner,
       'inShortWindow': ownerInfo?['inShortWindow'],
       'inFeedWindow': ownerInfo?['inFeedWindow'],
       'inFeedBank': ownerInfo?['inFeedBank'],
@@ -49,8 +57,15 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'hasActiveFeedPlaybackWindow': ownerInfo?['hasActiveFeedPlaybackWindow'],
       'allowedSegmentWarm': allowedSegmentWarm,
       'allowedCacheOnly': tierInfo?['allowedCacheOnly'],
+      'quotaBackgroundTransfer': isQuotaBackgroundTransfer,
       'label': _label,
     };
+    if (isQuotaBackgroundTransfer) {
+      debugPrint(
+        '[HlsOffscreenLeak] signal=quota_background_transfer payload=$payload',
+      );
+      return;
+    }
     debugPrint(
       '[HlsOffscreenLeak] signal=${allowedSegmentWarm ? 'offscreen_segment_allowed_window' : 'offscreen_segment_leak_after_stop'} payload=$payload',
     );
@@ -153,6 +168,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     required String docId,
     required String segmentKey,
     required HlsTrafficSource source,
+    Map<String, dynamic>? ownerInfo,
+    Map<String, dynamic>? tierInfo,
   }) {
     final transferKey = '$docId|$segmentKey|${source.name}';
     _inFlight[transferKey] = _InFlightTransfer(
@@ -160,6 +177,9 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       segmentKey: segmentKey,
       source: source,
       startedAt: DateTime.now(),
+      ownerInfo:
+          ownerInfo == null ? null : Map<String, dynamic>.from(ownerInfo),
+      tierInfo: tierInfo == null ? null : Map<String, dynamic>.from(tierInfo),
     );
     _recomputeConcurrency();
   }
@@ -172,7 +192,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     required bool cacheHit,
   }) {
     final transferKey = '$docId|$segmentKey|${source.name}';
-    _inFlight.remove(transferKey);
+    final transfer = _inFlight.remove(transferKey);
     _recomputeConcurrency();
 
     final variantKey = _variantKeyFromSegmentKey(segmentKey);
@@ -189,7 +209,11 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       networkType: _currentNetworkTypeName(),
     );
     _events.add(event);
-    _recordOffscreenLeakSignal(event);
+    _recordOffscreenLeakSignal(
+      event,
+      ownerInfoOverride: transfer?.ownerInfo,
+      tierInfoOverride: transfer?.tierInfo,
+    );
 
     final doc =
         _docUsage.putIfAbsent(docId, () => _DocAccumulator(docId: docId));

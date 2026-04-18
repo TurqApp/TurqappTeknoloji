@@ -47,13 +47,15 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     final inFeedBank = _lastFeedBankDocIDs.contains(normalized);
     final pendingPrefetch = hasPendingPrefetchForDoc(normalized);
     final activeDownload = isActivelyDownloadingDoc(normalized);
+    final sourceHint = _prefetchSourceForDoc(normalized) ?? 'unknown';
 
     String owner;
     if (inShortWindow) {
       owner = 'short';
     } else if (inFeedWindow || inFeedBank) {
       owner = 'feed';
-    } else if (!_hasActiveFeedPlaybackWindow &&
+    } else if (sourceHint == 'quota' &&
+        !_hasActiveFeedPlaybackWindow &&
         (pendingPrefetch || activeDownload)) {
       owner = 'quota';
     } else {
@@ -68,6 +70,7 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       'pendingPrefetch': pendingPrefetch,
       'activeDownload': activeDownload,
       'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
+      'sourceHint': sourceHint,
     };
   }
 

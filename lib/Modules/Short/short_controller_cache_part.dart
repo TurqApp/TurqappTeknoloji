@@ -237,7 +237,7 @@ extension ShortControllerCachePart on ShortController {
     }
 
     final window = _playbackCoordinator.buildWindow(shorts, safeActiveIndex);
-    _enforceMaxPlayers(safeActiveIndex, window.maxAttachedPlayers);
+    await _enforceMaxPlayers(safeActiveIndex, window.maxAttachedPlayers);
   }
 
   Future<void> updateCacheTiers(
@@ -301,7 +301,7 @@ extension ShortControllerCachePart on ShortController {
       }
     }
 
-    _enforceMaxPlayers(currentIndex, window.maxAttachedPlayers);
+    await _enforceMaxPlayers(currentIndex, window.maxAttachedPlayers);
 
     try {
       maybeFindPrefetchScheduler()?.updateQueueForPosts(
@@ -311,12 +311,15 @@ extension ShortControllerCachePart on ShortController {
     } catch (_) {}
   }
 
-  void _enforceMaxPlayers(int currentIndex, int maxAttachedPlayers) {
-    final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList()
-      ..sort(
-        (a, b) => (a - currentIndex).abs().compareTo((b - currentIndex).abs()),
-      );
-
+  Future<void> _enforceMaxPlayers(
+    int currentIndex,
+    int maxAttachedPlayers,
+  ) async {
+    await trimOverflowAroundIndex(
+      currentIndex,
+      maxAttachedPlayers: maxAttachedPlayers,
+    );
+    final activeKeys = cache.keys.where((k) => !cache[k]!.isStopped).toList();
     _invariantGuard.assertCountWithinLimit(
       surface: 'short',
       invariantKey: 'active_player_overflow',
@@ -328,19 +331,6 @@ extension ShortControllerCachePart on ShortController {
         'cacheSize': cache.length,
       },
     );
-
-    if (activeKeys.length > maxAttachedPlayers) {
-      for (int i = maxAttachedPlayers; i < activeKeys.length; i++) {
-        final k = activeKeys[i];
-        final adapter = cache[k];
-        cache.remove(k);
-        _tiers.remove(k);
-        if (adapter != null) {
-          _unregisterPlaybackHandleForIndex(k);
-          unawaited(_videoPool.release(adapter));
-        }
-      }
-    }
   }
 
   Future<void> preloadRange(int index, {int range = 1}) async {
@@ -455,6 +445,33 @@ extension ShortControllerCachePart on ShortController {
     }
     if (cache.containsKey(index)) {
       _tiers[index] = _CacheTier.hot;
+    }
+  }
+
+  Future<void> trimOverflowAroundIndex(
+    int index, {
+    int? maxAttachedPlayers,
+  }) async {
+    if (cache.isEmpty) return;
+    final limit = (maxAttachedPlayers ??
+            ShortPlaybackCoordinator.forCurrentPlatform().maxAttachedPlayers)
+        .clamp(1, cache.length);
+    final orderedKeys = cache.keys.toList(growable: false)
+      ..sort((a, b) {
+        final distanceCompare = (a - index).abs().compareTo((b - index).abs());
+        if (distanceCompare != 0) return distanceCompare;
+        return a.compareTo(b);
+      });
+    if (orderedKeys.length <= limit) return;
+    for (final key in orderedKeys.skip(limit)) {
+      final adapter = cache.remove(key);
+      _tiers.remove(key);
+      if (adapter != null) {
+        _unregisterPlaybackHandleForIndex(key);
+        try {
+          await _videoPool.release(adapter);
+        } catch (_) {}
+      }
     }
   }
 

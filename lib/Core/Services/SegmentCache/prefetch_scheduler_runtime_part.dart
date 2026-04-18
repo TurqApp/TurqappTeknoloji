@@ -45,8 +45,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         target.startsWith('short:');
   }
 
-  bool get _shouldAllowBackgroundQuotaFill =>
-      !_hasActiveFeedPlaybackWindow && !_hasAnyActivePlaybackFocus;
+  bool get _shouldAllowBackgroundQuotaFill => !_hasActiveFeedPlaybackWindow;
 
   bool get _isOnWiFi {
     try {

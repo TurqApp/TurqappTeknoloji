@@ -187,13 +187,22 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   bool _shouldTrimShortAttachedPlayers(int page) {
     if (!_isShortRoutePlaybackActive) return false;
-    return false;
+    final maxAttachedPlayers =
+        ShortPlaybackCoordinator.forCurrentPlatform().maxAttachedPlayers;
+    final attachedPlayerCount = controller.cache.length;
+    if (attachedPlayerCount > maxAttachedPlayers) {
+      return true;
+    }
+    final activePlayerCount = controller.cache.values
+        .where((adapter) => !adapter.isStopped && !adapter.isDisposed)
+        .length;
+    return activePlayerCount > maxAttachedPlayers;
   }
 
   Future<void> _trimShortAttachedPlayers(int page) async {
     if (!_shouldTrimShortAttachedPlayers(page)) return;
     try {
-      await controller.keepOnlyIndex(page);
+      await controller.trimOverflowAroundIndex(page);
     } catch (_) {}
   }
 

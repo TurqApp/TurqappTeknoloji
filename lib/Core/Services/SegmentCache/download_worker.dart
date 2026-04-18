@@ -12,23 +12,27 @@ class DownloadRequest {
   final String url;
   final String segmentKey;
   final String docID;
+  final String requestID;
 
   DownloadRequest({
     required this.url,
     required this.segmentKey,
     required this.docID,
+    required this.requestID,
   });
 }
 
 class DownloadResult {
   final String segmentKey;
   final String docID;
+  final String requestID;
   final Uint8List? bytes;
   final String? error;
 
   DownloadResult({
     required this.segmentKey,
     required this.docID,
+    required this.requestID,
     Uint8List? bytes,
     this.error,
   }) : bytes = bytes == null ? null : Uint8List.fromList(bytes);
@@ -79,6 +83,7 @@ class DownloadWorker {
         final result = DownloadResult(
           segmentKey: _readMessageString(message, 'segmentKey'),
           docID: _readMessageString(message, 'docID'),
+          requestID: _readMessageString(message, 'requestID'),
           bytes: message['bytes'] as Uint8List?,
           error: _readMessageString(message, 'error', fallback: '').isEmpty
               ? null
@@ -97,6 +102,7 @@ class DownloadWorker {
       'url': request.url,
       'segmentKey': request.segmentKey,
       'docID': request.docID,
+      'requestID': request.requestID,
     });
   }
 
@@ -139,10 +145,15 @@ class DownloadWorker {
       final url = _readMessageString(message, 'url');
       final segmentKey = _readMessageString(message, 'segmentKey');
       final docID = _readMessageString(message, 'docID');
-      if (url.isEmpty || segmentKey.isEmpty || docID.isEmpty) {
+      final requestID = _readMessageString(message, 'requestID');
+      if (url.isEmpty ||
+          segmentKey.isEmpty ||
+          docID.isEmpty ||
+          requestID.isEmpty) {
         mainSendPort.send({
           'segmentKey': segmentKey,
           'docID': docID,
+          'requestID': requestID,
           'bytes': null,
           'error': 'invalid_download_request',
         });
@@ -158,6 +169,7 @@ class DownloadWorker {
           mainSendPort.send({
             'segmentKey': segmentKey,
             'docID': docID,
+            'requestID': requestID,
             'bytes': response.bodyBytes,
             'error': null,
           });
@@ -165,6 +177,7 @@ class DownloadWorker {
           mainSendPort.send({
             'segmentKey': segmentKey,
             'docID': docID,
+            'requestID': requestID,
             'bytes': null,
             'error': 'HTTP ${response.statusCode}',
           });
@@ -173,6 +186,7 @@ class DownloadWorker {
         mainSendPort.send({
           'segmentKey': segmentKey,
           'docID': docID,
+          'requestID': requestID,
           'bytes': null,
           'error': e.toString(),
         });

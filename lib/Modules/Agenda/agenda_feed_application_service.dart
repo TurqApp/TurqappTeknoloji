@@ -19,6 +19,9 @@ class AgendaFeedPageApplyPlan {
     required this.lastDoc,
     required this.usesPrimaryFeed,
     required this.pageItemsPreplanned,
+    required this.arrangedPageItemCount,
+    required this.duplicateExistingCount,
+    required this.cappedCount,
   });
 
   final List<PostsModel> itemsToAdd;
@@ -27,6 +30,9 @@ class AgendaFeedPageApplyPlan {
   final DocumentSnapshot<Map<String, dynamic>>? lastDoc;
   final bool usesPrimaryFeed;
   final bool pageItemsPreplanned;
+  final int arrangedPageItemCount;
+  final int duplicateExistingCount;
+  final int cappedCount;
 }
 
 class AgendaFeedRefreshPlan {
@@ -105,7 +111,8 @@ class AgendaFeedApplicationService {
     bool allowSparseSlotFallback = false,
     bool emitLaunchMotorDiagnostics = true,
   }) {
-    if (!_feedLaunchFallbackCandidatesEnabled && fallbackCandidates.isNotEmpty) {
+    if (!_feedLaunchFallbackCandidatesEnabled &&
+        fallbackCandidates.isNotEmpty) {
       debugPrint(
         '[FeedLaunchMotor] status=ignore_fallback_candidates_live_motor_only '
         'fallbackCount=${fallbackCandidates.length}',
@@ -144,9 +151,12 @@ class AgendaFeedApplicationService {
     final tenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
     final cappedAddCount =
         maxItemsToAdd != null && maxItemsToAdd > 0 ? maxItemsToAdd : null;
+    var duplicateExistingCount = 0;
+    var cappedCount = 0;
 
     for (final post in arrangedPageItems) {
       if (existingIds.contains(post.docID)) {
+        duplicateExistingCount++;
         continue;
       }
       itemsToAdd.add(post);
@@ -156,6 +166,7 @@ class AgendaFeedApplicationService {
         freshScheduledIds.add(post.docID);
       }
       if (cappedAddCount != null && itemsToAdd.length >= cappedAddCount) {
+        cappedCount = max(0, arrangedPageItems.length - duplicateExistingCount);
         break;
       }
     }
@@ -167,6 +178,9 @@ class AgendaFeedApplicationService {
       lastDoc: lastDoc,
       usesPrimaryFeed: usesPrimaryFeed,
       pageItemsPreplanned: pageItemsPreplanned,
+      arrangedPageItemCount: arrangedPageItems.length,
+      duplicateExistingCount: duplicateExistingCount,
+      cappedCount: cappedCount,
     );
   }
 

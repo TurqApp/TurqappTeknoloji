@@ -1,9 +1,100 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
+  String _segmentRequestKey(String docID, String segmentKey) =>
+      '$docID|$segmentKey';
+
+  String _nextSegmentRequestID(String docID, String segmentKey) =>
+      '${DateTime.now().microsecondsSinceEpoch}|$docID|$segmentKey';
+
+  String? _prefetchSourceForDoc(String docID) {
+    final activeSource = _activeDocSources[docID];
+    if (activeSource != null && activeSource.isNotEmpty) {
+      return activeSource;
+    }
+    final pendingSource = _pendingFollowUpJobs[docID]?.source;
+    if (pendingSource != null && pendingSource.isNotEmpty) {
+      return pendingSource;
+    }
+    for (final job in _queue) {
+      if (job.docID == docID && job.source.isNotEmpty) {
+        return job.source;
+      }
+    }
+    return null;
+  }
+
+  bool _shouldAbortStalePrefetchDoc(String docID) {
+    final source = _prefetchSourceForDoc(docID);
+    if (source == null || source == 'quota') {
+      return false;
+    }
+    final tierInfo = classifyTransferDoc(docID);
+    return tierInfo == null || tierInfo['allowedSegmentWarm'] != true;
+  }
+
+  void _abortStalePrefetchActivity({
+    required String reason,
+  }) {
+    final staleQueuedDocIds = _queue
+        .where((job) => _shouldAbortStalePrefetchDoc(job.docID))
+        .map((job) => job.docID)
+        .toSet();
+    final stalePendingDocIds =
+        _pendingFollowUpJobs.keys.where(_shouldAbortStalePrefetchDoc).toSet();
+    final staleActiveDocIds =
+        _activeDocRefCounts.keys.where(_shouldAbortStalePrefetchDoc).toSet();
+    if (staleQueuedDocIds.isEmpty &&
+        stalePendingDocIds.isEmpty &&
+        staleActiveDocIds.isEmpty) {
+      return;
+    }
+
+    _queue.removeWhere((job) => staleQueuedDocIds.contains(job.docID));
+    for (final docID in stalePendingDocIds) {
+      _pendingFollowUpJobs.remove(docID);
+    }
+    for (final docID in <String>{
+      ...staleQueuedDocIds,
+      ...stalePendingDocIds,
+      ...staleActiveDocIds,
+    }) {
+      _jobEnqueuedAt.remove(docID);
+      _activeDocSources.remove(docID);
+      _activeBankDocIDs.remove(docID);
+    }
+
+    if (staleActiveDocIds.isNotEmpty && _activeDownloads > 0) {
+      _workerSub?.cancel();
+      _workerSub = null;
+      _worker?.stop();
+      _worker = null;
+      _activeDownloads = 0;
+      _activeDocRefCounts.clear();
+      _activeDocSources.clear();
+      _activeBankDownloads = 0;
+      _activeBankDocIDs.clear();
+    } else {
+      for (final docID in staleActiveDocIds) {
+        _activeDocRefCounts.remove(docID);
+      }
+    }
+
+    debugPrint(
+      '[Prefetch] Aborted stale prefetch reason=$reason '
+      'queued=${staleQueuedDocIds.join(",")} '
+      'pending=${stalePendingDocIds.join(",")} '
+      'active=${staleActiveDocIds.join(",")}',
+    );
+    _publishPrefetchHealthIfNeeded(force: true);
+  }
+
   int _effectiveMaxConcurrent() {
     if (_hasActiveFeedPlaybackWindow) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
+    }
+    if (_hasAnyActivePlaybackFocus) {
+      return _maxConcurrent > 1 ? 1 : _maxConcurrent;
     }
     if (_lastFeedWindowCount <= 0) {
       return _maxConcurrent > 1 ? 1 : _maxConcurrent;
@@ -56,6 +147,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       job.maxSegments,
       _followUpPriorityForJob(job),
       -1000000.0,
+      source: job.source,
     );
   }
 
@@ -92,6 +184,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         targetReadySegments,
         _followUpPriorityForJob(followUpJob),
         -1000000.0,
+        source: followUpJob.source,
       ),
     );
   }
@@ -109,6 +202,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
     _activeDocRefCounts.clear();
+    _activeDocSources.clear();
+    _activeSegmentRequestIDs.clear();
     _activeBankDownloads = 0;
     _activeBankDocIDs.clear();
 
@@ -151,8 +246,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
-    final currentBacklog =
-        _queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length;
+    final currentBacklog = _queue.length +
+        _pendingFollowUpJobs.length +
+        _activeDocRefCounts.length;
     debugPrint(
       '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
       'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
@@ -424,26 +520,37 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
+        final requestID = _nextSegmentRequestID(job.docID, segmentKey);
 
         _activeDocRefCounts.update(
           job.docID,
           (value) => value + 1,
           ifAbsent: () => 1,
         );
+        _activeDocSources[job.docID] = job.source;
+        _activeSegmentRequestIDs[_segmentRequestKey(job.docID, segmentKey)] =
+            requestID;
         if (_isBankDocId(job.docID) && _activeBankDocIDs.add(job.docID)) {
           _activeBankDownloads++;
         }
         _activeDownloads++;
         _resetWatchdog();
+        final ownerInfoAtDispatch =
+            describeTransferOwner(job.docID) ?? <String, dynamic>{};
+        final tierInfoAtDispatch =
+            classifyTransferDoc(job.docID) ?? <String, dynamic>{};
         probe.recordSegmentStart(
           docId: job.docID,
           segmentKey: segmentKey,
           source: HlsTrafficSource.prefetch,
+          ownerInfo: ownerInfoAtDispatch,
+          tierInfo: tierInfoAtDispatch,
         );
         _worker?.download(DownloadRequest(
           url: segmentCdnUrl,
           segmentKey: segmentKey,
           docID: job.docID,
+          requestID: requestID,
         ));
       }
 
@@ -488,12 +595,24 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   void _onDownloadResult(DownloadResult result) {
+    final requestKey = _segmentRequestKey(result.docID, result.segmentKey);
+    final expectedRequestID = _activeSegmentRequestIDs[requestKey];
+    if (expectedRequestID != null && expectedRequestID != result.requestID) {
+      debugPrint(
+        '[Prefetch] Dropped stale download result doc=${result.docID} '
+        'segment=${result.segmentKey} expected=$expectedRequestID '
+        'actual=${result.requestID}',
+      );
+      return;
+    }
+    _activeSegmentRequestIDs.remove(requestKey);
     _activeDownloads = (_activeDownloads - 1).clamp(0, _maxConcurrent * 2);
     final remainingActiveRefs = (_activeDocRefCounts[result.docID] ?? 0) - 1;
     if (remainingActiveRefs > 0) {
       _activeDocRefCounts[result.docID] = remainingActiveRefs;
     } else {
       _activeDocRefCounts.remove(result.docID);
+      _activeDocSources.remove(result.docID);
     }
     if (_activeBankDocIDs.remove(result.docID)) {
       _activeBankDownloads =
@@ -644,6 +763,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           );
           _activeDownloads = 0;
           _activeDocRefCounts.clear();
+          _activeDocSources.clear();
+          _activeSegmentRequestIDs.clear();
           _activeBankDownloads = 0;
           _activeBankDocIDs.clear();
           _workerSub?.cancel();

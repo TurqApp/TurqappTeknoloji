@@ -247,12 +247,16 @@ class _InFlightTransfer {
     required this.segmentKey,
     required this.source,
     required this.startedAt,
+    this.ownerInfo,
+    this.tierInfo,
   });
 
   final String docId;
   final String segmentKey;
   final HlsTrafficSource source;
   final DateTime startedAt;
+  final Map<String, dynamic>? ownerInfo;
+  final Map<String, dynamic>? tierInfo;
 }
 
 class _VariantCatalog {

@@ -4,8 +4,14 @@ class _PrefetchJob {
   final String docID;
   final int maxSegments, priority;
   final double sortScore;
+  final String source;
   const _PrefetchJob(
-      this.docID, this.maxSegments, this.priority, this.sortScore);
+    this.docID,
+    this.maxSegments,
+    this.priority,
+    this.sortScore, {
+    this.source = 'unknown',
+  });
 }
 
 class _ResolvedPrefetchQueue {

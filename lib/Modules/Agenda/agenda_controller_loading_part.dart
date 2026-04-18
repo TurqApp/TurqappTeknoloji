@@ -947,6 +947,13 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
 
     if (pageApplyPlan.itemsToAdd.isEmpty) {
+      debugPrint(
+        '[FeedAppendDiagnostics] status=empty_apply initial=$initial '
+        'current=${currentAgenda.length} visible=${visibleItems.length} '
+        'arranged=${pageApplyPlan.arrangedPageItemCount} '
+        'duplicateExisting=${pageApplyPlan.duplicateExistingCount} '
+        'hasMore=${pageApplyPlan.hasMore}',
+      );
       return;
     }
 
@@ -1374,6 +1381,15 @@ extension AgendaControllerLoadingPart on AgendaController {
         }).toList(growable: false);
       }
 
+      debugPrint(
+        '[FeedAppendDiagnostics] trigger=$trigger initial=$initial '
+        'rawPage=${page.items.length} rawVisible=${effectiveRawPageVisibleItems.length} '
+        'pageVisible=${pageVisibleItems.length} dedupedVisible=${visibleItems.length} '
+        'current=${currentAgenda.length} loadLimit=$loadLimit '
+        'itemsPreplanned=${effectivePageItemsPreplanned} '
+        'usesPlannedColdPage=$usesPlannedColdPage',
+      );
+
       final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
         currentItems: agendaList.toList(growable: false),
         pageItems: visibleItems,
@@ -1385,6 +1401,14 @@ extension AgendaControllerLoadingPart on AgendaController {
         pageItemsPreplanned: usesPlannedColdPage ||
             effectivePageItemsPreplanned ||
             (initial && currentAgenda.isEmpty),
+      );
+
+      debugPrint(
+        '[FeedAppendDiagnostics] trigger=$trigger plan arranged=${pageApplyPlan.arrangedPageItemCount} '
+        'duplicateExisting=${pageApplyPlan.duplicateExistingCount} '
+        'capped=${pageApplyPlan.cappedCount} '
+        'itemsToAdd=${pageApplyPlan.itemsToAdd.length} '
+        'hasMore=${pageApplyPlan.hasMore}',
       );
 
       if (expectedMutationEpoch != null &&
