@@ -41,9 +41,11 @@ extension _ShortControllerRuntimeX on ShortController {
   }
 
   void handleOnInit() {
+    debugPrint(
+      '[ShortColdStart] stage=controller_on_init at=${DateTime.now().toIso8601String()}',
+    );
     applyUserCacheQuota();
     unawaited(DeviceSessionService.instance.warmDeviceKey());
-    unawaited(_clearShortWarmArtifactsForCurrentUser());
     _log('[Shorts] 🔄 ShortController.onInit() called');
     _bindFollowingListener();
     _bindNetworkAwareness();
@@ -210,6 +212,12 @@ extension _ShortControllerRuntimeX on ShortController {
 }
 
 extension ShortControllerPublicApiPart on ShortController {
+  bool isStartupBootstrapInFlight() {
+    return _startupPrepareFuture != null ||
+        _initialLoadFuture != null ||
+        isLoading.value;
+  }
+
   Future<void> ensureStartupReadyForRoute({
     int minimumCount = _initialPreloadCount,
   }) =>
@@ -287,6 +295,11 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    final startedAt = DateTime.now();
+    debugPrint(
+      '[ShortColdStart] stage=prepare_start at=${startedAt.toIso8601String()} '
+      'count=${shorts.length} isLoading=${isLoading.value} hasMore=${hasMore.value}',
+    );
     _resolveShortSessionSourceMode(reason: 'prepare_startup_surface');
     _recordShortMotorContractSnapshot(reason: 'prepare_startup_surface');
     final seededFreshSession = _ensureShortLaunchSessionFresh(
@@ -358,6 +371,10 @@ extension ShortControllerPublicApiPart on ShortController {
       return;
     }
     unawaited(backgroundPreload());
+    debugPrint(
+      '[ShortColdStart] stage=prepare_end elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+      'count=${shorts.length} isLoading=${isLoading.value} hasMore=${hasMore.value}',
+    );
   }
 
   bool _ensureShortLaunchSessionFresh({
@@ -399,23 +416,52 @@ extension ShortControllerPublicApiPart on ShortController {
   }
 
   Future<void> persistStartupShard() async {
-    await _clearShortWarmArtifactsForCurrentUser();
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final ordered = shorts.toList(growable: false);
+    await _persistShortStartupShardOnly(
+      userId: userId,
+      ordered: ordered,
+      snapshotAt: DateTime.now(),
+      source: 'short_runtime',
+    );
   }
 
   Future<void> persistStartupArtifacts() async {
-    await _clearShortWarmArtifactsForCurrentUser();
+    await persistStartupShard();
   }
 
-  Future<void> _clearShortWarmArtifactsForCurrentUser() async {
-    final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) return;
-    await _shortSnapshotRepository.clearLaunchArtifacts(
+  Future<void> _persistShortStartupShardOnly({
+    required String userId,
+    required List<PostsModel> ordered,
+    required DateTime snapshotAt,
+    required String source,
+  }) async {
+    final onWiFi =
+        NetworkAwarenessService.maybeFind()?.currentNetworkRx.value ==
+            NetworkType.wifi;
+    final shardLimit = ReadBudgetRegistry.shortStartupShardLimit(
+      onWiFi: onWiFi,
+    );
+    final effectivePosts = ordered.take(shardLimit).toList(growable: false);
+    if (effectivePosts.isEmpty) {
+      await ensureStartupSnapshotShardStore().clear(
+        surface: 'short',
+        userId: userId,
+      );
+      return;
+    }
+    await ensureStartupSnapshotShardStore().save(
+      surface: 'short',
       userId: userId,
-      additionalLimits: <int>{
-        ContentPolicy.initialPoolLimit(ContentScreenKind.shorts),
-        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: true),
-        ...ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: false),
-      },
+      itemCount: effectivePosts.length,
+      limit: shardLimit,
+      source: source,
+      snapshotAt: snapshotAt,
+      payload: ensureShortSnapshotRepository().encodeHomeStartupPayload(
+        effectivePosts,
+        limit: shardLimit,
+      ),
     );
   }
 

@@ -117,9 +117,15 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
 
     final shardStore = ensureStartupSnapshotShardStore();
+    final onWiFi = _isOnWiFiNow();
     await _primeFeedStartupShard(
       shardStore: shardStore,
       userId: userId,
+    );
+    await _primeShortStartupShard(
+      shardStore: shardStore,
+      userId: userId,
+      onWiFi: onWiFi,
     );
   }
 
@@ -144,6 +150,42 @@ extension _SplashViewStartupPart on _SplashViewState {
     _feedStartupShardHydrated = true;
     _feedStartupShardAgeMs =
         DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+  }
+
+  Future<void> _primeShortStartupShard({
+    required StartupSnapshotShardStore shardStore,
+    required String userId,
+    required bool onWiFi,
+  }) async {
+    final shard = await shardStore.load(
+      surface: 'short',
+      userId: userId,
+      maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+    );
+    if (shard == null || shard.itemCount <= 0) return;
+    final didPrime =
+        await ensureShortSnapshotRepository().primeHomeFromStartupPayload(
+      userId: userId,
+      payload: shard.payload,
+      limit: _shortStartupShardLimit(onWiFi: onWiFi),
+      additionalLimits:
+          ReadBudgetRegistry.shortStartupAdditionalLimits(onWiFi: onWiFi),
+      snapshotAt: shard.snapshotAt,
+    );
+    if (!didPrime) return;
+    _shortStartupShardHydrated = true;
+    _shortStartupShardAgeMs =
+        DateTime.now().millisecondsSinceEpoch - shard.savedAtMs;
+    await shardStore.clear(
+      surface: 'short',
+      userId: userId,
+    );
+  }
+
+  int _shortStartupShardLimit({
+    required bool onWiFi,
+  }) {
+    return ReadBudgetRegistry.shortStartupShardLimit(onWiFi: onWiFi);
   }
 
   String _requestedStartupRouteHint() {

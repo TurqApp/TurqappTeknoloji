@@ -40,6 +40,9 @@ extension ShortControllerLoadingPart on ShortController {
     required String trigger,
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) {
+    debugPrint(
+      '[ShortFetchTiming] stage=$stage trigger=$trigger metadata=$metadata',
+    );
     recordQALabFeedFetchEvent(
       surface: 'short',
       stage: stage,
@@ -238,22 +241,47 @@ extension ShortControllerLoadingPart on ShortController {
     int? pageSizeOverride,
     String trigger = 'manual',
   }) async {
+    final totalStartedAt = DateTime.now();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
     QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
     bool hasMoreDocs = true;
     const int maxPageScans = ShortFetchPolicy.maxPageScans;
     final effectivePageSize = pageSizeOverride ?? pageSize;
+    final shouldDeferAuthorHydration = shorts.isEmpty;
+    if (shouldDeferAuthorHydration) {
+      _recordShortFetchEvent(
+        stage: 'bootstrap_defer_author_hydration',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'currentCount': shorts.length,
+          'pageSize': effectivePageSize,
+        },
+      );
+    }
     final collected = <PostsModel>[];
     final seenDocIds = <String>{};
     List<PostsModel>? fallbackPosts;
     LaunchMotorPoolFillResult? poolFillResult;
 
     for (int attempt = 0; attempt < maxPageScans; attempt++) {
+      final fetchStartedAt = DateTime.now();
       final page = await _shortRepository.fetchReadyPage(
         startAfter: cursor,
         pageSize: effectivePageSize,
         nowMs: nowMs,
+      );
+      final fetchElapsedMs =
+          DateTime.now().difference(fetchStartedAt).inMilliseconds;
+      _recordShortFetchEvent(
+        stage: 'fetch_ready_page_timing',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'attempt': attempt,
+          'elapsedMs': fetchElapsedMs,
+          'returnedCount': page.posts.length,
+          'hasMore': page.hasMore,
+        },
       );
 
       lastDoc = page.lastDoc;
@@ -298,19 +326,65 @@ extension ShortControllerLoadingPart on ShortController {
           .toList(growable: false);
 
       if (finalFiltered.isNotEmpty) {
-        final filtered = await _filterVisibleShortPosts(finalFiltered);
+        final filterStartedAt = DateTime.now();
+        final filtered = await _filterVisibleShortPosts(
+          finalFiltered,
+          hydrateAuthors: !shouldDeferAuthorHydration,
+        );
+        final filterElapsedMs =
+            DateTime.now().difference(filterStartedAt).inMilliseconds;
+        _recordShortFetchEvent(
+          stage: 'filter_visible_timing',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'attempt': attempt,
+            'elapsedMs': filterElapsedMs,
+            'inputCount': finalFiltered.length,
+            'outputCount': filtered.length,
+            'hydrateAuthors': !shouldDeferAuthorHydration,
+          },
+        );
         if (filtered.isNotEmpty) {
           for (final post in filtered) {
             if (!seenDocIds.add(post.docID)) continue;
             collected.add(post);
           }
+          final poolFillStartedAt = DateTime.now();
           poolFillResult = _buildShortLaunchMotorPoolFill(
             collected,
             targetCount: effectivePageSize,
           );
-          if (!poolFillResult.needsTopUp(effectivePageSize)) {
+          final poolFillElapsedMs =
+              DateTime.now().difference(poolFillStartedAt).inMilliseconds;
+          _recordShortFetchEvent(
+            stage: 'launch_motor_fill_timing',
+            trigger: trigger,
+            metadata: <String, dynamic>{
+              'attempt': attempt,
+              'elapsedMs': poolFillElapsedMs,
+              'collectedCount': collected.length,
+              'strictCount': poolFillResult.strictCount,
+              'selectedCount': poolFillResult.selectedPool.length,
+            },
+          );
+          final hasEnoughSelectedPosts =
+              poolFillResult.selectedPool.length >= effectivePageSize;
+          if (hasEnoughSelectedPosts) {
             final resultPosts = poolFillResult.selectedPool;
             if (resultPosts.isNotEmpty) {
+              _recordShortFetchEvent(
+                stage: 'fetch_page_total_timing',
+                trigger: trigger,
+                metadata: <String, dynamic>{
+                  'elapsedMs': DateTime.now()
+                      .difference(totalStartedAt)
+                      .inMilliseconds,
+                  'resultCount': resultPosts.length,
+                  'strictCount': poolFillResult.strictCount,
+                  'selectedCount': poolFillResult.selectedPool.length,
+                  'attemptsUsed': attempt + 1,
+                },
+              );
               _logShortLaunchMotorInputSnapshot(
                 resultPosts,
                 trigger: trigger,
@@ -325,8 +399,23 @@ extension ShortControllerLoadingPart on ShortController {
             }
           }
         } else if (fallbackPosts == null) {
+          final fallbackFilterStartedAt = DateTime.now();
           final fallback = await _filterVisibleShortPosts(
             finalFiltered,
+            hydrateAuthors: !shouldDeferAuthorHydration,
+          );
+          _recordShortFetchEvent(
+            stage: 'fallback_filter_visible_timing',
+            trigger: trigger,
+            metadata: <String, dynamic>{
+              'attempt': attempt,
+              'elapsedMs': DateTime.now()
+                  .difference(fallbackFilterStartedAt)
+                  .inMilliseconds,
+              'inputCount': finalFiltered.length,
+              'outputCount': fallback.length,
+              'hydrateAuthors': !shouldDeferAuthorHydration,
+            },
           );
           if (fallback.isNotEmpty) {
             fallbackPosts = fallback;
@@ -341,10 +430,32 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     if (collected.isEmpty && fallbackPosts != null) {
+      final fallbackPoolFillStartedAt = DateTime.now();
       final resultPosts = _buildShortLaunchMotorPoolFill(
         fallbackPosts,
         targetCount: effectivePageSize,
       ).selectedPool;
+      _recordShortFetchEvent(
+        stage: 'fallback_launch_motor_fill_timing',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'elapsedMs': DateTime.now()
+              .difference(fallbackPoolFillStartedAt)
+              .inMilliseconds,
+          'inputCount': fallbackPosts.length,
+          'resultCount': resultPosts.length,
+        },
+      );
+      _recordShortFetchEvent(
+        stage: 'fetch_page_total_timing',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
+          'resultCount': resultPosts.length,
+          'attemptsUsed': maxPageScans,
+          'fallback': true,
+        },
+      );
       _logShortLaunchMotorInputSnapshot(
         resultPosts,
         trigger: '${trigger}_fallback',
@@ -358,12 +469,32 @@ extension ShortControllerLoadingPart on ShortController {
       );
     }
 
+    final finalPoolFillStartedAt = DateTime.now();
     final resultPosts = (poolFillResult ??
             _buildShortLaunchMotorPoolFill(
               collected,
               targetCount: effectivePageSize,
             ))
         .selectedPool;
+    _recordShortFetchEvent(
+      stage: 'final_launch_motor_fill_timing',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'elapsedMs': DateTime.now()
+            .difference(finalPoolFillStartedAt)
+            .inMilliseconds,
+        'collectedCount': collected.length,
+        'resultCount': resultPosts.length,
+      },
+    );
+    _recordShortFetchEvent(
+      stage: 'fetch_page_total_timing',
+      trigger: trigger,
+      metadata: <String, dynamic>{
+        'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
+        'resultCount': resultPosts.length,
+      },
+    );
     _logShortLaunchMotorInputSnapshot(
       resultPosts,
       trigger: trigger,
@@ -380,8 +511,12 @@ extension ShortControllerLoadingPart on ShortController {
   Future<List<PostsModel>> _filterVisibleShortPosts(
     List<PostsModel> posts, {
     bool preservePresentationOrder = false,
+    bool hydrateAuthors = true,
   }) async {
     if (posts.isEmpty) return const <PostsModel>[];
+    if (!hydrateAuthors) {
+      return posts.toList(growable: false);
+    }
     final authorIds =
         posts.map((e) => e.userID).toSet().toList(growable: false);
     final userSummaries = await _fetchUserSummaries(authorIds);
@@ -480,6 +615,11 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _performInitialLoad() async {
+    final startedAt = DateTime.now();
+    debugPrint(
+      '[ShortColdStart] stage=initial_load_start at=${startedAt.toIso8601String()} '
+      'count=${shorts.length}',
+    );
     _log(
       '[Shorts] loadInitialShorts - BAŞLADI',
     );
@@ -545,6 +685,10 @@ extension ShortControllerLoadingPart on ShortController {
     );
     _log(
       '[Shorts] Current shorts list IDs AFTER: ${shorts.map((s) => s.docID).take(5).toList()}',
+    );
+    debugPrint(
+      '[ShortColdStart] stage=initial_load_end elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+      'count=${shorts.length} isLoading=${isLoading.value} hasMore=${hasMore.value}',
     );
   }
 
@@ -807,6 +951,19 @@ extension ShortControllerLoadingPart on ShortController {
         final nextItems = shorts.isEmpty
             ? _applyStartupShortPresentationOrder(appendPlan.itemsToAppend)
             : appendPlan.itemsToAppend;
+        _recordShortFetchEvent(
+          stage: 'append_apply',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'beforeCount': shorts.length,
+            'appendCount': nextItems.length,
+          },
+        );
+        debugPrint(
+          '[ShortColdStart] stage=first_assign trigger=$trigger '
+          'beforeCount=${shorts.length} appendCount=${nextItems.length} '
+          'afterCount=${shorts.length + nextItems.length}',
+        );
         shorts.addAll(nextItems);
         unawaited(_persistVisibleSnapshot());
       }
@@ -890,6 +1047,15 @@ extension ShortControllerLoadingPart on ShortController {
         next: newItems,
       );
     }
+    _recordShortFetchEvent(
+      stage: 'replace_apply',
+      trigger: 'replace_shorts',
+      metadata: <String, dynamic>{
+        'beforeCount': previous.length,
+        'afterCount': newItems.length,
+        'remapCache': remapCache,
+      },
+    );
     shorts.assignAll(newItems);
   }
 
@@ -910,8 +1076,6 @@ extension ShortControllerLoadingPart on ShortController {
   Future<void> _persistVisibleSnapshot() async {
     return;
   }
-
-  String get _currentUserId => CurrentUserService.instance.effectiveUserId;
 
   void _remapCacheForNewList({
     required List<PostsModel> previous,
