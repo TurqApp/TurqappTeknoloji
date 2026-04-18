@@ -5,6 +5,9 @@ const int _shortOfflineReserveFloor = 24;
 const int _feedOfflineReserveFloor = 18;
 
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
+  bool _isEmptyEntry(VideoCacheEntry entry) =>
+      entry.totalSizeBytes <= 0 && entry.segments.isEmpty;
+
   int _reservedShortCount() => _index.entries.values
       .where((entry) => entry.reservedForShortAt != null)
       .length;
@@ -87,6 +90,12 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       if (lowQuality.isNotEmpty) {
         candidates = lowQuality;
       }
+    }
+
+    final emptyCandidates = candidates.where(_isEmptyEntry).toList()
+      ..sort((a, b) => a.lastAccessedAt.compareTo(b.lastAccessedAt));
+    if (emptyCandidates.isNotEmpty) {
+      return emptyCandidates.first;
     }
 
     final watchedCandidates = candidates
@@ -173,9 +182,17 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     _index.totalSizeBytes -= entry.totalSizeBytes;
     _index.entries.remove(entry.docID);
     await _refreshMetadataUsage();
-    metrics.recordEviction();
     _markDirty();
+    if (_index.totalSizeBytes < 0) {
+      _index.totalSizeBytes = 0;
+    }
 
+    if (_isEmptyEntry(entry)) {
+      debugPrint('[CacheManager] Pruned empty entry ${entry.docID}');
+      return;
+    }
+
+    metrics.recordEviction();
     debugPrint(
       '[CacheManager] Evicted ${entry.docID} (${entry.totalSizeBytes} bytes)',
     );

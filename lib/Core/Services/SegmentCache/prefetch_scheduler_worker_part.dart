@@ -426,7 +426,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;
-      final quotaFillMode = _shouldAllowBackgroundQuotaFill &&
+      final quotaFillMode = job.source == 'quota' &&
+          _shouldAllowBackgroundQuotaFill &&
           shouldUsePrefetchQuotaFillMode(
             isOnWiFi: _isOnWiFi,
             mobileSeedMode: _mobileSeedMode,
