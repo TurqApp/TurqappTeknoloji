@@ -95,6 +95,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
   static const double _promoSlotHeight = 270;
+  static const double _livePromoSlotHeight = 274;
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
@@ -797,7 +798,7 @@ class _AdmobKareState extends State<AdmobKare> {
             child = Padding(
               padding: widget.contentPadding,
               child: SizedBox(
-                height: _promoSlotHeight,
+                height: _livePromoSlotHeight,
                 child: _buildPromoFrame(
                   child: _buildLiveAdSurface(renderedAdBody),
                 ),
