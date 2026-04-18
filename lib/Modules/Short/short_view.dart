@@ -204,6 +204,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _tierReconcileDebounce;
   Timer? _engagementRescoreTimer;
   Timer? _playbackWatchdogTimer;
+  Timer? _completionWatchdogTimer;
   Timer? _routeVisiblePlaybackBootstrapTimer;
   Duration _playbackWatchdogBaselinePosition = Duration.zero;
   DateTime? _autoplaySegmentGateStartedAt;
@@ -366,6 +367,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _tierReconcileDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
+    _completionWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
     _lastPrimaryPlayDocId = null;
@@ -490,6 +492,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _tierReconcileDebounce?.cancel();
     _engagementRescoreTimer?.cancel();
     _playbackWatchdogTimer?.cancel();
+    _completionWatchdogTimer?.cancel();
     _routeVisiblePlaybackBootstrapTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();

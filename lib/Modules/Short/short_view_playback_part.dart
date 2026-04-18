@@ -309,6 +309,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _tierDebounce?.cancel();
     _tierReconcileDebounce?.cancel();
     _playbackWatchdogTimer?.cancel();
+    _completionWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
     final nextDocId = page >= 0 && page < _cachedShorts.length
@@ -932,6 +933,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _scheduleIosNativePlaybackGuard(page, vc);
         _setupVideoEndListener(page, vc);
         _schedulePlaybackWatchdog(page, vc);
+        _scheduleCompletionWatchdog(page);
         _scheduleStallWatchdog(page, vc);
 
         if (page < _cachedShorts.length) {
@@ -1293,6 +1295,49 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? _shortPlayWatchdogDelayAndroid
           : _shortPlayWatchdogDelayIOS,
     );
+  }
+
+  void _scheduleCompletionWatchdog(int page) {
+    _completionWatchdogTimer?.cancel();
+    _armCompletionWatchdog(page);
+  }
+
+  void _armCompletionWatchdog(int page) {
+    _completionWatchdogTimer?.cancel();
+    _completionWatchdogTimer = Timer(const Duration(milliseconds: 220), () {
+      if (!mounted ||
+          page != currentPage ||
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive) {
+        return;
+      }
+      final vc = controller.cache[page];
+      if (vc == null || vc.isDisposed) {
+        _armCompletionWatchdog(page);
+        return;
+      }
+      final value = vc.value;
+      final durationMs = value.duration.inMilliseconds;
+      final positionMs = value.position.inMilliseconds;
+      final progress =
+          durationMs > 0 && positionMs > 0 ? positionMs / durationMs : 0.0;
+      final isNearEnd = durationMs > 0 &&
+          positionMs > 0 &&
+          ((durationMs - positionMs) <= 100 || progress >= 0.995);
+
+      if (!_isTransitioning && (value.isCompleted || isNearEnd)) {
+        final expectedDocId = page >= 0 && page < _cachedShorts.length
+            ? _cachedShorts[page].docID
+            : '';
+        _handleVideoEndForAdapter(
+          page,
+          vc,
+          expectedDocId: expectedDocId,
+        );
+        return;
+      }
+      _armCompletionWatchdog(page);
+    });
   }
 
   void _armPlaybackWatchdog(
