@@ -122,6 +122,7 @@ class DeviceLogReporter {
   static const int _stagnantPlaybackPositionThreshold = 10;
   static const int _frameBurstGapMs = 250;
   static const int _frameContextWindowMs = 1500;
+  static const int _pesSegmentContextWindowMs = 2500;
   static const String _frameAcquireFenceMessage =
       'Frame acquire fence was missing during rendering.';
 
@@ -264,7 +265,7 @@ class DeviceLogReporter {
       if (tag == 'PesReader' &&
           message.contains('Unexpected start code prefix')) {
         pesStartCodeWarningCount += 1;
-        _addIssue(
+        final issue = _addIssue(
           issueBuckets,
           code: 'unexpected_pes_start_code',
           severity: 'warning',
@@ -272,6 +273,7 @@ class DeviceLogReporter {
           message: 'Unexpected PES start code prefix observed during playback.',
           sampleLine: line,
         );
+        issue.context ??= _buildPesStartCodeCorrelation(parsedEntries, entry);
         continue;
       }
 
@@ -638,6 +640,62 @@ class DeviceLogReporter {
       rootCauseDetail: detailEntry?.message ?? '',
       contextSignals: contextSignals,
     );
+  }
+
+  static Map<String, dynamic>? _buildPesStartCodeCorrelation(
+    List<_ParsedLogLine> entries,
+    _ParsedLogLine warningEntry,
+  ) {
+    final warningTs = warningEntry.timestampMs;
+    if (warningTs == null) {
+      return null;
+    }
+    _ParsedLogLine? nearest;
+    for (var index = entries.length - 1; index >= 0; index -= 1) {
+      final entry = entries[index];
+      if (entry.timestampMs == null || entry.timestampMs! > warningTs) {
+        continue;
+      }
+      if (!entry.message.startsWith('[HlsSegmentServe]')) {
+        continue;
+      }
+      if (warningTs - entry.timestampMs! > _pesSegmentContextWindowMs) {
+        break;
+      }
+      nearest = entry;
+      break;
+    }
+    if (nearest == null) {
+      return null;
+    }
+    final segmentContext = _parseServedSegmentContext(nearest.message);
+    if (segmentContext == null || segmentContext.isEmpty) {
+      return null;
+    }
+    return <String, dynamic>{
+      'warningLine': warningEntry.lineNumber,
+      'warningTimestampMs': warningTs,
+      'servedSegment': segmentContext,
+      'servedSegmentLine': nearest.lineNumber,
+      'servedSegmentTimestampMs': nearest.timestampMs,
+      'deltaMs': warningTs - (nearest.timestampMs ?? warningTs),
+    };
+  }
+
+  static Map<String, dynamic>? _parseServedSegmentContext(String message) {
+    final match = RegExp(
+      r'^\[HlsSegmentServe\] doc=(\S+) segment=(\S+) cacheHit=(true|false) bytes=(\d+) path=(\S+)$',
+    ).firstMatch(message.trim());
+    if (match == null) {
+      return null;
+    }
+    return <String, dynamic>{
+      'docId': match.group(1),
+      'segmentKey': match.group(2),
+      'cacheHit': match.group(3) == 'true',
+      'bytes': int.tryParse(match.group(4) ?? ''),
+      'path': match.group(5),
+    };
   }
 
   static _ParsedLogLine? _lastMatchingEntry(

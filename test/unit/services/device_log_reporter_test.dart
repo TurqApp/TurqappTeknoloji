@@ -152,4 +152,34 @@ void main() {
       isTrue,
     );
   });
+
+  test('correlates pes warnings with the nearest served playback segment', () {
+    const rawLog = '''
+03-25 22:16:09.400 22496 22496 D flutter : [HlsSegmentServe] doc=doc-1 segment=720p/segment_17.ts cacheHit=false bytes=524288 path=/Posts/doc-1/hls/720p/segment_17.ts
+03-25 22:16:09.912 22496 22501 W PesReader: Unexpected start code prefix: 3211513
+''';
+
+    final report = DeviceLogReporter.buildReport(
+      rawLog,
+      deviceId: 'device-6',
+      platform: 'android',
+    );
+    final issue = (report.toJson()['issues'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .firstWhere(
+          (item) => item['code'] == 'unexpected_pes_start_code',
+        );
+    final context = issue['context'] as Map<String, dynamic>;
+    final servedSegment = context['servedSegment'] as Map<String, dynamic>;
+
+    expect(servedSegment['docId'], 'doc-1');
+    expect(servedSegment['segmentKey'], '720p/segment_17.ts');
+    expect(servedSegment['cacheHit'], isFalse);
+    expect(servedSegment['bytes'], 524288);
+    expect(
+      servedSegment['path'],
+      '/Posts/doc-1/hls/720p/segment_17.ts',
+    );
+    expect(context['deltaMs'], 512);
+  });
 }

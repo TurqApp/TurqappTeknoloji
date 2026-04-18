@@ -1,6 +1,110 @@
 part of 'hls_proxy_server.dart';
 
 extension HlsProxyServerPlaylistPart on HLSProxyServer {
+  static const int _shortStartupWarmFutureSegmentCount = 2;
+
+  bool _shouldWarmShortStartupSegments(String docID) {
+    bool matchesShortHandle(String? handleKey) {
+      final trimmed = handleKey?.trim() ?? '';
+      if (!trimmed.startsWith('short:')) return false;
+      return HlsSegmentPolicy.normalizeDocId(trimmed) == docID;
+    }
+
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return false;
+    return matchesShortHandle(manager.currentPlayingDocID) ||
+        matchesShortHandle(manager.targetPlaybackDocID);
+  }
+
+  String _playlistHlsRoot(String playlistRelativePath) {
+    final hlsIndex = playlistRelativePath.indexOf('/hls/');
+    if (hlsIndex < 0) {
+      return playlistRelativePath.substring(
+        0,
+        playlistRelativePath.lastIndexOf('/') + 1,
+      );
+    }
+    return playlistRelativePath.substring(0, hlsIndex + '/hls/'.length);
+  }
+
+  Future<void> _warmShortStartupSegmentsFromVariantPlaylist({
+    required String docID,
+    required String playlistPath,
+    required String playlistContent,
+    required SegmentCacheManager cacheManager,
+  }) async {
+    if (!_shouldWarmShortStartupSegments(docID)) return;
+    if (!_canFetchSegmentOnDemandForDoc(docID)) return;
+
+    final segmentUris = M3U8Parser.segmentUris(playlistContent);
+    if (segmentUris.length < 2) return;
+
+    final relativePath =
+        playlistPath.startsWith('/') ? playlistPath.substring(1) : playlistPath;
+    final lastSlashIndex = relativePath.lastIndexOf('/');
+    if (lastSlashIndex < 0) return;
+
+    final playlistDir = relativePath.substring(0, lastSlashIndex + 1);
+    final hlsRoot = _playlistHlsRoot(relativePath);
+    final entry = cacheManager.getEntry(docID);
+    final currentSegmentIndex =
+        HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
+              progress: entry?.watchProgress ?? 0.0,
+              totalSegments: segmentUris.length,
+            ) -
+            1;
+    final safeCurrentIndex =
+        currentSegmentIndex.clamp(0, segmentUris.length - 1);
+    final safeStartIndex =
+        (safeCurrentIndex + 1).clamp(0, segmentUris.length - 1);
+    if (safeStartIndex <= safeCurrentIndex) return;
+    final warmUntil = (safeStartIndex + _shortStartupWarmFutureSegmentCount)
+        .clamp(0, segmentUris.length);
+
+    final targetIndices = <int>[];
+    for (var index = safeStartIndex; index < warmUntil; index++) {
+      targetIndices.add(index);
+    }
+    if (targetIndices.isEmpty) return;
+
+    claimExternalOnDemandFetchForDoc(docID);
+    try {
+      await Future.wait(targetIndices.map((index) async {
+        final uri = segmentUris[index];
+        final requestPath =
+            '/${playlistDir.startsWith('/') ? playlistDir.substring(1) : playlistDir}$uri';
+        final segmentKey = '${playlistDir.replaceFirst(hlsRoot, '')}$uri';
+        if (cacheManager.getSegmentFile(docID, segmentKey) != null) return;
+
+        final existing = _segmentFetchInFlight[requestPath];
+        final bytes = existing != null
+            ? await existing
+            : await () async {
+                final future = _fetchSegmentFromCDN(
+                    '$_hlsProxyServerCdnOrigin$requestPath');
+                _segmentFetchInFlight[requestPath] = future;
+                try {
+                  return await future;
+                } finally {
+                  _segmentFetchInFlight.remove(requestPath);
+                }
+              }();
+
+        if (!_canFetchSegmentOnDemandForDoc(docID)) return;
+        await cacheManager.writeSegment(docID, segmentKey, bytes);
+        _logPlaybackSegmentServe(
+          docId: docID,
+          segmentKey: segmentKey,
+          cacheHit: false,
+          bytes: bytes.length,
+          path: requestPath,
+        );
+      }));
+    } finally {
+      releaseExternalOnDemandFetchForDoc(docID);
+    }
+  }
+
   /// M3U8 playlist isteği — cache'den veya CDN'den.
   Future<void> _handlePlaylist(
       HttpRequest request, String path, String? docID) async {
@@ -39,6 +143,18 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
           ..headers.set('Connection', 'keep-alive')
           ..write(content)
           ..close();
+        if (docID != null &&
+            cacheManager != null &&
+            !M3U8Parser.isMasterPlaylist(content)) {
+          unawaited(
+            _warmShortStartupSegmentsFromVariantPlaylist(
+              docID: docID,
+              playlistPath: path,
+              playlistContent: content,
+              cacheManager: cacheManager,
+            ),
+          );
+        }
         return;
       } catch (_) {}
     }
@@ -104,6 +220,19 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
         ..headers.set('Access-Control-Allow-Origin', '*')
         ..write(content)
         ..close();
+      if (docID != null && !M3U8Parser.isMasterPlaylist(content)) {
+        final readyCacheManager = cacheManager ?? _getCacheManager();
+        if (readyCacheManager != null) {
+          unawaited(
+            _warmShortStartupSegmentsFromVariantPlaylist(
+              docID: docID,
+              playlistPath: path,
+              playlistContent: content,
+              cacheManager: readyCacheManager,
+            ),
+          );
+        }
+      }
     } catch (e) {
       debugPrint('[HLSProxy] CDN fetch failed for $cdnUrl: $e');
       request.response

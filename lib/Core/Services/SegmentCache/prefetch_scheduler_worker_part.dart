@@ -502,8 +502,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         return;
       }
 
+      final shouldBurstVisibleShort = job.source == 'short' &&
+          (_focusedDocID == job.docID || _isCurrentPriorityDoc(job.docID));
       final seedNextSegmentLater = !startupBurstMode &&
           !quotaFillMode &&
+          !shouldBurstVisibleShort &&
           (isUnwatched && !_mobileSeedMode);
       final dispatchLimit = seedNextSegmentLater
           ? 1
