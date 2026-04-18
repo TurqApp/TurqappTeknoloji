@@ -306,11 +306,17 @@ extension HLSControllerEventsPart on HLSController {
     if (_viewId == null) return;
     final shouldRestoreFromReattach = _awaitingFreshFrameAfterReattach;
     final currentPosition = _currentPosition.isFinite ? _currentPosition : 0.0;
+    final effectiveSeekSeconds =
+        defaultTargetPlatform == TargetPlatform.android &&
+            seekSeconds != null &&
+            seekSeconds <= _androidMinMeaningfulReattachSeekSeconds
+        ? null
+        : seekSeconds;
     final hasStableVisualResume =
         _hasRenderedFirstFrame && currentPosition > 0.05;
-    final seekAlreadyApplied = seekSeconds != null &&
-        seekSeconds > 0.05 &&
-        (currentPosition - seekSeconds).abs() <= 0.18;
+    final seekAlreadyApplied = effectiveSeekSeconds != null &&
+        effectiveSeekSeconds > 0.05 &&
+        (currentPosition - effectiveSeekSeconds).abs() <= 0.18;
     if (!shouldRestoreFromReattach) {
       if (resumePlay) {
         try {
@@ -322,9 +328,11 @@ extension HLSControllerEventsPart on HLSController {
     if (hasStableVisualResume && seekAlreadyApplied) {
       return;
     }
-    if (seekSeconds != null && seekSeconds > 0.05 && !seekAlreadyApplied) {
+    if (effectiveSeekSeconds != null &&
+        effectiveSeekSeconds > 0.05 &&
+        !seekAlreadyApplied) {
       try {
-        await seekTo(seekSeconds);
+        await seekTo(effectiveSeekSeconds);
       } catch (_) {}
     }
     if (!resumePlay) return;

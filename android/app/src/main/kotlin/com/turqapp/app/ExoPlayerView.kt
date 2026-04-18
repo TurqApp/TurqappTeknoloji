@@ -140,6 +140,10 @@ class ExoPlayerView(
         return forceFullscreen
     }
 
+    private fun shouldWaitForStartedPlaybackBeforeReveal(): Boolean {
+        return forceFullscreen
+    }
+
     private fun shouldCaptureResumeOverlayForStallRebind(): Boolean {
         if (isPrimaryFeedSurface && !forceFullscreen) return false
         return shouldUseResumeVisualChoreography()
@@ -424,13 +428,29 @@ class ExoPlayerView(
         }
 
         val activePlayer = if (existing == null) {
-            // Feed/short akışında native player'ın n+1 kuralını ezmemesi için
-            // buffer penceresini daha dar tut.
-            val targetBufferMs = preferredMaxBufferMs.coerceIn(3500, 8000).toInt()
-            val minBufferMs = (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
-            val playbackBufferMs = (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
-            val rebufferPlaybackMs =
+            // Feed'te dar pencere faydalı, ama short fullscreen'de aynı profil
+            // segment sınırlarında underrun üretebiliyor. Short için daha rahat
+            // rebuffer/start tamponu kullan.
+            val targetBufferMs = if (forceFullscreen) {
+                preferredMaxBufferMs.coerceIn(9000, 16000)
+            } else {
+                preferredMaxBufferMs.coerceIn(3500, 8000)
+            }.toInt()
+            val minBufferMs = if (forceFullscreen) {
+                (targetBufferMs * 0.9).toInt().coerceAtLeast(7000)
+            } else {
+                (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
+            }
+            val playbackBufferMs = if (forceFullscreen) {
+                (minBufferMs * 0.16).toInt().coerceIn(1100, 1700)
+            } else {
+                (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
+            }
+            val rebufferPlaybackMs = if (forceFullscreen) {
+                (minBufferMs * 0.42).toInt().coerceIn(2600, 3800)
+            } else {
                 (minBufferMs * 0.55).toInt().coerceIn(1600, 3200)
+            }
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(
                     minBufferMs,
@@ -467,6 +487,7 @@ class ExoPlayerView(
 
         activePlayer.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
         activePlayer.playWhenReady = autoPlay
+        activePlayer.volume = heldVolume.coerceIn(0f, 1f)
         val preserveVisibleFrameOnReset =
             shouldUseResumeVisualChoreography() &&
                 hasReusableVideoFrame()
@@ -575,6 +596,7 @@ class ExoPlayerView(
                         isBufferingDispatched = false
                         sendEvent(mapOf("event" to "buffering", "isBuffering" to false))
                     }
+                    scheduleSurfaceReveal()
                     sendEvent(mapOf("event" to "play"))
                     startPositionUpdates()
                     startStallWatchdog()
@@ -620,7 +642,7 @@ class ExoPlayerView(
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
                 if (!alreadyShowingStableFrame) {
-                    if (resumeOverlayVisible) {
+                    if (resumeOverlayVisible && !shouldWaitForStartedPlaybackBeforeReveal()) {
                         revealSurface(immediate = true)
                     } else {
                         scheduleSurfaceReveal()
@@ -886,7 +908,6 @@ class ExoPlayerView(
         stopStallWatchdog()
         stopStartupRecoveryWatchdog()
         isSoftHeld = false
-        heldVolume = 0f
         appBackgroundSoftHeld = false
         shouldResumeAfterAppForeground = false
         player?.let { p ->
@@ -1247,8 +1268,13 @@ class ExoPlayerView(
             return
         }
         val needsFreshFrame = playerView.alpha < 1f
+        val playbackStarted = player?.isPlaying == true || smokeMonitor.isPlaying
         val canReveal = if (needsFreshFrame) {
-            didRenderFirstFrame
+            if (shouldWaitForStartedPlaybackBeforeReveal()) {
+                didRenderFirstFrame && playbackStarted
+            } else {
+                didRenderFirstFrame
+            }
         } else {
             didRenderFirstFrame || (hasVideoSize && isPlayerReady)
         }

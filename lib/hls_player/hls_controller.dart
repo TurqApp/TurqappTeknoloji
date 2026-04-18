@@ -11,6 +11,7 @@ part 'hls_controller_playback_part.dart';
 
 const bool _suppressHlsSmokeLogs =
     bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+const double _androidMinMeaningfulReattachSeekSeconds = 1.0;
 
 enum PlayerState {
   idle,
@@ -200,7 +201,11 @@ class HLSController {
     if (hadBoundView) {
       final previousPosition =
           _currentPosition.isFinite ? _currentPosition : 0.0;
-      final shouldRestorePosition = previousPosition > 0.05;
+      final minReattachSeekSeconds =
+          defaultTargetPlatform == TargetPlatform.android
+          ? _androidMinMeaningfulReattachSeekSeconds
+          : 0.05;
+      final shouldRestorePosition = previousPosition > minReattachSeekSeconds;
       final hadStablePlaybackFrame =
           _hasRenderedFirstFrame || previousPosition > 0.05;
       final shouldResumePlay = hadStablePlaybackFrame &&
