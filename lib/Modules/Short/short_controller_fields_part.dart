@@ -29,6 +29,7 @@ class _ShortControllerState {
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   bool startupPresentationApplied = false;
+  bool isShortRouteVisible = false;
   Worker? networkWorker;
   bool renderWindowFrozenOnCellular = false;
   _ShortSessionSourceMode shortSessionSourceMode =
@@ -83,6 +84,8 @@ extension ShortControllerFieldsPart on ShortController {
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
   set _startupPresentationApplied(bool value) =>
       _state.startupPresentationApplied = value;
+  bool get _isShortRouteVisible => _state.isShortRouteVisible;
+  set _isShortRouteVisible(bool value) => _state.isShortRouteVisible = value;
   Worker? get _networkWorker => _state.networkWorker;
   set _networkWorker(Worker? value) => _state.networkWorker = value;
   bool get _renderWindowFrozenOnCellular => _state.renderWindowFrozenOnCellular;
@@ -140,5 +143,13 @@ extension ShortControllerFieldsPart on ShortController {
   void commitLaunchIndexSelection(int selectedIndex) {
     lastIndex.value = selectedIndex;
     _preferFreshLaunchIndex = false;
+  }
+
+  void setShortRouteVisible(bool isVisible) {
+    _isShortRouteVisible = isVisible;
+  }
+
+  bool isShortRouteVisible() {
+    return _isShortRouteVisible;
   }
 }

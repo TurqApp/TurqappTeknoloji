@@ -69,19 +69,21 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
 
     claimExternalOnDemandFetchForDoc(docID);
     try {
-      await Future.wait(targetIndices.map((index) async {
+      for (final index in targetIndices) {
         final uri = segmentUris[index];
         final requestPath =
             '/${playlistDir.startsWith('/') ? playlistDir.substring(1) : playlistDir}$uri';
         final segmentKey = '${playlistDir.replaceFirst(hlsRoot, '')}$uri';
-        if (cacheManager.getSegmentFile(docID, segmentKey) != null) return;
+        if (cacheManager.getSegmentFile(docID, segmentKey) != null) {
+          continue;
+        }
 
         final existing = _segmentFetchInFlight[requestPath];
         final bytes = existing != null
             ? await existing
             : await () async {
-                final future = _fetchSegmentFromCDN(
-                    '$_hlsProxyServerCdnOrigin$requestPath');
+                final future =
+                    _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$requestPath');
                 _segmentFetchInFlight[requestPath] = future;
                 try {
                   return await future;
@@ -99,7 +101,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
           bytes: bytes.length,
           path: requestPath,
         );
-      }));
+      }
     } finally {
       releaseExternalOnDemandFetchForDoc(docID);
     }

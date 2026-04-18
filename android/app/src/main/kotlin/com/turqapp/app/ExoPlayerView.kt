@@ -432,12 +432,12 @@ class ExoPlayerView(
             // segment sınırlarında underrun üretebiliyor. Short için daha rahat
             // rebuffer/start tamponu kullan.
             val targetBufferMs = if (forceFullscreen) {
-                preferredMaxBufferMs.coerceIn(9000, 16000)
+                preferredMaxBufferMs.coerceIn(4500, 18000)
             } else {
                 preferredMaxBufferMs.coerceIn(3500, 8000)
             }.toInt()
             val minBufferMs = if (forceFullscreen) {
-                (targetBufferMs * 0.9).toInt().coerceAtLeast(7000)
+                (targetBufferMs * 0.9).toInt().coerceAtLeast(4000)
             } else {
                 (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
             }

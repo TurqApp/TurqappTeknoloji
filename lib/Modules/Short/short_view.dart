@@ -387,18 +387,28 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   @override
   void initState() {
     super.initState();
+    controller.setShortRouteVisible(true);
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
-    try {
-      maybeFindNavBarController()?.pushMediaOverlayLock();
-    } catch (_) {}
-
     final initialIndex = controller.shorts.isEmpty
         ? 0
         : _initialDisplayIndex(
             controller.shorts,
             controller.preferredLaunchIndexForCount(controller.shorts.length),
           );
+    final initialDocId = controller.shorts.isEmpty
+        ? ''
+        : controller.shorts[initialIndex].docID.trim();
+    if (initialDocId.isNotEmpty) {
+      try {
+        _playbackRuntimeService.enterExclusiveMode(
+          controller.playbackHandleKeyForDoc(initialDocId),
+        );
+      } catch (_) {}
+    }
+    try {
+      maybeFindNavBarController()?.pushMediaOverlayLock();
+    } catch (_) {}
     currentPage = initialIndex;
     controller.commitLaunchIndexSelection(currentPage);
     _cachedShorts = List<PostsModel>.from(controller.shorts);
@@ -436,6 +446,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (_routeObserverSubscribed) return;
     final route = ModalRoute.of(context);
     if (route == null) return;
+    controller.setShortRouteVisible(route.isCurrent);
     routeObserver.subscribe(this, route);
     _routeObserverSubscribed = true;
     if (route.isCurrent) {
@@ -445,17 +456,20 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   @override
   void didPush() {
+    controller.setShortRouteVisible(true);
     _scheduleInitialRoutePlaybackBootstrapIfNeeded();
   }
 
   @override
   void didPushNext() {
+    controller.setShortRouteVisible(false);
     _forceResumePosterOnReturn = false;
     unawaited(_pauseCurrentShortRoutePlayback());
   }
 
   @override
   void didPopNext() {
+    controller.setShortRouteVisible(true);
     final isStillCurrent = ModalRoute.of(context)?.isCurrent ?? false;
     if (!isStillCurrent) return;
     try {
@@ -469,6 +483,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   @override
   void dispose() {
+    controller.setShortRouteVisible(false);
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
     _tierDebounce?.cancel();

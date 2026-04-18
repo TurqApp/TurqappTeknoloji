@@ -7,9 +7,9 @@ const double _shortLandscapeAspectThreshold = 1.2;
 const double _mobileShortLowQuotaRatio = 0.15;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 5.0 : 4.8;
+    defaultTargetPlatform == TargetPlatform.android ? 10.0 : 4.8;
 final double _neighborBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 3.6 : 3.6;
+    defaultTargetPlatform == TargetPlatform.android ? 6.0 : 3.6;
 final double _prepBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.0;
 

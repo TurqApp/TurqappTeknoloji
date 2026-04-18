@@ -769,6 +769,34 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       final previousShorts = shorts.toList(growable: false);
+      if (_isShortRouteVisible && previousShorts.isNotEmpty) {
+        final appendPlan = _shortFeedApplicationService.buildAppendPlan(
+          currentShorts: previousShorts,
+          fetchedPosts: result.posts,
+          isEligiblePost: _isEligibleShortPost,
+          fetchedPostsPreplanned: result.postsPreplanned,
+        );
+        _log(
+          '[ShortLaunchMotorApply] mode=refresh_append_only '
+          'prefilled=${result.postsPreplanned} fetched=${result.posts.length} '
+          'added=${appendPlan.itemsToAppend.length} current=${shorts.length}',
+        );
+        if (appendPlan.itemsToAppend.isNotEmpty) {
+          _recordShortFetchEvent(
+            stage: 'append_apply',
+            trigger: 'refresh_route_visible_append_only',
+            metadata: <String, dynamic>{
+              'beforeCount': shorts.length,
+              'appendCount': appendPlan.itemsToAppend.length,
+            },
+          );
+          shorts.addAll(appendPlan.itemsToAppend);
+          unawaited(_persistVisibleSnapshot());
+        }
+        _lastDoc = result.lastDoc;
+        hasMore.value = result.hasMore;
+        return;
+      }
       final refreshPlan = _shortFeedApplicationService.buildRefreshPlan(
         previousShorts: previousShorts,
         fetchedPosts: result.posts,
@@ -1071,6 +1099,41 @@ extension ShortControllerLoadingPart on ShortController {
       return;
     }
     final previous = shorts.toList(growable: false);
+    if (_isShortRouteVisible && previous.isNotEmpty && newItems.isNotEmpty) {
+      final existingIds = previous.map((item) => item.docID).toSet();
+      final appendOnlyItems = <PostsModel>[];
+      final seenIncoming = <String>{};
+      for (final item in newItems) {
+        final docId = item.docID;
+        if (docId.isEmpty ||
+            existingIds.contains(docId) ||
+            !seenIncoming.add(docId)) {
+          continue;
+        }
+        appendOnlyItems.add(item);
+      }
+      _recordShortFetchEvent(
+        stage: 'replace_blocked',
+        trigger: 'replace_shorts_route_visible',
+        metadata: <String, dynamic>{
+          'beforeCount': previous.length,
+          'incomingCount': newItems.length,
+          'appendOnlyCount': appendOnlyItems.length,
+        },
+      );
+      if (appendOnlyItems.isNotEmpty) {
+        _recordShortFetchEvent(
+          stage: 'append_apply',
+          trigger: 'replace_shorts_route_visible_append_only',
+          metadata: <String, dynamic>{
+            'beforeCount': previous.length,
+            'appendCount': appendOnlyItems.length,
+          },
+        );
+        shorts.addAll(appendOnlyItems);
+      }
+      return;
+    }
     if (remapCache) {
       _remapCacheForNewList(
         previous: previous,
