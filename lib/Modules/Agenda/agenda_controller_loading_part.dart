@@ -653,10 +653,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     _cancelStartupWarmPlayerPreload();
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
-    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'feed_surface_reset',
-    );
     _pendingCenteredDocId = null;
     _startupLockedFeedDocId = null;
     _startupPlaybackLockedAt = null;

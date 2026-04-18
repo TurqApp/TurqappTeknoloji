@@ -133,21 +133,48 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   Future<void> _processQueue() async {
     if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=network_gate wifi=$_isOnWiFi '
+        'canPrefetch=${CacheNetworkPolicy.canPrefetch}',
+      );
       pause();
       return;
     }
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=target_reached '
+        'usageBytes=${cacheManager.totalTrackedUsageBytes} '
+        'targetBytes=$_wifiQuotaFillTargetBytes',
+      );
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
+    final currentBacklog =
+        _queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length;
+    debugPrint(
+      '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
+      'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
+      'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow',
+    );
     if (_automaticQuotaFillEnabled &&
         _shouldAllowBackgroundQuotaFill &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
       await _ensureWifiQuotaFillPlan();
+    } else {
+      final reason = !_automaticQuotaFillEnabled
+          ? 'disabled'
+          : (!_shouldAllowBackgroundQuotaFill
+              ? 'background_gate'
+              : 'backlog_high');
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=$reason '
+        'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
+        'activeRefs=${_activeDocRefCounts.length}',
+      );
     }
     final effectiveMaxConcurrent = _effectiveMaxConcurrent();
     if (_paused || _queue.isEmpty) return;

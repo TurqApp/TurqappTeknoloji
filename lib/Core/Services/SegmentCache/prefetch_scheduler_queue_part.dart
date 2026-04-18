@@ -109,51 +109,64 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (!_isOnWiFi || _mobileSeedMode) return;
     if (!_shouldAllowBackgroundQuotaFill) return;
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
+    if (_quotaFillRemoteInFlight) {
+      debugPrint('[ShortQuotaFill] status=skip reason=plan_inflight');
+      return;
+    }
     _resetWifiQuotaFillPlanIfNeeded(cacheManager);
-
-    Future<void> seedFromLocalCandidates() async {
-      final localCandidates = _selectShortQuotaFillCandidates(
-        cacheManager.getQuotaFillCandidatePosts(
-          limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
-        ),
-        limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
-      );
-      if (localCandidates.isEmpty) return;
-      for (final post in localCandidates) {
-        cacheManager.markReservedForShort(post.docID);
-      }
-      await _appendQuotaFillQueueForPosts(
-        localCandidates,
-        0,
-        maxDocs: localCandidates.length,
-      );
-      for (final post in localCandidates.take(2)) {
-        boostDoc(
-          post.docID,
-          readySegments: _prefetchSchedulerQuotaFillBoostReadySegments,
-        );
-      }
-    }
-
-    final backlogCount = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
-    if (backlogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
-      return;
-    }
-
-    await seedFromLocalCandidates();
-
-    final refreshedBacklogCount = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
-    if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
-      return;
-    }
-
-    if (_quotaFillRemoteInFlight || !_quotaFillRemoteHasMore) return;
     _quotaFillRemoteInFlight = true;
+
     try {
+      debugPrint(
+        '[ShortQuotaFill] status=plan_start enabled=$_automaticQuotaFillEnabled '
+        'wifi=$_isOnWiFi backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
+        'targetBytes=$_wifiQuotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes}',
+      );
+
+      Future<void> seedFromLocalCandidates() async {
+        final localCandidates = _selectShortQuotaFillCandidates(
+          cacheManager.getQuotaFillCandidatePosts(
+            limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
+          ),
+          limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
+        );
+        debugPrint(
+          '[ShortQuotaFill] status=local_seed count=${localCandidates.length}',
+        );
+        if (localCandidates.isEmpty) return;
+        for (final post in localCandidates) {
+          cacheManager.markReservedForShort(post.docID);
+        }
+        await _appendQuotaFillQueueForPosts(
+          localCandidates,
+          0,
+          maxDocs: localCandidates.length,
+        );
+        for (final post in localCandidates.take(2)) {
+          boostDoc(
+            post.docID,
+            readySegments: _prefetchSchedulerQuotaFillBoostReadySegments,
+          );
+        }
+      }
+
+      final backlogCount = _queue.length +
+          _pendingFollowUpJobs.length +
+          _activeDocRefCounts.length;
+      if (backlogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
+        return;
+      }
+
+      await seedFromLocalCandidates();
+
+      final refreshedBacklogCount = _queue.length +
+          _pendingFollowUpJobs.length +
+          _activeDocRefCounts.length;
+      if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
+        return;
+      }
+
+      if (!_quotaFillRemoteHasMore) return;
       final remoteSeedPosts = <PostsModel>[];
       while (remoteSeedPosts.length <
               _prefetchSchedulerQuotaFillPlanningBatchSize &&
@@ -181,6 +194,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final remoteCandidates = _selectShortQuotaFillCandidates(
         remoteSeedPosts,
         limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
+      );
+      debugPrint(
+        '[ShortQuotaFill] status=remote_seed fetched=${remoteSeedPosts.length} '
+        'selected=${remoteCandidates.length} hasMore=$_quotaFillRemoteHasMore',
       );
       if (remoteCandidates.isEmpty) return;
       cacheManager.cachePostCards(remoteCandidates);
@@ -254,7 +271,15 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       subsliceMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
       minuteSets: _prefetchSchedulerShortQuotaFillMinuteSets,
     );
+    debugPrint(
+      '[ShortQuotaFill] status=motor_snapshot motor=${snapshot.motorIndex + 1} '
+      'ownedMinutes=${snapshot.ownedMinutes.join(",")} '
+      'normalized=${snapshot.normalizedPool.length} '
+      'windowed=${snapshot.windowedPool.length} '
+      'queueCount=${snapshot.queueCount} strictCount=${snapshot.strictSelection.length}',
+    );
     if (!snapshot.hasQueues) {
+      debugPrint('[ShortQuotaFill] status=empty_queue');
       return const <PostsModel>[];
     }
 

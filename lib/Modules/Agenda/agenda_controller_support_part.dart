@@ -394,10 +394,6 @@ extension AgendaControllerPublicApiPart on AgendaController {
     if (agendaList.isEmpty) return;
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
-    prefetch.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'feed_startup_window',
-    );
     final startupWindow = _resolveFeedStartupWarmPosts()
         .where((post) => _canAutoplayVideoPost(post))
         .take(AgendaControllerFeedPart._feedSplashWarmPlayableCount)

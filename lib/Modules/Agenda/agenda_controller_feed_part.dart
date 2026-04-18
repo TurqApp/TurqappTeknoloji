@@ -628,10 +628,6 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     try {
       final scheduler = maybeFindPrefetchScheduler();
-      scheduler?.setAutomaticQuotaFillEnabled(
-        false,
-        reason: 'feed_surface_active',
-      );
       scheduler?.updateFeedQueueForPosts(
         videoPosts,
         safeCurrent,

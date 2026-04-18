@@ -243,8 +243,5 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       '[Prefetch] automaticQuotaFillEnabled=$enabled reason=$reason',
     );
     _publishPrefetchHealthIfNeeded(force: true);
-    if (enabled) {
-      _processQueue();
-    }
   }
 }
