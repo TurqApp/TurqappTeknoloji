@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
@@ -39,6 +41,11 @@ void main() {
               controller: controller,
               targetIndex: 1,
             );
+            _expectWarmPausedShortAdapter(
+              controller,
+              index: 0,
+              label: 'first short after swipe to second cycle ${cycle + 1}',
+            );
 
             await _assertPlayableForDuration(
               tester,
@@ -53,12 +60,30 @@ void main() {
               controller: controller,
               targetIndex: 0,
             );
+            _expectWarmPausedShortAdapter(
+              controller,
+              index: 1,
+              label: 'second short after swipe back cycle ${cycle + 1}',
+            );
           }
         },
       );
     },
     skip: !kRunIntegrationSmoke,
   );
+}
+
+void _expectWarmPausedShortAdapter(
+  ShortController controller, {
+  required int index,
+  required String label,
+}) {
+  if (defaultTargetPlatform != TargetPlatform.android) return;
+  final adapter = controller.cache[index];
+  if (adapter == null || adapter.isDisposed) return;
+  if (adapter.preferWarmPoolPause && adapter.isStopped) {
+    throw TestFailure('$label stopped instead of staying warm-paused.');
+  }
 }
 
 Future<void> _waitForPlayableFrame(
@@ -87,6 +112,12 @@ Future<void> _waitForPlayableFrame(
         value.hasRenderedFirstFrame &&
         (value.isPlaying || value.position > Duration.zero);
     if (playable) {
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          !adapter.preferWarmPoolPause) {
+        throw TestFailure(
+          '$label Android short adapter did not enable warm pool pause.',
+        );
+      }
       return;
     }
   }

@@ -37,6 +37,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     bool loop = true,
     bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
+    bool preferWarmPoolPauseOnAndroid = false,
   }) {
     final sharedLeasedAdapter = _findReusableLeasedAdapter(
       cacheKey: cacheKey,
@@ -47,6 +48,10 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     if (sharedLeasedAdapter != null) {
       _leasedKeys[sharedLeasedAdapter] = cacheKey;
       _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          preferWarmPoolPauseOnAndroid) {
+        sharedLeasedAdapter.updateWarmPoolPausePreference(true);
+      }
       unawaited(sharedLeasedAdapter.setLooping(loop));
       _restoreSavedPosition(cacheKey, sharedLeasedAdapter);
       return sharedLeasedAdapter;
@@ -91,6 +96,10 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     _leasedKeys[adapter] = cacheKey;
     _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        preferWarmPoolPauseOnAndroid) {
+      adapter.updateWarmPoolPausePreference(true);
+    }
     _restoreSavedPosition(cacheKey, adapter);
     return adapter;
   }

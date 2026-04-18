@@ -39,6 +39,7 @@ extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
     bool loop = true,
     bool useLocalProxy = true,
     bool coordinateAudioFocus = true,
+    bool preferWarmPoolPauseOnAndroid = false,
   }) =>
       _GlobalVideoAdapterPoolRuntimeX(this).acquire(
         cacheKey: cacheKey,
@@ -47,6 +48,7 @@ extension GlobalVideoAdapterPoolFacadePart on GlobalVideoAdapterPool {
         loop: loop,
         useLocalProxy: useLocalProxy,
         coordinateAudioFocus: coordinateAudioFocus,
+        preferWarmPoolPauseOnAndroid: preferWarmPoolPauseOnAndroid,
       );
 
   Future<void> release(

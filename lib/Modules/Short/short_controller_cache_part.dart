@@ -150,6 +150,7 @@ extension ShortControllerCachePart on ShortController {
         url: videoUrl,
         autoPlay: false,
         loop: false,
+        preferWarmPoolPauseOnAndroid: true,
       );
       adapter.hlsController.setTelemetryVideoId(short.docID);
       cacheTarget[index] = adapter;
@@ -528,6 +529,7 @@ extension ShortControllerCachePart on ShortController {
         url: post.playbackUrl,
         autoPlay: false,
         loop: false,
+        preferWarmPoolPauseOnAndroid: true,
       );
       cache[idx] = adapter;
       _registerPlaybackHandleForIndex(idx, adapter);

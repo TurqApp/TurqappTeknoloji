@@ -270,6 +270,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool? overrideAutoPlay,
     required bool forceFullscreenOnAndroid,
     required bool isPrimaryFeedSurface,
+    required bool preferWarmPoolPauseOnAndroid,
     required bool preferResumePoster,
     bool startupRecoveryWatchdogEnabled = true,
     bool suppressLoadingOverlay = false,
@@ -278,7 +279,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _refreshProxyUrlIfNeeded();
     updateWarmPoolPausePreference(
       defaultTargetPlatform == TargetPlatform.android &&
-          isPrimaryFeedSurface,
+          (isPrimaryFeedSurface || preferWarmPoolPauseOnAndroid),
     );
     return HLSPlayer(
       key: key,

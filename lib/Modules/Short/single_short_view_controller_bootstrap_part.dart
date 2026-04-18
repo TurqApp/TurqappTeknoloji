@@ -134,6 +134,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       url: url,
       autoPlay: false,
       loop: false,
+      preferWarmPoolPauseOnAndroid: true,
     );
     _videoControllers[index] = ctrl;
     try {

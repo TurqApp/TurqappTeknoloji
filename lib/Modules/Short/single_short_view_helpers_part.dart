@@ -574,6 +574,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       useAspectRatio: false,
       overrideAutoPlay: overrideAutoPlay,
       forceFullscreenOnAndroid: true,
+      preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
     );

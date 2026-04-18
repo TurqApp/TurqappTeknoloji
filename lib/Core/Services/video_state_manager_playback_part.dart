@@ -29,6 +29,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return !(allowedSegmentWarm || allowedCacheOnly);
   }
 
+  bool _shouldKeepShortHandleWarmDuringExclusiveSwitch(
+    String? allowedDocID,
+    String controllerKey,
+    HLSAdapterPlaybackHandle handle,
+  ) {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    final allowedKey = allowedDocID?.trim() ?? '';
+    if (!allowedKey.startsWith('short:')) return false;
+    if (!controllerKey.trim().startsWith('short:')) return false;
+    return handle.adapter.preferWarmPoolPause;
+  }
+
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
@@ -176,8 +188,16 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         }
         if (handle.isInitialized) {
           final controllerKey = entry.key.trim();
-          final shouldStopPlayback =
+          var shouldStopPlayback =
               _shouldStopPlaybackForHiddenHandle(controllerKey);
+          if (handle is HLSAdapterPlaybackHandle &&
+              _shouldKeepShortHandleWarmDuringExclusiveSwitch(
+                allowedDocID,
+                controllerKey,
+                handle,
+              )) {
+            shouldStopPlayback = false;
+          }
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '

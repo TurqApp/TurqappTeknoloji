@@ -88,6 +88,7 @@ extension ShortViewUiPart on _ShortViewState {
       key: ValueKey(keyId),
       useAspectRatio: false,
       forceFullscreenOnAndroid: true,
+      preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
     );

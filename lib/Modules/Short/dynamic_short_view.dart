@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -39,6 +41,9 @@ class DynamicShortViewState extends State<DynamicShortView> {
 
     // İlk video dışarıdan hazır, ata
     controllers[0] = widget.playerController;
+    widget.playerController.updateWarmPoolPausePreference(
+      defaultTargetPlatform == TargetPlatform.android,
+    );
     _setupController(0);
 
     // Etrafındaki videoları preload et
@@ -66,6 +71,9 @@ class DynamicShortViewState extends State<DynamicShortView> {
       final post = widget.startList[i];
       final ctrl =
           HLSVideoAdapter(url: post.playbackUrl, autoPlay: false, loop: true);
+      ctrl.updateWarmPoolPausePreference(
+        defaultTargetPlatform == TargetPlatform.android,
+      );
       controllers[i] = ctrl;
       _setupController(i);
     }
@@ -226,7 +234,9 @@ class DynamicShortViewState extends State<DynamicShortView> {
             children: [
               // Native video player — her zaman render et
               SizedBox.expand(
-                child: ctrl.buildPlayer(),
+                child: ctrl.buildPlayer(
+                  preferWarmPoolPauseOnAndroid: true,
+                ),
               ),
               AnimatedBuilder(
                 animation: ctrl,
