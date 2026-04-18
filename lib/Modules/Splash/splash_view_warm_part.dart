@@ -205,6 +205,7 @@ extension _SplashViewWarmPart on _SplashViewState {
               final prepareFuture = agendaController
                   .prepareStartupSurface(
                     allowBackgroundRefresh: false,
+                    source: 'splash_home_prepare_surface',
                   )
                   .timeout(const Duration(seconds: 3), onTimeout: () {});
               await prepareFuture;

@@ -457,6 +457,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _cancelFeedStallWatchdog();
     _feedRecoverInFlight = false;
     _videoAdapter = null;
+    _keepAliveUpdateCallback?.call();
     _lastAppliedPlaybackVolume = null;
     adapter.removeListener(_onVideoUpdate);
     _hasAutoPlayed = false;

@@ -95,6 +95,9 @@ class _AgendaControllerState {
   int? plannedColdFeedNextTypesensePage;
   Worker? networkWorker;
   bool renderWindowFrozenOnCellular = false;
+  NetworkType? lastStartupSurfacePreparedNetwork;
+  int lastStartupSurfacePreparedMutationEpoch = -1;
+  int lastPrimarySurfaceVisibleMutationEpoch = -1;
 }
 
 extension AgendaControllerFieldsPart on AgendaController {
@@ -336,6 +339,18 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _renderWindowFrozenOnCellular => _state.renderWindowFrozenOnCellular;
   set _renderWindowFrozenOnCellular(bool value) =>
       _state.renderWindowFrozenOnCellular = value;
+  NetworkType? get _lastStartupSurfacePreparedNetwork =>
+      _state.lastStartupSurfacePreparedNetwork;
+  set _lastStartupSurfacePreparedNetwork(NetworkType? value) =>
+      _state.lastStartupSurfacePreparedNetwork = value;
+  int get _lastStartupSurfacePreparedMutationEpoch =>
+      _state.lastStartupSurfacePreparedMutationEpoch;
+  set _lastStartupSurfacePreparedMutationEpoch(int value) =>
+      _state.lastStartupSurfacePreparedMutationEpoch = value;
+  int get _lastPrimarySurfaceVisibleMutationEpoch =>
+      _state.lastPrimarySurfaceVisibleMutationEpoch;
+  set _lastPrimarySurfaceVisibleMutationEpoch(int value) =>
+      _state.lastPrimarySurfaceVisibleMutationEpoch = value;
 
   bool isStartupCacheOriginVideoDoc(String docId) {
     final normalized = docId.trim();

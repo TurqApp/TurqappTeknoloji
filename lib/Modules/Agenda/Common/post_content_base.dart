@@ -374,8 +374,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (modelIndex < 0) return false;
     final warmTier = _resolvePrimaryFeedNativeWarmTier(modelIndex: modelIndex);
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final keepAlive =
-          warmTier == _FeedNativeWarmTier.strong && _videoAdapter != null;
+      final keepAlive = _videoAdapter != null &&
+          (warmTier == _FeedNativeWarmTier.strong ||
+              warmTier == _FeedNativeWarmTier.cacheOnly);
       debugPrint(
         '[FeedSurfaceDecision] stage=warm_window '
         'doc=${widget.model.docID} keepAlive=$keepAlive '
@@ -883,6 +884,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
 
     _videoAdapter!.addListener(_onVideoUpdate);
+    _keepAliveUpdateCallback?.call();
+    _markPostContentDirty();
 
     if (!isStandalonePostInstance) {
       _muteWorker = ever<bool>(agendaController.isMuted, (muted) {

@@ -756,6 +756,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       }
       final prepareFuture = agendaController.prepareStartupSurface(
         allowBackgroundRefresh: false,
+        source: 'splash_primary_route_ready',
       );
       if (ContentPolicy.isConnected) {
         unawaited(prepareFuture.catchError((_) {}));

@@ -3,6 +3,13 @@ part of 'global_video_adapter_pool.dart';
 extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   static const Duration _nonLoopingRestartTailThreshold = Duration(seconds: 5);
 
+  int get _maxWarmAdapters {
+    if (Platform.isAndroid) {
+      return _globalVideoAdapterPoolMaxWarmAdaptersAndroid;
+    }
+    return _globalVideoAdapterPoolMaxWarmAdapters;
+  }
+
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid || Platform.isIOS) {
       if (Platform.isAndroid && adapter.preferWarmPoolPause) {
@@ -233,6 +240,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   Map<String, dynamic> debugSnapshot() {
     return <String, dynamic>{
       'warmCount': _warmAdapters.length,
+      'maxWarmCount': _maxWarmAdapters,
       'leasedCount': _leasedKeys.length,
       'leaseKeyCount': _leaseCounts.length,
       'warmKeys': _warmOrder.toList(growable: false),
@@ -316,11 +324,15 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   Future<void> _trim() async {
-    while (_warmOrder.length > _globalVideoAdapterPoolMaxWarmAdapters) {
+    while (_warmOrder.length > _maxWarmAdapters) {
       final oldestKey = _warmOrder.removeAt(0);
       final entry = _warmAdapters.remove(oldestKey);
       final adapter = entry?.adapter;
       if (adapter == null || adapter.isDisposed) continue;
+      debugPrint(
+        '[PlaybackStopTrace] source=pool_trim cacheKey=$oldestKey '
+        'warmCount=${_warmOrder.length + 1} maxWarm=$_maxWarmAdapters',
+      );
       adapter.dispose();
     }
   }

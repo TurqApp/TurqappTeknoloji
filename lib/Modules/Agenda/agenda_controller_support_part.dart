@@ -302,25 +302,62 @@ extension AgendaControllerPublicApiPart on AgendaController {
       '[FeedNetworkPolicy] status=live_network network=${networkType.name} '
       'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
     );
-    if (networkType == NetworkType.wifi) {
-      unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+    final shouldRefreshStartupSurface = networkType == NetworkType.wifi &&
+        (_lastStartupSurfacePreparedNetwork != networkType ||
+            _lastStartupSurfacePreparedMutationEpoch != _feedMutationEpoch ||
+            agendaList.isEmpty ||
+            !_startupHeadFinalized);
+    _lastStartupSurfacePreparedNetwork = networkType;
+    if (shouldRefreshStartupSurface) {
+      _lastStartupSurfacePreparedMutationEpoch = _feedMutationEpoch;
+      unawaited(
+        prepareStartupSurface(
+          allowBackgroundRefresh: true,
+          source: 'network_transition',
+        ),
+      );
+    } else if (networkType == NetworkType.wifi) {
+      debugPrint(
+        '[FeedStartupSurface] status=skip_network_repeat '
+        'network=${networkType.name} agendaCount=${agendaList.length} '
+        'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized',
+      );
     }
   }
 
-  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
-        allowBackgroundRefresh:
-            ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed),
+  Future<void> onPrimarySurfaceVisible() {
+    if (_lastPrimarySurfaceVisibleMutationEpoch == _feedMutationEpoch) {
+      debugPrint(
+        '[FeedStartupSurface] status=skip_primary_surface_repeat '
+        'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
+        'finalized=$_startupHeadFinalized',
       );
+      return Future<void>.value();
+    }
+    _lastPrimarySurfaceVisibleMutationEpoch = _feedMutationEpoch;
+    return prepareStartupSurface(
+      allowBackgroundRefresh:
+          ContentPolicy.allowBackgroundRefresh(ContentScreenKind.feed),
+      source: 'primary_surface_visible',
+    );
+  }
 
   Future<void> prepareStartupSurface({
     bool? allowBackgroundRefresh,
+    String source = 'unspecified',
   }) {
     final active = _startupPrepareFuture;
+    debugPrint(
+      '[FeedStartupSurface] status=request source=$source '
+      'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
+      'inFlight=${active != null} finalized=$_startupHeadFinalized',
+    );
     if (active != null) {
       return active;
     }
     final future = _performPrepareStartupSurface(
       allowBackgroundRefresh: allowBackgroundRefresh,
+      source: source,
     );
     _startupPrepareFuture = future;
     return future.whenComplete(() {
@@ -332,7 +369,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
 
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
+    required String source,
   }) async {
+    debugPrint(
+      '[FeedStartupSurface] status=begin source=$source '
+      'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
+      'finalized=$_startupHeadFinalized plannerApplied=$_startupPlannerHeadApplied',
+    );
     if (agendaList.isEmpty && !_startupPlannerHeadApplied) {
       final deviceSession = DeviceSessionService.instance;
       final deviceSalt = deviceSession.cachedDeviceKey;
@@ -361,7 +404,12 @@ extension AgendaControllerPublicApiPart on AgendaController {
     );
     _primeStartupPlaybackWindow();
     await _recordFeedStartupSurface(
-      source: 'feed_surface_ready',
+      source: 'feed_surface_ready:$source',
+    );
+    debugPrint(
+      '[FeedStartupSurface] status=end source=$source '
+      'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
+      'finalized=$_startupHeadFinalized',
     );
     if (!allowRefresh || agendaList.isEmpty || _startupHeadFinalized) return;
   }
