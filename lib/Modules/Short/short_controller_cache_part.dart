@@ -127,6 +127,10 @@ extension ShortControllerCachePart on ShortController {
     await adapter.silenceAndStopPlayback();
   }
 
+  bool _shouldKeepTrimmedShortAdapterWarm() {
+    return defaultTargetPlatform == TargetPlatform.android;
+  }
+
   Future<HLSVideoAdapter?> _preloadSingleVideoWithCache(
     int index,
     PostsModel short, {
@@ -295,8 +299,18 @@ extension ShortControllerCachePart on ShortController {
         cache.remove(k);
         _tiers.remove(k);
         if (adapter != null) {
+          final keepWarm = _shouldKeepTrimmedShortAdapterWarm();
+          debugPrint(
+            '[ShortTierTrim] reason=outside_window index=$k currentIndex=$currentIndex '
+            'keepWarm=$keepWarm',
+          );
           _unregisterPlaybackHandleForIndex(k);
-          unawaited(_videoPool.release(adapter, keepWarm: false));
+          unawaited(
+            _videoPool.release(
+              adapter,
+              keepWarm: keepWarm,
+            ),
+          );
         }
       }
     }
