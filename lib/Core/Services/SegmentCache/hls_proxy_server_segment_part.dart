@@ -1,17 +1,20 @@
 part of 'hls_proxy_server.dart';
 
 extension HlsProxyServerSegmentPart on HLSProxyServer {
+  Future<void> _respondStalePlaybackSegment(HttpRequest request) async {
+    request.response
+      ..statusCode = HttpStatus.gone
+      ..write('Stale playback segment request')
+      ..close();
+  }
+
   bool _canFetchSegmentOnDemandForDoc(String? docID) {
     if (!CacheNetworkPolicy.canFetchOnDemand) {
       return false;
     }
-    if (!CacheNetworkPolicy.isOnCellular) {
-      return true;
-    }
-
     final requestedDocId = HlsSegmentPolicy.normalizeDocId(docID);
     if (requestedDocId == null || requestedDocId.isEmpty) {
-      return false;
+      return !CacheNetworkPolicy.isOnCellular;
     }
     return VideoStateManager.instance.allowsOnDemandSegmentFetchFor(
       requestedDocId,
@@ -33,6 +36,10 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         if (cached != null) {
           try {
             final bytes = await cached.readAsBytes();
+            if (!_canFetchSegmentOnDemandForDoc(docID)) {
+              await _respondStalePlaybackSegment(request);
+              return;
+            }
             metrics?.recordHit(bytes.length);
             cacheManager.touchEntry(docID);
             probe.recordSegmentTransfer(
@@ -99,6 +106,20 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         isPlaylist: false,
         source: HlsTrafficSource.playback,
       );
+      if (!_canFetchSegmentOnDemandForDoc(docID)) {
+        if (docID != null) {
+          final segmentKey = _extractSegmentKey(path, docID);
+          if (segmentKey != null) {
+            probe.cancelSegmentTransfer(
+              docId: docID,
+              segmentKey: segmentKey,
+              source: HlsTrafficSource.playback,
+            );
+          }
+        }
+        await _respondStalePlaybackSegment(request);
+        return;
+      }
       metrics?.recordMiss(bytes.length);
       _trackDownloadBytes(bytes.length);
 

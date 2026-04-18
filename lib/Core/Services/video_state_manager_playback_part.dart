@@ -3,6 +3,32 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
+  bool _shouldStopPlaybackForHiddenHandle(String controllerKey) {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+    final trimmedKey = controllerKey.trim();
+    final isShortHandle = trimmedKey.startsWith('short:');
+    final isFeedHandle = trimmedKey.startsWith('feed:');
+    if (!isShortHandle && !isFeedHandle) {
+      return true;
+    }
+    final normalizedDocID = HlsSegmentPolicy.normalizeDocId(trimmedKey);
+    if (normalizedDocID == null || normalizedDocID.isEmpty) {
+      return true;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    final tierInfo = isShortHandle
+        ? scheduler?.classifyShortTransferDoc(normalizedDocID)
+        : scheduler?.classifyFeedTransferDoc(normalizedDocID);
+    if (tierInfo == null) {
+      return true;
+    }
+    final allowedSegmentWarm = tierInfo['allowedSegmentWarm'] == true;
+    final allowedCacheOnly = tierInfo['allowedCacheOnly'] == true;
+    return !(allowedSegmentWarm || allowedCacheOnly);
+  }
+
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
@@ -151,9 +177,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         if (handle.isInitialized) {
           final controllerKey = entry.key.trim();
           final shouldStopPlayback =
-              !(defaultTargetPlatform == TargetPlatform.android &&
-                  (controllerKey.startsWith('short:') ||
-                      controllerKey.startsWith('feed:')));
+              _shouldStopPlaybackForHiddenHandle(controllerKey);
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '

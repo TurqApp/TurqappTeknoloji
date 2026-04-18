@@ -184,12 +184,24 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     _recomputeConcurrency();
   }
 
+  void cancelSegmentTransfer({
+    required String docId,
+    required String segmentKey,
+    required HlsTrafficSource source,
+  }) {
+    final transferKey = '$docId|$segmentKey|${source.name}';
+    _inFlight.remove(transferKey);
+    _recomputeConcurrency();
+  }
+
   void recordSegmentTransfer({
     required String docId,
     required String segmentKey,
     required int bytes,
     required HlsTrafficSource source,
     required bool cacheHit,
+    Map<String, dynamic>? ownerInfoOverride,
+    Map<String, dynamic>? tierInfoOverride,
   }) {
     final transferKey = '$docId|$segmentKey|${source.name}';
     final transfer = _inFlight.remove(transferKey);
@@ -211,8 +223,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     _events.add(event);
     _recordOffscreenLeakSignal(
       event,
-      ownerInfoOverride: transfer?.ownerInfo,
-      tierInfoOverride: transfer?.tierInfo,
+      ownerInfoOverride: ownerInfoOverride ?? transfer?.ownerInfo,
+      tierInfoOverride: tierInfoOverride ?? transfer?.tierInfo,
     );
 
     final doc =

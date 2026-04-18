@@ -74,12 +74,24 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _worker = null;
       _activeDownloads = 0;
       _activeDocRefCounts.clear();
+      _activeSegmentRequestIDs.clear();
+      _activeSegmentOwnerInfo.clear();
+      _activeSegmentTierInfo.clear();
       _activeBankDownloads = 0;
       _activeBankDocIDs.clear();
     } else {
       for (final docID in staleActiveDocIds) {
         _activeDocRefCounts.remove(docID);
         _activeDocSources.remove(docID);
+        final requestKeysToClear = _activeSegmentRequestIDs.entries
+            .where((entry) => entry.key.startsWith('$docID|'))
+            .map((entry) => entry.key)
+            .toList(growable: false);
+        for (final requestKey in requestKeysToClear) {
+          _activeSegmentRequestIDs.remove(requestKey);
+          _activeSegmentOwnerInfo.remove(requestKey);
+          _activeSegmentTierInfo.remove(requestKey);
+        }
       }
     }
 
@@ -207,6 +219,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _activeDocRefCounts.clear();
     _activeDocSources.clear();
     _activeSegmentRequestIDs.clear();
+    _activeSegmentOwnerInfo.clear();
+    _activeSegmentTierInfo.clear();
     _activeBankDownloads = 0;
     _activeBankDocIDs.clear();
 
@@ -524,6 +538,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
+        final requestKey = _segmentRequestKey(job.docID, segmentKey);
         final requestID = _nextSegmentRequestID(job.docID, segmentKey);
 
         _activeDocRefCounts.update(
@@ -532,8 +547,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           ifAbsent: () => 1,
         );
         _activeDocSources[job.docID] = job.source;
-        _activeSegmentRequestIDs[_segmentRequestKey(job.docID, segmentKey)] =
-            requestID;
+        _activeSegmentRequestIDs[requestKey] = requestID;
         if (_isBankDocId(job.docID) && _activeBankDocIDs.add(job.docID)) {
           _activeBankDownloads++;
         }
@@ -543,6 +557,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             describeTransferOwner(job.docID) ?? <String, dynamic>{};
         final tierInfoAtDispatch =
             classifyTransferDoc(job.docID) ?? <String, dynamic>{};
+        _activeSegmentOwnerInfo[requestKey] =
+            Map<String, dynamic>.from(ownerInfoAtDispatch);
+        _activeSegmentTierInfo[requestKey] =
+            Map<String, dynamic>.from(tierInfoAtDispatch);
         probe.recordSegmentStart(
           docId: job.docID,
           segmentKey: segmentKey,
@@ -610,6 +628,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       return;
     }
     _activeSegmentRequestIDs.remove(requestKey);
+    final ownerInfoAtDispatch = _activeSegmentOwnerInfo.remove(requestKey);
+    final tierInfoAtDispatch = _activeSegmentTierInfo.remove(requestKey);
     _activeDownloads = (_activeDownloads - 1).clamp(0, _maxConcurrent * 2);
     final remainingActiveRefs = (_activeDocRefCounts[result.docID] ?? 0) - 1;
     if (remainingActiveRefs > 0) {
@@ -633,6 +653,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         bytes: bytes.length,
         source: HlsTrafficSource.prefetch,
         cacheHit: false,
+        ownerInfoOverride: ownerInfoAtDispatch,
+        tierInfoOverride: tierInfoAtDispatch,
       );
       final cacheManager = _getCacheManager();
       if (cacheManager != null) {
@@ -769,6 +791,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           _activeDocRefCounts.clear();
           _activeDocSources.clear();
           _activeSegmentRequestIDs.clear();
+          _activeSegmentOwnerInfo.clear();
+          _activeSegmentTierInfo.clear();
           _activeBankDownloads = 0;
           _activeBankDocIDs.clear();
           _workerSub?.cancel();

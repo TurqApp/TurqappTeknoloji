@@ -13,6 +13,10 @@ class _PrefetchSchedulerState {
   final Map<String, int> activeDocRefCounts = <String, int>{};
   final Map<String, String> activeDocSources = <String, String>{};
   final Map<String, String> activeSegmentRequestIDs = <String, String>{};
+  final Map<String, Map<String, dynamic>> activeSegmentOwnerInfo =
+      <String, Map<String, dynamic>>{};
+  final Map<String, Map<String, dynamic>> activeSegmentTierInfo =
+      <String, Map<String, dynamic>>{};
   final Set<String> activeBankDocIDs = <String>{};
   List<String> lastPriorityDocIDs = const <String>[];
   int lastPriorityCurrentIndex = 0;
@@ -62,6 +66,10 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   Map<String, String> get _activeDocSources => _state.activeDocSources;
   Map<String, String> get _activeSegmentRequestIDs =>
       _state.activeSegmentRequestIDs;
+  Map<String, Map<String, dynamic>> get _activeSegmentOwnerInfo =>
+      _state.activeSegmentOwnerInfo;
+  Map<String, Map<String, dynamic>> get _activeSegmentTierInfo =>
+      _state.activeSegmentTierInfo;
   Set<String> get _activeBankDocIDs => _state.activeBankDocIDs;
   List<String> get _lastPriorityDocIDs => _state.lastPriorityDocIDs;
   set _lastPriorityDocIDs(List<String> value) =>
