@@ -814,7 +814,12 @@ extension ShortControllerLoadingPart on ShortController {
     _log(
       '[Shorts] loadMoreIfNeeded called - currentIndex: $currentIndex, shorts.length: ${shorts.length}, isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
-    if (isLoading.value || !hasMore.value) {
+    if (isLoading.value) {
+      _log('[Shorts] loadMoreIfNeeded ATTACH - waiting for in-flight page load');
+      await (_loadNextPageFuture ?? Future<void>.value());
+      return;
+    }
+    if (!hasMore.value) {
       _log(
         '[Shorts] loadMoreIfNeeded BLOCKED - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
       );
@@ -853,6 +858,31 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _loadNextPage({String trigger = 'manual'}) async {
+    final inFlight = _loadNextPageFuture;
+    if (inFlight != null) {
+      _recordShortFetchEvent(
+        stage: 'attach_inflight',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'currentCount': shorts.length,
+          'isLoading': isLoading.value,
+        },
+      );
+      await inFlight;
+      return;
+    }
+    final future = _performLoadNextPage(trigger: trigger);
+    _loadNextPageFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_loadNextPageFuture, future)) {
+        _loadNextPageFuture = null;
+      }
+    }
+  }
+
+  Future<void> _performLoadNextPage({String trigger = 'manual'}) async {
     if (_renderWindowFrozenOnCellular &&
         !_promoteShortSessionToMobileNetworkFallback(reason: trigger)) {
       _recordShortFetchEvent(

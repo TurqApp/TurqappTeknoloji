@@ -12,6 +12,7 @@ class _ShortControllerState {
   Future<void>? backgroundPreloadFuture;
   Future<void>? initialLoadFuture;
   Future<void>? startupPrepareFuture;
+  Future<void>? loadNextPageFuture;
   final isLoading = false.obs;
   final hasMore = true.obs;
   final isRefreshing = false.obs;
@@ -58,6 +59,9 @@ extension ShortControllerFieldsPart on ShortController {
   Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
   set _startupPrepareFuture(Future<void>? value) =>
       _state.startupPrepareFuture = value;
+  Future<void>? get _loadNextPageFuture => _state.loadNextPageFuture;
+  set _loadNextPageFuture(Future<void>? value) =>
+      _state.loadNextPageFuture = value;
   int get pageSize => ReadBudgetRegistry.shortHomeInitialLimitValue;
   int get bufferedPageSize => ReadBudgetRegistry.shortBufferedFetchLimit;
   RxBool get isLoading => _state.isLoading;
