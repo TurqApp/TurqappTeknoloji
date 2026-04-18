@@ -390,6 +390,8 @@ extension ShortControllerPublicApiPart on ShortController {
     final deviceSession = DeviceSessionService.instance;
     final deviceSalt = deviceSession.cachedDeviceKey;
     if (shouldRotate) {
+      _preferFreshLaunchIndex = true;
+      lastIndex.value = 0;
       beginStartupSurfaceSession(
         sessionNamespace: 'short',
         deviceSalt: deviceSalt,
@@ -418,51 +420,14 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> persistStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
-    final ordered = shorts.toList(growable: false);
-    await _persistShortStartupShardOnly(
+    await ensureStartupSnapshotShardStore().clear(
+      surface: 'short',
       userId: userId,
-      ordered: ordered,
-      snapshotAt: DateTime.now(),
-      source: 'short_runtime',
     );
   }
 
   Future<void> persistStartupArtifacts() async {
     await persistStartupShard();
-  }
-
-  Future<void> _persistShortStartupShardOnly({
-    required String userId,
-    required List<PostsModel> ordered,
-    required DateTime snapshotAt,
-    required String source,
-  }) async {
-    final onWiFi =
-        NetworkAwarenessService.maybeFind()?.currentNetworkRx.value ==
-            NetworkType.wifi;
-    final shardLimit = ReadBudgetRegistry.shortStartupShardLimit(
-      onWiFi: onWiFi,
-    );
-    final effectivePosts = ordered.take(shardLimit).toList(growable: false);
-    if (effectivePosts.isEmpty) {
-      await ensureStartupSnapshotShardStore().clear(
-        surface: 'short',
-        userId: userId,
-      );
-      return;
-    }
-    await ensureStartupSnapshotShardStore().save(
-      surface: 'short',
-      userId: userId,
-      itemCount: effectivePosts.length,
-      limit: shardLimit,
-      source: source,
-      snapshotAt: snapshotAt,
-      payload: ensureShortSnapshotRepository().encodeHomeStartupPayload(
-        effectivePosts,
-        limit: shardLimit,
-      ),
-    );
   }
 
   Future<void> _recordShortStartupSurface({

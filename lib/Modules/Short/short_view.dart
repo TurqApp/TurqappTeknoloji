@@ -395,10 +395,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         ? 0
         : _initialDisplayIndex(
             controller.shorts,
-            controller.lastIndex.value,
+            controller.preferredLaunchIndexForCount(controller.shorts.length),
           );
     currentPage = initialIndex;
-    controller.lastIndex.value = currentPage;
+    controller.commitLaunchIndexSelection(currentPage);
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     controller.logShortOpenTrace(
       stage: 'view_init',

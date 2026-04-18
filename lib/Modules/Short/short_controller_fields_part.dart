@@ -17,6 +17,7 @@ class _ShortControllerState {
   final isRefreshing = false.obs;
   QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc;
   final followingIDs = <String>{};
+  bool preferFreshLaunchIndex = false;
   StreamSubscription? followingSub;
   final authorSummaryCache = LRUCache<String, UserSummary>(
     capacity: 500,
@@ -24,7 +25,6 @@ class _ShortControllerState {
   );
   final userSummaryResolver = UserSummaryResolver.ensure();
   final shortRepository = ensureShortRepository();
-  final shortSnapshotRepository = ensureShortSnapshotRepository();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   bool startupPresentationApplied = false;
@@ -33,6 +33,8 @@ class _ShortControllerState {
   _ShortSessionSourceMode shortSessionSourceMode =
       _ShortSessionSourceMode.unresolved;
   NetworkType? startupNetworkType;
+  String? shortOpenTraceToken;
+  DateTime? shortOpenTraceStartedAt;
 }
 
 extension ShortControllerFieldsPart on ShortController {
@@ -65,12 +67,13 @@ extension ShortControllerFieldsPart on ShortController {
   set _lastDoc(QueryDocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.lastDoc = value;
   Set<String> get _followingIDs => _state.followingIDs;
+  bool get _preferFreshLaunchIndex => _state.preferFreshLaunchIndex;
+  set _preferFreshLaunchIndex(bool value) =>
+      _state.preferFreshLaunchIndex = value;
   LRUCache<String, UserSummary> get _authorSummaryCache =>
       _state.authorSummaryCache;
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   ShortRepository get _shortRepository => _state.shortRepository;
-  ShortSnapshotRepository get _shortSnapshotRepository =>
-      _state.shortSnapshotRepository;
   RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
@@ -88,4 +91,50 @@ extension ShortControllerFieldsPart on ShortController {
   NetworkType? get _shortStartupNetworkType => _state.startupNetworkType;
   set _shortStartupNetworkType(NetworkType? value) =>
       _state.startupNetworkType = value;
+  String? get _shortOpenTraceToken => _state.shortOpenTraceToken;
+  set _shortOpenTraceToken(String? value) => _state.shortOpenTraceToken = value;
+  DateTime? get _shortOpenTraceStartedAt => _state.shortOpenTraceStartedAt;
+  set _shortOpenTraceStartedAt(DateTime? value) =>
+      _state.shortOpenTraceStartedAt = value;
+
+  void beginShortOpenTrace({
+    required String source,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final startedAt = DateTime.now();
+    _shortOpenTraceStartedAt = startedAt;
+    _shortOpenTraceToken = '${startedAt.microsecondsSinceEpoch}';
+    logShortOpenTrace(
+      stage: 'tab_tap',
+      metadata: <String, dynamic>{
+        'source': source,
+        ...metadata,
+      },
+    );
+  }
+
+  void logShortOpenTrace({
+    required String stage,
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    final token = _shortOpenTraceToken;
+    final startedAt = _shortOpenTraceStartedAt;
+    if (token == null || startedAt == null) return;
+    final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+    debugPrint(
+      '[ShortOpenTrace] token=$token stage=$stage elapsedMs=$elapsedMs '
+      'metadata=$metadata',
+    );
+  }
+
+  int preferredLaunchIndexForCount(int itemCount) {
+    if (itemCount <= 0) return 0;
+    if (_preferFreshLaunchIndex) return 0;
+    return lastIndex.value.clamp(0, itemCount - 1);
+  }
+
+  void commitLaunchIndexSelection(int selectedIndex) {
+    lastIndex.value = selectedIndex;
+    _preferFreshLaunchIndex = false;
+  }
 }

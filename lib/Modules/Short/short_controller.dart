@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';

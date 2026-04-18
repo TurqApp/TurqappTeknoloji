@@ -167,63 +167,66 @@ extension _NavBarViewShellContentPart on NavBarView {
   Future<void> _openShortRoute() async {
     final shortController = ensureShortController();
     const shortReadyTarget = StartupRouteGatePolicy.shortReadyTarget;
-    try {
-      await shortController
-          .prepareStartupSurface(
-            allowBackgroundRefresh: false,
-          )
-          .timeout(
-            const Duration(
-              milliseconds: StartupRouteGatePolicy.shortPrepareTimeoutMs,
-            ),
-            onTimeout: () {},
-          );
-      final deadline = DateTime.now().add(
-        const Duration(
-          milliseconds: StartupRouteGatePolicy.shortReadinessLoopWindowMs,
+    shortController.beginShortOpenTrace(
+      source: 'nav_tab',
+      metadata: <String, dynamic>{
+        'readyCount': shortController.shorts.length,
+        'readyTarget': shortReadyTarget,
+        'proxyStarted': maybeFindHlsProxyServer()?.isStarted ?? false,
+        'cacheReady': SegmentCacheManager.maybeFind()?.isReady ?? false,
+      },
+    );
+    final hasStartupReadyShorts =
+        shortController.shorts.length >= shortReadyTarget;
+    if (hasStartupReadyShorts) {
+      shortController.logShortOpenTrace(
+        stage: 'route_fast_path',
+        metadata: <String, dynamic>{
+          'readyCount': shortController.shorts.length,
+          'proxyStarted': maybeFindHlsProxyServer()?.isStarted ?? false,
+          'cacheReady': SegmentCacheManager.maybeFind()?.isReady ?? false,
+        },
+      );
+      unawaited(
+        shortController.prepareStartupSurface(
+          allowBackgroundRefresh: false,
         ),
       );
-      while (shortController.shorts.length < shortReadyTarget &&
-          DateTime.now().isBefore(deadline)) {
-        await shortController
-            .ensureStartupReadyForRoute(
-              minimumCount: shortReadyTarget,
-            )
-            .timeout(
-              const Duration(
-                milliseconds:
-                    StartupRouteGatePolicy.shortReadinessAttemptTimeoutMs,
-              ),
-              onTimeout: () {},
-            );
-        if (shortController.shorts.length >= shortReadyTarget) {
-          break;
-        }
-        await Future.delayed(
-          const Duration(
-            milliseconds: StartupRouteGatePolicy.shortReadinessPollMs,
+      final initialIndex = shortController.preferredLaunchIndexForCount(
+        shortController.shorts.length,
+      );
+      unawaited(shortController.ensureActiveAdapterReady(initialIndex));
+    } else {
+      final startupBootstrapInFlight =
+          shortController.isStartupBootstrapInFlight();
+      shortController.logShortOpenTrace(
+        stage: startupBootstrapInFlight
+            ? 'route_attach_inflight_startup'
+            : 'route_background_startup',
+        metadata: <String, dynamic>{
+          'readyCount': shortController.shorts.length,
+          'startupBootstrapInFlight': startupBootstrapInFlight,
+          'proxyStarted': maybeFindHlsProxyServer()?.isStarted ?? false,
+          'cacheReady': SegmentCacheManager.maybeFind()?.isReady ?? false,
+        },
+      );
+      if (!startupBootstrapInFlight) {
+        unawaited(
+          shortController.prepareStartupSurface(
+            allowBackgroundRefresh: false,
           ),
         );
       }
-    } catch (_) {}
-    try {
-      final initialIndex = shortController.shorts.isEmpty
-          ? 0
-          : shortController.lastIndex.value.clamp(
-              0,
-              shortController.shorts.length - 1,
-            );
-      await shortController.ensureActiveAdapterReady(initialIndex).timeout(
-            const Duration(
-              milliseconds:
-                  StartupRouteGatePolicy.shortActiveAdapterReadyTimeoutMs,
-            ),
-            onTimeout: () {},
-          );
-    } catch (_) {}
+    }
 
-    controller.suspendFeedForTabExit();
-    controller.pauseGlobalTabMedia();
+    shortController.logShortOpenTrace(
+      stage: 'route_push',
+      metadata: <String, dynamic>{
+        'readyCount': shortController.shorts.length,
+        'proxyStarted': maybeFindHlsProxyServer()?.isStarted ?? false,
+        'cacheReady': SegmentCacheManager.maybeFind()?.isReady ?? false,
+      },
+    );
     await Get.to(() => const ShortView());
     maybeFindAgendaController()?.resetVisibleFeedSurfaceAfterShortReturn();
     controller.resumeFeedIfNeeded();
