@@ -433,6 +433,27 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }) async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    final shouldKeepWarmForSurfaceLoss =
+        defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        !clearSavedState;
+    debugPrint(
+      '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
+      'doc=${widget.model.docID} clearSavedState=$clearSavedState '
+      'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
+      'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
+    );
+    if (shouldKeepWarmForSurfaceLoss) {
+      debugPrint(
+        '[PlaybackStopTrace] source=surface_loss_keepalive '
+        'doc=${widget.model.docID} modelIndex=${_surfaceModelIndex()}',
+      );
+      _safePauseVideo();
+      if (mounted) {
+        _markPostContentDirty();
+      }
+      return;
+    }
     _cancelFeedStallWatchdog();
     _feedRecoverInFlight = false;
     _videoAdapter = null;
@@ -448,7 +469,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     try {
       await adapterPool.release(
         adapter,
-        keepWarm: false,
+        keepWarm: shouldKeepWarmForSurfaceLoss,
         clearSavedState: clearSavedState,
       );
     } catch (_) {}

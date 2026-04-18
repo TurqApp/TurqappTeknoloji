@@ -144,7 +144,20 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _manualPauseRequested = false;
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
-        if (!_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind) {
+        final shouldKeepAndroidSurfaceAlive =
+            _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind;
+        if (defaultTargetPlatform == TargetPlatform.android &&
+            _isPrimaryFeedSurfaceInstance) {
+          debugPrint(
+            '[FeedSurfaceDecision] stage=did_update_should_play_false '
+            'doc=${widget.model.docID} shouldKeepAndroidSurfaceAlive='
+            '$shouldKeepAndroidSurfaceAlive '
+            'shouldPlay=${widget.shouldPlay} '
+            'surfaceAllowed=$_isSurfacePlaybackAllowed '
+            'adapterBound=${_videoAdapter != null}',
+          );
+        }
+        if (!shouldKeepAndroidSurfaceAlive) {
           _playbackRuntimeService.requestStop(playbackHandleKey);
         }
         if (_blockPause) return;
@@ -152,7 +165,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _skipNextPause = false;
           return;
         }
-        if (_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind) {
+        if (shouldKeepAndroidSurfaceAlive) {
           _safePauseVideo();
           return;
         }

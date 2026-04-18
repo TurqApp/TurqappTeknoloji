@@ -337,14 +337,29 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _shouldBypassLocalProxyForAndroidPrimaryFeed => false;
 
-  bool get shouldKeepVideoSurfaceAlive =>
-      widget.model.hasPlayableVideo &&
-      (widget.shouldPlay ||
-          _surfaceKeepAliveDebounceActive ||
-          _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
-          _shouldKeepProfileSurfaceAliveInWarmWindow ||
-          _shouldKeepWarmSurfaceAliveForWarmPreload ||
-          _shouldKeepFloodSurfaceAliveInWarmWindow);
+  bool get shouldKeepVideoSurfaceAlive {
+    final keepAlive = widget.model.hasPlayableVideo &&
+        (widget.shouldPlay ||
+            _surfaceKeepAliveDebounceActive ||
+            _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow ||
+            _shouldKeepProfileSurfaceAliveInWarmWindow ||
+            _shouldKeepWarmSurfaceAliveForWarmPreload ||
+            _shouldKeepFloodSurfaceAliveInWarmWindow);
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _isPrimaryFeedSurfaceInstance &&
+        widget.model.hasPlayableVideo) {
+      debugPrint(
+        '[FeedSurfaceDecision] stage=should_keep_surface '
+        'doc=${widget.model.docID} keepAlive=$keepAlive '
+        'shouldPlay=${widget.shouldPlay} '
+        'debounce=$_surfaceKeepAliveDebounceActive '
+        'warmWindow=$_shouldKeepPrimaryFeedSurfaceAliveInWarmWindow '
+        'warmPreload=$_shouldKeepWarmSurfaceAliveForWarmPreload '
+        'adapterBound=${_videoAdapter != null}',
+      );
+    }
+    return keepAlive;
+  }
 
   bool get _shouldKeepWarmSurfaceAliveForWarmPreload =>
       defaultTargetPlatform == TargetPlatform.android &&
@@ -353,6 +368,23 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow {
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (!widget.model.hasPlayableVideo) return false;
+    final modelIndex = agendaController.agendaList.indexWhere(
+      (p) => p.docID == widget.model.docID,
+    );
+    if (modelIndex < 0) return false;
+    final warmTier = _resolvePrimaryFeedNativeWarmTier(modelIndex: modelIndex);
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final keepAlive =
+          warmTier == _FeedNativeWarmTier.strong && _videoAdapter != null;
+      debugPrint(
+        '[FeedSurfaceDecision] stage=warm_window '
+        'doc=${widget.model.docID} keepAlive=$keepAlive '
+        'modelIndex=$modelIndex centered=${_surfaceSafeCenteredIndex()} '
+        'previousCentered=${_surfacePreviousCenteredIndex()} '
+        'warmTier=${warmTier.name} adapterBound=${_videoAdapter != null}',
+      );
+      return keepAlive;
+    }
     final value = _videoAdapter?.value ?? const HLSVideoValue();
     if (!value.hasRenderedFirstFrame) return false;
     final hasResumeHint = _hasResumePositionHint(
@@ -360,11 +392,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       threshold: _stableFramePositionThreshold,
     );
     if (!hasResumeHint) return false;
-    final modelIndex = agendaController.agendaList.indexWhere(
-      (p) => p.docID == widget.model.docID,
-    );
-    if (modelIndex < 0) return false;
-    final warmTier = _resolvePrimaryFeedNativeWarmTier(modelIndex: modelIndex);
     return warmTier == _FeedNativeWarmTier.strong;
   }
 
@@ -639,6 +666,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!_isSurfacePlaybackAllowed) return false;
     if (_isPrimaryFeedSurfaceInstance && !_isCenteredFeedWarmPreloadAnchorReady) {
       return false;
+    }
+    if (_isPrimaryFeedSurfaceInstance) {
+      final modelIndex = _surfaceModelIndex();
+      if (modelIndex >= 0) {
+        final warmTier = _resolvePrimaryFeedNativeWarmTier(
+          modelIndex: modelIndex,
+        );
+        if (warmTier == _FeedNativeWarmTier.strong) {
+          debugPrint(
+            '[FeedSurfaceDecision] stage=warm_preload_gate '
+            'doc=${widget.model.docID} allow=true reason=strong_warm_tier '
+            'modelIndex=$modelIndex centered=${_surfaceSafeCenteredIndex()} '
+            'previousCentered=${_surfacePreviousCenteredIndex()} '
+            'adapterBound=${_videoAdapter != null}',
+          );
+          return true;
+        }
+      }
     }
     final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
     if (playableDistance == null || playableDistance <= 0) return false;
