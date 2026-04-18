@@ -426,7 +426,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _maybePrepareNextVideoForAutoAdvance(double progress) {
     if (progress < 0.90) return;
     final nextPage = currentPage + 1;
-    if (nextPage >= _cachedShorts.length) return;
+    if (nextPage >= _cachedShorts.length) {
+      unawaited(controller.loadMoreIfNeeded(currentPage));
+      return;
+    }
     if (_preparedAutoAdvancePage == nextPage) return;
     _preparedAutoAdvancePage = nextPage;
     unawaited(() async {
@@ -438,6 +441,20 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
       }
     }());
+  }
+
+  Future<bool> _ensureNextVideoAvailableForAutoAdvance(int activePage) async {
+    final nextPage = activePage + 1;
+    if (nextPage < _cachedShorts.length) return true;
+    try {
+      await controller.loadMoreIfNeeded(activePage);
+    } catch (_) {}
+    if (!mounted) return false;
+    final controllerShorts = controller.shorts;
+    if (controllerShorts.length > _cachedShorts.length) {
+      _applyRenderListUpdate(List<PostsModel>.from(controllerShorts));
+    }
+    return nextPage < _cachedShorts.length;
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
@@ -1458,15 +1475,22 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   Future<void> _goToNextVideo() async {
-    if (currentPage < _cachedShorts.length - 1) {
-      final nextPage = currentPage + 1;
+    final activePage = currentPage;
+    final hasNextPage =
+        await _ensureNextVideoAvailableForAutoAdvance(activePage);
+    if (!mounted || currentPage != activePage) {
+      _isTransitioning = false;
+      return;
+    }
+    if (hasNextPage) {
+      final nextPage = activePage + 1;
       isManuallyPaused = false;
       _pendingAutoAdvancePage = nextPage;
       if (_preparedAutoAdvancePage != nextPage) {
         _preparedAutoAdvancePage = nextPage;
         unawaited(() async {
           try {
-            await _prepareNextVideoForAutoAdvance(currentPage, nextPage);
+            await _prepareNextVideoForAutoAdvance(activePage, nextPage);
           } catch (_) {
             if (_preparedAutoAdvancePage == nextPage) {
               _preparedAutoAdvancePage = null;
