@@ -104,16 +104,10 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     return profile.streamCacheSoftStopBytes;
   }
 
-  int get _wifiQuotaFillStopBytes {
-    final profile = _storageBudgetProfile;
-    if (profile == null) return 0;
-    return profile.streamCacheHardStopBytes;
-  }
-
   bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {
-    final stopBytes = _wifiQuotaFillStopBytes;
-    if (stopBytes <= 0) return false;
-    return cacheManager.totalTrackedUsageBytes >= stopBytes;
+    final targetBytes = _wifiQuotaFillTargetBytes;
+    if (targetBytes <= 0) return false;
+    return cacheManager.totalTrackedUsageBytes >= targetBytes;
   }
 
   double _wifiQuotaFillRatio(SegmentCacheManager cacheManager) {
