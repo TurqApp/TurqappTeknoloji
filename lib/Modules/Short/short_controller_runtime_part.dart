@@ -296,6 +296,7 @@ extension ShortControllerPublicApiPart on ShortController {
     bool? allowBackgroundRefresh,
   }) async {
     final startedAt = DateTime.now();
+    final startedEmpty = shorts.isEmpty && !_startupPresentationApplied;
     debugPrint(
       '[ShortColdStart] stage=prepare_start at=${startedAt.toIso8601String()} '
       'count=${shorts.length} isLoading=${isLoading.value} hasMore=${hasMore.value}',
@@ -303,10 +304,8 @@ extension ShortControllerPublicApiPart on ShortController {
     _resolveShortSessionSourceMode(reason: 'prepare_startup_surface');
     _recordShortMotorContractSnapshot(reason: 'prepare_startup_surface');
     final seededFreshSession = _ensureShortLaunchSessionFresh(
-      reason: shorts.isEmpty && !_startupPresentationApplied
-          ? 'startup'
-          : 'surface_visible',
-      forceNew: shorts.isEmpty && !_startupPresentationApplied,
+      reason: startedEmpty ? 'startup' : 'surface_visible',
+      forceNew: startedEmpty,
     );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
@@ -354,10 +353,14 @@ extension ShortControllerPublicApiPart on ShortController {
     await _recordShortStartupSurface(
       source: 'short_surface_ready',
     );
-    if (seededFreshSession &&
-        shorts.isNotEmpty &&
-        !isRefreshing.value &&
-        !isLoading.value) {
+    if (ShortFetchPolicy.shouldRefreshAfterStartupSurface(
+      startedEmpty: startedEmpty,
+      seededFreshSession: seededFreshSession,
+      hasShorts: shorts.isNotEmpty,
+      isRefreshing: isRefreshing.value,
+      isLoading: isLoading.value,
+      allowBackgroundRefresh: allowRefresh,
+    )) {
       unawaited(refreshShorts());
     }
     if (!allowRefresh || shorts.isEmpty) return;

@@ -150,6 +150,7 @@ class LaunchMotorSelectionService {
     required int targetCount,
     bool fallbackToAffinityWhenSparse = true,
     bool fallbackToLatestWhenEmpty = true,
+    bool fallbackToLatestWhenAffinitySparse = false,
   }) {
     final snapshot = analyzePool(
       latestPool: latestPool,
@@ -213,14 +214,33 @@ class LaunchMotorSelectionService {
       );
     }
     if (fallbackToAffinityWhenSparse && snapshot.windowedPool.isNotEmpty) {
+      final selectedPool = sortByAffinity(
+        snapshot.windowedPool,
+        ownedMinutes: snapshot.ownedMinutes,
+        preferredSubsliceIndex: snapshot.subsliceIndex,
+        subsliceMs: contract.subsliceMs,
+      ).take(targetCount).toList(growable: true);
+      if (selectedPool.length < targetCount &&
+          fallbackToLatestWhenEmpty &&
+          fallbackToLatestWhenAffinitySparse) {
+        final usedIds = <String>{
+          for (final post in selectedPool)
+            if (post.docID.trim().isNotEmpty) post.docID.trim(),
+        };
+        for (final post in snapshot.normalizedPool) {
+          final docId = post.docID.trim();
+          if (docId.isEmpty || !usedIds.add(docId)) {
+            continue;
+          }
+          selectedPool.add(post);
+          if (selectedPool.length >= targetCount) {
+            break;
+          }
+        }
+      }
       return LaunchMotorPoolFillResult(
         snapshot: snapshot,
-        selectedPool: sortByAffinity(
-          snapshot.windowedPool,
-          ownedMinutes: snapshot.ownedMinutes,
-          preferredSubsliceIndex: snapshot.subsliceIndex,
-          subsliceMs: contract.subsliceMs,
-        ).take(targetCount).toList(growable: false),
+        selectedPool: selectedPool.toList(growable: false),
       );
     }
     if (fallbackToLatestWhenEmpty) {

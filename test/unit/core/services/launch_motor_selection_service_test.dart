@@ -67,7 +67,12 @@ void main() {
           _post('b', DateTime(2026, 4, 14, 18, 24)),
         ],
         anchorMs: anchorMs,
-        contract: feedLaunchMotorContract,
+        contract: LaunchMotorSurfaceContract(
+          window: const Duration(days: 7),
+          bandMinutes: 5,
+          subsliceMs: 200,
+          minuteSets: minuteSets,
+        ),
         targetCount: 3,
       );
 
@@ -76,6 +81,31 @@ void main() {
       expect(
         result.selectedPool.map((post) => post.docID).toList(),
         <String>['a', 'b'],
+      );
+    });
+
+    test('can top up sparse affinity fallback with latest posts', () {
+      final result = LaunchMotorSelectionService.buildPoolFillResult(
+        latestPool: <PostsModel>[
+          _post('future-a', DateTime(2026, 4, 14, 18, 30)),
+          _post('future-b', DateTime(2026, 4, 14, 18, 29)),
+          _post('window-only', DateTime(2026, 4, 14, 18, 24)),
+        ],
+        anchorMs: anchorMs,
+        contract: LaunchMotorSurfaceContract(
+          window: const Duration(days: 7),
+          bandMinutes: 5,
+          subsliceMs: 200,
+          minuteSets: minuteSets,
+        ),
+        targetCount: 3,
+        fallbackToLatestWhenAffinitySparse: true,
+      );
+
+      expect(result.strictCount, 0);
+      expect(
+        result.selectedPool.map((post) => post.docID).toList(),
+        <String>['window-only', 'future-a', 'future-b'],
       );
     });
   });

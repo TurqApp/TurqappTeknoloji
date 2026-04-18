@@ -219,6 +219,8 @@ extension ShortControllerLoadingPart on ShortController {
       fallbackToAffinityWhenSparse:
           ShortFetchPolicy.fallbackToAffinityWhenSparse,
       fallbackToLatestWhenEmpty: ShortFetchPolicy.fallbackToLatestWhenEmpty,
+      fallbackToLatestWhenAffinitySparse:
+          ShortFetchPolicy.fallbackToLatestWhenAffinitySparse,
     );
     return LaunchMotorPoolFillResult(
       snapshot: result.snapshot,
@@ -239,6 +241,7 @@ extension ShortControllerLoadingPart on ShortController {
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
     int? pageSizeOverride,
+    int? minimumSelectedCountOverride,
     String trigger = 'manual',
   }) async {
     final totalStartedAt = DateTime.now();
@@ -248,6 +251,8 @@ extension ShortControllerLoadingPart on ShortController {
     bool hasMoreDocs = true;
     const int maxPageScans = ShortFetchPolicy.maxPageScans;
     final effectivePageSize = pageSizeOverride ?? pageSize;
+    final minimumSelectedCount =
+        minimumSelectedCountOverride ?? effectivePageSize;
     final shouldDeferAuthorHydration = shorts.isEmpty;
     if (shouldDeferAuthorHydration) {
       _recordShortFetchEvent(
@@ -256,6 +261,7 @@ extension ShortControllerLoadingPart on ShortController {
         metadata: <String, dynamic>{
           'currentCount': shorts.length,
           'pageSize': effectivePageSize,
+          'minimumSelectedCount': minimumSelectedCount,
         },
       );
     }
@@ -365,10 +371,11 @@ extension ShortControllerLoadingPart on ShortController {
               'collectedCount': collected.length,
               'strictCount': poolFillResult.strictCount,
               'selectedCount': poolFillResult.selectedPool.length,
+              'minimumSelectedCount': minimumSelectedCount,
             },
           );
           final hasEnoughSelectedPosts =
-              poolFillResult.selectedPool.length >= effectivePageSize;
+              poolFillResult.selectedPool.length >= minimumSelectedCount;
           if (hasEnoughSelectedPosts) {
             final resultPosts = poolFillResult.selectedPool;
             if (resultPosts.isNotEmpty) {
@@ -376,12 +383,12 @@ extension ShortControllerLoadingPart on ShortController {
                 stage: 'fetch_page_total_timing',
                 trigger: trigger,
                 metadata: <String, dynamic>{
-                  'elapsedMs': DateTime.now()
-                      .difference(totalStartedAt)
-                      .inMilliseconds,
+                  'elapsedMs':
+                      DateTime.now().difference(totalStartedAt).inMilliseconds,
                   'resultCount': resultPosts.length,
                   'strictCount': poolFillResult.strictCount,
                   'selectedCount': poolFillResult.selectedPool.length,
+                  'minimumSelectedCount': minimumSelectedCount,
                   'attemptsUsed': attempt + 1,
                 },
               );
@@ -480,9 +487,8 @@ extension ShortControllerLoadingPart on ShortController {
       stage: 'final_launch_motor_fill_timing',
       trigger: trigger,
       metadata: <String, dynamic>{
-        'elapsedMs': DateTime.now()
-            .difference(finalPoolFillStartedAt)
-            .inMilliseconds,
+        'elapsedMs':
+            DateTime.now().difference(finalPoolFillStartedAt).inMilliseconds,
         'collectedCount': collected.length,
         'resultCount': resultPosts.length,
       },
@@ -843,7 +849,8 @@ extension ShortControllerLoadingPart on ShortController {
       '[Shorts] loadMoreIfNeeded called - currentIndex: $currentIndex, shorts.length: ${shorts.length}, isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
     );
     if (isLoading.value) {
-      _log('[Shorts] loadMoreIfNeeded ATTACH - waiting for in-flight page load');
+      _log(
+          '[Shorts] loadMoreIfNeeded ATTACH - waiting for in-flight page load');
       await (_loadNextPageFuture ?? Future<void>.value());
       return;
     }
@@ -958,9 +965,21 @@ extension ShortControllerLoadingPart on ShortController {
       },
     );
     try {
+      final currentCount = shorts.length;
+      final loadPageSize = ShortFetchPolicy.pageSizeForLoad(
+        currentCount: currentCount,
+        initialPageSize: pageSize,
+        bufferedPageSize: bufferedPageSize,
+      );
+      final minimumSelectedCount = ShortFetchPolicy.minimumSelectedCountForLoad(
+        currentCount: currentCount,
+        initialBlockSize: ShortGrowthPolicy.initialBlockSize,
+        pageSize: loadPageSize,
+      );
       final result = await _fetchPage(
         startAfter: _lastDoc,
-        pageSizeOverride: bufferedPageSize,
+        pageSizeOverride: loadPageSize,
+        minimumSelectedCountOverride: minimumSelectedCount,
         trigger: trigger,
       );
       if (_renderWindowFrozenOnCellular) {
