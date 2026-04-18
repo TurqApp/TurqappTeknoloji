@@ -57,10 +57,13 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     for (final docID in <String>{
       ...staleQueuedDocIds,
       ...stalePendingDocIds,
-      ...staleActiveDocIds,
     }) {
       _jobEnqueuedAt.remove(docID);
       _activeDocSources.remove(docID);
+      _activeBankDocIDs.remove(docID);
+    }
+    for (final docID in staleActiveDocIds) {
+      _jobEnqueuedAt.remove(docID);
       _activeBankDocIDs.remove(docID);
     }
 
@@ -71,12 +74,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _worker = null;
       _activeDownloads = 0;
       _activeDocRefCounts.clear();
-      _activeDocSources.clear();
       _activeBankDownloads = 0;
       _activeBankDocIDs.clear();
     } else {
       for (final docID in staleActiveDocIds) {
         _activeDocRefCounts.remove(docID);
+        _activeDocSources.remove(docID);
       }
     }
 
