@@ -127,17 +127,19 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                                         children: [
                                           Row(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                                CrossAxisAlignment.center,
                                             children: [
-                                              Expanded(
+                                              Flexible(
                                                 child: Text(
                                                   controller.fullName.value,
+                                                  maxLines: 1,
                                                   style: AppTypography.postName
                                                       .copyWith(
                                                     color: Colors.white,
                                                   ),
                                                 ),
                                               ),
+                                              const SizedBox(width: 4),
                                               RozetContent(
                                                 size: 14,
                                                 userID: widget.model.userID,
