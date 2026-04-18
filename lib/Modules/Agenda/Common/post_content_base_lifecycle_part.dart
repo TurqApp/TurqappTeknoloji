@@ -272,7 +272,40 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     if (_isReplayOverlayEnabled && v.isCompleted) {
+      final shouldAutorestartCompletedPlayback =
+          widget.shouldPlay &&
+          _isSurfacePlaybackAllowed &&
+          !_manualPauseRequested &&
+          !shouldLoopVideo;
+      if (shouldAutorestartCompletedPlayback) {
+        debugPrint(
+          '[FeedReplayTrace] stage=completed_visible_autorestart '
+          'doc=${widget.model.docID} '
+          'isCompleted=${v.isCompleted} '
+          'isPlaying=${v.isPlaying} '
+          'positionMs=${v.position.inMilliseconds} '
+          'durationMs=${v.duration.inMilliseconds} '
+          'replayOverlayLatched=$_replayOverlayLatched '
+          'shouldPlay=${widget.shouldPlay}',
+        );
+        unawaited(
+          _restartCompletedPlaybackForAutoplay(
+            source: 'video_update:completed_visible',
+          ),
+        );
+        return;
+      }
       if (!_replayOverlayLatched) {
+        debugPrint(
+          '[FeedReplayTrace] stage=latch_completed '
+          'doc=${widget.model.docID} '
+          'isCompleted=${v.isCompleted} '
+          'isPlaying=${v.isPlaying} '
+          'positionMs=${v.position.inMilliseconds} '
+          'durationMs=${v.duration.inMilliseconds} '
+          'replayOverlayLatched=$_replayOverlayLatched '
+          'shouldPlay=${widget.shouldPlay}',
+        );
         _replayOverlayLatched = true;
         _replayAdHideTimer?.cancel();
         _replayAdVisible = AdmobKare.hasRenderableBanner;
@@ -294,6 +327,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     } else if (_isReplayOverlayEnabled &&
         _replayOverlayLatched &&
         v.isPlaying) {
+      debugPrint(
+        '[FeedReplayTrace] stage=clear_latch_playing '
+        'doc=${widget.model.docID} '
+        'isCompleted=${v.isCompleted} '
+        'isPlaying=${v.isPlaying} '
+        'positionMs=${v.position.inMilliseconds} '
+        'durationMs=${v.duration.inMilliseconds} '
+        'replayOverlayLatched=$_replayOverlayLatched '
+        'shouldPlay=${widget.shouldPlay}',
+      );
       _replayOverlayLatched = false;
       _replayAdPrewarmed = false;
       _replayAdVisible = false;

@@ -619,6 +619,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     if (!shouldLoopVideo && adapter.value.isCompleted) {
+      debugPrint(
+        '[FeedReplayTrace] stage=completed_resume '
+        'doc=${widget.model.docID} '
+        'source=$source '
+        'isCompleted=${adapter.value.isCompleted} '
+        'positionMs=${adapter.value.position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds} '
+        'replayOverlayLatched=$_replayOverlayLatched',
+      );
       unawaited(
         _restartCompletedPlaybackForAutoplay(
           source: '$source:completed_resume',
@@ -727,6 +736,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     if (!shouldLoopVideo && adapter.value.isCompleted) {
+      debugPrint(
+        '[FeedReplayTrace] stage=completed_start '
+        'doc=${widget.model.docID} '
+        'source=$source '
+        'isCompleted=${adapter.value.isCompleted} '
+        'positionMs=${adapter.value.position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds} '
+        'replayOverlayLatched=$_replayOverlayLatched',
+      );
       unawaited(
         _restartCompletedPlaybackForAutoplay(
           source: '$source:completed_start',
