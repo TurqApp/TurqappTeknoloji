@@ -137,7 +137,6 @@ class ExoPlayerView(
     }
 
     private fun shouldStartWithHiddenPlayerSurface(): Boolean {
-        if (forceFullscreen && !preferResumePoster) return false
         return forceFullscreen
     }
 
