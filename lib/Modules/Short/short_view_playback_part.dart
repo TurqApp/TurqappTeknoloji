@@ -332,7 +332,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
       unawaited(_parkShortAfterPageExit(currentPage, oldVc));
-      oldVc.removeListener(_videoEndListener);
+      _detachVideoEndListener(oldVc);
       oldVc.removeListener(_telemetryListener);
     }
 
@@ -894,7 +894,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _scheduleIosShortPresentationRestore(page, vc);
         _scheduleIosShortAudibilityReassert(page, vc);
         _scheduleIosNativePlaybackGuard(page, vc);
-        _setupVideoEndListener(vc);
+        _setupVideoEndListener(page, vc);
         _schedulePlaybackWatchdog(page, vc);
         _scheduleStallWatchdog(page, vc);
 
@@ -1314,9 +1314,25 @@ extension ShortViewPlaybackPart on _ShortViewState {
     });
   }
 
-  void _setupVideoEndListener(HLSVideoAdapter vc) {
-    vc.removeListener(_videoEndListener);
-    vc.addListener(_videoEndListener);
+  void _detachVideoEndListener(HLSVideoAdapter vc) {
+    final listener = _videoEndListeners.remove(vc);
+    if (listener == null) return;
+    vc.removeListener(listener);
+  }
+
+  void _setupVideoEndListener(int page, HLSVideoAdapter vc) {
+    _detachVideoEndListener(vc);
+    final expectedDocId =
+        page >= 0 && page < _cachedShorts.length ? _cachedShorts[page].docID : '';
+    void listener() {
+      _handleVideoEndForAdapter(
+        page,
+        vc,
+        expectedDocId: expectedDocId,
+      );
+    }
+    _videoEndListeners[vc] = listener;
+    vc.addListener(listener);
   }
 
   void _scheduleEngagementRescore(int page) {
@@ -1394,11 +1410,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
   }
 
-  void _videoEndListener() {
+  void _handleVideoEndForAdapter(
+    int page,
+    HLSVideoAdapter vc, {
+    required String expectedDocId,
+  }) {
     if (!mounted || _isTransitioning) return;
-
-    final vc = controller.cache[currentPage];
-    if (vc == null) return;
+    if (page != currentPage) return;
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final currentDocId = _cachedShorts[page].docID;
+    if (currentDocId != expectedDocId) return;
 
     final value = vc.value;
     final position = value.position.inMilliseconds;
@@ -1462,14 +1483,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     if (shouldAutoAdvance) {
       _isTransitioning = true;
-      if (currentPage >= 0 && currentPage < _cachedShorts.length) {
-        _segmentCacheRuntimeService.markShortConsumed(
-          _cachedShorts[currentPage].docID,
-        );
-      }
-      VideoTelemetryService.instance
-          .onCompleted(_cachedShorts[currentPage].docID);
-      vc.removeListener(_videoEndListener);
+      _segmentCacheRuntimeService.markShortConsumed(currentDocId);
+      VideoTelemetryService.instance.onCompleted(currentDocId);
+      _detachVideoEndListener(vc);
       unawaited(_goToNextVideo());
     }
   }

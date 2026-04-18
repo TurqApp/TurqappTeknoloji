@@ -194,6 +194,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   bool _didLogEmptyShortSurface = false;
   List<PostsModel> _cachedShorts = [];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
+  final Map<HLSVideoAdapter, VoidCallback> _videoEndListeners =
+      <HLSVideoAdapter, VoidCallback>{};
 
   // Scroll debounce — hızlı kaydırmada gereksiz adapter oluşturmayı engeller
   Timer? _scrollDebounce;
@@ -372,7 +374,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (vc != null) {
       _persistShortPlaybackState(currentPage, vc);
       await _releasePlayback(vc);
-      vc.removeListener(_videoEndListener);
+      _detachVideoEndListener(vc);
       vc.removeListener(_telemetryListener);
     }
     if (currentPage < _cachedShorts.length) {
@@ -490,7 +492,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (vc != null) {
       _persistShortPlaybackState(currentPage, vc);
       _releasePlayback(vc);
-      vc.removeListener(_videoEndListener);
+      _detachVideoEndListener(vc);
       vc.removeListener(_telemetryListener);
     }
 
