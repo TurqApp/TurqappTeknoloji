@@ -457,6 +457,42 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return nextPage < _cachedShorts.length;
   }
 
+  void _scheduleAutoAdvanceRetry(
+    int activePage,
+    int nextPage, {
+    int attempt = 0,
+  }) {
+    if (attempt >= 3) return;
+    Future<void>.delayed(const Duration(milliseconds: 140), () async {
+      if (!mounted ||
+          !_isShortRoutePlaybackActive ||
+          currentPage != activePage ||
+          _pendingAutoAdvancePage != nextPage) {
+        return;
+      }
+      if (!pageController.hasClients) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scheduleAutoAdvanceRetry(
+            activePage,
+            nextPage,
+            attempt: attempt + 1,
+          );
+        });
+        return;
+      }
+      try {
+        pageController.jumpToPage(nextPage);
+      } catch (_) {}
+      if (currentPage == activePage) {
+        _scheduleAutoAdvanceRetry(
+          activePage,
+          nextPage,
+          attempt: attempt + 1,
+        );
+      }
+    });
+  }
+
   void _prepareUpcomingVideoAfterFirstFrame() {
     _prepareUpcomingVideoForSwipe();
   }
@@ -1382,6 +1418,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final v = vc.value;
     _applyShortPlaybackPresentation(currentPage, vc);
 
+    if (!_isTransitioning && v.isCompleted) {
+      _handleVideoEndForAdapter(
+        currentPage,
+        vc,
+        expectedDocId: videoId,
+      );
+      return;
+    }
+
     if (!_telemetryFirstFrame && v.isPlaying) {
       _telemetryFirstFrame = true;
       controller.markPlaybackReady(videoId);
@@ -1521,8 +1566,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
       try {
         if (pageController.hasClients) {
           pageController.jumpToPage(nextPage);
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !pageController.hasClients) return;
+            try {
+              pageController.jumpToPage(nextPage);
+            } catch (_) {}
+          });
         }
       } catch (_) {}
+      _scheduleAutoAdvanceRetry(activePage, nextPage);
       _isTransitioning = false;
     } else {
       _isTransitioning = false;

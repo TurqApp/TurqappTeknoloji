@@ -173,7 +173,7 @@ extension ShortViewUiPart on _ShortViewState {
           final pager = PageView.builder(
             controller: pageController,
             scrollDirection: Axis.vertical,
-            physics: const MomentumPageScrollPhysics(),
+            physics: const PageScrollPhysics(),
             itemCount: list.length,
             onPageChanged: _onPageChanged,
             itemBuilder: (_, idx) {
