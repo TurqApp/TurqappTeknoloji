@@ -9,6 +9,8 @@ import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
@@ -20,7 +22,6 @@ import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
-import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -188,6 +189,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int? _pendingAutoAdvancePage;
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
+  String? _lastActivePendingTraceToken;
+  bool _didLogFirstShortBuild = false;
+  bool _didLogEmptyShortSurface = false;
   List<PostsModel> _cachedShorts = [];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
 
@@ -215,6 +219,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
   int _stallWatchdogBufferingCycles = 0;
+  bool _routeContextReady = false;
   bool _routeObserverSubscribed = false;
   static const Duration _shortAutoplaySegmentGateTimeout =
       Duration(milliseconds: 420);
@@ -231,6 +236,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   bool get _isShortRoutePlaybackActive {
     if (!mounted) return false;
+    if (!_routeContextReady) return true;
     return ModalRoute.of(context)?.isCurrent ?? true;
   }
 
@@ -324,6 +330,14 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   void _syncShortSurfaceAfterStartup() {
     if (!mounted) return;
     final nextList = List<PostsModel>.from(controller.shorts);
+    controller.logShortOpenTrace(
+      stage: 'surface_sync',
+      metadata: <String, dynamic>{
+        'currentCachedCount': _cachedShorts.length,
+        'nextCount': nextList.length,
+        'currentPage': currentPage,
+      },
+    );
     if (_cachedShorts.isEmpty) {
       _cachedShorts = nextList;
       currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
@@ -375,14 +389,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
     try {
       maybeFindNavBarController()?.pushMediaOverlayLock();
-      maybeFindNavBarController()?.suspendFeedForTabExit();
-      maybeFindNavBarController()?.pauseGlobalTabMedia();
-    } catch (_) {}
-    try {
-      AudioFocusCoordinator.instance.pauseAllAudioPlayers();
-    } catch (_) {}
-    try {
-      _playbackRuntimeService.pauseAll(force: true);
     } catch (_) {}
 
     final initialIndex = controller.shorts.isEmpty
@@ -394,12 +400,24 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     currentPage = initialIndex;
     controller.lastIndex.value = currentPage;
     _cachedShorts = List<PostsModel>.from(controller.shorts);
+    controller.logShortOpenTrace(
+      stage: 'view_init',
+      metadata: <String, dynamic>{
+        'cachedCount': _cachedShorts.length,
+        'initialIndex': initialIndex,
+      },
+    );
     pageController = PageController(initialPage: initialIndex);
-    controller.onPrimarySurfaceVisible().then((_) {
+    if (_cachedShorts.isNotEmpty) {
       _syncShortSurfaceAfterStartup();
-    }).catchError((_) {
-      _syncShortSurfaceAfterStartup();
-    });
+    }
+    unawaited(
+      controller.onPrimarySurfaceVisible().then((_) {
+        _syncShortSurfaceAfterStartup();
+      }).catchError((_) {
+        _syncShortSurfaceAfterStartup();
+      }),
+    );
 
     // Hedefli reaktivite: RxList değişimlerini debounced setState ile takip et
     _shortsWorker = ever(controller.shorts, (_) {
@@ -412,6 +430,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _routeContextReady = true;
     if (_routeObserverSubscribed) return;
     final route = ModalRoute.of(context);
     if (route == null) return;
