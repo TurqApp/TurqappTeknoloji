@@ -1,5 +1,12 @@
 part of 'short_controller.dart';
 
+enum _ShortSessionSourceMode {
+  unresolved,
+  wifiLive,
+  mobileCacheOnly,
+  mobileNetworkFallback,
+}
+
 enum _CacheTier { hot, warm }
 
 class _ShortPageResult {

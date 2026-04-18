@@ -4,6 +4,7 @@ const bool _verboseShortLogs = false;
 const int _initialPreloadCount = 5;
 const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
+const double _mobileShortLowQuotaRatio = 0.15;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 5.0 : 4.8;
@@ -80,17 +81,14 @@ extension _ShortControllerRuntimeX on ShortController {
     _networkWorker = ever<NetworkType>(
       network.currentNetworkRx,
       (networkType) {
-        if (networkType == NetworkType.cellular) {
-          _renderWindowFrozenOnCellular = true;
-          _log('[Shorts] Cellular freeze enabled - keep current list only');
+        if (_shortSessionSourceMode == _ShortSessionSourceMode.unresolved) {
+          _log(
+            '[ShortSessionSource] status=defer_runtime_transition '
+            'network=${networkType.name}',
+          );
           return;
         }
-        final shouldResume =
-            networkType == NetworkType.wifi && _renderWindowFrozenOnCellular;
-        _renderWindowFrozenOnCellular = false;
-        if (!shouldResume) return;
-        _log('[Shorts] Wi-Fi restored - short motor resumes');
-        unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+        handleNetworkPolicyTransition(networkType);
       },
     );
   }
@@ -115,6 +113,85 @@ extension _ShortControllerRuntimeX on ShortController {
       attempts++;
     }
   }
+
+  _ShortSessionSourceMode _resolveShortSessionSourceMode({
+    required String reason,
+  }) {
+    final existing = _shortSessionSourceMode;
+    if (existing != _ShortSessionSourceMode.unresolved) {
+      return existing;
+    }
+    final network =
+        NetworkAwarenessService.maybeFind()?.currentNetworkRx.value ??
+            NetworkType.none;
+    _shortStartupNetworkType ??= network;
+    final offlineReadyCount = _offlineReadyShortPoolCount();
+    final resolved = network == NetworkType.wifi
+        ? _ShortSessionSourceMode.wifiLive
+        : offlineReadyCount > 0
+            ? _ShortSessionSourceMode.mobileCacheOnly
+            : _ShortSessionSourceMode.mobileNetworkFallback;
+    _shortSessionSourceMode = resolved;
+    _renderWindowFrozenOnCellular =
+        resolved == _ShortSessionSourceMode.mobileCacheOnly;
+    debugPrint(
+      '[ShortSessionSource] status=resolved reason=$reason '
+      'mode=${resolved.name} network=${network.name} '
+      'offlineReadyCount=$offlineReadyCount freeze=$_renderWindowFrozenOnCellular',
+    );
+    return resolved;
+  }
+
+  int _offlineReadyShortPoolCount() {
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null || !cacheManager.isReady) {
+      return 0;
+    }
+    return cacheManager
+        .getOfflineReadyDocIdsForShort(limit: ShortGrowthPolicy.stageOneLimit)
+        .length;
+  }
+
+  int _mobileShortLowQuotaThresholdCount() {
+    final threshold =
+        (ShortGrowthPolicy.stageOneLimit * _mobileShortLowQuotaRatio).ceil();
+    return math.max(_initialPreloadCount, threshold);
+  }
+
+  bool _shouldPromoteShortMobileFallback({
+    required String reason,
+  }) {
+    if (_shortSessionSourceMode != _ShortSessionSourceMode.mobileCacheOnly) {
+      return false;
+    }
+    if (shorts.length > 1) {
+      return false;
+    }
+    final offlineReadyCount = _offlineReadyShortPoolCount();
+    final threshold = _mobileShortLowQuotaThresholdCount();
+    final shouldPromote = offlineReadyCount <= threshold;
+    debugPrint(
+      '[ShortSessionSource] status=check_mobile_fallback reason=$reason '
+      'currentCount=${shorts.length} offlineReadyCount=$offlineReadyCount '
+      'threshold=$threshold shouldPromote=$shouldPromote',
+    );
+    return shouldPromote;
+  }
+
+  bool _promoteShortSessionToMobileNetworkFallback({
+    required String reason,
+  }) {
+    if (!_shouldPromoteShortMobileFallback(reason: reason)) {
+      return false;
+    }
+    _shortSessionSourceMode = _ShortSessionSourceMode.mobileNetworkFallback;
+    _renderWindowFrozenOnCellular = false;
+    debugPrint(
+      '[ShortSessionSource] status=promoted reason=$reason '
+      'mode=${_shortSessionSourceMode.name}',
+    );
+    return true;
+  }
 }
 
 extension ShortControllerPublicApiPart on ShortController {
@@ -124,25 +201,38 @@ extension ShortControllerPublicApiPart on ShortController {
       ensureShortSurfaceReady(minimumCount: minimumCount);
 
   void handleNetworkPolicyTransition(NetworkType networkType) {
+    final mode = _shortSessionSourceMode;
     debugPrint(
       '[ShortNetworkPolicy] status=dispatch network=${networkType.name} '
-      'frozen=$_renderWindowFrozenOnCellular count=${shorts.length}',
+      'mode=${mode.name} frozen=$_renderWindowFrozenOnCellular '
+      'count=${shorts.length}',
     );
-    if (networkType == NetworkType.cellular) {
-      if (_renderWindowFrozenOnCellular) return;
-      _renderWindowFrozenOnCellular = true;
+    if (mode == _ShortSessionSourceMode.unresolved) {
       debugPrint(
-        '[ShortNetworkPolicy] status=cellular_freeze count=${shorts.length}',
+        '[ShortNetworkPolicy] status=deferred_until_session_resolution '
+        'network=${networkType.name}',
       );
       return;
     }
-    final shouldResume =
-        networkType == NetworkType.wifi && _renderWindowFrozenOnCellular;
+    if (mode == _ShortSessionSourceMode.mobileCacheOnly) {
+      if (_promoteShortSessionToMobileNetworkFallback(
+        reason: 'runtime_network_${networkType.name}',
+      )) {
+        unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+        return;
+      }
+      _renderWindowFrozenOnCellular = true;
+      debugPrint(
+        '[ShortNetworkPolicy] status=session_locked_cache_only '
+        'network=${networkType.name} count=${shorts.length}',
+      );
+      return;
+    }
     _renderWindowFrozenOnCellular = false;
-    if (!shouldResume) return;
     debugPrint(
-        '[ShortNetworkPolicy] status=wifi_resume count=${shorts.length}');
-    unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+      '[ShortNetworkPolicy] status=session_live '
+      'network=${networkType.name} mode=${mode.name} count=${shorts.length}',
+    );
   }
 
   Future<void> onPrimarySurfaceVisible() => prepareStartupSurface(
@@ -171,6 +261,7 @@ extension ShortControllerPublicApiPart on ShortController {
   Future<void> _performPrepareStartupSurface({
     bool? allowBackgroundRefresh,
   }) async {
+    _resolveShortSessionSourceMode(reason: 'prepare_startup_surface');
     _recordShortMotorContractSnapshot(reason: 'prepare_startup_surface');
     final seededFreshSession = _ensureShortLaunchSessionFresh(
       reason: shorts.isEmpty && !_startupPresentationApplied

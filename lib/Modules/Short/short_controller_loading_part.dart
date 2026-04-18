@@ -6,6 +6,25 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  Future<List<PostsModel>> _loadOfflineReadyShortPosts({
+    required int limit,
+  }) async {
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null || !cacheManager.isReady) {
+      return const <PostsModel>[];
+    }
+    final rawPosts = cacheManager.getOfflineReadyPostsForShort(limit: limit);
+    if (rawPosts.isEmpty) {
+      return const <PostsModel>[];
+    }
+    final eligible =
+        rawPosts.where(_isEligibleShortPost).toList(growable: false);
+    if (eligible.isEmpty) {
+      return const <PostsModel>[];
+    }
+    return _filterVisibleShortPosts(eligible);
+  }
+
   List<PostsModel> _applyStartupShortPresentationOrder(
     List<PostsModel> posts,
   ) {
@@ -102,7 +121,8 @@ extension ShortControllerLoadingPart on ShortController {
     String trigger = 'runtime',
   }) async {
     final viewedCount = viewedIndex + 1;
-    final targetCount = ShortGrowthPolicy.targetCountForViewedCount(viewedCount);
+    final targetCount =
+        ShortGrowthPolicy.targetCountForViewedCount(viewedCount);
     var stageLimit = ShortGrowthPolicy.stageOneLimit;
     var maxPages = 1;
     var stageLabel = 'stage_one';
@@ -468,13 +488,49 @@ extension ShortControllerLoadingPart on ShortController {
     );
 
     if (shorts.isEmpty || shorts.length < _initialPreloadCount) {
-      _log('[Shorts] Motor öncesi seed kapalı - liste sıfırlanıyor');
+      final sessionMode = _resolveShortSessionSourceMode(
+        reason: 'initial_load',
+      );
+      _log(
+        '[ShortSessionSource] status=initial_load mode=${sessionMode.name} '
+        'currentCount=${shorts.length}',
+      );
       isLoading.value = false;
       hasMore.value = true;
       _lastDoc = null;
       clearCache();
-      _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
-      await _loadNextPage(trigger: 'initial_empty_bootstrap');
+      if (sessionMode == _ShortSessionSourceMode.mobileCacheOnly) {
+        final cachedPosts = await _loadOfflineReadyShortPosts(
+          limit: ReadBudgetRegistry.shortHomeInitialLimitValue,
+        );
+        if (cachedPosts.isNotEmpty) {
+          _replaceShorts(
+            _applyStartupShortPresentationOrder(cachedPosts),
+            remapCache: true,
+          );
+          _log(
+            '[ShortSessionSource] status=cache_bootstrap_ok '
+            'count=${cachedPosts.length}',
+          );
+          unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
+        } else if (_promoteShortSessionToMobileNetworkFallback(
+          reason: 'initial_cache_empty',
+        )) {
+          _log(
+            '[ShortSessionSource] status=cache_bootstrap_empty '
+            'fallback=network',
+          );
+          await _loadNextPage(trigger: 'initial_mobile_network_fallback');
+        } else {
+          _log(
+            '[ShortSessionSource] status=cache_bootstrap_empty '
+            'fallback=blocked',
+          );
+        }
+      } else {
+        _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
+        await _loadNextPage(trigger: 'initial_empty_bootstrap');
+      }
     } else {
       _log('[Shorts] Motor öncesi seed kapalı - mevcut liste korunuyor');
       final sortedExisting = _sortShortNewestFirst(
@@ -653,19 +709,22 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _loadNextPage({String trigger = 'manual'}) async {
-    if (_renderWindowFrozenOnCellular) {
+    if (_renderWindowFrozenOnCellular &&
+        !_promoteShortSessionToMobileNetworkFallback(reason: trigger)) {
       _recordShortFetchEvent(
         stage: 'skipped',
         trigger: trigger,
         metadata: <String, dynamic>{
           'reason': 'cellular_render_freeze',
+          'mode': _shortSessionSourceMode.name,
           'currentCount': shorts.length,
         },
       );
       return;
     }
     _log(
-      '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
+      '[Shorts] _loadNextPage başladı - isLoading: ${isLoading.value}, '
+      'hasMore: ${hasMore.value}, mode=${_shortSessionSourceMode.name}',
     );
     _recordShortFetchEvent(
       stage: 'requested',

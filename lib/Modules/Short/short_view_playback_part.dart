@@ -784,6 +784,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         _applyShortPlaybackPresentation(page, vc);
+        if (docId.trim().isNotEmpty) {
+          _segmentCacheRuntimeService.markServedInShort(docId);
+        }
         await _reassertActiveShortAudibility(page, vc);
         final shouldGate = !_autoplaySegmentGateTimedOut &&
             vc.value.position <= Duration.zero &&

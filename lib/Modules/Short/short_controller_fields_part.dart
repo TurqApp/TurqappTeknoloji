@@ -30,6 +30,9 @@ class _ShortControllerState {
   bool startupPresentationApplied = false;
   Worker? networkWorker;
   bool renderWindowFrozenOnCellular = false;
+  _ShortSessionSourceMode shortSessionSourceMode =
+      _ShortSessionSourceMode.unresolved;
+  NetworkType? startupNetworkType;
 }
 
 extension ShortControllerFieldsPart on ShortController {
@@ -78,4 +81,11 @@ extension ShortControllerFieldsPart on ShortController {
   bool get _renderWindowFrozenOnCellular => _state.renderWindowFrozenOnCellular;
   set _renderWindowFrozenOnCellular(bool value) =>
       _state.renderWindowFrozenOnCellular = value;
+  _ShortSessionSourceMode get _shortSessionSourceMode =>
+      _state.shortSessionSourceMode;
+  set _shortSessionSourceMode(_ShortSessionSourceMode value) =>
+      _state.shortSessionSourceMode = value;
+  NetworkType? get _shortStartupNetworkType => _state.startupNetworkType;
+  set _shortStartupNetworkType(NetworkType? value) =>
+      _state.startupNetworkType = value;
 }

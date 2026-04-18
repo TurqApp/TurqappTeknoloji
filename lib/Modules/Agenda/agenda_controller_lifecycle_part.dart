@@ -206,25 +206,15 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _networkWorker = ever<NetworkType>(
       network.currentNetworkRx,
       (networkType) {
-        if (networkType == NetworkType.cellular) {
-          _renderWindowFrozenOnCellular = true;
-          _feedMutationEpoch++;
-          _feedPrefetchDebounce?.cancel();
-          debugPrint(
-            '[FeedNetworkPolicy] status=cellular_freeze '
-            'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
-          );
-          return;
-        }
-        final shouldResume =
-            networkType == NetworkType.wifi && _renderWindowFrozenOnCellular;
         _renderWindowFrozenOnCellular = false;
-        if (!shouldResume) return;
         debugPrint(
-          '[FeedNetworkPolicy] status=wifi_resume '
+          '[FeedNetworkPolicy] status=live_network '
+          'network=${networkType.name} '
           'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
         );
-        unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+        if (networkType == NetworkType.wifi) {
+          unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
+        }
       },
     );
   }
