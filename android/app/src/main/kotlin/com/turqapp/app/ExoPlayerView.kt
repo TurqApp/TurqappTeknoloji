@@ -588,7 +588,13 @@ class ExoPlayerView(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                revealSurface()
+                val shouldRevealOnError =
+                    didRenderFirstFrame ||
+                        activePlayer.playWhenReady ||
+                        resumeFrameOverlay.visibility == View.VISIBLE
+                if (shouldRevealOnError) {
+                    revealSurface()
+                }
                 sendEvent(mapOf(
                     "event" to "error",
                     "message" to (error.message ?: "Unknown playback error")

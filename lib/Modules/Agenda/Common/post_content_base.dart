@@ -171,6 +171,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _hasRecordedVisibleView = false;
   bool _feedRecoverInFlight = false;
   bool _warmPreloadInitQueued = false;
+  bool _warmPreloadFetchClaimed = false;
   Duration? _lastQueuedSavedResumePosition;
   DateTime? _lastQueuedSavedResumeAt;
   DateTime? _lastIosPrimaryFeedRecoveryAt;

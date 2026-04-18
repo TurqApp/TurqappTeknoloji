@@ -70,6 +70,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     _maybePreloadWarmVideoController(source: 'init_state');
+    _syncWarmPreloadFetchOwnership();
 
     if (widget.showComments) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -121,6 +122,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _navSelectionWorker?.dispose();
     _keepAliveWindowWorker?.dispose();
     _warmPreloadAnchorWorker?.dispose();
+    _releaseWarmPreloadFetchOwnership();
     videoValueNotifier.dispose();
   }
 
@@ -203,6 +205,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       }
     }
     _maybePreloadWarmVideoController(source: 'did_update_widget');
+    _syncWarmPreloadFetchOwnership();
     _recordPlaybackVisualWarning(
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_update_widget_post',
@@ -457,6 +460,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_videoAdapter != null) return;
     if (_warmPreloadInitQueued) return;
     if (!_shouldPreloadAndroidWarmController) return;
+    _claimWarmPreloadFetchOwnership();
     _warmPreloadInitQueued = true;
     _recordPlaybackDispatch(
       'feed_card_warm_preload_init_requested',
@@ -470,8 +474,32 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _warmPreloadInitQueued = false;
       if (!mounted || _videoAdapter != null) return;
-      if (!_shouldPreloadAndroidWarmController) return;
+      if (!_shouldPreloadAndroidWarmController) {
+        _releaseWarmPreloadFetchOwnership();
+        return;
+      }
       _initVideoController();
+      _syncWarmPreloadFetchOwnership();
     });
+  }
+
+  void _claimWarmPreloadFetchOwnership() {
+    if (_warmPreloadFetchClaimed) return;
+    claimExternalOnDemandFetchForDoc(widget.model.docID);
+    _warmPreloadFetchClaimed = true;
+  }
+
+  void _releaseWarmPreloadFetchOwnership() {
+    if (!_warmPreloadFetchClaimed) return;
+    releaseExternalOnDemandFetchForDoc(widget.model.docID);
+    _warmPreloadFetchClaimed = false;
+  }
+
+  void _syncWarmPreloadFetchOwnership() {
+    if (_shouldPreloadAndroidWarmController) {
+      _claimWarmPreloadFetchOwnership();
+      return;
+    }
+    _releaseWarmPreloadFetchOwnership();
   }
 }
