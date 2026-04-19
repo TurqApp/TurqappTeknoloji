@@ -40,10 +40,26 @@ class _TypesenseUserCardCacheServiceCachePart {
 
     if (cacheOnly) return const <String, Map<String, dynamic>>{};
 
-    final cards =
-        await TypesenseUserService.instance.getUserCardsByIds(cleaned);
-    await _store(cacheKey, cards);
-    return _cloneCards(cards);
+    final inFlight = service._inFlight[cacheKey];
+    if (inFlight != null) {
+      return _cloneCards(await inFlight);
+    }
+
+    final future = () async {
+      final cards = await TypesenseUserService.instance.getUserCardsByIds(
+        cleaned,
+      );
+      await _store(cacheKey, cards);
+      return _cloneCards(cards);
+    }();
+    service._inFlight[cacheKey] = future;
+    try {
+      return _cloneCards(await future);
+    } finally {
+      if (identical(service._inFlight[cacheKey], future)) {
+        service._inFlight.remove(cacheKey);
+      }
+    }
   }
 
   Future<void> invalidateAll() async {

@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/launch_motor_surface_contract.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
+import 'package:turqappv2/Core/Services/typesense_user_card_cache_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
@@ -40,6 +41,7 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
+  static const int _typesenseStartupAuthorWarmBatchSize = 20;
   static const bool typesensePrimaryEnabled =
       FeedTypesensePolicy.primaryEnabled;
   static const bool typesenseFirestoreFallbackEnabled =
@@ -197,7 +199,7 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
       effectiveLimit,
     );
     try {
-      await _postRepository.fetchTypesenseMotorCandidates(
+      final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
         surface: 'feed',
         ownedMinutes: ownedMinutes,
         limit: candidateLimit,
@@ -205,6 +207,55 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         nowMs: resolvedNowMs,
         cutoffMs: _feedHomeCutoffMs(resolvedNowMs),
       );
+      final warmAuthorIds = _sortFeedCandidatesForVisibility(
+        motorPage.items,
+      )
+          .take(
+            FeedSnapshotRepository._typesenseStartupAuthorWarmBatchSize,
+          )
+          .where((post) {
+            final authorId = post.userID.trim();
+            if (authorId.isEmpty) return false;
+            if (post.isFloodMember) return false;
+            if (post.deletedPost == true) return false;
+            if (post.gizlendi) return false;
+            if (post.shouldHideWhileUploading) return false;
+            if (!_isRenderablePost(post)) return false;
+            return _isInAgendaWindow(
+              post.timeStamp.toInt(),
+              resolvedNowMs,
+              _feedHomeCutoffMs(resolvedNowMs),
+            );
+          })
+          .map((post) => post.userID.trim())
+          .toSet()
+          .toList(growable: false);
+      if (warmAuthorIds.isNotEmpty) {
+        unawaited(_primeStartupTypesenseAuthorCards(warmAuthorIds));
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _primeStartupTypesenseAuthorCards(List<String> authorIds) async {
+    if (authorIds.isEmpty) return;
+    try {
+      final cards =
+          await ensureTypesenseUserCardCacheService().getUserCardsByIds(
+        authorIds,
+        preferCache: true,
+        cacheOnly: false,
+      );
+      if (cards.isEmpty) return;
+      final writes = <Future<void>>[];
+      for (final entry in cards.entries) {
+        final uid = entry.key.trim();
+        final card = entry.value;
+        if (uid.isEmpty || card.isEmpty) continue;
+        writes.add(_userSummaryResolver.seedRaw(uid, card));
+      }
+      if (writes.isNotEmpty) {
+        await Future.wait(writes);
+      }
     } catch (_) {}
   }
 
