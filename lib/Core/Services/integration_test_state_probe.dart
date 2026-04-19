@@ -90,6 +90,13 @@ class IntegrationTestStateProbe {
     }
     final centeredIndex = controller.centeredIndex.value;
     final items = controller.agendaList;
+    final floodRootItems = items
+        .where((item) => item.floodCount.toInt() > 1)
+        .toList(growable: false);
+    final floodSeriesItems = items
+        .where(
+            (item) => item.isFloodSeriesContent || item.floodCount.toInt() > 1)
+        .toList(growable: false);
     final centeredItem = centeredIndex >= 0 && centeredIndex < items.length
         ? items[centeredIndex]
         : null;
@@ -107,6 +114,16 @@ class IntegrationTestStateProbe {
           centeredItem?.hasRenderableVideoCard == true,
       'docIds':
           items.take(24).map((item) => item.docID).toList(growable: false),
+      'floodRootCount': floodRootItems.length,
+      'floodSeriesCount': floodSeriesItems.length,
+      'floodRootDocIds': floodRootItems
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
+      'floodSeriesDocIds': floodSeriesItems
+          .take(24)
+          .map((item) => item.docID)
+          .toList(growable: false),
       'lastCenteredIndex': controller.lastCenteredIndex,
       'playbackSuspended': controller.playbackSuspended.value,
       'pauseAll': controller.pauseAll.value,

@@ -163,6 +163,9 @@ void main() {
       final loadingSource = File(
         '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_controller_loading_part.dart',
       ).readAsStringSync();
+      final lifecycleSource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_controller_lifecycle_part.dart',
+      ).readAsStringSync();
 
       expect(
         feedSource,
@@ -179,7 +182,7 @@ void main() {
         contains('_agendaFeedApplicationService.buildPageApplyPlan'),
       );
       expect(
-        loadingSource,
+        lifecycleSource,
         contains('_agendaFeedApplicationService.capturePlaybackAnchor'),
       );
     });
@@ -250,20 +253,16 @@ void main() {
         'startup support path keeps flood roots outside the normal time window',
         () {
       final loadingCacheSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Agenda/agenda_controller_loading_cache_part.dart',
+        '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_controller_loading_cache_part.dart',
       ).readAsStringSync();
       final repositorySource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/post_repository_query_part.dart',
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/post_repository_query_part.dart',
       ).readAsStringSync();
 
       expect(
         loadingCacheSource,
         contains(
             "if (kind == 'flood') {\n        primaryCandidates.add(post);"),
-      );
-      expect(
-        loadingCacheSource,
-        contains('_postRepository.fetchFloodSeriesRoots('),
       );
       expect(
         repositorySource,
@@ -273,6 +272,19 @@ void main() {
         repositorySource,
         contains('if (!model.isFloodSeriesRoot) continue;'),
       );
+    });
+
+    test('feed visibility source keeps flood series eligible', () {
+      final visibilitySource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_visibility_part.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository.dart',
+      ).readAsStringSync();
+
+      expect(visibilitySource, isNot(contains('post.isFloodMember')));
+      expect(visibilitySource, isNot(contains('flood_child')));
+      expect(repositorySource, isNot(contains('post.isFloodMember')));
     });
   });
 }

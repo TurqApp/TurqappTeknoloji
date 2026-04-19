@@ -216,7 +216,6 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
           .where((post) {
             final authorId = post.userID.trim();
             if (authorId.isEmpty) return false;
-            if (post.isFloodMember) return false;
             if (post.deletedPost == true) return false;
             if (post.gizlendi) return false;
             if (post.shouldHideWhileUploading) return false;

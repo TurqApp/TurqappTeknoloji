@@ -24,7 +24,6 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       final authorIds = batch
           .where((post) {
             if (post.userID.trim().isEmpty) return false;
-            if (post.isFloodMember) return false;
             if (hiddenPostIds.contains(post.docID)) return false;
             if (post.deletedPost == true) return false;
             if (post.gizlendi) return false;
@@ -70,9 +69,6 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       }
       for (final post in batch) {
         final reasons = <String>[];
-        if (post.isFloodMember) {
-          reasons.add('flood_child');
-        }
         if (hiddenPostIds.contains(post.docID)) {
           reasons.add('hidden');
         }
