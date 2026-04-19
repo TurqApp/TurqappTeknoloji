@@ -47,7 +47,9 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   int get _connectedReservoirWarmVisibleBatchLimit => min(
         _connectedColdFeedPrimeBatchFloor,
-        FeedSnapshotRepository.startupHomeLimitValue * 2,
+        FeedSnapshotRepository.startupHomeLimitValue +
+            _feedIdentityWarmPriorityCount +
+            4,
       );
 
   Future<T> _profileFeedStartupSurfaceStep<T>(
