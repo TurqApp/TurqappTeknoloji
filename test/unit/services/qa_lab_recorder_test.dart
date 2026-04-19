@@ -205,6 +205,142 @@ void main() {
     );
   });
 
+  test(
+      'qa recorder suppresses duplicate short visual slow warning when first frame is already slow',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final settleAt = now.subtract(const Duration(milliseconds: 3200));
+    final firstFrameAt = settleAt.add(const Duration(milliseconds: 2811));
+    const scrollToken = 'scroll-3';
+    final probe = <String, dynamic>{
+      'short': <String, dynamic>{
+        'registered': true,
+        'count': 5,
+        'activeIndex': 4,
+        'activeDocId': 'short-4',
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'short:short-4',
+        'targetPlaybackDocID': 'short:short-4',
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_short_visual_slow_old',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now.subtract(const Duration(seconds: 6)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_short_visual_slow',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_settle_old_1',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(seconds: 10)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'scrollToken': 'scroll-1',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_settle_old_2',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(seconds: 7)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-2',
+          'scrollToken': 'scroll-2',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_settle_latest',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt,
+        metadata: const <String, dynamic>{
+          'docId': 'short-4',
+          'scrollToken': scrollToken,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_dispatch_latest',
+        category: 'playback_dispatch',
+        code: 'short_page_play',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt.add(const Duration(milliseconds: 120)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-4',
+          'dispatchIssued': true,
+        },
+      ),
+    ]);
+    recorder.issues.addAll(<QALabIssue>[
+      QALabIssue(
+        id: 'short_video_started',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_started',
+        message: 'Video session started',
+        timestamp: settleAt.add(const Duration(milliseconds: 40)),
+        route: '/ShortView',
+        surface: 'short',
+        metadata: const <String, dynamic>{
+          'videoId': 'short-4',
+        },
+      ),
+      QALabIssue(
+        id: 'short_video_first_frame',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_first_frame',
+        message: 'Video rendered first frame',
+        timestamp: firstFrameAt,
+        route: '/ShortView',
+        surface: 'short',
+        metadata: const <String, dynamic>{
+          'videoId': 'short-4',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_scroll_first_frame_slow'),
+      isTrue,
+    );
+    expect(
+      findings.any((item) => item.code == 'short_transition_visual_slow'),
+      isFalse,
+    );
+  });
+
   test('qa recorder surfaces feed noise bursts and jank counts', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();
@@ -1423,7 +1559,10 @@ void main() {
       ..addAll(<String, dynamic>{
         'platform': 'android',
         'status': 'READY_WITHOUT_FRAME',
-        'errors': const <String>['FIRST_FRAME_TIMEOUT', 'EXCESSIVE_REBUFFERING'],
+        'errors': const <String>[
+          'FIRST_FRAME_TIMEOUT',
+          'EXCESSIVE_REBUFFERING'
+        ],
         'active': true,
         'firstFrameRendered': false,
         'isPlaybackExpected': true,

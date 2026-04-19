@@ -166,6 +166,10 @@ class PlaybackRuntimeService {
                 (snapshot.duration - snapshot.playbackEndGrace));
     final reachedStablePlaybackPosition =
         snapshot.position > snapshot.visualReadyPositionThreshold;
+    final renderedVisualFrameForStableVisual = snapshot.isInitialized &&
+        snapshot.hasRenderedFirstFrame &&
+        (!snapshot.isBuffering ||
+            snapshot.allowRenderedFirstFrameAsStableVisual);
     final renderedVisualFrame = snapshot.isInitialized &&
         snapshot.hasRenderedFirstFrame &&
         !snapshot.isBuffering;
@@ -173,7 +177,7 @@ class PlaybackRuntimeService {
         (renderedVisualFrame &&
             (snapshot.isPlaying || reachedStablePlaybackPosition));
     final hasStableVisualFrame = atPlaybackEnd ||
-        (renderedVisualFrame &&
+        (renderedVisualFrameForStableVisual &&
             (snapshot.allowRenderedFirstFrameAsStableVisual ||
                 reachedStablePlaybackPosition));
 

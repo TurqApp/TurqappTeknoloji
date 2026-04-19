@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/qa_lab_recorder.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 
@@ -88,6 +89,17 @@ void main() {
                 label: 'short $index backward',
               );
             }
+
+            final findings = QALabRecorder.ensure().buildPinpointFindings();
+            final shortTransitionWarnings = findings
+                .where((item) => item.code == 'short_transition_visual_slow')
+                .toList(growable: false);
+            expect(
+              shortTransitionWarnings,
+              isEmpty,
+              reason: 'Short stress smoke still produced visual transition '
+                  'warnings: ${shortTransitionWarnings.map((item) => item.message).join(' | ')}',
+            );
           },
         );
       } finally {

@@ -58,8 +58,7 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
       after: latestSettle.timestamp,
     );
     final scrollToken = (latestSettle.metadata['scrollToken'] ?? '').toString();
-    final suppressShortWarmupScrollWarnings =
-        surface == 'short' &&
+    final suppressShortWarmupScrollWarnings = surface == 'short' &&
         _isTransientBlankSurfaceWarmup(
           surface: surface,
           surfaceCheckpoints: surfaceCheckpoints,
@@ -70,8 +69,7 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     // iOS; keep it out of blocking/slow transition diagnostics.
     final suppressFirstShortTransitionWarnings =
         surface == 'short' && settledEvents.length <= 2;
-    final suppressShortTransitionWarnings =
-        suppressShortWarmupScrollWarnings ||
+    final suppressShortTransitionWarnings = suppressShortWarmupScrollWarnings ||
         suppressFirstShortTransitionWarnings;
     final stableFrameEvent = surface != 'short'
         ? null
@@ -82,9 +80,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             docId: expectedDocId,
             scrollToken: scrollToken,
           );
-    final playbackProbe =
-        rootProbe['videoPlayback'] as Map<String, dynamic>? ??
-            const <String, dynamic>{};
+    final playbackProbe = rootProbe['videoPlayback'] as Map<String, dynamic>? ??
+        const <String, dynamic>{};
     final currentPlayingDocId =
         (playbackProbe['currentPlayingDocID'] ?? '').toString().trim();
     final targetPlaybackDocId =
@@ -239,11 +236,12 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     }
 
     if (surface == 'short') {
+      final hasSlowShortFirstFrameFinding = firstFrameIssue != null &&
+          firstFrameLatencyMs >= QALabMode.scrollFirstFrameWarningMs;
       final stableFrameSource = stableFrameEvent == null
           ? (firstFrameIssue == null ? 'runtime_playing' : 'video_first_frame')
           : 'stable_frame';
-      final effectiveStableFrameTimestamp =
-          stableFrameEvent?.timestamp ??
+      final effectiveStableFrameTimestamp = stableFrameEvent?.timestamp ??
           firstFrameIssue?.timestamp ??
           (shortRuntimePlaybackRecovered ? nativeSampledAt : null);
       final stableFrameLatencyMs = effectiveStableFrameTimestamp == null
@@ -251,12 +249,11 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           : effectiveStableFrameTimestamp
               .difference(latestSettle.timestamp)
               .inMilliseconds;
-      final missingStableFrameBlockingMs =
-          dispatch != null ||
-                  firstFrameIssue != null ||
-                  playbackAlreadyTargetedAtSettle
-              ? QALabMode.scrollFirstFrameBlockingMs
-              : QALabMode.shortVisualStableFrameBlockingMs;
+      final missingStableFrameBlockingMs = dispatch != null ||
+              firstFrameIssue != null ||
+              playbackAlreadyTargetedAtSettle
+          ? QALabMode.scrollFirstFrameBlockingMs
+          : QALabMode.shortVisualStableFrameBlockingMs;
       if (effectiveStableFrameTimestamp == null &&
           stableFrameLatencyMs >= missingStableFrameBlockingMs) {
         findings.add(
@@ -271,19 +268,21 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
             context: <String, dynamic>{
               'docId': expectedDocId,
               'scrollToken': scrollToken,
-                'stableFrameLatencyMs': stableFrameLatencyMs,
+              'stableFrameLatencyMs': stableFrameLatencyMs,
             },
           ),
         );
       } else if (!suppressShortTransitionWarnings &&
+          !(stableFrameSource == 'video_first_frame' &&
+              hasSlowShortFirstFrameFinding) &&
           effectiveStableFrameTimestamp != null &&
           stableFrameLatencyMs >= QALabMode.shortVisualStableFrameWarningMs) {
         final stableFrameSeverity =
             stableFrameSource == 'stable_frame' && firstFrameIssue != null
-            ? (stableFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs
-                  ? QALabIssueSeverity.error
-                  : QALabIssueSeverity.warning)
-            : QALabIssueSeverity.warning;
+                ? (stableFrameLatencyMs >= QALabMode.scrollFirstFrameBlockingMs
+                    ? QALabIssueSeverity.error
+                    : QALabIssueSeverity.warning)
+                : QALabIssueSeverity.warning;
         findings.add(
           QALabPinpointFinding(
             severity: stableFrameSeverity,
@@ -298,18 +297,15 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
               'scrollToken': scrollToken,
               'stableFrameLatencyMs': stableFrameLatencyMs,
               'source': stableFrameSource,
-              'positionMs':
-                  stableFrameEvent == null
-                      ? null
-                      : _asInt(stableFrameEvent.metadata['positionMs']),
-              'isPlaying':
-                  stableFrameEvent == null
-                      ? null
-                      : stableFrameEvent.metadata['isPlaying'] == true,
-              'isBuffering':
-                  stableFrameEvent == null
-                      ? null
-                      : stableFrameEvent.metadata['isBuffering'] == true,
+              'positionMs': stableFrameEvent == null
+                  ? null
+                  : _asInt(stableFrameEvent.metadata['positionMs']),
+              'isPlaying': stableFrameEvent == null
+                  ? null
+                  : stableFrameEvent.metadata['isPlaying'] == true,
+              'isBuffering': stableFrameEvent == null
+                  ? null
+                  : stableFrameEvent.metadata['isBuffering'] == true,
             },
           ),
         );

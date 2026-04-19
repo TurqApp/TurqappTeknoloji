@@ -959,6 +959,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
           _telemetryAdapter = vc;
           vc.removeListener(_telemetryListener);
           vc.addListener(_telemetryListener);
+          _reportStableShortFrameIfNeeded(
+            page,
+            vc,
+            decision.hasStableVisualFrame,
+          );
           _scheduleEngagementRescore(page);
         }
 
@@ -1473,6 +1478,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final videoId = _cachedShorts[currentPage].docID;
     final v = vc.value;
     _applyShortPlaybackPresentation(currentPage, vc);
+    _reportStableShortFrameIfNeeded(
+      currentPage,
+      vc,
+      _shortPlaybackDecisionFor(currentPage, v).hasStableVisualFrame,
+    );
 
     if (!_isTransitioning && v.isCompleted) {
       _handleVideoEndForAdapter(
