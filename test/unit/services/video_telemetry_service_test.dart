@@ -52,4 +52,21 @@ void main() {
 
     expect(metrics.rebufferCount, 1);
   });
+
+  test('video telemetry does not double count an ongoing buffering window', () {
+    final metrics = VideoSessionMetrics(
+      videoId: 'telemetry_duplicate_buffering',
+      videoUrl: 'https://cdn.example.com/rebuffer.m3u8',
+      qaSurface: 'test',
+    );
+
+    metrics.markFirstFrame();
+    metrics.onBufferingStart();
+    metrics.onBufferingStart();
+    metrics.onBufferingStart();
+    metrics.onBufferingEnd();
+
+    expect(metrics.rebufferCount, 1);
+    expect(metrics.totalRebufferMs, greaterThanOrEqualTo(0));
+  });
 }
