@@ -12,6 +12,60 @@ final double _neighborBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 6.0 : 3.6;
 final double _prepBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.0;
+Future<void>? _shortProxyWarmPathFuture;
+
+Future<void> _ensureShortProxyWarmPathReady({
+  Duration timeout = const Duration(milliseconds: 1200),
+}) async {
+  if (defaultTargetPlatform != TargetPlatform.android) return;
+  final existingCache = SegmentCacheManager.maybeFind();
+  final existingProxy = maybeFindHlsProxyServer();
+  if ((existingCache?.isReady ?? false) &&
+      (existingProxy?.isStarted ?? false)) {
+    return;
+  }
+
+  var future = _shortProxyWarmPathFuture;
+  if (future == null) {
+    final created = () async {
+      final startedAt = DateTime.now();
+      final cache = SegmentCacheManager.ensure();
+      if (!cache.isReady) {
+        await cache.init();
+      }
+      ensurePrefetchScheduler(permanent: true);
+      final proxy = ensureHlsProxyServer(permanent: true);
+      if (!proxy.isStarted) {
+        await proxy.start();
+      }
+      debugPrint(
+        '[ShortProxyWarmPath] status=ready elapsedMs='
+        '${DateTime.now().difference(startedAt).inMilliseconds} '
+        'proxyStarted=${proxy.isStarted} cacheReady=${cache.isReady}',
+      );
+    }();
+    _shortProxyWarmPathFuture = created;
+    created.whenComplete(() {
+      if (identical(_shortProxyWarmPathFuture, created)) {
+        _shortProxyWarmPathFuture = null;
+      }
+    });
+    future = created;
+  }
+
+  try {
+    await future.timeout(timeout);
+  } on TimeoutException {
+    final cache = SegmentCacheManager.maybeFind();
+    final proxy = maybeFindHlsProxyServer();
+    debugPrint(
+      '[ShortProxyWarmPath] status=timeout proxyStarted='
+      '${proxy?.isStarted ?? false} cacheReady=${cache?.isReady ?? false}',
+    );
+  } catch (e) {
+    debugPrint('[ShortProxyWarmPath] status=error error=$e');
+  }
+}
 
 ShortController _ensureShortController() {
   final existing = _maybeFindShortController();
@@ -303,6 +357,7 @@ extension ShortControllerPublicApiPart on ShortController {
     );
     _resolveShortSessionSourceMode(reason: 'prepare_startup_surface');
     _recordShortMotorContractSnapshot(reason: 'prepare_startup_surface');
+    unawaited(_ensureShortProxyWarmPathReady());
     final seededFreshSession = _ensureShortLaunchSessionFresh(
       reason: startedEmpty ? 'startup' : 'surface_visible',
       forceNew: startedEmpty,

@@ -145,6 +145,7 @@ extension ShortControllerCachePart on ShortController {
         return cacheTarget[index];
       }
 
+      await _ensureShortProxyWarmPathReady();
       final adapter = _videoPool.acquire(
         cacheKey: playbackHandleKeyForDoc(short.docID),
         url: videoUrl,
