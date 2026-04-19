@@ -584,6 +584,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       summaryCacheOnly: false,
       refreshNonPublicCachedSummaries: false,
       progressiveSummaryResolution: true,
+      summaryResolutionBatchSize:
+          FeedSnapshotRepository._typesenseStartupAuthorWarmBatchSize,
     );
     final selection = LaunchMotorSelectionService.buildPoolFillResult(
       latestPool: visible,
