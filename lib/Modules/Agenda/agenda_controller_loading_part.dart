@@ -1233,7 +1233,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final currentAgenda = agendaList.toList(growable: false);
       final liveConnected = ContentPolicy.isConnected;
       final sourcePageLimit = initial && liveConnected
-          ? _connectedInitialCandidateFetchLimit
+          ? FeedSnapshotRepository.startupHomeLimitValue
           : loadLimit;
       final shouldPreferCacheOnOpen = !liveConnected;
       final seenDocIds = currentAgenda

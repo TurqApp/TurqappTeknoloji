@@ -11,104 +11,144 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     required int limit,
     bool summaryCacheOnly = false,
     bool refreshNonPublicCachedSummaries = true,
+    bool progressiveSummaryResolution = false,
+    int summaryResolutionBatchSize = 20,
   }) async {
     if (items.isEmpty) return const <PostsModel>[];
     final normalized = _normalizePosts(items);
-    final authorIds = normalized
-        .map((post) => post.userID)
-        .where((id) => id.isNotEmpty)
-        .toSet();
-    final summaries = await _loadDiscoverySummaries(
-      authorIds: authorIds,
-      currentUserId: currentUserId,
-      followingIds: followingIds,
-      cacheOnly: summaryCacheOnly,
-      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-    );
-
     final visible = <PostsModel>[];
     final dropLogs = <String>[];
-    for (final post in normalized) {
-      final reasons = <String>[];
-      if (post.isFloodMember) {
-        reasons.add('flood_child');
-      }
-      if (hiddenPostIds.contains(post.docID)) {
-        reasons.add('hidden');
-      }
-      if (post.deletedPost == true) reasons.add('deleted');
-      if (post.gizlendi) reasons.add('gizlendi');
-      if (post.shouldHideWhileUploading) {
-        if (post.isUploading) reasons.add('uploading');
-        if (post.isCompletelyEmptyPost) reasons.add('empty_content');
-      }
-      if (reasons.isNotEmpty) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:${reasons.join('+')}');
-        }
-        continue;
-      }
-      if (!_isRenderablePost(post)) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:not_renderable');
-        }
-        continue;
-      }
-      if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:out_of_window:${post.timeStamp}');
-        }
-        continue;
-      }
-      final summary = summaries[post.userID];
-      if (summary == null) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:missing_summary:${post.userID}');
-        }
-        continue;
-      }
-      if (summary.isDeleted) {
-        if (kDebugMode && dropLogs.length < 12) {
-          final flags = <String>[];
-          if (summary.isDeleted) flags.add('author_deleted');
-          dropLogs.add('${post.docID}:${flags.join('+')}:${post.userID}');
-        }
-        continue;
-      }
-      final canSeeAuthor =
-          _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
-        authorUserId: post.userID,
-        followingIds: followingIds,
-        rozet: summary.rozet,
-        isApproved: summary.isApproved,
-        isDeleted: summary.isDeleted,
-      );
-      if (!canSeeAuthor) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:not_following_unbadged:${post.userID}');
-        }
-        continue;
-      }
-      if (post.timeStamp > nowMs) {
-        if (kDebugMode && dropLogs.length < 12) {
-          dropLogs.add('${post.docID}:future:${post.timeStamp}');
-        }
-        continue;
-      }
-      visible.add(
-        post.copyWith(
-          authorNickname: post.authorNickname.isNotEmpty
-              ? post.authorNickname
-              : summary.nickname,
-          authorDisplayName: post.authorDisplayName.isNotEmpty
-              ? post.authorDisplayName
-              : summary.displayName,
-          authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
-              ? post.authorAvatarUrl
-              : summary.avatarUrl,
-          rozet: post.rozet.isNotEmpty ? post.rozet : summary.rozet,
+    final summaryCache = <String, UserSummary>{};
+
+    Future<void> resolveBatchSummaries(List<PostsModel> batch) async {
+      final authorIds = batch
+          .where((post) {
+            if (post.userID.trim().isEmpty) return false;
+            if (post.isFloodMember) return false;
+            if (hiddenPostIds.contains(post.docID)) return false;
+            if (post.deletedPost == true) return false;
+            if (post.gizlendi) return false;
+            if (post.shouldHideWhileUploading) return false;
+            if (!_isRenderablePost(post)) return false;
+            if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
+              return false;
+            }
+            return !summaryCache.containsKey(post.userID);
+          })
+          .map((post) => post.userID)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      if (authorIds.isEmpty) return;
+      summaryCache.addAll(
+        await _loadDiscoverySummaries(
+          authorIds: authorIds,
+          currentUserId: currentUserId,
+          followingIds: followingIds,
+          cacheOnly: summaryCacheOnly,
+          refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
         ),
       );
+    }
+
+    if (!progressiveSummaryResolution) {
+      await resolveBatchSummaries(normalized);
+    }
+
+    for (int start = 0;
+        start < normalized.length;
+        start += progressiveSummaryResolution
+            ? summaryResolutionBatchSize
+            : normalized.length) {
+      final end = progressiveSummaryResolution
+          ? (start + summaryResolutionBatchSize).clamp(0, normalized.length)
+          : normalized.length;
+      final batch = normalized.sublist(start, end);
+      if (progressiveSummaryResolution) {
+        await resolveBatchSummaries(batch);
+      }
+      for (final post in batch) {
+        final reasons = <String>[];
+        if (post.isFloodMember) {
+          reasons.add('flood_child');
+        }
+        if (hiddenPostIds.contains(post.docID)) {
+          reasons.add('hidden');
+        }
+        if (post.deletedPost == true) reasons.add('deleted');
+        if (post.gizlendi) reasons.add('gizlendi');
+        if (post.shouldHideWhileUploading) {
+          if (post.isUploading) reasons.add('uploading');
+          if (post.isCompletelyEmptyPost) reasons.add('empty_content');
+        }
+        if (reasons.isNotEmpty) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:${reasons.join('+')}');
+          }
+          continue;
+        }
+        if (!_isRenderablePost(post)) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:not_renderable');
+          }
+          continue;
+        }
+        if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:out_of_window:${post.timeStamp}');
+          }
+          continue;
+        }
+        final summary = summaryCache[post.userID];
+        if (summary == null) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:missing_summary:${post.userID}');
+          }
+          continue;
+        }
+        if (summary.isDeleted) {
+          if (kDebugMode && dropLogs.length < 12) {
+            final flags = <String>[];
+            if (summary.isDeleted) flags.add('author_deleted');
+            dropLogs.add('${post.docID}:${flags.join('+')}:${post.userID}');
+          }
+          continue;
+        }
+        final canSeeAuthor =
+            _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+          authorUserId: post.userID,
+          followingIds: followingIds,
+          rozet: summary.rozet,
+          isApproved: summary.isApproved,
+          isDeleted: summary.isDeleted,
+        );
+        if (!canSeeAuthor) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:not_following_unbadged:${post.userID}');
+          }
+          continue;
+        }
+        if (post.timeStamp > nowMs) {
+          if (kDebugMode && dropLogs.length < 12) {
+            dropLogs.add('${post.docID}:future:${post.timeStamp}');
+          }
+          continue;
+        }
+        visible.add(
+          post.copyWith(
+            authorNickname: post.authorNickname.isNotEmpty
+                ? post.authorNickname
+                : summary.nickname,
+            authorDisplayName: post.authorDisplayName.isNotEmpty
+                ? post.authorDisplayName
+                : summary.displayName,
+            authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
+                ? post.authorAvatarUrl
+                : summary.avatarUrl,
+            rozet: post.rozet.isNotEmpty ? post.rozet : summary.rozet,
+          ),
+        );
+        if (visible.length >= limit) break;
+      }
       if (visible.length >= limit) break;
     }
     if (kDebugMode && dropLogs.isNotEmpty) {

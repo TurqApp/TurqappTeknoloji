@@ -580,9 +580,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       hiddenPostIds: hiddenPostIds,
       nowMs: nowMs,
       cutoffMs: cutoffMs,
-      limit: candidateLimit,
+      limit: limit,
       summaryCacheOnly: false,
       refreshNonPublicCachedSummaries: false,
+      progressiveSummaryResolution: true,
     );
     final selection = LaunchMotorSelectionService.buildPoolFillResult(
       latestPool: visible,
