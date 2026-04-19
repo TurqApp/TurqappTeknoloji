@@ -10,6 +10,8 @@ class IntegrationSmokeScenarioReport {
     required this.invariantCount,
     required this.telemetryIssueCount,
     required this.telemetryBlockingCount,
+    required this.deviceLogIssueCount,
+    required this.deviceLogBlockingCount,
   });
 
   final String scenario;
@@ -22,9 +24,14 @@ class IntegrationSmokeScenarioReport {
   final int invariantCount;
   final int telemetryIssueCount;
   final int telemetryBlockingCount;
+  final int deviceLogIssueCount;
+  final int deviceLogBlockingCount;
 
   bool get hasBlockingSignal =>
-      hasFailure || invariantCount > 0 || telemetryBlockingCount > 0;
+      hasFailure ||
+      invariantCount > 0 ||
+      telemetryBlockingCount > 0 ||
+      deviceLogBlockingCount > 0;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -38,6 +45,8 @@ class IntegrationSmokeScenarioReport {
       'invariantCount': invariantCount,
       'telemetryIssueCount': telemetryIssueCount,
       'telemetryBlockingCount': telemetryBlockingCount,
+      'deviceLogIssueCount': deviceLogIssueCount,
+      'deviceLogBlockingCount': deviceLogBlockingCount,
       'hasBlockingSignal': hasBlockingSignal,
     };
   }
@@ -51,12 +60,14 @@ class IntegrationSmokeReport {
     required this.invariantViolationCount,
     required this.telemetryIssueCount,
     required this.telemetryBlockingCount,
+    required this.deviceLogIssueCount,
+    required this.deviceLogBlockingCount,
     required this.blockingScenarioCount,
     required List<IntegrationSmokeScenarioReport> scenarios,
   }) : scenarios = List<IntegrationSmokeScenarioReport>.from(
-         scenarios,
-         growable: false,
-       );
+          scenarios,
+          growable: false,
+        );
 
   final int scenarioCount;
   final int failureCount;
@@ -64,6 +75,8 @@ class IntegrationSmokeReport {
   final int invariantViolationCount;
   final int telemetryIssueCount;
   final int telemetryBlockingCount;
+  final int deviceLogIssueCount;
+  final int deviceLogBlockingCount;
   final int blockingScenarioCount;
   final List<IntegrationSmokeScenarioReport> scenarios;
 
@@ -79,6 +92,8 @@ class IntegrationSmokeReport {
         'invariantViolationCount': invariantViolationCount,
         'telemetryIssueCount': telemetryIssueCount,
         'telemetryBlockingCount': telemetryBlockingCount,
+        'deviceLogIssueCount': deviceLogIssueCount,
+        'deviceLogBlockingCount': deviceLogBlockingCount,
         'blockingScenarioCount': blockingScenarioCount,
         'hasBlockingSignals': hasBlockingSignals,
       },
@@ -95,10 +110,23 @@ class IntegrationSmokeReporter {
   static IntegrationSmokeReport buildReport(
     List<Map<String, dynamic>> artifacts,
   ) {
-    final scenarios = artifacts
+    final rawScenarios = artifacts
         .map(_toScenarioReport)
         .where((scenario) => scenario.scenario.isNotEmpty)
         .toList(growable: false);
+    final mergedByScenario = <String, IntegrationSmokeScenarioReport>{};
+    for (final scenario in rawScenarios) {
+      final existing = mergedByScenario[scenario.scenario];
+      if (existing == null) {
+        mergedByScenario[scenario.scenario] = scenario;
+        continue;
+      }
+      mergedByScenario[scenario.scenario] = _mergeScenarioReports(
+        existing,
+        scenario,
+      );
+    }
+    final scenarios = mergedByScenario.values.toList(growable: false);
     final failureCount =
         scenarios.where((scenario) => scenario.hasFailure).length;
     final screenshotCount =
@@ -115,6 +143,14 @@ class IntegrationSmokeReporter {
       0,
       (sum, scenario) => sum + scenario.telemetryBlockingCount,
     );
+    final deviceLogIssueCount = scenarios.fold<int>(
+      0,
+      (sum, scenario) => sum + scenario.deviceLogIssueCount,
+    );
+    final deviceLogBlockingCount = scenarios.fold<int>(
+      0,
+      (sum, scenario) => sum + scenario.deviceLogBlockingCount,
+    );
     final blockingScenarioCount =
         scenarios.where((scenario) => scenario.hasBlockingSignal).length;
 
@@ -125,8 +161,52 @@ class IntegrationSmokeReporter {
       invariantViolationCount: invariantViolationCount,
       telemetryIssueCount: telemetryIssueCount,
       telemetryBlockingCount: telemetryBlockingCount,
+      deviceLogIssueCount: deviceLogIssueCount,
+      deviceLogBlockingCount: deviceLogBlockingCount,
       blockingScenarioCount: blockingScenarioCount,
       scenarios: scenarios,
+    );
+  }
+
+  static IntegrationSmokeScenarioReport _mergeScenarioReports(
+    IntegrationSmokeScenarioReport first,
+    IntegrationSmokeScenarioReport second,
+  ) {
+    String pickRoute(String primary, String fallback) {
+      return primary.isNotEmpty ? primary : fallback;
+    }
+
+    String pickReason(String primary, String fallback) {
+      return primary.isNotEmpty ? primary : fallback;
+    }
+
+    return IntegrationSmokeScenarioReport(
+      scenario: first.scenario,
+      currentRoute: pickRoute(first.currentRoute, second.currentRoute),
+      previousRoute: pickRoute(first.previousRoute, second.previousRoute),
+      hasFailure: first.hasFailure || second.hasFailure,
+      hasScreenshot: first.hasScreenshot || second.hasScreenshot,
+      artifactExported: first.artifactExported || second.artifactExported,
+      artifactReason: pickReason(first.artifactReason, second.artifactReason),
+      invariantCount: first.invariantCount > second.invariantCount
+          ? first.invariantCount
+          : second.invariantCount,
+      telemetryIssueCount:
+          first.telemetryIssueCount > second.telemetryIssueCount
+              ? first.telemetryIssueCount
+              : second.telemetryIssueCount,
+      telemetryBlockingCount:
+          first.telemetryBlockingCount > second.telemetryBlockingCount
+              ? first.telemetryBlockingCount
+              : second.telemetryBlockingCount,
+      deviceLogIssueCount:
+          first.deviceLogIssueCount > second.deviceLogIssueCount
+              ? first.deviceLogIssueCount
+              : second.deviceLogIssueCount,
+      deviceLogBlockingCount:
+          first.deviceLogBlockingCount > second.deviceLogBlockingCount
+              ? first.deviceLogBlockingCount
+              : second.deviceLogBlockingCount,
     );
   }
 
@@ -139,12 +219,16 @@ class IntegrationSmokeReporter {
     final invariants = _asMap(artifact['invariants']);
     final failure = _asMap(artifact['failure']);
     final artifactStatus = _asMap(artifact['artifactStatus']);
+    final deviceLog = _asMap(artifact['deviceLog']);
+    final deviceLogSummary = _asMap(deviceLog['summary']);
 
     final issues = _asList(thresholdReport['issues']);
     final telemetryBlockingCount = issues.where((issue) {
       final issueMap = _asMap(issue);
       return issueMap['severity'] == 'blocking';
     }).length;
+    final deviceLogIssueCount = _asInt(deviceLogSummary['issueCount']);
+    final deviceLogBlockingCount = _asInt(deviceLogSummary['blockingCount']);
 
     return IntegrationSmokeScenarioReport(
       scenario: (artifact['scenario'] ?? '').toString().trim(),
@@ -157,6 +241,8 @@ class IntegrationSmokeReporter {
       invariantCount: _asInt(invariants['count']),
       telemetryIssueCount: issues.length,
       telemetryBlockingCount: telemetryBlockingCount,
+      deviceLogIssueCount: deviceLogIssueCount,
+      deviceLogBlockingCount: deviceLogBlockingCount,
     );
   }
 

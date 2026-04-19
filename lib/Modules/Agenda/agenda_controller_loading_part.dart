@@ -1924,6 +1924,30 @@ extension AgendaControllerLoadingPart on AgendaController {
       for (final post in seededHead)
         if (post.docID.trim().isNotEmpty) post.docID.trim(),
     };
+    bool appendPlannedPosts(Iterable<PostsModel> posts, {required int limit}) {
+      if (limit <= 0) {
+        return false;
+      }
+      var remainingLimit = limit;
+      var added = false;
+      for (final post in posts) {
+        if (output.length >= targetLimit || remainingLimit <= 0) {
+          break;
+        }
+        final docId = post.docID.trim();
+        if (docId.isEmpty || !usedIds.add(docId)) {
+          continue;
+        }
+        output.add(post);
+        added = true;
+        remainingLimit--;
+        if (remainingLimit <= 0) {
+          break;
+        }
+      }
+      return added;
+    }
+
     final blockSize = FeedRenderBlockPlan.postSlotsPerBlock;
     while (output.length < targetLimit) {
       final partialBlockRemainder = output.length % blockSize;
@@ -1940,6 +1964,24 @@ extension AgendaControllerLoadingPart on AgendaController {
         blockTarget: blockTarget,
       );
       if (plannedBlock.length < blockTarget) {
+        appendPlannedPosts(plannedBlock, limit: plannedBlock.length);
+        final remainingBlockTarget = min(
+          blockTarget - plannedBlock.length,
+          targetLimit - output.length,
+        );
+        final sparseFallback = _takeColdPlanCandidates(
+          fresh: fresh,
+          repeated: repeated,
+          usedIds: usedIds,
+          limit: fresh.length + repeated.length,
+        ).take(remainingBlockTarget).toList(growable: false);
+        final filledRemainder = appendPlannedPosts(
+          sparseFallback,
+          limit: remainingBlockTarget,
+        );
+        if (filledRemainder || plannedBlock.isNotEmpty) {
+          continue;
+        }
         if (fillingPartialBlock) {
           final partialFallback = _takeColdPlanCandidates(
             fresh: fresh,
@@ -1947,29 +1989,13 @@ extension AgendaControllerLoadingPart on AgendaController {
             usedIds: usedIds,
             limit: fresh.length + repeated.length,
           ).take(blockTarget).toList(growable: false);
-          if (partialFallback.length >= blockTarget) {
-            for (final post in partialFallback) {
-              final docId = post.docID.trim();
-              if (docId.isEmpty || !usedIds.add(docId)) {
-                continue;
-              }
-              output.add(post);
-            }
+          if (appendPlannedPosts(partialFallback, limit: blockTarget)) {
             continue;
           }
         }
         break;
       }
-      for (final post in plannedBlock) {
-        final docId = post.docID.trim();
-        if (docId.isEmpty || !usedIds.add(docId)) {
-          continue;
-        }
-        output.add(post);
-        if (output.length >= targetLimit) {
-          break;
-        }
-      }
+      appendPlannedPosts(plannedBlock, limit: blockTarget);
     }
 
     return output.take(targetLimit).toList(growable: false);

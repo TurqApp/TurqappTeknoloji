@@ -130,6 +130,11 @@ class IntegrationTestStateProbe {
       'canClaimPlaybackNow': controller.canClaimPlaybackNow,
       'feedViewMode': controller.feedViewMode.value.name,
       'usesPrimaryFeedPaging': controller.debugUsesPrimaryFeedPaging,
+      'plannedColdFeedCount': controller.debugPlannedColdFeedCount,
+      'remainingPlannedColdFeedCount':
+          controller.debugRemainingPlannedColdFeedCount,
+      'plannedColdFeedNextTypesensePage':
+          controller.debugPlannedColdFeedNextTypesensePage ?? 0,
       'feedContractId': FeedHomeContract.primaryHybridV1.contractId,
     };
   }

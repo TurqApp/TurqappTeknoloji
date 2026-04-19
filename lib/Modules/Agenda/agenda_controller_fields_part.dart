@@ -140,6 +140,17 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get debugEnsureInitialLoadInFlight => _ensureInitialLoadInFlight;
   bool get debugSurfaceBootstrapInFlight => _surfaceBootstrapFuture != null;
   bool get debugStartupHeadFinalized => _startupHeadFinalized;
+  int get debugPlannedColdFeedCount => _plannedColdFeedWindow.length;
+  int get debugRemainingPlannedColdFeedCount {
+    final seenDocIds = <String>{
+      for (final post in agendaList)
+        if (post.docID.trim().isNotEmpty) post.docID.trim(),
+    };
+    return _remainingPlannedColdFeedCount(seenDocIds: seenDocIds);
+  }
+
+  int? get debugPlannedColdFeedNextTypesensePage =>
+      _plannedColdFeedNextTypesensePage;
   bool get startupRenderBootstrapHold => _startupRenderBootstrapHold;
   RxBool get hasMore => _state.hasMore;
   RxBool get isLoading => _state.isLoading;

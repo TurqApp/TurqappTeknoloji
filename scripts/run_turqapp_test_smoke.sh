@@ -31,9 +31,13 @@ ANDROID_EXPORT_POLL_SECONDS="${INTEGRATION_SMOKE_ANDROID_EXPORT_POLL_SECONDS:-0.
 ANDROID_CLEAR_APP_DATA_BETWEEN_SUITES="${INTEGRATION_SMOKE_CLEAR_APP_DATA_BETWEEN_SUITES:-1}"
 ANDROID_PACKAGE_SYNC_RETRY_COUNT="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY_COUNT:-12}"
 ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS:-0.5}"
+ANDROID_LOGCAT_FORMAT="${INTEGRATION_SMOKE_ANDROID_LOGCAT_FORMAT:-threadtime}"
 INTEGRATION_SUITE_RETRY_COUNT="${INTEGRATION_SMOKE_SUITE_RETRY_COUNT:-2}"
 android_original_stay_on=""
 android_awake_watchdog_pid=""
+last_device_log_reason=""
+last_device_log_raw_path=""
+last_device_log_report_path=""
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
@@ -117,6 +121,37 @@ if (screenshotPath) {
 }
 fs.writeFileSync(artifactPath, JSON.stringify(raw, null, 2));
 " "$artifact_file" "$screenshot_path"
+}
+
+annotate_artifact_with_device_log() {
+  local artifact_file="$1"
+  local report_file="${2:-}"
+  local raw_file="${3:-}"
+  local export_reason="${4:-}"
+
+  [[ -f "$artifact_file" ]] || return 0
+
+  node -e "
+const fs = require('fs');
+const artifactPath = process.argv[1];
+const reportPath = process.argv[2];
+const rawPath = process.argv[3];
+const exportReason = process.argv[4];
+const raw = JSON.parse(fs.readFileSync(artifactPath, 'utf8'));
+const reportExists = reportPath && fs.existsSync(reportPath);
+const rawExists = rawPath && fs.existsSync(rawPath);
+raw.deviceLog = reportExists
+  ? JSON.parse(fs.readFileSync(reportPath, 'utf8'))
+  : {};
+raw.deviceLogArtifacts = {
+  source: 'android_logcat',
+  exported: reportExists,
+  reason: exportReason || (reportExists ? '' : 'device_log_unavailable'),
+  rawPath: rawExists ? rawPath : '',
+  reportPath: reportExists ? reportPath : '',
+};
+fs.writeFileSync(artifactPath, JSON.stringify(raw, null, 2));
+" "$artifact_file" "$report_file" "$raw_file" "$export_reason"
 }
 
 materialize_scenario_artifact_alias() {
@@ -399,6 +434,58 @@ reset_android_suite_state() {
   fi
 }
 
+reset_android_suite_device_log_buffer() {
+  [[ "$TARGET_PLATFORM" == "android" ]] || return 0
+  [[ -n "$DEVICE_ID" ]] || return 0
+  "$ANDROID_ADB_BIN" -s "$DEVICE_ID" logcat -c >/dev/null 2>&1 || true
+}
+
+export_android_suite_device_log() {
+  local target_device="$1"
+  local scenario_name="$2"
+  last_device_log_reason=""
+  last_device_log_raw_path=""
+  last_device_log_report_path=""
+
+  if [[ "$TARGET_PLATFORM" != "android" ]]; then
+    last_device_log_reason="not_applicable"
+    return 1
+  fi
+  if [[ -z "$target_device" ]]; then
+    last_device_log_reason="no_device"
+    return 1
+  fi
+
+  local raw_output="$ARTIFACT_DIR/${scenario_name}.device_logcat.txt"
+  local report_output="$ARTIFACT_DIR/${scenario_name}.device_log_report.json"
+  local process_id
+  process_id="$("$ANDROID_ADB_BIN" -s "$target_device" shell pidof "$ANDROID_PACKAGE" 2>/dev/null | tr -d '\r' | tr -d '\n')"
+
+  if ! "$ANDROID_ADB_BIN" -s "$target_device" \
+    logcat -d -v "$ANDROID_LOGCAT_FORMAT" >"$raw_output"; then
+    rm -f "$raw_output"
+    last_device_log_reason="logcat_dump_failed"
+    return 1
+  fi
+
+  last_device_log_raw_path="$raw_output"
+
+  if ! dart run tool/device_log_report.dart \
+    --input "$raw_output" \
+    --output "$report_output" \
+    --device-id "$target_device" \
+    --platform android \
+    --package-name "$ANDROID_PACKAGE" \
+    --process-id "$process_id" >/dev/null; then
+    rm -f "$report_output"
+    last_device_log_reason="report_build_failed"
+    return 1
+  fi
+
+  last_device_log_report_path="$report_output"
+  return 0
+}
+
 if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
   android_enable_keep_awake
   reset_android_suite_state
@@ -419,6 +506,7 @@ for test_file in "${suite_tests[@]}"; do
     if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
       reset_android_suite_state
       android_prepare_awake_device
+      reset_android_suite_device_log_buffer
       android_start_awake_watchdog
       watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
     fi
@@ -431,6 +519,7 @@ for test_file in "${suite_tests[@]}"; do
     fi
     if [[ "$TARGET_PLATFORM" == "android" && -n "$DEVICE_ID" ]]; then
       android_stop_awake_watchdog
+      export_android_suite_device_log "$DEVICE_ID" "$scenario_name" >/dev/null 2>&1 || true
       sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
     fi
     materialize_scenario_artifact_alias "$scenario_name" || true
@@ -440,6 +529,11 @@ for test_file in "${suite_tests[@]}"; do
         "$test_status" \
         "${last_artifact_export_reason:-scenario_artifact_missing}"
     fi
+    annotate_artifact_with_device_log \
+      "$ARTIFACT_DIR/${scenario_name}.json" \
+      "${last_device_log_report_path:-}" \
+      "${last_device_log_raw_path:-}" \
+      "${last_device_log_reason:-}" || true
 
     final_test_status="$test_status"
     if [[ "$test_status" -eq 0 ]]; then

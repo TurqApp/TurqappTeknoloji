@@ -125,6 +125,14 @@ class DeviceLogReporter {
   static const int _pesSegmentContextWindowMs = 2500;
   static const String _frameAcquireFenceMessage =
       'Frame acquire fence was missing during rendering.';
+  static const String _appCheckPlaceholderMessage =
+      'App Check fell back to a placeholder or missing provider token.';
+  static const String _googleApiDeveloperErrorMessage =
+      'Google Play services reported a developer configuration error.';
+  static const String _hlsProxyFallbackMessage =
+      'HLS adapter kept the original CDN URL because proxy/cache warmup was not ready.';
+  static const String _surfaceFreeAllBuffersMessage =
+      'Surface pipeline freed queued buffers during playback.';
 
   static DeviceLogReport buildReport(
     String rawLog, {
@@ -156,6 +164,10 @@ class DeviceLogReporter {
     var frameAcquireFenceMissCount = 0;
     var chromaSitingWarningCount = 0;
     var pesStartCodeWarningCount = 0;
+    var appCheckPlaceholderCount = 0;
+    var googleApiDeveloperErrorCount = 0;
+    var hlsProxyFallbackCount = 0;
+    var surfaceFreeAllBuffersCount = 0;
     _MutableLogEntry? frameAcquireFenceIssue;
 
     for (final entry in parsedEntries) {
@@ -277,6 +289,66 @@ class DeviceLogReporter {
         continue;
       }
 
+      if ((tag == 'LocalRequestInterceptor' ||
+              tag == 'FirebaseContextProvider') &&
+          message.contains('App Check token') &&
+          (message.contains('placeholder token') ||
+              message.contains('No AppCheckProvider installed'))) {
+        appCheckPlaceholderCount += 1;
+        _addIssue(
+          issueBuckets,
+          code: 'app_check_placeholder_token',
+          severity: 'warning',
+          tag: tag,
+          message: _appCheckPlaceholderMessage,
+          sampleLine: line,
+        );
+        continue;
+      }
+
+      if ((tag == 'GoogleApiManager' || tag == 'FlagRegistrar') &&
+          (message.contains('DEVELOPER_ERROR') ||
+              message.contains('Phenotype.API is not available'))) {
+        googleApiDeveloperErrorCount += 1;
+        _addIssue(
+          issueBuckets,
+          code: 'google_api_manager_developer_error',
+          severity: 'warning',
+          tag: tag,
+          message: _googleApiDeveloperErrorMessage,
+          sampleLine: line,
+        );
+        continue;
+      }
+
+      if (message.contains('Proxy fallback kept original url=')) {
+        hlsProxyFallbackCount += 1;
+        final issue = _addIssue(
+          issueBuckets,
+          code: 'hls_proxy_fallback_original_url',
+          severity: 'warning',
+          tag: tag,
+          message: _hlsProxyFallbackMessage,
+          sampleLine: line,
+        );
+        issue.context ??= _buildProxyFallbackContext(message);
+        continue;
+      }
+
+      if (message.contains('freeAllBuffers') &&
+          message.contains('buffers were freed while being dequeued')) {
+        surfaceFreeAllBuffersCount += 1;
+        _addIssue(
+          issueBuckets,
+          code: 'surface_free_all_buffers',
+          severity: 'warning',
+          tag: tag,
+          message: _surfaceFreeAllBuffersMessage,
+          sampleLine: line,
+        );
+        continue;
+      }
+
       if (tag == 'JavaBinder' &&
           message.contains('did not call unlinkToDeath')) {
         _addIssue(
@@ -306,7 +378,11 @@ class DeviceLogReporter {
       if (message.contains('FATAL EXCEPTION') ||
           message.contains('fatal signal') ||
           message.contains(' ANR ') ||
-          message.contains('has died')) {
+          _isRelevantProcessDeath(
+            message,
+            packageName: packageName,
+            processId: processId,
+          )) {
         _addIssue(
           issueBuckets,
           code: 'fatal_runtime_signal',
@@ -399,6 +475,10 @@ class DeviceLogReporter {
         'frameAcquireFenceMissCount': frameAcquireFenceMissCount,
         'chromaSitingWarningCount': chromaSitingWarningCount,
         'pesStartCodeWarningCount': pesStartCodeWarningCount,
+        'appCheckPlaceholderCount': appCheckPlaceholderCount,
+        'googleApiDeveloperErrorCount': googleApiDeveloperErrorCount,
+        'hlsProxyFallbackCount': hlsProxyFallbackCount,
+        'surfaceFreeAllBuffersCount': surfaceFreeAllBuffersCount,
       },
       issues: issues,
       observations: observations.take(6).toList(growable: false),
@@ -425,6 +505,26 @@ class DeviceLogReporter {
       default:
         return 3;
     }
+  }
+
+  static bool _isRelevantProcessDeath(
+    String message, {
+    required String packageName,
+    required String processId,
+  }) {
+    if (!message.contains('has died')) {
+      return false;
+    }
+    if (packageName.isNotEmpty && message.contains(packageName)) {
+      return true;
+    }
+    if (processId.isEmpty) {
+      return false;
+    }
+    return message.contains('($processId)') ||
+        message.contains(' $processId ') ||
+        message.contains('pid $processId') ||
+        message.contains('pid=$processId');
   }
 
   static _ParsedLogLine? _parseLine(String raw, {required int lineNumber}) {
@@ -464,6 +564,32 @@ class DeviceLogReporter {
   static int? _firstInt(String input) {
     final match = RegExp(r'(\d+)').firstMatch(input);
     return int.tryParse(match?.group(1) ?? '');
+  }
+
+  static Map<String, dynamic>? _buildProxyFallbackContext(String message) {
+    final urlMatch = RegExp(r'url=([^\s]+)').firstMatch(message);
+    final proxyRegisteredMatch =
+        RegExp(r'proxyRegistered=(true|false)').firstMatch(message);
+    final proxyStartedMatch =
+        RegExp(r'proxyStarted=(true|false)').firstMatch(message);
+    final cacheReadyMatch =
+        RegExp(r'cacheReady=(true|false)').firstMatch(message);
+
+    final context = <String, dynamic>{};
+    final url = urlMatch?.group(1)?.trim() ?? '';
+    if (url.isNotEmpty) {
+      context['url'] = url;
+    }
+    if (proxyRegisteredMatch != null) {
+      context['proxyRegistered'] = proxyRegisteredMatch.group(1) == 'true';
+    }
+    if (proxyStartedMatch != null) {
+      context['proxyStarted'] = proxyStartedMatch.group(1) == 'true';
+    }
+    if (cacheReadyMatch != null) {
+      context['cacheReady'] = cacheReadyMatch.group(1) == 'true';
+    }
+    return context.isEmpty ? null : context;
   }
 
   static int? _parseTimestampMs(String input) {
@@ -832,14 +958,14 @@ class _FrameEventsCorrelation {
     required this.rootCauseCategory,
     required this.rootCauseDetail,
     required List<String> contextSignals,
-  }) : playbackSources = List<String>.from(
-         playbackSources,
-         growable: false,
-       ),
-       contextSignals = List<String>.from(
-         contextSignals,
-         growable: false,
-       );
+  })  : playbackSources = List<String>.from(
+          playbackSources,
+          growable: false,
+        ),
+        contextSignals = List<String>.from(
+          contextSignals,
+          growable: false,
+        );
 
   final int burstCount;
   final int startLine;
