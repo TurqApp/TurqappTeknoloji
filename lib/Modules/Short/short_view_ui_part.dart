@@ -55,23 +55,19 @@ extension ShortViewUiPart on _ShortViewState {
     final token = '$_currentScrollToken|$docId';
     if (_lastReportedStableFrameToken == token) return;
     _lastReportedStableFrameToken = token;
-    final scrollToken = _currentScrollToken;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || idx != currentPage) return;
-      recordQALabScrollEvent(
-        surface: 'short',
-        phase: 'stable_frame',
-        metadata: <String, dynamic>{
-          'docId': docId,
-          'page': idx,
-          'scrollToken': scrollToken,
-          'positionMs': adapter.value.position.inMilliseconds,
-          'isPlaying': adapter.value.isPlaying,
-          'isBuffering': adapter.value.isBuffering,
-          'hasRenderedFirstFrame': adapter.value.hasRenderedFirstFrame,
-        },
-      );
-    });
+    recordQALabScrollEvent(
+      surface: 'short',
+      phase: 'stable_frame',
+      metadata: <String, dynamic>{
+        'docId': docId,
+        'page': idx,
+        'scrollToken': _currentScrollToken,
+        'positionMs': adapter.value.position.inMilliseconds,
+        'isPlaying': adapter.value.isPlaying,
+        'isBuffering': adapter.value.isBuffering,
+        'hasRenderedFirstFrame': adapter.value.hasRenderedFirstFrame,
+      },
+    );
   }
 
   Widget _buildFullscreenVideoSurface(
