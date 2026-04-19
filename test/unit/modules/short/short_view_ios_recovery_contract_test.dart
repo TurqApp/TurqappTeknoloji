@@ -43,4 +43,28 @@ void main() {
     expect(source, contains("skipReason: 'already_playing'"));
     expect(source, contains('_reportStableShortFrameIfNeeded('));
   });
+
+  test('short telemetry marks first frame on rendered frame, not only playing',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+    final singleShortSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/single_short_view_helpers_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains(
+        'if (!_telemetryFirstFrame && (v.hasRenderedFirstFrame || v.isPlaying))',
+      ),
+    );
+    expect(
+      singleShortSource,
+      contains(
+        'if (!_telemetryFirstFrame &&\n'
+        '        (value.hasRenderedFirstFrame || value.isPlaying))',
+      ),
+    );
+  });
 }

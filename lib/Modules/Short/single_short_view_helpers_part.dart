@@ -336,7 +336,8 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       isAudible: decision.shouldBeAudible,
     );
 
-    if (!_telemetryFirstFrame && value.isPlaying) {
+    if (!_telemetryFirstFrame &&
+        (value.hasRenderedFirstFrame || value.isPlaying)) {
       _telemetryFirstFrame = true;
       VideoTelemetryService.instance.onFirstFrame(docId);
     }

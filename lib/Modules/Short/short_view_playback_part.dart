@@ -1549,7 +1549,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
 
-    if (!_telemetryFirstFrame && v.isPlaying) {
+    if (!_telemetryFirstFrame && (v.hasRenderedFirstFrame || v.isPlaying)) {
       _telemetryFirstFrame = true;
       controller.markPlaybackReady(videoId);
       VideoTelemetryService.instance.onFirstFrame(videoId);
