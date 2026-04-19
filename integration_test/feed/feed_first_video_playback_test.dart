@@ -18,6 +18,7 @@ void main() {
           await launchTurqApp(
             tester,
             relaxFeedFixtureDocRequirement: true,
+            primeFeedSnapshot: false,
           );
           await expectFeedScreen(tester);
 

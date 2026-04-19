@@ -17,7 +17,10 @@ void main() {
         'feed_primary_bootstrap_contract',
         tester,
         () async {
-          await launchTurqApp(tester);
+          await launchTurqApp(
+            tester,
+            primeFeedSnapshot: false,
+          );
           await expectFeedScreen(tester);
 
           expect(byItKey(IntegrationTestKeys.navBarRoot), findsOneWidget);

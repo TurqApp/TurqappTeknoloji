@@ -52,6 +52,7 @@ Future<void> launchTurqApp(
   bool forceFeedTab = true,
   int? restoredNavIndex,
   bool relaxFeedFixtureDocRequirement = false,
+  bool primeFeedSnapshot = true,
   bool primeShortSnapshot = false,
 }) async {
   debugPrint('[integration-smoke] launch: app.main start');
@@ -68,6 +69,7 @@ Future<void> launchTurqApp(
     forceFeedTab: forceFeedTab,
     restoredNavIndex: restoredNavIndex,
     relaxFeedFixtureDocRequirement: relaxFeedFixtureDocRequirement,
+    primeFeedSnapshot: primeFeedSnapshot,
     primeShortSnapshot: primeShortSnapshot,
   );
   debugPrint('[integration-smoke] launch: signed-in gate passed');
@@ -110,6 +112,7 @@ Future<void> ensureSignedInForSmoke(
   bool forceFeedTab = true,
   int? restoredNavIndex,
   bool relaxFeedFixtureDocRequirement = false,
+  bool primeFeedSnapshot = true,
   bool primeShortSnapshot = false,
 }) async {
   if (!kRunIntegrationSmoke) return;
@@ -185,7 +188,9 @@ Future<void> ensureSignedInForSmoke(
   }
   debugPrint('[integration-smoke] auth: account center synced');
   await _primeNotificationsForSmoke(tester);
-  await _primeFeedSnapshotForSmoke(tester);
+  if (primeFeedSnapshot) {
+    await _primeFeedSnapshotForSmoke(tester);
+  }
   if (primeShortSnapshot) {
     await _primeShortSnapshotForSmoke(tester);
   }

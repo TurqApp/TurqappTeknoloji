@@ -2408,11 +2408,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     return count;
   }
 
-  Future<void> _awaitFeedAuthReadiness() async {
+  Future<bool> _awaitFeedAuthReadiness() async {
     final currentUser = CurrentUserService.instance;
     if (currentUser.hasAuthUser &&
         currentUser.effectiveUserId.trim().isNotEmpty) {
-      return;
+      return true;
     }
     try {
       await currentUser.ensureAuthReady(
@@ -2420,6 +2420,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         timeout: const Duration(seconds: 2),
       );
     } catch (_) {}
+    return currentUser.hasAuthUser &&
+        currentUser.effectiveUserId.trim().isNotEmpty;
   }
 
   Future<void> ensureInitialFeedLoaded() async {
@@ -2435,27 +2437,31 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
-    final now = DateTime.now();
-    if (_lastEnsureInitialLoadAt != null &&
-        now.difference(_lastEnsureInitialLoadAt!) <
-            const Duration(seconds: 2)) {
-      return;
-    }
-    _lastEnsureInitialLoadAt = now;
     _ensureInitialLoadInFlight = true;
-    await _awaitFeedAuthReadiness();
-    final expectedMutationEpoch = _feedMutationEpoch;
-    final future = _dispatchFeedBootstrapRequest(
-      initial: true,
-      trigger: 'ensure_initial_load',
-      expectedMutationEpoch: expectedMutationEpoch,
-    );
-    _ensureInitialLoadFuture = future;
+    Future<void>? future;
     try {
+      final authReady = await _awaitFeedAuthReadiness();
+      if (!authReady) {
+        return;
+      }
+      final now = DateTime.now();
+      if (_lastEnsureInitialLoadAt != null &&
+          now.difference(_lastEnsureInitialLoadAt!) <
+              const Duration(seconds: 2)) {
+        return;
+      }
+      _lastEnsureInitialLoadAt = now;
+      final expectedMutationEpoch = _feedMutationEpoch;
+      future = _dispatchFeedBootstrapRequest(
+        initial: true,
+        trigger: 'ensure_initial_load',
+        expectedMutationEpoch: expectedMutationEpoch,
+      );
+      _ensureInitialLoadFuture = future;
       await future;
     } finally {
       _ensureInitialLoadInFlight = false;
-      if (identical(_ensureInitialLoadFuture, future)) {
+      if (future != null && identical(_ensureInitialLoadFuture, future)) {
         _ensureInitialLoadFuture = null;
       }
     }
