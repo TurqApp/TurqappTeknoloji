@@ -46,6 +46,8 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
           followingIds: followingIds,
           cacheOnly: summaryCacheOnly,
           refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
+          preferTypesenseCardsForMisses:
+              !summaryCacheOnly && !refreshNonPublicCachedSummaries,
         ),
       );
     }
@@ -166,6 +168,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
     required Set<String> followingIds,
     required bool cacheOnly,
     required bool refreshNonPublicCachedSummaries,
+    required bool preferTypesenseCardsForMisses,
   }) async {
     if (authorIds.isEmpty) return const <String, UserSummary>{};
     final startedAt = DateTime.now();
@@ -173,6 +176,7 @@ extension _FeedSnapshotRepositoryVisibilityPart on FeedSnapshotRepository {
       authorIds.toList(growable: false),
       preferCache: true,
       cacheOnly: cacheOnly,
+      preferTypesenseCardsForMisses: preferTypesenseCardsForMisses,
     );
     if (cacheOnly) {
       debugPrint(

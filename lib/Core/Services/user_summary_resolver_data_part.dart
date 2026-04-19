@@ -5,11 +5,13 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
     List<String> uids, {
     bool preferCache = true,
     bool cacheOnly = false,
+    bool preferTypesenseCardsForMisses = false,
   }) {
     return _resolveManyInternal(
       uids,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
+      preferTypesenseCardsForMisses: preferTypesenseCardsForMisses,
     );
   }
 
@@ -17,11 +19,12 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
     List<String> uids, {
     required bool preferCache,
     required bool cacheOnly,
+    required bool preferTypesenseCardsForMisses,
   }) async {
     final local = await _users.getUsers(
       uids,
       preferCache: preferCache,
-      cacheOnly: cacheOnly,
+      cacheOnly: preferTypesenseCardsForMisses ? true : cacheOnly,
     );
     final missing = uids
         .map((uid) => uid.trim())
@@ -29,11 +32,12 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
         .toSet()
         .toList(growable: false);
     if (missing.isEmpty) return local;
+    if (cacheOnly) return local;
 
     final cards = await _typesenseCards.getUserCardsByIds(
       missing,
       preferCache: preferCache,
-      cacheOnly: cacheOnly,
+      cacheOnly: false,
     );
     for (final entry in cards.entries) {
       final uid = entry.key.trim();
@@ -42,6 +46,20 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
       await _users.putUserRaw(uid, card);
       local[uid] = UserSummary.fromMap(uid, card);
     }
+    if (!preferTypesenseCardsForMisses) {
+      return local;
+    }
+    final unresolved =
+        missing.where((uid) => !local.containsKey(uid)).toList(growable: false);
+    if (unresolved.isEmpty) {
+      return local;
+    }
+    final server = await _users.getUsers(
+      unresolved,
+      preferCache: false,
+      cacheOnly: false,
+    );
+    local.addAll(server);
     return local;
   }
 
