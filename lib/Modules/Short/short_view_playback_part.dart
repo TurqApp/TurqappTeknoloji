@@ -332,6 +332,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
         'scrollToken': _currentScrollToken,
       },
     );
+    if (nextDocId.isNotEmpty) {
+      _recordShortPlaybackDispatch(
+        'short_page_targeted',
+        docId: nextDocId,
+        page: page,
+        source: 'page_changed',
+        dispatchIssued: false,
+        skipReason: 'page_activated',
+        metadata: <String, dynamic>{
+          'fromIndex': currentPage,
+          'toIndex': page,
+          'count': _cachedShorts.length,
+        },
+      );
+    }
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
@@ -846,16 +861,57 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final docId = page >= 0 && page < _cachedShorts.length
             ? _cachedShorts[page].docID
             : '';
+        final decision = _shortPlaybackDecisionFor(page, vc.value);
         if (_shouldSuppressShortPlaybackAttempt(
           page,
           docId,
           source: 'primary',
         )) {
           _applyShortPlaybackPresentation(page, vc);
+          if (vc.value.isPlaying || decision.hasStableVisualFrame) {
+            _recordShortPlaybackDispatch(
+              'short_page_play_skipped',
+              docId: docId,
+              page: page,
+              source: 'primary_duplicate_spacing',
+              dispatchIssued: false,
+              skipReason: 'already_playing',
+              metadata: <String, dynamic>{
+                'isPlaying': vc.value.isPlaying,
+                'isInitialized': vc.value.isInitialized,
+                'hasStableVisualFrame': decision.hasStableVisualFrame,
+              },
+            );
+            _reportStableShortFrameIfNeeded(
+              page,
+              vc,
+              decision.hasStableVisualFrame,
+            );
+          }
           return;
         }
         if (_shouldSuppressDuplicatePrimaryPlay(docId, vc)) {
           _applyShortPlaybackPresentation(page, vc);
+          if (vc.value.isPlaying || decision.hasStableVisualFrame) {
+            _recordShortPlaybackDispatch(
+              'short_page_play_skipped',
+              docId: docId,
+              page: page,
+              source: 'primary_already_playing',
+              dispatchIssued: false,
+              skipReason: 'already_playing',
+              metadata: <String, dynamic>{
+                'isPlaying': vc.value.isPlaying,
+                'isInitialized': vc.value.isInitialized,
+                'hasStableVisualFrame': decision.hasStableVisualFrame,
+              },
+            );
+            _reportStableShortFrameIfNeeded(
+              page,
+              vc,
+              decision.hasStableVisualFrame,
+            );
+          }
           return;
         }
         _applyShortPlaybackPresentation(page, vc);
@@ -902,12 +958,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
             _recordedVisibleShortDocIds.add(docId.trim())) {
           unawaited(ensurePostInteractionService().recordView(docId.trim()));
         }
-        recordQALabPlaybackDispatch(
-          surface: 'short',
-          stage: 'short_page_play',
+        _recordShortPlaybackDispatch(
+          'short_page_play',
+          docId: docId,
+          page: page,
+          source: 'primary',
           metadata: <String, dynamic>{
-            'docId': docId,
-            'page': page,
             'isPlaying': vc.value.isPlaying,
             'isInitialized': vc.value.isInitialized,
           },
@@ -1262,12 +1318,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
                 !value.isCompleted &&
                 (_stallWatchdogRetries > 1 ||
                     value.position >= const Duration(milliseconds: 2500));
-        recordQALabPlaybackDispatch(
-          surface: 'short',
-          stage: 'short_stall_recovery_play',
+        _recordShortPlaybackDispatch(
+          'short_stall_recovery_play',
+          docId: docId,
+          page: page,
+          source: 'stall_watchdog',
           metadata: <String, dynamic>{
-            'docId': docId,
-            'page': page,
             'retry': _stallWatchdogRetries,
             'bufferingCycles': _stallWatchdogBufferingCycles,
             'mode': shouldRecoverFrozenPlayback ? 'recover' : 'play',
@@ -1387,12 +1443,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
           _armPlaybackWatchdog(page, vc, delay);
           return;
         }
-        recordQALabPlaybackDispatch(
-          surface: 'short',
-          stage: 'short_watchdog_play_retry',
+        _recordShortPlaybackDispatch(
+          'short_watchdog_play_retry',
+          docId: docId,
+          page: page,
+          source: 'play_watchdog',
           metadata: <String, dynamic>{
-            'docId': docId,
-            'page': page,
             'retry': _playWatchdogRetries,
           },
         );

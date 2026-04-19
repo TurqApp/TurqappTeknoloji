@@ -157,8 +157,9 @@ class _NavBarControllerSupportPart {
     _controller._ratingPromptTimer = null;
     _controller._feedResumeRetryTimer?.cancel();
     _controller._feedResumeRetryTimer = null;
-    _controller._feedResumeRetryEpoch =
-        _controller._feedResumeRetryEpoch + 1;
+    _controller._shortSurfacePrimeTimer?.cancel();
+    _controller._shortSurfacePrimeTimer = null;
+    _controller._feedResumeRetryEpoch = _controller._feedResumeRetryEpoch + 1;
     WidgetsBinding.instance.removeObserver(_controller);
 
     try {

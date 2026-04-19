@@ -154,6 +154,12 @@ extension QALabRecorderDiagnosticsScrollDispatchPart on QALabRecorder {
         skipReason == 'already_playing') {
       return true;
     }
+    if (code == 'short_page_play_skipped' && skipReason == 'already_playing') {
+      return true;
+    }
+    if (code == 'short_page_targeted' && skipReason == 'page_activated') {
+      return true;
+    }
     return false;
   }
 

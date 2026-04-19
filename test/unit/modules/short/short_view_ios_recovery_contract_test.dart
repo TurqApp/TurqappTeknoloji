@@ -33,4 +33,14 @@ void main() {
       isNot(contains('duration > const Duration(seconds: 12)')),
     );
   });
+
+  test('iOS short QA skip path keeps stable frame reporting visible', () async {
+    final source = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(source, contains('short_page_play_skipped'));
+    expect(source, contains("skipReason: 'already_playing'"));
+    expect(source, contains('_reportStableShortFrameIfNeeded('));
+  });
 }

@@ -1,5 +1,48 @@
 part of 'cached_user_avatar.dart';
 
+String resolveCachedUserAvatarBootstrapUrl({
+  String? directImageUrl,
+  required String userId,
+  required String currentUserId,
+  required String currentAvatarUrl,
+  required String currentStreamAvatarUrl,
+  String? cachedProfileAvatarUrl,
+  String? cachedSummaryAvatarUrl,
+}) {
+  final direct = (directImageUrl ?? '').trim();
+  if (direct.isNotEmpty) return direct;
+
+  final normalizedUserId = userId.trim();
+  if (normalizedUserId.isNotEmpty && normalizedUserId == currentUserId.trim()) {
+    final current = currentAvatarUrl.trim();
+    if (current.isNotEmpty) return current;
+    final stream = currentStreamAvatarUrl.trim();
+    if (stream.isNotEmpty) return stream;
+  }
+
+  final cachedProfile = (cachedProfileAvatarUrl ?? '').trim();
+  if (cachedProfile.isNotEmpty) return cachedProfile;
+
+  final cachedSummary = (cachedSummaryAvatarUrl ?? '').trim();
+  if (cachedSummary.isNotEmpty) return cachedSummary;
+
+  return '';
+}
+
+bool shouldDeferCachedUserAvatarPlaceholder({
+  required bool bootstrapSettled,
+  required bool bootstrapInFlight,
+  required String resolvedFilePath,
+  required String resolvedUrl,
+  String? directImageUrl,
+}) {
+  if (bootstrapSettled || !bootstrapInFlight) return false;
+  if (resolvedFilePath.trim().isNotEmpty || resolvedUrl.trim().isNotEmpty) {
+    return true;
+  }
+  return (directImageUrl ?? '').trim().isNotEmpty;
+}
+
 class DefaultAvatar extends StatelessWidget {
   final double radius;
   final Color? backgroundColor;

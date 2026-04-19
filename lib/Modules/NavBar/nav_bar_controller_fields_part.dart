@@ -31,6 +31,7 @@ class _NavBarControllerState {
   Timer? uploadIndicatorTimer;
   Timer? ratingPromptTimer;
   Timer? feedResumeRetryTimer;
+  Timer? shortSurfacePrimeTimer;
   int feedResumeRetryEpoch = 0;
 }
 
@@ -93,7 +94,11 @@ extension NavBarControllerFieldsPart on NavBarController {
   Timer? get _ratingPromptTimer => _state.ratingPromptTimer;
   set _ratingPromptTimer(Timer? value) => _state.ratingPromptTimer = value;
   Timer? get _feedResumeRetryTimer => _state.feedResumeRetryTimer;
-  set _feedResumeRetryTimer(Timer? value) => _state.feedResumeRetryTimer = value;
+  set _feedResumeRetryTimer(Timer? value) =>
+      _state.feedResumeRetryTimer = value;
+  Timer? get _shortSurfacePrimeTimer => _state.shortSurfacePrimeTimer;
+  set _shortSurfacePrimeTimer(Timer? value) =>
+      _state.shortSurfacePrimeTimer = value;
   int get _feedResumeRetryEpoch => _state.feedResumeRetryEpoch;
   set _feedResumeRetryEpoch(int value) => _state.feedResumeRetryEpoch = value;
   Set<int> get _mountedPrimaryTabStackIndexes =>

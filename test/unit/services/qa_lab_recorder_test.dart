@@ -341,6 +341,171 @@ void main() {
     );
   });
 
+  test(
+      'qa recorder treats already-playing short skip as satisfied scroll dispatch',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final settleAt = now.subtract(const Duration(seconds: 3));
+    const scrollToken = 'short-scroll-already-playing';
+    final probe = <String, dynamic>{
+      'short': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'activeIndex': 0,
+        'activeDocId': 'short-1',
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'short:short-1',
+        'targetPlaybackDocID': 'short:short-1',
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_short_skip_old',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now.subtract(const Duration(seconds: 6)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_short_skip_now',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_settle_skip',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt,
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'scrollToken': scrollToken,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_dispatch_skip',
+        category: 'playback_dispatch',
+        code: 'short_page_play_skipped',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt.add(const Duration(milliseconds: 120)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'primary_already_playing',
+          'callerSignature': 'primary_already_playing',
+          'skipReason': 'already_playing',
+          'scrollToken': scrollToken,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
+  test('qa recorder treats page-activated short target as satisfied dispatch',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+    final settleAt = now.subtract(const Duration(seconds: 3));
+    const scrollToken = 'short-scroll-page-activated';
+    final probe = <String, dynamic>{
+      'short': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'activeIndex': 1,
+        'activeDocId': 'short-2',
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'short:short-2',
+        'targetPlaybackDocID': 'short:short-2',
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_short_target_old',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now.subtract(const Duration(seconds: 6)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp_short_target_now',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now,
+        probe: probe,
+      ),
+    ]);
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_settle_target',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt,
+        metadata: const <String, dynamic>{
+          'docId': 'short-2',
+          'scrollToken': scrollToken,
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'short_dispatch_target',
+        category: 'playback_dispatch',
+        code: 'short_page_targeted',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: settleAt.add(const Duration(milliseconds: 20)),
+        metadata: const <String, dynamic>{
+          'docId': 'short-2',
+          'dispatchIssued': false,
+          'dispatchSource': 'page_changed',
+          'callerSignature': 'page_changed',
+          'skipReason': 'page_activated',
+          'scrollToken': scrollToken,
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'short_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
   test('qa recorder surfaces feed noise bursts and jank counts', () {
     final recorder = QALabRecorder();
     final now = DateTime.now();

@@ -43,22 +43,32 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
 
   String _initialResolvedUrl() {
-    final direct = _normalizeUrl(widget.imageUrl);
-    if (direct.isNotEmpty) return direct;
-
     final uid = (widget.userId ?? '').trim();
-    if (uid.isEmpty) return '';
-
     final currentUser = CurrentUserService.instance;
-    if (uid == currentUser.effectiveUserId) {
-      final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
-      if (currentAvatar.isNotEmpty) return currentAvatar;
-      final streamAvatar =
-          _normalizeUrl((currentUser.currentUser?.avatarUrl ?? '').trim());
-      if (streamAvatar.isNotEmpty) return streamAvatar;
-    }
+    final cachedProfile = uid.isEmpty
+        ? null
+        : maybeFindUserProfileCacheService()?.peekProfile(
+            uid,
+            allowStale: true,
+          );
+    final cachedSummary = uid.isEmpty
+        ? null
+        : _userSummaryResolver.peek(
+            uid,
+            allowStale: true,
+          );
 
-    return '';
+    return _normalizeUrl(
+      resolveCachedUserAvatarBootstrapUrl(
+        directImageUrl: widget.imageUrl,
+        userId: uid,
+        currentUserId: currentUser.effectiveUserId,
+        currentAvatarUrl: currentUser.avatarUrl,
+        currentStreamAvatarUrl: currentUser.currentUser?.avatarUrl ?? '',
+        cachedProfileAvatarUrl: (cachedProfile?['avatarUrl'] ?? '').toString(),
+        cachedSummaryAvatarUrl: cachedSummary?.avatarUrl ?? '',
+      ),
+    );
   }
 
   String _pickAvatarUrl(Map<String, dynamic>? raw) {
@@ -313,10 +323,18 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       return;
     }
     _primedFilePath = normalized;
+    final targetSize = (widget.radius * 2).round();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(
-        precacheImage(FileImage(file), context).catchError((_) {}),
+        precacheImage(
+          ResizeImage.resizeIfNeeded(
+            targetSize > 0 ? targetSize : null,
+            targetSize > 0 ? targetSize : null,
+            FileImage(file),
+          ),
+          context,
+        ).catchError((_) {}),
       );
     });
   }
@@ -375,14 +393,20 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       final file = File(_resolvedFilePath);
       if (file.existsSync()) {
         final size = widget.radius * 2;
+        final imageProvider = ResizeImage.resizeIfNeeded(
+          size.round() > 0 ? size.round() : null,
+          size.round() > 0 ? size.round() : null,
+          FileImage(file),
+        );
         return ClipOval(
           child: SizedBox(
             width: size,
             height: size,
-            child: Image.file(
-              file,
+            child: Image(
+              image: imageProvider,
               fit: BoxFit.cover,
               gaplessPlayback: true,
+              filterQuality: FilterQuality.low,
               frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
                 if ((wasSynchronouslyLoaded || frame != null) &&
                     !_didLogPainted) {
@@ -449,10 +473,13 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   }
 
   bool _shouldDeferDefaultAvatar() {
-    if (_bootstrapSettled || !_bootstrapInFlight) return false;
-    if (_resolvedFilePath.isNotEmpty || _resolvedUrl.isNotEmpty) return true;
-    if ((widget.userId ?? '').trim().isNotEmpty) return true;
-    return _normalizeUrl(widget.imageUrl).isNotEmpty;
+    return shouldDeferCachedUserAvatarPlaceholder(
+      bootstrapSettled: _bootstrapSettled,
+      bootstrapInFlight: _bootstrapInFlight,
+      resolvedFilePath: _resolvedFilePath,
+      resolvedUrl: _resolvedUrl,
+      directImageUrl: widget.imageUrl,
+    );
   }
 
   Widget _buildPendingAvatarPlaceholder() {

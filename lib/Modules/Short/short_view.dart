@@ -291,6 +291,33 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     );
   }
 
+  void _recordShortPlaybackDispatch(
+    String stage, {
+    required String docId,
+    required int page,
+    String source = '',
+    bool dispatchIssued = true,
+    String skipReason = '',
+    Map<String, dynamic> metadata = const <String, dynamic>{},
+  }) {
+    recordQALabPlaybackDispatch(
+      surface: 'short',
+      stage: stage,
+      metadata: <String, dynamic>{
+        'docId': docId,
+        'page': page,
+        'dispatchIssued': dispatchIssued,
+        'dispatchSource': source,
+        'callerSignature': source,
+        'skipReason': skipReason,
+        'scrollToken': _currentScrollToken,
+        'currentPlayingDocId':
+            _playbackRuntimeService.currentPlayingDocId ?? '',
+        ...metadata,
+      },
+    );
+  }
+
   void _scheduleRouteVisiblePlaybackBootstrap({
     Duration delay = const Duration(milliseconds: 240),
   }) {

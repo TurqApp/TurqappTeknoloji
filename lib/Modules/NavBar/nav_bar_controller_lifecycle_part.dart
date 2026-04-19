@@ -3,11 +3,12 @@ part of 'nav_bar_controller.dart';
 extension _NavBarControllerLifecyclePart on NavBarController {
   static const List<Duration> _feedResumeRetryDelaysAfterOverlayPop =
       <Duration>[
-        Duration.zero,
-        Duration(milliseconds: 120),
-        Duration(milliseconds: 320),
-        Duration(milliseconds: 650),
-      ];
+    Duration.zero,
+    Duration(milliseconds: 120),
+    Duration(milliseconds: 320),
+    Duration(milliseconds: 650),
+  ];
+  static const Duration _shortSurfacePrimeDelay = Duration(milliseconds: 420);
 
   int _asNavStatInt(Object? value) {
     if (value is num) return value.toInt();
@@ -77,6 +78,54 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     });
   }
 
+  void _cancelShortSurfacePrimeImpl() {
+    _shortSurfacePrimeTimer?.cancel();
+    _shortSurfacePrimeTimer = null;
+  }
+
+  void _scheduleShortSurfacePrimeImpl() {
+    _cancelShortSurfacePrimeImpl();
+    if (_isDisposed ||
+        selectedIndex.value != 0 ||
+        IntegrationTestMode.suppressPeriodicSideEffects) {
+      return;
+    }
+    _shortSurfacePrimeTimer = Timer(_shortSurfacePrimeDelay, () async {
+      _shortSurfacePrimeTimer = null;
+      if (_isDisposed || selectedIndex.value != 0 || mediaOverlayActive) {
+        return;
+      }
+      try {
+        final controller = shortCtrl;
+        await controller.prepareStartupSurface(
+          allowBackgroundRefresh: false,
+        );
+        if (_isDisposed ||
+            selectedIndex.value != 0 ||
+            mediaOverlayActive ||
+            controller.shorts.isEmpty) {
+          return;
+        }
+        final initialIndex =
+            controller.preferredLaunchIndexForCount(controller.shorts.length);
+        await controller.ensureActiveAdapterReady(initialIndex);
+        final nextIndex = initialIndex + 1;
+        if (nextIndex < controller.shorts.length) {
+          unawaited(
+            controller.prepareNeighborAdapter(initialIndex, nextIndex),
+          );
+        }
+        debugPrint(
+          '[ShortAdjacentPrime] status=ready '
+          'count=${controller.shorts.length} index=$initialIndex '
+          'neighborReady=${nextIndex < controller.shorts.length}',
+        );
+      } catch (e) {
+        debugPrint('[ShortAdjacentPrime] status=error error=$e');
+      }
+    });
+  }
+
   Future<void> _runAcilisAnimationImpl() async {
     try {
       if (!_isDisposed) {
@@ -102,6 +151,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final profileIndex = hasEducation ? 4 : 3;
 
     if (state == AppLifecycleState.paused) {
+      _cancelShortSurfacePrimeImpl();
       pauseGlobalTabMedia();
       unawaited(
         _persistCurrentStartupSurfacesImpl(
@@ -112,6 +162,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     }
 
     if (state == AppLifecycleState.inactive) {
+      _cancelShortSurfacePrimeImpl();
       try {
         AudioFocusCoordinator.instance.pauseAllAudioPlayers();
       } catch (_) {}
@@ -155,6 +206,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     final educationIndex = hasEducation ? 3 : -1;
 
     if (index != previous) {
+      _cancelShortSurfacePrimeImpl();
       try {
         FocusManager.instance.primaryFocus?.unfocus();
       } catch (_) {}
@@ -329,8 +381,10 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   }) {
     if (index == 0) {
       unawaited(maybeFindAgendaController()?.onPrimarySurfaceVisible());
+      _scheduleShortSurfacePrimeImpl();
       return;
     }
+    _cancelShortSurfacePrimeImpl();
     if (index == 1) {
       unawaited(maybeFindExploreController()?.onPrimarySurfaceVisible());
       return;
