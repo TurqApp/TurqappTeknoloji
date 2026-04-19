@@ -45,6 +45,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         ),
       );
 
+  int get _connectedReservoirWarmVisibleBatchLimit => min(
+        _connectedColdFeedPrimeBatchFloor,
+        FeedSnapshotRepository.startupHomeLimitValue * 2,
+      );
+
   Future<T> _profileFeedStartupSurfaceStep<T>(
     String label,
     Future<T> Function() action,
@@ -1791,13 +1796,13 @@ extension AgendaControllerLoadingPart on AgendaController {
           'target': targetLimit,
           'seed': seedPosts.length,
           'nextTypesensePage': nextTypesensePage ?? 0,
-          'batchLimit': _connectedColdFeedPrimeBatchFloor,
+          'batchLimit': _connectedReservoirWarmVisibleBatchLimit,
         },
       );
       final page = await _loadAgendaSourcePage(
         nowMs: nowMs,
         cutoffMs: cutoffMs,
-        limit: _connectedColdFeedPrimeBatchFloor,
+        limit: _connectedReservoirWarmVisibleBatchLimit,
         startAfter: cursor,
         typesensePage: nextTypesensePage,
         useStoredCursor: false,
