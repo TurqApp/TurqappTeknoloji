@@ -150,8 +150,7 @@ class ExoPlayerPlaybackProbe(
         bufferSizeMs: Long,
         elapsedSinceLastFeedMs: Long,
     ) {
-        monitor.onAudioMissing()
-        Log.e(
+        Log.w(
             tag,
             "audioUnderrun bufferSize=$bufferSize bufferSizeMs=$bufferSizeMs elapsedSinceLastFeedMs=$elapsedSinceLastFeedMs"
         )
