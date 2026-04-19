@@ -21,11 +21,13 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
     required bool cacheOnly,
     required bool preferTypesenseCardsForMisses,
   }) async {
-    final local = await _users.getUsers(
-      uids,
-      preferCache: preferCache,
-      cacheOnly: preferTypesenseCardsForMisses ? true : cacheOnly,
-    );
+    final local = preferTypesenseCardsForMisses
+        ? _peekCachedUsers(uids)
+        : await _users.getUsers(
+            uids,
+            preferCache: preferCache,
+            cacheOnly: cacheOnly,
+          );
     final missing = uids
         .map((uid) => uid.trim())
         .where((uid) => uid.isNotEmpty && !local.containsKey(uid))
@@ -61,6 +63,22 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
     );
     local.addAll(server);
     return local;
+  }
+
+  Map<String, UserSummary> _peekCachedUsers(List<String> uids) {
+    final cached = <String, UserSummary>{};
+    for (final rawUid in uids) {
+      final uid = rawUid.trim();
+      if (uid.isEmpty || cached.containsKey(uid)) {
+        continue;
+      }
+      final summary = _users.peekUser(uid, allowStale: true);
+      if (summary == null) {
+        continue;
+      }
+      cached[uid] = summary;
+    }
+    return cached;
   }
 
   UserSummary resolveFromMaps(
