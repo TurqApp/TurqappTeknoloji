@@ -28,4 +28,24 @@ void main() {
       isNot(contains('summary.localizedCaseInsensitiveContains("stall")')),
     );
   });
+
+  test('iOS freeze guard only flags active playback windows', () async {
+    final source = await File(
+      '/Users/turqapp/Desktop/TurqApp/ios/Runner/PlaybackHealthMonitor.swift',
+    ).readAsString();
+
+    expect(source, contains('private func isInActivePlaybackWindow('));
+    expect(
+      source,
+      contains(
+        'return isPlaying ||\n'
+        '            recentPlaybackProgress ||\n'
+        '            (isPlaybackExpected && isBuffering)',
+      ),
+    );
+    expect(
+      source,
+      contains('guard isInActivePlaybackWindow('),
+    );
+  });
 }

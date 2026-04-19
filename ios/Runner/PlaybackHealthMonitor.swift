@@ -105,6 +105,7 @@ final class PlaybackHealthMonitor {
 
     func onPlaybackPaused() {
         isPlaying = false
+        isBuffering = false
         publishState("playbackPaused")
     }
 
@@ -301,9 +302,12 @@ final class PlaybackHealthMonitor {
     ) {
         let timestamp = referenceTime
         let threshold = frameSilenceThreshold ?? freezeFrameThreshold
-        guard isPlaybackExpected || isPlaying || lastKnownPlaybackTime > 0 else { return }
         guard hasRenderedFirstFrame else { return }
         guard lastFrameRenderedAt > 0 else { return }
+        guard isInActivePlaybackWindow(
+            referenceTime: timestamp,
+            threshold: threshold
+        ) else { return }
         if timestamp - lastFrameRenderedAt > threshold {
             recordError("VIDEO_FREEZE")
         }
@@ -327,9 +331,24 @@ final class PlaybackHealthMonitor {
     ) -> Bool {
         let threshold = frameSilenceThreshold ?? freezeFrameThreshold
         guard hasRenderedFirstFrame else { return false }
-        guard isPlaybackExpected || isPlaying || lastPlaybackProgressedAt > 0 else { return false }
         guard lastFrameRenderedAt > 0 else { return false }
+        guard isInActivePlaybackWindow(
+            referenceTime: referenceTime,
+            threshold: threshold
+        ) else { return false }
         return referenceTime - lastFrameRenderedAt > threshold
+    }
+
+    private func isInActivePlaybackWindow(
+        referenceTime: CFTimeInterval,
+        threshold: CFTimeInterval
+    ) -> Bool {
+        let recentPlaybackProgress =
+            lastPlaybackProgressedAt > 0 &&
+            referenceTime - lastPlaybackProgressedAt <= threshold
+        return isPlaying ||
+            recentPlaybackProgress ||
+            (isPlaybackExpected && isBuffering)
     }
 
     private func recordError(_ code: String) {
