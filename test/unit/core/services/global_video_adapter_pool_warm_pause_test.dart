@@ -35,4 +35,26 @@ void main() {
     expect(adapter.preferWarmPoolPause, isFalse);
     await pool.clear();
   });
+
+  test('Android warm pool retains five warmed feed adapters without trimming', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final pool = GlobalVideoAdapterPool();
+
+    final adapters = List.generate(
+      5,
+      (index) => pool.acquire(
+        cacheKey: 'feed:test-doc-$index',
+        url: 'https://cdn.turqapp.com/Posts/test-doc-$index/hls/master.m3u8',
+      ),
+    );
+
+    for (final adapter in adapters) {
+      await pool.release(adapter, keepWarm: true);
+    }
+
+    final snapshot = pool.debugSnapshot();
+    expect(snapshot['maxWarmCount'], 5);
+    expect(snapshot['warmCount'], 5);
+    await pool.clear();
+  });
 }

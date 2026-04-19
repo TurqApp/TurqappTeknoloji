@@ -74,7 +74,7 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
     _schedulePersist();
 
     final imageUrl = (profile['avatarUrl'] ?? '').toString();
-    if (imageUrl.isNotEmpty) {
+    if (imageUrl.isNotEmpty && !QALabMode.integrationSmokeRun) {
       unawaited(TurqImageCacheManager.instance.getSingleFile(imageUrl));
     }
   }

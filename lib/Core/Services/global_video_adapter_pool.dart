@@ -12,7 +12,7 @@ part 'global_video_adapter_pool_fields_part.dart';
 part 'global_video_adapter_pool_runtime_part.dart';
 
 const int _globalVideoAdapterPoolMaxWarmAdapters = 10;
-const int _globalVideoAdapterPoolMaxWarmAdaptersAndroid = 4;
+const int _globalVideoAdapterPoolMaxWarmAdaptersAndroid = 5;
 
 class GlobalVideoAdapterPool extends GetxService {
   static GlobalVideoAdapterPool ensure() => ensureGlobalVideoAdapterPool();

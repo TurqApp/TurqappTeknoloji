@@ -4,7 +4,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   static const Duration _nonLoopingRestartTailThreshold = Duration(seconds: 5);
 
   int get _maxWarmAdapters {
-    if (Platform.isAndroid) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return _globalVideoAdapterPoolMaxWarmAdaptersAndroid;
     }
     return _globalVideoAdapterPoolMaxWarmAdapters;
