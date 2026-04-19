@@ -18,9 +18,12 @@ void main() {
       '/Users/turqapp/Desktop/TurqApp/lib/Services/current_user_service.dart',
     ).readAsString();
 
-    expect(source, contains("part 'current_user_service_auth_role_part.dart';"));
-    expect(source, contains("part 'current_user_service_cache_role_part.dart';"));
-    expect(source, contains("part 'current_user_service_sync_role_part.dart';"));
+    expect(
+        source, contains("part 'current_user_service_auth_role_part.dart';"));
+    expect(
+        source, contains("part 'current_user_service_cache_role_part.dart';"));
+    expect(
+        source, contains("part 'current_user_service_sync_role_part.dart';"));
     expect(
       source,
       contains("part 'current_user_service_account_center_role_part.dart';"),
@@ -49,7 +52,8 @@ void main() {
     expect(cacheRole.resolveCacheUid('uid-1'), 'uid-1');
   });
 
-  test('sync and account-center roles are constructible from service', () async {
+  test('sync and account-center roles are constructible from service',
+      () async {
     final service = CurrentUserService.instance;
 
     final syncRole = CurrentUserSyncRole(service);
@@ -81,5 +85,26 @@ void main() {
       failures.first.kind,
       StartupSessionFailureKind.authStateRestore,
     );
+  });
+
+  test('auth role can suppress expected auth-state timeout noise', () async {
+    final failures = <StartupSessionFailure>[];
+    final service = CurrentUserService.instance;
+    final authRole = CurrentUserAuthRole(
+      service,
+      currentAuthUserProvider: () => null,
+      authStateChangesProvider: () =>
+          Stream<User?>.periodic(const Duration(seconds: 1), (_) => null),
+      failureReporter: StartupSessionFailureReporter(onFailure: failures.add),
+    );
+
+    final resolved = await authRole.resolveAuthUser(
+      waitForAuthState: true,
+      timeout: const Duration(milliseconds: 10),
+      recordTimeoutFailure: false,
+    );
+
+    expect(resolved, isNull);
+    expect(failures, isEmpty);
   });
 }

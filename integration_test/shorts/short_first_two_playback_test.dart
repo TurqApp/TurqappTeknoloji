@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/qa_lab_recorder.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 
 import '../core/helpers/smoke_artifact_collector.dart';
@@ -66,6 +67,17 @@ void main() {
               label: 'second short after swipe back cycle ${cycle + 1}',
             );
           }
+
+          final findings = QALabRecorder.ensure().buildPinpointFindings();
+          final shortTransitionWarnings = findings
+              .where((item) => item.code == 'short_transition_visual_slow')
+              .toList(growable: false);
+          expect(
+            shortTransitionWarnings,
+            isEmpty,
+            reason: 'Short smoke still produced visual transition warnings: '
+                '${shortTransitionWarnings.map((item) => item.message).join(' | ')}',
+          );
         },
       );
     },

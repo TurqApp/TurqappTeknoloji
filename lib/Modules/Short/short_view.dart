@@ -9,8 +9,6 @@ import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
@@ -189,9 +187,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int? _pendingAutoAdvancePage;
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
-  String? _lastActivePendingTraceToken;
-  bool _didLogFirstShortBuild = false;
-  bool _didLogEmptyShortSurface = false;
   List<PostsModel> _cachedShorts = [];
   final Set<String> _recordedVisibleShortDocIds = <String>{};
   final Map<HLSVideoAdapter, VoidCallback> _videoEndListeners =
@@ -277,6 +272,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         position: value.position,
         duration: value.duration,
         visualReadyPositionThreshold: const Duration(milliseconds: 90),
+        allowRenderedFirstFrameAsStableVisual: true,
       ),
     );
   }

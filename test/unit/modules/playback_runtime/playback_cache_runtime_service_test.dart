@@ -204,6 +204,43 @@ void main() {
     expect(readyDecision.shouldBeAudible, isTrue);
   });
 
+  test(
+      'playback lifecycle lets shorts keep rendered warm frame visually stable',
+      () async {
+    final manager = VideoStateManager();
+    final service = PlaybackRuntimeService(managerProvider: () => manager);
+    final handle = _FakePlaybackHandle();
+
+    service.registerPlaybackHandle('doc-a', handle);
+    service.playOnlyThis('doc-a');
+
+    final decision = service.evaluateLifecycle(
+      const PlaybackLifecycleSnapshot(
+        docId: 'doc-a',
+        shouldPlay: true,
+        isSurfacePlaybackAllowed: true,
+        isStandalone: false,
+        isMuted: false,
+        requiresReadySegment: true,
+        hasReadySegment: true,
+        isInitialized: true,
+        isPlaying: false,
+        isBuffering: false,
+        isCompleted: false,
+        hasRenderedFirstFrame: true,
+        position: Duration.zero,
+        duration: Duration(seconds: 15),
+        visualReadyPositionThreshold: Duration(milliseconds: 90),
+        allowRenderedFirstFrameAsStableVisual: true,
+      ),
+    );
+
+    expect(decision.phase, PlaybackLifecyclePhase.waitingForVisualSync);
+    expect(decision.hasStableVisualFrame, isTrue);
+    expect(decision.shouldHidePoster, isTrue);
+    expect(decision.shouldBeAudible, isFalse);
+  });
+
   test('segment cache runtime service centralizes hot lifecycle helpers', () {
     final entries = <String, VideoCacheEntry>{
       'doc-a': VideoCacheEntry(

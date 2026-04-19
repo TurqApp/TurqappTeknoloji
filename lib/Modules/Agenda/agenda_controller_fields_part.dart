@@ -60,6 +60,7 @@ class _AgendaControllerState {
   Future<void>? startupPrepareFuture;
   int feedMutationEpoch = 0;
   DateTime? lastEnsureInitialLoadAt;
+  DateTime? lastFeedAuthUnavailableAt;
   DateTime? lastPlaybackCommandAt;
   DateTime? lastFloodRootWarmAt;
   DateTime? startupPlaybackLockedAt;
@@ -239,6 +240,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   DateTime? get _lastEnsureInitialLoadAt => _state.lastEnsureInitialLoadAt;
   set _lastEnsureInitialLoadAt(DateTime? value) =>
       _state.lastEnsureInitialLoadAt = value;
+  DateTime? get _lastFeedAuthUnavailableAt => _state.lastFeedAuthUnavailableAt;
+  set _lastFeedAuthUnavailableAt(DateTime? value) =>
+      _state.lastFeedAuthUnavailableAt = value;
   DateTime? get _lastPlaybackCommandAt => _state.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _state.lastPlaybackCommandAt = value;

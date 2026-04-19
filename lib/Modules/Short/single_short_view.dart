@@ -214,8 +214,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
-  bool get _isSingleShortRoutePlaybackActive =>
-      mounted && _routePlaybackActive;
+  bool get _isSingleShortRoutePlaybackActive => mounted && _routePlaybackActive;
 
   PlaybackLifecycleDecision _singleShortPlaybackDecisionFor(
     int page,
@@ -259,6 +258,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         position: value.position,
         duration: value.duration,
         visualReadyPositionThreshold: const Duration(milliseconds: 90),
+        allowRenderedFirstFrameAsStableVisual: true,
       ),
     );
   }
@@ -266,14 +266,14 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   void _applySingleShortPlaybackPresentation(
       int page, HLSVideoAdapter adapter) {
     final decision = _singleShortPlaybackDecisionFor(page, adapter.value);
-    final shouldForceActiveShortAudible =
-        volume &&
-            page == currentPage &&
-            _isSingleShortRoutePlaybackActive &&
-            !adapter.value.isCompleted;
+    final shouldForceActiveShortAudible = volume &&
+        page == currentPage &&
+        _isSingleShortRoutePlaybackActive &&
+        !adapter.value.isCompleted;
     _playbackExecutionService.applyPresentation(
       adapter,
-      shouldBeAudible: decision.shouldBeAudible || shouldForceActiveShortAudible,
+      shouldBeAudible:
+          decision.shouldBeAudible || shouldForceActiveShortAudible,
     );
   }
 

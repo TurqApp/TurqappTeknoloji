@@ -829,6 +829,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         _enforceSingleActiveAudio(page);
+        final hadActiveAdapter = controller.cache[page] != null;
+        await controller.ensureActiveAdapterReady(page);
+        if (!mounted ||
+            page != currentPage ||
+            isManuallyPaused ||
+            !_isShortRoutePlaybackActive) {
+          return;
+        }
+        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
         final vc = controller.cache[page];
         if (vc == null) return;
         final docId = page >= 0 && page < _cachedShorts.length
@@ -1403,8 +1412,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _setupVideoEndListener(int page, HLSVideoAdapter vc) {
     _detachVideoEndListener(vc);
-    final expectedDocId =
-        page >= 0 && page < _cachedShorts.length ? _cachedShorts[page].docID : '';
+    final expectedDocId = page >= 0 && page < _cachedShorts.length
+        ? _cachedShorts[page].docID
+        : '';
     void listener() {
       _handleVideoEndForAdapter(
         page,
@@ -1412,6 +1422,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         expectedDocId: expectedDocId,
       );
     }
+
     _videoEndListeners[vc] = listener;
     vc.addListener(listener);
   }

@@ -2412,16 +2412,26 @@ extension AgendaControllerLoadingPart on AgendaController {
     final currentUser = CurrentUserService.instance;
     if (currentUser.hasAuthUser &&
         currentUser.effectiveUserId.trim().isNotEmpty) {
+      _lastFeedAuthUnavailableAt = null;
       return true;
+    }
+    final now = DateTime.now();
+    final lastUnavailableAt = _lastFeedAuthUnavailableAt;
+    if (lastUnavailableAt != null &&
+        now.difference(lastUnavailableAt) < const Duration(seconds: 2)) {
+      return false;
     }
     try {
       await currentUser.ensureAuthReady(
         waitForAuthState: true,
         timeout: const Duration(seconds: 2),
+        recordTimeoutFailure: false,
       );
     } catch (_) {}
-    return currentUser.hasAuthUser &&
+    final authReady = currentUser.hasAuthUser &&
         currentUser.effectiveUserId.trim().isNotEmpty;
+    _lastFeedAuthUnavailableAt = authReady ? null : now;
+    return authReady;
   }
 
   Future<void> ensureInitialFeedLoaded() async {

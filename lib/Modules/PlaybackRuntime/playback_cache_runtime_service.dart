@@ -40,6 +40,7 @@ class PlaybackLifecycleSnapshot {
     required this.duration,
     this.visualReadyPositionThreshold = const Duration(milliseconds: 450),
     this.playbackEndGrace = const Duration(milliseconds: 350),
+    this.allowRenderedFirstFrameAsStableVisual = false,
   });
 
   final String docId;
@@ -58,6 +59,7 @@ class PlaybackLifecycleSnapshot {
   final Duration duration;
   final Duration visualReadyPositionThreshold;
   final Duration playbackEndGrace;
+  final bool allowRenderedFirstFrameAsStableVisual;
 }
 
 class PlaybackLifecycleDecision {
@@ -164,14 +166,16 @@ class PlaybackRuntimeService {
                 (snapshot.duration - snapshot.playbackEndGrace));
     final reachedStablePlaybackPosition =
         snapshot.position > snapshot.visualReadyPositionThreshold;
+    final renderedVisualFrame = snapshot.isInitialized &&
+        snapshot.hasRenderedFirstFrame &&
+        !snapshot.isBuffering;
     final hasAudiblePlaybackFrame = atPlaybackEnd ||
-        (snapshot.hasRenderedFirstFrame &&
-            !snapshot.isBuffering &&
+        (renderedVisualFrame &&
             (snapshot.isPlaying || reachedStablePlaybackPosition));
     final hasStableVisualFrame = atPlaybackEnd ||
-        (snapshot.hasRenderedFirstFrame &&
-            !snapshot.isBuffering &&
-            reachedStablePlaybackPosition);
+        (renderedVisualFrame &&
+            (snapshot.allowRenderedFirstFrameAsStableVisual ||
+                reachedStablePlaybackPosition));
 
     final phase = !snapshot.shouldPlay || !snapshot.isSurfacePlaybackAllowed
         ? PlaybackLifecyclePhase.blocked

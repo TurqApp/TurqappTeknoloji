@@ -26,10 +26,12 @@ extension CurrentUserServiceAuthPart on CurrentUserService {
   Future<User?> _performResolveAuthUser({
     bool waitForAuthState = false,
     Duration timeout = const Duration(seconds: 3),
+    bool recordTimeoutFailure = true,
   }) =>
       _authRole.resolveAuthUser(
         waitForAuthState: waitForAuthState,
         timeout: timeout,
+        recordTimeoutFailure: recordTimeoutFailure,
       );
 
   Future<User?> _performReloadCurrentAuthUser() =>
@@ -39,11 +41,13 @@ extension CurrentUserServiceAuthPart on CurrentUserService {
     bool waitForAuthState = false,
     bool forceTokenRefresh = false,
     Duration timeout = const Duration(seconds: 3),
+    bool recordTimeoutFailure = true,
   }) =>
       _authRole.ensureAuthReady(
         waitForAuthState: waitForAuthState,
         forceTokenRefresh: forceTokenRefresh,
         timeout: timeout,
+        recordTimeoutFailure: recordTimeoutFailure,
       );
 
   Future<void> _performRefreshAuthTokenIfNeeded({

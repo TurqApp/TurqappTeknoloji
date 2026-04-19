@@ -93,6 +93,7 @@ class CurrentUserAuthRole {
   Future<User?> resolveAuthUser({
     bool waitForAuthState = false,
     Duration timeout = const Duration(seconds: 3),
+    bool recordTimeoutFailure = true,
   }) async {
     final existing = currentAuthUser();
     if (existing != null) return existing;
@@ -102,12 +103,14 @@ class CurrentUserAuthRole {
           .firstWhere((candidate) => candidate != null)
           .timeout(timeout);
     } catch (error, stackTrace) {
-      _failureReporter.record(
-        kind: StartupSessionFailureKind.authStateRestore,
-        operation: 'CurrentUserAuthRole.resolveAuthUser',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      if (recordTimeoutFailure || error is! TimeoutException) {
+        _failureReporter.record(
+          kind: StartupSessionFailureKind.authStateRestore,
+          operation: 'CurrentUserAuthRole.resolveAuthUser',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
       return currentAuthUser();
     }
   }
@@ -123,10 +126,12 @@ class CurrentUserAuthRole {
     bool waitForAuthState = false,
     bool forceTokenRefresh = false,
     Duration timeout = const Duration(seconds: 3),
+    bool recordTimeoutFailure = true,
   }) async {
     final user = await resolveAuthUser(
       waitForAuthState: waitForAuthState,
       timeout: timeout,
+      recordTimeoutFailure: recordTimeoutFailure,
     );
     if (user == null) return null;
     if (forceTokenRefresh) {
