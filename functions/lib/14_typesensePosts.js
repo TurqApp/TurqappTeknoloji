@@ -984,6 +984,10 @@ async function getMotorCandidatesFromTypesense(options) {
         ...baseFilterParts,
         `minuteOfHour:=[${ownedMinutes.join(",")}]`,
     ];
+    if (surface === "feed") {
+        surfaceFilterParts.push("flood:=false");
+        strictFilterParts.push("flood:=false");
+    }
     if (surface === "short" || surface === "quota") {
         surfaceFilterParts.push("hasPlayableVideo:=true");
         surfaceFilterParts.push("hlsStatus:=ready");

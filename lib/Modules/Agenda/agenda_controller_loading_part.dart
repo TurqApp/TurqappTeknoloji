@@ -705,119 +705,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         message.contains('the service is currently unavailable');
   }
 
-  Future<
-      ({
-        List<PostsModel> candidates,
-        DocumentSnapshot<Map<String, dynamic>>? lastDoc,
-        int? nextTypesensePage,
-        bool usesPrimaryFeed,
-        bool itemsPreplanned,
-      })> _topUpConnectedLiveStartupCandidates({
-    required List<PostsModel> initialCandidates,
-    required int nowMs,
-    required int cutoffMs,
-    required int targetCount,
-    required DocumentSnapshot<Map<String, dynamic>>? lastDoc,
-    required int? nextTypesensePage,
-    required bool usesPrimaryFeed,
-    required bool itemsPreplanned,
-  }) async {
-    if (initialCandidates.isEmpty || targetCount <= 0) {
-      return (
-        candidates: initialCandidates,
-        lastDoc: lastDoc,
-        nextTypesensePage: nextTypesensePage,
-        usesPrimaryFeed: usesPrimaryFeed,
-        itemsPreplanned: itemsPreplanned,
-      );
-    }
-
-    int previewCountFor(
-      List<PostsModel> candidates, {
-      required bool itemsPreplanned,
-    }) {
-      if (itemsPreplanned) {
-        return min(candidates.length, targetCount);
-      }
-      final preview = _agendaFeedApplicationService.buildStartupPlannerHead(
-        liveCandidates: candidates,
-        cacheCandidates: const <PostsModel>[],
-        targetCount: min(candidates.length, targetCount),
-        startupVariantOverride: _feedStartupVariantOverride(),
-        allowSparseSlotFallback: true,
-        emitLaunchMotorDiagnostics: false,
-      );
-      return preview.length;
-    }
-
-    final combined = initialCandidates.toList(growable: true);
-    final seenIds = <String>{
-      for (final post in combined)
-        if (post.docID.trim().isNotEmpty) post.docID.trim(),
-    };
-    var resolvedLastDoc = lastDoc;
-    var resolvedNextTypesensePage = nextTypesensePage;
-    var resolvedUsesPrimaryFeed = usesPrimaryFeed;
-    var resolvedItemsPreplanned = itemsPreplanned;
-    var previewCount = previewCountFor(
-      combined,
-      itemsPreplanned: resolvedItemsPreplanned,
-    );
-    var round = 0;
-
-    while (previewCount < targetCount &&
-        (resolvedLastDoc != null || resolvedNextTypesensePage != null) &&
-        round < 3) {
-      round += 1;
-      final page = await _loadAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: _connectedInitialCandidateFetchLimit,
-        startAfter: resolvedLastDoc,
-        typesensePage: resolvedNextTypesensePage,
-        useStoredCursor: false,
-        preferCache: false,
-        cacheOnly: false,
-        usePrimaryFeedPaging: resolvedUsesPrimaryFeed,
-      );
-      if (page.items.isEmpty) {
-        resolvedLastDoc = page.lastDoc;
-        resolvedNextTypesensePage = page.nextTypesensePage;
-        resolvedUsesPrimaryFeed = page.usesPrimaryFeed;
-        break;
-      }
-      for (final post in page.items) {
-        final docId = post.docID.trim();
-        if (docId.isEmpty || !seenIds.add(docId)) {
-          continue;
-        }
-        combined.add(post);
-      }
-      resolvedLastDoc = page.lastDoc;
-      resolvedNextTypesensePage = page.nextTypesensePage;
-      resolvedUsesPrimaryFeed = page.usesPrimaryFeed;
-      resolvedItemsPreplanned = resolvedItemsPreplanned && page.itemsPreplanned;
-      previewCount = previewCountFor(
-        combined,
-        itemsPreplanned: resolvedItemsPreplanned,
-      );
-      debugPrint(
-        '[FeedStartupPlanner] source=initial_bootstrap '
-        'status=topup_connected_live_candidates '
-        'round=$round candidateCount=${combined.length} '
-        'previewCount=$previewCount targetCount=$targetCount',
-      );
-    }
-
-    return (
-      candidates: combined,
-      lastDoc: resolvedLastDoc,
-      nextTypesensePage: resolvedNextTypesensePage,
-      usesPrimaryFeed: resolvedUsesPrimaryFeed,
-      itemsPreplanned: resolvedItemsPreplanned,
-    );
-  }
-
   void _clearAgendaRetry() {
     _agendaRetryTimer?.cancel();
     _agendaRetryTimer = null;
@@ -1308,54 +1195,7 @@ extension AgendaControllerLoadingPart on AgendaController {
                   allowNetworkFallbackFetch: true,
                 ))
           : page.items;
-      var effectiveRawPageVisibleItems = rawPageVisibleItems;
-      if (initial &&
-          currentAgenda.isEmpty &&
-          liveConnected &&
-          rawPageVisibleItems.isNotEmpty) {
-        final startupTargetCount = FeedSnapshotRepository.startupHomeLimitValue;
-        final startupPreviewCount = effectivePageItemsPreplanned
-            ? min(rawPageVisibleItems.length, startupTargetCount)
-            : _agendaFeedApplicationService
-                .buildStartupPlannerHead(
-                  liveCandidates: rawPageVisibleItems,
-                  cacheCandidates: const <PostsModel>[],
-                  targetCount: min(
-                    rawPageVisibleItems.length,
-                    startupTargetCount,
-                  ),
-                  startupVariantOverride: _feedStartupVariantOverride(),
-                  allowSparseSlotFallback: true,
-                  emitLaunchMotorDiagnostics: false,
-                )
-                .length;
-        if (startupPreviewCount < startupTargetCount &&
-            FeedTypesensePagingContract.hasContinuation(
-              lastDoc: effectiveLastDoc,
-              nextTypesensePage: effectiveNextTypesensePage,
-            )) {
-          final topUp = await _topUpConnectedLiveStartupCandidates(
-            initialCandidates: rawPageVisibleItems,
-            nowMs: nowMs,
-            cutoffMs: cutoffMs,
-            targetCount: startupTargetCount,
-            lastDoc: effectiveLastDoc,
-            nextTypesensePage: effectiveNextTypesensePage,
-            usesPrimaryFeed: effectiveUsesPrimaryFeed,
-            itemsPreplanned: effectivePageItemsPreplanned,
-          );
-          effectiveRawPageVisibleItems = topUp.candidates;
-          effectiveLastDoc = topUp.lastDoc;
-          effectiveNextTypesensePage = topUp.nextTypesensePage;
-          effectiveUsesPrimaryFeed = topUp.usesPrimaryFeed;
-          effectivePageItemsPreplanned = topUp.itemsPreplanned;
-          effectiveHasMore = FeedTypesensePagingContract.resolveTopUpHasMore(
-            itemCount: effectiveRawPageVisibleItems.length,
-            lastDoc: effectiveLastDoc,
-            nextTypesensePage: effectiveNextTypesensePage,
-          );
-        }
-      }
+      final effectiveRawPageVisibleItems = rawPageVisibleItems;
       final pageVisibleItems = initial &&
               currentAgenda.isEmpty &&
               effectiveRawPageVisibleItems.isNotEmpty
@@ -1393,7 +1233,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         'rawPage=${page.items.length} rawVisible=${effectiveRawPageVisibleItems.length} '
         'pageVisible=${pageVisibleItems.length} dedupedVisible=${visibleItems.length} '
         'current=${currentAgenda.length} loadLimit=$loadLimit '
-        'itemsPreplanned=${effectivePageItemsPreplanned} '
+        'itemsPreplanned=$effectivePageItemsPreplanned '
         'usesPlannedColdPage=$usesPlannedColdPage',
       );
 
@@ -2086,7 +1926,12 @@ extension AgendaControllerLoadingPart on AgendaController {
     };
     final blockSize = FeedRenderBlockPlan.postSlotsPerBlock;
     while (output.length < targetLimit) {
-      final blockTarget = min(blockSize, targetLimit - output.length);
+      final partialBlockRemainder = output.length % blockSize;
+      final fillingPartialBlock = partialBlockRemainder != 0;
+      final nextBlockSize = partialBlockRemainder == 0
+          ? blockSize
+          : blockSize - partialBlockRemainder;
+      final blockTarget = min(nextBlockSize, targetLimit - output.length);
       final plannedBlock = _planStrictColdFeedBlock(
         fresh: fresh,
         repeated: repeated,
@@ -2095,6 +1940,24 @@ extension AgendaControllerLoadingPart on AgendaController {
         blockTarget: blockTarget,
       );
       if (plannedBlock.length < blockTarget) {
+        if (fillingPartialBlock) {
+          final partialFallback = _takeColdPlanCandidates(
+            fresh: fresh,
+            repeated: repeated,
+            usedIds: usedIds,
+            limit: fresh.length + repeated.length,
+          ).take(blockTarget).toList(growable: false);
+          if (partialFallback.length >= blockTarget) {
+            for (final post in partialFallback) {
+              final docId = post.docID.trim();
+              if (docId.isEmpty || !usedIds.add(docId)) {
+                continue;
+              }
+              output.add(post);
+            }
+            continue;
+          }
+        }
         break;
       }
       for (final post in plannedBlock) {
