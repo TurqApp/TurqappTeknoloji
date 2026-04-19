@@ -33,6 +33,7 @@ extension EducationControllerPasajPart on EducationController {
 
   void _disposeEducationController() {
     _pasajConfigSub?.cancel();
+    _pasajAuthSub?.cancel();
     _didRunVisibleSurfaceReset = false;
     maybeFindNavBarController()?.showBar.value = true;
     tabScrollController.dispose();
@@ -42,6 +43,25 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void _bindPasajConfig() {
+    _applyPasajConfigFallback();
+    _pasajAuthSub ??= CurrentUserService.instance.authStateChanges().listen((
+      _,
+    ) {
+      unawaited(_syncPasajConfigBinding());
+    });
+    unawaited(_syncPasajConfigBinding());
+  }
+
+  void _applyPasajConfigFallback() {
+    _adminPasajVisibility
+      ..clear()
+      ..addAll(normalizePasajVisibilitySnapshot(null));
+    pasajConfigLoaded.value = true;
+    _recomputeVisibleTabs();
+  }
+
+  void _startPasajConfigWatch() {
+    if (_pasajConfigSub != null) return;
     _pasajConfigSub =
         ensureConfigRepository().watchAdminConfigDoc('pasaj').listen(
       (snap) {
@@ -58,6 +78,16 @@ extension EducationControllerPasajPart on EducationController {
         _recomputeVisibleTabs();
       },
     );
+  }
+
+  Future<void> _syncPasajConfigBinding() async {
+    if (!CurrentUserService.instance.hasAuthUser) {
+      await _pasajConfigSub?.cancel();
+      _pasajConfigSub = null;
+      _applyPasajConfigFallback();
+      return;
+    }
+    _startPasajConfigWatch();
   }
 
   void _recomputeVisibleTabs() {

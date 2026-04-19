@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 Map<String, bool> normalizePasajVisibilitySnapshot(
   Map<String, bool>? source, {
@@ -37,11 +38,20 @@ Map<String, bool> resolveEffectivePasajVisibilitySnapshot({
   };
 }
 
+bool _shouldUseRemotePasajVisibility() {
+  return CurrentUserService.instance.hasAuthUser;
+}
+
 Future<Map<String, bool>> loadEffectivePasajVisibility({
   bool preferCache = true,
   bool forceRefresh = false,
 }) async {
   final local = await loadPasajVisibilitySnapshot();
+  if (!_shouldUseRemotePasajVisibility()) {
+    return resolveEffectivePasajVisibilitySnapshot(
+      localVisibility: local,
+    );
+  }
   final data = await ensureConfigRepository().getAdminConfigDoc(
     'pasaj',
     preferCache: preferCache,
@@ -61,6 +71,9 @@ Future<bool> isPasajTabEnabled(
   if (!pasajTabs.contains(tabId)) return true;
   final localVisible = await isPasajTabVisibleLocally(tabId);
   if (!localVisible) return false;
+  if (!_shouldUseRemotePasajVisibility()) {
+    return true;
+  }
   final data = await ensureConfigRepository().getAdminConfigDoc(
     'pasaj',
     preferCache: preferCache,
