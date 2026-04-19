@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.f15_getMotorCandidatesCallable = exports.f15_getPostCardsByIdsCallable = exports.f15_getLatestPostIdsCallable = exports.f15_syncPostToTypesenseCallable = exports.f14_reindexPostsToTypesenseCallable = exports.f14_searchPostsCallable = exports.f14_searchPosts = exports.f14_syncPostsToTypesense = void 0;
+exports.rankMotorCandidateDiversity = rankMotorCandidateDiversity;
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const app_1 = require("firebase-admin/app");
@@ -14,6 +15,8 @@ const TAGS_COLLECTION = "tags_search";
 const MAX_LIMIT = 50;
 const MOTOR_CANDIDATE_MAX_LIMIT = 120;
 const SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD = 1.2;
+const FEED_MOTOR_CANDIDATE_MAX_PER_USER = 2;
+const FEED_MOTOR_CANDIDATE_MAX_PER_FLOOD_ROOT = 1;
 function ensureAdmin() {
     if ((0, app_1.getApps)().length === 0)
         (0, app_1.initializeApp)();
@@ -381,6 +384,75 @@ function resolveMinuteOfHour(timeStamp) {
     if (!Number.isFinite(timeStamp) || timeStamp <= 0)
         return 0;
     return new Date(timeStamp).getUTCMinutes();
+}
+function resolveMotorCandidateFloodRootId(candidate) {
+    const mainFlood = asString(candidate.mainFlood).trim();
+    if (mainFlood) {
+        return mainFlood;
+    }
+    const candidateId = asString(candidate.id).trim();
+    const floodCount = Math.max(0, Math.floor(asNumber(candidate.floodCount)));
+    if (candidateId && floodCount > 1) {
+        return candidateId;
+    }
+    return "";
+}
+function rankMotorCandidateDiversity(hits, options) {
+    const limit = Math.max(1, Math.floor(asNumber(options.limit, 1)));
+    const surface = asString(options.surface).trim().toLowerCase();
+    const dedupedHits = [];
+    const seenIds = new Set();
+    for (const candidate of hits || []) {
+        const candidateId = asString(candidate?.id).trim();
+        if (!candidateId || seenIds.has(candidateId)) {
+            continue;
+        }
+        seenIds.add(candidateId);
+        dedupedHits.push(candidate);
+    }
+    if (surface !== "feed" || dedupedHits.length <= 1) {
+        const sliced = dedupedHits.slice(0, limit);
+        return {
+            preferredHits: sliced,
+            relaxedHits: sliced,
+        };
+    }
+    const preferredHits = [];
+    const overflowHits = [];
+    const userCounts = new Map();
+    const floodRootCounts = new Map();
+    for (const candidate of dedupedHits) {
+        const userId = asString(candidate.userID).trim();
+        const floodRootId = resolveMotorCandidateFloodRootId(candidate);
+        const nextUserCount = userId ? (userCounts.get(userId) || 0) + 1 : 0;
+        const nextFloodRootCount = floodRootId
+            ? (floodRootCounts.get(floodRootId) || 0) + 1
+            : 0;
+        const exceedsUserCap = userId.length > 0 && nextUserCount > FEED_MOTOR_CANDIDATE_MAX_PER_USER;
+        const exceedsFloodRootCap = floodRootId.length > 0 &&
+            nextFloodRootCount > FEED_MOTOR_CANDIDATE_MAX_PER_FLOOD_ROOT;
+        if (exceedsUserCap || exceedsFloodRootCap) {
+            overflowHits.push(candidate);
+            continue;
+        }
+        preferredHits.push(candidate);
+        if (userId) {
+            userCounts.set(userId, nextUserCount);
+        }
+        if (floodRootId) {
+            floodRootCounts.set(floodRootId, nextFloodRootCount);
+        }
+        if (preferredHits.length >= limit) {
+            break;
+        }
+    }
+    const relaxedHits = preferredHits.length >= limit
+        ? preferredHits.slice(0, limit)
+        : preferredHits.concat(overflowHits).slice(0, limit);
+    return {
+        preferredHits: preferredHits.slice(0, limit),
+        relaxedHits,
+    };
 }
 function resolveSurfaceTargets(doc) {
     const isVisiblePublic = doc.paylasGizliligi === 0 &&
@@ -1009,7 +1081,16 @@ async function getMotorCandidatesFromTypesense(options) {
     });
     const strictBody = strictResp.data || {};
     const strictHits = Array.isArray(strictBody.hits) ? strictBody.hits : [];
-    if (strictHits.length >= limit || Number(strictBody.found || 0) <= limit) {
+    const strictCandidates = strictHits.map((h) => ({
+        ...(h?.document || {}),
+        text_match: h?.text_match || 0,
+    }));
+    const strictRanked = rankMotorCandidateDiversity(strictCandidates, {
+        surface,
+        limit,
+    });
+    if (strictRanked.preferredHits.length >= limit ||
+        Number(strictBody.found || 0) <= limit) {
         return {
             surface,
             ownedMinutes,
@@ -1018,19 +1099,29 @@ async function getMotorCandidatesFromTypesense(options) {
             found: Number(strictBody.found || 0),
             out_of: Number(strictBody.out_of || 0),
             search_time_ms: Number(strictBody.search_time_ms || 0),
-            hits: strictHits.map((h) => ({
-                ...(h?.document || {}),
-                text_match: h?.text_match || 0,
-            })),
+            hits: strictRanked.preferredHits.length >= limit
+                ? strictRanked.preferredHits
+                : strictRanked.relaxedHits,
         };
     }
     const broadPerPage = Math.max(limit, Math.min(250, Math.max(limit * 4, 100)));
-    const collected = new Map();
+    const rawCandidates = new Map();
+    for (const candidate of strictCandidates) {
+        const candidateId = String(candidate.id || "").trim();
+        if (!candidateId || rawCandidates.has(candidateId)) {
+            continue;
+        }
+        rawCandidates.set(candidateId, candidate);
+    }
+    let rankedCandidates = rankMotorCandidateDiversity(Array.from(rawCandidates.values()), {
+        surface,
+        limit,
+    });
     let lastScannedPage = page;
     let totalFound = Number(strictBody.found || 0);
     let totalOutOf = Number(strictBody.out_of || 0);
     let totalSearchTimeMs = Number(strictBody.search_time_ms || 0);
-    for (let broadPage = page; broadPage < page + 6 && collected.size < limit; broadPage += 1) {
+    for (let broadPage = page; broadPage < page + 6 && rankedCandidates.preferredHits.length < limit; broadPage += 1) {
         const broadResp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
             headers: headers(),
             timeout: 10000,
@@ -1074,10 +1165,14 @@ async function getMotorCandidatesFromTypesense(options) {
             if (!targets.includes(surface)) {
                 continue;
             }
-            if (!collected.has(candidateId)) {
-                collected.set(candidateId, candidate);
+            if (!rawCandidates.has(candidateId)) {
+                rawCandidates.set(candidateId, candidate);
             }
-            if (collected.size >= limit)
+            rankedCandidates = rankMotorCandidateDiversity(Array.from(rawCandidates.values()), {
+                surface,
+                limit,
+            });
+            if (rankedCandidates.preferredHits.length >= limit)
                 break;
         }
         if (broadHits.length < broadPerPage) {
@@ -1092,7 +1187,9 @@ async function getMotorCandidatesFromTypesense(options) {
         found: totalFound,
         out_of: totalOutOf,
         search_time_ms: totalSearchTimeMs,
-        hits: Array.from(collected.values()),
+        hits: rankedCandidates.preferredHits.length >= limit
+            ? rankedCandidates.preferredHits
+            : rankedCandidates.relaxedHits,
     };
 }
 async function searchTagsFromTypesense(q, limit, page) {
