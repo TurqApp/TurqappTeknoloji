@@ -174,6 +174,40 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
     ).last;
   }
 
+  Future<void> primeStartupTypesensePage({
+    int limit = FeedSnapshotRepository.startupHomeLimit,
+    int? nowMs,
+  }) async {
+    if (!FeedSnapshotRepository.typesensePrimaryEnabled) {
+      return;
+    }
+    final effectiveLimit =
+        ReadBudgetRegistry.resolveFeedHomeInitialLimit(limit);
+    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
+    final ownedMinutes = LaunchMotorSelectionService.resolveOwnedMinutes(
+      anchorMs: anchorMs,
+      bandMinutes: feedLaunchMotorContract.bandMinutes,
+      minuteSets: feedLaunchMotorContract.minuteSets,
+    );
+    if (ownedMinutes.isEmpty) {
+      return;
+    }
+    final resolvedNowMs = nowMs ?? DateTime.now().millisecondsSinceEpoch;
+    final candidateLimit = FeedTypesensePolicy.resolveCandidateLimit(
+      effectiveLimit,
+    );
+    try {
+      await _postRepository.fetchTypesenseMotorCandidates(
+        surface: 'feed',
+        ownedMinutes: ownedMinutes,
+        limit: candidateLimit,
+        page: 1,
+        nowMs: resolvedNowMs,
+        cutoffMs: _feedHomeCutoffMs(resolvedNowMs),
+      );
+    } catch (_) {}
+  }
+
   Future<CachedResource<List<PostsModel>>> bootstrapHome({
     required String userId,
     int limit = ReadBudgetRegistry.feedHomeInitialLimit,

@@ -76,6 +76,7 @@ class CurrentUserService extends _CurrentUserServiceBase {
 
   CurrentUserService._internal() {
     WidgetsBinding.instance.addObserver(this);
+    _bindFeedTypesenseWarmup();
   }
 }
 

@@ -51,6 +51,20 @@ class _CachedPostCardsResult {
       DateTime.now().difference(cachedAt) < TypesensePostService._ttl;
 }
 
+class _CachedMotorCandidatesResult {
+  const _CachedMotorCandidatesResult({
+    required this.result,
+    required this.cachedAt,
+  });
+
+  final TypesenseMotorCandidatesResult result;
+  final DateTime cachedAt;
+
+  bool get isFresh =>
+      DateTime.now().difference(cachedAt) <
+      TypesensePostService._motorCandidatesTtl;
+}
+
 class TypesenseMotorCandidatesResult {
   const TypesenseMotorCandidatesResult({
     required this.surface,
@@ -84,6 +98,7 @@ class TypesensePostService {
 
   static TypesensePostService get instance => ensure();
   static const Duration _ttl = Duration(minutes: 15);
+  static const Duration _motorCandidatesTtl = Duration(seconds: 12);
   static const String _prefsPrefix = 'typesense_post_cards_v1';
 
   final List<({String label, FirebaseFunctions fn})> _targets =
@@ -100,6 +115,11 @@ class TypesensePostService {
   ];
   final Map<String, _CachedPostCardsResult> _memory =
       <String, _CachedPostCardsResult>{};
+  final Map<String, _CachedMotorCandidatesResult> _motorCandidatesMemory =
+      <String, _CachedMotorCandidatesResult>{};
+  final Map<String, Future<TypesenseMotorCandidatesResult>>
+      _motorCandidatesInFlight =
+      <String, Future<TypesenseMotorCandidatesResult>>{};
   SharedPreferences? _prefs;
 
   Future<Map<String, Map<String, dynamic>>> getPostCardsByIds(
@@ -126,6 +146,23 @@ class TypesensePostService {
     int? cutoffMs,
   }) =>
       _performFetchMotorCandidates(
+        surface: surface,
+        ownedMinutes: ownedMinutes,
+        limit: limit,
+        page: page,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+      );
+
+  Future<void> primeMotorCandidates({
+    required String surface,
+    required List<int> ownedMinutes,
+    int limit = 40,
+    int page = 1,
+    int? nowMs,
+    int? cutoffMs,
+  }) =>
+      _performPrimeMotorCandidates(
         surface: surface,
         ownedMinutes: ownedMinutes,
         limit: limit,

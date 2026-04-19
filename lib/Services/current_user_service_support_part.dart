@@ -32,8 +32,10 @@ dynamic _cloneTimedValueDynamic(dynamic value) {
 
 SharedPreferences? _prefs;
 StreamSubscription<Map<String, dynamic>?>? _firestoreSubscription;
+StreamSubscription<User?>? _authFeedWarmSubscription;
 Timer? _exclusiveSessionHeartbeat;
 const Duration _exclusiveSessionHeartbeatInterval = Duration(seconds: 10);
+const Duration _feedTypesenseWarmThrottle = Duration(seconds: 12);
 
 const String _cacheKeyPrefix = 'cached_current_user';
 const String _cacheTimestampKeyPrefix = 'cached_current_user_timestamp';
@@ -63,6 +65,8 @@ String? _lastRootSyncSignature;
 String? _lastWarmedAvatarUrl;
 bool _handlingPermanentBan = false;
 bool _handlingSessionDisplacement = false;
+String _lastFeedTypesenseWarmUid = '';
+DateTime? _lastFeedTypesenseWarmAt;
 
 final RxBool emailVerifiedRx = true.obs;
 DateTime? _lastEmailPromptAt;

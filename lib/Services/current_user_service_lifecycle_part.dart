@@ -106,6 +106,8 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
       _lastReactiveSignature = null;
       _lastRootSyncSignature = null;
       _lastWarmedAvatarUrl = null;
+      _lastFeedTypesenseWarmUid = '';
+      _lastFeedTypesenseWarmAt = null;
 
       _currentUser = null;
       viewSelectionRx.value = 1;
@@ -123,6 +125,8 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
 
   void _disposeLifecycleResources() {
     WidgetsBinding.instance.removeObserver(this);
+    _authFeedWarmSubscription?.cancel();
+    _authFeedWarmSubscription = null;
     _stopFirebaseSync();
     _subdocCache.clear();
     _listCache.clear();
@@ -136,5 +140,31 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     final uid = authUserId;
     if (uid.isEmpty) return;
     unawaited(_validateExclusiveSessionFromServer(uid));
+  }
+
+  void _bindFeedTypesenseWarmup() {
+    _authFeedWarmSubscription ??= authStateChanges().listen((user) {
+      unawaited(_primeFeedTypesenseForAuthUser(user));
+    });
+    unawaited(_primeFeedTypesenseForAuthUser(currentAuthUser));
+  }
+
+  Future<void> _primeFeedTypesenseForAuthUser(User? user) async {
+    final uid = (user?.uid ?? '').trim();
+    if (uid.isEmpty) {
+      return;
+    }
+    final now = DateTime.now();
+    final lastAt = _lastFeedTypesenseWarmAt;
+    if (_lastFeedTypesenseWarmUid == uid &&
+        lastAt != null &&
+        now.difference(lastAt) < _feedTypesenseWarmThrottle) {
+      return;
+    }
+    _lastFeedTypesenseWarmUid = uid;
+    _lastFeedTypesenseWarmAt = now;
+    try {
+      await ensureFeedSnapshotRepository().primeStartupTypesensePage();
+    } catch (_) {}
   }
 }

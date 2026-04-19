@@ -1,6 +1,30 @@
 part of 'typesense_post_service.dart';
 
 extension TypesensePostServiceQueryPart on TypesensePostService {
+  String _motorCandidatesCacheKey({
+    required String surface,
+    required List<int> ownedMinutes,
+    required int limit,
+    required int page,
+    required int? nowMs,
+    required int? cutoffMs,
+  }) {
+    final nowBucket = nowMs == null ? 0 : nowMs ~/ 30000;
+    final cutoffBucket = cutoffMs == null ? 0 : cutoffMs ~/ 60000;
+    return [
+      surface,
+      ownedMinutes.join(','),
+      '$limit',
+      '$page',
+      '$nowBucket',
+      '$cutoffBucket',
+    ].join('|');
+  }
+
+  void _pruneMotorCandidatesCache() {
+    _motorCandidatesMemory.removeWhere((_, cached) => !cached.isFresh);
+  }
+
   Future<TypesenseMotorCandidatesResult> _performFetchMotorCandidates({
     required String surface,
     required List<int> ownedMinutes,
@@ -28,20 +52,87 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
       );
     }
 
+    _pruneMotorCandidatesCache();
+    final cacheKey = _motorCandidatesCacheKey(
+      surface: normalizedSurface,
+      ownedMinutes: normalizedMinutes,
+      limit: limit,
+      page: page,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+    );
+    final cached = _motorCandidatesMemory[cacheKey];
+    if (cached != null && cached.isFresh) {
+      return cached.result;
+    }
+    final inFlight = _motorCandidatesInFlight[cacheKey];
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _fetchMotorCandidatesFromTargets(
+      surface: normalizedSurface,
+      ownedMinutes: normalizedMinutes,
+      limit: limit,
+      page: page,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+    ).then((result) {
+      _motorCandidatesMemory[cacheKey] = _CachedMotorCandidatesResult(
+        result: result,
+        cachedAt: DateTime.now(),
+      );
+      return result;
+    }).whenComplete(() {
+      _motorCandidatesInFlight.remove(cacheKey);
+    });
+    _motorCandidatesInFlight[cacheKey] = future;
+    return future;
+  }
+
+  Future<void> _performPrimeMotorCandidates({
+    required String surface,
+    required List<int> ownedMinutes,
+    required int limit,
+    required int page,
+    required int? nowMs,
+    required int? cutoffMs,
+  }) async {
+    try {
+      await _performFetchMotorCandidates(
+        surface: surface,
+        ownedMinutes: ownedMinutes,
+        limit: limit,
+        page: page,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+      );
+    } catch (_) {}
+  }
+
+  Future<TypesenseMotorCandidatesResult> _fetchMotorCandidatesFromTargets({
+    required String surface,
+    required List<int> ownedMinutes,
+    required int limit,
+    required int page,
+    required int? nowMs,
+    required int? cutoffMs,
+  }) async {
     Object? lastError;
     for (final target in _targets) {
       final startedAt = DateTime.now();
       try {
         debugPrint(
           '[TypesenseMotorCall] status=start target=${target.label} '
-          'surface=$normalizedSurface page=$page limit=$limit '
-          'ownedMinutes=${normalizedMinutes.join(",")}',
+          'surface=$surface page=$page limit=$limit '
+          'ownedMinutes=${ownedMinutes.join(",")}',
         );
-        final response =
-            await target.fn.httpsCallable('f15_getMotorCandidatesCallable').call(
+        final response = await target.fn
+            .httpsCallable('f15_getMotorCandidatesCallable')
+            .call(
           <String, dynamic>{
-            'surface': normalizedSurface,
-            'ownedMinutes': normalizedMinutes,
+            'surface': surface,
+            'ownedMinutes': ownedMinutes,
             'limit': limit,
             'page': page,
             if (nowMs != null) 'nowMs': nowMs,
@@ -58,11 +149,11 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
               ),
             )
             .toList(growable: false);
-        final responseMinutes = ((data['ownedMinutes'] as List<dynamic>?) ??
-                normalizedMinutes)
-            .map((value) => int.tryParse('$value') ?? 0)
-            .where((value) => value >= 0 && value <= 59)
-            .toList(growable: false);
+        final responseMinutes =
+            ((data['ownedMinutes'] as List<dynamic>?) ?? ownedMinutes)
+                .map((value) => int.tryParse('$value') ?? 0)
+                .where((value) => value >= 0 && value <= 59)
+                .toList(growable: false);
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
           '[TypesenseMotorCall] status=ok target=${target.label} '
@@ -70,7 +161,7 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
           'outOf=${data['out_of'] ?? 0} searchTimeMs=${data['search_time_ms'] ?? 0}',
         );
         return TypesenseMotorCandidatesResult(
-          surface: (data['surface'] ?? normalizedSurface).toString(),
+          surface: (data['surface'] ?? surface).toString(),
           ownedMinutes: responseMinutes,
           limit: int.tryParse('${data['limit'] ?? limit}') ?? limit,
           page: int.tryParse('${data['page'] ?? page}') ?? page,
