@@ -14,6 +14,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
   final Widget fallback;
   final int? memCacheWidth;
   final int? memCacheHeight;
+  final bool downloadBeforeRender;
 
   const CacheFirstNetworkImage({
     super.key,
@@ -24,6 +25,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.memCacheWidth,
     this.memCacheHeight,
+    this.downloadBeforeRender = false,
   });
 
   @override
@@ -37,7 +39,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   int _loadSeq = 0;
   bool _exhaustedCandidates = false;
   bool _advanceScheduled = false;
+  bool _networkFetchInFlight = false;
   String _lastRememberRequestedUrl = '';
+  final Set<String> _attemptedNetworkUrls = <String>{};
 
   @override
   void initState() {
@@ -80,7 +84,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     _activeImageUrl = candidates.isEmpty ? '' : candidates.first;
     _exhaustedCandidates = candidates.isEmpty;
     _advanceScheduled = false;
+    _networkFetchInFlight = false;
     _lastRememberRequestedUrl = '';
+    _attemptedNetworkUrls.clear();
     if (mounted) {
       setState(() {});
     }
@@ -179,6 +185,41 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     });
   }
 
+  void _ensureActiveCandidateDownloaded(String url) {
+    final normalized = url.trim();
+    if (!widget.downloadBeforeRender ||
+        normalized.isEmpty ||
+        _networkFetchInFlight ||
+        _attemptedNetworkUrls.contains(normalized)) {
+      return;
+    }
+    _networkFetchInFlight = true;
+    _attemptedNetworkUrls.add(normalized);
+    final requestId = ++_loadSeq;
+    unawaited(() async {
+      try {
+        final file = await widget.cacheManager.getSingleFile(normalized);
+        if (!mounted || requestId != _loadSeq) return;
+        if (!file.existsSync()) {
+          _scheduleAdvanceCandidate();
+          return;
+        }
+        TurqImageCacheManager.rememberResolvedFile(normalized, file.path);
+        setState(() {
+          _resolvedFilePath = file.path;
+          _activeImageUrl = normalized;
+          _advanceScheduled = false;
+          _exhaustedCandidates = false;
+        });
+      } catch (_) {
+        if (!mounted || requestId != _loadSeq) return;
+        _scheduleAdvanceCandidate();
+      } finally {
+        _networkFetchInFlight = false;
+      }
+    }());
+  }
+
   @override
   Widget build(BuildContext context) {
     final candidates = _normalizedCandidates();
@@ -199,7 +240,12 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       return widget.fallback;
     }
 
-    final activeUrl = _activeImageUrl.isNotEmpty ? _activeImageUrl : candidates.first;
+    final activeUrl =
+        _activeImageUrl.isNotEmpty ? _activeImageUrl : candidates.first;
+    if (widget.downloadBeforeRender) {
+      _ensureActiveCandidateDownloaded(activeUrl);
+      return widget.fallback;
+    }
     return Image(
       image: ResizeImage.resizeIfNeeded(
         widget.memCacheWidth,

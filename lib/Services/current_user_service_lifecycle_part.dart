@@ -53,6 +53,7 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
   }
 
   Future<void> _performWarmAvatar(CurrentUserModel? user) async {
+    if (QALabMode.integrationSmokeRun) return;
     final url = (user?.avatarUrl ?? '').trim();
     if (url.isEmpty) return;
     if (_lastWarmedAvatarUrl == url) return;

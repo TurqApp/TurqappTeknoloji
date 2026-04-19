@@ -1,6 +1,7 @@
 part of 'cached_user_avatar.dart';
 
 class _CachedUserAvatarState extends State<CachedUserAvatar> {
+  bool get _allowAvatarNetworkFetch => !QALabMode.integrationSmokeRun;
   String _resolvedUrl = '';
   String _resolvedFilePath = '';
   String _primedFilePath = '';
@@ -128,7 +129,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
 
       final uid = (widget.userId ?? '').trim();
       if (uid.isEmpty) {
-        await _resolveLocalFile(_resolvedUrl, allowNetwork: true);
+        await _resolveLocalFile(
+          _resolvedUrl,
+          allowNetwork: _allowAvatarNetworkFetch,
+        );
         return;
       }
 
@@ -136,7 +140,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       if (uid == currentUser.effectiveUserId) {
         final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
         _resolvedUrl = currentAvatar;
-        await _resolveLocalFile(currentAvatar, allowNetwork: true);
+        await _resolveLocalFile(
+          currentAvatar,
+          allowNetwork: _allowAvatarNetworkFetch,
+        );
         if (currentUser.currentUser != null) {
           return;
         }
@@ -150,7 +157,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           final currentRawUrl = _pickAvatarUrl(currentRaw);
           if (currentRawUrl.isNotEmpty) {
             _resolvedUrl = currentRawUrl;
-            await _resolveLocalFile(currentRawUrl, allowNetwork: true);
+            await _resolveLocalFile(
+              currentRawUrl,
+              allowNetwork: _allowAvatarNetworkFetch,
+            );
             return;
           }
         } catch (_) {}
@@ -209,7 +219,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           });
         }
         if (fetchedUrl.isNotEmpty) {
-          await _resolveLocalFile(fetchedUrl, allowNetwork: true);
+          await _resolveLocalFile(
+            fetchedUrl,
+            allowNetwork: _allowAvatarNetworkFetch,
+          );
         }
       } catch (_) {}
 
@@ -231,7 +244,10 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           });
         }
         if (fetchedRawUrl.isNotEmpty) {
-          await _resolveLocalFile(fetchedRawUrl, allowNetwork: true);
+          await _resolveLocalFile(
+            fetchedRawUrl,
+            allowNetwork: _allowAvatarNetworkFetch,
+          );
         }
       } catch (_) {}
     } finally {
@@ -389,6 +405,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   }
 
   Widget _buildNetworkAvatar(String imageUrl) {
+    final fallback = widget.placeholder ??
+        widget.errorWidget ??
+        DefaultAvatar(
+          radius: widget.radius,
+          backgroundColor: widget.backgroundColor,
+        );
+    if (!_allowAvatarNetworkFetch) {
+      return fallback;
+    }
     if (!_didLogNetworkFallback) {
       _didLogNetworkFallback = true;
       _logAvatarSync(
@@ -404,34 +429,14 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       child: SizedBox(
         width: size,
         height: size,
-        child: CachedNetworkImage(
+        child: CacheFirstNetworkImage(
           imageUrl: imageUrl,
           cacheManager: TurqImageCacheManager.instance,
-          fadeInDuration: Duration.zero,
-          fadeOutDuration: Duration.zero,
-          placeholderFadeInDuration: Duration.zero,
-          imageBuilder: (context, imageProvider) {
-            if (!_didLogPainted) {
-              _didLogPainted = true;
-              _logAvatarSync(
-                'painted',
-                source: 'cached_network_image_builder',
-              );
-            }
-            return Image(
-              image: imageProvider,
-              fit: BoxFit.cover,
-            );
-          },
-          placeholder: (_, __) =>
-              widget.placeholder ??
-              Container(color: widget.backgroundColor ?? Colors.grey[300]),
-          errorWidget: (_, __, ___) =>
-              widget.errorWidget ??
-              DefaultAvatar(
-                radius: widget.radius,
-                backgroundColor: widget.backgroundColor,
-              ),
+          fit: BoxFit.cover,
+          downloadBeforeRender: true,
+          fallback: fallback,
+          memCacheWidth: size.round(),
+          memCacheHeight: size.round(),
         ),
       ),
     );

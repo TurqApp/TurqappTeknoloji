@@ -785,6 +785,7 @@ extension _SplashViewWarmPart on _SplashViewState {
   }
 
   void _primeCurrentUserAvatarHint({required bool onWiFi}) {
+    final allowAvatarNetwork = onWiFi && !QALabMode.integrationSmokeRun;
     final currentUserService = CurrentUserService.instance;
     final avatarUrl = (() {
       final direct = currentUserService.avatarUrl.trim();
@@ -799,7 +800,7 @@ extension _SplashViewWarmPart on _SplashViewState {
           avatarUrl,
         );
         path = cached?.file.path ?? '';
-        if (path.isEmpty && onWiFi) {
+        if (path.isEmpty && allowAvatarNetwork) {
           final file = await TurqImageCacheManager.instance.getSingleFile(
             avatarUrl,
           );
@@ -833,7 +834,7 @@ extension _SplashViewWarmPart on _SplashViewState {
       await _primeCriticalImageHint(
         url,
         onWiFi: onWiFi,
-        allowNetwork: onWiFi,
+        allowNetwork: onWiFi && !QALabMode.integrationSmokeRun,
       );
     }
   }
@@ -1126,6 +1127,17 @@ extension _SplashViewWarmPart on _SplashViewState {
           ReadBudgetRegistry.startupAvatarWarmCount(onWiFi: onWiFi);
       for (final url in avatarUrls.take(warmCount)) {
         try {
+          if (QALabMode.integrationSmokeRun) {
+            final cached =
+                await TurqImageCacheManager.instance.getFileFromCache(
+              url,
+            );
+            final path = cached?.file.path ?? '';
+            if (path.isNotEmpty) {
+              TurqImageCacheManager.rememberResolvedFile(url, path);
+            }
+            continue;
+          }
           await TurqImageCacheManager.instance.getSingleFile(url);
           final provider = CachedNetworkImageProvider(
             url,
@@ -1149,15 +1161,26 @@ extension _SplashViewWarmPart on _SplashViewState {
       if (avatarUrl.isNotEmpty) {
         urls.add(avatarUrl);
         try {
-          await TurqImageCacheManager.instance.getSingleFile(avatarUrl);
-          if (mounted) {
-            await precacheImage(
-              CachedNetworkImageProvider(
-                avatarUrl,
-                cacheManager: TurqImageCacheManager.instance,
-              ),
-              context,
+          if (QALabMode.integrationSmokeRun) {
+            final cached =
+                await TurqImageCacheManager.instance.getFileFromCache(
+              avatarUrl,
             );
+            final path = cached?.file.path ?? '';
+            if (path.isNotEmpty) {
+              TurqImageCacheManager.rememberResolvedFile(avatarUrl, path);
+            }
+          } else {
+            await TurqImageCacheManager.instance.getSingleFile(avatarUrl);
+            if (mounted) {
+              await precacheImage(
+                CachedNetworkImageProvider(
+                  avatarUrl,
+                  cacheManager: TurqImageCacheManager.instance,
+                ),
+                context,
+              );
+            }
           }
         } catch (_) {}
       }

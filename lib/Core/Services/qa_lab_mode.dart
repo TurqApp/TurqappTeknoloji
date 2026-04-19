@@ -13,6 +13,8 @@ class QALabMode {
       ) ||
       IntegrationTestMode.enabled;
 
+  static const bool integrationSmokeRun = _isIntegrationSmokeRun;
+
   static const bool autoStartSession = bool.fromEnvironment(
     'QA_LAB_AUTOSTART',
     defaultValue: enabled,
