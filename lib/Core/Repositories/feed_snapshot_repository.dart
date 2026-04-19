@@ -41,7 +41,7 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
-  static const int _typesenseStartupAuthorWarmBatchSize = 30;
+  static const int _typesenseStartupAuthorWarmBatchSize = 50;
   static const bool typesensePrimaryEnabled =
       FeedTypesensePolicy.primaryEnabled;
   static const bool typesenseFirestoreFallbackEnabled =
