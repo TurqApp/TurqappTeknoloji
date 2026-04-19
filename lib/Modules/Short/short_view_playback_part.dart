@@ -58,6 +58,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
     await _releasePlayback(adapter);
+    if (!adapter.isStopped) {
+      return;
+    }
     try {
       await adapter.seekTo(Duration.zero);
     } catch (_) {}
@@ -1032,8 +1035,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       try {
         final shouldRecoverFrozenPlayback = vc.value.hasRenderedFirstFrame &&
             !vc.value.isCompleted &&
-            (vc.value.position >= const Duration(milliseconds: 2500) ||
-                vc.value.duration > const Duration(seconds: 12));
+            vc.value.position >= const Duration(milliseconds: 2500);
         if (shouldRecoverFrozenPlayback) {
           await vc.recoverFrozenPlayback();
         } else {
@@ -1144,8 +1146,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
             (beforePlaying || afterPlaying || !vc.value.isPlaying);
         if (likelyFrozen) {
           final shouldRecoverFrozenPlayback =
-              afterPosition >= const Duration(milliseconds: 2500) ||
-                  vc.value.duration > const Duration(seconds: 12);
+              afterPosition >= const Duration(milliseconds: 2500);
           try {
             if (shouldRecoverFrozenPlayback) {
               await vc.recoverFrozenPlayback();
@@ -1260,8 +1261,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
                 value.hasRenderedFirstFrame &&
                 !value.isCompleted &&
                 (_stallWatchdogRetries > 1 ||
-                    value.position >= const Duration(milliseconds: 2500) ||
-                    value.duration > const Duration(seconds: 12));
+                    value.position >= const Duration(milliseconds: 2500));
         recordQALabPlaybackDispatch(
           surface: 'short',
           stage: 'short_stall_recovery_play',

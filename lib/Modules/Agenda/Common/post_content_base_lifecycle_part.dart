@@ -32,10 +32,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
       final shouldEagerInitAndroidPrimaryFeed =
           defaultTargetPlatform == TargetPlatform.android &&
-          _isPrimaryFeedSurfaceInstance;
+              _isPrimaryFeedSurfaceInstance;
       final shouldEagerInitAndroidProfileFamily =
           defaultTargetPlatform == TargetPlatform.android &&
-          (_isProfileSurfaceInstance || _isSocialProfileSurfaceInstance);
+              (_isProfileSurfaceInstance || _isSocialProfileSurfaceInstance);
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
@@ -223,6 +223,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_push_next',
     );
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance) {
+      try {
+        _playbackRuntimeService.requestStop(playbackHandleKey);
+      } catch (_) {}
+      _stopPlaybackForSurfaceLoss();
+      return;
+    }
     _safePauseVideo();
   }
 
@@ -275,8 +283,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     if (_isReplayOverlayEnabled && v.isCompleted) {
-      final shouldAutorestartCompletedPlayback =
-          widget.shouldPlay &&
+      final shouldAutorestartCompletedPlayback = widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           !_manualPauseRequested &&
           !shouldLoopVideo;
@@ -362,17 +369,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _isPrimaryFeedSurfaceInstance &&
             (defaultTargetPlatform == TargetPlatform.iOS ||
                 defaultTargetPlatform == TargetPlatform.android);
-    final shouldRecoverPlayback =
-        !disableDartRecoveryForPlatformPrimaryFeed &&
-            !_useLegacyIosFeedBehavior &&
-            widget.shouldPlay &&
-            _isSurfacePlaybackAllowed &&
-            !_manualPauseRequested &&
-            v.isInitialized &&
-            !v.isPlaying &&
-            !v.isBuffering &&
-            !v.isCompleted &&
-            (v.position > Duration.zero || v.hasRenderedFirstFrame);
+    final shouldRecoverPlayback = !disableDartRecoveryForPlatformPrimaryFeed &&
+        !_useLegacyIosFeedBehavior &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed &&
+        !_manualPauseRequested &&
+        v.isInitialized &&
+        !v.isPlaying &&
+        !v.isBuffering &&
+        !v.isCompleted &&
+        (v.position > Duration.zero || v.hasRenderedFirstFrame);
     if (shouldRecoverPlayback) {
       _playbackRecoveryTimer ??= Timer(const Duration(milliseconds: 260), () {
         _playbackRecoveryTimer = null;

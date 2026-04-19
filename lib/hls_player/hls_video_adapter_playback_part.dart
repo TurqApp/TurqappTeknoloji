@@ -138,12 +138,13 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_disposed) return Future.value();
     final requestedVolume = v.clamp(0.0, 1.0).toDouble();
     final previousRequestedVolume = _pendingVolume;
-    final shouldRecheckIosAudibility = defaultTargetPlatform == TargetPlatform.iOS &&
-        requestedVolume > 0.001 &&
-        _viewReady &&
-        _value.isInitialized &&
-        _value.hasRenderedFirstFrame &&
-        !_value.isCompleted;
+    final shouldRecheckIosAudibility =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            requestedVolume > 0.001 &&
+            _viewReady &&
+            _value.isInitialized &&
+            _value.hasRenderedFirstFrame &&
+            !_value.isCompleted;
     if (_hasPendingVolume &&
         (_pendingVolume - requestedVolume).abs() < 0.001 &&
         !shouldRecheckIosAudibility) {
@@ -156,8 +157,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         await _hls.setVolume(requestedVolume);
         var stillMuted = false;
         final isIOS = defaultTargetPlatform == TargetPlatform.iOS;
-        final isUnmute = previousRequestedVolume <= 0.001 &&
-            requestedVolume > 0.001;
+        final isUnmute =
+            previousRequestedVolume <= 0.001 && requestedVolume > 0.001;
         final shouldReassertPlayback = isIOS &&
             (isUnmute || shouldRecheckIosAudibility) &&
             _value.isInitialized &&
@@ -278,8 +279,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
     updateWarmPoolPausePreference(
-      defaultTargetPlatform == TargetPlatform.android &&
-          (isPrimaryFeedSurface || preferWarmPoolPauseOnAndroid),
+      preferWarmPoolPauseOnAndroid ||
+          (defaultTargetPlatform == TargetPlatform.android &&
+              isPrimaryFeedSurface),
     );
     return HLSPlayer(
       key: key,

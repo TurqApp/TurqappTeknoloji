@@ -220,8 +220,8 @@ final class PlaybackHealthMonitor {
 
     func onAccessLogUpdate(summary: String) {
         lastAccessLogSummary = summary
-        if summary.localizedCaseInsensitiveContains("stall") ||
-            summary.localizedCaseInsensitiveContains("error") {
+        if summary.localizedCaseInsensitiveContains("error") ||
+            ((_parseIntMetric(named: "stalls", from: summary) ?? 0) > 0) {
             onStallDetected()
         }
         publishState("accessLog=\(summary)")
@@ -338,6 +338,14 @@ final class PlaybackHealthMonitor {
         errorOrder.append(code)
         log("error=\(code)")
         publishState("error=\(code)")
+    }
+
+    private func _parseIntMetric(named metric: String, from summary: String) -> Int? {
+        guard let range = summary.range(of: "\(metric)=") else { return nil }
+        let suffix = summary[range.upperBound...]
+        let digits = suffix.prefix { $0.isNumber }
+        guard !digits.isEmpty else { return nil }
+        return Int(digits)
     }
 
     private func publishState(_ event: String) {

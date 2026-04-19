@@ -12,7 +12,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
   Future<void> _parkAdapter(HLSVideoAdapter adapter) async {
     if (Platform.isAndroid || Platform.isIOS) {
-      if (Platform.isAndroid && adapter.preferWarmPoolPause) {
+      if (adapter.preferWarmPoolPause) {
         debugPrint(
           '[PlaybackStopTrace] source=pool_park action=force_silence '
           'preferWarm=${adapter.preferWarmPoolPause}',
@@ -48,8 +48,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     if (sharedLeasedAdapter != null) {
       _leasedKeys[sharedLeasedAdapter] = cacheKey;
       _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
-      if (defaultTargetPlatform == TargetPlatform.android &&
-          preferWarmPoolPauseOnAndroid) {
+      if (preferWarmPoolPauseOnAndroid) {
         sharedLeasedAdapter.updateWarmPoolPausePreference(true);
       }
       unawaited(sharedLeasedAdapter.setLooping(loop));
@@ -96,8 +95,7 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
 
     _leasedKeys[adapter] = cacheKey;
     _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        preferWarmPoolPauseOnAndroid) {
+    if (preferWarmPoolPauseOnAndroid) {
       adapter.updateWarmPoolPausePreference(true);
     }
     _restoreSavedPosition(cacheKey, adapter);
@@ -285,7 +283,8 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   void _restoreSavedPosition(String cacheKey, HLSVideoAdapter adapter) {
-    if ((Platform.isIOS || Platform.isAndroid) && cacheKey.startsWith('feed:')) {
+    if ((Platform.isIOS || Platform.isAndroid) &&
+        cacheKey.startsWith('feed:')) {
       return;
     }
     final state = VideoStateManager.instance.getVideoState(cacheKey);

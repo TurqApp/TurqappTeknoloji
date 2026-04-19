@@ -399,6 +399,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
+      _playbackRecoveryTimer?.cancel();
+      _playbackRecoveryTimer = null;
       _cancelFeedStallWatchdog();
       _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
@@ -417,6 +419,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         '[PlaybackStopTrace] source=surface_loss doc=${widget.model.docID} '
         'modelIndex=${_surfaceModelIndex()}',
       );
+      _playbackRecoveryTimer?.cancel();
+      _playbackRecoveryTimer = null;
       _cancelFeedStallWatchdog();
       _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
@@ -435,8 +439,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (adapter == null) return;
     final shouldKeepWarmForSurfaceLoss =
         defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance &&
-        !clearSavedState;
+            _isPrimaryFeedSurfaceInstance &&
+            !clearSavedState;
     debugPrint(
       '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
@@ -637,9 +641,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     _applyPlaybackVolume();
-    if (GetPlatform.isAndroid &&
-        _controllerOwnsInlinePlayback &&
-        adapter.isStopped) {
+    final shouldRestartStoppedInlineOwner = _controllerOwnsInlinePlayback &&
+        adapter.isStopped &&
+        (GetPlatform.isAndroid ||
+            (defaultTargetPlatform == TargetPlatform.iOS &&
+                _isPrimaryFeedSurfaceInstance));
+    if (shouldRestartStoppedInlineOwner) {
       _recordPlaybackDispatch(
         'feed_card_resume_stopped_restart',
         source: source,

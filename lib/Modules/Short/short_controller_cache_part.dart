@@ -120,7 +120,7 @@ extension ShortControllerCachePart on ShortController {
   }
 
   Future<void> _downgradeAdapterForWarmTier(HLSVideoAdapter adapter) async {
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (adapter.preferWarmPoolPause) {
       await adapter.forceSilence();
       return;
     }

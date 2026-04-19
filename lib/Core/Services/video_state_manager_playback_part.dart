@@ -34,7 +34,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     String controllerKey,
     HLSAdapterPlaybackHandle handle,
   ) {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
     final allowedKey = allowedDocID?.trim() ?? '';
     if (!allowedKey.startsWith('short:')) return false;
     if (!controllerKey.trim().startsWith('short:')) return false;

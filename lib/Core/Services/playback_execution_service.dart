@@ -180,6 +180,14 @@ class _AndroidPlaybackExecutionStrategy extends _BasePlaybackExecutionStrategy {
 
 class _IosPlaybackExecutionStrategy extends _BasePlaybackExecutionStrategy {
   const _IosPlaybackExecutionStrategy();
+
+  @override
+  Future<void> stopAdapter(HLSVideoAdapter adapter) {
+    if (adapter.preferWarmPoolPause) {
+      return quietBackgroundAdapter(adapter);
+    }
+    return super.stopAdapter(adapter);
+  }
 }
 
 class _DefaultPlaybackExecutionStrategy extends _BasePlaybackExecutionStrategy {

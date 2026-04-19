@@ -23,6 +23,20 @@ void main() {
     await pool.clear();
   });
 
+  test('iOS short acquire marks adapter for warm-pool pause', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    final pool = GlobalVideoAdapterPool();
+
+    final adapter = pool.acquire(
+      cacheKey: 'short:test-doc',
+      url: 'https://cdn.turqapp.com/Posts/test-doc/hls/master.m3u8',
+      preferWarmPoolPauseOnAndroid: true,
+    );
+
+    expect(adapter.preferWarmPoolPause, isTrue);
+    await pool.clear();
+  });
+
   test('default acquire keeps warm-pool pause disabled', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final pool = GlobalVideoAdapterPool();
@@ -36,7 +50,8 @@ void main() {
     await pool.clear();
   });
 
-  test('Android warm pool retains five warmed feed adapters without trimming', () async {
+  test('Android warm pool retains five warmed feed adapters without trimming',
+      () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final pool = GlobalVideoAdapterPool();
 

@@ -236,7 +236,8 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         isPlaybackExpected || isPlaying || hasFirstFrame;
     if ((errors.contains('EXCESSIVE_REBUFFERING') ||
             (isBuffering && stallCount >= 2)) &&
-        hasMeaningfulPlaybackExpectation) {
+        hasMeaningfulPlaybackExpectation &&
+        !hasRecoveredPlaybackAtSample) {
       if (!suppressNativeWarmupSignals &&
           !hasRecentUnresolvedLifecycleInterruption &&
           !hasRecentFeedSurfaceLossVisualTransition) {

@@ -429,6 +429,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackLikelyToKeepUpObserver = playerItem.observe(\.isPlaybackLikelyToKeepUp, options: [.new]) { [weak self] item, _ in
             if item.isPlaybackLikelyToKeepUp {
                 self?.log("likelyToKeepUp url=\(self?.currentUrl ?? "-")")
+                self?.requestRecoveryAutoplayIfNeeded(source: "likelyToKeepUp")
                 self?.sendEvent(["event": "buffering", "isBuffering": false])
             }
         }
