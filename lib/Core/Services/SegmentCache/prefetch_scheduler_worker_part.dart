@@ -26,8 +26,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   bool _shouldAbortStalePrefetchDoc(String docID) {
     final source = _prefetchSourceForDoc(docID);
-    if (source == null || source == 'quota') {
+    if (source == null) {
       return false;
+    }
+    if (source == 'quota') {
+      return !_shouldAllowBackgroundQuotaFill;
     }
     final tierInfo = classifyTransferDoc(docID);
     return tierInfo == null || tierInfo['allowedSegmentWarm'] != true;
@@ -263,13 +266,20 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
-    final currentBacklog = _queue.length +
+    var currentBacklog = _queue.length +
         _pendingFollowUpJobs.length +
         _activeDocRefCounts.length;
+    if (!_shouldAllowBackgroundQuotaFill) {
+      _abortStalePrefetchActivity(reason: 'quota_background_gate');
+      currentBacklog = _queue.length +
+          _pendingFollowUpJobs.length +
+          _activeDocRefCounts.length;
+    }
     debugPrint(
       '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
       'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
-      'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow',
+      'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
+      'activeShort=$_hasActiveShortPlaybackWindow',
     );
     if (_automaticQuotaFillEnabled &&
         _shouldAllowBackgroundQuotaFill &&
@@ -435,6 +445,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final isUnwatched = watchedProgress <= 0.01;
       if (job.maxSegments <= 0) {
         _clearFollowUpJob(job.docID);
+        return;
+      }
+      if (job.source == 'quota' && !_shouldAllowBackgroundQuotaFill) {
+        _clearFollowUpJob(job.docID);
+        _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+        debugPrint(
+          '[ShortQuotaFill] status=skip_job reason=active_playback doc=${job.docID}',
+        );
         return;
       }
       final desiredReadySegments = job.maxSegments > 0
@@ -865,6 +883,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'effectiveMaxConcurrent': _effectiveMaxConcurrent(),
         'automaticQuotaFillEnabled': _automaticQuotaFillEnabled,
         'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
+        'hasActiveShortPlaybackWindow': _hasActiveShortPlaybackWindow,
         'feedReadyRatio': _lastFeedReadyRatio,
         'feedReadyCount': _lastFeedReadyCount,
         'feedWindowCount': _lastFeedWindowCount,

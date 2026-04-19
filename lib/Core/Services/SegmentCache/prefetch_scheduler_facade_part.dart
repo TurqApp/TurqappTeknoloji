@@ -55,7 +55,7 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     } else if (inFeedWindow || inFeedBank) {
       owner = 'feed';
     } else if (sourceHint == 'quota' &&
-        !_hasActiveFeedPlaybackWindow &&
+        _shouldAllowBackgroundQuotaFill &&
         (pendingPrefetch || activeDownload)) {
       owner = 'quota';
     } else {
@@ -70,6 +70,7 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       'pendingPrefetch': pendingPrefetch,
       'activeDownload': activeDownload,
       'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
+      'hasActiveShortPlaybackWindow': _hasActiveShortPlaybackWindow,
       'sourceHint': sourceHint,
     };
   }

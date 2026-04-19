@@ -55,6 +55,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'pendingPrefetch': ownerInfo?['pendingPrefetch'],
       'activeDownload': ownerInfo?['activeDownload'],
       'hasActiveFeedPlaybackWindow': ownerInfo?['hasActiveFeedPlaybackWindow'],
+      'hasActiveShortPlaybackWindow':
+          ownerInfo?['hasActiveShortPlaybackWindow'],
       'allowedSegmentWarm': allowedSegmentWarm,
       'allowedCacheOnly': tierInfo?['allowedCacheOnly'],
       'quotaBackgroundTransfer': isQuotaBackgroundTransfer,

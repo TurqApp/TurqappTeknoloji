@@ -108,7 +108,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final cacheManager = _getCacheManager();
     if (cacheManager == null || _paused) return;
     if (!_isOnWiFi || _mobileSeedMode) return;
-    if (!_shouldAllowBackgroundQuotaFill) return;
+    if (!_shouldAllowBackgroundQuotaFill) {
+      _abortStalePrefetchActivity(reason: 'quota_plan_background_gate');
+      return;
+    }
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
     if (_quotaFillRemoteInFlight) {
       debugPrint('[ShortQuotaFill] status=skip reason=plan_inflight');
@@ -118,6 +121,13 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _quotaFillRemoteInFlight = true;
 
     try {
+      bool stopIfBackgroundGateClosed(String reason) {
+        if (_shouldAllowBackgroundQuotaFill) return false;
+        _abortStalePrefetchActivity(reason: reason);
+        debugPrint('[ShortQuotaFill] status=skip reason=$reason');
+        return true;
+      }
+
       debugPrint(
         '[ShortQuotaFill] status=plan_start enabled=$_automaticQuotaFillEnabled '
         'wifi=$_isOnWiFi backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
@@ -159,6 +169,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       }
 
       await seedFromLocalCandidates();
+      if (stopIfBackgroundGateClosed('plan_interrupted_by_playback')) return;
 
       final refreshedBacklogCount = _queue.length +
           _pendingFollowUpJobs.length +
@@ -176,6 +187,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           startAfter: _quotaFillRemoteCursor,
           pageSize: _prefetchSchedulerQuotaFillRemotePageLimit,
         );
+        if (stopIfBackgroundGateClosed('remote_plan_interrupted_by_playback')) {
+          return;
+        }
         _quotaFillRemoteCursor = page.lastDoc;
         _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
         if (page.posts.isEmpty) {
@@ -191,6 +205,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         }
       }
       if (remoteSeedPosts.isEmpty) return;
+      if (stopIfBackgroundGateClosed('remote_seed_interrupted_by_playback')) {
+        return;
+      }
 
       final remoteCandidates = _selectShortQuotaFillCandidates(
         remoteSeedPosts,

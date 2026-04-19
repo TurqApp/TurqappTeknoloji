@@ -33,6 +33,14 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         _isFeedSurfaceVisible;
   }
 
+  bool get _hasActiveShortPlaybackWindow {
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return false;
+    final current = manager.currentPlayingDocID?.trim() ?? '';
+    final target = manager.targetPlaybackDocID?.trim() ?? '';
+    return current.startsWith('short:') || target.startsWith('short:');
+  }
+
   bool get _hasAnyActivePlaybackFocus {
     final manager = maybeFindVideoStateManager();
     if (manager == null) return false;
@@ -45,7 +53,8 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         target.startsWith('short:');
   }
 
-  bool get _shouldAllowBackgroundQuotaFill => !_hasActiveFeedPlaybackWindow;
+  bool get _shouldAllowBackgroundQuotaFill =>
+      !_hasActiveFeedPlaybackWindow && !_hasActiveShortPlaybackWindow;
 
   bool get _isOnWiFi {
     try {
