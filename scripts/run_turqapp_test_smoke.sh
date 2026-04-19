@@ -33,11 +33,13 @@ ANDROID_PACKAGE_SYNC_RETRY_COUNT="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY
 ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS="${INTEGRATION_SMOKE_ANDROID_PACKAGE_SYNC_RETRY_SLEEP_SECONDS:-0.5}"
 ANDROID_LOGCAT_FORMAT="${INTEGRATION_SMOKE_ANDROID_LOGCAT_FORMAT:-threadtime}"
 INTEGRATION_SUITE_RETRY_COUNT="${INTEGRATION_SMOKE_SUITE_RETRY_COUNT:-2}"
+INTEGRATION_SUITE_IDLE_TIMEOUT_SECONDS="${INTEGRATION_SMOKE_SUITE_IDLE_TIMEOUT_SECONDS:-45}"
 android_original_stay_on=""
 android_awake_watchdog_pid=""
 last_device_log_reason=""
 last_device_log_raw_path=""
 last_device_log_report_path=""
+last_suite_runner_reason=""
 default_fixture_file="integration_test/core/fixtures/smoke_fixture.device_baseline.json"
 fixture_file="${INTEGRATION_FIXTURE_FILE:-}"
 fixture_json="${INTEGRATION_FIXTURE_JSON:-}"
@@ -274,6 +276,13 @@ if [[ -n "$fixture_json" ]]; then
   COMMON_ARGS+=("--dart-define=INTEGRATION_FIXTURE_JSON=${fixture_json}")
 fi
 
+if [[ -n "${INTEGRATION_EXTRA_DART_DEFINES:-}" ]]; then
+  while IFS= read -r extra_define; do
+    [[ -n "$extra_define" ]] || continue
+    COMMON_ARGS+=("--dart-define=${extra_define}")
+  done < <(printf '%s\n' "${INTEGRATION_EXTRA_DART_DEFINES}" | tr ',' '\n')
+fi
+
 echo "[turqapp-test] platform=${TARGET_PLATFORM}"
 echo "[turqapp-test] device=${DEVICE_ID}"
 echo "[turqapp-test] manifest=${MANIFEST} count=${#suite_tests[@]}"
@@ -315,13 +324,96 @@ wait_for_android_package_install() {
 should_retry_host_stub_reason() {
   local reason="${1:-}"
   case "$reason" in
-    package_not_installed|remote_artifact_missing|remote_artifact_copy_failed|scenario_artifact_missing)
+    package_not_installed|remote_artifact_missing|remote_artifact_copy_failed|scenario_artifact_missing|suite_idle_timeout|suite_missing_status|suite_empty_status)
       return 0
       ;;
     *)
       return 1
       ;;
   esac
+}
+
+run_flutter_suite_with_watchdog() {
+  local test_file="$1"
+  local scenario_name="$2"
+  local suite_log="$ARTIFACT_DIR/${scenario_name}.suite_stdout.log"
+  local status_file="$ARTIFACT_DIR/${scenario_name}.suite_status"
+  local idle_timeout="$INTEGRATION_SUITE_IDLE_TIMEOUT_SECONDS"
+  local runner_pid=""
+  local printed_bytes=0
+  local current_size=0
+  local last_output_epoch
+  local now_epoch
+
+  last_suite_runner_reason=""
+  rm -f "$suite_log" "$status_file"
+
+  (
+    if flutter "${COMMON_ARGS[@]}" "$test_file" >"$suite_log" 2>&1; then
+      printf '0' >"$status_file"
+    else
+      printf '%s' "$?" >"$status_file"
+    fi
+  ) &
+  runner_pid="$!"
+  last_output_epoch="$(date +%s)"
+
+  while kill -0 "$runner_pid" >/dev/null 2>&1; do
+    current_size="$(wc -c <"$suite_log" 2>/dev/null || printf '0')"
+    if [[ "$current_size" -gt "$printed_bytes" ]]; then
+      tail -c "+$((printed_bytes + 1))" "$suite_log"
+      printed_bytes="$current_size"
+      last_output_epoch="$(date +%s)"
+    fi
+
+    if [[ "$idle_timeout" -gt 0 ]]; then
+      now_epoch="$(date +%s)"
+      if (( now_epoch - last_output_epoch >= idle_timeout )); then
+        echo "[turqapp-test] suite idle timeout scenario=${scenario_name} idleSeconds=${idle_timeout}"
+        kill "$runner_pid" >/dev/null 2>&1 || true
+        sleep 2
+        kill -9 "$runner_pid" >/dev/null 2>&1 || true
+        wait "$runner_pid" 2>/dev/null || true
+        current_size="$(wc -c <"$suite_log" 2>/dev/null || printf '0')"
+        if [[ "$current_size" -gt "$printed_bytes" ]]; then
+          tail -c "+$((printed_bytes + 1))" "$suite_log"
+        fi
+        printf '124' >"$status_file"
+        last_suite_runner_reason="suite_idle_timeout"
+        return 124
+      fi
+    fi
+
+    sleep 1
+  done
+
+  wait "$runner_pid" 2>/dev/null || true
+
+  current_size="$(wc -c <"$suite_log" 2>/dev/null || printf '0')"
+  if [[ "$current_size" -gt "$printed_bytes" ]]; then
+    tail -c "+$((printed_bytes + 1))" "$suite_log"
+  fi
+
+  if [[ ! -f "$status_file" ]]; then
+    last_suite_runner_reason="suite_missing_status"
+    return 1
+  fi
+
+  local status_text
+  status_text="$(tr -d '\r\n[:space:]' <"$status_file")"
+  rm -f "$status_file"
+  if [[ -z "$status_text" ]]; then
+    last_suite_runner_reason="suite_empty_status"
+    return 1
+  fi
+
+  if [[ "$status_text" == "0" ]]; then
+    last_suite_runner_reason=""
+    return 0
+  fi
+
+  last_suite_runner_reason="suite_exit_${status_text}"
+  return "$status_text"
 }
 
 sync_android_remote_artifacts() {
@@ -511,8 +603,10 @@ for test_file in "${suite_tests[@]}"; do
       watcher_handle="$(start_android_artifact_mirror "$DEVICE_ID" "$scenario_name")"
     fi
     test_status=0
-    if ! flutter "${COMMON_ARGS[@]}" "$test_file"; then
-      test_status=1
+    if run_flutter_suite_with_watchdog "$test_file" "$scenario_name"; then
+      test_status=0
+    else
+      test_status=$?
     fi
     if [[ -n "$watcher_handle" ]]; then
       stop_android_artifact_mirror "$watcher_handle"
@@ -523,6 +617,13 @@ for test_file in "${suite_tests[@]}"; do
       sync_android_remote_artifacts "$DEVICE_ID" >/dev/null 2>&1 || true
     fi
     materialize_scenario_artifact_alias "$scenario_name" || true
+    if [[ "$test_status" -ne 0 ]] && [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
+      case "${last_suite_runner_reason:-}" in
+        suite_idle_timeout|suite_missing_status|suite_empty_status)
+          last_artifact_export_reason="$last_suite_runner_reason"
+          ;;
+      esac
+    fi
     if [[ ! -f "$ARTIFACT_DIR/${scenario_name}.json" ]]; then
       write_host_stub_artifact \
         "$scenario_name" \
