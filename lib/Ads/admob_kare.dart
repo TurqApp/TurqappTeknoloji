@@ -87,6 +87,7 @@ class _AdmobKareState extends State<AdmobKare> {
   int _retryCount = 0;
   Timer? _retryTimer;
   Timer? _fallbackGateTimer;
+  Timer? _visibilityLoadDebounceTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
@@ -94,8 +95,10 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
+  static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 240);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
+  static const double _feedVisibilityLoadThreshold = 0.72;
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
@@ -124,6 +127,8 @@ class _AdmobKareState extends State<AdmobKare> {
       (widget.suggestionPlacementId?.trim().isNotEmpty ?? false);
   String get _managedSuggestionPlacementId =>
       widget.suggestionPlacementId?.trim() ?? '';
+  bool get _requiresStableFeedVisibilityForLoad =>
+      Platform.isIOS && _managedSuggestionPlacementId == 'feed';
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -378,6 +383,18 @@ class _AdmobKareState extends State<AdmobKare> {
     _loadBanner();
   }
 
+  void _scheduleAttachBannerOrLoad() {
+    _visibilityLoadDebounceTimer?.cancel();
+    if (_requiresStableFeedVisibilityForLoad) {
+      _visibilityLoadDebounceTimer = Timer(_feedVisibilityLoadDelay, () {
+        if (_isDisposed) return;
+        _attachBannerOrLoad();
+      });
+      return;
+    }
+    _attachBannerOrLoad();
+  }
+
   bool _canStartOrRetryLoad() {
     if (_usePlaceholderOnly || _isDisposed) {
       return false;
@@ -515,7 +532,10 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _handleVisibilityChanged(VisibilityInfo info) {
-    final nextVisible = info.visibleFraction > 0.01;
+    final threshold = _requiresStableFeedVisibilityForLoad
+        ? _feedVisibilityLoadThreshold
+        : 0.01;
+    final nextVisible = info.visibleFraction > threshold;
     if (_isVisible == nextVisible) {
       return;
     }
@@ -523,6 +543,7 @@ class _AdmobKareState extends State<AdmobKare> {
     if (!_isVisible) {
       _retryTimer?.cancel();
       _fallbackGateTimer?.cancel();
+      _visibilityLoadDebounceTimer?.cancel();
       return;
     }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
@@ -537,7 +558,7 @@ class _AdmobKareState extends State<AdmobKare> {
       }
     }
     if (_bannerAd == null || !_isAdLoaded) {
-      _attachBannerOrLoad();
+      _scheduleAttachBannerOrLoad();
     }
   }
 
@@ -735,6 +756,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _sharedAdAvailabilityRevision.removeListener(_handleSharedAdAvailability);
     _retryTimer?.cancel();
     _fallbackGateTimer?.cancel();
+    _visibilityLoadDebounceTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
