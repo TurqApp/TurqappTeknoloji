@@ -11,8 +11,14 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   bool _didLogLocalReady = false;
   bool _didLogNetworkFallback = false;
   bool _didLogPainted = false;
+  int _bootstrapEpoch = 0;
   final DateTime _mountedAt = DateTime.now();
   final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
+
+  int _beginBootstrapEpoch() => ++_bootstrapEpoch;
+
+  bool _isBootstrapEpochCurrent(int epoch) =>
+      mounted && epoch == _bootstrapEpoch;
 
   void _logAvatarSync(
     String stage, {
@@ -101,7 +107,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         'initialRememberedFilePathPresent': _resolvedFilePath.isNotEmpty,
       },
     );
-    unawaited(_bootstrap());
+    final epoch = _beginBootstrapEpoch();
+    unawaited(_bootstrap(epoch));
   }
 
   @override
@@ -122,11 +129,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       _didBootstrap = false;
       _bootstrapInFlight = true;
       _bootstrapSettled = false;
-      unawaited(_bootstrap());
+      final epoch = _beginBootstrapEpoch();
+      unawaited(_bootstrap(epoch));
     }
   }
 
-  Future<void> _bootstrap() async {
+  Future<void> _bootstrap(int epoch) async {
     if (_didBootstrap) return;
     _didBootstrap = true;
     _bootstrapInFlight = true;
@@ -134,7 +142,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
 
     try {
       if (_resolvedUrl.isNotEmpty) {
-        await _resolveLocalFile(_resolvedUrl, allowNetwork: false);
+        await _resolveLocalFile(
+          _resolvedUrl,
+          allowNetwork: false,
+          epoch: epoch,
+        );
       }
 
       final uid = (widget.userId ?? '').trim();
@@ -142,6 +154,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         await _resolveLocalFile(
           _resolvedUrl,
           allowNetwork: _allowAvatarNetworkFetch,
+          epoch: epoch,
         );
         return;
       }
@@ -149,10 +162,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       final currentUser = CurrentUserService.instance;
       if (uid == currentUser.effectiveUserId) {
         final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
+        if (!_isBootstrapEpochCurrent(epoch)) return;
         _resolvedUrl = currentAvatar;
         await _resolveLocalFile(
           currentAvatar,
           allowNetwork: _allowAvatarNetworkFetch,
+          epoch: epoch,
         );
         if (currentUser.currentUser != null) {
           return;
@@ -164,12 +179,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             cacheOnly: false,
             forceServer: true,
           );
+          if (!_isBootstrapEpochCurrent(epoch)) return;
           final currentRawUrl = _pickAvatarUrl(currentRaw);
           if (currentRawUrl.isNotEmpty) {
+            if (!_isBootstrapEpochCurrent(epoch)) return;
             _resolvedUrl = currentRawUrl;
             await _resolveLocalFile(
               currentRawUrl,
               allowNetwork: _allowAvatarNetworkFetch,
+              epoch: epoch,
             );
             return;
           }
@@ -184,14 +202,21 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           preferCache: true,
           cacheOnly: true,
         );
+        if (!_isBootstrapEpochCurrent(epoch)) return;
         final cachedUrl = _normalizeUrl(cached?.avatarUrl);
-        if (cachedUrl.isNotEmpty && cachedUrl != _resolvedUrl && mounted) {
+        if (cachedUrl.isNotEmpty &&
+            cachedUrl != _resolvedUrl &&
+            _isBootstrapEpochCurrent(epoch)) {
           setState(() {
             _resolvedUrl = cachedUrl;
           });
         }
         if (cachedUrl.isNotEmpty) {
-          await _resolveLocalFile(cachedUrl, allowNetwork: false);
+          await _resolveLocalFile(
+            cachedUrl,
+            allowNetwork: false,
+            epoch: epoch,
+          );
         }
       } catch (_) {}
 
@@ -201,16 +226,21 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           preferCache: true,
           cacheOnly: true,
         );
+        if (!_isBootstrapEpochCurrent(epoch)) return;
         final cachedRawUrl = _pickAvatarUrl(cachedRaw);
         if (cachedRawUrl.isNotEmpty &&
             cachedRawUrl != _resolvedUrl &&
-            mounted) {
+            _isBootstrapEpochCurrent(epoch)) {
           setState(() {
             _resolvedUrl = cachedRawUrl;
           });
         }
         if (cachedRawUrl.isNotEmpty) {
-          await _resolveLocalFile(cachedRawUrl, allowNetwork: false);
+          await _resolveLocalFile(
+            cachedRawUrl,
+            allowNetwork: false,
+            epoch: epoch,
+          );
         }
       } catch (_) {}
 
@@ -222,8 +252,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           preferCache: true,
           cacheOnly: false,
         );
+        if (!_isBootstrapEpochCurrent(epoch)) return;
         final fetchedUrl = _normalizeUrl(fetched?.avatarUrl);
-        if (fetchedUrl.isNotEmpty && fetchedUrl != _resolvedUrl && mounted) {
+        if (fetchedUrl.isNotEmpty &&
+            fetchedUrl != _resolvedUrl &&
+            _isBootstrapEpochCurrent(epoch)) {
           setState(() {
             _resolvedUrl = fetchedUrl;
           });
@@ -232,6 +265,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           await _resolveLocalFile(
             fetchedUrl,
             allowNetwork: _allowAvatarNetworkFetch,
+            epoch: epoch,
           );
         }
       } catch (_) {}
@@ -245,10 +279,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           cacheOnly: false,
           forceServer: true,
         );
+        if (!_isBootstrapEpochCurrent(epoch)) return;
         final fetchedRawUrl = _pickAvatarUrl(fetchedRaw);
         if (fetchedRawUrl.isNotEmpty &&
             fetchedRawUrl != _resolvedUrl &&
-            mounted) {
+            _isBootstrapEpochCurrent(epoch)) {
           setState(() {
             _resolvedUrl = fetchedRawUrl;
           });
@@ -257,14 +292,18 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           await _resolveLocalFile(
             fetchedRawUrl,
             allowNetwork: _allowAvatarNetworkFetch,
+            epoch: epoch,
           );
         }
       } catch (_) {}
     } finally {
-      _bootstrapInFlight = false;
-      _bootstrapSettled = true;
-      if (mounted) {
-        setState(() {});
+      final isCurrentEpoch = _isBootstrapEpochCurrent(epoch);
+      if (isCurrentEpoch) {
+        _bootstrapInFlight = false;
+        _bootstrapSettled = true;
+        if (mounted) {
+          setState(() {});
+        }
       }
     }
   }
@@ -272,10 +311,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   Future<void> _resolveLocalFile(
     String url, {
     required bool allowNetwork,
+    required int epoch,
   }) async {
     final normalized = _normalizeUrl(url);
     if (normalized.isEmpty) {
-      if (_resolvedFilePath.isNotEmpty && mounted) {
+      if (_resolvedFilePath.isNotEmpty && _isBootstrapEpochCurrent(epoch)) {
         setState(() {
           _resolvedFilePath = '';
         });
@@ -290,11 +330,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       if ((file == null || !file.existsSync()) && allowNetwork) {
         file = await TurqImageCacheManager.instance.getSingleFile(normalized);
       }
+      if (!_isBootstrapEpochCurrent(epoch)) return;
       final nextPath = (file != null && file.existsSync()) ? file.path : '';
       if (nextPath.isNotEmpty) {
         TurqImageCacheManager.rememberResolvedFile(normalized, nextPath);
       }
-      if (nextPath != _resolvedFilePath && mounted) {
+      if (nextPath != _resolvedFilePath && _isBootstrapEpochCurrent(epoch)) {
         setState(() {
           _resolvedFilePath = nextPath;
         });
@@ -359,7 +400,8 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             _didBootstrap = false;
             _bootstrapInFlight = true;
             _bootstrapSettled = false;
-            unawaited(_bootstrap());
+            final epoch = _beginBootstrapEpoch();
+            unawaited(_bootstrap(epoch));
           }
           return _buildAvatar(
             currentUserImage.isNotEmpty ? currentUserImage : _resolvedUrl,
@@ -457,7 +499,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           imageUrl: imageUrl,
           cacheManager: TurqImageCacheManager.instance,
           fit: BoxFit.cover,
-          downloadBeforeRender: true,
+          downloadBeforeRender: false,
           fallback: fallback,
           memCacheWidth: size.round(),
           memCacheHeight: size.round(),

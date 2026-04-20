@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 
@@ -53,6 +55,28 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('guards async avatar bootstrap writes behind an epoch', () async {
+      final source = await File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Widgets/cached_user_avatar_state_part.dart',
+      ).readAsString();
+
+      expect(source, contains('int _bootstrapEpoch = 0;'));
+      expect(source, contains('int _beginBootstrapEpoch() => ++_bootstrapEpoch;'));
+      expect(source, contains('bool _isBootstrapEpochCurrent(int epoch) =>'));
+      expect(source, contains('final epoch = _beginBootstrapEpoch();'));
+      expect(source, contains('if (!_isBootstrapEpochCurrent(epoch)) return;'));
+      expect(source, contains('required int epoch,'));
+    });
+
+    test('avatar network fallback does not wait for full download before paint',
+        () async {
+      final source = await File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Core/Widgets/cached_user_avatar_state_part.dart',
+      ).readAsString();
+
+      expect(source, contains('downloadBeforeRender: false,'));
     });
   });
 }
