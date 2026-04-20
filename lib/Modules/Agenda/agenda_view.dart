@@ -229,7 +229,8 @@ class _FeedStartupWarmPreloadSlot extends StatefulWidget {
       _FeedStartupWarmPreloadSlotState();
 }
 
-class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot> {
+class _FeedStartupWarmPreloadSlotState
+    extends State<_FeedStartupWarmPreloadSlot> {
   final GlobalVideoAdapterPool _adapterPool = ensureGlobalVideoAdapterPool();
   HLSVideoAdapter? _adapter;
   bool _reportedPrepared = false;
@@ -313,6 +314,7 @@ class _FeedStartupWarmPreloadSlotState extends State<_FeedStartupWarmPreloadSlot
           overrideAutoPlay: true,
           isPrimaryFeedSurface: true,
           suppressLoadingOverlay: true,
+          preferStableStartupBuffer: GetPlatform.isIOS,
         ),
       ),
     );

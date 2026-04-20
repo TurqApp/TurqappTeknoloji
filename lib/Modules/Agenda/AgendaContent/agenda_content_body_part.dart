@@ -246,6 +246,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       shouldSuppressGenericResumeThumbnail,
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
+                                                  preferStableStartupBuffer:
+                                                      GetPlatform.isIOS &&
+                                                          isPrimaryFeedSurfaceInstance,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -272,8 +275,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 ),
                                               );
                                             },
-                                            child:
-                                                _buildVideoThumbnail(
+                                            child: _buildVideoThumbnail(
                                               aspectRatio: displayAspect,
                                             ),
                                           ),

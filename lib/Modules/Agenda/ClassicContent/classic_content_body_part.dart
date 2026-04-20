@@ -563,6 +563,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                 shouldSuppressGenericResumeThumbnail,
                             startupRecoveryWatchdogEnabled:
                                 shouldEnableStartupRecoveryWatchdog,
+                            preferStableStartupBuffer: GetPlatform.isIOS &&
+                                isPrimaryFeedSurfaceInstance,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster
