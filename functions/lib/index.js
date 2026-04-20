@@ -188,6 +188,7 @@ __exportStar(require("./24_reports"), exports);
 __exportStar(require("./25_typesenseMarket"), exports);
 __exportStar(require("./26_userBanAdmin"), exports);
 __exportStar(require("./27_nicknameChange"), exports);
+__exportStar(require("./28_shortManifest"), exports);
 // USER SCHEMA NORMALIZER (canonical-only)
 exports.syncUserSchemaAndFlags = functions.firestore
     .document("users/{uid}")

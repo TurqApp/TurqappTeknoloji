@@ -18,19 +18,9 @@ const int _prefetchSchedulerFeedHardBoostCount = 3;
 const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
 const int _prefetchSchedulerQuotaFillBurstSegments = 4;
 const int _prefetchSchedulerQuotaFillBoostReadySegments = 2;
-const int _prefetchSchedulerQuotaFillRemotePageLimit = 40;
 const int _prefetchSchedulerQuotaFillPlanningBatchSize = 180;
 const int _prefetchSchedulerQuotaFillLowWatermark = 16;
 const double _prefetchSchedulerShortLandscapeAspectThreshold = 1.2;
-final Duration _prefetchSchedulerShortQuotaFillWindow =
-    shortQuotaLaunchMotorContract.window;
-final int _prefetchSchedulerShortQuotaFillBandMinutes =
-    shortQuotaLaunchMotorContract.bandMinutes;
-final int _prefetchSchedulerShortQuotaFillSubsliceMs =
-    shortQuotaLaunchMotorContract.subsliceMs;
-final List<List<int>> _prefetchSchedulerShortQuotaFillMinuteSets = <List<int>>[
-  ...shortQuotaLaunchMotorContract.minuteSets,
-];
 
 @visibleForTesting
 int resolvePrefetchReadySegmentsForPost(

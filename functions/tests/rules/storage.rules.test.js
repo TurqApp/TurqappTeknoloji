@@ -84,6 +84,21 @@ test("story HLS path is publicly readable but not writable by story owner", asyn
   await assertFails(uploadString(ref(ownerCtx.storage(), objectPath), "blocked"));
 });
 
+test("shortManifest slot payloads are auth readable and client write blocked", async () => {
+  const objectPath = "shortManifest/2026-04-21/slots/slot_001.json";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadString(ref(context.storage(), objectPath), "{\"items\":[]}");
+  });
+
+  const authCtx = testEnv.authenticatedContext("short-reader");
+  const unauthCtx = testEnv.unauthenticatedContext();
+
+  await assertSucceeds(getBytes(ref(authCtx.storage(), objectPath)));
+  await assertFails(getBytes(ref(unauthCtx.storage(), objectPath)));
+  await assertFails(uploadString(ref(authCtx.storage(), objectPath), "{}"));
+});
+
 test("market storage path allows owner write and blocks other users", async () => {
   const uid = "market-owner";
   const ownerCtx = testEnv.authenticatedContext(uid);

@@ -26,6 +26,7 @@ class _ShortControllerState {
   );
   final userSummaryResolver = UserSummaryResolver.ensure();
   final shortRepository = ensureShortRepository();
+  final shortManifestRepository = ensureShortManifestRepository();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   bool startupPresentationApplied = false;
@@ -79,6 +80,8 @@ extension ShortControllerFieldsPart on ShortController {
       _state.authorSummaryCache;
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   ShortRepository get _shortRepository => _state.shortRepository;
+  ShortManifestRepository get _shortManifestRepository =>
+      _state.shortManifestRepository;
   RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   bool get _startupPresentationApplied => _state.startupPresentationApplied;

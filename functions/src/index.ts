@@ -238,6 +238,7 @@ export * from "./24_reports";
 export * from "./25_typesenseMarket";
 export * from "./26_userBanAdmin";
 export * from "./27_nicknameChange";
+export * from "./28_shortManifest";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore

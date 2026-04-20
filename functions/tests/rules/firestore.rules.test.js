@@ -130,6 +130,21 @@ test("users collection blocks oversized list queries", async () => {
   );
 });
 
+test("shortManifest allows authenticated reads and blocks client writes", async () => {
+  const unauthCtx = testEnv.unauthenticatedContext();
+  const authCtx = testEnv.authenticatedContext("short-reader");
+  const authDb = authCtx.firestore();
+  const unauthDb = unauthCtx.firestore();
+
+  await assertSucceeds(getDoc(doc(authDb, "shortManifest/active")));
+  await assertFails(getDoc(doc(unauthDb, "shortManifest/active")));
+  await assertFails(
+    setDoc(doc(authDb, "shortManifest/2026-04-21"), {
+      status: "published",
+    }),
+  );
+});
+
 test("marketStore allows owner to create item", async () => {
   const uid = "market-owner";
   const ownerCtx = testEnv.authenticatedContext(uid);

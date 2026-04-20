@@ -382,12 +382,12 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
             _playbackHandleKeyForDoc(docId),
             HLSAdapterPlaybackHandle(adapter),
           );
-          final currentSegment = _segmentCacheRuntimeService
-              .estimateCurrentSegmentForDoc(
-                docId,
-                progress: progress,
-                positionSeconds: pos,
-              );
+          final currentSegment =
+              _segmentCacheRuntimeService.estimateCurrentSegmentForDoc(
+            docId,
+            progress: progress,
+            positionSeconds: pos,
+          );
           if (currentSegment != null &&
               currentPage >= 0 &&
               currentPage < shorts.length) {
@@ -421,7 +421,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     }
     return CacheFirstNetworkImage(
       imageUrl: candidates.first,
-      candidateUrls: candidates.skip(1).where((url) => url != candidates.first).toList(growable: false),
+      candidateUrls: candidates
+          .skip(1)
+          .where((url) => url != candidates.first)
+          .toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: const ColoredBox(color: Colors.black),
@@ -616,15 +619,6 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
   }
 
   Future<void> _fetchAndShuffle() async {
-    List<PostsModel> items = [];
-
-    try {
-      items = (await ensureShortRepository().fetchReadyPage(
-        pageSize: ReadBudgetRegistry.shortRandomReadyPoolLimit,
-      ))
-          .posts;
-    } catch (_) {}
-
     final merged = <PostsModel>[];
 
     if (widget.startList != null && widget.startList!.isNotEmpty) {
@@ -636,8 +630,6 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     } else if (widget.startModel != null) {
       merged.add(widget.startModel!);
     }
-
-    merged.addAll(items);
 
     shorts.assignAll(merged);
   }

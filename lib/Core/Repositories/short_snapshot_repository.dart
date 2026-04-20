@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
@@ -28,7 +26,6 @@ class ShortSnapshotRepository extends GetxService {
       ReadBudgetRegistry.shortHomeInitialLimit;
   static int get homeLimitValue =>
       ReadBudgetRegistry.shortHomeInitialLimitValue;
-  static const int _maxPageSkips = 4;
 }
 
 class ShortSnapshotQuery {
@@ -57,8 +54,7 @@ class ShortSnapshotQuery {
 
 class _ShortSnapshotRepositoryShellState {
   _ShortSnapshotRepositoryShellState(this.repository)
-      : shortRepository = ensureShortRepository(),
-        invariantGuard = ensureRuntimeInvariantGuard(),
+      : invariantGuard = ensureRuntimeInvariantGuard(),
         userSummaryResolver = UserSummaryResolver.ensure(),
         visibilityPolicy = VisibilityPolicyService.ensure(),
         warmLaunchPool = ensureWarmLaunchPool(),
@@ -90,7 +86,6 @@ class _ShortSnapshotRepositoryShellState {
   }
 
   final ShortSnapshotRepository repository;
-  final ShortRepository shortRepository;
   final RuntimeInvariantGuard invariantGuard;
   final UserSummaryResolver userSummaryResolver;
   final VisibilityPolicyService visibilityPolicy;
@@ -112,7 +107,6 @@ ShortSnapshotRepository ensureShortSnapshotRepository() =>
     Get.put(ShortSnapshotRepository(), permanent: true);
 
 extension ShortSnapshotRepositoryFieldsPart on ShortSnapshotRepository {
-  ShortRepository get _shortRepository => _shellState.shortRepository;
   RuntimeInvariantGuard get _invariantGuard => _shellState.invariantGuard;
   UserSummaryResolver get _userSummaryResolver =>
       _shellState.userSummaryResolver;

@@ -104,39 +104,7 @@ Future<List<PostsModel>> _performFetchEligibleSnapshot(
   ShortSnapshotRepository repository,
   ShortSnapshotQuery query,
 ) async {
-  final followingIds = await repository._loadFollowingIds(query.userId);
-  final me = query.userId.trim();
-  final nowMs = DateTime.now().millisecondsSinceEpoch;
-  QueryDocumentSnapshot<Map<String, dynamic>>? cursor;
-  final collected = <PostsModel>[];
-  final seen = <String>{};
-
-  for (int attempt = 0;
-      attempt < ShortSnapshotRepository._maxPageSkips;
-      attempt++) {
-    final page = await repository._shortRepository.fetchReadyPage(
-      startAfter: cursor,
-      pageSize: query.effectiveLimit,
-      nowMs: nowMs,
-    );
-    if (page.posts.isEmpty) break;
-
-    final eligible = await repository._filterEligiblePosts(
-      page.posts,
-      currentUserId: me,
-      followingIds: followingIds,
-    );
-    for (final post in eligible) {
-      if (seen.add(post.docID)) {
-        collected.add(post);
-      }
-    }
-    if (collected.length >= query.effectiveLimit) break;
-    if (!page.hasMore || page.lastDoc == null) break;
-    cursor = page.lastDoc;
-  }
-
-  return collected.take(query.effectiveLimit).toList(growable: false);
+  return const <PostsModel>[];
 }
 
 Future<List<PostsModel>?> _performLoadWarmSnapshot(

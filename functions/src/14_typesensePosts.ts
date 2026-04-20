@@ -186,6 +186,8 @@ async function ensurePostsCollection() {
         { name: "locationCity", type: "string", optional: true },
         { name: "originalPostID", type: "string", optional: true },
         { name: "originalUserID", type: "string", optional: true },
+        { name: "shortId", type: "string", optional: true },
+        { name: "shortUrl", type: "string", optional: true },
         { name: "ctaLabel", type: "string", optional: true },
         { name: "ctaUrl", type: "string", optional: true },
         { name: "ctaType", type: "string", optional: true },
@@ -249,6 +251,8 @@ async function ensurePostsCollection() {
           { name: "locationCity", type: "string", optional: true },
           { name: "originalPostID", type: "string", optional: true },
           { name: "originalUserID", type: "string", optional: true },
+          { name: "shortId", type: "string", optional: true },
+          { name: "shortUrl", type: "string", optional: true },
           { name: "ctaLabel", type: "string", optional: true },
           { name: "ctaUrl", type: "string", optional: true },
           { name: "ctaType", type: "string", optional: true },
@@ -443,6 +447,8 @@ type PostSearchDoc = {
   locationCity: string;
   originalPostID: string;
   originalUserID: string;
+  shortId: string;
+  shortUrl: string;
   ctaLabel: string;
   ctaUrl: string;
   ctaType: string;
@@ -690,6 +696,8 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
     locationCity: asString((data as any).locationCity) || asString((data as any).konum),
     originalPostID: asString((data as any).originalPostID),
     originalUserID: asString((data as any).originalUserID),
+    shortId: asString((data as any).shortId),
+    shortUrl: asString((data as any).shortUrl),
     ctaLabel: asString(reshareMap.ctaLabel),
     ctaUrl: asString(reshareMap.ctaUrl),
     ctaType: asString(reshareMap.ctaType),

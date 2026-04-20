@@ -177,67 +177,6 @@ extension ShortControllerLoadingPart on ShortController {
     }
   }
 
-  void _logShortLaunchMotorInputSnapshot(
-    List<PostsModel> posts, {
-    required String trigger,
-    required QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
-  }) {
-    if (!kDebugMode || posts.isEmpty) {
-      return;
-    }
-    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'short');
-    final snapshot = LaunchMotorSelectionService.analyzePool(
-      latestPool: posts,
-      anchorMs: anchorMs,
-      window: shortLaunchMotorContract.window,
-      bandMinutes: shortLaunchMotorContract.bandMinutes,
-      subsliceMs: shortLaunchMotorContract.subsliceMs,
-      minuteSets: shortLaunchMotorContract.minuteSets,
-    );
-    debugPrint(
-      '[ShortLaunchMotorInput] '
-      'trigger=$trigger startAfter=${startAfter?.id ?? ''} '
-      'anchor=${DateTime.fromMillisecondsSinceEpoch(anchorMs).toIso8601String()} '
-      'motor=${snapshot.motorIndex} ownedMinutes=${snapshot.ownedMinutes.join(",")} '
-      'visibleCount=${posts.length} strictCount=${snapshot.strictSelection.length} '
-      'queueCount=${snapshot.queueCount} '
-      'sample=${snapshot.strictSelection.take(5).map((post) => post.docID).join(",")}',
-    );
-  }
-
-  LaunchMotorPoolFillResult _buildShortLaunchMotorPoolFill(
-    List<PostsModel> posts, {
-    required int targetCount,
-  }) {
-    final result = LaunchMotorSelectionService.buildPoolFillResult(
-      latestPool: posts,
-      anchorMs: startupSurfaceSessionSeed(sessionNamespace: 'short'),
-      contract: shortLaunchMotorContract,
-      targetCount: targetCount,
-      // Keep short startup inside the motor window, but when strict queues are
-      // sparse do not leave the launch surface underfilled.
-      fallbackToAffinityWhenSparse:
-          ShortFetchPolicy.fallbackToAffinityWhenSparse,
-      fallbackToLatestWhenEmpty: ShortFetchPolicy.fallbackToLatestWhenEmpty,
-      fallbackToLatestWhenAffinitySparse:
-          ShortFetchPolicy.fallbackToLatestWhenAffinitySparse,
-    );
-    return LaunchMotorPoolFillResult(
-      snapshot: result.snapshot,
-      selectedPool: _sortShortNewestFirst(result.selectedPool),
-    );
-  }
-
-  List<PostsModel> _sortShortNewestFirst(List<PostsModel> items) {
-    if (items.length < 2) {
-      return items.toList(growable: false);
-    }
-    final sorted = items.toList(growable: false)
-      ..sort((left, right) =>
-          LaunchMotorSelectionService.compareLatestPosts(left, right));
-    return sorted;
-  }
-
   Future<_ShortPageResult> _fetchPage({
     QueryDocumentSnapshot<Map<String, dynamic>>? startAfter,
     int? pageSizeOverride,
@@ -245,212 +184,22 @@ extension ShortControllerLoadingPart on ShortController {
     String trigger = 'manual',
   }) async {
     final totalStartedAt = DateTime.now();
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    QueryDocumentSnapshot<Map<String, dynamic>>? cursor = startAfter;
-    QueryDocumentSnapshot<Map<String, dynamic>>? lastDoc = startAfter;
-    bool hasMoreDocs = true;
-    const int maxPageScans = ShortFetchPolicy.maxPageScans;
     final effectivePageSize = pageSizeOverride ?? pageSize;
-    final minimumSelectedCount =
-        minimumSelectedCountOverride ?? effectivePageSize;
-    final shouldDeferAuthorHydration = shorts.isEmpty;
-    if (shouldDeferAuthorHydration) {
-      _recordShortFetchEvent(
-        stage: 'bootstrap_defer_author_hydration',
-        trigger: trigger,
-        metadata: <String, dynamic>{
-          'currentCount': shorts.length,
-          'pageSize': effectivePageSize,
-          'minimumSelectedCount': minimumSelectedCount,
-        },
-      );
-    }
-    final collected = <PostsModel>[];
-    final seenDocIds = <String>{};
-    List<PostsModel>? fallbackPosts;
-    LaunchMotorPoolFillResult? poolFillResult;
-
-    for (int attempt = 0; attempt < maxPageScans; attempt++) {
-      final fetchStartedAt = DateTime.now();
-      final page = await _shortRepository.fetchReadyPage(
-        startAfter: cursor,
+    try {
+      final manifestStartedAt = DateTime.now();
+      final manifestPage = await _shortManifestRepository.takeNextPage(
         pageSize: effectivePageSize,
-        nowMs: nowMs,
       );
-      final fetchElapsedMs =
-          DateTime.now().difference(fetchStartedAt).inMilliseconds;
       _recordShortFetchEvent(
-        stage: 'fetch_ready_page_timing',
+        stage: 'manifest_page_timing',
         trigger: trigger,
         metadata: <String, dynamic>{
-          'attempt': attempt,
-          'elapsedMs': fetchElapsedMs,
-          'returnedCount': page.posts.length,
-          'hasMore': page.hasMore,
-        },
-      );
-
-      lastDoc = page.lastDoc;
-      hasMoreDocs = page.hasMore;
-
-      if (page.posts.isEmpty) {
-        break;
-      }
-
-      final sourceNotReady = page.posts
-          .where(
-              (post) => post.hasRenderableVideoCard && !post.hasPlayableVideo)
-          .toList(growable: false);
-      if (sourceNotReady.isNotEmpty) {
-        _recordShortFetchEvent(
-          stage: 'source_not_ready',
-          trigger: trigger,
-          metadata: <String, dynamic>{
-            'count': sourceNotReady.length,
-            'docIds': sourceNotReady
-                .take(6)
-                .map((post) => post.docID)
-                .toList(growable: false),
-            'hlsStatuses': sourceNotReady
-                .take(6)
-                .map((post) => post.hlsStatus)
-                .toList(growable: false),
-          },
-        );
-      }
-
-      final rawWithVideo =
-          page.posts.where(_isEligibleShortPost).toList(growable: false);
-      final timeFiltered = rawWithVideo
-          .where((p) => p.timeStamp <= nowMs)
-          .toList(growable: false);
-      final arsivFiltered =
-          timeFiltered.where((p) => p.arsiv == false).toList(growable: false);
-      final finalFiltered = arsivFiltered
-          .where((p) => p.deletedPost != true)
-          .where((p) => p.gizlendi != true)
-          .toList(growable: false);
-
-      if (finalFiltered.isNotEmpty) {
-        final filterStartedAt = DateTime.now();
-        final filtered = await _filterVisibleShortPosts(
-          finalFiltered,
-          hydrateAuthors: !shouldDeferAuthorHydration,
-        );
-        final filterElapsedMs =
-            DateTime.now().difference(filterStartedAt).inMilliseconds;
-        _recordShortFetchEvent(
-          stage: 'filter_visible_timing',
-          trigger: trigger,
-          metadata: <String, dynamic>{
-            'attempt': attempt,
-            'elapsedMs': filterElapsedMs,
-            'inputCount': finalFiltered.length,
-            'outputCount': filtered.length,
-            'hydrateAuthors': !shouldDeferAuthorHydration,
-          },
-        );
-        if (filtered.isNotEmpty) {
-          for (final post in filtered) {
-            if (!seenDocIds.add(post.docID)) continue;
-            collected.add(post);
-          }
-          final poolFillStartedAt = DateTime.now();
-          poolFillResult = _buildShortLaunchMotorPoolFill(
-            collected,
-            targetCount: effectivePageSize,
-          );
-          final poolFillElapsedMs =
-              DateTime.now().difference(poolFillStartedAt).inMilliseconds;
-          _recordShortFetchEvent(
-            stage: 'launch_motor_fill_timing',
-            trigger: trigger,
-            metadata: <String, dynamic>{
-              'attempt': attempt,
-              'elapsedMs': poolFillElapsedMs,
-              'collectedCount': collected.length,
-              'strictCount': poolFillResult.strictCount,
-              'selectedCount': poolFillResult.selectedPool.length,
-              'minimumSelectedCount': minimumSelectedCount,
-            },
-          );
-          final hasEnoughSelectedPosts =
-              poolFillResult.selectedPool.length >= minimumSelectedCount;
-          if (hasEnoughSelectedPosts) {
-            final resultPosts = poolFillResult.selectedPool;
-            if (resultPosts.isNotEmpty) {
-              _recordShortFetchEvent(
-                stage: 'fetch_page_total_timing',
-                trigger: trigger,
-                metadata: <String, dynamic>{
-                  'elapsedMs':
-                      DateTime.now().difference(totalStartedAt).inMilliseconds,
-                  'resultCount': resultPosts.length,
-                  'strictCount': poolFillResult.strictCount,
-                  'selectedCount': poolFillResult.selectedPool.length,
-                  'minimumSelectedCount': minimumSelectedCount,
-                  'attemptsUsed': attempt + 1,
-                },
-              );
-              _logShortLaunchMotorInputSnapshot(
-                resultPosts,
-                trigger: trigger,
-                startAfter: startAfter,
-              );
-              return _ShortPageResult(
-                resultPosts,
-                lastDoc,
-                hasMoreDocs,
-                postsPreplanned: true,
-              );
-            }
-          }
-        } else if (fallbackPosts == null) {
-          final fallbackFilterStartedAt = DateTime.now();
-          final fallback = await _filterVisibleShortPosts(
-            finalFiltered,
-            hydrateAuthors: !shouldDeferAuthorHydration,
-          );
-          _recordShortFetchEvent(
-            stage: 'fallback_filter_visible_timing',
-            trigger: trigger,
-            metadata: <String, dynamic>{
-              'attempt': attempt,
-              'elapsedMs': DateTime.now()
-                  .difference(fallbackFilterStartedAt)
-                  .inMilliseconds,
-              'inputCount': finalFiltered.length,
-              'outputCount': fallback.length,
-              'hydrateAuthors': !shouldDeferAuthorHydration,
-            },
-          );
-          if (fallback.isNotEmpty) {
-            fallbackPosts = fallback;
-          }
-        }
-      }
-
-      if (!page.hasMore || page.lastDoc == null) {
-        break;
-      }
-      cursor = page.lastDoc;
-    }
-
-    if (collected.isEmpty && fallbackPosts != null) {
-      final fallbackPoolFillStartedAt = DateTime.now();
-      final resultPosts = _buildShortLaunchMotorPoolFill(
-        fallbackPosts,
-        targetCount: effectivePageSize,
-      ).selectedPool;
-      _recordShortFetchEvent(
-        stage: 'fallback_launch_motor_fill_timing',
-        trigger: trigger,
-        metadata: <String, dynamic>{
-          'elapsedMs': DateTime.now()
-              .difference(fallbackPoolFillStartedAt)
-              .inMilliseconds,
-          'inputCount': fallbackPosts.length,
-          'resultCount': resultPosts.length,
+          'elapsedMs':
+              DateTime.now().difference(manifestStartedAt).inMilliseconds,
+          'returnedCount': manifestPage.posts.length,
+          'hasMore': manifestPage.hasMore,
+          'manifestId': manifestPage.manifestId,
+          'slotIndex': manifestPage.slotIndex,
         },
       );
       _recordShortFetchEvent(
@@ -458,60 +207,32 @@ extension ShortControllerLoadingPart on ShortController {
         trigger: trigger,
         metadata: <String, dynamic>{
           'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
-          'resultCount': resultPosts.length,
-          'attemptsUsed': maxPageScans,
-          'fallback': true,
+          'resultCount': manifestPage.posts.length,
+          'source': 'manifest',
         },
       );
-      _logShortLaunchMotorInputSnapshot(
-        resultPosts,
-        trigger: '${trigger}_fallback',
-        startAfter: startAfter,
-      );
       return _ShortPageResult(
-        resultPosts,
-        lastDoc,
-        hasMoreDocs,
+        manifestPage.posts,
+        null,
+        manifestPage.hasMore,
+        postsPreplanned: true,
+      );
+    } catch (e) {
+      _recordShortFetchEvent(
+        stage: 'manifest_failed',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'error': '$e',
+          'source': 'manifest',
+        },
+      );
+      return const _ShortPageResult(
+        <PostsModel>[],
+        null,
+        false,
         postsPreplanned: true,
       );
     }
-
-    final finalPoolFillStartedAt = DateTime.now();
-    final resultPosts = (poolFillResult ??
-            _buildShortLaunchMotorPoolFill(
-              collected,
-              targetCount: effectivePageSize,
-            ))
-        .selectedPool;
-    _recordShortFetchEvent(
-      stage: 'final_launch_motor_fill_timing',
-      trigger: trigger,
-      metadata: <String, dynamic>{
-        'elapsedMs':
-            DateTime.now().difference(finalPoolFillStartedAt).inMilliseconds,
-        'collectedCount': collected.length,
-        'resultCount': resultPosts.length,
-      },
-    );
-    _recordShortFetchEvent(
-      stage: 'fetch_page_total_timing',
-      trigger: trigger,
-      metadata: <String, dynamic>{
-        'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
-        'resultCount': resultPosts.length,
-      },
-    );
-    _logShortLaunchMotorInputSnapshot(
-      resultPosts,
-      trigger: trigger,
-      startAfter: startAfter,
-    );
-    return _ShortPageResult(
-      resultPosts,
-      lastDoc,
-      hasMoreDocs,
-      postsPreplanned: true,
-    );
   }
 
   Future<List<PostsModel>> _filterVisibleShortPosts(
@@ -678,11 +399,7 @@ extension ShortControllerLoadingPart on ShortController {
         await _loadNextPage(trigger: 'initial_empty_bootstrap');
       }
     } else {
-      _log('[Shorts] Motor öncesi seed kapalı - mevcut liste korunuyor');
-      final sortedExisting = _sortShortNewestFirst(
-        shorts.toList(growable: false),
-      );
-      _replaceShorts(sortedExisting, remapCache: true);
+      _log('[Shorts] Manifest listesi mevcut - sıralama korunuyor');
       unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
     }
 

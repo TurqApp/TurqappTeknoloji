@@ -11,12 +11,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _quotaFillRemoteExhaustedTargetBytes = 0;
   }
 
-  void _markWifiQuotaFillExhausted(SegmentCacheManager cacheManager) {
-    _quotaFillRemoteHasMore = false;
-    _quotaFillRemoteExhaustedUsageBytes = cacheManager.totalTrackedUsageBytes;
-    _quotaFillRemoteExhaustedTargetBytes = _wifiQuotaFillTargetBytes;
-  }
-
   void _resetWifiQuotaFillPlanIfNeeded(SegmentCacheManager cacheManager) {
     if (_quotaFillRemoteHasMore) return;
     final targetBytes = _wifiQuotaFillTargetBytes;
@@ -177,65 +171,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
         return;
       }
-
-      if (!_quotaFillRemoteHasMore) return;
-      final remoteSeedPosts = <PostsModel>[];
-      while (remoteSeedPosts.length <
-              _prefetchSchedulerQuotaFillPlanningBatchSize &&
-          _quotaFillRemoteHasMore) {
-        final page = await ensureShortRepository().fetchReadyPage(
-          startAfter: _quotaFillRemoteCursor,
-          pageSize: _prefetchSchedulerQuotaFillRemotePageLimit,
-        );
-        if (stopIfBackgroundGateClosed('remote_plan_interrupted_by_playback')) {
-          return;
-        }
-        _quotaFillRemoteCursor = page.lastDoc;
-        _quotaFillRemoteHasMore = page.hasMore && page.lastDoc != null;
-        if (page.posts.isEmpty) {
-          if (!_quotaFillRemoteHasMore) {
-            _markWifiQuotaFillExhausted(cacheManager);
-          }
-          break;
-        }
-        remoteSeedPosts.addAll(page.posts);
-        if (!_quotaFillRemoteHasMore) {
-          _markWifiQuotaFillExhausted(cacheManager);
-          break;
-        }
-      }
-      if (remoteSeedPosts.isEmpty) return;
-      if (stopIfBackgroundGateClosed('remote_seed_interrupted_by_playback')) {
-        return;
-      }
-
-      final remoteCandidates = _selectShortQuotaFillCandidates(
-        remoteSeedPosts,
-        limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
-      );
-      debugPrint(
-        '[ShortQuotaFill] status=remote_seed fetched=${remoteSeedPosts.length} '
-        'selected=${remoteCandidates.length} hasMore=$_quotaFillRemoteHasMore',
-      );
-      if (remoteCandidates.isEmpty) return;
-      cacheManager.cachePostCards(remoteCandidates);
-      for (final post in remoteCandidates) {
-        cacheManager.markReservedForShort(post.docID);
-      }
-
-      await _appendQuotaFillQueueForPosts(
-        remoteCandidates,
-        0,
-        maxDocs: remoteCandidates.length,
-      );
-      for (final post in remoteCandidates.take(2)) {
-        boostDoc(
-          post.docID,
-          readySegments: _prefetchSchedulerQuotaFillBoostReadySegments,
-        );
-      }
+      debugPrint('[ShortQuotaFill] status=manifest_only_no_remote_seed');
     } catch (e) {
-      debugPrint('[Prefetch] Remote quota fill plan failed: $e');
+      debugPrint('[Prefetch] Quota fill plan failed: $e');
     } finally {
       _quotaFillRemoteInFlight = false;
     }
@@ -281,33 +219,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return const <PostsModel>[];
     }
 
-    final snapshot = LaunchMotorSelectionService.analyzePool(
-      latestPool: filtered,
-      anchorMs: _resolveShortQuotaFillAnchorMs(),
-      window: _prefetchSchedulerShortQuotaFillWindow,
-      bandMinutes: _prefetchSchedulerShortQuotaFillBandMinutes,
-      subsliceMs: _prefetchSchedulerShortQuotaFillSubsliceMs,
-      minuteSets: _prefetchSchedulerShortQuotaFillMinuteSets,
-    );
     debugPrint(
-      '[ShortQuotaFill] status=motor_snapshot motor=${snapshot.motorIndex + 1} '
-      'ownedMinutes=${snapshot.ownedMinutes.join(",")} '
-      'normalized=${snapshot.normalizedPool.length} '
-      'windowed=${snapshot.windowedPool.length} '
-      'queueCount=${snapshot.queueCount} strictCount=${snapshot.strictSelection.length}',
+      '[ShortQuotaFill] status=filtered_candidates count=${filtered.length}',
     );
-    if (!snapshot.hasQueues) {
-      debugPrint('[ShortQuotaFill] status=empty_queue');
-      return const <PostsModel>[];
-    }
-
-    return snapshot.strictSelection.take(limit).toList(growable: false);
-  }
-
-  int _resolveShortQuotaFillAnchorMs() {
-    return startupSurfaceSessionSeed(
-      sessionNamespace: 'short_quota',
-    );
+    return filtered.take(limit).toList(growable: false);
   }
 
   void updatePriorityWindowContext(List<String> docIDs, int currentIndex) {
