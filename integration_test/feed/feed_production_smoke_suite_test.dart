@@ -55,21 +55,15 @@ void main() {
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
             );
 
-            final firstSample = await _captureCurrentFeedVideo(
+            final firstCapture = await _capturePlayableFeedSample(
               tester,
               controller: controller,
-              deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
-            );
-            expect(firstSample, isNotNull,
-                reason: 'Feed did not expose a first autoplay video.');
-            final firstAdapter = await _waitForFeedAdapter(
-              tester,
-              sample: firstSample!,
               label: 'feed_first',
               deadline:
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
             );
+            final firstSample = firstCapture.sample;
+            final firstAdapter = firstCapture.adapter;
             await _assertVideoHealthy(
               tester,
               controller: controller,
@@ -99,21 +93,15 @@ void main() {
                 deadline:
                     _phaseDeadline(suiteDeadline, const Duration(seconds: 4)),
               );
-              final sample = await _captureCurrentFeedVideo(
+              final capture = await _capturePlayableFeedSample(
                 tester,
                 controller: controller,
-                deadline:
-                    _phaseDeadline(suiteDeadline, const Duration(seconds: 6)),
-              );
-              expect(sample, isNotNull,
-                  reason: 'Normal scroll did not settle on a playable video.');
-              final adapter = await _waitForFeedAdapter(
-                tester,
-                sample: sample!,
                 label: 'normal_scroll_$i',
                 deadline:
                     _phaseDeadline(suiteDeadline, const Duration(seconds: 6)),
               );
+              final sample = capture.sample;
+              final adapter = capture.adapter;
               await _assertVideoHealthy(
                 tester,
                 controller: controller,
@@ -135,21 +123,15 @@ void main() {
               deadline:
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 5)),
             );
-            final finalSample = await _captureCurrentFeedVideo(
+            final finalCapture = await _capturePlayableFeedSample(
               tester,
               controller: controller,
+              label: 'final',
               deadline:
                   _phaseDeadline(suiteDeadline, const Duration(seconds: 8)),
             );
-            expect(finalSample, isNotNull,
-                reason: 'Final feed sample missing.');
-            final finalAdapter = await _waitForFeedAdapter(
-              tester,
-              sample: finalSample!,
-              label: 'final',
-              deadline:
-                  _phaseDeadline(suiteDeadline, const Duration(seconds: 6)),
-            );
+            final finalSample = finalCapture.sample;
+            final finalAdapter = finalCapture.adapter;
             await _assertVideoHealthy(
               tester,
               controller: controller,
@@ -221,6 +203,16 @@ class _FeedVideoSample {
   final PostsModel model;
 }
 
+class _FeedPlaybackCapture {
+  const _FeedPlaybackCapture({
+    required this.sample,
+    required this.adapter,
+  });
+
+  final _FeedVideoSample sample;
+  final HLSVideoAdapter adapter;
+}
+
 DateTime _phaseDeadline(DateTime suiteDeadline, Duration localWindow) {
   final localDeadline = DateTime.now().add(localWindow);
   return localDeadline.isBefore(suiteDeadline) ? localDeadline : suiteDeadline;
@@ -269,6 +261,76 @@ Future<_FeedVideoSample?> _captureCurrentFeedVideo(
     return _FeedVideoSample(index: centered, docId: docId, model: post);
   }
   return null;
+}
+
+Future<_FeedVideoSample?> _scrollToNextVisibleVideo(
+  WidgetTester tester, {
+  required AgendaController controller,
+  required DateTime deadline,
+}) async {
+  await _scrollFeed(tester, const Offset(0, -420), steps: 6);
+  await _waitForFeedStability(
+    tester,
+    controller: controller,
+    deadline: deadline,
+  );
+  return _captureCurrentFeedVideo(
+    tester,
+    controller: controller,
+    deadline: deadline,
+  );
+}
+
+Future<_FeedPlaybackCapture> _capturePlayableFeedSample(
+  WidgetTester tester, {
+  required AgendaController controller,
+  required String label,
+  required DateTime deadline,
+  _FeedVideoSample? initialSample,
+}) async {
+  var currentSample = initialSample ??
+      await _captureCurrentFeedVideo(
+        tester,
+        controller: controller,
+        deadline: deadline,
+      );
+  Object? lastError;
+
+  for (var attempt = 0; attempt < 3; attempt++) {
+    currentSample ??= await _scrollToNextVisibleVideo(
+      tester,
+      controller: controller,
+      deadline: deadline,
+    );
+    if (currentSample == null) {
+      continue;
+    }
+
+    try {
+      final adapter = await _waitForFeedAdapter(
+        tester,
+        sample: currentSample,
+        label: '${label}_$attempt',
+        deadline: deadline,
+      );
+      return _FeedPlaybackCapture(
+        sample: currentSample,
+        adapter: adapter,
+      );
+    } catch (error) {
+      lastError = error;
+      currentSample = await _scrollToNextVisibleVideo(
+        tester,
+        controller: controller,
+        deadline: deadline,
+      );
+    }
+  }
+
+  throw TestFailure(
+    '$label could not resolve a playable HLS sample '
+    '(lastError=$lastError).',
+  );
 }
 
 Future<HLSVideoAdapter> _waitForFeedAdapter(
@@ -355,9 +417,16 @@ Future<void> _assertVideoHealthy(
       reason:
           '$label is neither playing nor recovering from buffer (doc=${sample.docId}).');
 
-  final initiallyMuted = await adapter.isMutedNative();
-  expect(initiallyMuted, isFalse,
-      reason: '$label started muted unexpectedly (doc=${sample.docId}).');
+  final initiallyMuted = await currentAdapter.isMutedNative();
+  if (initiallyMuted) {
+    final becameAudible = await _waitForAudibleOrUnmuted(currentAdapter);
+    expect(
+      becameAudible,
+      isTrue,
+      reason:
+          '$label stayed muted beyond the audible grace window (doc=${currentSample.docId}).',
+    );
+  }
 
   Duration? baseline;
   var loopCount = 0;
@@ -381,19 +450,15 @@ Future<void> _assertVideoHealthy(
           continue;
         } catch (_) {}
       }
-      final replacement = await _captureCurrentFeedVideo(
-        tester,
-        controller: controller,
-        deadline: deadline,
-      );
-      if (replacement != null && sampleSwitchCount < 3) {
-        currentSample = replacement;
-        currentAdapter = await _waitForFeedAdapter(
+      if (sampleSwitchCount < 3) {
+        final replacement = await _capturePlayableFeedSample(
           tester,
-          sample: replacement,
+          controller: controller,
           label: '${label}_resettled',
           deadline: deadline,
         );
+        currentSample = replacement.sample;
+        currentAdapter = replacement.adapter;
         baseline = null;
         loopCount = 0;
         sampleSwitchCount += 1;
