@@ -165,6 +165,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return false;
   }
 
+  void _markShortPlaybackAttempt(
+    int page,
+    String docId,
+  ) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return;
+    _lastShortPlaybackAttemptToken = '$page:$trimmed';
+    _lastShortPlaybackAttemptAt = DateTime.now();
+  }
+
   void _requestExclusivePlayback(
     String docId,
     HLSVideoAdapter adapter, {
@@ -1084,11 +1094,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
         var recoveredRevisitPlayback = false;
         if (_shouldRecoverShortPlaybackOnRevisit(page, vc)) {
           try {
+            _markShortPlaybackAttempt(page, docId);
             await vc.recoverFrozenPlayback();
             recoveredRevisitPlayback = true;
           } catch (_) {}
         }
-        if (!recoveredRevisitPlayback && !vc.value.isPlaying) {
+        if (!recoveredRevisitPlayback &&
+            !vc.value.isPlaying &&
+            !vc.value.isBuffering) {
+          _markShortPlaybackAttempt(page, docId);
           await _playbackExecutionService.playAdapter(vc);
         }
         _pendingPageActivation = false;
@@ -1174,11 +1188,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
       } catch (_) {}
       final shouldKickPlayback = vc.value.hasRenderedFirstFrame &&
           vc.value.position > Duration.zero &&
-          !vc.value.isPlaying;
+          !vc.value.isPlaying &&
+          !vc.value.isBuffering;
       final shouldRetrySoon = attempt < attemptDelays.length - 1 &&
           (!vc.value.hasRenderedFirstFrame ||
               stillMuted ||
-              (vc.value.position > Duration.zero && !vc.value.isPlaying) ||
+              (vc.value.position > Duration.zero &&
+                  !vc.value.isPlaying &&
+                  !vc.value.isBuffering) ||
               vc.value.position < const Duration(milliseconds: 2500));
       final docId = page >= 0 && page < _cachedShorts.length
           ? _cachedShorts[page].docID.trim()

@@ -203,4 +203,33 @@ void main() {
       contains('HLSAdapterPlaybackHandle(adapter)'),
     );
   });
+
+  test('iOS short replay nudges ignore buffering startup state', () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains('!recoveredRevisitPlayback &&\n'
+          '            !vc.value.isPlaying &&\n'
+          '            !vc.value.isBuffering'),
+    );
+    expect(
+      shortViewSource,
+      contains('final shouldKickPlayback = vc.value.hasRenderedFirstFrame &&\n'
+          '          vc.value.position > Duration.zero &&\n'
+          '          !vc.value.isPlaying &&\n'
+          '          !vc.value.isBuffering;'),
+    );
+    expect(
+      shortViewSource,
+      contains('void _markShortPlaybackAttempt('),
+    );
+    expect(
+      shortViewSource,
+      contains('_markShortPlaybackAttempt(page, docId);\n'
+          '          await _playbackExecutionService.playAdapter(vc);'),
+    );
+  });
 }
