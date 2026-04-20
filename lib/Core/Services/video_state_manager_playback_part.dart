@@ -305,7 +305,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
         return;
       }
-      if (!handle.isPlaying) {
+      final hasMeaningfulProgress = handle.position > Duration.zero;
+      if (!handle.isPlaying && !hasMeaningfulProgress) {
         _playbackExecutionService.resumeHandle(handle);
       }
     });

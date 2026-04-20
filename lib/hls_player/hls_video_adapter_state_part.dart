@@ -117,7 +117,9 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
             !_value.isCompleted &&
             !_value.isPlaying &&
             !_value.isBuffering &&
+            !_hasRecentNativePlayRequest() &&
             !_shouldThrottleIosPlaybackReassert()) {
+          _markNativePlayRequest();
           unawaited(_hls.play());
         }
       }
@@ -187,6 +189,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       _pendingSeek = null;
     }
     if (_wantPlay) {
+      _markNativePlayRequest();
       _hls.play();
       _wantPlay = false;
       _wantPause = false;

@@ -103,6 +103,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   Duration? _pendingSeek;
   double? _pendingPreferredBufferDurationSeconds;
   DateTime? _lastIosPlaybackReassertAt;
+  DateTime? _lastNativePlayRequestAt;
 
   HLSController get hlsController => _hls;
   int get rendererStallCount => _hls.rendererStallCount;

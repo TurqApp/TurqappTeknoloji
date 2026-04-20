@@ -1,6 +1,18 @@
 part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
+  void _markNativePlayRequest() {
+    _lastNativePlayRequestAt = DateTime.now();
+  }
+
+  bool _hasRecentNativePlayRequest({
+    Duration window = const Duration(milliseconds: 700),
+  }) {
+    final lastAt = _lastNativePlayRequestAt;
+    if (lastAt == null) return false;
+    return DateTime.now().difference(lastAt) < window;
+  }
+
   bool _shouldThrottleIosPlaybackReassert({
     Duration minSpacing = const Duration(milliseconds: 650),
   }) {
@@ -43,6 +55,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
       loop: loop,
     );
+    if (autoPlay) {
+      _markNativePlayRequest();
+    }
 
     if (hasPendingVolume) {
       await _hls.setVolume(pendingVolume);
@@ -55,6 +70,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
     if (autoPlay) {
       if (shouldDeferAutoplayUntilSeek) {
+        _markNativePlayRequest();
         await _hls.play();
       }
       _wantPlay = false;
@@ -79,10 +95,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPlay = true;
     _wantPause = false;
     if (_viewReady) {
+      _markNativePlayRequest();
       await _hls.loadVideo(url, autoPlay: true, loop: loop);
       if (resumeAt > Duration.zero) {
         await _hls.seekTo(resumeAt.inMilliseconds / 1000.0);
       }
+      _markNativePlayRequest();
       await _hls.play();
     }
   }
@@ -109,6 +127,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_viewReady) {
       _wantPlay = false;
       _wantPause = false;
+      _markNativePlayRequest();
       await _hls.play();
       return;
     }
@@ -190,8 +209,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         final shouldForcePlay =
             stillMuted || (!_value.isPlaying && withinStartupReassertWindow);
         if (!shouldForcePlay) return;
+        if (_hasRecentNativePlayRequest()) return;
         if (_shouldThrottleIosPlaybackReassert()) return;
         try {
+          _markNativePlayRequest();
           await _hls.play();
         } catch (_) {}
       })();

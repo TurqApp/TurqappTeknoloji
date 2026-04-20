@@ -336,6 +336,9 @@ extension HLSControllerEventsPart on HLSController {
       } catch (_) {}
     }
     if (!resumePlay) return;
+    if (_state == PlayerState.playing || _state == PlayerState.buffering) {
+      return;
+    }
     if (hasStableVisualResume && seekAlreadyApplied) {
       return;
     }

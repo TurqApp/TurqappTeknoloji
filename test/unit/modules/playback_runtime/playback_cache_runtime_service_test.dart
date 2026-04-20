@@ -86,6 +86,22 @@ void main() {
     expect(manager.currentPlayingDocID, 'doc-a');
   });
 
+  test(
+      'video state manager skips pending resume when handle already progressed',
+      () async {
+    final manager = VideoStateManager();
+    final handle = _FakePlaybackHandle()
+      ..position = const Duration(milliseconds: 40);
+
+    manager.registerPlaybackHandle('doc-a', handle);
+
+    manager.playOnlyThis('doc-a');
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+
+    expect(handle.playCount, 0);
+    expect(manager.currentPlayingDocID, 'doc-a');
+  });
+
   test('playback runtime service keeps audible ownership on latest target',
       () async {
     final manager = VideoStateManager();
