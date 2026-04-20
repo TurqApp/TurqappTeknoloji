@@ -250,6 +250,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: true,
   ),
   QALabCatalogEntry(
+    path: 'integration_test/notifications/post_deeplink_target_smoke_test.dart',
+    origin: QALabTestOrigin.integration,
+    runnableInApp: true,
+  ),
+  QALabCatalogEntry(
     path: 'integration_test/profile/profile_feed_video_smoke_test.dart',
     origin: QALabTestOrigin.integration,
     runnableInApp: true,
