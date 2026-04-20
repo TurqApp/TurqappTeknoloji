@@ -51,6 +51,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var lastRecoveryPlayAt: CFTimeInterval = 0
     private var lastEmittedPlayAt: CFTimeInterval = 0
     private var lastEmittedPlayUrl: String?
+    private var lastObservedTimeControlStatus: AVPlayer.TimeControlStatus?
     private var didStabilizeVisualLayer: Bool = false
     private var didRenderFirstFrame: Bool = false
     private var currentUrl: String?
@@ -180,6 +181,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastRecoveryPlayAt = 0
         lastEmittedPlayAt = 0
         lastEmittedPlayUrl = nil
+        lastObservedTimeControlStatus = nil
         didStabilizeVisualLayer = false
         didRenderFirstFrame = false
         bufferingEventsCount = 0
@@ -467,7 +469,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if #available(iOS 10.0, *) {
             timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
                 DispatchQueue.main.async {
-                    switch player.timeControlStatus {
+                    let status = player.timeControlStatus
+                    if self?.lastObservedTimeControlStatus == status {
+                        return
+                    }
+                    self?.lastObservedTimeControlStatus = status
+                    switch status {
                 case .playing:
                         self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
                         if self?.didRenderFirstFrame == false {
@@ -940,6 +947,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         autoplayRequestWorkItem?.cancel()
         autoplayRequestWorkItem = nil
         lastAutoplayRequestAt = 0
+        lastObservedTimeControlStatus = nil
         lastExplicitPauseAt = 0
         lastExplicitPauseUrl = nil
         player?.pause()

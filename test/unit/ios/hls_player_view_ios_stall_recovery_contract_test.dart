@@ -14,6 +14,28 @@ void main() {
     );
   });
 
+  test('iOS play event only emits on real timeControlStatus transitions',
+      () async {
+    final source = await File(
+      '/Users/turqapp/Desktop/TurqApp/ios/Runner/HLSPlayerView.swift',
+    ).readAsString();
+
+    expect(
+      source,
+      contains(
+        'private var lastObservedTimeControlStatus: AVPlayer.TimeControlStatus?',
+      ),
+    );
+    expect(
+      source,
+      contains('if self?.lastObservedTimeControlStatus == status {'),
+    );
+    expect(
+      source,
+      contains('self?.lastObservedTimeControlStatus = status'),
+    );
+  });
+
   test('iOS access log stall detection ignores stalls=0 summaries', () async {
     final source = await File(
       '/Users/turqapp/Desktop/TurqApp/ios/Runner/PlaybackHealthMonitor.swift',
