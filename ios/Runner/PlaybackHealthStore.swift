@@ -5,6 +5,7 @@ final class PlaybackHealthStore {
 
     private let labelIdentifier = "playbackHealthStatusLabel"
     private weak var statusLabel: UILabel?
+    private weak var activeMonitor: PlaybackHealthMonitor?
     private(set) var currentErrors = [String]()
     private(set) var currentStatus = "OK"
     private var lastSnapshot: [String: Any] = [
@@ -17,6 +18,16 @@ final class PlaybackHealthStore {
     ]
 
     private init() {}
+
+    func activate(
+        monitor: PlaybackHealthMonitor,
+        snapshot: [String: Any]? = nil
+    ) {
+        activeMonitor = monitor
+        if let snapshot {
+            update(monitor: monitor, errors: monitor.getErrors(), snapshot: snapshot)
+        }
+    }
 
     func installDebugLabelIfNeeded() {
         DispatchQueue.main.async {
@@ -41,7 +52,14 @@ final class PlaybackHealthStore {
         }
     }
 
-    func update(errors: [String], snapshot: [String: Any] = [:]) {
+    func update(
+        monitor: PlaybackHealthMonitor,
+        errors: [String],
+        snapshot: [String: Any] = [:]
+    ) {
+        guard let activeMonitor, activeMonitor === monitor else {
+            return
+        }
         currentErrors = NSOrderedSet(array: errors).array as? [String] ?? errors
         currentStatus = currentErrors.isEmpty ? "OK" : currentErrors.joined(separator: "|")
         var merged = snapshot
@@ -61,7 +79,11 @@ final class PlaybackHealthStore {
         }
     }
 
-    func clear() {
+    func clear(monitor: PlaybackHealthMonitor? = nil) {
+        if let monitor, let activeMonitor, activeMonitor !== monitor {
+            return
+        }
+        activeMonitor = nil
         currentErrors.removeAll()
         currentStatus = "OK"
         lastSnapshot = [

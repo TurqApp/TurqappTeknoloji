@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';

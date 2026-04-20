@@ -60,6 +60,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var wasMutedBeforeBackground: Bool = false
     private var volumeBeforeBackground: Float = 1.0
     private var preferResumePoster: Bool = false
+    private var preferStableStartupBuffer: Bool = false
     private var lastNativeVisualPhase: String?
     private var lastNativeVisualPhaseAtEpochMs: Int64 = 0
 
@@ -95,6 +96,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         playbackHealthMonitor.stateListener = { monitor in
             PlaybackHealthStore.shared.update(
+                monitor: monitor,
                 errors: monitor.getErrors(),
                 snapshot: monitor.snapshot()
             )
@@ -110,6 +112,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 isAutoPlay = params["autoPlay"] as? Bool ?? true
                 isLooping = params["loop"] as? Bool ?? false
                 preferResumePoster = params["preferResumePoster"] as? Bool ?? false
+                preferStableStartupBuffer = params["preferStableStartupBuffer"] as? Bool ?? false
             }
         }
 
@@ -187,12 +190,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
-            playerItem?.preferredForwardBufferDuration = 6.0
+            playerItem?.preferredForwardBufferDuration = preferStableStartupBuffer ? 10.0 : 6.0
         }
 
         // Create player
         player = AVPlayer(playerItem: playerItem)
-        player?.automaticallyWaitsToMinimizeStalling = false
+        player?.automaticallyWaitsToMinimizeStalling = preferStableStartupBuffer
 
         // Create player layer
         playerLayer = AVPlayerLayer(player: player)
@@ -229,6 +232,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         }
         lastExplicitPlayAt = now
         lastExplicitPlayUrl = normalizedUrl
+        PlaybackHealthStore.shared.activate(
+            monitor: playbackHealthMonitor,
+            snapshot: playbackHealthMonitor.snapshot()
+        )
         didRequestInitialPlay = true
         lastAutoplayRequestAt = now
         autoplayRequestWorkItem?.cancel()
@@ -243,6 +250,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         captureCurrentFrameSnapshot(showOverlay: shouldShowResumePosterOnPause())
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
+        PlaybackHealthStore.shared.clear(monitor: playbackHealthMonitor)
     }
 
     func seek(to seconds: Double) {
@@ -520,6 +528,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if now - lastAutoplayRequestAt < 0.25 {
             return
         }
+        PlaybackHealthStore.shared.activate(
+            monitor: playbackHealthMonitor,
+            snapshot: playbackHealthMonitor.snapshot()
+        )
         didRequestInitialPlay = true
         lastAutoplayRequestAt = now
         autoplayRequestWorkItem?.cancel()
@@ -919,10 +931,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if !preserveFrameSnapshot {
             currentUrl = nil
         }
-        PlaybackHealthStore.shared.update(
-            errors: playbackHealthMonitor.getErrors(),
-            snapshot: playbackHealthMonitor.snapshot()
-        )
+        PlaybackHealthStore.shared.clear(monitor: playbackHealthMonitor)
     }
 
     func dispose() {

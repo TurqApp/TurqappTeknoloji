@@ -23,6 +23,7 @@ class HLSPlayer extends StatefulWidget {
   final bool isPrimaryFeedSurface;
   final bool preferResumePoster;
   final bool startupRecoveryWatchdogEnabled;
+  final bool preferStableStartupBuffer;
 
   const HLSPlayer({
     super.key,
@@ -42,6 +43,7 @@ class HLSPlayer extends StatefulWidget {
     this.isPrimaryFeedSurface = false,
     this.preferResumePoster = false,
     this.startupRecoveryWatchdogEnabled = true,
+    this.preferStableStartupBuffer = false,
   });
 
   @override
@@ -191,6 +193,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'preferResumePoster': widget.preferResumePoster,
           'startupRecoveryWatchdogEnabled':
               widget.startupRecoveryWatchdogEnabled,
+          'preferStableStartupBuffer': widget.preferStableStartupBuffer,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,
@@ -214,6 +217,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
           'preferResumePoster': widget.preferResumePoster,
           'startupRecoveryWatchdogEnabled':
               widget.startupRecoveryWatchdogEnabled,
+          'preferStableStartupBuffer': widget.preferStableStartupBuffer,
         },
         creationParamsCodec: const StandardMessageCodec(),
         onPlatformViewCreated: _onPlatformViewCreated,

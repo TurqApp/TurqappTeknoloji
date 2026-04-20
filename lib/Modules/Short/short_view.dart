@@ -180,6 +180,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
   String? _pendingActiveAdapterEnsureToken;
+  final Set<String> _pendingWarmNeighborEnsureTokens = <String>{};
   int? _pendingPlayPage;
   String? _pendingPlayDocId;
   bool _pendingPageActivation = false;

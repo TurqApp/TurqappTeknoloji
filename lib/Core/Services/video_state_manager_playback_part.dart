@@ -178,8 +178,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _pauseAllExcept(String? allowedDocID) {
+    final allowedHandle =
+        allowedDocID == null ? null : _allVideoControllers[allowedDocID];
     for (final entry in _allVideoControllers.entries) {
       if (entry.key == allowedDocID) continue;
+      if (allowedHandle != null &&
+          targetsSamePlaybackResource(entry.value, allowedHandle)) {
+        continue;
+      }
 
       try {
         final handle = entry.value;

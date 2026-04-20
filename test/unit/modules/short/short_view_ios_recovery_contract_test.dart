@@ -67,4 +67,94 @@ void main() {
       ),
     );
   });
+
+  test('iOS warm neighbor preload is scheduled before the page becomes active',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+    final shortUiSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_ui_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains('void _ensureWarmNeighborAdapterAfterBuild('),
+    );
+    expect(
+      shortViewSource,
+      contains('defaultTargetPlatform != TargetPlatform.iOS'),
+    );
+    expect(
+      shortViewSource,
+      contains(
+          '_segmentCacheRuntimeService.ensureMinimumReadySegments(neighborDocId);'),
+    );
+    expect(
+      shortViewSource,
+      contains(
+          'await controller.prepareNeighborAdapter(activePage, neighborPage);'),
+    );
+    expect(
+      shortUiSource,
+      contains('_ensureWarmNeighborAdapterAfterBuild(currentPage, idx);'),
+    );
+  });
+
+  test('short exclusive audio guard skips duplicate active adapter instances',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains('final activeAdapter = controller.cache[activePage];'),
+    );
+    expect(
+      shortViewSource,
+      contains('identical(vc, activeAdapter)'),
+    );
+  });
+
+  test('iOS warm short neighbors stay mounted without explicit pause',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+    final audioFocusSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Core/Services/audio_focus_coordinator_runtime_part.dart',
+    ).readAsString();
+
+    expect(shortViewSource, contains('final isWarmNeighbor ='));
+    expect(
+      shortViewSource,
+      contains('defaultTargetPlatform == TargetPlatform.iOS && isWarmNeighbor'),
+    );
+    expect(audioFocusSource, contains('p.preferWarmPoolPause'));
+    expect(audioFocusSource, contains('!p.value.isPlaying'));
+    expect(audioFocusSource, contains('await p.setVolume(0.0);'));
+  });
+
+  test('iOS short player requests stable native startup buffer', () async {
+    final shortUiSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_ui_part.dart',
+    ).readAsString();
+    final hlsPlayerSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/hls_player/hls_player.dart',
+    ).readAsString();
+    final nativePlayerSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/ios/Runner/HLSPlayerView.swift',
+    ).readAsString();
+
+    expect(shortUiSource, contains('preferStableStartupBuffer:'));
+    expect(hlsPlayerSource, contains('preferStableStartupBuffer'));
+    expect(
+        nativePlayerSource, contains('preferStableStartupBuffer ? 10.0 : 6.0'));
+    expect(
+      nativePlayerSource,
+      contains(
+          'player?.automaticallyWaitsToMinimizeStalling = preferStableStartupBuffer'),
+    );
+  });
 }

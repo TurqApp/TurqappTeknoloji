@@ -274,6 +274,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool preferWarmPoolPauseOnAndroid,
     required bool preferResumePoster,
     bool startupRecoveryWatchdogEnabled = true,
+    bool preferStableStartupBuffer = false,
     bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
@@ -297,6 +298,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       isPrimaryFeedSurface: isPrimaryFeedSurface,
       preferResumePoster: preferResumePoster,
       startupRecoveryWatchdogEnabled: startupRecoveryWatchdogEnabled,
+      preferStableStartupBuffer: preferStableStartupBuffer,
     );
   }
 }

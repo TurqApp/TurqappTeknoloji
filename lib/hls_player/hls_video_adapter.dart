@@ -205,6 +205,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool preferWarmPoolPauseOnAndroid = false,
     bool preferResumePoster = false,
     bool startupRecoveryWatchdogEnabled = true,
+    bool preferStableStartupBuffer = false,
     bool suppressLoadingOverlay = false,
   }) =>
       _performBuildPlayer(
@@ -217,6 +218,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         preferWarmPoolPauseOnAndroid: preferWarmPoolPauseOnAndroid,
         preferResumePoster: preferResumePoster,
         startupRecoveryWatchdogEnabled: startupRecoveryWatchdogEnabled,
+        preferStableStartupBuffer: preferStableStartupBuffer,
         suppressLoadingOverlay: suppressLoadingOverlay,
       );
 

@@ -70,6 +70,22 @@ void main() {
     expect(manager.isPlaybackTargetActive('doc-a'), isTrue);
   });
 
+  test('video state manager does not pause duplicate keys for same handle',
+      () async {
+    final manager = VideoStateManager();
+    final handle = _FakePlaybackHandle();
+
+    manager.registerPlaybackHandle('doc-a', handle);
+    manager.registerPlaybackHandle('doc-b', handle);
+
+    manager.playOnlyThis('doc-a');
+    await Future<void>.delayed(const Duration(milliseconds: 170));
+
+    expect(handle.playCount, 1);
+    expect(handle.pauseCount, 0);
+    expect(manager.currentPlayingDocID, 'doc-a');
+  });
+
   test('playback runtime service keeps audible ownership on latest target',
       () async {
     final manager = VideoStateManager();

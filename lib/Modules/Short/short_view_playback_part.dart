@@ -669,12 +669,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _enforceSingleActiveAudio(int activePage) {
+    final activeAdapter = controller.cache[activePage];
     for (final entry in controller.cache.entries) {
       final idx = entry.key;
       final vc = entry.value;
       if (idx == activePage) continue;
+      if (activeAdapter != null && identical(vc, activeAdapter)) continue;
+      final isWarmNeighbor = (idx - activePage).abs() <= 1;
       try {
         _applyShortPlaybackPresentation(idx, vc);
+        if (defaultTargetPlatform == TargetPlatform.iOS && isWarmNeighbor) {
+          continue;
+        }
         if (defaultTargetPlatform == TargetPlatform.android) {
           unawaited(vc.forceSilence());
         } else {
@@ -813,6 +819,52 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (_pendingActiveAdapterEnsureToken == token) {
           _pendingActiveAdapterEnsureToken = null;
         }
+      }
+    });
+  }
+
+  void _ensureWarmNeighborAdapterAfterBuild(
+    int activePage,
+    int neighborPage,
+  ) {
+    if (!mounted || !_isShortRoutePlaybackActive) return;
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (neighborPage == activePage) return;
+    if (activePage != currentPage) return;
+    if (neighborPage < 0 || neighborPage >= _cachedShorts.length) return;
+    if ((neighborPage - activePage).abs() != 1) return;
+    final neighborDocId = _cachedShorts[neighborPage].docID.trim();
+    if (neighborDocId.isEmpty) return;
+    final token = '$activePage:$neighborPage:$neighborDocId';
+    if (!_pendingWarmNeighborEnsureTokens.add(token)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted ||
+            !_isShortRoutePlaybackActive ||
+            currentPage != activePage ||
+            neighborPage < 0 ||
+            neighborPage >= _cachedShorts.length) {
+          return;
+        }
+        if (controller.cache[neighborPage] != null) {
+          return;
+        }
+        try {
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(neighborDocId);
+        } catch (_) {}
+        final hadNeighborAdapter = controller.cache[neighborPage] != null;
+        await controller.prepareNeighborAdapter(activePage, neighborPage);
+        if (!mounted ||
+            !_isShortRoutePlaybackActive ||
+            currentPage != activePage) {
+          return;
+        }
+        _setStateIfActiveAdapterChanged(
+          neighborPage,
+          hadNeighborAdapter,
+        );
+      } finally {
+        _pendingWarmNeighborEnsureTokens.remove(token);
       }
     });
   }

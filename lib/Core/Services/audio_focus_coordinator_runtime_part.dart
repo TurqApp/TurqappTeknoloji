@@ -103,6 +103,12 @@ class _AudioFocusCoordinatorRuntimePart {
         controller._players.where((p) => !identical(p, except)).toList();
     for (final p in others) {
       try {
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            p.preferWarmPoolPause &&
+            !p.value.isPlaying) {
+          await p.setVolume(0.0);
+          continue;
+        }
         await p.forceSilence();
       } catch (_) {}
     }

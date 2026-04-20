@@ -87,6 +87,7 @@ extension ShortViewUiPart on _ShortViewState {
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
+      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS,
     );
 
     if (ar > 1.2) {
@@ -184,6 +185,8 @@ extension ShortViewUiPart on _ShortViewState {
               if (vp == null) {
                 if (isActivePage) {
                   _ensureActivePageAdapterAfterBuild(idx);
+                } else if (isWarmNeighbor) {
+                  _ensureWarmNeighborAdapterAfterBuild(currentPage, idx);
                 }
                 return _buildPendingShortSurface(list[idx]);
               }
