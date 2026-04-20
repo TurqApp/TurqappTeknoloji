@@ -1,6 +1,50 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  Widget _buildShortAdPage(BuildContext context, int adOrdinal) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: Colors.black),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppBackButton(
+                    icon: CupertinoIcons.arrow_left,
+                    key: ValueKey(IntegrationTestKeys.actionShortBack),
+                    iconColor: Colors.white,
+                    surfaceColor: Color(0x50000000),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: AdmobKare(
+                    showChrome: false,
+                    onImpression: () {
+                      assert(() {
+                        debugPrint(
+                          '[ShortAdSlots] impression adOrdinal=$adOrdinal',
+                        );
+                        return true;
+                      }());
+                    },
+                  ),
+                ),
+              ),
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   List<String> _resolvePendingShortPreviewUrls(PostsModel model) {
     final candidates = <String>[
       model.thumbnail.trim(),
@@ -116,7 +160,7 @@ extension ShortViewUiPart on _ShortViewState {
           final isLoadingNow = controller.isLoading.value;
           final hasMoreNow = controller.hasMore.value;
 
-          final list = _cachedShorts;
+          final list = _renderPlan.entries;
 
           if (list.isEmpty) {
             if (isLoadingNow || hasMoreNow) {
@@ -148,12 +192,17 @@ extension ShortViewUiPart on _ShortViewState {
             );
           }
 
-          if (currentPage >= list.length) {
-            currentPage = (list.length - 1).clamp(0, list.length - 1);
+          if (_currentRenderPage >= list.length) {
+            _currentRenderPage = _renderPlan.clampRenderIndex(list.length - 1);
+            final organicIndex =
+                _renderPlan.organicIndexForRenderIndex(_currentRenderPage);
+            if (organicIndex != null) {
+              currentPage = organicIndex;
+            }
             if (pageController.hasClients) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (pageController.hasClients) {
-                  pageController.jumpToPage(currentPage);
+                  pageController.jumpToPage(_currentRenderPage);
                 }
               });
             }
@@ -175,20 +224,32 @@ extension ShortViewUiPart on _ShortViewState {
             itemCount: list.length,
             onPageChanged: _onPageChanged,
             itemBuilder: (_, idx) {
-              final vp = controller.cache[idx];
-              final modelAr = list[idx].aspectRatio > 0
-                  ? list[idx].aspectRatio.toDouble()
-                  : (9 / 16);
-              final isActivePage = idx == currentPage;
-              final isWarmNeighbor = (idx - currentPage).abs() <= 1;
+              final item = list[idx];
+              if (item.isAd) {
+                return KeyedSubtree(
+                  key: ValueKey('short-ad-page-${item.adOrdinal}'),
+                  child: _buildShortAdPage(context, item.adOrdinal ?? 0),
+                );
+              }
+
+              final organicIndex = item.organicIndex!;
+              final post = item.post!;
+              final vp = controller.cache[organicIndex];
+              final modelAr =
+                  post.aspectRatio > 0 ? post.aspectRatio.toDouble() : (9 / 16);
+              final isActivePage = idx == _currentRenderPage;
+              final isWarmNeighbor = (idx - _currentRenderPage).abs() <= 1;
 
               if (vp == null) {
                 if (isActivePage) {
-                  _ensureActivePageAdapterAfterBuild(idx);
+                  _ensureActivePageAdapterAfterBuild(organicIndex);
                 } else if (isWarmNeighbor) {
-                  _ensureWarmNeighborAdapterAfterBuild(currentPage, idx);
+                  _ensureWarmNeighborAdapterAfterBuild(
+                    currentPage,
+                    organicIndex,
+                  );
                 }
-                return _buildPendingShortSurface(list[idx]);
+                return _buildPendingShortSurface(post);
               }
 
               final videoWidget = isActivePage || isWarmNeighbor
@@ -200,7 +261,7 @@ extension ShortViewUiPart on _ShortViewState {
                         curve: Curves.easeOut,
                         child: _buildFullscreenVideoSurface(
                           vp,
-                          'vp-${list[idx].docID}',
+                          'vp-${post.docID}',
                           modelAspectRatio: modelAr,
                           preferResumePoster: false,
                         ),
@@ -208,10 +269,10 @@ extension ShortViewUiPart on _ShortViewState {
                     )
                   : const SizedBox.shrink();
 
-              final pendingSurface = _buildPendingShortSurface(list[idx]);
+              final pendingSurface = _buildPendingShortSurface(post);
 
               return KeyedSubtree(
-                key: ValueKey('short-page-${list[idx].docID}'),
+                key: ValueKey('short-page-${post.docID}'),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -222,9 +283,9 @@ extension ShortViewUiPart on _ShortViewState {
                         builder: (_, __) {
                           final value = vp.value;
                           final decision =
-                              _shortPlaybackDecisionFor(idx, value);
+                              _shortPlaybackDecisionFor(organicIndex, value);
                           _reportStableShortFrameIfNeeded(
-                            idx,
+                            organicIndex,
                             vp,
                             decision.hasStableVisualFrame,
                           );
@@ -241,7 +302,7 @@ extension ShortViewUiPart on _ShortViewState {
                       ),
                     if (isActivePage)
                       ShortsContent(
-                        model: list[idx],
+                        model: post,
                         isActive: isActivePage,
                         showOverlayControls: _showOverlayControls,
                         onToggleOverlay: () {
@@ -251,7 +312,7 @@ extension ShortViewUiPart on _ShortViewState {
                           });
                         },
                         onDoubleTapLike: () async {
-                          await PostRepository.ensure().toggleLike(list[idx]);
+                          await PostRepository.ensure().toggleLike(post);
                         },
                         onSwipeRight: () async {
                           maybeFindNavBarController()?.changeIndex(0);
@@ -264,9 +325,9 @@ extension ShortViewUiPart on _ShortViewState {
                             _playbackExecutionService.pauseAdapter(vp);
                             isManuallyPaused = true;
                           }
-                          if (idx == currentPage) {
+                          if (organicIndex == currentPage) {
                             VideoTelemetryService.instance.updateRuntimeHints(
-                              list[idx].docID,
+                              post.docID,
                               isAudible: volume,
                               hasStableFocus: v,
                             );
@@ -275,7 +336,7 @@ extension ShortViewUiPart on _ShortViewState {
                         videoPlayerController: vp,
                         onEdited: (updatedDocId) async {
                           await controller.updateShort(updatedDocId);
-                          await controller.refreshVideoController(idx);
+                          await controller.refreshVideoController(organicIndex);
                           _updateShortViewState(() {});
                         },
                       ),
@@ -313,18 +374,18 @@ extension ShortViewUiPart on _ShortViewState {
                                         () => volume = !volume,
                                       );
                                       _applyShortPlaybackPresentation(
-                                        idx,
+                                        organicIndex,
                                         vp,
                                       );
-                                      if (idx == currentPage) {
+                                      if (organicIndex == currentPage) {
                                         final decision =
                                             _shortPlaybackDecisionFor(
-                                          idx,
+                                          organicIndex,
                                           vp.value,
                                         );
                                         VideoTelemetryService.instance
                                             .updateRuntimeHints(
-                                          list[idx].docID,
+                                          post.docID,
                                           isAudible: decision.shouldBeAudible,
                                         );
                                       }
@@ -345,15 +406,11 @@ extension ShortViewUiPart on _ShortViewState {
           return Stack(
             children: [
               pager,
-              IgnorePointer(
-                ignoring: true,
-                child: ShortsAdPlacementHook(index: currentPage),
-              ),
               if (kDebugMode)
                 Positioned(
                   bottom: MediaQuery.of(context).padding.bottom + 60,
                   right: 8,
-                  child: CacheDebugOverlay(totalCount: list.length),
+                  child: CacheDebugOverlay(totalCount: _cachedShorts.length),
                 ),
             ],
           );

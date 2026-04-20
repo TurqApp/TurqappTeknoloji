@@ -66,6 +66,28 @@ extension ShortViewPlaybackPart on _ShortViewState {
     } catch (_) {}
   }
 
+  void _silenceAllShortPlaybackForAdPage() {
+    try {
+      _playbackRuntimeService.exitExclusiveMode();
+    } catch (_) {}
+    for (final entry in controller.cache.entries) {
+      final adapter = entry.value;
+      if (adapter.isDisposed) continue;
+      unawaited(() async {
+        try {
+          if (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS) {
+            await adapter.silenceAndStopPlayback();
+            return;
+          }
+          await _releasePlayback(adapter);
+        } catch (_) {}
+      }());
+    }
+  }
+
+  bool get _shouldBlockPlaybackForAdPage => _isAdPageActive;
+
   void _markStartupPlaybackSettled() {
     if (_startupPlaybackSettled) return;
     _startupPlaybackSettled = true;
@@ -301,15 +323,17 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
     currentPage = remappedPage;
+    final previousRenderPage = _currentRenderPage;
+    _rebuildShortRenderPlan();
     controller.lastIndex.value = currentPage;
 
     _updateShortViewState(() {});
 
-    if (pageController.hasClients && remappedPage != previousPage) {
+    if (pageController.hasClients && _currentRenderPage != previousRenderPage) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !pageController.hasClients) return;
         try {
-          pageController.jumpToPage(remappedPage);
+          pageController.jumpToPage(_currentRenderPage);
         } catch (_) {}
       });
     }
@@ -320,18 +344,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
   }
 
-  void _onPageChanged(int page) {
+  void _onPageChanged(int renderPage) {
     if (_cachedShorts.isEmpty) return;
-    if (page == currentPage) return;
+    if (renderPage == _currentRenderPage) return;
     _forceResumePosterOnReturn = false;
-    final isAutoAdvance = _pendingAutoAdvancePage == page;
+    final previousOrganicPage = currentPage;
+
+    final nextOrganicPage = _renderPlan.organicIndexForRenderIndex(renderPage);
+    final isAdPage = nextOrganicPage == null;
+    final isAutoAdvance =
+        !isAdPage && _pendingAutoAdvancePage == nextOrganicPage;
     if (isAutoAdvance) {
       _pendingAutoAdvancePage = null;
     } else if (_pendingAutoAdvancePage != null) {
       _pendingAutoAdvancePage = null;
       _isTransitioning = false;
     }
-    if (_preparedAutoAdvancePage == page) {
+    if (!isAdPage && _preparedAutoAdvancePage == nextOrganicPage) {
       _preparedAutoAdvancePage = null;
     } else if (_preparedAutoAdvancePage != null) {
       _preparedAutoAdvancePage = null;
@@ -343,38 +372,28 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _completionWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
-    final nextDocId = page >= 0 && page < _cachedShorts.length
-        ? _cachedShorts[page].docID
+
+    final nextDocId = !isAdPage &&
+            nextOrganicPage >= 0 &&
+            nextOrganicPage < _cachedShorts.length
+        ? _cachedShorts[nextOrganicPage].docID
         : '';
     _currentScrollToken = nextDocId.isEmpty
         ? ''
-        : '${DateTime.now().microsecondsSinceEpoch}:$page:$nextDocId';
+        : '${DateTime.now().microsecondsSinceEpoch}:$nextOrganicPage:$nextDocId';
     recordQALabScrollEvent(
       surface: 'short',
       phase: 'settled',
       metadata: <String, dynamic>{
-        'fromIndex': currentPage,
-        'toIndex': page,
+        'fromIndex': previousOrganicPage,
+        'toIndex': nextOrganicPage ?? -1,
+        'renderPage': renderPage,
         'docId': nextDocId,
         'count': _cachedShorts.length,
         'scrollToken': _currentScrollToken,
+        'isAdPage': isAdPage,
       },
     );
-    if (nextDocId.isNotEmpty) {
-      _recordShortPlaybackDispatch(
-        'short_page_targeted',
-        docId: nextDocId,
-        page: page,
-        source: 'page_changed',
-        dispatchIssued: false,
-        skipReason: 'page_activated',
-        metadata: <String, dynamic>{
-          'fromIndex': currentPage,
-          'toIndex': page,
-          'count': _cachedShorts.length,
-        },
-      );
-    }
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
@@ -388,11 +407,38 @@ extension ShortViewPlaybackPart on _ShortViewState {
           .endSession(_cachedShorts[currentPage].docID);
     }
 
+    if (isAdPage) {
+      isManuallyPaused = true;
+      _silenceAllShortPlaybackForAdPage();
+      _updateShortViewState(() {
+        _currentRenderPage = renderPage;
+        _isAdPageActive = true;
+        _showOverlayControls = false;
+      });
+      return;
+    }
+
     _updateShortViewState(() {
-      currentPage = page;
+      _currentRenderPage = renderPage;
+      _isAdPageActive = false;
+      currentPage = nextOrganicPage;
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    _recordShortPlaybackDispatch(
+      'short_page_targeted',
+      docId: nextDocId,
+      page: nextOrganicPage,
+      source: 'page_changed',
+      dispatchIssued: false,
+      skipReason: 'page_activated',
+      metadata: <String, dynamic>{
+        'fromIndex': previousOrganicPage,
+        'toIndex': nextOrganicPage,
+        'renderPage': renderPage,
+        'count': _cachedShorts.length,
+      },
+    );
     controller.primeForwardReadyMagazine(
       currentPage,
       aheadCount: 5,
@@ -408,7 +454,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         trigger: 'page_changed',
       ),
     );
-    _syncShortExclusivePlaybackOwner(page);
+    _syncShortExclusivePlaybackOwner(nextOrganicPage);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
@@ -421,8 +467,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastProgressPersistAt = null;
     _engagementRescoreTimer?.cancel();
 
-    _ensureActivePageAdapterAfterBuild(page);
-    _prepareUpcomingVideoForSwipe(activePageOverride: page);
+    _ensureActivePageAdapterAfterBuild(nextOrganicPage);
+    _prepareUpcomingVideoForSwipe(activePageOverride: nextOrganicPage);
 
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(
@@ -430,12 +476,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? (isAutoAdvance ? Duration.zero : _shortScrollDebounceAndroid)
           : const Duration(milliseconds: 60),
       () {
-        if (!mounted) return;
+        if (!mounted || currentPage != nextOrganicPage) return;
 
-        _enforceSingleActiveAudio(page);
-        _schedulePlayForPage(currentPage);
-        _scheduleTierUpdate(currentPage);
-        controller.loadMoreIfNeeded(currentPage);
+        _enforceSingleActiveAudio(nextOrganicPage);
+        _schedulePlayForPage(nextOrganicPage);
+        _scheduleTierUpdate(nextOrganicPage);
+        controller.loadMoreIfNeeded(nextOrganicPage);
       },
     );
   }
@@ -546,19 +592,20 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   Future<void> _requestAutoAdvancePageChange(int nextPage) async {
     if (!pageController.hasClients) return;
+    final targetRenderPage = _renderPlan.renderIndexForOrganicIndex(nextPage);
     final page = pageController.page;
     final alreadyAtTarget = currentPage == nextPage ||
-        (page != null && (page - nextPage).abs() < 0.01);
+        (page != null && (page - targetRenderPage).abs() < 0.01);
     if (alreadyAtTarget) return;
     try {
       await pageController.animateToPage(
-        nextPage,
+        targetRenderPage,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeInOut,
       );
     } catch (_) {
       try {
-        pageController.jumpToPage(nextPage);
+        pageController.jumpToPage(targetRenderPage);
       } catch (_) {}
     }
   }
@@ -720,6 +767,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _enforceSingleActiveAudio(int activePage) {
+    if (_shouldBlockPlaybackForAdPage) return;
     final activeAdapter = controller.cache[activePage];
     for (final entry in controller.cache.entries) {
       final idx = entry.key;
@@ -742,6 +790,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _scheduleTierUpdate(int page) {
+    if (_shouldBlockPlaybackForAdPage) return;
     _tierDebounce?.cancel();
     _tierReconcileDebounce?.cancel();
     _tierDebounce = Timer(_shortTierDebounceDelay, () async {
@@ -761,6 +810,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int page, {
     bool suppressWarmPause = false,
   }) {
+    if (_shouldBlockPlaybackForAdPage) return;
     _tierReconcileDebounce?.cancel();
     _tierReconcileDebounce = Timer(_shortTierReconcileDelay, () async {
       if (!_isShortRoutePlaybackActive) return;
@@ -781,7 +831,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   Future<void> _startAutoPlayCurrentVideo() async {
-    if (controller.shorts.isEmpty || !_isShortRoutePlaybackActive) return;
+    if (controller.shorts.isEmpty ||
+        !_isShortRoutePlaybackActive ||
+        _shouldBlockPlaybackForAdPage) {
+      return;
+    }
     if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;
@@ -840,7 +894,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _ensureActivePageAdapterAfterBuild(int page) {
-    if (!mounted || page != currentPage) return;
+    if (!mounted || page != currentPage || _shouldBlockPlaybackForAdPage) {
+      return;
+    }
     if (page < 0 || page >= _cachedShorts.length) return;
     final docId = _cachedShorts[page].docID.trim();
     if (docId.isEmpty) return;
@@ -930,6 +986,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _schedulePlayForPage(int page) {
+    if (_shouldBlockPlaybackForAdPage) return;
     final scheduledDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID.trim()
         : '';

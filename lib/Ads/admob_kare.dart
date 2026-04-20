@@ -49,6 +49,8 @@ class AdmobKare extends StatefulWidget {
 
   static bool get hasReadyBanner => _AdmobKareState.hasReadyBanner;
   static bool get hasRenderableBanner => _AdmobKareState.hasRenderableBanner;
+  static ValueListenable<int> get availabilityRevision =>
+      _AdmobKareState._sharedAdAvailabilityRevision;
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
@@ -76,7 +78,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _failureBurstBeforeCooldown = 5;
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
     'DEBUG_RENDER_ADMOB',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   BannerAd? _bannerAd;

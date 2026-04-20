@@ -100,7 +100,9 @@ void main() {
     );
     expect(
       shortUiSource,
-      contains('_ensureWarmNeighborAdapterAfterBuild(currentPage, idx);'),
+      contains('_ensureWarmNeighborAdapterAfterBuild(\n'
+          '                    currentPage,\n'
+          '                    organicIndex,'),
     );
   });
 
@@ -111,7 +113,8 @@ void main() {
 
     expect(
       shortViewSource,
-      contains('final isAutoAdvance = _pendingAutoAdvancePage == page;'),
+      contains('final isAutoAdvance =\n'
+          '        !isAdPage && _pendingAutoAdvancePage == nextOrganicPage;'),
     );
     expect(
       shortViewSource,
@@ -120,6 +123,28 @@ void main() {
         '      _pendingAutoAdvancePage = null;\n'
         '      _isTransitioning = false;',
       ),
+    );
+  });
+
+  test('short auto-advance targets render page mapped from organic index',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains(
+          'final targetRenderPage = _renderPlan.renderIndexForOrganicIndex(nextPage);'),
+    );
+    expect(
+      shortViewSource,
+      contains('(page - targetRenderPage).abs() < 0.01'),
+    );
+    expect(
+      shortViewSource,
+      contains('await pageController.animateToPage(\n'
+          '        targetRenderPage,'),
     );
   });
 

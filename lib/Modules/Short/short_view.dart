@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,7 +20,6 @@ import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
 import 'package:turqappv2/Core/Services/short_render_coordinator.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
-import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
 import 'package:turqappv2/Core/Services/playback_handle.dart';
 import 'package:turqappv2/Services/user_analytics_service.dart';
 import 'package:turqappv2/Core/Services/video_telemetry_service.dart';
@@ -28,6 +28,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import '../../main.dart';
+import 'short_ad_render_plan.dart';
 import 'short_controller.dart';
 import 'short_content.dart';
 import '../../Models/posts_model.dart';
@@ -170,6 +171,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   bool _didPrimeInitialPlayback = false;
   bool _startupPlaybackSettled = false;
   bool _isTransitioning = false;
+  bool _isAdPageActive = false;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   String? _lastPrimaryPlayDocId;
@@ -190,6 +192,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int? _preparedAutoAdvancePage;
   List<PostsModel>? _pendingStartupRenderList;
   List<PostsModel> _cachedShorts = [];
+  ShortAdRenderPlan _renderPlan = const ShortAdRenderPlan.empty();
+  int _currentRenderPage = 0;
+  bool _shortAdRenderable = false;
   final Set<String> _recordedVisibleShortDocIds = <String>{};
   final Map<HLSVideoAdapter, VoidCallback> _videoEndListeners =
       <HLSVideoAdapter, VoidCallback>{};
@@ -232,6 +237,35 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   int _initialDisplayIndex(List<PostsModel> list, int rawIndex) {
     if (list.isEmpty) return 0;
     return rawIndex.clamp(0, list.length - 1);
+  }
+
+  void _rebuildShortRenderPlan() {
+    _renderPlan = buildShortAdRenderPlan(
+      _cachedShorts,
+      adReady: _shortAdRenderable,
+    );
+    _currentRenderPage = _renderPlan.renderIndexForOrganicIndex(currentPage);
+  }
+
+  void _handleShortAdAvailabilityChanged() {
+    final nextRenderable = AdmobKare.hasRenderableBanner;
+    if (_shortAdRenderable == nextRenderable || !mounted) {
+      return;
+    }
+    final previousRenderPage = _currentRenderPage;
+    _shortAdRenderable = nextRenderable;
+    _rebuildShortRenderPlan();
+    _updateShortViewState(() {});
+    if (!pageController.hasClients ||
+        previousRenderPage == _currentRenderPage) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !pageController.hasClients) return;
+      try {
+        pageController.jumpToPage(_currentRenderPage);
+      } catch (_) {}
+    });
   }
 
   bool get _isShortRoutePlaybackActive {
@@ -369,10 +403,11 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (_cachedShorts.isEmpty) {
       _cachedShorts = nextList;
       currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+      _rebuildShortRenderPlan();
       controller.lastIndex.value = currentPage;
       if (pageController.hasClients) {
         try {
-          pageController.jumpToPage(currentPage);
+          pageController.jumpToPage(_currentRenderPage);
         } catch (_) {}
       }
       setState(() {});
@@ -437,8 +472,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       maybeFindNavBarController()?.pushMediaOverlayLock();
     } catch (_) {}
     currentPage = initialIndex;
+    _shortAdRenderable = AdmobKare.hasRenderableBanner;
     controller.commitLaunchIndexSelection(currentPage);
     _cachedShorts = List<PostsModel>.from(controller.shorts);
+    _rebuildShortRenderPlan();
     controller.logShortOpenTrace(
       stage: 'view_init',
       metadata: <String, dynamic>{
@@ -446,7 +483,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         'initialIndex': initialIndex,
       },
     );
-    pageController = PageController(initialPage: initialIndex);
+    pageController = PageController(initialPage: _currentRenderPage);
+    AdmobKare.availabilityRevision
+        .addListener(_handleShortAdAvailabilityChanged);
+    unawaited(AdmobKare.warmupPool(targetCount: 1, maxRequestCount: 1));
     if (_cachedShorts.isNotEmpty) {
       _syncShortSurfaceAfterStartup();
     }
@@ -522,6 +562,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
     _shortsWorker?.dispose();
+    AdmobKare.availabilityRevision
+        .removeListener(_handleShortAdAvailabilityChanged);
     if (_routeObserverSubscribed) {
       try {
         routeObserver.unsubscribe(this);
