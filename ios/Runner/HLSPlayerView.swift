@@ -45,6 +45,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var lastAutoplayRequestAt: CFTimeInterval = 0
     private var lastExplicitPlayAt: CFTimeInterval = 0
     private var lastExplicitPlayUrl: String?
+    private var lastExplicitPauseAt: CFTimeInterval = 0
+    private var lastExplicitPauseUrl: String?
     private var lastRecoveryPlayAt: CFTimeInterval = 0
     private var lastEmittedPlayAt: CFTimeInterval = 0
     private var lastEmittedPlayUrl: String?
@@ -168,6 +170,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         didRequestInitialPlay = false
         lastExplicitPlayAt = 0
         lastExplicitPlayUrl = nil
+        lastExplicitPauseAt = 0
+        lastExplicitPauseUrl = nil
         lastRecoveryPlayAt = 0
         lastEmittedPlayAt = 0
         lastEmittedPlayUrl = nil
@@ -246,6 +250,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     func pause() {
+        let now = CACurrentMediaTime()
+        let normalizedUrl = currentUrl ?? ""
+        if !normalizedUrl.isEmpty,
+           lastExplicitPauseUrl == normalizedUrl,
+           now - lastExplicitPauseAt < 0.35 {
+            log("pauseDeduped url=\(normalizedUrl)")
+            return
+        }
+        lastExplicitPauseAt = now
+        lastExplicitPauseUrl = normalizedUrl
         log("pause url=\(currentUrl ?? "-")")
         captureCurrentFrameSnapshot(showOverlay: shouldShowResumePosterOnPause())
         player?.pause()
@@ -911,6 +925,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         autoplayRequestWorkItem?.cancel()
         autoplayRequestWorkItem = nil
         lastAutoplayRequestAt = 0
+        lastExplicitPauseAt = 0
+        lastExplicitPauseUrl = nil
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         playbackWatchdog?.stop()

@@ -69,6 +69,15 @@ void main() {
           }
 
           final findings = QALabRecorder.ensure().buildPinpointFindings();
+          final shortFirstFrameWarnings = findings
+              .where((item) => item.code == 'short_scroll_first_frame_slow')
+              .toList(growable: false);
+          expect(
+            shortFirstFrameWarnings,
+            isEmpty,
+            reason: 'Short smoke still produced first-frame warnings: '
+                '${shortFirstFrameWarnings.map((item) => item.message).join(' | ')}',
+          );
           final shortTransitionWarnings = findings
               .where((item) => item.code == 'short_transition_visual_slow')
               .toList(growable: false);
