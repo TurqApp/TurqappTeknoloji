@@ -820,10 +820,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             source: source,
             dispatchIssued: false,
           );
-          _playbackRuntimeService.requestPlay(
-            playbackHandleKey,
-            HLSAdapterPlaybackHandle(adapter),
-          );
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              _isPrimaryFeedSurfaceInstance) {
+            _hasAutoPlayed = true;
+            _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+          } else {
+            _playbackRuntimeService.requestPlay(
+              playbackHandleKey,
+              HLSAdapterPlaybackHandle(adapter),
+            );
+          }
           _applyPlaybackVolume();
           _syncRuntimeHints(
             isAudible: _resolvedPlaybackVolume() > 0.0,

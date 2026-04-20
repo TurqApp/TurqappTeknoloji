@@ -44,6 +44,7 @@ const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
+const int _iosPrimaryFeedWarmPlayerAheadVideoCount = 2;
 
 enum _FeedNativeWarmTier {
   off,
@@ -363,8 +364,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   bool get _shouldKeepWarmSurfaceAliveForWarmPreload =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      _shouldPreloadAndroidWarmController;
+      _shouldPreloadWarmController;
 
   bool get _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow {
     if (!_isPrimaryFeedSurfaceInstance) return false;
@@ -532,10 +532,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   String _currentCenteredFeedPlaybackHandleKey() {
     if (!_isPrimaryFeedSurfaceInstance) return '';
     final safeCentered = _surfaceSafeCenteredIndex();
-    if (safeCentered < 0 || safeCentered >= agendaController.agendaList.length) {
+    if (safeCentered < 0 ||
+        safeCentered >= agendaController.agendaList.length) {
       return '';
     }
-    final centeredDocId = agendaController.agendaList[safeCentered].docID.trim();
+    final centeredDocId =
+        agendaController.agendaList[safeCentered].docID.trim();
     if (centeredDocId.isEmpty) return '';
     return 'feed:$centeredDocId';
   }
@@ -633,7 +635,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final distance = delta.abs();
     final isAndroidPrimaryFeed =
         defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance;
+            _isPrimaryFeedSurfaceInstance;
     final strongAheadCount = isAndroidPrimaryFeed
         ? _androidPrimaryFeedNativeStrongAheadCount
         : _feedStrongAheadCount;
@@ -657,17 +659,45 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return _FeedNativeWarmTier.off;
   }
 
-  bool get _shouldPreloadAndroidWarmController {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
-    final isSupportedSurface = _isPrimaryFeedSurfaceInstance ||
-        _isProfileSurfaceInstance ||
-        _isSocialProfileSurfaceInstance;
+  bool get _shouldPreloadWarmController {
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    final isIosPrimaryFeed = defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance;
+    if (!isAndroid && !isIosPrimaryFeed) return false;
+    final isSupportedSurface = isAndroid
+        ? (_isPrimaryFeedSurfaceInstance ||
+            _isProfileSurfaceInstance ||
+            _isSocialProfileSurfaceInstance)
+        : _isPrimaryFeedSurfaceInstance;
     if (!isSupportedSurface) return false;
     if (!widget.model.hasPlayableVideo) return false;
     if (widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
-    if (_isPrimaryFeedSurfaceInstance && !_isCenteredFeedWarmPreloadAnchorReady) {
+    if (isAndroid &&
+        _isPrimaryFeedSurfaceInstance &&
+        !_isCenteredFeedWarmPreloadAnchorReady) {
       return false;
+    }
+    if (isIosPrimaryFeed) {
+      final modelIndex = _surfaceModelIndex();
+      if (modelIndex < 0) return false;
+      final warmTier = _resolvePrimaryFeedNativeWarmTier(
+        modelIndex: modelIndex,
+      );
+      if (warmTier != _FeedNativeWarmTier.strong) return false;
+      final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
+      final allow = playableDistance != null &&
+          playableDistance > 0 &&
+          playableDistance <= _iosPrimaryFeedWarmPlayerAheadVideoCount;
+      debugPrint(
+        '[FeedSurfaceDecision] stage=warm_preload_gate '
+        'doc=${widget.model.docID} allow=$allow reason=ios_next_playable '
+        'modelIndex=$modelIndex centered=${_surfaceSafeCenteredIndex()} '
+        'previousCentered=${_surfacePreviousCenteredIndex()} '
+        'warmTier=${warmTier.name} playableDistance=${playableDistance ?? -1} '
+        'adapterBound=${_videoAdapter != null}',
+      );
+      return allow;
     }
     if (_isPrimaryFeedSurfaceInstance) {
       final modelIndex = _surfaceModelIndex();

@@ -734,11 +734,13 @@ extension AgendaControllerFeedPart on AgendaController {
         }
         if (canClaimPlaybackNow) {
           _ensureFeedPlaybackForIndex(target);
-          _schedulePlaybackReassert(
-            index: target,
-            docId: targetPost.docID,
-            manager: VideoStateManager.instance,
-          );
+          if (!GetPlatform.isIOS) {
+            _schedulePlaybackReassert(
+              index: target,
+              docId: targetPost.docID,
+              manager: VideoStateManager.instance,
+            );
+          }
         }
         _scheduleStartupAutoplayKick(
           index: target,

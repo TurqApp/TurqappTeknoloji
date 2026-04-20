@@ -170,7 +170,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
           } catch (_) {}
         }
         if (!shouldReassertPlayback) return;
-        final shouldForcePlay = stillMuted || !_value.isPlaying;
+        final withinStartupReassertWindow =
+            _value.position <= const Duration(milliseconds: 220);
+        final shouldForcePlay =
+            stillMuted || (!_value.isPlaying && withinStartupReassertWindow);
         if (!shouldForcePlay) return;
         try {
           await _hls.play();

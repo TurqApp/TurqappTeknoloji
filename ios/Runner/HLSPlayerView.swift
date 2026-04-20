@@ -583,6 +583,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     private func requestRecoveryAutoplayIfNeeded(source: String) {
         guard let player = player else { return }
+        let normalizedUrl = currentUrl ?? ""
+        let hasExplicitPlayIntent =
+            !normalizedUrl.isEmpty &&
+            lastExplicitPlayUrl == normalizedUrl &&
+            !(lastExplicitPauseUrl == normalizedUrl && lastExplicitPauseAt >= lastExplicitPlayAt)
+        guard isAutoPlay || hasExplicitPlayIntent || didRequestInitialPlay else {
+            log("recoveryPlaySkipped source=\(source) reason=no_play_intent url=\(currentUrl ?? "-")")
+            return
+        }
         let now = CACurrentMediaTime()
         if now - lastRecoveryPlayAt < 1.2 {
             log("recoveryPlaySkipped source=\(source) url=\(currentUrl ?? "-")")

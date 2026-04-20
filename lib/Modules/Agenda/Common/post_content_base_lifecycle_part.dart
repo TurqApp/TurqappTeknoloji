@@ -465,7 +465,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }) {
     if (_videoAdapter != null) return;
     if (_warmPreloadInitQueued) return;
-    if (!_shouldPreloadAndroidWarmController) return;
+    if (!_shouldPreloadWarmController) return;
     _claimWarmPreloadFetchOwnership();
     _warmPreloadInitQueued = true;
     _recordPlaybackDispatch(
@@ -480,7 +480,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _warmPreloadInitQueued = false;
       if (!mounted || _videoAdapter != null) return;
-      if (!_shouldPreloadAndroidWarmController) {
+      if (!_shouldPreloadWarmController) {
         _releaseWarmPreloadFetchOwnership();
         return;
       }
@@ -502,7 +502,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _syncWarmPreloadFetchOwnership() {
-    if (_shouldPreloadAndroidWarmController) {
+    if (_shouldPreloadWarmController) {
       _claimWarmPreloadFetchOwnership();
       return;
     }
