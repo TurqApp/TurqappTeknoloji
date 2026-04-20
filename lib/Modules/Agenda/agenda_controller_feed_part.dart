@@ -202,7 +202,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   bool get _canRetainStartupPlaybackLock {
-    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+    if (_qaScrollStartedAt != null) {
       return false;
     }
     final lockedDocId = _startupLockedFeedDocId?.trim() ?? '';
@@ -233,7 +233,7 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _lockStartupPlaybackTargetForIndex(int index) {
-    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+    if (_qaScrollStartedAt != null) {
       return;
     }
     if (index < 0 || index >= agendaList.length) return;

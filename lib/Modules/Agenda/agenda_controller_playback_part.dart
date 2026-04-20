@@ -5,7 +5,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double stopThreshold,
   }) {
     if (!GetPlatform.isIOS) return false;
-    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+    if (_qaScrollStartedAt != null) {
       return false;
     }
     final currentPlayingDocId =
@@ -35,7 +35,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double stopThreshold,
   }) {
     if (!GetPlatform.isIOS) return false;
-    if (_qaScrollStartedAt != null || _qaLatestScrollToken.isNotEmpty) {
+    if (_qaScrollStartedAt != null) {
       return false;
     }
     if (current < 0 || current >= agendaList.length) return false;
