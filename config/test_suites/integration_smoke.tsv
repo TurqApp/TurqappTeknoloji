@@ -1,5 +1,6 @@
 # test_path|artifact_path
 integration_test/feed/feed_resume_test.dart|artifacts/integration_smoke/feed_resume.json
+integration_test/feed/feed_flood_tap_route_smoke_test.dart|artifacts/integration_smoke/feed_flood_tap_route.json
 integration_test/explore/explore_preview_gate_test.dart|artifacts/integration_smoke/explore_preview_gate.json
 integration_test/profile/profile_resume_test.dart|artifacts/integration_smoke/profile_resume.json
 integration_test/shorts/short_refresh_preserve_test.dart|artifacts/integration_smoke/short_refresh_preserve.json

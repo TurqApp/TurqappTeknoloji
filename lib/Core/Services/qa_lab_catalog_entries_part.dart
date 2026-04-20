@@ -223,6 +223,11 @@ const List<QALabCatalogEntry> _qaLabCatalogEntries = <QALabCatalogEntry>[
     runnableInApp: true,
   ),
   QALabCatalogEntry(
+    path: 'integration_test/feed/feed_flood_tap_route_smoke_test.dart',
+    origin: QALabTestOrigin.integration,
+    runnableInApp: true,
+  ),
+  QALabCatalogEntry(
     path: 'integration_test/feed/hls_data_usage_suite_test.dart',
     origin: QALabTestOrigin.integration,
     runnableInApp: true,
