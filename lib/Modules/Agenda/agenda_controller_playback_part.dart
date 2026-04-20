@@ -17,7 +17,11 @@ extension AgendaControllerPlaybackPart on AgendaController {
     if (ownerIndex < 0 || ownerIndex >= agendaList.length) return false;
     if (!_canAutoplayVideoPost(agendaList[ownerIndex])) return false;
     final ownerFraction = _visibleFractions[ownerIndex] ?? 0.0;
-    if (ownerFraction < stopThreshold) return false;
+    final retainThreshold =
+        stopThreshold < FeedPlaybackSelectionPolicy.switchRetentionThreshold
+            ? FeedPlaybackSelectionPolicy.switchRetentionThreshold
+            : stopThreshold;
+    if (ownerFraction < retainThreshold) return false;
     final centeredChanged = centeredIndex.value != ownerIndex;
     if (centeredChanged) {
       centeredIndex.value = ownerIndex;
