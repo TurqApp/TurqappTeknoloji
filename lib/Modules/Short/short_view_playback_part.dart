@@ -481,8 +481,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int nextPage, {
     int attempt = 0,
   }) {
-    if (attempt >= 3) return;
-    Future<void>.delayed(const Duration(milliseconds: 140), () async {
+    if (attempt >= 4) {
+      if (_pendingAutoAdvancePage == nextPage && currentPage == activePage) {
+        _pendingAutoAdvancePage = null;
+        _isTransitioning = false;
+      }
+      return;
+    }
+    Future<void>.delayed(const Duration(milliseconds: 360), () async {
       if (!mounted ||
           !_isShortRoutePlaybackActive ||
           currentPage != activePage ||
@@ -499,9 +505,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         });
         return;
       }
-      try {
-        pageController.jumpToPage(nextPage);
-      } catch (_) {}
+      await _requestAutoAdvancePageChange(nextPage);
       if (currentPage == activePage) {
         _scheduleAutoAdvanceRetry(
           activePage,
@@ -510,6 +514,25 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
       }
     });
+  }
+
+  Future<void> _requestAutoAdvancePageChange(int nextPage) async {
+    if (!pageController.hasClients) return;
+    final page = pageController.page;
+    final alreadyAtTarget = currentPage == nextPage ||
+        (page != null && (page - nextPage).abs() < 0.01);
+    if (alreadyAtTarget) return;
+    try {
+      await pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOut,
+      );
+    } catch (_) {
+      try {
+        pageController.jumpToPage(nextPage);
+      } catch (_) {}
+    }
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
@@ -1714,6 +1737,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final hasNextPage =
         await _ensureNextVideoAvailableForAutoAdvance(activePage);
     if (!mounted || currentPage != activePage) {
+      _pendingAutoAdvancePage = null;
       _isTransitioning = false;
       return;
     }
@@ -1734,24 +1758,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }());
       }
       if (!mounted) {
+        _pendingAutoAdvancePage = null;
         _isTransitioning = false;
         return;
       }
       try {
         if (pageController.hasClients) {
-          pageController.jumpToPage(nextPage);
+          await _requestAutoAdvancePageChange(nextPage);
         } else {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted || !pageController.hasClients) return;
-            try {
-              pageController.jumpToPage(nextPage);
-            } catch (_) {}
+            unawaited(_requestAutoAdvancePageChange(nextPage));
           });
         }
       } catch (_) {}
       _scheduleAutoAdvanceRetry(activePage, nextPage);
-      _isTransitioning = false;
     } else {
+      _pendingAutoAdvancePage = null;
       _isTransitioning = false;
     }
   }
