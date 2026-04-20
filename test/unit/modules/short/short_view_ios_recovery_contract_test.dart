@@ -88,7 +88,10 @@ void main() {
     expect(
       shortViewSource,
       contains(
-          '_segmentCacheRuntimeService.ensureMinimumReadySegments(neighborDocId);'),
+        "_segmentCacheRuntimeService.ensureMinimumReadySegments(\n"
+        "            neighborDocId,\n"
+        "            minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,",
+      ),
     );
     expect(
       shortViewSource,
@@ -98,6 +101,25 @@ void main() {
     expect(
       shortUiSource,
       contains('_ensureWarmNeighborAdapterAfterBuild(currentPage, idx);'),
+    );
+  });
+
+  test('manual short swipe clears stale auto-advance queue', () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains('final isAutoAdvance = _pendingAutoAdvancePage == page;'),
+    );
+    expect(
+      shortViewSource,
+      contains(
+        '} else if (_pendingAutoAdvancePage != null) {\n'
+        '      _pendingAutoAdvancePage = null;\n'
+        '      _isTransitioning = false;',
+      ),
     );
   });
 

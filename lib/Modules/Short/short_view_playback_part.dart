@@ -304,8 +304,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final isAutoAdvance = _pendingAutoAdvancePage == page;
     if (isAutoAdvance) {
       _pendingAutoAdvancePage = null;
+    } else if (_pendingAutoAdvancePage != null) {
+      _pendingAutoAdvancePage = null;
+      _isTransitioning = false;
     }
     if (_preparedAutoAdvancePage == page) {
+      _preparedAutoAdvancePage = null;
+    } else if (_preparedAutoAdvancePage != null) {
       _preparedAutoAdvancePage = null;
     }
     _playDebounce?.cancel();
@@ -762,7 +767,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
       final docId = _cachedShorts[currentPage].docID.trim();
       if (docId.isNotEmpty) {
         try {
-          _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(
+            docId,
+            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+          );
         } catch (_) {}
       }
     }
@@ -822,7 +830,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         try {
-          _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(
+            docId,
+            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+          );
         } catch (_) {}
         final hadActiveAdapter = controller.cache[page] != null;
         await controller.ensureActiveAdapterReady(page);
@@ -873,7 +884,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         try {
-          _segmentCacheRuntimeService.ensureMinimumReadySegments(neighborDocId);
+          _segmentCacheRuntimeService.ensureMinimumReadySegments(
+            neighborDocId,
+            minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+          );
         } catch (_) {}
         final hadNeighborAdapter = controller.cache[neighborPage] != null;
         await controller.prepareNeighborAdapter(activePage, neighborPage);

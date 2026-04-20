@@ -5,6 +5,10 @@ extension ShortControllerCachePart on ShortController {
       StartupPreloadPolicy.activeReadySegments;
   static const int _androidNeighborReadySegments =
       StartupPreloadPolicy.neighborReadySegments;
+  static const int _iosActiveReadySegments =
+      StartupPreloadPolicy.activeReadySegments;
+  static const int _iosNeighborReadySegments =
+      StartupPreloadPolicy.neighborReadySegments;
   static const int _startupFirstVideoWindowCount =
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeStartupCount =
@@ -127,8 +131,29 @@ extension ShortControllerCachePart on ShortController {
     await adapter.silenceAndStopPlayback();
   }
 
+  int _activeReadySegmentsForCurrentPlatform() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _androidActiveReadySegments;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return _iosActiveReadySegments;
+    }
+    return SegmentCacheRuntimeService.globalReadySegmentCount;
+  }
+
+  int _neighborReadySegmentsForCurrentPlatform() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return _androidNeighborReadySegments;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return _iosNeighborReadySegments;
+    }
+    return SegmentCacheRuntimeService.globalReadySegmentCount;
+  }
+
   bool _shouldKeepTrimmedShortAdapterWarm() {
-    return defaultTargetPlatform == TargetPlatform.android;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
   }
 
   Future<HLSVideoAdapter?> _preloadSingleVideoWithCache(
@@ -176,9 +201,7 @@ extension ShortControllerCachePart on ShortController {
     final safeIndex = currentIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
       safeIndex,
-      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
-          ? _androidActiveReadySegments
-          : SegmentCacheRuntimeService.globalReadySegmentCount,
+      minimumSegmentCount: _activeReadySegmentsForCurrentPlatform(),
     );
     final existing = cache[safeIndex];
     if (existing == null) {
@@ -208,15 +231,11 @@ extension ShortControllerCachePart on ShortController {
     if (neighborIndex < 0 || neighborIndex >= shorts.length) return;
     _ensureReadySegmentsForIndex(
       safeActiveIndex,
-      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
-          ? _androidActiveReadySegments
-          : SegmentCacheRuntimeService.globalReadySegmentCount,
+      minimumSegmentCount: _activeReadySegmentsForCurrentPlatform(),
     );
     _ensureReadySegmentsForIndex(
       neighborIndex,
-      minimumSegmentCount: defaultTargetPlatform == TargetPlatform.android
-          ? _androidNeighborReadySegments
-          : SegmentCacheRuntimeService.globalReadySegmentCount,
+      minimumSegmentCount: _neighborReadySegmentsForCurrentPlatform(),
     );
 
     final activeAdapter = cache[safeActiveIndex];
