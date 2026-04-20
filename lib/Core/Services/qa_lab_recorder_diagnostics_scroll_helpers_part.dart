@@ -126,6 +126,52 @@ extension QALabRecorderDiagnosticsScrollHelpersPart on QALabRecorder {
         .firstOrNull;
   }
 
+  QALabTimelineEvent? _scrollStartForSettle({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required QALabTimelineEvent settleEvent,
+  }) {
+    final expectedToken =
+        (settleEvent.metadata['scrollToken'] ?? '').toString().trim();
+    final starts = surfaceTimeline
+        .where((event) => event.category == 'scroll' && event.code == 'start')
+        .where((event) => !event.timestamp.isAfter(settleEvent.timestamp))
+        .where(
+          (event) =>
+              expectedToken.isEmpty ||
+              (event.metadata['scrollToken'] ?? '').toString().trim() ==
+                  expectedToken,
+        )
+        .toList(growable: false);
+    return starts.isEmpty ? null : starts.last;
+  }
+
+  bool _didFeedScrollStayOnSameDoc({
+    required List<QALabTimelineEvent> surfaceTimeline,
+    required QALabTimelineEvent settleEvent,
+  }) {
+    if (settleEvent.surface != 'feed') {
+      return false;
+    }
+    final expectedDocId =
+        (settleEvent.metadata['docId'] ?? '').toString().trim();
+    if (expectedDocId.isEmpty) {
+      return false;
+    }
+    final startEvent = _scrollStartForSettle(
+      surfaceTimeline: surfaceTimeline,
+      settleEvent: settleEvent,
+    );
+    if (startEvent == null) {
+      return false;
+    }
+    final startDocId =
+        (startEvent.metadata['centeredDocId'] ?? '').toString().trim();
+    if (startDocId.isEmpty) {
+      return false;
+    }
+    return startDocId == expectedDocId;
+  }
+
   QALabTimelineEvent? _firstScrollPhaseAfter({
     required List<QALabTimelineEvent> surfaceTimeline,
     required DateTime after,

@@ -25,6 +25,10 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
     if (expectedDocId.isEmpty) {
       return const <QALabPinpointFinding>[];
     }
+    final sameDocAsScrollStart = _didFeedScrollStayOnSameDoc(
+      surfaceTimeline: surfaceTimeline,
+      settleEvent: latestSettle,
+    );
     if (!_isScrollSettleStillRelevant(
       surface: surface,
       expectedDocId: expectedDocId,
@@ -116,7 +120,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
                 .difference(latestSettle.timestamp)
                 .inMilliseconds <
             QALabMode.scrollAutoplayDispatchBlockingMs;
-    if (!supersededByNextScroll &&
+    if (!sameDocAsScrollStart &&
+        !supersededByNextScroll &&
         !playbackAlreadyTargetedAtSettle &&
         dispatch == null &&
         dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchBlockingMs) {
@@ -147,7 +152,8 @@ extension QALabRecorderDiagnosticsScrollPart on QALabRecorder {
           },
         ),
       );
-    } else if (!(surface == 'short' && suppressShortTransitionWarnings) &&
+    } else if (!sameDocAsScrollStart &&
+        !(surface == 'short' && suppressShortTransitionWarnings) &&
         dispatch != null &&
         dispatchLatencyMs >= QALabMode.scrollAutoplayDispatchWarningMs) {
       findings.add(

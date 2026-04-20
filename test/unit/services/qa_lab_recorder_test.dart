@@ -2625,6 +2625,97 @@ void main() {
     );
   });
 
+  test(
+      'qa recorder suppresses slow feed scroll dispatch when scroll settles on the same doc it started from',
+      () {
+    final recorder = QALabRecorder();
+    final now = DateTime.now();
+
+    recorder.checkpoints.add(
+      QALabCheckpoint(
+        id: 'cp15f',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now,
+        probe: <String, dynamic>{
+          'feed': <String, dynamic>{
+            'registered': true,
+            'count': 2,
+            'centeredIndex': 0,
+            'centeredDocId': 'post-1',
+            'centeredHasPlayableVideo': true,
+            'centeredHasRenderableVideoCard': true,
+            'playbackSuspended': false,
+            'pauseAll': false,
+            'canClaimPlaybackNow': true,
+          },
+          'navBar': <String, dynamic>{
+            'registered': true,
+            'selectedIndex': 0,
+          },
+          'auth': <String, dynamic>{
+            'currentUid': 'user-1',
+            'isFirebaseSignedIn': true,
+            'currentUserLoaded': true,
+          },
+        },
+      ),
+    );
+    recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'ts2f_start',
+        category: 'scroll',
+        code: 'start',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 4)),
+        metadata: const <String, dynamic>{
+          'scrollToken': 'feed-scroll-same-doc',
+          'centeredDocId': 'post-1',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'ts2f_settle',
+        category: 'scroll',
+        code: 'settled',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(seconds: 3)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'scrollToken': 'feed-scroll-same-doc',
+        },
+      ),
+      QALabTimelineEvent(
+        id: 'tp4f',
+        category: 'playback_dispatch',
+        code: 'feed_card_manager_resume_current',
+        route: '/NavBar',
+        surface: 'feed',
+        timestamp: now.subtract(const Duration(milliseconds: 900)),
+        metadata: const <String, dynamic>{
+          'docId': 'post-1',
+          'dispatchIssued': false,
+          'dispatchSource': 'resume_initialized:completed_start',
+          'callerSignature': 'resume_initialized:completed_start',
+          'scrollToken': 'feed-scroll-same-doc',
+        },
+      ),
+    ]);
+
+    final findings = recorder.buildPinpointFindings();
+
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_slow'),
+      isFalse,
+    );
+    expect(
+      findings.any((item) => item.code == 'feed_scroll_dispatch_timeout'),
+      isFalse,
+    );
+  });
+
   test('qa recorder ignores deferred init requests for duplicate dispatches',
       () {
     final recorder = QALabRecorder();
