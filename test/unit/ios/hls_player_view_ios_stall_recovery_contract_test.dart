@@ -65,4 +65,23 @@ void main() {
       contains('(isPlaying && !isBuffering) ||'),
     );
   });
+
+  test('iOS freeze guard clears recent-progress window on pause', () async {
+    final source = await File(
+      '/Users/turqapp/Desktop/TurqApp/ios/Runner/PlaybackHealthMonitor.swift',
+    ).readAsString();
+
+    expect(
+      source,
+      contains('func onPlaybackPaused() {'),
+    );
+    expect(
+      source,
+      contains('isPlaybackExpected = false'),
+    );
+    expect(
+      source,
+      contains('lastPlaybackProgressedAt = 0'),
+    );
+  });
 }

@@ -105,7 +105,9 @@ final class PlaybackHealthMonitor {
 
     func onPlaybackPaused() {
         isPlaying = false
+        isPlaybackExpected = false
         isBuffering = false
+        lastPlaybackProgressedAt = 0
         publishState("playbackPaused")
     }
 

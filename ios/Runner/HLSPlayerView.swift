@@ -32,6 +32,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Properties
     private var _view: PlayerContainerView
+    private let viewId: Int64
     private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var playerItem: AVPlayerItem?
@@ -56,7 +57,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private let ciContext = CIContext(options: nil)
     private var bufferingEventsCount: Int = 0
     private var playbackStallCount: Int = 0
-    private let playbackHealthMonitor = PlaybackHealthMonitor(tag: "AVPlaybackHealth")
+    private let playbackHealthMonitor: PlaybackHealthMonitor
     private var playbackHealthProbe: AVPlayerPlaybackProbe?
     private var playbackWatchdog: PlaybackWatchdog?
     private var wasMutedBeforeBackground: Bool = false
@@ -91,6 +92,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         eventChannel: FlutterEventChannel
     ) {
         _view = PlayerContainerView(frame: frame)
+        self.viewId = viewId
+        playbackHealthMonitor = PlaybackHealthMonitor(
+            tag: "AVPlaybackHealth[\(viewId)]"
+        )
         _view.backgroundColor = .black
         _view.isOpaque = true
 
@@ -244,6 +249,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastAutoplayRequestAt = now
         autoplayRequestWorkItem?.cancel()
         autoplayRequestWorkItem = nil
+        playbackWatchdog?.start()
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: false)
@@ -262,6 +268,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastExplicitPauseUrl = normalizedUrl
         log("pause url=\(currentUrl ?? "-")")
         captureCurrentFrameSnapshot(showOverlay: shouldShowResumePosterOnPause())
+        playbackWatchdog?.stop()
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
         PlaybackHealthStore.shared.clear(monitor: playbackHealthMonitor)
@@ -759,7 +766,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             player: player,
             playerItem: playerItem,
             monitor: playbackHealthMonitor,
-            tag: "AVPlayerPlaybackProbe"
+            tag: "AVPlayerPlaybackProbe[\(viewId)]"
         )
         if let playerLayer {
             playbackHealthProbe?.attachPlayerLayer(playerLayer)
@@ -768,9 +775,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             playerProvider: { [weak self] in self?.player },
             playerLayerProvider: { [weak self] in self?.playerLayer },
             monitor: playbackHealthMonitor,
-            tag: "AVPlayerPlaybackWatchdog"
+            tag: "AVPlayerPlaybackWatchdog[\(viewId)]"
         )
-        playbackWatchdog?.start()
     }
 
     private func setupVideoOutput() {

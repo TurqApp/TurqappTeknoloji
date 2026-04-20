@@ -8,6 +8,7 @@ import 'package:turqappv2/Modules/Short/short_controller.dart';
 import '../core/helpers/smoke_artifact_collector.dart';
 import '../core/helpers/short_swipe_helpers.dart';
 import '../core/bootstrap/test_app_bootstrap.dart';
+import '../core/helpers/transient_error_policy.dart';
 
 void main() {
   ensureIntegrationBinding();
@@ -15,80 +16,86 @@ void main() {
   testWidgets(
     'Short first two items render playable video on device',
     (tester) async {
-      await SmokeArtifactCollector.runScenario(
-        'short_first_two_playback',
-        tester,
-        () async {
-          await launchTurqApp(
-            tester,
-            relaxFeedFixtureDocRequirement: true,
-            primeShortSnapshot: true,
-          );
-          await tapItKey(tester, IntegrationTestKeys.navShort, settlePumps: 12);
-          expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
-
-          final controller = ensureShortController();
-          for (var cycle = 0; cycle < 3; cycle++) {
-            await _assertPlayableForDuration(
+      final originalOnError = installTransientFlutterErrorPolicy();
+      try {
+        await SmokeArtifactCollector.runScenario(
+          'short_first_two_playback',
+          tester,
+          () async {
+            await launchTurqApp(
               tester,
-              controller: controller,
-              index: 0,
-              holdFor: _holdForIndex(controller, 0),
-              label: 'first short cycle ${cycle + 1}',
+              relaxFeedFixtureDocRequirement: true,
+              primeShortSnapshot: true,
             );
+            await tapItKey(tester, IntegrationTestKeys.navShort,
+                settlePumps: 12);
+            expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
 
-            await swipeToShortIndex(
-              tester,
-              controller: controller,
-              targetIndex: 1,
-            );
-            _expectWarmPausedShortAdapter(
-              controller,
-              index: 0,
-              label: 'first short after swipe to second cycle ${cycle + 1}',
-            );
+            final controller = ensureShortController();
+            for (var cycle = 0; cycle < 3; cycle++) {
+              await _assertPlayableForDuration(
+                tester,
+                controller: controller,
+                index: 0,
+                holdFor: _holdForIndex(controller, 0),
+                label: 'first short cycle ${cycle + 1}',
+              );
 
-            await _assertPlayableForDuration(
-              tester,
-              controller: controller,
-              index: 1,
-              holdFor: _holdForIndex(controller, 1),
-              label: 'second short cycle ${cycle + 1}',
-            );
+              await swipeToShortIndex(
+                tester,
+                controller: controller,
+                targetIndex: 1,
+              );
+              _expectWarmPausedShortAdapter(
+                controller,
+                index: 0,
+                label: 'first short after swipe to second cycle ${cycle + 1}',
+              );
 
-            await swipeToShortIndex(
-              tester,
-              controller: controller,
-              targetIndex: 0,
-            );
-            _expectWarmPausedShortAdapter(
-              controller,
-              index: 1,
-              label: 'second short after swipe back cycle ${cycle + 1}',
-            );
-          }
+              await _assertPlayableForDuration(
+                tester,
+                controller: controller,
+                index: 1,
+                holdFor: _holdForIndex(controller, 1),
+                label: 'second short cycle ${cycle + 1}',
+              );
 
-          final findings = QALabRecorder.ensure().buildPinpointFindings();
-          final shortFirstFrameWarnings = findings
-              .where((item) => item.code == 'short_scroll_first_frame_slow')
-              .toList(growable: false);
-          expect(
-            shortFirstFrameWarnings,
-            isEmpty,
-            reason: 'Short smoke still produced first-frame warnings: '
-                '${shortFirstFrameWarnings.map((item) => item.message).join(' | ')}',
-          );
-          final shortTransitionWarnings = findings
-              .where((item) => item.code == 'short_transition_visual_slow')
-              .toList(growable: false);
-          expect(
-            shortTransitionWarnings,
-            isEmpty,
-            reason: 'Short smoke still produced visual transition warnings: '
-                '${shortTransitionWarnings.map((item) => item.message).join(' | ')}',
-          );
-        },
-      );
+              await swipeToShortIndex(
+                tester,
+                controller: controller,
+                targetIndex: 0,
+              );
+              _expectWarmPausedShortAdapter(
+                controller,
+                index: 1,
+                label: 'second short after swipe back cycle ${cycle + 1}',
+              );
+            }
+
+            final findings = QALabRecorder.ensure().buildPinpointFindings();
+            final shortFirstFrameWarnings = findings
+                .where((item) => item.code == 'short_scroll_first_frame_slow')
+                .toList(growable: false);
+            expect(
+              shortFirstFrameWarnings,
+              isEmpty,
+              reason: 'Short smoke still produced first-frame warnings: '
+                  '${shortFirstFrameWarnings.map((item) => item.message).join(' | ')}',
+            );
+            final shortTransitionWarnings = findings
+                .where((item) => item.code == 'short_transition_visual_slow')
+                .toList(growable: false);
+            expect(
+              shortTransitionWarnings,
+              isEmpty,
+              reason: 'Short smoke still produced visual transition warnings: '
+                  '${shortTransitionWarnings.map((item) => item.message).join(' | ')}',
+            );
+          },
+        );
+      } finally {
+        restoreTransientFlutterErrorPolicy(originalOnError);
+      }
     },
     skip: !kRunIntegrationSmoke,
   );
