@@ -7,6 +7,8 @@ extension AgendaControllerFeedPart on AgendaController {
 
   static const Duration _startupPlaybackLockDuration =
       Duration(milliseconds: StartupRouteGatePolicy.feedStartupPlaybackLockMs);
+  static const Duration _iosStartupPlaybackLockDuration =
+      Duration(milliseconds: 1200);
   static const Duration _androidStartupPlaybackPendingLockDuration = Duration(
     milliseconds:
         StartupRouteGatePolicy.androidFeedStartupPlaybackPendingLockMs,
@@ -210,7 +212,9 @@ extension AgendaControllerFeedPart on AgendaController {
     if (lockedDocId.isEmpty || lockedAt == null) {
       return false;
     }
-    var lockDuration = _startupPlaybackLockDuration;
+    var lockDuration = GetPlatform.isIOS
+        ? _iosStartupPlaybackLockDuration
+        : _startupPlaybackLockDuration;
     if (GetPlatform.isAndroid && agendaList.isNotEmpty) {
       final lockedIndex = agendaList.indexWhere(
         (post) => post.docID == lockedDocId,
