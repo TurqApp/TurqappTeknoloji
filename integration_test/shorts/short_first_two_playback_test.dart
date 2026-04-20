@@ -32,6 +32,11 @@ void main() {
             expect(byItKey(IntegrationTestKeys.screenShort), findsOneWidget);
 
             final controller = ensureShortController();
+            await _ensureShortSurfaceHasItems(
+              tester,
+              controller: controller,
+              minimumCount: 2,
+            );
             for (var cycle = 0; cycle < 3; cycle++) {
               await _assertPlayableForDuration(
                 tester,
@@ -98,6 +103,48 @@ void main() {
       }
     },
     skip: !kRunIntegrationSmoke,
+  );
+}
+
+Future<void> _ensureShortSurfaceHasItems(
+  WidgetTester tester, {
+  required ShortController controller,
+  required int minimumCount,
+}) async {
+  const pollStep = Duration(milliseconds: 250);
+  const maxAttempts = 3;
+
+  for (var attempt = 0; attempt < maxAttempts; attempt++) {
+    final deadline = DateTime.now().add(
+      Duration(seconds: attempt == 0 ? 6 : 8),
+    );
+    while (DateTime.now().isBefore(deadline)) {
+      await tester.pump(pollStep);
+      final error = tester.takeException();
+      if (error != null) {
+        final text = error.toString();
+        if (!isAllowedNonFatalIntegrationErrorText(text)) {
+          throw TestFailure('short preload exception: $error');
+        }
+      }
+      if (controller.shorts.length >= minimumCount) {
+        return;
+      }
+    }
+
+    if (attempt == maxAttempts - 1) {
+      break;
+    }
+
+    await controller.prepareStartupSurface(allowBackgroundRefresh: true);
+    await controller.refreshShorts();
+    await tester.pump(const Duration(milliseconds: 600));
+  }
+
+  throw TestFailure(
+    'Short surface stayed empty after retries '
+    '(count=${controller.shorts.length}, hasMore=${controller.hasMore.value}, '
+    'isLoading=${controller.isLoading.value}, isRefreshing=${controller.isRefreshing.value}).',
   );
 }
 

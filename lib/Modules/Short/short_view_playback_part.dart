@@ -1167,6 +1167,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
               stillMuted ||
               (vc.value.position > Duration.zero && !vc.value.isPlaying) ||
               vc.value.position < const Duration(milliseconds: 2500));
+      final docId = page >= 0 && page < _cachedShorts.length
+          ? _cachedShorts[page].docID.trim()
+          : '';
       if (!stillMuted && !shouldKickPlayback) {
         if (shouldRetrySoon) {
           _scheduleIosShortAudibilityReassert(
@@ -1181,6 +1184,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
         final shouldRecoverFrozenPlayback = vc.value.hasRenderedFirstFrame &&
             !vc.value.isCompleted &&
             vc.value.position >= const Duration(milliseconds: 2500);
+        if (_shouldSuppressShortPlaybackAttempt(
+          page,
+          docId,
+          source: 'ios_audibility_reassert',
+        )) {
+          return;
+        }
         if (shouldRecoverFrozenPlayback) {
           await vc.recoverFrozenPlayback();
         } else {
@@ -1195,9 +1205,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
         return;
       }
       _applyShortPlaybackPresentation(page, vc);
-      final docId = page >= 0 && page < _cachedShorts.length
-          ? _cachedShorts[page].docID.trim()
-          : '';
       if (docId.isNotEmpty) {
         _requestExclusivePlayback(docId, vc);
       }
@@ -1290,6 +1297,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
             afterSilenceMs >= beforeSilenceMs &&
             (beforePlaying || afterPlaying || !vc.value.isPlaying);
         if (likelyFrozen) {
+          final docId = page >= 0 && page < _cachedShorts.length
+              ? _cachedShorts[page].docID.trim()
+              : '';
+          if (_shouldSuppressShortPlaybackAttempt(
+            page,
+            docId,
+            source: 'ios_native_guard',
+          )) {
+            return;
+          }
           final shouldRecoverFrozenPlayback =
               afterPosition >= const Duration(milliseconds: 2500);
           try {
@@ -1307,9 +1324,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
             return;
           }
           _applyShortPlaybackPresentation(page, vc);
-          final docId = page >= 0 && page < _cachedShorts.length
-              ? _cachedShorts[page].docID.trim()
-              : '';
           if (docId.isNotEmpty) {
             _requestExclusivePlayback(docId, vc);
             _applyShortPlaybackPresentation(page, vc);

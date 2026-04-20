@@ -1,6 +1,21 @@
 part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
+  bool _shouldThrottleIosPlaybackReassert({
+    Duration minSpacing = const Duration(milliseconds: 650),
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) {
+      return false;
+    }
+    final now = DateTime.now();
+    final lastAt = _lastIosPlaybackReassertAt;
+    if (lastAt != null && now.difference(lastAt) < minSpacing) {
+      return true;
+    }
+    _lastIosPlaybackReassertAt = now;
+    return false;
+  }
+
   Future<void> _performRestartStoppedPlayback({
     required bool autoPlay,
   }) async {
@@ -175,6 +190,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         final shouldForcePlay =
             stillMuted || (!_value.isPlaying && withinStartupReassertWindow);
         if (!shouldForcePlay) return;
+        if (_shouldThrottleIosPlaybackReassert()) return;
         try {
           await _hls.play();
         } catch (_) {}

@@ -115,7 +115,9 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         unawaited(_hls.setVolume(_pendingVolume));
         if (_value.hasRenderedFirstFrame &&
             !_value.isCompleted &&
-            !_value.isPlaying) {
+            !_value.isPlaying &&
+            !_value.isBuffering &&
+            !_shouldThrottleIosPlaybackReassert()) {
           unawaited(_hls.play());
         }
       }
