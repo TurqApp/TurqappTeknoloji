@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
@@ -220,21 +219,8 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
         debugPrintStack(stackTrace: st);
       }
     }
-    if (kDebugMode) {
-      debugPrint('[AppCheck] skipped in debug to avoid startup retries.');
-    } else {
-      try {
-        await _activateAppCheck().timeout(
-          const Duration(seconds: 2),
-          onTimeout: () {
-            debugPrint('[AppCheck] activation timed out.');
-          },
-        );
-      } catch (e, st) {
-        debugPrint('[AppCheck] activation failed before handlers: $e');
-        debugPrintStack(stackTrace: st);
-      }
-    }
+    debugPrint(
+        '[AppCheck] disabled; firebase_app_check package is not linked.');
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -274,29 +260,6 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     }
     return true;
   };
-}
-
-Future<void> _activateAppCheck() async {
-  try {
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: kDebugMode
-          ? const AndroidDebugProvider()
-          : const AndroidPlayIntegrityProvider(),
-      providerApple: kDebugMode
-          ? const AppleDebugProvider()
-          : const AppleDeviceCheckProvider(),
-    );
-
-    if (!kReleaseMode) {
-      final mode = kDebugMode ? 'debug' : 'profile';
-      debugPrint(
-        '[AppCheck] $mode provider enabled for local development.',
-      );
-    }
-  } catch (e, st) {
-    debugPrint('[AppCheck] activation failed: $e');
-    FirebaseCrashlytics.instance.recordError(e, st, fatal: false);
-  }
 }
 
 bool _isFirestoreConfigError(Object error) {

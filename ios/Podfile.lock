@@ -1188,10 +1188,6 @@ PODS:
     - abseil/meta/type_traits
     - abseil/xcprivacy
   - abseil/xcprivacy (1.20240722.0)
-  - AppCheckCore (11.2.0):
-    - GoogleUtilities/Environment (~> 8.0)
-    - GoogleUtilities/UserDefaults (~> 8.0)
-    - PromisesObjC (~> 2.4)
   - audioplayers_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -1245,11 +1241,6 @@ PODS:
   - Firebase/Storage (12.9.0):
     - Firebase/CoreOnly
     - FirebaseStorage (~> 12.9.0)
-  - firebase_app_check (0.4.1-5):
-    - Firebase/CoreOnly (~> 12.9.0)
-    - firebase_core
-    - FirebaseAppCheck (~> 12.9.0)
-    - Flutter
   - firebase_auth (6.1.4):
     - Firebase/Auth (= 12.9.0)
     - firebase_core
@@ -1279,12 +1270,6 @@ PODS:
     - Flutter
   - FirebaseABTesting (12.9.0):
     - FirebaseCore (~> 12.9.0)
-  - FirebaseAppCheck (12.9.0):
-    - AppCheckCore (~> 11.0)
-    - FirebaseAppCheckInterop (~> 12.9.0)
-    - FirebaseCore (~> 12.9.0)
-    - GoogleUtilities/Environment (~> 8.1)
-    - GoogleUtilities/UserDefaults (~> 8.1)
   - FirebaseAppCheckInterop (12.9.0)
   - FirebaseAuth (12.9.0):
     - FirebaseAppCheckInterop (~> 12.9.0)
@@ -1655,7 +1640,6 @@ DEPENDENCIES:
   - contact_add (from `.symlinks/plugins/contact_add/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - easy_video_editor (from `.symlinks/plugins/easy_video_editor/ios`)
-  - firebase_app_check (from `.symlinks/plugins/firebase_app_check/ios`)
   - firebase_auth (from `.symlinks/plugins/firebase_auth/ios`)
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_crashlytics (from `.symlinks/plugins/firebase_crashlytics/ios`)
@@ -1693,11 +1677,9 @@ DEPENDENCIES:
 SPEC REPOS:
   trunk:
     - abseil
-    - AppCheckCore
     - BoringSSL-GRPC
     - Firebase
     - FirebaseABTesting
-    - FirebaseAppCheck
     - FirebaseAppCheckInterop
     - FirebaseAuth
     - FirebaseAuthInterop
@@ -1757,8 +1739,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/device_info_plus/ios"
   easy_video_editor:
     :path: ".symlinks/plugins/easy_video_editor/ios"
-  firebase_app_check:
-    :path: ".symlinks/plugins/firebase_app_check/ios"
   firebase_auth:
     :path: ".symlinks/plugins/firebase_auth/ios"
   firebase_core:
@@ -1828,7 +1808,6 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   abseil: a05cc83bf02079535e17169a73c5be5ba47f714b
-  AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   audioplayers_darwin: 4f9ca89d92d3d21cec7ec580e78ca888e5fb68bd
   BoringSSL-GRPC: dded2a44897e45f28f08ae87a55ee4bcd19bc508
   camera_avfoundation: 5675ca25298b6f81fa0a325188e7df62cc217741
@@ -1839,7 +1818,6 @@ SPEC CHECKSUMS:
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   easy_video_editor: 3b4b38c40be7344935f79698115ee36077df8a57
   Firebase: 065f2bb395062046623036d8e6dc857bc2521d56
-  firebase_app_check: 33f1df6830ec8ebadee0db0120956c44a65c7213
   firebase_auth: fecf9fe293464b52063f5f2a7110e63ff2ab3403
   firebase_core: afac1aac13c931e0401c7e74ed1276112030efab
   firebase_crashlytics: d3a550f0132b59d886eca10448df04afd38b18cf
@@ -1848,7 +1826,6 @@ SPEC CHECKSUMS:
   firebase_remote_config: 3a5e8a65dc4dabfc568ece78826e1479895cc7a7
   firebase_storage: ffb1cd50bcb4fc58bd2da718a5d2d4cdb1073970
   FirebaseABTesting: a399ffe546392a39b19a5c2fb28bd8ea178a6f47
-  FirebaseAppCheck: 94dae4d9bb682bdef85a778b0c1024a4613f1e89
   FirebaseAppCheckInterop: 4bade10286cc977e516f75d2d8312cbdfa534789
   FirebaseAuth: 3a39f6436c21ebfd7919b698228b4f89ff94c23b
   FirebaseAuthInterop: f8f6ff72dc24621906497fbe5cf3c42ee815e59c

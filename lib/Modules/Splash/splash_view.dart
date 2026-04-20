@@ -26,7 +26,6 @@ import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 import '../../Core/Repositories/feed_snapshot_repository.dart';
 import '../../Core/Repositories/job_home_snapshot_repository.dart';
 import '../../Core/Repositories/scholarship_snapshot_repository.dart';
-import '../../Core/Repositories/short_snapshot_repository.dart';
 import '../../Core/Repositories/tutoring_snapshot_repository.dart';
 import '../../Core/Services/CacheFirst/cache_first.dart';
 import '../../Modules/Agenda/agenda_controller.dart';
@@ -84,11 +83,11 @@ class _SplashViewState extends State<SplashView> {
 
   bool _minimumStartupPrepared = false;
   bool _feedWarmSnapshotHit = false;
-  bool _shortWarmSnapshotHit = false;
+  final bool _shortWarmSnapshotHit = false;
   bool _feedStartupShardHydrated = false;
   bool _shortStartupShardHydrated = false;
   String _feedWarmSnapshotSource = 'none';
-  String _shortWarmSnapshotSource = 'none';
+  final String _shortWarmSnapshotSource = 'none';
   String _previousStartupRouteHint = 'unknown';
   bool _previousStartupLoggedIn = false;
   bool _previousStartupMinimumPrepared = false;

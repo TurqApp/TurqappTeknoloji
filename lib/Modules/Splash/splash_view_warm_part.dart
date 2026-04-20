@@ -1031,15 +1031,6 @@ extension _SplashViewWarmPart on _SplashViewState {
     } catch (_) {}
   }
 
-  Future<void> _warmShortSnapshotForStartup({
-    required bool onWiFi,
-    required bool isFirstLaunch,
-  }) async {
-    _shortWarmSnapshotHit = false;
-    _shortWarmSnapshotSource = 'disabled';
-    _shortWarmSnapshotAgeMs = null;
-  }
-
   void _trackStartupSnapshot<T>({
     required String surface,
     required CachedResource<T> resource,
