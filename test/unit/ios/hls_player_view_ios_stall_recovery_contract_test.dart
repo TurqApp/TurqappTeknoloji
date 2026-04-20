@@ -38,14 +38,31 @@ void main() {
     expect(
       source,
       contains(
-        'return isPlaying ||\n'
-        '            recentPlaybackProgress ||\n'
-        '            (isPlaybackExpected && isBuffering)',
+        'return (isPlaying && !isBuffering) ||\n'
+        '            recentPlaybackProgress',
       ),
     );
     expect(
       source,
       contains('guard isInActivePlaybackWindow('),
+    );
+  });
+
+  test('iOS freeze guard does not classify buffering startup as video freeze',
+      () async {
+    final source = await File(
+      '/Users/turqapp/Desktop/TurqApp/ios/Runner/PlaybackHealthMonitor.swift',
+    ).readAsString();
+
+    expect(
+      source,
+      isNot(
+        contains('(isPlaybackExpected && isBuffering)'),
+      ),
+    );
+    expect(
+      source,
+      contains('(isPlaying && !isBuffering) ||'),
     );
   });
 }

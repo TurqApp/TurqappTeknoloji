@@ -346,9 +346,8 @@ final class PlaybackHealthMonitor {
         let recentPlaybackProgress =
             lastPlaybackProgressedAt > 0 &&
             referenceTime - lastPlaybackProgressedAt <= threshold
-        return isPlaying ||
-            recentPlaybackProgress ||
-            (isPlaybackExpected && isBuffering)
+        return (isPlaying && !isBuffering) ||
+            recentPlaybackProgress
     }
 
     private func recordError(_ code: String) {
