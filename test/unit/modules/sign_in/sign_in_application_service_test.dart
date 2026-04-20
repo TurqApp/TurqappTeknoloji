@@ -177,5 +177,19 @@ void main() {
             '_signInApplicationService.preferredIdentifierForStoredAccount'),
       );
     });
+
+    test('post-auth agenda warmup does not issue a live refresh', () {
+      final source = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Modules/SignIn/sign_in_application_service.dart',
+      ).readAsStringSync();
+      final start = source.indexOf('Future<void> _warmAgendaAfterAuth');
+      final end =
+          source.indexOf('Future<void> _warmLightweightHomeAfterSignIn');
+      final warmupBody = source.substring(start, end);
+
+      expect(
+          warmupBody, contains('agendaController.ensureInitialFeedLoaded()'));
+      expect(warmupBody, isNot(contains('agendaController.refreshAgenda()')));
+    });
   });
 }

@@ -410,9 +410,7 @@ class SignInApplicationService {
     try {
       final agendaController =
           maybeFindAgendaController() ?? ensureAgendaController();
-      final warmFuture = agendaController.agendaList.isEmpty
-          ? agendaController.ensureInitialFeedLoaded()
-          : agendaController.refreshAgenda();
+      final warmFuture = agendaController.ensureInitialFeedLoaded();
       if (timeout == null) {
         await warmFuture;
       } else {
