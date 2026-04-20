@@ -306,7 +306,17 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         return;
       }
       final hasMeaningfulProgress = handle.position > Duration.zero;
-      if (!handle.isPlaying && !hasMeaningfulProgress) {
+      final hlsAdapterHandle =
+          handle is HLSAdapterPlaybackHandle ? handle.adapter : null;
+      final adapterValue = hlsAdapterHandle?.value;
+      final hlsHandleAlreadyActivating = adapterValue != null &&
+          (adapterValue.isPlaying ||
+              adapterValue.isBuffering ||
+              adapterValue.hasRenderedFirstFrame ||
+              adapterValue.position > Duration.zero);
+      if (!handle.isPlaying &&
+          !hasMeaningfulProgress &&
+          !hlsHandleAlreadyActivating) {
         _playbackExecutionService.resumeHandle(handle);
       }
     });
