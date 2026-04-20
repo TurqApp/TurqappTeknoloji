@@ -179,4 +179,28 @@ void main() {
           'player?.automaticallyWaitsToMinimizeStalling = preferStableStartupBuffer'),
     );
   });
+
+  test('iOS short ownership handoff skips pending play queue after startup',
+      () async {
+    final shortViewSource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
+    ).readAsString();
+
+    expect(
+      shortViewSource,
+      contains('final shouldUseDirectOwnershipRequest ='),
+    );
+    expect(
+      shortViewSource,
+      contains('defaultTargetPlatform == TargetPlatform.iOS'),
+    );
+    expect(
+      shortViewSource,
+      contains('_playbackRuntimeService.requestPlay('),
+    );
+    expect(
+      shortViewSource,
+      contains('HLSAdapterPlaybackHandle(adapter)'),
+    );
+  });
 }

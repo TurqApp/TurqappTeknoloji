@@ -184,7 +184,20 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+      final shouldUseDirectOwnershipRequest =
+          defaultTargetPlatform == TargetPlatform.iOS &&
+              (adapter.value.isPlaying ||
+                  adapter.value.isBuffering ||
+                  adapter.value.hasRenderedFirstFrame ||
+                  adapter.value.position > Duration.zero);
+      if (shouldUseDirectOwnershipRequest) {
+        _playbackRuntimeService.requestPlay(
+          playbackHandleKey,
+          HLSAdapterPlaybackHandle(adapter),
+        );
+      } else {
+        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+      }
     } catch (_) {}
   }
 
