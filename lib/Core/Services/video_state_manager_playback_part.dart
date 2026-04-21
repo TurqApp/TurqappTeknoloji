@@ -3,6 +3,15 @@ part of 'video_state_manager.dart';
 const int _videoStateManagerMaxPendingPlayRetries = 28;
 
 extension VideoStateManagerPlaybackPart on VideoStateManager {
+  String? _playbackSurfaceKind(String? key) {
+    final trimmed = key?.trim() ?? '';
+    if (trimmed.startsWith('short:')) return 'short';
+    if (trimmed.startsWith('feed:')) return 'feed';
+    if (trimmed.startsWith('social_')) return 'social';
+    if (trimmed.startsWith('profile_')) return 'profile';
+    return null;
+  }
+
   bool _shouldStopPlaybackForHiddenHandle(String controllerKey) {
     if (defaultTargetPlatform != TargetPlatform.android) {
       return true;
@@ -11,7 +20,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final isShortHandle = trimmedKey.startsWith('short:');
     final isFeedHandle = trimmedKey.startsWith('feed:');
     final isSocialHandle = trimmedKey.startsWith('social_');
-    if (!isShortHandle && !isFeedHandle && !isSocialHandle) {
+    final isProfileHandle = trimmedKey.startsWith('profile_');
+    if (!isShortHandle &&
+        !isFeedHandle &&
+        !isSocialHandle &&
+        !isProfileHandle) {
       return true;
     }
     final normalizedDocID = HlsSegmentPolicy.normalizeDocId(trimmedKey);
@@ -21,7 +34,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final scheduler = maybeFindPrefetchScheduler();
     final tierInfo = isShortHandle
         ? scheduler?.classifyShortTransferDoc(normalizedDocID)
-        : (isSocialHandle
+        : (isSocialHandle || isProfileHandle
             ? scheduler?.classifyTransferDoc(normalizedDocID)
             : scheduler?.classifyFeedTransferDoc(normalizedDocID));
     if (tierInfo == null) {
@@ -43,11 +56,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
     final allowedKey = allowedDocID?.trim() ?? '';
     final controllerTrimmed = controllerKey.trim();
-    final shortWarm = allowedKey.startsWith('short:') &&
-        controllerTrimmed.startsWith('short:');
-    final socialWarm = allowedKey.startsWith('social_') &&
-        controllerTrimmed.startsWith('social_');
-    if (!shortWarm && !socialWarm) return false;
+    final allowedSurface = _playbackSurfaceKind(allowedKey);
+    final controllerSurface = _playbackSurfaceKind(controllerTrimmed);
+    if (allowedSurface == null || allowedSurface != controllerSurface) {
+      return false;
+    }
+    if (allowedSurface != 'short') return false;
     return handle.adapter.preferWarmPoolPause;
   }
 
@@ -204,8 +218,15 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         }
         if (handle.isInitialized) {
           final controllerKey = entry.key.trim();
+          final allowedSurface = _playbackSurfaceKind(allowedDocID);
+          final controllerSurface = _playbackSurfaceKind(controllerKey);
           var shouldStopPlayback =
               _shouldStopPlaybackForHiddenHandle(controllerKey);
+          if (allowedSurface != null &&
+              controllerSurface != null &&
+              allowedSurface != controllerSurface) {
+            shouldStopPlayback = true;
+          }
           if (handle is HLSAdapterPlaybackHandle &&
               _shouldKeepWarmHandleDuringExclusiveSwitch(
                 allowedDocID,

@@ -237,10 +237,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               instanceTag
                                                   .startsWith('liked_post_') ||
                                               instanceTag.startsWith('social_');
+                                      final showInlinePlayer =
+                                          videoController != null &&
+                                              !(GetPlatform.isAndroid &&
+                                                  preferWarmPoolPauseOnAndroid &&
+                                                  !widget.shouldPlay);
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          _isFullscreen
+                                          !showInlinePlayer || _isFullscreen
                                               ? const SizedBox.shrink()
                                               : videoController!.buildPlayer(
                                                   key: ValueKey(

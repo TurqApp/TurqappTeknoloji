@@ -282,6 +282,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isSocialProfileSurfaceInstance =>
       _surfaceInstanceTag.startsWith('social_');
 
+  bool get _isOwnProfileSurfaceInstance {
+    if (_isProfileSurfaceInstance) return true;
+    if (!_isSocialProfileSurfaceInstance) return false;
+    return _resolveSocialProfileController()?.isOwnProfile ?? false;
+  }
+
   SocialProfileController? _resolveSocialProfileController() {
     final reshareUserId = (widget.reshareUserID ?? '').trim();
     if (reshareUserId.isNotEmpty) {
@@ -340,6 +346,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _shouldBypassLocalProxyForAndroidPrimaryFeed => false;
 
   bool get shouldKeepVideoSurfaceAlive {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        (_isPrimaryFeedSurfaceInstance ||
+            _isProfileSurfaceInstance ||
+            _isSocialProfileSurfaceInstance) &&
+        !widget.shouldPlay) {
+      return false;
+    }
     final keepAlive = widget.model.hasPlayableVideo &&
         (widget.shouldPlay ||
             _surfaceKeepAliveDebounceActive ||
@@ -664,11 +677,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final isIosPrimaryFeed = defaultTargetPlatform == TargetPlatform.iOS &&
         _isPrimaryFeedSurfaceInstance;
     if (!isAndroid && !isIosPrimaryFeed) return false;
-    final isSupportedSurface = isAndroid
-        ? (_isPrimaryFeedSurfaceInstance ||
-            _isProfileSurfaceInstance ||
-            _isSocialProfileSurfaceInstance)
-        : _isPrimaryFeedSurfaceInstance;
+    // Keep native warm controller preload limited to the primary feed.
+    // Profile/social surfaces still use segment/cache warming, but should not
+    // initialize off-screen players that can render an unexpected first frame.
+    final isSupportedSurface = _isPrimaryFeedSurfaceInstance;
     if (!isSupportedSurface) return false;
     if (!widget.model.hasPlayableVideo) return false;
     if (widget.shouldPlay) return false;

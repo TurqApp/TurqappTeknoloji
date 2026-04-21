@@ -447,11 +447,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           positionSeconds: positionSeconds,
         );
         if (currentSegment != null) {
-          _segmentCacheRuntimeService.markFeedConsumed(widget.model.docID);
-          FeedDiversityMemoryService.ensure().noteWatchedPost(
-            widget.model,
-            currentSegment: currentSegment,
-          );
+          if (!_isOwnProfileSurfaceInstance) {
+            _segmentCacheRuntimeService.markFeedConsumed(widget.model.docID);
+            FeedDiversityMemoryService.ensure().noteWatchedPost(
+              widget.model,
+              currentSegment: currentSegment,
+            );
+          }
         }
       }
     }

@@ -532,6 +532,10 @@ extension ClassicContentBodyPart on _ClassicContentState {
         instanceTag.startsWith('archives_') ||
         instanceTag.startsWith('liked_post_') ||
         instanceTag.startsWith('social_');
+    final showInlinePlayer = videoController != null &&
+        !(GetPlatform.isAndroid &&
+            preferWarmPoolPauseOnAndroid &&
+            !widget.shouldPlay);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -552,7 +556,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     right: 8,
                     child: buildUploadIndicator(),
                   ),
-                ] else if (videoController != null) ...[
+                ] else if (showInlinePlayer) ...[
                   IgnorePointer(
                     ignoring: true,
                     child: _isFullscreen
