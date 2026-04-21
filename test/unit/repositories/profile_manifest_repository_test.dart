@@ -144,6 +144,39 @@ void main() {
       expect(header['counterOfFollowings'], 7);
     });
 
+    test('encodes and decodes header snapshot payload by storage path', () {
+      final encoded = ProfileManifestRepository.encodeHeaderSnapshot(
+        storagePath: 'users/user-a/profile_manifest/manifest_v1.json',
+        header: const <String, dynamic>{
+          'nickname': 'nick',
+          'displayName': 'Display Name',
+        },
+      );
+      final decoded = ProfileManifestRepository.decodeHeaderSnapshot(
+        encoded,
+        expectedStoragePath: 'users/user-a/profile_manifest/manifest_v1.json',
+      );
+
+      expect(decoded, isNotNull);
+      expect(decoded!['storagePath'], contains('manifest_v1.json'));
+      expect((decoded['header'] as Map<String, dynamic>)['nickname'], 'nick');
+    });
+
+    test('rejects header snapshot payload when storage path changed', () {
+      final encoded = ProfileManifestRepository.encodeHeaderSnapshot(
+        storagePath: 'users/user-a/profile_manifest/manifest_v1.json',
+        header: const <String, dynamic>{'nickname': 'nick'},
+      );
+
+      expect(
+        ProfileManifestRepository.decodeHeaderSnapshot(
+          encoded,
+          expectedStoragePath: 'users/user-a/profile_manifest/manifest_v2.json',
+        ),
+        isNull,
+      );
+    });
+
     test('returns null for malformed manifest json', () {
       expect(
         ProfileManifestRepository.parseManifestJson(
