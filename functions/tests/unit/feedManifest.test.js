@@ -104,6 +104,35 @@ test("feed manifest dedupes by canonical flood root", () => {
   );
 });
 
+test("feed manifest keeps the strongest candidate for the same canonical id", () => {
+  const items = buildFeedManifestItems(
+    [
+      validCandidate("thread-root_1", "user-a", {
+        likeCount: 5,
+        commentCount: 0,
+        savedCount: 0,
+        statsCount: 20,
+      }),
+      validCandidate("thread-root", "user-a", {
+        likeCount: 50,
+        commentCount: 10,
+        savedCount: 3,
+        statsCount: 500,
+      }),
+      validCandidate("normal", "user-b", { likeCount: 10 }),
+    ],
+    {
+      seed: "best-canonical",
+      maxItems: 10,
+    },
+  );
+
+  assert.deepEqual(
+    items.map((item) => item.docId),
+    ["thread-root", "normal"],
+  );
+});
+
 test("feed manifest applies per-user cap before overflow", () => {
   const items = buildFeedManifestItems(
     [
@@ -166,4 +195,41 @@ test("feed manifest slot payload path identity is stable", () => {
   assert.equal(slot.slotId, "slot_06");
   assert.equal(slot.slotHour, 6);
   assert.equal(slot.itemCount, 3);
+});
+
+test("feed manifest order can vary by seed when scores are tied", () => {
+  const candidates = [
+    validCandidate("doc-a", "user-a", {
+      likeCount: 10,
+      commentCount: 0,
+      savedCount: 0,
+      statsCount: 100,
+      timeStamp: 1776710000000,
+    }),
+    validCandidate("doc-b", "user-b", {
+      likeCount: 10,
+      commentCount: 0,
+      savedCount: 0,
+      statsCount: 100,
+      timeStamp: 1776710000000,
+    }),
+    validCandidate("doc-c", "user-c", {
+      likeCount: 10,
+      commentCount: 0,
+      savedCount: 0,
+      statsCount: 100,
+      timeStamp: 1776710000000,
+    }),
+  ];
+
+  const first = buildFeedManifestItems(candidates, {
+    seed: "seed-a",
+    maxItems: 3,
+  }).map((item) => item.docId);
+  const second = buildFeedManifestItems(candidates, {
+    seed: "seed-b",
+    maxItems: 3,
+  }).map((item) => item.docId);
+
+  assert.notDeepEqual(first, second);
 });

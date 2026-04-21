@@ -423,20 +423,34 @@ export function buildFeedManifestItems(
   const seed = String(options?.seed || "feed_manifest");
   const maxItems = Math.max(0, Math.floor(asNumber(options?.maxItems, SLOT_SIZE)));
   const maxPerUser = Math.max(1, Math.floor(asNumber(options?.maxPerUser, 8)));
-  const seenCanonicalIds = new Set<string>();
   const userCounts = new Map<string, number>();
-  const normalized: Array<{ item: FeedManifestItem; score: number; hash: number }> = [];
+  const deduped = new Map<string, { item: FeedManifestItem; score: number; hash: number }>();
 
   for (const candidate of candidates) {
     const item = normalizeManifestItem(candidate);
-    if (!item || seenCanonicalIds.has(item.canonicalId)) continue;
-    seenCanonicalIds.add(item.canonicalId);
-    normalized.push({
+    if (!item) continue;
+    const next = {
       item,
       score: qualityScore(candidate),
       hash: stableHash(`${seed}:${item.canonicalId}`),
-    });
+    };
+    const current = deduped.get(item.canonicalId);
+    if (!current) {
+      deduped.set(item.canonicalId, next);
+      continue;
+    }
+    const shouldReplace =
+      next.score > current.score ||
+      (next.score === current.score && next.item.timeStamp > current.item.timeStamp) ||
+      (next.score === current.score &&
+        next.item.timeStamp === current.item.timeStamp &&
+        next.hash < current.hash);
+    if (shouldReplace) {
+      deduped.set(item.canonicalId, next);
+    }
   }
+
+  const normalized = Array.from(deduped.values());
 
   normalized.sort((left, right) => {
     if (right.score !== left.score) return right.score - left.score;
