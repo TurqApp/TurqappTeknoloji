@@ -158,6 +158,7 @@ class ProfileManifestSyncService extends GetxService {
       int? reshareTimestamp,
     }) {
       final data = post.toMap();
+      final statsMap = post.stats.toMap();
       if (refreshAuthorSnapshot) {
         if (nickname.isNotEmpty) data['authorNickname'] = nickname;
         if (displayName.isNotEmpty) data['authorDisplayName'] = displayName;
@@ -165,6 +166,73 @@ class ProfileManifestSyncService extends GetxService {
         if (rozet.isNotEmpty) data['rozet'] = rozet;
         data['userID'] = uid;
       }
+      data['docID'] = post.docID;
+      data['userID'] = post.userID;
+      data['authorNickname'] = data['authorNickname'] ?? post.authorNickname;
+      data['authorDisplayName'] =
+          data['authorDisplayName'] ?? post.authorDisplayName;
+      data['authorAvatarUrl'] =
+          data['authorAvatarUrl'] ?? post.authorAvatarUrl;
+      data['rozet'] = data['rozet'] ?? post.rozet;
+      data['metin'] = post.metin;
+      data['thumbnail'] = post.thumbnail;
+      data['img'] = List<String>.from(post.img, growable: false);
+      data['video'] = post.video;
+      data['videoLook'] = Map<String, dynamic>.from(post.videoLook);
+      data['hlsMasterUrl'] = post.hlsMasterUrl;
+      data['hlsStatus'] = post.hlsStatus;
+      data['hlsUpdatedAt'] = post.hlsUpdatedAt;
+      data['hasHls'] = post.hasHls;
+      data['isHlsReady'] = post.isHlsReady;
+      data['hasPlayableVideo'] = post.hasPlayableVideo;
+      data['hasVideoSignal'] = post.hasVideoSignal;
+      data['hasRenderableVideoCard'] = post.hasRenderableVideoCard;
+      data['aspectRatio'] = post.aspectRatio;
+      data['timeStamp'] = post.timeStamp;
+      data['scheduledAt'] = post.scheduledAt;
+      data['editTime'] = post.editTime;
+      data['shortId'] = post.shortId;
+      data['shortUrl'] = post.shortUrl;
+      data['shareShortUrl'] = post.shortUrl;
+      data['tags'] = List<String>.from(post.tags, growable: false);
+      data['konum'] = post.konum;
+      data['locationCity'] = post.locationCity;
+      data['originalPostID'] = post.originalPostID;
+      data['originalUserID'] = post.originalUserID;
+      data['quotedPost'] = post.quotedPost;
+      data['quotedOriginalText'] = post.quotedOriginalText;
+      data['quotedSourceUserID'] = post.quotedSourceUserID;
+      data['quotedSourceDisplayName'] = post.quotedSourceDisplayName;
+      data['quotedSourceUsername'] = post.quotedSourceUsername;
+      data['quotedSourceAvatarUrl'] = post.quotedSourceAvatarUrl;
+      data['ad'] = post.ad;
+      data['isAd'] = post.isAd;
+      data['arsiv'] = post.arsiv;
+      data['deletedPost'] = post.deletedPost;
+      data['deletedPostTime'] = post.deletedPostTime;
+      data['gizlendi'] = post.gizlendi;
+      data['isUploading'] = post.isUploading;
+      data['flood'] = post.flood;
+      data['floodCount'] = post.floodCount;
+      data['mainFlood'] = post.mainFlood;
+      data['sikayetEdildi'] = post.sikayetEdildi;
+      data['stabilized'] = post.stabilized;
+      data['debugMode'] = post.debugMode;
+      data['izBirakYayinTarihi'] = post.izBirakYayinTarihi;
+      data['paylasGizliligi'] = post.paylasGizliligi;
+      data['paylasimVisibility'] = post.paylasimVisibility;
+      data['yorum'] = post.yorum;
+      data['yorumMap'] = Map<String, dynamic>.from(post.yorumMap);
+      data['yorumVisibility'] = post.yorumVisibility;
+      data['reshareMap'] = Map<String, dynamic>.from(post.reshareMap);
+      data['poll'] = Map<String, dynamic>.from(post.poll);
+      data['stats'] = statsMap;
+      data['commentCount'] = statsMap['commentCount'] ?? 0;
+      data['likeCount'] = statsMap['likeCount'] ?? 0;
+      data['savedCount'] = statsMap['savedCount'] ?? 0;
+      data['statsCount'] = statsMap['statsCount'] ?? 0;
+      data['reportedCount'] = statsMap['reportedCount'] ?? 0;
+      data['retryCount'] = statsMap['retryCount'] ?? 0;
       if (reshareTimestamp != null) {
         final rawReshareMap = data['reshareMap'];
         final reshareMap = rawReshareMap is Map
