@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:math';
 
 class FeedManifestPolicy {
   const FeedManifestPolicy._();
 
-  static const bool primaryEnabled = false;
+  static const bool primaryEnabled = bool.fromEnvironment(
+    'FEED_MANIFEST_PRIMARY',
+    defaultValue: kDebugMode,
+  );
   static const bool typesenseGapEnabled = true;
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 6;
   static const int minUserSpacing = 3;
+  static const int maxItemsPerUser = 3;
   static const int startupHeadRememberLimit = 20;
   static const int maxGapCandidateLimit = 60;
   static const int minGapCandidateLimit = 20;

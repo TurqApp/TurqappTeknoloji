@@ -46,6 +46,7 @@ class FeedManifestMixer {
   static const int defaultLimit = 60;
   static const int defaultGapEvery = 6;
   static const int defaultMinUserSpacing = 3;
+  static const int defaultMaxItemsPerUser = 3;
   static const int defaultScanWindow = 24;
   static const int defaultHeadPenaltyDepth = 40;
 
@@ -59,6 +60,7 @@ class FeedManifestMixer {
     Set<String> headPenaltyCanonicalIds = const <String>{},
     int gapEvery = defaultGapEvery,
     int minUserSpacing = defaultMinUserSpacing,
+    int maxItemsPerUser = defaultMaxItemsPerUser,
     int scanWindow = defaultScanWindow,
     int headPenaltyDepth = defaultHeadPenaltyDepth,
   }) {
@@ -145,6 +147,8 @@ class FeedManifestMixer {
         min(gap.length, (normalizedLimit / effectiveGapEvery).ceil());
     final effectiveScanWindow = max(1, scanWindow);
     final effectiveSpacing = max(0, minUserSpacing);
+    final effectiveMaxItemsPerUser = max(1, maxItemsPerUser);
+    final emittedUserCounts = <String, int>{};
 
     while (deck.length < normalizedLimit &&
         (manifest.isNotEmpty || gap.isNotEmpty)) {
@@ -159,6 +163,8 @@ class FeedManifestMixer {
         recentUsers: recentUsers,
         position: deck.length,
         minUserSpacing: effectiveSpacing,
+        emittedUserCounts: emittedUserCounts,
+        maxItemsPerUser: effectiveMaxItemsPerUser,
         scanWindow: effectiveScanWindow,
         headPenaltyDepth: headPenaltyDepth,
       );
@@ -167,6 +173,8 @@ class FeedManifestMixer {
         recentUsers: recentUsers,
         position: deck.length,
         minUserSpacing: effectiveSpacing,
+        emittedUserCounts: emittedUserCounts,
+        maxItemsPerUser: effectiveMaxItemsPerUser,
         scanWindow: effectiveScanWindow,
         headPenaltyDepth: headPenaltyDepth,
       );
@@ -184,10 +192,13 @@ class FeedManifestMixer {
         manifestCount++;
       }
       final userId = candidate.entry.post.userID.trim();
-      if (userId.isNotEmpty && effectiveSpacing > 0) {
-        recentUsers.add(userId);
-        if (recentUsers.length > effectiveSpacing) {
-          recentUsers.removeAt(0);
+      if (userId.isNotEmpty) {
+        emittedUserCounts[userId] = (emittedUserCounts[userId] ?? 0) + 1;
+        if (effectiveSpacing > 0) {
+          recentUsers.add(userId);
+          if (recentUsers.length > effectiveSpacing) {
+            recentUsers.removeAt(0);
+          }
         }
       }
     }
@@ -226,6 +237,8 @@ class FeedManifestMixer {
     required List<String> recentUsers,
     required int position,
     required int minUserSpacing,
+    required Map<String, int> emittedUserCounts,
+    required int maxItemsPerUser,
     required int scanWindow,
     required int headPenaltyDepth,
   }) {
@@ -238,13 +251,20 @@ class FeedManifestMixer {
 
     int? fallbackIndex;
     int? penaltyFallbackIndex;
+    int? userCapFallbackIndex;
     for (var i = 0; i < upperBound; i++) {
       final candidate = candidates[i];
       final userId = candidate.entry.post.userID.trim();
       final sameRecentUser =
           userId.isNotEmpty && recentUserSet.contains(userId);
+      final reachedUserCap = userId.isNotEmpty &&
+          (emittedUserCounts[userId] ?? 0) >= maxItemsPerUser;
       if (avoidPenalty && candidate.headPenalty) {
         penaltyFallbackIndex ??= i;
+        continue;
+      }
+      if (reachedUserCap) {
+        userCapFallbackIndex ??= i;
         continue;
       }
       fallbackIndex ??= i;
@@ -258,6 +278,9 @@ class FeedManifestMixer {
     }
     if (penaltyFallbackIndex != null) {
       return candidates.removeAt(penaltyFallbackIndex);
+    }
+    if (userCapFallbackIndex != null) {
+      return candidates.removeAt(userCapFallbackIndex);
     }
     return candidates.removeAt(0);
   }

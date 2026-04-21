@@ -602,6 +602,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         },
         gapEvery: FeedManifestPolicy.gapEvery,
         minUserSpacing: FeedManifestPolicy.minUserSpacing,
+        maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
       );
       final visible = _filterFeedManifestDeckPosts(
         deck.posts,

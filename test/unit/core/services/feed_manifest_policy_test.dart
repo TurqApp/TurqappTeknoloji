@@ -3,10 +3,8 @@ import 'package:turqappv2/Core/Services/feed_manifest_policy.dart';
 
 void main() {
   group('FeedManifestPolicy', () {
-    test(
-        'keeps manifest primary disabled until integration is explicitly cut over',
-        () {
-      expect(FeedManifestPolicy.primaryEnabled, isFalse);
+    test('enables manifest primary by default in debug-mode builds', () {
+      expect(FeedManifestPolicy.primaryEnabled, isTrue);
     });
 
     test(
@@ -61,6 +59,11 @@ void main() {
       expect(FeedManifestPolicy.resolveGapCandidateLimit(10), 20);
       expect(FeedManifestPolicy.resolveGapCandidateLimit(40), 40);
       expect(FeedManifestPolicy.resolveGapCandidateLimit(120), 60);
+    });
+
+    test('keeps per-user deck cap positive and conservative', () {
+      expect(FeedManifestPolicy.maxItemsPerUser, greaterThan(0));
+      expect(FeedManifestPolicy.maxItemsPerUser, lessThanOrEqualTo(4));
     });
   });
 }

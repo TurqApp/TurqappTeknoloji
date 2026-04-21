@@ -209,5 +209,41 @@ void main() {
       expect(_docIds(result), <String>['doc-2']);
       expect(result.skippedConsumedCount, 2);
     });
+
+    test('soft-caps dominant authors without underfilling the deck', () {
+      final result = mixer.buildDeck(
+        manifestEntries: <FeedManifestEntry>[
+          ...List<FeedManifestEntry>.generate(
+            8,
+            (index) => _entry('heavy-$index', userId: 'heavy'),
+          ),
+          ...List<FeedManifestEntry>.generate(
+            6,
+            (index) => _entry('light-a-$index', userId: 'light-a'),
+          ),
+          ...List<FeedManifestEntry>.generate(
+            6,
+            (index) => _entry('light-b-$index', userId: 'light-b'),
+          ),
+          ...List<FeedManifestEntry>.generate(
+            6,
+            (index) => _entry('light-c-$index', userId: 'light-c'),
+          ),
+        ],
+        seed: 23,
+        limit: 12,
+        minUserSpacing: 2,
+        maxItemsPerUser: 3,
+      );
+
+      final counts = <String, int>{};
+      for (final entry in result.entries) {
+        counts.update(entry.post.userID, (value) => value + 1,
+            ifAbsent: () => 1);
+      }
+
+      expect(result.entries, hasLength(12));
+      expect(counts['heavy'], lessThanOrEqualTo(3));
+    });
   });
 }
