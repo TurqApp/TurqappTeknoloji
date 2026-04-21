@@ -237,9 +237,11 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     final removalReasons = <String>[];
     for (final entry in _index.entries.values) {
       final watchedState = entry.state == VideoCacheState.watched;
+      final feedConsumed = entry.feedConsumedAt != null;
       final shortConsumed = entry.shortConsumedAt != null;
       final progressConsumed = entry.watchProgress >= progressThreshold;
-      final consumed = watchedState || shortConsumed || progressConsumed;
+      final consumed =
+          watchedState || feedConsumed || shortConsumed || progressConsumed;
       if (!consumed) continue;
       if (entry.state == VideoCacheState.playing) continue;
       if (_isReserveProtected(
@@ -252,7 +254,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
       toRemove.add(entry);
       removalReasons.add(
         '${entry.docID}'
-        '(watched=$watchedState,shortConsumed=$shortConsumed,progress=${entry.watchProgress.toStringAsFixed(3)})',
+        '(watched=$watchedState,feedConsumed=$feedConsumed,shortConsumed=$shortConsumed,progress=${entry.watchProgress.toStringAsFixed(3)})',
       );
     }
 

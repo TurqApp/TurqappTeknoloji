@@ -191,6 +191,9 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   void markServedInFeed(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markServedInFeed(docID);
 
+  void markFeedConsumed(String docID) =>
+      _SegmentCacheManagerRuntimeX(this).markFeedConsumed(docID);
+
   void markShortConsumed(String docID) =>
       _SegmentCacheManagerRuntimeX(this).markShortConsumed(docID);
 

@@ -60,6 +60,7 @@ class VideoCacheEntry {
   DateTime? lastUserInteractionAt;
   DateTime? servedInShortAt;
   DateTime? servedInFeedAt;
+  DateTime? feedConsumedAt;
   DateTime? shortConsumedAt;
   DateTime? reservedForShortAt;
   DateTime? reservedForFeedAt;
@@ -112,6 +113,7 @@ class VideoCacheEntry {
     this.lastUserInteractionAt,
     this.servedInShortAt,
     this.servedInFeedAt,
+    this.feedConsumedAt,
     this.shortConsumedAt,
     this.reservedForShortAt,
     this.reservedForFeedAt,
@@ -136,6 +138,7 @@ class VideoCacheEntry {
         'lastUserInteractionAt': lastUserInteractionAt?.millisecondsSinceEpoch,
         'servedInShortAt': servedInShortAt?.millisecondsSinceEpoch,
         'servedInFeedAt': servedInFeedAt?.millisecondsSinceEpoch,
+        'feedConsumedAt': feedConsumedAt?.millisecondsSinceEpoch,
         'shortConsumedAt': shortConsumedAt?.millisecondsSinceEpoch,
         'reservedForShortAt': reservedForShortAt?.millisecondsSinceEpoch,
         'reservedForFeedAt': reservedForFeedAt?.millisecondsSinceEpoch,
@@ -195,6 +198,14 @@ class VideoCacheEntry {
           ? DateTime.fromMillisecondsSinceEpoch(
               _asInt(
                 json['servedInFeedAt'],
+                fallback: DateTime.now().millisecondsSinceEpoch,
+              ),
+            )
+          : null,
+      feedConsumedAt: json['feedConsumedAt'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              _asInt(
+                json['feedConsumedAt'],
                 fallback: DateTime.now().millisecondsSinceEpoch,
               ),
             )

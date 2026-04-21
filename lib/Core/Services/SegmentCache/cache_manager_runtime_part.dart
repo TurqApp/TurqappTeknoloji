@@ -167,6 +167,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
           lastUserInteractionAt: existing.lastUserInteractionAt,
           servedInShortAt: existing.servedInShortAt,
           servedInFeedAt: existing.servedInFeedAt,
+          feedConsumedAt: existing.feedConsumedAt,
           shortConsumedAt: existing.shortConsumedAt,
           reservedForShortAt: existing.reservedForShortAt,
           reservedForFeedAt: existing.reservedForFeedAt,
@@ -218,6 +219,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
       lastUserInteractionAt: existing.lastUserInteractionAt,
       servedInShortAt: existing.servedInShortAt,
       servedInFeedAt: existing.servedInFeedAt,
+      feedConsumedAt: existing.feedConsumedAt,
       shortConsumedAt: existing.shortConsumedAt,
       reservedForShortAt: existing.reservedForShortAt,
       reservedForFeedAt: existing.reservedForFeedAt,
@@ -308,6 +310,20 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     entry.servedInFeedAt ??= now;
     entry.reservedForFeedAt = null;
     _markDirty();
+  }
+
+  void markFeedConsumed(String docID) {
+    final entry = _index.entries[docID];
+    if (entry == null) return;
+    final wasAlreadyConsumed = entry.feedConsumedAt != null;
+    final now = DateTime.now();
+    entry.lastAccessedAt = now;
+    entry.lastUserInteractionAt = now;
+    entry.feedConsumedAt ??= now;
+    _markDirty();
+    if (!wasAlreadyConsumed) {
+      _flushDirtyIndexNow();
+    }
   }
 
   void markShortConsumed(String docID) {

@@ -180,6 +180,11 @@ Future<void> pruneFeedHomeSnapshots(
       repository._snapshotStore.write(key, nextRecord),
     ]);
   }
+
+  await repository._warmLaunchPool.removePosts(
+    IndexPoolKind.feed,
+    removeIds.toList(growable: false),
+  );
 }
 
 Future<void> pruneFeedHomeStartupShard(

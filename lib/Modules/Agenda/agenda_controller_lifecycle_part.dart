@@ -37,12 +37,44 @@ extension AgendaControllerLifecyclePart on AgendaController {
     navBarController = ensureNavBarController();
     unawaited(DeviceSessionService.instance.warmDeviceKey());
     unawaited(FeedDiversityMemoryService.ensure().ensureReady());
+    unawaited(_pruneConsumedFeedCachesOnSessionInit());
     _bindFollowingListener();
     _bindCenteredIndexListener();
     _bindMergedFeedEntries();
     _bindFilteredFeedEntries();
     _bindRenderFeedEntries();
     _bindNetworkAwareness();
+  }
+
+  Future<void> _pruneConsumedFeedCachesOnSessionInit() async {
+    const stageThreeLimit = 180;
+    const stageFourLimit = 240;
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final diversity = FeedDiversityMemoryService.ensure();
+    await diversity.ensureReady();
+    final consumedDocIds = diversity.weeklyWatchedPenaltyDocIds();
+    if (consumedDocIds.isEmpty) {
+      debugPrint('[FeedConsumedPrune] status=skip_empty userId=$userId');
+      return;
+    }
+    await Future.wait(<Future<void>>[
+      _feedSnapshotRepository.pruneHomeSnapshots(
+        userId: userId,
+        docIds: consumedDocIds,
+        additionalLimits: <int>[
+          stageThreeLimit,
+          stageFourLimit,
+        ],
+      ),
+      _feedSnapshotRepository.pruneHomeStartupShard(
+        userId: userId,
+        docIds: consumedDocIds,
+      ),
+    ]);
+    debugPrint(
+      '[FeedConsumedPrune] status=ok userId=$userId count=${consumedDocIds.length}',
+    );
   }
 
   void _handleLifecycleReady() {

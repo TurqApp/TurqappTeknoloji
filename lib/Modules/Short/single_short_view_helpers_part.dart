@@ -391,6 +391,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           if (currentSegment != null &&
               currentPage >= 0 &&
               currentPage < shorts.length) {
+            _segmentCacheRuntimeService.markFeedConsumed(docId);
             FeedDiversityMemoryService.ensure().noteWatchedPost(
               shorts[currentPage],
               currentSegment: currentSegment,
