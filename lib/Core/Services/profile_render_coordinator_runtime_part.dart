@@ -15,6 +15,13 @@ int _asProfileEntryTimestamp(Object? value) {
   return 0;
 }
 
+int _profileReshareFallbackTimestamp(PostsModel post) {
+  final rawValue = post.reshareMap['manifestReshareTimeStamp'];
+  final manifestTimestamp = _asProfileEntryTimestamp(rawValue);
+  if (manifestTimestamp > 0) return manifestTimestamp;
+  return _asProfileEntryTimestamp(post.timeStamp);
+}
+
 List<Map<String, dynamic>> _buildProfileMergedEntries({
   required List<PostsModel> allPosts,
   required List<PostsModel> reshares,
@@ -36,7 +43,7 @@ List<Map<String, dynamic>> _buildProfileMergedEntries({
       !post.deletedPost && !post.arsiv && !post.shouldHideWhileUploading)) {
     final reshareTimestamp = reshareSortTimestampFor(
       reshare.docID,
-      _asProfileEntryTimestamp(reshare.timeStamp),
+      _profileReshareFallbackTimestamp(reshare),
     );
     combined.add(<String, dynamic>{
       'docID': reshare.docID,

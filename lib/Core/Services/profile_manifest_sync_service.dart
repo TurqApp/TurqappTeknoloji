@@ -1,22 +1,31 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Models/user_post_reference.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:turqappv2/Services/user_post_link_service.dart';
 
 class ProfileManifestSyncService extends GetxService {
   static const int _manifestPostLimit = 80;
+  static const int _manifestReshareLimit =
+      ReadBudgetRegistry.reshareUserPreviewInitialLimit;
   static const Duration _defaultDebounce = Duration(milliseconds: 600);
 
   ProfileManifestSyncService({
     FirebaseStorage? storage,
-  }) : _storage = storage ?? FirebaseStorage.instance;
+    FirebaseFirestore? firestore,
+  })  : _storage = storage ?? FirebaseStorage.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseStorage _storage;
+  final FirebaseFirestore _firestore;
 
   Timer? _debounce;
   Future<void>? _inFlight;
@@ -82,6 +91,16 @@ class ProfileManifestSyncService extends GetxService {
       uid: uid,
       limit: _manifestPostLimit,
     );
+    final reshareRefs = await _loadReshareRefs(uid);
+    final reshareTimeByPostId = <String, int>{
+      for (final ref in reshareRefs)
+        if (ref.postId.trim().isNotEmpty)
+          ref.postId.trim(): ref.timeStamp.toInt(),
+    };
+    final manifestReshares = await _loadManifestReshares(
+      uid,
+      refs: reshareRefs,
+    );
 
     String firstNonEmpty(Iterable<String> values) {
       for (final value in values) {
@@ -133,22 +152,48 @@ class ProfileManifestSyncService extends GetxService {
             (rawUser?['followingCount'] as num?)?.toInt() ??
             0);
 
-    Map<String, dynamic> encodePost(PostsModel post) {
+    Map<String, dynamic> encodePost(
+      PostsModel post, {
+      bool refreshAuthorSnapshot = false,
+      int? reshareTimestamp,
+    }) {
       final data = post.toMap();
-      if (nickname.isNotEmpty) data['authorNickname'] = nickname;
-      if (displayName.isNotEmpty) data['authorDisplayName'] = displayName;
-      if (avatarUrl.isNotEmpty) data['authorAvatarUrl'] = avatarUrl;
-      if (rozet.isNotEmpty) data['rozet'] = rozet;
-      data['userID'] = uid;
+      if (refreshAuthorSnapshot) {
+        if (nickname.isNotEmpty) data['authorNickname'] = nickname;
+        if (displayName.isNotEmpty) data['authorDisplayName'] = displayName;
+        if (avatarUrl.isNotEmpty) data['authorAvatarUrl'] = avatarUrl;
+        if (rozet.isNotEmpty) data['rozet'] = rozet;
+        data['userID'] = uid;
+      }
+      if (reshareTimestamp != null) {
+        final rawReshareMap = data['reshareMap'];
+        final reshareMap = rawReshareMap is Map
+            ? Map<String, dynamic>.from(rawReshareMap)
+            : <String, dynamic>{};
+        reshareMap['manifestReshareTimeStamp'] = reshareTimestamp;
+        data['reshareMap'] = reshareMap;
+      }
       return <String, dynamic>{
         'docID': post.docID,
         'data': data,
       };
     }
 
-    Map<String, dynamic> encodeBucket(List<PostsModel> posts) {
+    Map<String, dynamic> encodeBucket(
+      List<PostsModel> posts, {
+      bool refreshAuthorSnapshot = false,
+      Map<String, int> reshareTimeByPostId = const <String, int>{},
+    }) {
       return <String, dynamic>{
-        'items': posts.map(encodePost).toList(growable: false),
+        'items': posts
+            .map(
+              (post) => encodePost(
+                post,
+                refreshAuthorSnapshot: refreshAuthorSnapshot,
+                reshareTimestamp: reshareTimeByPostId[post.docID],
+              ),
+            )
+            .toList(growable: false),
       };
     }
 
@@ -168,10 +213,22 @@ class ProfileManifestSyncService extends GetxService {
         'followerCount': followerCount,
         'followingCount': followingCount,
       },
-      'all': encodeBucket(profilePage.all),
-      'photos': encodeBucket(profilePage.photos),
-      'videos': encodeBucket(profilePage.videos),
-      'reshares': const <String, dynamic>{'items': <Map<String, dynamic>>[]},
+      'all': encodeBucket(
+        profilePage.all,
+        refreshAuthorSnapshot: true,
+      ),
+      'photos': encodeBucket(
+        profilePage.photos,
+        refreshAuthorSnapshot: true,
+      ),
+      'videos': encodeBucket(
+        profilePage.videos,
+        refreshAuthorSnapshot: true,
+      ),
+      'reshares': encodeBucket(
+        manifestReshares,
+        reshareTimeByPostId: reshareTimeByPostId,
+      ),
       'scheduled': const <String, dynamic>{'items': <Map<String, dynamic>>[]},
     };
 
@@ -200,6 +257,7 @@ class ProfileManifestSyncService extends GetxService {
             'all': profilePage.all.length,
             'photos': profilePage.photos.length,
             'videos': profilePage.videos.length,
+            'reshares': manifestReshares.length,
           },
           'updatedAt': generatedAt,
           'lastRebuildAt': generatedAt,
@@ -213,6 +271,43 @@ class ProfileManifestSyncService extends GetxService {
     );
 
     unawaited(_cleanupPreviousManifests(uid, keepPath: storagePath));
+  }
+
+  Future<List<UserPostReference>> _loadReshareRefs(String uid) async {
+    final visibleNowThresholdMs = DateTime.now().millisecondsSinceEpoch;
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('reshared_posts')
+        .where('timeStamp', isLessThanOrEqualTo: visibleNowThresholdMs)
+        .orderBy('timeStamp', descending: true)
+        .limit(_manifestReshareLimit)
+        .get(const GetOptions(source: Source.serverAndCache));
+    return snapshot.docs
+        .map(UserPostReference.fromDoc)
+        .where((ref) => ref.postId.trim().isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<PostsModel>> _loadManifestReshares(
+    String uid, {
+    required List<UserPostReference> refs,
+  }) async {
+    if (refs.isEmpty) return const <PostsModel>[];
+    final visibleNowThresholdMs = DateTime.now().millisecondsSinceEpoch;
+    final posts = await UserPostLinkService.ensure().fetchResharedPosts(
+      uid,
+      refs,
+      preferCache: true,
+      cacheOnly: false,
+    );
+    return posts
+        .where((post) => post.docID.trim().isNotEmpty)
+        .where((post) => !post.deletedPost)
+        .where((post) => !post.arsiv)
+        .where((post) => !post.shouldHideWhileUploading)
+        .where((post) => post.timeStamp <= visibleNowThresholdMs)
+        .toList(growable: false);
   }
 
   Future<void> _cleanupPreviousManifests(

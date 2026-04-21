@@ -7,6 +7,7 @@ Map<String, dynamic> _postItem(
   String docId, {
   String userId = 'user-a',
   String video = '',
+  int? reshareTimestamp,
 }) {
   return <String, dynamic>{
     'docID': docId,
@@ -38,6 +39,10 @@ Map<String, dynamic> _postItem(
       'floodCount': 1,
       'paylasGizliligi': 0,
       'yorum': true,
+      'reshareMap': <String, dynamic>{
+        if (reshareTimestamp != null)
+          'manifestReshareTimeStamp': reshareTimestamp,
+      },
       'stats': const <String, dynamic>{
         'likeCount': 10,
         'commentCount': 2,
@@ -92,6 +97,29 @@ void main() {
       expect(buckets.photos.single.docID, 'doc-1');
       expect(buckets.videos.single.docID, 'doc-2');
       expect(buckets.all.first.authorAvatarUrl, contains('user-a'));
+    });
+
+    test('preserves reshare manifest timestamp in decoded post payload', () {
+      final buckets = ProfileManifestRepository.parseManifestJson(
+        jsonEncode(<String, dynamic>{
+          'schemaVersion': 1,
+          'manifestId': 'profile_user-a_v2',
+          'reshares': <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              _postItem('doc-3',
+                  userId: 'user-b', reshareTimestamp: 1776711234567),
+            ],
+          },
+        }),
+      );
+
+      expect(buckets, isNotNull);
+      expect(buckets!.reshares, hasLength(1));
+      expect(
+        buckets.reshares.single.reshareMap['manifestReshareTimeStamp'],
+        1776711234567,
+      );
+      expect(buckets.reshares.single.userID, 'user-b');
     });
 
     test('maps manifest header into profile header card shape', () {
