@@ -23,13 +23,17 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
+import 'package:turqappv2/Core/Services/short_resume_state_store.dart';
 import 'package:turqappv2/Core/Services/short_playback_coordinator.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
+import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import '../../Models/posts_model.dart';
 import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'short_feed_application_service.dart';
@@ -65,6 +69,16 @@ class ShortController extends _ShortControllerBase {
   static ShortController? maybeFind() => maybeFindShortController();
 
   void _log(String message) => _ShortControllerRuntimeX(this).log(message);
+
+  void warmPosterWindowAround(
+    int anchorIndex, {
+    int behindCount = 1,
+    int aheadCount = 5,
+  }) => _ShortControllerRuntimeX(this).warmPosterWindowAround(
+        anchorIndex,
+        behindCount: behindCount,
+        aheadCount: aheadCount,
+      );
 
   bool _isEligibleShortPost(PostsModel post) =>
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);

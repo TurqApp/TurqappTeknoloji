@@ -350,6 +350,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       );
     }
     final isActivePage = page == currentPage;
+    final allowEarlyStableVisual =
+        defaultTargetPlatform != TargetPlatform.android;
+    final hasVisibleVideoFrame = allowEarlyStableVisual
+        ? value.hasRenderedFirstFrame
+        : value.hasVisibleVideoFrame;
+    final allowStableVisualWithoutPosition =
+        allowEarlyStableVisual || hasVisibleVideoFrame;
     return _playbackRuntimeService.evaluateLifecycle(
       PlaybackLifecycleSnapshot(
         docId: controller.playbackHandleKeyForDoc(docId),
@@ -363,11 +370,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         isPlaying: value.isPlaying,
         isBuffering: value.isBuffering,
         isCompleted: value.isCompleted,
-        hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+        hasRenderedFirstFrame: hasVisibleVideoFrame,
         position: value.position,
         duration: value.duration,
-        visualReadyPositionThreshold: const Duration(milliseconds: 90),
-        allowRenderedFirstFrameAsStableVisual: true,
+        visualReadyPositionThreshold: allowEarlyStableVisual
+            ? const Duration(milliseconds: 90)
+            : const Duration(milliseconds: 180),
+        allowRenderedFirstFrameAsStableVisual: allowStableVisualWithoutPosition,
       ),
     );
   }
@@ -647,6 +656,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       _routeObserverSubscribed = false;
     }
     controller.lastIndex.value = currentPage;
+    unawaited(controller.persistVisibleSnapshotNow());
     pageController.dispose();
 
     final vc = controller.cache[currentPage];

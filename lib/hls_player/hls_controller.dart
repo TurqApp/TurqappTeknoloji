@@ -63,6 +63,7 @@ class HLSController {
   bool _isLooping = false;
   String? _errorMessage;
   bool _hasRenderedFirstFrame = false;
+  bool _hasVisibleVideoFrame = false;
   bool _awaitingFreshFrameAfterReattach = false;
   bool _preferResumePoster = false;
   double? _pendingReattachSeekSeconds;
@@ -95,6 +96,7 @@ class HLSController {
   final _bufferingController = StreamController<bool>.broadcast();
   final _errorController = StreamController<String>.broadcast();
   final _firstFrameController = StreamController<bool>.broadcast();
+  final _visibleVideoFrameController = StreamController<bool>.broadcast();
 
   // Getters
   PlayerState get state => _state;
@@ -108,6 +110,7 @@ class HLSController {
   bool get isPaused => _state == PlayerState.paused;
   bool get isReady => _state == PlayerState.ready;
   bool get hasRenderedFirstFrame => _hasRenderedFirstFrame;
+  bool get hasVisibleVideoFrame => _hasVisibleVideoFrame;
   bool get awaitingFreshFrameAfterReattach => _awaitingFreshFrameAfterReattach;
   bool get preferResumePoster => _preferResumePoster;
   bool get canRestartStoppedPlayback =>
@@ -177,6 +180,11 @@ class HLSController {
     _firstFrameController.add(hasRenderedFirstFrame);
   }
 
+  void _emitVisibleVideoFrame(bool hasVisibleVideoFrame) {
+    if (_isInactive || _visibleVideoFrameController.isClosed) return;
+    _visibleVideoFrameController.add(hasVisibleVideoFrame);
+  }
+
   // Streams
   Stream<PlayerState> get onStateChanged => _stateController.stream;
   Stream<Duration> get onPositionChanged => _positionController.stream;
@@ -184,12 +192,19 @@ class HLSController {
   Stream<bool> get onBufferingChanged => _bufferingController.stream;
   Stream<String> get onError => _errorController.stream;
   Stream<bool> get onFirstFrameChanged => _firstFrameController.stream;
+  Stream<bool> get onVisibleVideoFrameChanged =>
+      _visibleVideoFrameController.stream;
 
   void resetSurfaceVisualStateForReuse() {
-    if (!_hasRenderedFirstFrame) return;
     _awaitingFreshFrameAfterReattach = false;
-    _hasRenderedFirstFrame = false;
-    _emitFirstFrame(false);
+    if (_hasRenderedFirstFrame) {
+      _hasRenderedFirstFrame = false;
+      _emitFirstFrame(false);
+    }
+    if (_hasVisibleVideoFrame) {
+      _hasVisibleVideoFrame = false;
+      _emitVisibleVideoFrame(false);
+    }
   }
 
   // Initialize controller with view ID
@@ -394,6 +409,9 @@ class HLSController {
     }
     if (!_firstFrameController.isClosed) {
       await _firstFrameController.close();
+    }
+    if (!_visibleVideoFrameController.isClosed) {
+      await _visibleVideoFrameController.close();
     }
 
     _isDisposed = true;

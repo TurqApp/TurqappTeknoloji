@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Services/short_resume_state_store.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class ShortManifestPageResult {
   const ShortManifestPageResult({
@@ -20,6 +23,20 @@ class ShortManifestPageResult {
   final int slotIndex;
 }
 
+class ShortManifestCursorSnapshot {
+  const ShortManifestCursorSnapshot({
+    required this.manifestId,
+    required this.slotIndex,
+    required this.itemIndex,
+    required this.hasMore,
+  });
+
+  final String manifestId;
+  final int slotIndex;
+  final int itemIndex;
+  final bool hasMore;
+}
+
 class ShortManifestRepository extends GetxService {
   ShortManifestRepository({
     FirebaseFirestore? firestore,
@@ -29,13 +46,26 @@ class ShortManifestRepository extends GetxService {
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
+  static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
 
   String _manifestId = '';
   Map<String, dynamic>? _index;
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
+  final Map<int, Future<List<PostsModel>>> _slotLoads =
+      <int, Future<List<PostsModel>>>{};
   int _cursorSlotIndex = 0;
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
+
+  void _logTiming(
+    String stage, {
+    Map<String, Object?> metadata = const <String, Object?>{},
+  }) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[ShortManifestRepo] stage=$stage metadata=$metadata',
+    );
+  }
 
   Future<ShortManifestPageResult> takeNextPage({
     required int pageSize,
@@ -69,6 +99,15 @@ class ShortManifestRepository extends GetxService {
     );
   }
 
+  ShortManifestCursorSnapshot currentCursorSnapshot() {
+    return ShortManifestCursorSnapshot(
+      manifestId: _manifestId,
+      slotIndex: _cursorSlotIndex,
+      itemIndex: _cursorItemIndex,
+      hasMore: _slotPath(_cursorSlotIndex).isNotEmpty || _slots.isNotEmpty,
+    );
+  }
+
   Future<void> _ensureLoaded() {
     final existing = _loadFuture;
     if (existing != null) return existing;
@@ -82,8 +121,23 @@ class ShortManifestRepository extends GetxService {
   }
 
   Future<void> _loadManifest() async {
-    final active =
-        await _firestore.collection('shortManifest').doc('active').get();
+    final totalStartedAt = DateTime.now();
+    final authStartedAt = DateTime.now();
+    await _ensureManifestAccessReady();
+    _logTiming(
+      'auth_ready',
+      metadata: <String, Object?>{
+        'elapsedMs': DateTime.now().difference(authStartedAt).inMilliseconds,
+      },
+    );
+    final activeStartedAt = DateTime.now();
+    final active = await _loadActiveManifestDoc();
+    _logTiming(
+      'active_doc_ready',
+      metadata: <String, Object?>{
+        'elapsedMs': DateTime.now().difference(activeStartedAt).inMilliseconds,
+      },
+    );
     final activeData = active.data() ?? const <String, dynamic>{};
     final nextManifestId = (activeData['manifestId'] ?? '').toString();
     final indexPath = (activeData['indexPath'] ?? '').toString();
@@ -95,10 +149,26 @@ class ShortManifestRepository extends GetxService {
 
     if (_manifestId == nextManifestId && _index != null) {
       await _ensureTwoSlotWindow();
+      _logTiming(
+        'load_manifest_reuse',
+        metadata: <String, Object?>{
+          'manifestId': _manifestId,
+          'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
+        },
+      );
       return;
     }
 
+    final indexStartedAt = DateTime.now();
     final bytes = await _storage.ref(indexPath).getData(1024 * 1024);
+    _logTiming(
+      'index_download_ready',
+      metadata: <String, Object?>{
+        'path': indexPath,
+        'elapsedMs': DateTime.now().difference(indexStartedAt).inMilliseconds,
+        'bytes': bytes?.length ?? 0,
+      },
+    );
     if (bytes == null || bytes.isEmpty) {
       _reset();
       return;
@@ -111,15 +181,73 @@ class ShortManifestRepository extends GetxService {
     _manifestId = nextManifestId;
     _index = Map<String, dynamic>.from(decoded);
     _slots.clear();
+    _slotLoads.clear();
     _cursorSlotIndex = 0;
     _cursorItemIndex = 0;
-    await _ensureTwoSlotWindow();
+    await _restorePersistedCursorIfNeeded();
+    await _ensureSlot(_cursorSlotIndex);
+    unawaited(_primeUpcomingSlots());
+    _logTiming(
+      'load_manifest_complete',
+      metadata: <String, Object?>{
+        'manifestId': _manifestId,
+        'slotCount': (_index?['slots'] as List?)?.length ?? 0,
+        'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
+      },
+    );
+  }
+
+  Future<void> _ensureManifestAccessReady({
+    bool forceTokenRefresh = false,
+  }) async {
+    await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: forceTokenRefresh,
+      timeout: _authReadyTimeout,
+      recordTimeoutFailure: false,
+    );
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>>
+      _loadActiveManifestDoc() async {
+    try {
+      return await _firestore.collection('shortManifest').doc('active').get();
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+      await _ensureManifestAccessReady(forceTokenRefresh: true);
+      return _firestore.collection('shortManifest').doc('active').get();
+    }
+  }
+
+  Future<void> _restorePersistedCursorIfNeeded() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty || _manifestId.isEmpty) return;
+    final persisted = await ensureShortResumeStateStore().load(
+      userId: userId,
+    );
+    if (persisted == null) return;
+    if (persisted.manifestId != _manifestId) return;
+    _cursorSlotIndex = persisted.cursorSlotIndex < 0
+        ? 0
+        : persisted.cursorSlotIndex;
+    _cursorItemIndex = persisted.cursorItemIndex < 0
+        ? 0
+        : persisted.cursorItemIndex;
+    _logTiming(
+      'cursor_restore_ready',
+      metadata: <String, Object?>{
+        'manifestId': _manifestId,
+        'slotIndex': _cursorSlotIndex,
+        'itemIndex': _cursorItemIndex,
+      },
+    );
   }
 
   void _reset() {
     _manifestId = '';
     _index = null;
     _slots.clear();
+    _slotLoads.clear();
     _cursorSlotIndex = 0;
     _cursorItemIndex = 0;
   }
@@ -131,17 +259,79 @@ class ShortManifestRepository extends GetxService {
   }
 
   Future<void> _ensureTwoSlotWindow() async {
-    await _ensureSlot(_cursorSlotIndex);
-    await _ensureSlot(_cursorSlotIndex + 1);
+    final startedAt = DateTime.now();
+    final primarySlot = _cursorSlotIndex;
+    final secondarySlot = _cursorSlotIndex + 1;
+    await Future.wait<void>(<Future<void>>[
+      _ensureSlot(primarySlot).then((_) {}),
+      _ensureSlot(secondarySlot).then((_) {}),
+    ]);
+    _logTiming(
+      'two_slot_window_ready',
+      metadata: <String, Object?>{
+        'primarySlot': primarySlot,
+        'secondarySlot': secondarySlot,
+        'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
+      },
+    );
   }
 
   Future<List<PostsModel>> _ensureSlot(int slotIndex) async {
     if (slotIndex < 0) return const <PostsModel>[];
     final cached = _slots[slotIndex];
-    if (cached != null) return cached;
+    if (cached != null) {
+      _logTiming(
+        'slot_cache_hit',
+        metadata: <String, Object?>{
+          'slotIndex': slotIndex,
+          'count': cached.length,
+        },
+      );
+      return cached;
+    }
+    final inFlight = _slotLoads[slotIndex];
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final future = _loadSlot(slotIndex);
+    _slotLoads[slotIndex] = future;
+    return future.whenComplete(() {
+      if (identical(_slotLoads[slotIndex], future)) {
+        _slotLoads.remove(slotIndex);
+      }
+    });
+  }
+
+  Future<void> _primeUpcomingSlots() async {
+    final primarySlot = _cursorSlotIndex;
+    final secondarySlot = _cursorSlotIndex + 1;
+    await Future.wait<void>(<Future<void>>[
+      _ensureSlot(primarySlot).then((_) {}),
+      _ensureSlot(secondarySlot).then((_) {}),
+    ]);
+    _logTiming(
+      'upcoming_slots_primed',
+      metadata: <String, Object?>{
+        'primarySlot': primarySlot,
+        'secondarySlot': secondarySlot,
+      },
+    );
+  }
+
+  Future<List<PostsModel>> _loadSlot(int slotIndex) async {
     final path = _slotPath(slotIndex);
     if (path.isEmpty) return const <PostsModel>[];
+    final startedAt = DateTime.now();
     final bytes = await _storage.ref(path).getData(16 * 1024 * 1024);
+    _logTiming(
+      'slot_download_ready',
+      metadata: <String, Object?>{
+        'slotIndex': slotIndex,
+        'path': path,
+        'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
+        'bytes': bytes?.length ?? 0,
+      },
+    );
     if (bytes == null || bytes.isEmpty) return const <PostsModel>[];
     final decoded = jsonDecode(utf8.decode(bytes));
     if (decoded is! Map) return const <PostsModel>[];
@@ -156,6 +346,14 @@ class ShortManifestRepository extends GetxService {
       posts.add(PostsModel.fromMap(_manifestItemToPostMap(map), docId));
     }
     _slots[slotIndex] = posts;
+    _logTiming(
+      'slot_parse_ready',
+      metadata: <String, Object?>{
+        'slotIndex': slotIndex,
+        'count': posts.length,
+        'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
+      },
+    );
     return posts;
   }
 

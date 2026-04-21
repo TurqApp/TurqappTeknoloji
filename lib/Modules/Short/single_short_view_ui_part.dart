@@ -60,8 +60,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildInjectedShortPage(int idx) {
     final injected = widget.injectedController!;
-    final preferResumePoster =
-        idx == currentPage &&
+    final preferResumePoster = idx == currentPage &&
         _shouldPreferResumePosterForSingleShort(idx, injected);
     if (!_videoControllers.containsKey(idx)) {
       _videoControllers[idx] = injected;
@@ -87,6 +86,18 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             if (!_hasThumbCandidate(shorts[idx], overrideUrl: injThumb)) {
               return const SizedBox.shrink();
             }
+            final hasVisibleVideoFrame =
+                defaultTargetPlatform != TargetPlatform.android
+                    ? injected.value.hasRenderedFirstFrame
+                    : injected.value.hasVisibleVideoFrame;
+            final holdAndroidPosterAtStart =
+                defaultTargetPlatform == TargetPlatform.android &&
+                    decision.shouldHidePoster &&
+                    idx == currentPage &&
+                    hasVisibleVideoFrame &&
+                    injected.value.position < const Duration(milliseconds: 180);
+            final shouldHidePoster =
+                decision.shouldHidePoster && !holdAndroidPosterAtStart;
             final thumb = shorts[idx].aspectRatio >= 0.8
                 ? Align(
                     alignment: Alignment.center,
@@ -102,10 +113,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             return IgnorePointer(
               ignoring: true,
               child: AnimatedOpacity(
-                opacity: decision.shouldHidePoster ? 0 : 1,
-                duration: decision.shouldHidePoster &&
+                opacity: shouldHidePoster ? 0 : 1,
+                duration: shouldHidePoster &&
                         idx == currentPage &&
-                        injected.value.hasRenderedFirstFrame
+                        hasVisibleVideoFrame
                     ? Duration.zero
                     : AppDuration.thumbnailFadeOut,
                 curve: Curves.easeOut,
@@ -149,8 +160,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
   Widget _buildManagedShortPage(int idx, String thumb, HLSVideoAdapter vp) {
     final isNear = (idx - currentPage).abs() <= 2;
     final preferResumePoster =
-        idx == currentPage &&
-        _shouldPreferResumePosterForSingleShort(idx, vp);
+        idx == currentPage && _shouldPreferResumePosterForSingleShort(idx, vp);
     final thumbAr = shorts[idx].aspectRatio.toDouble();
     final videoWidget = !isNear
         ? Stack(
@@ -185,6 +195,18 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                   if (!_hasThumbCandidate(shorts[idx], overrideUrl: thumb)) {
                     return const SizedBox.shrink();
                   }
+                  final hasVisibleVideoFrame =
+                      defaultTargetPlatform != TargetPlatform.android
+                          ? vp.value.hasRenderedFirstFrame
+                          : vp.value.hasVisibleVideoFrame;
+                  final holdAndroidPosterAtStart =
+                      defaultTargetPlatform == TargetPlatform.android &&
+                          decision.shouldHidePoster &&
+                          idx == currentPage &&
+                          hasVisibleVideoFrame &&
+                          vp.value.position < const Duration(milliseconds: 180);
+                  final shouldHidePoster =
+                      decision.shouldHidePoster && !holdAndroidPosterAtStart;
                   final overlay = shorts[idx].aspectRatio >= 0.8
                       ? Align(
                           alignment: Alignment.center,
@@ -201,10 +223,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                   return IgnorePointer(
                     ignoring: true,
                     child: AnimatedOpacity(
-                      opacity: decision.shouldHidePoster ? 0 : 1,
-                      duration: decision.shouldHidePoster &&
+                      opacity: shouldHidePoster ? 0 : 1,
+                      duration: shouldHidePoster &&
                               idx == currentPage &&
-                              vp.value.hasRenderedFirstFrame
+                              hasVisibleVideoFrame
                           ? Duration.zero
                           : AppDuration.thumbnailFadeOut,
                       curve: Curves.easeOut,

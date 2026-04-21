@@ -62,23 +62,23 @@ extension QALabRecorderDiagnosticsStatePart on QALabRecorder {
       final isForegroundSurface = surface == 'feed'
           ? _isPrimaryFeedSelected(rootProbe, route: route)
           : _isPrimaryShortSelected(rootProbe, route: route);
-      final feedBootstrapInFlight = surface == 'feed' &&
-          (_diagnosticsProbeAsBool(
-                latestProbe['isLoading'],
-                fallback: false,
-              ) ||
-              _diagnosticsProbeAsBool(
-                latestProbe['ensureInitialLoadInFlight'],
-                fallback: false,
-              ) ||
-              _diagnosticsProbeAsBool(
-                latestProbe['surfaceBootstrapInFlight'],
-                fallback: false,
-              ));
+      final surfaceBootstrapInFlight =
+          _diagnosticsProbeAsBool(
+            latestProbe['isLoading'],
+            fallback: false,
+          ) ||
+          _diagnosticsProbeAsBool(
+            latestProbe['ensureInitialLoadInFlight'],
+            fallback: false,
+          ) ||
+          _diagnosticsProbeAsBool(
+            latestProbe['surfaceBootstrapInFlight'],
+            fallback: false,
+          );
       if (count == 0 &&
           latestProbe['registered'] == true &&
           isForegroundSurface &&
-          !feedBootstrapInFlight &&
+          !surfaceBootstrapInFlight &&
           !_isTransientBlankSurfaceWarmup(
             surface: surface,
             surfaceCheckpoints: surfaceCheckpoints,

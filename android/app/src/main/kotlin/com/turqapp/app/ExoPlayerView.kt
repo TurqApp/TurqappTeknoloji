@@ -63,6 +63,8 @@ class ExoPlayerView(
     private val forceFullscreen = args?.get("forceFullscreen") as? Boolean ?: false
     private val isPrimaryFeedSurface =
         args?.get("primaryFeedSurface") as? Boolean ?: false
+    private val preferStableStartupBuffer =
+        args?.get("preferStableStartupBuffer") as? Boolean ?: false
     private var preferResumePoster =
         args?.get("preferResumePoster") as? Boolean ?: false
     private val startupRecoveryWatchdogEnabled =
@@ -89,7 +91,8 @@ class ExoPlayerView(
     private var isLooping = false
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
-    private var preferredMaxBufferMs: Long = 6000
+    private var preferredMaxBufferMs: Long =
+        if (preferStableStartupBuffer) 10000 else 6000
     private val startupRecoveryMaxResumePositionMs = 1200L
     private var currentUrl: String? = null
     private var isSoftHeld = false
@@ -432,22 +435,37 @@ class ExoPlayerView(
             // segment sınırlarında underrun üretebiliyor. Short için daha rahat
             // rebuffer/start tamponu kullan.
             val targetBufferMs = if (forceFullscreen) {
-                preferredMaxBufferMs.coerceIn(4500, 18000)
+                if (preferStableStartupBuffer) {
+                    preferredMaxBufferMs.coerceIn(9000, 18000)
+                } else {
+                    preferredMaxBufferMs.coerceIn(4500, 18000)
+                }
             } else {
                 preferredMaxBufferMs.coerceIn(3500, 8000)
             }.toInt()
             val minBufferMs = if (forceFullscreen) {
-                (targetBufferMs * 0.9).toInt().coerceAtLeast(4000)
+                val ratio = if (preferStableStartupBuffer) 0.95 else 0.9
+                (targetBufferMs * ratio).toInt().coerceAtLeast(
+                    if (preferStableStartupBuffer) 7000 else 4000
+                )
             } else {
                 (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
             }
             val playbackBufferMs = if (forceFullscreen) {
-                (minBufferMs * 0.16).toInt().coerceIn(1100, 1700)
+                if (preferStableStartupBuffer) {
+                    (minBufferMs * 0.18).toInt().coerceIn(1400, 2400)
+                } else {
+                    (minBufferMs * 0.16).toInt().coerceIn(1100, 1700)
+                }
             } else {
                 (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
             }
             val rebufferPlaybackMs = if (forceFullscreen) {
-                (minBufferMs * 0.42).toInt().coerceIn(2600, 3800)
+                if (preferStableStartupBuffer) {
+                    (minBufferMs * 0.44).toInt().coerceIn(3200, 5200)
+                } else {
+                    (minBufferMs * 0.42).toInt().coerceIn(2600, 3800)
+                }
             } else {
                 (minBufferMs * 0.55).toInt().coerceIn(1600, 3200)
             }
@@ -642,7 +660,9 @@ class ExoPlayerView(
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
                 if (!alreadyShowingStableFrame) {
-                    if (resumeOverlayVisible && !shouldWaitForStartedPlaybackBeforeReveal()) {
+                    if (forceFullscreen) {
+                        revealSurface(immediate = true)
+                    } else if (resumeOverlayVisible && !shouldWaitForStartedPlaybackBeforeReveal()) {
                         revealSurface(immediate = true)
                     } else {
                         scheduleSurfaceReveal()

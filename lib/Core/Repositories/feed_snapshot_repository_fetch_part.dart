@@ -1,9 +1,15 @@
 part of 'feed_snapshot_repository.dart';
 
+final DateTime _feedManifestStartupGateStartedAt = DateTime.now();
+Future<bool>? _feedManifestAndroidStartupAuthPrimeFuture;
+bool _feedManifestAndroidStartupAuthPrimed = false;
+bool _feedManifestAndroidDisabledForSession = false;
+
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   static const Duration _feedLaunchCursorStep = Duration(minutes: 30);
   static const int _feedLaunchCursorWindowCount = 48;
   static const int _feedLaunchMotorTopUpMaxRounds = 2;
+  static const Duration _feedManifestStartupGateWindow = Duration(seconds: 5);
 
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
@@ -561,6 +567,30 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         currentUserId.trim().isEmpty) {
       return null;
     }
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _feedManifestAndroidDisabledForSession) {
+      if (_shouldLogDiagnostics) {
+        debugPrint('[FeedManifestPrimary] status=disabled_android_session');
+      }
+      return null;
+    }
+
+    final manifestStartupAge =
+        DateTime.now().difference(_feedManifestStartupGateStartedAt);
+    if (manifestStartupAge < _feedManifestStartupGateWindow) {
+      final startupPrimeReady = await _ensureFeedManifestStartupReady(
+        currentUserId: currentUserId,
+      );
+      if (!startupPrimeReady) {
+        if (_shouldLogDiagnostics) {
+          debugPrint(
+            '[FeedManifestPrimary] status=deferred_startup_auth_window '
+            'elapsedMs=${manifestStartupAge.inMilliseconds}',
+          );
+        }
+        return null;
+      }
+    }
 
     final startedAt = DateTime.now();
     try {
@@ -642,6 +672,13 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         nextTypesensePage: null,
       );
     } catch (error) {
+      final isPermissionDenied =
+          error is FirebaseException && error.code == 'permission-denied' ||
+              '$error'.contains('permission-denied');
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          isPermissionDenied) {
+        _feedManifestAndroidDisabledForSession = true;
+      }
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
@@ -650,6 +687,50 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       }
       return null;
     }
+  }
+
+  Future<bool> _ensureFeedManifestStartupReady({
+    required String currentUserId,
+  }) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return true;
+    }
+    if (_feedManifestAndroidStartupAuthPrimed) {
+      return true;
+    }
+    final existing = _feedManifestAndroidStartupAuthPrimeFuture;
+    if (existing != null) {
+      return existing;
+    }
+    final future = () async {
+      final uid = currentUserId.trim();
+      if (uid.isEmpty) return false;
+      try {
+        final raw = await UserRepository.ensure()
+            .getUserRaw(
+              uid,
+              preferCache: false,
+              forceServer: true,
+            )
+            .timeout(
+              const Duration(milliseconds: 1800),
+              onTimeout: () => null,
+            );
+        final ready = raw != null && raw.isNotEmpty;
+        if (ready) {
+          _feedManifestAndroidStartupAuthPrimed = true;
+        }
+        return ready;
+      } catch (_) {
+        return false;
+      }
+    }();
+    _feedManifestAndroidStartupAuthPrimeFuture = future;
+    return future.whenComplete(() {
+      if (identical(_feedManifestAndroidStartupAuthPrimeFuture, future)) {
+        _feedManifestAndroidStartupAuthPrimeFuture = null;
+      }
+    });
   }
 
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({

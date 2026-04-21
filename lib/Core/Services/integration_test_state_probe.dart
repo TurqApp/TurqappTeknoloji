@@ -160,6 +160,10 @@ class IntegrationTestStateProbe {
     return <String, dynamic>{
       'registered': true,
       'count': items.length,
+      'isLoading': controller.debugShortIsLoading,
+      'surfaceBootstrapInFlight':
+          controller.debugShortSurfaceBootstrapInFlight,
+      'hasMore': controller.hasMore.value,
       'activeIndex': index,
       'activeDocId':
           index >= 0 && index < items.length ? items[index].docID : '',

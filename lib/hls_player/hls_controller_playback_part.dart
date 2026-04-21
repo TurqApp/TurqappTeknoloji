@@ -46,6 +46,10 @@ extension HLSControllerPlaybackPart on HLSController {
     _resetVisualTimingMarkers();
     _updateState(PlayerState.loading);
     _firstFrameEmitted = false;
+    if (_hasVisibleVideoFrame) {
+      _hasVisibleVideoFrame = false;
+      _emitVisibleVideoFrame(false);
+    }
     if (!sameVideoReload) {
       _hasRenderedFirstFrame = false;
       _emitFirstFrame(false);

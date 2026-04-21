@@ -246,6 +246,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         isBuffering: _value.isBuffering,
         isCompleted: false,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        hasVisibleVideoFrame: _value.hasVisibleVideoFrame,
         position: pos,
         duration: _value.duration,
         size: _value.size,

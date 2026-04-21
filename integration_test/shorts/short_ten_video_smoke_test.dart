@@ -29,7 +29,13 @@ void main() {
           'short_ten_video_smoke',
           tester,
           () async {
-            await launchTurqApp(tester);
+            await launchTurqApp(
+              tester,
+              forceFeedTab: false,
+              primeFeedSnapshot: false,
+              primeShortSnapshot: true,
+              relaxFeedFixtureDocRequirement: true,
+            );
             await tapItKey(
               tester,
               IntegrationTestKeys.navShort,
@@ -41,6 +47,7 @@ void main() {
             final seenIndices = <int>{};
 
             for (var index = 0; index < 10; index++) {
+              debugPrint('[integration-smoke][short10] begin index=$index');
               if (index > 0) {
                 await swipeToShortIndex(
                   tester,
@@ -54,6 +61,7 @@ void main() {
                 index: index,
                 label: 'short video ${index + 1}',
               );
+              debugPrint('[integration-smoke][short10] ok index=$index');
               seenIndices.add(index);
             }
 

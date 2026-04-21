@@ -99,6 +99,10 @@ extension HLSControllerEventsPart on HLSController {
             if (!_shouldPreserveResumeVisual) {
               _hasRenderedFirstFrame = false;
               _emitFirstFrame(false);
+              if (_hasVisibleVideoFrame) {
+                _hasVisibleVideoFrame = false;
+                _emitVisibleVideoFrame(false);
+              }
             }
             break;
 
@@ -205,8 +209,16 @@ extension HLSControllerEventsPart on HLSController {
               _lastPosterLiftedAtEpochMs = null;
               _lastFirstFrameAtEpochMs = null;
               _lastPlayAtEpochMs = null;
+              if (_hasVisibleVideoFrame) {
+                _hasVisibleVideoFrame = false;
+                _emitVisibleVideoFrame(false);
+              }
             } else if (phase == 'video_play') {
               _lastPosterLiftedAtEpochMs = phaseStartedAt;
+              if (!_hasVisibleVideoFrame) {
+                _hasVisibleVideoFrame = true;
+                _emitVisibleVideoFrame(true);
+              }
               _recordResumePosterTiming(
                 'video_play',
                 metadata: <String, dynamic>{
@@ -215,6 +227,9 @@ extension HLSControllerEventsPart on HLSController {
                       (event['previousDurationMs'] as num?)?.toInt() ?? -1,
                 },
               );
+            } else if (phase == 'siyah' && _hasVisibleVideoFrame) {
+              _hasVisibleVideoFrame = false;
+              _emitVisibleVideoFrame(false);
             }
             if (kDebugMode && !_suppressHlsSmokeLogs) {
               debugPrint(

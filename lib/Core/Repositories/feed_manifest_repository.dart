@@ -2,9 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 class FeedManifestEntry {
   const FeedManifestEntry({
@@ -49,12 +51,14 @@ class FeedManifestRepository extends GetxService {
   static const int _maxSlotBytes = 16 * 1024 * 1024;
   static const int _maxConcurrentSlotLoads = 4;
   static const Duration _activeRetryDelay = Duration(milliseconds: 700);
+  static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
 
   String _manifestId = '';
   int _generatedAt = 0;
+  bool _startupAuthPrimed = false;
   final Map<String, List<FeedManifestEntry>> _slotEntries =
       <String, List<FeedManifestEntry>>{};
   Future<FeedManifestPoolResult>? _loadFuture;
@@ -123,13 +127,31 @@ class FeedManifestRepository extends GetxService {
 
   Future<DocumentSnapshot<Map<String, dynamic>>>
       _loadActiveManifestDoc() async {
+    await _ensureManifestAccessReady();
     try {
       return await _firestore.collection('feedManifest').doc('active').get();
     } on FirebaseException catch (error) {
       if (error.code != 'permission-denied') rethrow;
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        rethrow;
+      }
+      await _ensureManifestAccessReady(forceTokenRefresh: true);
       await Future<void>.delayed(_activeRetryDelay);
       return _firestore.collection('feedManifest').doc('active').get();
     }
+  }
+
+  Future<void> _ensureManifestAccessReady({
+    bool forceTokenRefresh = false,
+  }) async {
+    final shouldForceRefresh = forceTokenRefresh || !_startupAuthPrimed;
+    await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: shouldForceRefresh,
+      timeout: _authReadyTimeout,
+      recordTimeoutFailure: false,
+    );
+    _startupAuthPrimed = true;
   }
 
   Future<void> _ensureSlotsLoaded(

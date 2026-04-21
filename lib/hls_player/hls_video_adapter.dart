@@ -18,6 +18,7 @@ class HLSVideoValue {
   final bool isBuffering;
   final bool isCompleted;
   final bool hasRenderedFirstFrame;
+  final bool hasVisibleVideoFrame;
   final bool awaitingFreshFrameAfterReattach;
   final Duration position;
   final Duration duration;
@@ -31,6 +32,7 @@ class HLSVideoValue {
     this.isBuffering = false,
     this.isCompleted = false,
     this.hasRenderedFirstFrame = false,
+    this.hasVisibleVideoFrame = false,
     this.awaitingFreshFrameAfterReattach = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
@@ -82,6 +84,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   StreamSubscription? _posSub;
   StreamSubscription? _durSub;
   StreamSubscription? _firstFrameSub;
+  StreamSubscription? _visibleVideoFrameSub;
 
   bool _viewReady = false;
   bool _disposed = false;
@@ -241,6 +244,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     _posSub?.cancel();
     _durSub?.cancel();
     _firstFrameSub?.cancel();
+    _visibleVideoFrameSub?.cancel();
     _hls.dispose();
     super.dispose();
   }

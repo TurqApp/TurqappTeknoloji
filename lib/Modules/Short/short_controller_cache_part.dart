@@ -34,7 +34,10 @@ extension ShortControllerCachePart on ShortController {
     return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
 
-  void primeOnYuklemeWindow(int anchorIndex) {
+  void primeOnYuklemeWindow(
+    int anchorIndex, {
+    int maxAheadPlayableCount = _onYuklemeAheadFirstSegmentCount,
+  }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
@@ -44,7 +47,8 @@ extension ShortControllerCachePart on ShortController {
     final warmLogs = <String>[
       'idx=$safeAnchor offset=0 doc=${shorts[safeAnchor].docID} segments=$_onYuklemeActiveReadySegments',
     ];
-    for (int offset = 1; offset <= _onYuklemeAheadFirstSegmentCount; offset++) {
+    final safeAheadPlayableCount = math.max(0, maxAheadPlayableCount);
+    for (int offset = 1; offset <= safeAheadPlayableCount; offset++) {
       final targetIndex = safeAnchor + offset;
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
       final readySegments = _onYuklemeReadySegmentsForOffset(offset);
@@ -444,7 +448,10 @@ extension ShortControllerCachePart on ShortController {
     int minimumSegmentCount = 1,
   }) {
     if (shorts.isEmpty) return;
-    primeOnYuklemeWindow(anchorIndex.clamp(0, shorts.length - 1));
+    primeOnYuklemeWindow(
+      anchorIndex.clamp(0, shorts.length - 1),
+      maxAheadPlayableCount: aheadCount,
+    );
   }
 
   void primePlaybackWindowReadySegments(
@@ -455,7 +462,10 @@ extension ShortControllerCachePart on ShortController {
     int hotBehindCount = 3,
     int warmBehindCount = 5,
   }) {
-    primeOnYuklemeWindow(anchorIndex);
+    primeOnYuklemeWindow(
+      anchorIndex,
+      maxAheadPlayableCount: aheadCount,
+    );
   }
 
   Future<void> keepOnlyIndex(int index) async {

@@ -48,6 +48,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       isBuffering: false,
       isCompleted: false,
       hasRenderedFirstFrame: false,
+      hasVisibleVideoFrame: false,
       awaitingFreshFrameAfterReattach: false,
       position: _value.position,
       duration: _value.duration,
@@ -76,6 +77,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         isBuffering: state == PlayerState.buffering,
         isCompleted: state == PlayerState.completed,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        hasVisibleVideoFrame: _value.hasVisibleVideoFrame,
         awaitingFreshFrameAfterReattach: _hls.awaitingFreshFrameAfterReattach,
         position: _value.position,
         duration: _value.duration,
@@ -100,6 +102,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         isBuffering: _value.isBuffering,
         isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        hasVisibleVideoFrame: _value.hasVisibleVideoFrame,
         awaitingFreshFrameAfterReattach: _hls.awaitingFreshFrameAfterReattach,
         position: pos,
         duration: _value.duration,
@@ -133,6 +136,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         isBuffering: _value.isBuffering,
         isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        hasVisibleVideoFrame: _value.hasVisibleVideoFrame,
         awaitingFreshFrameAfterReattach: _hls.awaitingFreshFrameAfterReattach,
         position: _value.position,
         duration: dur,
@@ -153,6 +157,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         isBuffering: _value.isBuffering,
         isCompleted: _value.isCompleted,
         hasRenderedFirstFrame: hasRenderedFirstFrame,
+        hasVisibleVideoFrame: _value.hasVisibleVideoFrame,
         awaitingFreshFrameAfterReattach: _hls.awaitingFreshFrameAfterReattach,
         position: _value.position,
         duration: _value.duration,
@@ -167,6 +172,27 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
           _pendingVolume > 0.001) {
         unawaited(_performSetVolume(_pendingVolume));
       }
+    });
+
+    _visibleVideoFrameSub = _hls.onVisibleVideoFrameChanged.listen((
+      hasVisibleVideoFrame,
+    ) {
+      if (_disposed) return;
+      _value = HLSVideoValue(
+        isInitialized: _value.isInitialized,
+        isPlaying: _value.isPlaying,
+        isBuffering: _value.isBuffering,
+        isCompleted: _value.isCompleted,
+        hasRenderedFirstFrame: _value.hasRenderedFirstFrame,
+        hasVisibleVideoFrame: hasVisibleVideoFrame,
+        awaitingFreshFrameAfterReattach: _hls.awaitingFreshFrameAfterReattach,
+        position: _value.position,
+        duration: _value.duration,
+        size: _value.size,
+        aspectRatio: _value.aspectRatio,
+        buffered: _value.buffered,
+      );
+      _notifyAdapterListeners();
     });
   }
 

@@ -13,6 +13,7 @@ class _ShortControllerState {
   Future<void>? initialLoadFuture;
   Future<void>? startupPrepareFuture;
   Future<void>? loadNextPageFuture;
+  Timer? persistVisibleSnapshotTimer;
   final isLoading = false.obs;
   final hasMore = true.obs;
   final isRefreshing = false.obs;
@@ -29,6 +30,7 @@ class _ShortControllerState {
   final shortManifestRepository = ensureShortManifestRepository();
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
+  final prefetchedPosterDocIds = <String>{};
   bool startupPresentationApplied = false;
   bool isShortRouteVisible = false;
   Worker? networkWorker;
@@ -64,6 +66,9 @@ extension ShortControllerFieldsPart on ShortController {
   Future<void>? get _loadNextPageFuture => _state.loadNextPageFuture;
   set _loadNextPageFuture(Future<void>? value) =>
       _state.loadNextPageFuture = value;
+  Timer? get _persistVisibleSnapshotTimer => _state.persistVisibleSnapshotTimer;
+  set _persistVisibleSnapshotTimer(Timer? value) =>
+      _state.persistVisibleSnapshotTimer = value;
   int get pageSize => ReadBudgetRegistry.shortHomeInitialLimitValue;
   int get bufferedPageSize => ReadBudgetRegistry.shortBufferedFetchLimit;
   RxBool get isLoading => _state.isLoading;
@@ -84,6 +89,7 @@ extension ShortControllerFieldsPart on ShortController {
       _state.shortManifestRepository;
   RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
+  Set<String> get _prefetchedPosterDocIds => _state.prefetchedPosterDocIds;
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
   set _startupPresentationApplied(bool value) =>
       _state.startupPresentationApplied = value;
@@ -106,6 +112,11 @@ extension ShortControllerFieldsPart on ShortController {
   DateTime? get _shortOpenTraceStartedAt => _state.shortOpenTraceStartedAt;
   set _shortOpenTraceStartedAt(DateTime? value) =>
       _state.shortOpenTraceStartedAt = value;
+  bool get debugShortIsLoading => isLoading.value;
+  bool get debugShortSurfaceBootstrapInFlight =>
+      _startupPrepareFuture != null ||
+      _initialLoadFuture != null ||
+      _loadNextPageFuture != null;
 
   void beginShortOpenTrace({
     required String source,

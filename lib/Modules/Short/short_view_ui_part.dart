@@ -130,7 +130,8 @@ extension ShortViewUiPart on _ShortViewState {
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
-      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS,
+      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android,
     );
 
     if (ar > 1.2) {
@@ -254,10 +255,8 @@ extension ShortViewUiPart on _ShortViewState {
               final videoWidget = isActivePage || isWarmNeighbor
                   ? IgnorePointer(
                       ignoring: !isActivePage,
-                      child: AnimatedOpacity(
+                      child: Opacity(
                         opacity: isActivePage ? 1 : 0.001,
-                        duration: const Duration(milliseconds: 120),
-                        curve: Curves.easeOut,
                         child: _buildFullscreenVideoSurface(
                           vp,
                           'vp-${post.docID}',
@@ -283,6 +282,18 @@ extension ShortViewUiPart on _ShortViewState {
                           final value = vp.value;
                           final decision =
                               _shortPlaybackDecisionFor(organicIndex, value);
+                          final hasVisibleVideoFrame =
+                              defaultTargetPlatform != TargetPlatform.android
+                                  ? value.hasRenderedFirstFrame
+                                  : value.hasVisibleVideoFrame;
+                          final holdAndroidPosterAtStart =
+                              defaultTargetPlatform == TargetPlatform.android &&
+                                  decision.shouldHidePoster &&
+                                  hasVisibleVideoFrame &&
+                                  value.position <
+                                      const Duration(milliseconds: 180);
+                          final shouldHidePoster = decision.shouldHidePoster &&
+                              !holdAndroidPosterAtStart;
                           _reportStableShortFrameIfNeeded(
                             organicIndex,
                             vp,
@@ -291,8 +302,10 @@ extension ShortViewUiPart on _ShortViewState {
                           return IgnorePointer(
                             ignoring: true,
                             child: AnimatedOpacity(
-                              opacity: decision.shouldHidePoster ? 0.0 : 1.0,
-                              duration: const Duration(milliseconds: 90),
+                              opacity: shouldHidePoster ? 0.0 : 1.0,
+                              duration: shouldHidePoster && hasVisibleVideoFrame
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 90),
                               curve: Curves.easeOut,
                               child: pendingSurface,
                             ),

@@ -458,6 +458,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    controller.schedulePersistVisibleSnapshot();
     _recordShortPlaybackDispatch(
       'short_page_targeted',
       docId: nextDocId,
@@ -477,9 +478,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
       aheadCount: 5,
       minimumSegmentCount: 1,
     );
+    controller.warmPosterWindowAround(
+      currentPage,
+      behindCount: 1,
+      aheadCount: 5,
+    );
     controller.primePlaybackWindowReadySegments(
       currentPage,
       minimumSegmentCount: 2,
+      aheadCount: 5,
     );
     unawaited(
       controller.ensureShortMotorStageForViewedIndex(
@@ -644,6 +651,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      controller.primeForwardReadyMagazine(
+        currentPage,
+        aheadCount: 5,
+        minimumSegmentCount: 1,
+      );
+      controller.primePlaybackWindowReadySegments(
+        currentPage,
+        minimumSegmentCount: 2,
+        aheadCount: 5,
+      );
+    }
     _prepareUpcomingVideoForSwipe();
   }
 

@@ -1,6 +1,75 @@
 part of 'top_tags_repository_parts.dart';
 
 extension TopTagsRepositoryRuntimePart on TopTagsRepository {
+  static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
+
+  Future<void> _ensureTopTagsAccessReady({
+    bool forceTokenRefresh = false,
+  }) async {
+    await CurrentUserService.instance.ensureAuthReady(
+      waitForAuthState: true,
+      forceTokenRefresh: forceTokenRefresh,
+      timeout: _authReadyTimeout,
+      recordTimeoutFailure: false,
+    );
+  }
+
+  Future<List<HashtagModel>> _loadTrendingTagsFromFirestore({
+    required int resultLimit,
+  }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final snap = await _db
+        .collection("tags")
+        .orderBy("count", descending: true)
+        .limit(ReadBudgetRegistry.topTagsRepositoryFetchLimit)
+        .get();
+
+    final list = <HashtagModel>[];
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final rawTag = doc.id.toString().trim();
+      final tag = rawTag.replaceFirst("#", "");
+      if (tag.isEmpty) continue;
+
+      final count = ((data["count"] ?? data["counter"] ?? 0) as num).toInt();
+      final threshold =
+          ((data["trendThreshold"] ?? _topTagsDefaultTrendThreshold) as num)
+              .toInt();
+      if (count < threshold || count <= 0) continue;
+
+      final windowHours =
+          ((data["trendWindowHours"] ?? _topTagsDefaultTrendWindowHours) as num)
+              .toInt();
+      final windowMs = Duration(
+        hours: windowHours <= 0 ? _topTagsDefaultTrendWindowHours : windowHours,
+      ).inMilliseconds;
+      final rawLastSeenTs = ((data["lastSeenTs"] as num?)?.toInt()) ??
+          ((data["lastSeenAt"] as num?)?.toInt()) ??
+          0;
+      final effectiveLastSeenTs =
+          _resolveLastSeenActivityTs(rawLastSeenTs, windowMs, nowMs);
+      if (effectiveLastSeenTs <= 0) continue;
+      if ((nowMs - effectiveLastSeenTs) > windowMs) continue;
+
+      list.add(
+        HashtagModel(
+          tag,
+          count,
+          hasHashtag: rawTag.startsWith("#") ||
+              (((data["hashtagCount"] ?? 0) as num) > 0),
+          lastSeenTs: effectiveLastSeenTs,
+        ),
+      );
+    }
+
+    list.sort((a, b) {
+      final countCmp = b.count.compareTo(a.count);
+      if (countCmp != 0) return countCmp;
+      return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
+    });
+    return list.take(resultLimit).toList(growable: false);
+  }
+
   Future<List<HashtagModel>?> readTrendingTagsCache({
     int resultLimit = ReadBudgetRegistry.topTagsTrendingResultLimit,
   }) async {
@@ -33,58 +102,10 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
     }
 
     try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final snap = await _db
-          .collection("tags")
-          .orderBy("count", descending: true)
-          .limit(ReadBudgetRegistry.topTagsRepositoryFetchLimit)
-          .get();
-
-      final list = <HashtagModel>[];
-      for (final doc in snap.docs) {
-        final data = doc.data();
-        final rawTag = doc.id.toString().trim();
-        final tag = rawTag.replaceFirst("#", "");
-        if (tag.isEmpty) continue;
-
-        final count = ((data["count"] ?? data["counter"] ?? 0) as num).toInt();
-        final threshold =
-            ((data["trendThreshold"] ?? _topTagsDefaultTrendThreshold) as num)
-                .toInt();
-        if (count < threshold || count <= 0) continue;
-
-        final windowHours = ((data["trendWindowHours"] ??
-                _topTagsDefaultTrendWindowHours) as num)
-            .toInt();
-        final windowMs = Duration(
-          hours:
-              windowHours <= 0 ? _topTagsDefaultTrendWindowHours : windowHours,
-        ).inMilliseconds;
-        final rawLastSeenTs = ((data["lastSeenTs"] as num?)?.toInt()) ??
-            ((data["lastSeenAt"] as num?)?.toInt()) ??
-            0;
-        final effectiveLastSeenTs =
-            _resolveLastSeenActivityTs(rawLastSeenTs, windowMs, nowMs);
-        if (effectiveLastSeenTs <= 0) continue;
-        if ((nowMs - effectiveLastSeenTs) > windowMs) continue;
-
-        list.add(
-          HashtagModel(
-            tag,
-            count,
-            hasHashtag: rawTag.startsWith("#") ||
-                (((data["hashtagCount"] ?? 0) as num) > 0),
-            lastSeenTs: effectiveLastSeenTs,
-          ),
-        );
-      }
-
-      list.sort((a, b) {
-        final countCmp = b.count.compareTo(a.count);
-        if (countCmp != 0) return countCmp;
-        return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
-      });
-      final result = list.take(resultLimit).toList(growable: false);
+      await _ensureTopTagsAccessReady();
+      final result = await _loadTrendingTagsFromFirestore(
+        resultLimit: resultLimit,
+      );
       if (result.isEmpty &&
           cachedForFallback != null &&
           cachedForFallback.isNotEmpty) {
@@ -92,6 +113,31 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       }
       await _store(result);
       return result;
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        await _ensureTopTagsAccessReady(forceTokenRefresh: true);
+        try {
+          final result = await _loadTrendingTagsFromFirestore(
+            resultLimit: resultLimit,
+          );
+          if (result.isEmpty &&
+              cachedForFallback != null &&
+              cachedForFallback.isNotEmpty) {
+            return cachedForFallback;
+          }
+          await _store(result);
+          return result;
+        } on FirebaseException {
+          if (cachedForFallback != null && cachedForFallback.isNotEmpty) {
+            return cachedForFallback;
+          }
+          return const <HashtagModel>[];
+        }
+      }
+      if (cachedForFallback != null && cachedForFallback.isNotEmpty) {
+        return cachedForFallback;
+      }
+      rethrow;
     } catch (_) {
       if (cachedForFallback != null && cachedForFallback.isNotEmpty) {
         return cachedForFallback;

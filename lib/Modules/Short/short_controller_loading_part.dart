@@ -6,6 +6,45 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  void schedulePersistVisibleSnapshot({
+    Duration delay = const Duration(milliseconds: 220),
+  }) {
+    _persistVisibleSnapshotTimer?.cancel();
+    _persistVisibleSnapshotTimer = Timer(delay, () {
+      _persistVisibleSnapshotTimer = null;
+      unawaited(_persistVisibleSnapshot());
+    });
+  }
+
+  Future<void> persistVisibleSnapshotNow() async {
+    _persistVisibleSnapshotTimer?.cancel();
+    _persistVisibleSnapshotTimer = null;
+    await _persistVisibleSnapshot();
+  }
+
+  Future<ShortResumeState?> _loadPersistedResumeState() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return null;
+    return ensureShortResumeStateStore().load(userId: userId);
+  }
+
+  Future<List<PostsModel>> _restorePersistedResumeQueue() async {
+    final persisted = await _loadPersistedResumeState();
+    if (persisted == null || persisted.remainingPosts.isEmpty) {
+      return const <PostsModel>[];
+    }
+    final eligible = persisted.remainingPosts
+        .where(_isEligibleShortPost)
+        .toList(growable: false);
+    if (eligible.isEmpty) {
+      return const <PostsModel>[];
+    }
+    return _filterVisibleShortPosts(
+      eligible,
+      hydrateAuthors: false,
+    );
+  }
+
   Future<List<PostsModel>> _loadOfflineReadyShortPosts({
     required int limit,
   }) async {
@@ -300,7 +339,7 @@ extension ShortControllerLoadingPart on ShortController {
       },
     );
     _replaceShorts(reconciled, remapCache: true);
-    unawaited(_persistVisibleSnapshot());
+    schedulePersistVisibleSnapshot();
   }
 
   Future<void> backgroundPreload() async {
@@ -366,7 +405,19 @@ extension ShortControllerLoadingPart on ShortController {
       hasMore.value = true;
       _lastDoc = null;
       clearCache();
-      if (sessionMode == _ShortSessionSourceMode.mobileCacheOnly) {
+      final resumedQueue = await _restorePersistedResumeQueue();
+      if (resumedQueue.isNotEmpty) {
+        _replaceShorts(
+          _applyStartupShortPresentationOrder(resumedQueue),
+          remapCache: true,
+        );
+        lastIndex.value = 0;
+        _preferFreshLaunchIndex = false;
+        _log(
+          '[ShortResumeQueue] status=restored count=${resumedQueue.length}',
+        );
+        unawaited(preloadRange(0, range: 0));
+      } else if (sessionMode == _ShortSessionSourceMode.mobileCacheOnly) {
         final cachedPosts = await _loadOfflineReadyShortPosts(
           limit: ReadBudgetRegistry.shortHomeInitialLimitValue,
         );
@@ -514,7 +565,7 @@ extension ShortControllerLoadingPart on ShortController {
             },
           );
           shorts.addAll(appendPlan.itemsToAppend);
-          unawaited(_persistVisibleSnapshot());
+          schedulePersistVisibleSnapshot();
         }
         _lastDoc = result.lastDoc;
         hasMore.value = result.hasMore;
@@ -544,7 +595,7 @@ extension ShortControllerLoadingPart on ShortController {
           newList[lastIndex.value],
         );
       }
-      unawaited(_persistVisibleSnapshot());
+      schedulePersistVisibleSnapshot();
     } catch (e) {
       _log('[Shorts] ❌ Refresh hatası: $e');
       hasMore.value = true;
@@ -759,7 +810,7 @@ extension ShortControllerLoadingPart on ShortController {
           'afterCount=${shorts.length + nextItems.length}',
         );
         shorts.addAll(nextItems);
-        unawaited(_persistVisibleSnapshot());
+        schedulePersistVisibleSnapshot();
       }
 
       hasMore.value = result.hasMore;
@@ -903,7 +954,33 @@ extension ShortControllerLoadingPart on ShortController {
   }
 
   Future<void> _persistVisibleSnapshot() async {
-    return;
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    if (shorts.isEmpty) {
+      await ensureShortResumeStateStore().clear(userId: userId);
+      return;
+    }
+    final visibleIndex = lastIndex.value.clamp(0, shorts.length - 1);
+    final remainingPosts = shorts.skip(visibleIndex).toList(growable: false);
+    final cursor = _shortManifestRepository.currentCursorSnapshot();
+    final state = ShortResumeState(
+      manifestId: cursor.manifestId,
+      cursorSlotIndex: cursor.slotIndex,
+      cursorItemIndex: cursor.itemIndex,
+      hasMore: hasMore.value || cursor.hasMore,
+      savedAtMs: DateTime.now().millisecondsSinceEpoch,
+      remainingPosts: remainingPosts,
+    );
+    await ensureShortResumeStateStore().save(
+      userId: userId,
+      state: state,
+    );
+    await ensureShortSnapshotRepository().persistHomeSnapshot(
+      userId: userId,
+      posts: remainingPosts,
+      limit: remainingPosts.length,
+      source: CachedResourceSource.scopedDisk,
+    );
   }
 
   void _remapCacheForNewList({

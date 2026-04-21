@@ -124,10 +124,53 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void handleOnClose() {
     _log('[Shorts] ❌ ShortController.onClose() called');
+    _persistVisibleSnapshotTimer?.cancel();
+    _persistVisibleSnapshotTimer = null;
     _playbackCoordinator.reset();
+    _prefetchedPosterDocIds.clear();
     clearCache();
     _state.followingSub?.cancel();
     _networkWorker?.dispose();
+  }
+
+  List<String> _posterWarmUrlsForPost(PostsModel post) {
+    final urls = <String>[];
+
+    void addUrl(String rawUrl) {
+      final normalized = CdnUrlBuilder.toCdnUrl(rawUrl.trim());
+      if (normalized.isEmpty || urls.contains(normalized)) return;
+      urls.add(normalized);
+    }
+
+    addUrl(post.thumbnail);
+    for (final posterUrl in post.preferredVideoPosterUrls) {
+      addUrl(posterUrl);
+    }
+    for (final imageUrl in post.img) {
+      addUrl(imageUrl);
+    }
+    for (final cdnUrl in CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID)) {
+      addUrl(cdnUrl);
+    }
+    return urls;
+  }
+
+  void warmPosterWindowAround(
+    int anchorIndex, {
+    int behindCount = 1,
+    int aheadCount = _initialPreloadCount,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final start = math.max(0, safeAnchor - behindCount);
+    final endExclusive = math.min(shorts.length, safeAnchor + aheadCount + 1);
+    for (int i = start; i < endExclusive; i++) {
+      final post = shorts[i];
+      if (!_prefetchedPosterDocIds.add(post.docID)) continue;
+      for (final url in _posterWarmUrlsForPost(post)) {
+        TurqImageCacheManager.warmUrl(url).ignore();
+      }
+    }
   }
 
   void _bindNetworkAwareness() {
@@ -379,6 +422,11 @@ extension ShortControllerPublicApiPart on ShortController {
       trigger: 'primary_surface_visible_reconcile',
     );
     if (shorts.isNotEmpty) {
+      warmPosterWindowAround(
+        _currentVisibleShortIndex(this),
+        behindCount: 0,
+        aheadCount: _initialPreloadCount,
+      );
       primeStartupReadyMagazine(
         _currentVisibleShortIndex(this),
         count: _startupReadyMagazineCount,

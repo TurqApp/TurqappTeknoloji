@@ -130,8 +130,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
       if (fallbackImage.isNotEmpty) fallbackImage,
       ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
     ];
-    final primaryUrl =
-        candidateUrls.isEmpty ? '' : candidateUrls.first.trim();
+    final primaryUrl = candidateUrls.isEmpty ? '' : candidateUrls.first.trim();
     if (primaryUrl.isEmpty) {
       return const ColoredBox(color: Colors.black);
     }
@@ -159,7 +158,8 @@ class DynamicShortViewState extends State<DynamicShortView> {
     // Aktif controller henüz oluşturulmadıysa loading göster
     final controller = controllers[currentPage];
     if (controller == null) {
-      final hasThumb = widget.startList[currentPage].thumbnail.trim().isNotEmpty;
+      final hasThumb =
+          widget.startList[currentPage].thumbnail.trim().isNotEmpty;
       return Scaffold(
         backgroundColor: Colors.black,
         body: Stack(
@@ -236,6 +236,8 @@ class DynamicShortViewState extends State<DynamicShortView> {
               SizedBox.expand(
                 child: ctrl.buildPlayer(
                   preferWarmPoolPauseOnAndroid: true,
+                  preferStableStartupBuffer:
+                      defaultTargetPlatform == TargetPlatform.android,
                 ),
               ),
               AnimatedBuilder(

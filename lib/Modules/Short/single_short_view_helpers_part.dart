@@ -581,6 +581,8 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
+      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android,
     );
 
     if (ar > 1.2) {
