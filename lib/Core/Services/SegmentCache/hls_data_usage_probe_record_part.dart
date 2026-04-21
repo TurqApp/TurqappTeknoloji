@@ -42,13 +42,16 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     final inFeedWindow = ownerInfo?['inFeedWindow'] == true;
     final isQuotaBackgroundTransfer =
         owner == 'quota' && event.source == HlsTrafficSource.prefetch;
-    final isActiveShortManagedTransfer =
-        owner == 'short' &&
+    final isActiveProfileQuotaWarmTransfer = owner == 'quota' &&
+        ownerInfo?['hasActiveProfilePlaybackWindow'] == true &&
+        (ownerInfo?['pendingPrefetch'] == true ||
+            ownerInfo?['activeDownload'] == true);
+    final isActiveShortManagedTransfer = owner == 'short' &&
         inShortWindow &&
         ownerInfo?['hasActiveShortPlaybackWindow'] == true;
-    final isExpectedWarmWindowTransfer =
-        allowedSegmentWarm &&
-        ((owner == 'short' && inShortWindow) || (owner == 'feed' && inFeedWindow));
+    final isExpectedWarmWindowTransfer = allowedSegmentWarm &&
+        ((owner == 'short' && inShortWindow) ||
+            (owner == 'feed' && inFeedWindow));
     final payload = <String, dynamic>{
       'docId': docId,
       'visibleDocId': visibleDocId,
@@ -67,6 +70,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'hasActiveFeedPlaybackWindow': ownerInfo?['hasActiveFeedPlaybackWindow'],
       'hasActiveShortPlaybackWindow':
           ownerInfo?['hasActiveShortPlaybackWindow'],
+      'hasActiveProfilePlaybackWindow':
+          ownerInfo?['hasActiveProfilePlaybackWindow'],
       'allowedSegmentWarm': allowedSegmentWarm,
       'allowedCacheOnly': allowedCacheOnly,
       'quotaBackgroundTransfer': isQuotaBackgroundTransfer,
@@ -79,6 +84,9 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       return;
     }
     if (isActiveShortManagedTransfer) {
+      return;
+    }
+    if (isActiveProfileQuotaWarmTransfer) {
       return;
     }
     if (isExpectedWarmWindowTransfer) {

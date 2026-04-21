@@ -15,7 +15,7 @@ final RuntimeInvariantGuard _invariantGuard = ensureRuntimeInvariantGuard();
 final SocialMediaLinksRepository _socialLinksRepository =
     SocialMediaLinksRepository.ensure();
 final UserPostLinkService _linkService = UserPostLinkService.ensure();
-const int _profilePageLimit = 10;
+const int _profilePageLimit = 20;
 const int _profileSecondaryPageLimit = 20;
 const int _profileFeedLoadTriggerRemaining = 5;
 

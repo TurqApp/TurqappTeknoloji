@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';

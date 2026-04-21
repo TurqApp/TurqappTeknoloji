@@ -2660,6 +2660,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
     } finally {
       isLoading.value = false;
+      _scheduleFeedManifestWindowSync(reason: 'refresh_complete');
     }
   }
 }

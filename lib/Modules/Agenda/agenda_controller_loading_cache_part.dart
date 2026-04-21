@@ -466,13 +466,16 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final currentUserService = CurrentUserService.instance;
     final uid = currentUserService.effectiveUserId.trim();
     if (uid.isEmpty || !currentUserService.hasAuthUser) {
-      return _loadLegacyAgendaSourcePage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        startAfter: startAfter,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
+      debugPrint(
+        '[FeedManifestOnly] status=skip_no_auth '
+        'uidPresent=${uid.isNotEmpty} hasAuthUser=${currentUserService.hasAuthUser}',
+      );
+      return _AgendaSourcePage(
+        const <PostsModel>[],
+        null,
+        true,
+        true,
+        null,
       );
     }
 
@@ -499,9 +502,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
       includeSupplementalSources: includeSupplementalSources,
       bypassInitialPrimaryCursorShift: bypassInitialPrimaryCursorShift,
-      primarySourceOverride: cacheOnly && primarySourceOverride == null
-          ? FeedPrimarySourceMode.firestore
-          : primarySourceOverride,
+      primarySourceOverride: primarySourceOverride,
       typesensePage: resolvedTypesensePage,
     );
     if (cacheOnly && page.items.isEmpty) {
@@ -533,35 +534,6 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       page.usesPrimaryFeed,
       page.itemsPreplanned,
       page.nextTypesensePage,
-    );
-  }
-
-  Future<_AgendaSourcePage> _loadLegacyAgendaSourcePage({
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    DocumentSnapshot? startAfter,
-    bool useStoredCursor = true,
-    bool preferCache = true,
-    bool cacheOnly = false,
-  }) async {
-    final page = await _postRepository.fetchAgendaWindowPage(
-      cutoffMs: cutoffMs,
-      nowMs: nowMs,
-      limit: limit,
-      startAfter: startAfter ?? (useStoredCursor ? lastDoc : null),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    return _AgendaSourcePage(
-      page.items
-          .where((p) => _isEligibleAgendaPost(p, nowMs))
-          .where((p) => p.deletedPost != true)
-          .toList(growable: false),
-      page.lastDoc,
-      false,
-      false,
-      null,
     );
   }
 

@@ -14,6 +14,7 @@ final UserSummaryResolver _userSummaryResolver = UserSummaryResolver.ensure();
 const int _socialProfilePageSize = 10;
 const int _socialProfileSecondaryPageSize = 12;
 const int _socialProfileFeedLoadTriggerRemaining = 5;
+const int _socialProfileOwnPinnedPostCount = 20;
 
 const Duration _followCheckCacheTtl = Duration(seconds: 20);
 const Duration _counterCacheTtl = Duration(seconds: 30);
@@ -44,6 +45,11 @@ extension SocialProfileControllerSupportPart on SocialProfileController {
   int get pageSizePhoto => _socialProfileSecondaryPageSize;
   int get pageSizeScheduled => _socialProfileSecondaryPageSize;
   int get feedLoadTriggerRemaining => _socialProfileFeedLoadTriggerRemaining;
+  int get ownPinnedPostCount => _socialProfileOwnPinnedPostCount;
+  bool get isOwnProfile {
+    final currentUserId = CurrentUserService.instance.effectiveUserId.trim();
+    return currentUserId.isNotEmpty && currentUserId == userID.trim();
+  }
 
   int resolveResumeCenteredIndex() => _performResolveResumeCenteredIndex();
 

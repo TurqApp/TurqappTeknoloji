@@ -31,8 +31,8 @@ void beginStartupSurfaceSession({
     _startupSurfaceDeviceSaltByNamespace[normalizedNamespace] = normalizedSalt;
   }
   if (forceNew) {
-    _startupSurfaceOrderSeedByNamespace[normalizedNamespace] ??=
-        DateTime.now().millisecondsSinceEpoch;
+    _startupSurfaceOrderSeedByNamespace[normalizedNamespace] =
+        _freshStartupSurfaceSeed();
   }
 }
 
@@ -183,4 +183,8 @@ int _seedForMotorIndex({
     now.microsecond,
   );
   return adjusted.millisecondsSinceEpoch;
+}
+
+int _freshStartupSurfaceSeed() {
+  return DateTime.now().microsecondsSinceEpoch;
 }

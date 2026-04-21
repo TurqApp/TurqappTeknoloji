@@ -13,20 +13,16 @@ import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/feed_manifest_mixer.dart';
 import 'package:turqappv2/Core/Services/feed_manifest_policy.dart';
 import 'package:turqappv2/Core/Services/feed_typesense_policy.dart';
-import 'package:turqappv2/Core/Services/feed_typesense_paging_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/launch_motor_selection_service.dart';
 import 'package:turqappv2/Core/Services/launch_motor_surface_contract.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
-import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Core/Services/typesense_user_card_cache_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
-
-import 'feed_home_contract.dart';
 
 part 'feed_snapshot_repository_fetch_part.dart';
 part 'feed_snapshot_repository_codec_part.dart';
@@ -49,29 +45,10 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const int _typesenseStartupAuthorWarmBatchSize = 50;
   static const bool typesensePrimaryEnabled =
       FeedTypesensePolicy.primaryEnabled;
-  static const bool typesenseFirestoreFallbackEnabled =
-      FeedTypesensePolicy.firestoreFallbackEnabled;
-  static FeedPrimarySourceMode resolvePrimarySourceMode({
-    required Object? startAfter,
-    FeedPrimarySourceMode? override,
-    int? typesensePage,
-  }) {
-    if (override != null) {
-      return override;
-    }
-    if (typesensePage != null && typesensePage > 0) {
-      return FeedPrimarySourceMode.typesense;
-    }
-    if (typesensePrimaryEnabled && startAfter == null) {
-      return FeedPrimarySourceMode.typesense;
-    }
-    return FeedPrimarySourceMode.firestore;
-  }
+  static const bool typesenseFirestoreFallbackEnabled = false;
 
   static int get startupHomeLimitValue =>
       ReadBudgetRegistry.feedHomeInitialLimitValue;
-  static const FeedHomeContract _homeContract =
-      FeedHomeContract.primaryHybridV1;
 }
 
 class _FeedSnapshotRepositoryState {
@@ -80,8 +57,6 @@ class _FeedSnapshotRepositoryState {
   final FeedSnapshotRepository repository;
 
   late final PostRepository postRepository = PostRepository.ensure();
-  late final RuntimeInvariantGuard invariantGuard =
-      ensureRuntimeInvariantGuard();
   late final UserSummaryResolver userSummaryResolver =
       UserSummaryResolver.ensure();
   late final VisibilityPolicyService visibilityPolicy =
@@ -143,7 +118,6 @@ FeedSnapshotRepository ensureFeedSnapshotRepository() {
 extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
   bool get _shouldLogDiagnostics => kDebugMode && !IntegrationTestMode.enabled;
   PostRepository get _postRepository => _state.postRepository;
-  RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   WarmLaunchPool get _warmLaunchPool => _state.warmLaunchPool;
@@ -326,6 +300,28 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
         FeedSnapshotRepository._homeSurfaceKey,
         userId: userId?.trim().isEmpty ?? true ? null : userId!.trim(),
       );
+
+  int get activeFeedManifestGeneratedAt => _feedManifestRepository.generatedAt;
+  String get activeFeedManifestId => _feedManifestRepository.manifestId;
+  DateTime? get nextExpectedFeedManifestRefreshAt =>
+      _feedManifestRepository.nextExpectedRefreshAt;
+
+  Future<bool> syncActiveFeedManifestWindow({
+    required String userId,
+  }) async {
+    final normalizedUserId = userId.trim();
+    final changed = await _feedManifestRepository.syncActiveWindowIfChanged();
+    if (!changed) return false;
+    if (normalizedUserId.isEmpty) return true;
+    await Future.wait(<Future<void>>[
+      clearUserSnapshots(userId: normalizedUserId),
+      ensureStartupSnapshotShardStore().clear(
+        surface: 'feed',
+        userId: normalizedUserId,
+      ),
+    ]);
+    return true;
+  }
 
   Future<void> pruneHomeSnapshots({
     required String userId,

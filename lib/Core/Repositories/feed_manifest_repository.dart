@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -48,11 +49,15 @@ class FeedManifestRepository extends GetxService {
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
         _storage = storage ?? FirebaseStorage.instance;
 
+  static const Duration manifestWindowCadence = Duration(hours: 3);
   static const int _maxSlotBytes = 16 * 1024 * 1024;
   static const int _maxConcurrentSlotLoads = 4;
+  static const int _maxCachedManifestWindows = 24;
   static const Duration _activeRetryDelay = Duration(milliseconds: 700);
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
   static const Duration _slotDownloadTimeout = Duration(milliseconds: 1800);
+  static const String _localWindowsPrefsKey = 'feed_manifest_windows_v1';
+  static const String _localSlotPrefsPrefix = 'feed_manifest_slot_v1';
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -60,18 +65,34 @@ class FeedManifestRepository extends GetxService {
   String _manifestId = '';
   int _generatedAt = 0;
   bool _startupAuthPrimed = false;
+  bool _localCacheHydrated = false;
+  SharedPreferences? _prefs;
+  final List<_FeedManifestWindow> _windows = <_FeedManifestWindow>[];
   final Map<String, List<FeedManifestEntry>> _slotEntries =
       <String, List<FeedManifestEntry>>{};
   Future<FeedManifestPoolResult>? _loadFuture;
 
+  String get manifestId => _manifestId;
+  int get generatedAt => _generatedAt;
+  DateTime? get nextExpectedRefreshAt {
+    if (_generatedAt <= 0) return null;
+    return DateTime.fromMillisecondsSinceEpoch(_generatedAt).add(
+      manifestWindowCadence,
+    );
+  }
+
   Future<FeedManifestPoolResult> loadRollingPool({
     bool forceRefresh = false,
+    int? maxSlotsToLoad,
   }) {
     if (!forceRefresh) {
       final existing = _loadFuture;
       if (existing != null) return existing;
     }
-    final future = _loadRollingPool(forceRefresh: forceRefresh);
+    final future = _loadRollingPool(
+      forceRefresh: forceRefresh,
+      maxSlotsToLoad: maxSlotsToLoad,
+    );
     _loadFuture = future;
     return future.whenComplete(() {
       if (identical(_loadFuture, future)) {
@@ -82,15 +103,45 @@ class FeedManifestRepository extends GetxService {
 
   Future<FeedManifestPoolResult> _loadRollingPool({
     required bool forceRefresh,
+    required int? maxSlotsToLoad,
   }) async {
-    final active = await _loadActiveManifestDoc();
-    final activeData = active.data() ?? const <String, dynamic>{};
-    final nextManifestId = (activeData['manifestId'] ?? '').toString().trim();
-    final generatedAt = int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
-    final slotRefs = _parseSlotRefs(activeData['slots']);
+    await _hydrateLocalCache();
+    try {
+      final active = await _loadActiveManifestDoc();
+      final activeData = active.data() ?? const <String, dynamic>{};
+      final nextManifestId = (activeData['manifestId'] ?? '').toString().trim();
+      final generatedAt =
+          int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
+      final slotRefs = _parseSlotRefs(activeData['slots']);
 
-    if (nextManifestId.isEmpty || slotRefs.isEmpty) {
-      _reset();
+      if (nextManifestId.isNotEmpty && slotRefs.isNotEmpty) {
+        _manifestId = nextManifestId;
+        _generatedAt = generatedAt;
+        await _mergeActiveWindow(
+          manifestId: nextManifestId,
+          generatedAt: generatedAt,
+          slotRefs: slotRefs,
+        );
+      } else if (_windows.isEmpty) {
+        _reset();
+        return const FeedManifestPoolResult(
+          manifestId: '',
+          entries: <FeedManifestEntry>[],
+          slotCount: 0,
+          loadedSlotCount: 0,
+          generatedAt: 0,
+        );
+      }
+    } catch (error) {
+      if (_windows.isEmpty) rethrow;
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedManifestRepo] stage=active_fallback_to_local error=$error',
+        );
+      }
+    }
+    final slotRefs = _flattenWindowSlotRefs();
+    if (slotRefs.isEmpty) {
       return const FeedManifestPoolResult(
         manifestId: '',
         entries: <FeedManifestEntry>[],
@@ -99,18 +150,16 @@ class FeedManifestRepository extends GetxService {
         generatedAt: 0,
       );
     }
-
-    final manifestChanged = nextManifestId != _manifestId;
-    if (manifestChanged) {
-      _slotEntries.clear();
-    }
-    _manifestId = nextManifestId;
-    _generatedAt = generatedAt;
-
-    await _ensureSlotsLoaded(slotRefs, forceRefresh: forceRefresh);
+    final effectiveSlotRefs = maxSlotsToLoad != null && maxSlotsToLoad > 0
+        ? slotRefs.take(maxSlotsToLoad).toList(growable: false)
+        : slotRefs;
+    await _ensureSlotsLoaded(
+      effectiveSlotRefs,
+      forceRefresh: forceRefresh,
+    );
     final entries = <FeedManifestEntry>[];
     var loadedSlotCount = 0;
-    for (final slot in slotRefs) {
+    for (final slot in effectiveSlotRefs) {
       final slotEntries = _slotEntries[slot.path];
       if (slotEntries == null) continue;
       loadedSlotCount++;
@@ -120,10 +169,33 @@ class FeedManifestRepository extends GetxService {
     return FeedManifestPoolResult(
       manifestId: _manifestId,
       entries: entries,
-      slotCount: slotRefs.length,
+      slotCount: effectiveSlotRefs.length,
       loadedSlotCount: loadedSlotCount,
       generatedAt: _generatedAt,
     );
+  }
+
+  Future<bool> syncActiveWindowIfChanged() async {
+    await _hydrateLocalCache();
+    final active = await _loadActiveManifestDoc();
+    final activeData = active.data() ?? const <String, dynamic>{};
+    final nextManifestId = (activeData['manifestId'] ?? '').toString().trim();
+    final generatedAt = int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
+    final slotRefs = _parseSlotRefs(activeData['slots']);
+    if (nextManifestId.isEmpty || slotRefs.isEmpty) {
+      return false;
+    }
+    final changed =
+        nextManifestId != _manifestId || generatedAt != _generatedAt;
+    if (!changed) {
+      return false;
+    }
+    await _mergeActiveWindow(
+      manifestId: nextManifestId,
+      generatedAt: generatedAt,
+      slotRefs: slotRefs,
+    );
+    return true;
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>>
@@ -169,11 +241,29 @@ class FeedManifestRepository extends GetxService {
         start += _maxConcurrentSlotLoads) {
       final end = (start + _maxConcurrentSlotLoads).clamp(0, pending.length);
       final batch = pending.sublist(start, end);
-      await Future.wait(batch.map(_loadSlot));
+      await Future.wait(
+        batch.map((slot) => _loadSlot(slot, forceRefresh: forceRefresh)),
+      );
     }
   }
 
-  Future<void> _loadSlot(_FeedManifestSlotRef slot) async {
+  Future<void> _loadSlot(
+    _FeedManifestSlotRef slot, {
+    required bool forceRefresh,
+  }) async {
+    final prefs = await _ensurePrefs();
+    if (!forceRefresh) {
+      final cachedRaw = prefs.getString(_slotPrefsKey(slot.path));
+      if (cachedRaw != null && cachedRaw.isNotEmpty) {
+        final parsed = parseSlotEntries(
+          cachedRaw,
+          fallbackSlotId: slot.slotId,
+          slotPath: slot.path,
+        );
+        _slotEntries[slot.path] = parsed;
+        return;
+      }
+    }
     try {
       final bytes = await _storage
           .ref(slot.path)
@@ -181,13 +271,16 @@ class FeedManifestRepository extends GetxService {
           .timeout(_slotDownloadTimeout);
       if (bytes == null || bytes.isEmpty) {
         _slotEntries[slot.path] = const <FeedManifestEntry>[];
+        await prefs.remove(_slotPrefsKey(slot.path));
         return;
       }
+      final rawJson = utf8.decode(bytes);
       _slotEntries[slot.path] = parseSlotEntries(
-        utf8.decode(bytes),
+        rawJson,
         fallbackSlotId: slot.slotId,
         slotPath: slot.path,
       );
+      await prefs.setString(_slotPrefsKey(slot.path), rawJson);
     } catch (error) {
       _slotEntries.remove(slot.path);
       if (kDebugMode) {
@@ -202,7 +295,116 @@ class FeedManifestRepository extends GetxService {
   void _reset() {
     _manifestId = '';
     _generatedAt = 0;
+    _windows.clear();
     _slotEntries.clear();
+  }
+
+  Future<void> _hydrateLocalCache() async {
+    if (_localCacheHydrated) return;
+    final prefs = await _ensurePrefs();
+    final raw = prefs.getString(_localWindowsPrefsKey);
+    if (raw != null && raw.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          _windows
+            ..clear()
+            ..addAll(
+              decoded
+                  .whereType<Map>()
+                  .map(
+                    (entry) => _FeedManifestWindow.fromJson(
+                      Map<String, dynamic>.from(
+                        entry.cast<dynamic, dynamic>(),
+                      ),
+                    ),
+                  )
+                  .where((entry) => entry.isValid),
+            );
+        }
+      } catch (_) {}
+    }
+    _windows
+        .sort((left, right) => right.generatedAt.compareTo(left.generatedAt));
+    if (_windows.isNotEmpty) {
+      _manifestId = _windows.first.manifestId;
+      _generatedAt = _windows.first.generatedAt;
+    }
+    _localCacheHydrated = true;
+  }
+
+  Future<SharedPreferences> _ensurePrefs() async {
+    return _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  Future<void> _mergeActiveWindow({
+    required String manifestId,
+    required int generatedAt,
+    required List<_FeedManifestSlotRef> slotRefs,
+  }) async {
+    final next = _FeedManifestWindow(
+      manifestId: manifestId,
+      generatedAt: generatedAt,
+      slots: slotRefs,
+    );
+    _windows.removeWhere((entry) => entry.manifestId == manifestId);
+    _windows.add(next);
+    _windows
+        .sort((left, right) => right.generatedAt.compareTo(left.generatedAt));
+
+    final retained =
+        _windows.take(_maxCachedManifestWindows).toList(growable: false);
+    final retainedPaths = retained
+        .expand((entry) => entry.slots)
+        .map((slot) => slot.path)
+        .where((path) => path.isNotEmpty)
+        .toSet();
+    final removedPaths = _windows
+        .skip(_maxCachedManifestWindows)
+        .expand((entry) => entry.slots)
+        .map((slot) => slot.path)
+        .where((path) => path.isNotEmpty && !retainedPaths.contains(path))
+        .toSet();
+
+    _windows
+      ..clear()
+      ..addAll(retained);
+    _manifestId = _windows.isEmpty ? '' : _windows.first.manifestId;
+    _generatedAt = _windows.isEmpty ? 0 : _windows.first.generatedAt;
+    for (final path in removedPaths) {
+      _slotEntries.remove(path);
+    }
+    await _persistLocalCache(removedPaths: removedPaths);
+  }
+
+  Future<void> _persistLocalCache({
+    Set<String> removedPaths = const <String>{},
+  }) async {
+    final prefs = await _ensurePrefs();
+    await prefs.setString(
+      _localWindowsPrefsKey,
+      jsonEncode(_windows.map((entry) => entry.toJson()).toList()),
+    );
+    for (final path in removedPaths) {
+      await prefs.remove(_slotPrefsKey(path));
+    }
+  }
+
+  List<_FeedManifestSlotRef> _flattenWindowSlotRefs() {
+    final output = <_FeedManifestSlotRef>[];
+    final seenPaths = <String>{};
+    for (final window in _windows) {
+      for (final slot in window.slots) {
+        if (slot.path.isEmpty || !seenPaths.add(slot.path)) continue;
+        output.add(slot);
+      }
+    }
+    return output;
+  }
+
+  String _slotPrefsKey(String path) {
+    final encoded = base64Url.encode(utf8.encode(path));
+    return '$_localSlotPrefsPrefix:$encoded';
   }
 
   static List<FeedManifestEntry> parseSlotEntries(
@@ -340,6 +542,67 @@ class _FeedManifestSlotRef {
   final String slotId;
   final String date;
   final int slotHour;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'path': path,
+        'slotId': slotId,
+        'date': date,
+        'slotHour': slotHour,
+      };
+
+  bool get isValid => path.trim().isNotEmpty;
+
+  factory _FeedManifestSlotRef.fromJson(Map<String, dynamic> json) {
+    return _FeedManifestSlotRef(
+      path: (json['path'] ?? '').toString().trim(),
+      slotId: (json['slotId'] ?? '').toString().trim(),
+      date: (json['date'] ?? '').toString().trim(),
+      slotHour: int.tryParse('${json['slotHour'] ?? 0}') ?? 0,
+    );
+  }
+}
+
+class _FeedManifestWindow {
+  const _FeedManifestWindow({
+    required this.manifestId,
+    required this.generatedAt,
+    required this.slots,
+  });
+
+  final String manifestId;
+  final int generatedAt;
+  final List<_FeedManifestSlotRef> slots;
+
+  bool get isValid =>
+      manifestId.trim().isNotEmpty &&
+      generatedAt > 0 &&
+      slots.any((slot) => slot.isValid);
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'manifestId': manifestId,
+        'generatedAt': generatedAt,
+        'slots': slots.map((slot) => slot.toJson()).toList(growable: false),
+      };
+
+  factory _FeedManifestWindow.fromJson(Map<String, dynamic> json) {
+    final slotsRaw = json['slots'];
+    final slots = slotsRaw is List
+        ? slotsRaw
+            .whereType<Map>()
+            .map(
+              (entry) => _FeedManifestSlotRef.fromJson(
+                Map<String, dynamic>.from(entry.cast<dynamic, dynamic>()),
+              ),
+            )
+            .where((slot) => slot.isValid)
+            .toList(growable: false)
+        : const <_FeedManifestSlotRef>[];
+    return _FeedManifestWindow(
+      manifestId: (json['manifestId'] ?? '').toString().trim(),
+      generatedAt: int.tryParse('${json['generatedAt'] ?? 0}') ?? 0,
+      slots: slots,
+    );
+  }
 }
 
 FeedManifestRepository ensureFeedManifestRepository() {

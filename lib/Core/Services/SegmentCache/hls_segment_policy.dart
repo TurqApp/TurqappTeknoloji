@@ -57,6 +57,8 @@ class HlsSegmentPolicy {
     const socialPrefixes = <String>[
       'social_post_',
       'social_reshare_',
+      'profile_post_',
+      'profile_reshare_',
     ];
     for (final prefix in socialPrefixes) {
       if (normalized.startsWith(prefix)) {

@@ -1,8 +1,9 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
-  static const int _profileWarmPlayableCount =
+  static const int _defaultProfileWarmPlayableCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
+  static const int _ownProfileWarmPlayableCount = 7;
 
   void _performBootstrapFeedPlaybackAfterDataChange() {
     if (postSelection.value != 0) return;
@@ -411,7 +412,9 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (prefetch == null) return;
     final warmPosts = _resolveProfileWarmPosts(
       centered: centered,
-      maxCount: _profileWarmPlayableCount,
+      maxCount: isOwnProfile
+          ? _ownProfileWarmPlayableCount
+          : _defaultProfileWarmPlayableCount,
     );
     if (warmPosts.isEmpty) return;
     final signature =
@@ -448,9 +451,8 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     final warmLogs = <String>[];
     for (var i = 0; i < warmPosts.length; i++) {
       final playableOffset = i;
-      final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(
-        playableOffset,
-      );
+      final readySegments =
+          _profileReadySegmentsForPlayableOffset(playableOffset);
       if (readySegments <= 0) continue;
       prefetch.boostDoc(
         warmPosts[i].docID,
@@ -502,5 +504,26 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       addEntryAt(index);
     }
     return collected;
+  }
+
+  int _profileReadySegmentsForPlayableOffset(int playableOffset) {
+    if (!isOwnProfile) {
+      return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
+    }
+    switch (playableOffset) {
+      case 0:
+        return 3;
+      case 1:
+        return 3;
+      case 2:
+      case 3:
+        return 2;
+      case 4:
+      case 5:
+      case 6:
+        return 1;
+      default:
+        return 0;
+    }
   }
 }

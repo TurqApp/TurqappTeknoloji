@@ -80,6 +80,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
   void _handleLifecycleReady() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (playbackSuspended.value) return;
+      _scheduleFeedManifestWindowSync(reason: 'controller_ready');
       _scheduleFeedPrefetch();
     });
   }
@@ -104,6 +105,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _startupWarmPreloadFallbackTimer?.cancel();
     _startupWarmPreloadReleaseTimer?.cancel();
     _growthRenderReleaseTimer?.cancel();
+    _manifestWindowSyncTimer?.cancel();
     _disposeFeedScrollControllerSafely();
   }
 

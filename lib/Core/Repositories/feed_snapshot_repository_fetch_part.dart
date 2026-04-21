@@ -1,174 +1,10 @@
 part of 'feed_snapshot_repository.dart';
 
-final DateTime _feedManifestStartupGateStartedAt = DateTime.now();
-Future<bool>? _feedManifestAndroidStartupAuthPrimeFuture;
-bool _feedManifestAndroidStartupAuthPrimed = false;
 bool _feedManifestAndroidDisabledForSession = false;
 
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
-  static const Duration _feedLaunchCursorStep = Duration(minutes: 30);
-  static const int _feedLaunchCursorWindowCount = 48;
-  static const int _feedLaunchMotorTopUpMaxRounds = 2;
-  static const Duration _feedManifestStartupGateWindow = Duration(seconds: 5);
-
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
-
-  String _formatFeedMotorSampleWithMinute(
-    Iterable<PostsModel> posts,
-  ) {
-    return posts.take(5).map((post) {
-      final minuteOfHour =
-          DateTime.fromMillisecondsSinceEpoch(post.timeStamp.toInt()).minute;
-      return '${post.docID}:m$minuteOfHour';
-    }).join(',');
-  }
-
-  Future<T> _profileFeedSnapshotStep<T>(
-    String label,
-    Future<T> Function() action,
-  ) async {
-    final startedAt = DateTime.now();
-    debugPrint('[FeedSnapshotStep] start:$label');
-    try {
-      final result = await action();
-      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-      debugPrint('[FeedSnapshotStep] end:$label elapsedMs=$elapsedMs');
-      return result;
-    } catch (error) {
-      final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-      debugPrint(
-        '[FeedSnapshotStep] fail:$label elapsedMs=$elapsedMs error=$error',
-      );
-      rethrow;
-    }
-  }
-
-  void _logFeedLaunchMotorInputSnapshot(
-    List<PostsModel> visiblePosts, {
-    required int limit,
-    required DocumentSnapshot<Map<String, dynamic>>? startAfter,
-  }) {
-    if (!_shouldLogDiagnostics || visiblePosts.isEmpty || startAfter != null) {
-      return;
-    }
-    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
-    final snapshot = LaunchMotorSelectionService.analyzePool(
-      latestPool: visiblePosts,
-      anchorMs: anchorMs,
-      window: feedLaunchMotorContract.window,
-      bandMinutes: feedLaunchMotorContract.bandMinutes,
-      subsliceMs: feedLaunchMotorContract.subsliceMs,
-      minuteSets: feedLaunchMotorContract.minuteSets,
-    );
-    debugPrint(
-      '[FeedLaunchMotorInput] '
-      'anchor=${DateTime.fromMillisecondsSinceEpoch(anchorMs).toIso8601String()} '
-      'motor=${snapshot.motorIndex} ownedMinutes=${snapshot.ownedMinutes.join(",")} '
-      'visibleCount=${visiblePosts.length} strictCount=${snapshot.strictSelection.length} '
-      'queueCount=${snapshot.queueCount} limit=$limit '
-      'sample=${_formatFeedMotorSampleWithMinute(snapshot.strictSelection)}',
-    );
-  }
-
-  Future<
-      ({
-        List<PostsModel> items,
-        DocumentSnapshot<Map<String, dynamic>>? lastDoc,
-      })> _topUpFeedLaunchMotorInputPool({
-    required List<PostsModel> visiblePosts,
-    required String userId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    required DocumentSnapshot<Map<String, dynamic>>? lastDoc,
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    if (visiblePosts.isEmpty || limit <= 0) {
-      return (
-        items: visiblePosts,
-        lastDoc: lastDoc,
-      );
-    }
-    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
-    final mergedVisibleById = <String, PostsModel>{
-      for (final post in visiblePosts)
-        if (post.docID.trim().isNotEmpty) post.docID.trim(): post,
-    };
-    var cursor = lastDoc;
-    var selection = LaunchMotorSelectionService.buildPoolFillResult(
-      latestPool: mergedVisibleById.values.toList(growable: false),
-      anchorMs: anchorMs,
-      contract: feedLaunchMotorContract,
-      targetCount: limit,
-    );
-    var round = 0;
-
-    while (selection.needsTopUp(limit) &&
-        cursor != null &&
-        !cacheOnly &&
-        round < _feedLaunchMotorTopUpMaxRounds) {
-      round += 1;
-      final extraPage = await _postRepository.fetchRecentGlobalPostsPage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        maxTimeExclusive: _resolveFeedPageMaxTime(cursor),
-        startAfter: cursor,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      cursor = extraPage.lastDoc;
-      if (extraPage.items.isEmpty) {
-        break;
-      }
-      final extraPrimaryPosts = await _resolveVisibleDiscoveryPublicPosts(
-        extraPage.items,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-      if (extraPrimaryPosts.isEmpty) {
-        continue;
-      }
-      final extraVisible = await filterVisiblePosts(
-        _sortFeedCandidatesForVisibility(extraPrimaryPosts),
-        currentUserId: userId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        summaryCacheOnly: cacheOnly,
-        refreshNonPublicCachedSummaries: !cacheOnly,
-      );
-      for (final post in extraVisible) {
-        final docId = post.docID.trim();
-        if (docId.isEmpty) continue;
-        mergedVisibleById.putIfAbsent(docId, () => post);
-      }
-      selection = LaunchMotorSelectionService.buildPoolFillResult(
-        latestPool: mergedVisibleById.values.toList(growable: false),
-        anchorMs: anchorMs,
-        contract: feedLaunchMotorContract,
-        targetCount: limit,
-      );
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedLaunchMotorInput] '
-          'status=topup round=$round strictCount=${selection.strictCount} '
-          'target=$limit candidateCount=${mergedVisibleById.length}',
-        );
-      }
-    }
-
-    return (
-      items: selection.selectedPool,
-      lastDoc: cursor ?? lastDoc,
-    );
-  }
 
   Future<Map<String, PostsModel>> _rehydrateHomeFeedVideoCards(
     Map<String, PostsModel> postsById, {
@@ -214,12 +50,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     return merged;
   }
 
-  int? _asNullableFeedInt(Object? value) {
-    if (value == null) return null;
-    if (value is num) return value.toInt();
-    return int.tryParse(value.toString());
-  }
-
   Future<List<PostsModel>> loadQuickCachedPersonalFallback({
     required String userId,
     required Set<String> followingIds,
@@ -259,19 +89,21 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     FeedPrimarySourceMode? primarySourceOverride,
     int? typesensePage,
   }) async {
-    const contract = FeedSnapshotRepository._homeContract;
     final normalizedUserId = userId.trim();
     if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {
-      return _loadLegacyPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        startAfter: startAfter,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] status=manifest_only_skip '
+          'usePrimaryFeedPaging=$usePrimaryFeedPaging '
+          'uid=${normalizedUserId.isNotEmpty}',
+        );
+      }
+      return const FeedSourcePage(
+        items: <PostsModel>[],
+        lastDoc: null,
+        usesPrimaryFeed: true,
+        itemsPreplanned: true,
+        nextTypesensePage: null,
       );
     }
 
@@ -288,265 +120,18 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (manifestPage != null) {
       return manifestPage;
     }
-
-    final primarySourceMode = _resolveFeedPrimarySourceMode(
-      startAfter: startAfter,
-      override: primarySourceOverride,
-      typesensePage: typesensePage,
-    );
     if (_shouldLogDiagnostics) {
       debugPrint(
-        '[FeedSnapshotSource] uid=$normalizedUserId startAfter=${startAfter?.id ?? ""} '
-        'source=${primarySourceMode.name}',
+        '[FeedManifestPrimary] status=manifest_only_empty '
+        'uid=$normalizedUserId page=${typesensePage ?? 1}',
       );
     }
-    if (primarySourceMode == FeedPrimarySourceMode.typesense) {
-      return _profileFeedSnapshotStep('fetch_typesense_primary_only', () {
-        return _loadTypesensePrimaryOnlyPage(
-          currentUserId: normalizedUserId,
-          followingIds: followingIds,
-          hiddenPostIds: hiddenPostIds,
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-          limit: limit,
-          page: typesensePage ?? 1,
-        );
-      });
-    }
-
-    final initialPrimaryMaxTimeExclusive = startAfter == null
-        ? (bypassInitialPrimaryCursorShift
-            ? nowMs + 1
-            : _resolveInitialPrimaryWindowMaxTime(
-                nowMs: nowMs,
-                cutoffMs: cutoffMs,
-              ))
-        : _resolveFeedPageMaxTime(startAfter);
-
-    final primaryPage =
-        await _profileFeedSnapshotStep('fetch_global_primary', () {
-      return _postRepository.fetchRecentGlobalPostsPage(
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        maxTimeExclusive: initialPrimaryMaxTimeExclusive,
-        startAfter: startAfter,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    });
-
-    final primaryPosts =
-        await _profileFeedSnapshotStep('resolve_global_primary', () {
-      return _resolveVisibleDiscoveryPublicPosts(
-        primaryPage.items,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    });
-
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshot] uid=$normalizedUserId startAfter=${startAfter?.id ?? ''} '
-        'primary=${primaryPage.items.length} visiblePrimary=${primaryPosts.length} limit=$limit '
-        'contract=${contract.contractId}',
-      );
-    }
-
-    final merged = <String, PostsModel>{};
-    for (final post in primaryPosts) {
-      merged[post.docID] = post;
-    }
-
-    final primarySatisfiesPage = primaryPosts.length >= limit;
-
-    const List<PostsModel> followingPosts = <PostsModel>[];
-
-    const List<String> celebIds = <String>[];
-
-    const List<PostsModel> publicScheduled = <PostsModel>[];
-    for (final post in publicScheduled) {
-      merged.putIfAbsent(post.docID, () => post);
-    }
-
-    final globalBadgePosts = includeSupplementalSources && !primarySatisfiesPage
-        ? await _profileFeedSnapshotStep('fetch_global_badge', () {
-            return _fetchVisibleGlobalBadgePosts(
-              nowMs: nowMs,
-              cutoffMs: cutoffMs,
-              limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
-                  ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
-                  : limit,
-              maxTimeExclusive: initialPrimaryMaxTimeExclusive,
-              preferCache: preferCache,
-              cacheOnly: cacheOnly,
-            );
-          })
-        : const <PostsModel>[];
-    for (final post in globalBadgePosts) {
-      merged.putIfAbsent(post.docID, () => post);
-    }
-
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshot] uid=$normalizedUserId merged=${merged.length} '
-        'following=${followingPosts.length} celebAuthors=${celebIds.length} '
-        'publicScheduled=${publicScheduled.length} globalBadge=${globalBadgePosts.length}',
-      );
-    }
-
-    if (merged.isEmpty && primaryPage.lastDoc == null && startAfter == null) {
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId fallback=personal reason=primary_empty',
-        );
-      }
-      final personalFallback = await _loadPersonalFallbackPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-      );
-      if (personalFallback.items.isNotEmpty) {
-        return personalFallback;
-      }
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId fallback=legacy reason=personal_empty',
-        );
-      }
-      return _loadLegacyPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        startAfter: null,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    }
-
-    final visible = await _profileFeedSnapshotStep('filter_visible', () {
-      return filterVisiblePosts(
-        _sortFeedCandidatesForVisibility(
-          merged.values.toList(growable: false),
-        ),
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        summaryCacheOnly: cacheOnly,
-        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-      );
-    });
-
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshot] uid=$normalizedUserId visible=${visible.length} '
-        'sample=${visible.take(5).map((post) => post.docID).join(',')}',
-      );
-    }
-    final toppedUpInput = await _topUpFeedLaunchMotorInputPool(
-      visiblePosts: visible,
-      userId: normalizedUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      lastDoc: primaryPage.lastDoc,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    final launchMotorInputItems = toppedUpInput.items;
-    _logFeedLaunchMotorInputSnapshot(
-      launchMotorInputItems,
-      limit: limit,
-      startAfter: startAfter,
-    );
-
-    if (launchMotorInputItems.isEmpty && startAfter == null) {
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId fallback=personal '
-          'reason=visible_empty primary=${primaryPosts.length} merged=${merged.length}',
-        );
-      }
-      final personalFallback = await _loadPersonalFallbackPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-      );
-      if (personalFallback.items.isNotEmpty) {
-        return personalFallback;
-      }
-      if (_shouldLogDiagnostics) {
-        debugPrint(
-          '[FeedSnapshot] uid=$normalizedUserId fallback=legacy '
-          'reason=visible_empty_personal_empty primary=${primaryPosts.length} '
-          'merged=${merged.length}',
-        );
-      }
-      return _loadLegacyPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        startAfter: null,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-      );
-    }
-
-    _invariantGuard.assertNotEmptyAfterRefresh(
-      surface: 'feed',
-      invariantKey: 'snapshot_visible_after_filter',
-      hadSnapshot: merged.isNotEmpty,
-      previousCount: merged.length,
-      nextCount: visible.length,
-      payload: <String, dynamic>{
-        'uid': normalizedUserId,
-        'primaryCount': primaryPosts.length,
-        'usesPrimaryFeed': true,
-        'feedContract': contract.contractId,
-      },
-    );
-
-    return FeedSourcePage(
-      items: launchMotorInputItems,
-      lastDoc: toppedUpInput.lastDoc,
+    return const FeedSourcePage(
+      items: <PostsModel>[],
+      lastDoc: null,
       usesPrimaryFeed: true,
       itemsPreplanned: true,
       nextTypesensePage: null,
-    );
-  }
-
-  FeedPrimarySourceMode _resolveFeedPrimarySourceMode({
-    required DocumentSnapshot<Map<String, dynamic>>? startAfter,
-    FeedPrimarySourceMode? override,
-    int? typesensePage,
-  }) {
-    return FeedSnapshotRepository.resolvePrimarySourceMode(
-      startAfter: startAfter,
-      override: override,
-      typesensePage: typesensePage,
     );
   }
 
@@ -562,8 +147,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   }) async {
     if (!FeedManifestPolicy.primaryEnabled ||
         cacheOnly ||
-        startAfter != null ||
-        typesensePage != null ||
         currentUserId.trim().isEmpty) {
       return null;
     }
@@ -575,29 +158,21 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       return null;
     }
 
-    final manifestStartupAge =
-        DateTime.now().difference(_feedManifestStartupGateStartedAt);
-    if (manifestStartupAge < _feedManifestStartupGateWindow) {
-      if (!_feedManifestAndroidStartupAuthPrimed) {
-        if (_feedManifestAndroidStartupAuthPrimeFuture == null) {
-          unawaited(_ensureFeedManifestStartupReady(
-            currentUserId: currentUserId,
-          ));
-        }
-        if (_shouldLogDiagnostics) {
-          debugPrint(
-            '[FeedManifestPrimary] status=deferred_startup_auth_window '
-            'elapsedMs=${manifestStartupAge.inMilliseconds}',
-          );
-        }
-        return null;
-      }
-    }
-
     final startedAt = DateTime.now();
+    final pageNumber = typesensePage != null && typesensePage > 0
+        ? typesensePage
+        : (startAfter == null ? 1 : 2);
+    final deckLimit = pageNumber * limit;
+    final pageStart = (pageNumber - 1) * limit;
+    final pageEndExclusive = pageStart + limit;
+    final slotLoadBudget = FeedManifestPolicy.resolveSlotLoadBudget(
+      pageNumber: pageNumber,
+    );
     try {
       final pool = await _feedManifestRepository
-          .loadRollingPool()
+          .loadRollingPool(
+            maxSlotsToLoad: slotLoadBudget,
+          )
           .timeout(FeedManifestPolicy.primaryLoadTimeout);
       if (pool.entries.isEmpty) {
         if (_shouldLogDiagnostics) {
@@ -618,13 +193,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         userId: currentUserId,
         manifestId: pool.manifestId,
         startupSeed: startupSurfaceSessionSeed(sessionNamespace: 'feed'),
-        nowMs: nowMs,
       );
       final deck = _feedManifestMixer.buildDeck(
         manifestEntries: pool.entries,
         gapEntries: gapEntries,
         seed: seed,
-        limit: limit,
+        limit: deckLimit,
         consumedCanonicalIds: <String>{
           ..._feedDiversityMemory.weeklyWatchedPenaltyDocIds(),
           ..._feedDiversityMemory.weeklyWatchedFloodRootIds(),
@@ -643,37 +217,54 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         hiddenPostIds: hiddenPostIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
-        limit: limit,
+        limit: deckLimit,
       );
-      if (visible.isEmpty) {
+      if (visible.isEmpty || pageStart >= visible.length) {
         if (_shouldLogDiagnostics) {
           debugPrint(
             '[FeedManifestPrimary] status=empty_visible '
-            'pool=${pool.entries.length} deck=${deck.entries.length}',
+            'page=$pageNumber pool=${pool.entries.length} '
+            'deck=${deck.entries.length}',
           );
         }
         return null;
       }
-      _feedDiversityMemory.rememberStartupHead(
-        visible,
-        limit: FeedManifestPolicy.startupHeadRememberLimit,
-      );
+      final pageItems =
+          visible.skip(pageStart).take(limit).toList(growable: false);
+      if (pageItems.isEmpty) {
+        return null;
+      }
+      if (pageNumber == 1) {
+        _feedDiversityMemory.rememberStartupHead(
+          pageItems,
+          limit: FeedManifestPolicy.startupHeadRememberLimit,
+        );
+      }
+      final hasPotentialMore = deck.entries.length >= deckLimit &&
+          (pool.entries.length > deck.manifestCount ||
+              gapEntries.length > deck.gapCount);
+      final nextPage = visible.length > pageEndExclusive || hasPotentialMore
+          ? pageNumber + 1
+          : null;
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
           '[FeedManifestPrimary] status=ok elapsedMs=$elapsedMs '
+          'page=$pageNumber nextPage=${nextPage ?? 0} '
           'manifest=${pool.manifestId} slots=${pool.loadedSlotCount}/${pool.slotCount} '
+          'slotBudget=$slotLoadBudget '
           'pool=${pool.entries.length} gap=${deck.gapCount} '
-          'visible=${visible.length} skippedConsumed=${deck.skippedConsumedCount} '
+          'visible=${visible.length} returned=${pageItems.length} '
+          'skippedConsumed=${deck.skippedConsumedCount} '
           'skippedDuplicate=${deck.skippedDuplicateCount}',
         );
       }
       return FeedSourcePage(
-        items: visible,
+        items: pageItems,
         lastDoc: null,
         usesPrimaryFeed: true,
         itemsPreplanned: true,
-        nextTypesensePage: null,
+        nextTypesensePage: nextPage,
       );
     } catch (error) {
       final isPermissionDenied =
@@ -686,55 +277,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
-          '[FeedManifestPrimary] status=fail elapsedMs=$elapsedMs error=$error',
+          '[FeedManifestPrimary] status=fail elapsedMs=$elapsedMs '
+          'page=$pageNumber slotBudget=$slotLoadBudget error=$error',
         );
       }
       return null;
     }
-  }
-
-  Future<bool> _ensureFeedManifestStartupReady({
-    required String currentUserId,
-  }) async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      return true;
-    }
-    if (_feedManifestAndroidStartupAuthPrimed) {
-      return true;
-    }
-    final existing = _feedManifestAndroidStartupAuthPrimeFuture;
-    if (existing != null) {
-      return existing;
-    }
-    final future = () async {
-      final uid = currentUserId.trim();
-      if (uid.isEmpty) return false;
-      try {
-        final raw = await UserRepository.ensure()
-            .getUserRaw(
-              uid,
-              preferCache: false,
-              forceServer: true,
-            )
-            .timeout(
-              const Duration(milliseconds: 1800),
-              onTimeout: () => null,
-            );
-        final ready = raw != null && raw.isNotEmpty;
-        if (ready) {
-          _feedManifestAndroidStartupAuthPrimed = true;
-        }
-        return ready;
-      } catch (_) {
-        return false;
-      }
-    }();
-    _feedManifestAndroidStartupAuthPrimeFuture = future;
-    return future.whenComplete(() {
-      if (identical(_feedManifestAndroidStartupAuthPrimeFuture, future)) {
-        _feedManifestAndroidStartupAuthPrimeFuture = null;
-      }
-    });
   }
 
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({
@@ -818,98 +366,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (visible.length >= limit) break;
     }
     return visible;
-  }
-
-  Future<FeedSourcePage> _loadTypesensePrimaryOnlyPage({
-    required String currentUserId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    required int page,
-  }) async {
-    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
-    final ownedMinutes = LaunchMotorSelectionService.resolveOwnedMinutes(
-      anchorMs: anchorMs,
-      bandMinutes: feedLaunchMotorContract.bandMinutes,
-      minuteSets: feedLaunchMotorContract.minuteSets,
-    );
-    final candidateLimit = FeedTypesensePolicy.resolveCandidateLimit(limit);
-    final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
-      surface: 'feed',
-      ownedMinutes: ownedMinutes,
-      limit: candidateLimit,
-      page: page,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-    );
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshotTypesense] uid=$currentUserId '
-        'ownedMinutes=${motorPage.ownedMinutes.join(",")} '
-        'raw=${motorPage.items.length} found=${motorPage.found} '
-        'outOf=${motorPage.outOf} searchTimeMs=${motorPage.searchTimeMs} '
-        'requestedLimit=$limit candidateLimit=$candidateLimit',
-      );
-    }
-    if (motorPage.items.isEmpty) {
-      return FeedSourcePage(
-        items: const <PostsModel>[],
-        lastDoc: null,
-        usesPrimaryFeed: true,
-        itemsPreplanned: true,
-        nextTypesensePage: null,
-      );
-    }
-
-    final visible = await filterVisiblePosts(
-      _sortFeedCandidatesForVisibility(motorPage.items),
-      currentUserId: currentUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      summaryCacheOnly: false,
-      refreshNonPublicCachedSummaries: false,
-      progressiveSummaryResolution: true,
-      summaryResolutionBatchSize:
-          FeedSnapshotRepository._typesenseStartupAuthorWarmBatchSize,
-    );
-    final selection = LaunchMotorSelectionService.buildPoolFillResult(
-      latestPool: visible,
-      anchorMs: anchorMs,
-      contract: feedLaunchMotorContract,
-      targetCount: limit,
-    );
-    final selectedItems = selection.selectedPool;
-    _logFeedLaunchMotorInputSnapshot(
-      selectedItems,
-      limit: limit,
-      startAfter: null,
-    );
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshotTypesense] uid=$currentUserId '
-        'visible=${visible.length} selected=${selectedItems.length} '
-        'strictCount=${selection.strictCount}',
-      );
-    }
-    final nextTypesensePage =
-        FeedTypesensePagingContract.resolveNextTypesensePage(
-      itemCount: motorPage.items.length,
-      limit: candidateLimit,
-      page: motorPage.page,
-      found: motorPage.found,
-    );
-    return FeedSourcePage(
-      items: selectedItems,
-      lastDoc: null,
-      usesPrimaryFeed: true,
-      itemsPreplanned: true,
-      nextTypesensePage: nextTypesensePage,
-    );
   }
 
   Future<FeedSourcePage> _loadPersonalFallbackPage({
@@ -1070,32 +526,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     );
   }
 
-  int? _resolveFeedPageMaxTime(
-    DocumentSnapshot<Map<String, dynamic>>? startAfter,
-  ) {
-    if (startAfter == null) return null;
-    final data = startAfter.data();
-    return _asNullableFeedInt(data?['timeStamp']);
-  }
-
-  int _resolveInitialPrimaryWindowMaxTime({
-    required int nowMs,
-    required int cutoffMs,
-  }) {
-    final launchBucket = startupVariantIndexForSurface(
-      surfaceKey: 'feed_launch_cursor',
-      sessionNamespace: 'feed',
-      variantCount: _feedLaunchCursorWindowCount,
-    );
-    final shiftedNow =
-        nowMs - (_feedLaunchCursorStep.inMilliseconds * launchBucket);
-    final floor = cutoffMs + 1;
-    if (shiftedNow < floor) {
-      return floor;
-    }
-    return shiftedNow;
-  }
-
   Future<List<PostsModel>> _fetchVisibleGlobalBadgePosts({
     required int nowMs,
     required int cutoffMs,
@@ -1162,44 +592,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       }
     }
     return visible;
-  }
-
-  Future<FeedSourcePage> _loadLegacyPage({
-    required String currentUserId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    required DocumentSnapshot<Map<String, dynamic>>? startAfter,
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    final page = await _postRepository.fetchAgendaWindowPage(
-      cutoffMs: cutoffMs,
-      nowMs: nowMs,
-      limit: limit,
-      startAfter: startAfter,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    final visible = await filterVisiblePosts(
-      page.items,
-      currentUserId: currentUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      summaryCacheOnly: cacheOnly,
-    );
-    return FeedSourcePage(
-      items: visible,
-      lastDoc: page.lastDoc,
-      usesPrimaryFeed: false,
-      itemsPreplanned: false,
-      nextTypesensePage: null,
-    );
   }
 
   Future<Map<String, Map<String, dynamic>>> _buildUserMeta(

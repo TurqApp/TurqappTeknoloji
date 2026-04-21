@@ -35,6 +35,7 @@ class _AgendaControllerState {
   Timer? startupWarmPreloadFallbackTimer;
   Timer? startupWarmPreloadReleaseTimer;
   Timer? growthRenderReleaseTimer;
+  Timer? manifestWindowSyncTimer;
   int agendaRetryCount = 0;
   Worker? mergedFeedWorker;
   Worker? filteredFeedWorker;
@@ -189,6 +190,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   Timer? get _growthRenderReleaseTimer => _state.growthRenderReleaseTimer;
   set _growthRenderReleaseTimer(Timer? value) =>
       _state.growthRenderReleaseTimer = value;
+  Timer? get _manifestWindowSyncTimer => _state.manifestWindowSyncTimer;
+  set _manifestWindowSyncTimer(Timer? value) =>
+      _state.manifestWindowSyncTimer = value;
   int get _agendaRetryCount => _state.agendaRetryCount;
   set _agendaRetryCount(int value) => _state.agendaRetryCount = value;
   Worker? get _mergedFeedWorker => _state.mergedFeedWorker;

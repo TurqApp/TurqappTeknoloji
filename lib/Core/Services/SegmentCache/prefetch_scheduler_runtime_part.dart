@@ -17,6 +17,10 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
   }
 
+  bool _isProfilePlaybackHandle(String value) {
+    return value.startsWith('social_') || value.startsWith('profile_');
+  }
+
   bool get _hasActiveFeedPlaybackWindow {
     if (!_isFeedSurfaceVisible) return false;
     final hasFeedWindow =
@@ -31,7 +35,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     final hasShortFocus =
         current.startsWith('short:') || target.startsWith('short:');
     final hasProfileFocus =
-        current.startsWith('social_') || target.startsWith('social_');
+        _isProfilePlaybackHandle(current) || _isProfilePlaybackHandle(target);
     if (hasShortFocus || hasProfileFocus) {
       return false;
     }
@@ -45,7 +49,8 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     if (manager == null) return false;
     final current = manager.currentPlayingDocID?.trim() ?? '';
     final target = manager.targetPlaybackDocID?.trim() ?? '';
-    return current.startsWith('social_') || target.startsWith('social_');
+    return _isProfilePlaybackHandle(current) ||
+        _isProfilePlaybackHandle(target);
   }
 
   bool get _hasActiveShortPlaybackWindow {
@@ -64,9 +69,11 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     if (current.isEmpty && target.isEmpty) return false;
     return current.startsWith('feed:') ||
         current.startsWith('social_') ||
+        current.startsWith('profile_') ||
         current.startsWith('short:') ||
         target.startsWith('feed:') ||
         target.startsWith('social_') ||
+        target.startsWith('profile_') ||
         target.startsWith('short:');
   }
 

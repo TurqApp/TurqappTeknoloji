@@ -219,6 +219,76 @@ extension AgendaControllerSupportPart on AgendaController {
 }
 
 extension AgendaControllerPublicApiPart on AgendaController {
+  void _scheduleFeedManifestWindowSync({
+    required String reason,
+  }) {
+    _manifestWindowSyncTimer?.cancel();
+    if (isClosed) return;
+    final nextRefreshAt =
+        _feedSnapshotRepository.nextExpectedFeedManifestRefreshAt;
+    var delay = const Duration(minutes: 12);
+    if (nextRefreshAt != null) {
+      final candidate = nextRefreshAt
+          .add(const Duration(seconds: 15))
+          .difference(DateTime.now());
+      if (candidate > Duration.zero) {
+        delay = candidate;
+      } else {
+        delay = const Duration(minutes: 1);
+      }
+    }
+    if (delay > FeedManifestRepository.manifestWindowCadence) {
+      delay = FeedManifestRepository.manifestWindowCadence;
+    }
+    debugPrint(
+      '[FeedManifestWindowSync] status=scheduled reason=$reason '
+      'delayMs=${delay.inMilliseconds} '
+      'manifest=${_feedSnapshotRepository.activeFeedManifestId} '
+      'generatedAt=${_feedSnapshotRepository.activeFeedManifestGeneratedAt}',
+    );
+    _manifestWindowSyncTimer = Timer(delay, () {
+      unawaited(
+        _syncFeedManifestWindowIfNeeded(
+          trigger: 'timer:$reason',
+        ),
+      );
+    });
+  }
+
+  Future<void> _syncFeedManifestWindowIfNeeded({
+    required String trigger,
+  }) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) {
+      _scheduleFeedManifestWindowSync(reason: 'skip_no_user');
+      return;
+    }
+    try {
+      final changed =
+          await _feedSnapshotRepository.syncActiveFeedManifestWindow(
+        userId: userId,
+      );
+      debugPrint(
+        '[FeedManifestWindowSync] status=${changed ? 'changed' : 'stable'} '
+        'trigger=$trigger '
+        'manifest=${_feedSnapshotRepository.activeFeedManifestId} '
+        'generatedAt=${_feedSnapshotRepository.activeFeedManifestGeneratedAt} '
+        'nextAt=${_feedSnapshotRepository.nextExpectedFeedManifestRefreshAt?.millisecondsSinceEpoch ?? 0}',
+      );
+      if (changed) {
+        _lastPrimarySurfaceVisibleMutationEpoch = -1;
+      }
+    } catch (error) {
+      debugPrint(
+        '[FeedManifestWindowSync] status=fail trigger=$trigger error=$error',
+      );
+    } finally {
+      if (!isClosed) {
+        _scheduleFeedManifestWindowSync(reason: 'post_$trigger');
+      }
+    }
+  }
+
   void handleNetworkPolicyTransition(NetworkType networkType) {
     debugPrint(
       '[FeedNetworkPolicy] status=dispatch network=${networkType.name} '
@@ -253,6 +323,11 @@ extension AgendaControllerPublicApiPart on AgendaController {
   }
 
   Future<void> onPrimarySurfaceVisible() {
+    unawaited(
+      _syncFeedManifestWindowIfNeeded(
+        trigger: 'primary_surface_visible',
+      ),
+    );
     if (_lastPrimarySurfaceVisibleMutationEpoch == _feedMutationEpoch) {
       debugPrint(
         '[FeedStartupSurface] status=skip_primary_surface_repeat '

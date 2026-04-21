@@ -40,6 +40,26 @@ extension ProfileControllerCachePart on ProfileController {
   }
 
   Future<void> _performWarmProfileSurfaceCache() async {
+    final pinnedPosts = allPosts.take(postLimit).toList(growable: false);
+    final cacheManager = maybeFindSegmentCacheManager();
+    var hlsCount = 0;
+    if (cacheManager != null &&
+        cacheManager.isReady &&
+        pinnedPosts.isNotEmpty) {
+      cacheManager.cachePostCards(pinnedPosts);
+      for (final post in pinnedPosts) {
+        final docId = post.docID.trim();
+        final playbackUrl = post.playbackUrl.trim();
+        if (docId.isEmpty || playbackUrl.isEmpty) continue;
+        cacheManager.cacheHlsEntry(docId, playbackUrl);
+        hlsCount++;
+      }
+      debugPrint(
+        '[ProfileOnYukleme] phase=my_profile_pin_cache '
+        'posts=${pinnedPosts.length} hls=$hlsCount',
+      );
+    }
+
     final urls = <String>{userService.avatarUrl};
 
     void collectFrom(Iterable<PostsModel> posts) {

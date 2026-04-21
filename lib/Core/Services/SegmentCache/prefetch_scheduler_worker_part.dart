@@ -279,7 +279,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
       'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
       'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
-      'activeShort=$_hasActiveShortPlaybackWindow',
+      'activeShort=$_hasActiveShortPlaybackWindow '
+      'activeProfile=$_hasActiveProfilePlaybackWindow',
     );
     if (_automaticQuotaFillEnabled &&
         _shouldAllowBackgroundQuotaFill &&

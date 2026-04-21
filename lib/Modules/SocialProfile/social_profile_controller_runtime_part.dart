@@ -4,6 +4,7 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
   void _handleLifecycleInit() {
     _bindCenteredPlaybackRowUpdates();
     UserAnalyticsService.instance.trackFeatureUsage('social_profile_open');
+    unawaited(_primeOwnProfileCaches());
     getUserData();
     getCounters();
     getUserStoryUserModelAndPrint(userID);
@@ -13,6 +14,66 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
     unawaited(_restoreCachedBuckets());
     _fetchPrimaryBuckets(initial: true);
     getReshares();
+  }
+
+  Future<void> _primeOwnProfileCaches() async {
+    if (!isOwnProfile) return;
+    final normalizedUserId = userID.trim();
+    if (normalizedUserId.isEmpty) return;
+    final warmLimit = ownPinnedPostCount;
+    try {
+      final manifestRepository = ProfileManifestRepository.ensure();
+      final snapshotRepository = ProfilePostsSnapshotRepository.ensure();
+      await Future.wait<void>(<Future<void>>[
+        manifestRepository.loadHeader(userId: normalizedUserId),
+        manifestRepository
+            .loadBuckets(
+          userId: normalizedUserId,
+          limit: warmLimit,
+        )
+            .then((buckets) async {
+          if (buckets == null) return;
+          _cacheOwnProfilePinnedPosts(buckets);
+          await snapshotRepository.persistBuckets(
+            userId: normalizedUserId,
+            buckets: buckets,
+            limit: warmLimit,
+          );
+        }),
+        snapshotRepository.bootstrapProfile(
+          userId: normalizedUserId,
+          limit: warmLimit,
+        ),
+      ]);
+      debugPrint(
+        '[ProfileOnYukleme] phase=own_profile_prime userId=$normalizedUserId limit=$warmLimit',
+      );
+    } catch (e) {
+      debugPrint(
+        '[ProfileOnYukleme] phase=own_profile_prime_error userId=$normalizedUserId error=$e',
+      );
+    }
+  }
+
+  void _cacheOwnProfilePinnedPosts(ProfileBuckets buckets) {
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager == null || !cacheManager.isReady) return;
+    final pinnedPosts =
+        buckets.all.take(ownPinnedPostCount).toList(growable: false);
+    if (pinnedPosts.isEmpty) return;
+    cacheManager.cachePostCards(pinnedPosts);
+    var hlsCount = 0;
+    for (final post in pinnedPosts) {
+      final docId = post.docID.trim();
+      final playbackUrl = post.playbackUrl.trim();
+      if (docId.isEmpty || playbackUrl.isEmpty) continue;
+      cacheManager.cacheHlsEntry(docId, playbackUrl);
+      hlsCount++;
+    }
+    debugPrint(
+      '[ProfileOnYukleme] phase=own_profile_pin_cache '
+      'posts=${pinnedPosts.length} hls=$hlsCount',
+    );
   }
 
   void _handleLifecycleClose() {

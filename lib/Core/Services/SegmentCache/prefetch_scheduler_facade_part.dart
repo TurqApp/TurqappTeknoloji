@@ -75,6 +75,7 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       'activeDownload': activeDownload,
       'hasActiveFeedPlaybackWindow': _hasActiveFeedPlaybackWindow,
       'hasActiveShortPlaybackWindow': _hasActiveShortPlaybackWindow,
+      'hasActiveProfilePlaybackWindow': _hasActiveProfilePlaybackWindow,
       'sourceHint': sourceHint,
     };
   }
