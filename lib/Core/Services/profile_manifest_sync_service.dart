@@ -112,6 +112,26 @@ class ProfileManifestSyncService extends GetxService {
       currentUser?.rozet ?? '',
       (rawUser?['rozet'] ?? '').toString(),
     ]);
+    final bio = firstNonEmpty(<String>[
+      currentUser?.bio ?? '',
+      (rawUser?['bio'] ?? '').toString(),
+    ]);
+    final adres = firstNonEmpty(<String>[
+      currentUser?.adres ?? '',
+      (rawUser?['adres'] ?? '').toString(),
+    ]);
+    final meslekKategori = firstNonEmpty(<String>[
+      currentUser?.meslekKategori ?? '',
+      (rawUser?['meslekKategori'] ?? '').toString(),
+    ]);
+    final followerCount = currentUser?.counterOfFollowers ??
+        ((rawUser?['counterOfFollowers'] as num?)?.toInt() ??
+            (rawUser?['followersCount'] as num?)?.toInt() ??
+            0);
+    final followingCount = currentUser?.counterOfFollowings ??
+        ((rawUser?['counterOfFollowings'] as num?)?.toInt() ??
+            (rawUser?['followingCount'] as num?)?.toInt() ??
+            0);
 
     Map<String, dynamic> encodePost(PostsModel post) {
       final data = post.toMap();
@@ -142,6 +162,11 @@ class ProfileManifestSyncService extends GetxService {
         'displayName': displayName,
         'avatarUrl': avatarUrl,
         'rozet': rozet,
+        'bio': bio,
+        'adres': adres,
+        'meslekKategori': meslekKategori,
+        'followerCount': followerCount,
+        'followingCount': followingCount,
       },
       'all': encodeBucket(profilePage.all),
       'photos': encodeBucket(profilePage.photos),

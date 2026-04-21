@@ -62,13 +62,53 @@ class ProfileManifestRepository extends GetxService {
     try {
       final bytes = await _storage.ref(storagePath).getData(_maxManifestBytes);
       if (bytes == null || bytes.isEmpty) return null;
-      final buckets = parseManifestJson(utf8.decode(bytes));
-      if (buckets == null) return null;
+      final payload = parseManifestPayload(utf8.decode(bytes));
+      if (payload == null) return null;
       _cache[normalizedUserId] = _ProfileManifestCacheEntry(
         storagePath: storagePath,
-        buckets: buckets,
+        header: payload.header,
+        buckets: payload.buckets,
       );
-      return _trimBuckets(buckets, limit: limit);
+      return _trimBuckets(payload.buckets, limit: limit);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> loadHeader({
+    required String userId,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return null;
+    await _ensureManifestAccessReady();
+    final userDoc =
+        await _firestore.collection('users').doc(normalizedUserId).get(
+              const GetOptions(source: Source.serverAndCache),
+            );
+    final data = userDoc.data();
+    if (data == null) return null;
+    final manifest = data['profileManifest'];
+    if (manifest is! Map) return null;
+    final manifestMap = Map<String, dynamic>.from(manifest);
+    final storagePath = (manifestMap['storagePath'] ?? '').toString().trim();
+    if (storagePath.isEmpty) return null;
+
+    final cached = _cache[normalizedUserId];
+    if (cached != null && cached.storagePath == storagePath) {
+      return cached.header.isEmpty ? null : cached.header;
+    }
+
+    try {
+      final bytes = await _storage.ref(storagePath).getData(_maxManifestBytes);
+      if (bytes == null || bytes.isEmpty) return null;
+      final payload = parseManifestPayload(utf8.decode(bytes));
+      if (payload == null) return null;
+      _cache[normalizedUserId] = _ProfileManifestCacheEntry(
+        storagePath: storagePath,
+        header: payload.header,
+        buckets: payload.buckets,
+      );
+      return payload.header.isEmpty ? null : payload.header;
     } catch (_) {
       return null;
     }
@@ -98,7 +138,7 @@ class ProfileManifestRepository extends GetxService {
     );
   }
 
-  static ProfileBuckets? parseManifestJson(String rawJson) {
+  static _ProfileManifestPayload? parseManifestPayload(String rawJson) {
     final decoded = jsonDecode(rawJson);
     if (decoded is! Map) return null;
     final json = Map<String, dynamic>.from(decoded);
@@ -129,22 +169,58 @@ class ProfileManifestRepository extends GetxService {
           .toList(growable: false);
     }
 
-    return ProfileBuckets(
-      all: decodePosts(json['all']),
-      photos: decodePosts(json['photos']),
-      videos: decodePosts(json['videos']),
-      reshares: decodePosts(json['reshares']),
-      scheduled: decodePosts(json['scheduled']),
+    final header = json['header'] is Map
+        ? Map<String, dynamic>.from(json['header'] as Map)
+        : const <String, dynamic>{};
+    return _ProfileManifestPayload(
+      header: header,
+      buckets: ProfileBuckets(
+        all: decodePosts(json['all']),
+        photos: decodePosts(json['photos']),
+        videos: decodePosts(json['videos']),
+        reshares: decodePosts(json['reshares']),
+        scheduled: decodePosts(json['scheduled']),
+      ),
     );
+  }
+
+  static ProfileBuckets? parseManifestJson(String rawJson) =>
+      parseManifestPayload(rawJson)?.buckets;
+
+  static Map<String, dynamic> headerAsUserCard(Map<String, dynamic> header) {
+    String asTrimmedString(dynamic value) => (value ?? '').toString().trim();
+    return <String, dynamic>{
+      'nickname': asTrimmedString(header['nickname']),
+      'displayName': asTrimmedString(header['displayName']),
+      'avatarUrl': asTrimmedString(header['avatarUrl']),
+      'rozet': asTrimmedString(header['rozet']),
+      'bio': asTrimmedString(header['bio']),
+      'adres': asTrimmedString(header['adres']),
+      'meslekKategori': asTrimmedString(header['meslekKategori']),
+      'counterOfFollowers': header['followerCount'] ?? 0,
+      'counterOfFollowings': header['followingCount'] ?? 0,
+    };
   }
 }
 
 class _ProfileManifestCacheEntry {
   const _ProfileManifestCacheEntry({
     required this.storagePath,
+    required this.header,
     required this.buckets,
   });
 
   final String storagePath;
+  final Map<String, dynamic> header;
+  final ProfileBuckets buckets;
+}
+
+class _ProfileManifestPayload {
+  const _ProfileManifestPayload({
+    required this.header,
+    required this.buckets,
+  });
+
+  final Map<String, dynamic> header;
   final ProfileBuckets buckets;
 }

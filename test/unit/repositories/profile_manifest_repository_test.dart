@@ -94,6 +94,28 @@ void main() {
       expect(buckets.all.first.authorAvatarUrl, contains('user-a'));
     });
 
+    test('maps manifest header into profile header card shape', () {
+      final header = ProfileManifestRepository.headerAsUserCard(
+        const <String, dynamic>{
+          'nickname': 'nick',
+          'displayName': 'Display Name',
+          'avatarUrl': 'https://cdn.turqapp.com/user-a.webp',
+          'rozet': 'Mavi',
+          'bio': 'bio',
+          'adres': 'istanbul',
+          'meslekKategori': 'engineer',
+          'followerCount': 12,
+          'followingCount': 7,
+        },
+      );
+
+      expect(header['nickname'], 'nick');
+      expect(header['displayName'], 'Display Name');
+      expect(header['avatarUrl'], contains('user-a'));
+      expect(header['counterOfFollowers'], 12);
+      expect(header['counterOfFollowings'], 7);
+    });
+
     test('returns null for malformed manifest json', () {
       expect(
         ProfileManifestRepository.parseManifestJson(

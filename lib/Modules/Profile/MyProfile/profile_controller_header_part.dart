@@ -25,6 +25,13 @@ extension ProfileControllerHeaderPart on ProfileController {
     final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     try {
+      final manifestHeader =
+          await ProfileManifestRepository.ensure().loadHeader(userId: uid);
+      if (manifestHeader != null && manifestHeader.isNotEmpty) {
+        _performApplyHeaderCard(
+          ProfileManifestRepository.headerAsUserCard(manifestHeader),
+        );
+      }
       final summary = await _userSummaryResolver.resolve(
         uid,
         preferCache: true,

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/social_media_links_repository.dart';
