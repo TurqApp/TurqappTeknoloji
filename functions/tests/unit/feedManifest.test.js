@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildFeedManifestItems,
+  buildFeedManifestActiveIndex,
   buildFeedManifestSlot,
   istanbulSlotRangeForDateHour,
   resolveFeedManifestSlotForNow,
@@ -195,6 +196,81 @@ test("feed manifest slot payload path identity is stable", () => {
   assert.equal(slot.slotId, "slot_06");
   assert.equal(slot.slotHour, 6);
   assert.equal(slot.itemCount, 3);
+});
+
+test("feed manifest active index keeps only active non-empty slots and sorts newest first", () => {
+  const active = buildFeedManifestActiveIndex({
+    nowMs: Date.parse("2026-04-21T16:00:00.000+03:00"),
+    publishedAt: 1776776400000,
+    slots: [
+      {
+        date: "2026-04-20",
+        slotId: "slot_21",
+        slotHour: 21,
+        itemCount: 120,
+        generatedAt: 1776690000000,
+        path: "feedManifest/2026-04-20/slots/slot_21.json",
+        status: "active",
+      },
+      {
+        date: "2026-04-21",
+        slotId: "slot_03",
+        slotHour: 3,
+        itemCount: 0,
+        generatedAt: 1776720000000,
+        path: "feedManifest/2026-04-21/slots/slot_03.json",
+        status: "active",
+      },
+      {
+        date: "2026-04-21",
+        slotId: "slot_12",
+        slotHour: 12,
+        itemCount: 200,
+        generatedAt: 1776752400000,
+        path: "feedManifest/2026-04-21/slots/slot_12.json",
+        status: "active",
+      },
+      {
+        date: "2026-04-21",
+        slotId: "slot_21",
+        slotHour: 21,
+        itemCount: 180,
+        generatedAt: 1776784800000,
+        path: "",
+        status: "active",
+      },
+      {
+        date: "2026-04-19",
+        slotId: "slot_21",
+        slotHour: 21,
+        itemCount: 180,
+        generatedAt: 1776600000000,
+        path: "feedManifest/2026-04-19/slots/slot_21.json",
+        status: "draft",
+      },
+      {
+        date: "2026-04-21",
+        slotId: "slot_09",
+        slotHour: 9,
+        itemCount: 160,
+        generatedAt: 1776741600000,
+        path: "feedManifest/2026-04-21/slots/slot_09.json",
+        status: "active",
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    active.slots.map((slot) => `${slot.date}:${slot.slotId}`),
+    [
+      "2026-04-21:slot_12",
+      "2026-04-21:slot_09",
+      "2026-04-20:slot_21",
+    ],
+  );
+  assert.equal(active.manifestId, "feed_active_v1776776400000");
+  assert.equal(active.itemsPerSlot, 240);
+  assert.equal(active.slotHours, 3);
 });
 
 test("feed manifest order can vary by seed when scores are tied", () => {

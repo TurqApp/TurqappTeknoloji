@@ -6,6 +6,7 @@ exports.rollingFeedManifestDates = rollingFeedManifestDates;
 exports.istanbulSlotRangeForDateHour = istanbulSlotRangeForDateHour;
 exports.buildFeedManifestItems = buildFeedManifestItems;
 exports.buildFeedManifestSlot = buildFeedManifestSlot;
+exports.buildFeedManifestActiveIndex = buildFeedManifestActiveIndex;
 exports.generateFeedManifest = generateFeedManifest;
 const axios_1 = require("axios");
 const app_1 = require("firebase-admin/app");
@@ -167,6 +168,15 @@ function stableHash(input) {
 }
 function slotIdForHour(slotHour) {
     return `slot_${String(clampSlotHour(slotHour)).padStart(2, "0")}`;
+}
+function compareActiveSlots(left, right) {
+    if (left.date !== right.date)
+        return right.date.localeCompare(left.date);
+    if (left.slotHour !== right.slotHour)
+        return right.slotHour - left.slotHour;
+    if (left.generatedAt !== right.generatedAt)
+        return right.generatedAt - left.generatedAt;
+    return left.slotId.localeCompare(right.slotId);
 }
 function buildShortUrl(shortId, docId) {
     const id = shortId || docId;
@@ -349,6 +359,38 @@ function buildFeedManifestSlot(params) {
         items: params.items,
     };
 }
+function buildFeedManifestActiveIndex(params) {
+    const normalizedSlots = params.slots
+        .map((slot) => ({
+        date: asString(slot.date),
+        slotId: asString(slot.slotId),
+        slotHour: clampSlotHour(slot.slotHour),
+        itemCount: Math.max(0, Math.floor(asNumber(slot.itemCount))),
+        generatedAt: Math.max(0, Math.floor(asNumber(slot.generatedAt))),
+        path: asString(slot.path),
+        status: asString(slot.status) || "active",
+    }))
+        .filter((slot) => slot.status === "active" && slot.path && slot.itemCount > 0)
+        .sort(compareActiveSlots);
+    return {
+        schemaVersion: SCHEMA_VERSION,
+        manifestId: `feed_active_v${params.publishedAt}`,
+        status: "active",
+        generatedAt: params.nowMs,
+        publishedAt: params.publishedAt,
+        rollingDays: ROLLING_DAYS,
+        itemsPerSlot: SLOT_SIZE,
+        slotHours: SLOT_HOURS,
+        slots: normalizedSlots.map((slot) => ({
+            date: slot.date,
+            slotId: slot.slotId,
+            slotHour: slot.slotHour,
+            itemCount: slot.itemCount,
+            generatedAt: slot.generatedAt,
+            path: slot.path,
+        })),
+    };
+}
 async function generateFeedManifest(params) {
     const slotHour = clampSlotHour(params.slotHour);
     const slotId = slotIdForHour(slotHour);
@@ -482,7 +524,7 @@ async function refreshActiveFeedManifestIndex(publishedAt) {
             const slotId = slotIdForHour(slotHour);
             const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${date}_${slotId}`).get();
             const data = snapshot.data();
-            if (!data || data.status !== "active")
+            if (!data)
                 continue;
             slots.push({
                 date,
@@ -491,20 +533,15 @@ async function refreshActiveFeedManifestIndex(publishedAt) {
                 itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
                 generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
                 path: asString(data.path),
+                status: asString(data.status) || "active",
             });
         }
     }
-    const active = {
-        schemaVersion: SCHEMA_VERSION,
-        manifestId: `feed_active_v${publishedAt}`,
-        status: "active",
-        generatedAt: nowMs,
+    const active = buildFeedManifestActiveIndex({
+        nowMs,
         publishedAt,
-        rollingDays: ROLLING_DAYS,
-        itemsPerSlot: SLOT_SIZE,
-        slotHours: SLOT_HOURS,
-        slots: slots.filter((slot) => slot.path),
-    };
+        slots,
+    });
     await db.collection(FEED_MANIFEST_COLLECTION).doc("active").set(active, { merge: true });
 }
 exports.f29_generateFeedManifestCallable = (0, https_1.onCall)({
