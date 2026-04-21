@@ -286,7 +286,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       final shouldAutorestartCompletedPlayback = widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           !_manualPauseRequested &&
-          !shouldLoopVideo;
+          _shouldAutorestartCompletedPlayback;
       if (shouldAutorestartCompletedPlayback) {
         debugPrint(
           '[FeedReplayTrace] stage=completed_visible_autorestart '

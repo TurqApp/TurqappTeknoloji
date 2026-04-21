@@ -778,6 +778,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
 
+  bool get _shouldAutorestartCompletedPlayback =>
+      !_isReplayOverlayEnabled && !shouldLoopVideo;
+
   bool get isReplayOverlayBlockingTap =>
       _replayOverlayLatched || _replayAdVisible || _replayButtonVisible;
 

@@ -622,7 +622,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
 
-    if (!shouldLoopVideo && adapter.value.isCompleted) {
+    if (_shouldAutorestartCompletedPlayback && adapter.value.isCompleted) {
       debugPrint(
         '[FeedReplayTrace] stage=completed_resume '
         'doc=${widget.model.docID} '
@@ -742,7 +742,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
       return;
     }
-    if (!shouldLoopVideo && adapter.value.isCompleted) {
+    if (_shouldAutorestartCompletedPlayback && adapter.value.isCompleted) {
       debugPrint(
         '[FeedReplayTrace] stage=completed_start '
         'doc=${widget.model.docID} '
