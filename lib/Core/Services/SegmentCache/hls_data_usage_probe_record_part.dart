@@ -37,8 +37,18 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
         ownerInfoOverride ?? scheduler?.describeTransferOwner(docId);
     final owner = ownerInfo?['owner'] ?? 'unknown';
     final allowedSegmentWarm = tierInfo?['allowedSegmentWarm'] == true;
+    final allowedCacheOnly = tierInfo?['allowedCacheOnly'] == true;
+    final inShortWindow = ownerInfo?['inShortWindow'] == true;
+    final inFeedWindow = ownerInfo?['inFeedWindow'] == true;
     final isQuotaBackgroundTransfer =
         owner == 'quota' && event.source == HlsTrafficSource.prefetch;
+    final isActiveShortManagedTransfer =
+        owner == 'short' &&
+        inShortWindow &&
+        ownerInfo?['hasActiveShortPlaybackWindow'] == true;
+    final isExpectedWarmWindowTransfer =
+        allowedSegmentWarm &&
+        ((owner == 'short' && inShortWindow) || (owner == 'feed' && inFeedWindow));
     final payload = <String, dynamic>{
       'docId': docId,
       'visibleDocId': visibleDocId,
@@ -49,8 +59,8 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'feedTier': tierInfo?['tier'] ?? 'unknown',
       'feedDistance': tierInfo?['distance'],
       'owner': owner,
-      'inShortWindow': ownerInfo?['inShortWindow'],
-      'inFeedWindow': ownerInfo?['inFeedWindow'],
+      'inShortWindow': inShortWindow,
+      'inFeedWindow': inFeedWindow,
       'inFeedBank': ownerInfo?['inFeedBank'],
       'pendingPrefetch': ownerInfo?['pendingPrefetch'],
       'activeDownload': ownerInfo?['activeDownload'],
@@ -58,7 +68,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'hasActiveShortPlaybackWindow':
           ownerInfo?['hasActiveShortPlaybackWindow'],
       'allowedSegmentWarm': allowedSegmentWarm,
-      'allowedCacheOnly': tierInfo?['allowedCacheOnly'],
+      'allowedCacheOnly': allowedCacheOnly,
       'quotaBackgroundTransfer': isQuotaBackgroundTransfer,
       'label': _label,
     };
@@ -66,6 +76,12 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       debugPrint(
         '[HlsOffscreenLeak] signal=quota_background_transfer payload=$payload',
       );
+      return;
+    }
+    if (isActiveShortManagedTransfer) {
+      return;
+    }
+    if (isExpectedWarmWindowTransfer) {
       return;
     }
     debugPrint(

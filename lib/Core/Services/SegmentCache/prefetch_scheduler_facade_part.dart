@@ -42,8 +42,12 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     final normalized = HlsSegmentPolicy.normalizeDocId(docID);
     if (normalized == null || normalized.isEmpty) return null;
 
-    final inShortWindow = _lastShortDocIDs.contains(normalized);
-    final inFeedWindow = _lastFeedDocIDs.contains(normalized);
+    final shortTier = classifyShortTransferDoc(normalized);
+    final feedTier = classifyFeedTransferDoc(normalized);
+    final inShortWindow = shortTier?['allowedSegmentWarm'] == true ||
+        shortTier?['allowedCacheOnly'] == true;
+    final inFeedWindow = feedTier?['allowedSegmentWarm'] == true ||
+        feedTier?['allowedCacheOnly'] == true;
     final inFeedBank = _lastFeedBankDocIDs.contains(normalized);
     final pendingPrefetch = hasPendingPrefetchForDoc(normalized);
     final activeDownload = isActivelyDownloadingDoc(normalized);
