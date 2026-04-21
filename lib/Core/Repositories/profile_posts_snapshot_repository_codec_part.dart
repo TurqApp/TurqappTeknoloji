@@ -9,11 +9,17 @@ extension ProfilePostsSnapshotRepositoryCodecPart
       limit: query.limit,
     );
     if (manifestBuckets != null) {
+      debugPrint(
+        '[ProfilePostsSnapshotRepo] stage=fetch_buckets source=manifest userId=${query.userId.trim()} limit=${query.limit} all=${manifestBuckets.all.length} photos=${manifestBuckets.photos.length} videos=${manifestBuckets.videos.length} reshares=${manifestBuckets.reshares.length}',
+      );
       return manifestBuckets;
     }
     final page = await _profileRepository.fetchPrimaryPage(
       uid: query.userId,
       limit: query.limit,
+    );
+    debugPrint(
+      '[ProfilePostsSnapshotRepo] stage=fetch_buckets source=fallback_page userId=${query.userId.trim()} limit=${query.limit} all=${page.all.length} photos=${page.photos.length} videos=${page.videos.length} reshares=${page.reshares.length}',
     );
     return ProfileBuckets(
       all: page.all,

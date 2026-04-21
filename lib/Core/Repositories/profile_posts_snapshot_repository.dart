@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Repositories/profile_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
@@ -182,10 +183,23 @@ extension ProfilePostsSnapshotRepositoryFacadePart
       limit: effectiveLimit,
     );
     final memory = await _memoryStore.read(key, allowStale: true);
-    if (memory != null) return memory.data;
+    if (memory != null) {
+      debugPrint(
+        '[ProfilePostsSnapshotRepo] stage=read_local source=memory userId=$normalizedUserId limit=$effectiveLimit all=${memory.data.all.length} photos=${memory.data.photos.length} videos=${memory.data.videos.length} reshares=${memory.data.reshares.length}',
+      );
+      return memory.data;
+    }
     final disk = await _snapshotStore.read(key, allowStale: true);
-    if (disk == null) return null;
+    if (disk == null) {
+      debugPrint(
+        '[ProfilePostsSnapshotRepo] stage=read_local source=miss userId=$normalizedUserId limit=$effectiveLimit',
+      );
+      return null;
+    }
     await _memoryStore.write(key, disk);
+    debugPrint(
+      '[ProfilePostsSnapshotRepo] stage=read_local source=disk userId=$normalizedUserId limit=$effectiveLimit all=${disk.data.all.length} photos=${disk.data.photos.length} videos=${disk.data.videos.length} reshares=${disk.data.reshares.length}',
+    );
     return disk.data;
   }
 
