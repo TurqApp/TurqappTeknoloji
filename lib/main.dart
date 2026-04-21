@@ -23,7 +23,6 @@ import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
 import 'package:turqappv2/hls_player/hls_controller.dart';
 
@@ -153,15 +152,6 @@ void _reportStartupFallbackError(FlutterErrorDetails details) {
   } catch (_) {}
 }
 
-void _clearConsumedCacheIfNeeded() {
-  try {
-    final cacheManager = SegmentCacheManager.maybeFind();
-    if (cacheManager != null) {
-      unawaited(cacheManager.clearConsumedCache());
-    }
-  } catch (_) {}
-}
-
 void _handleAppResumeTransition() {
   recordQALabLifecycleState('resume');
   unawaited(
@@ -186,7 +176,6 @@ Future<void> _restorePlaybackAfterAppResume() async {
 
 void _handleAppBackgroundTransition(String state) {
   recordQALabLifecycleState(state);
-  _clearConsumedCacheIfNeeded();
   try {
     maybeFindVideoStateManager()?.pauseAllVideos(force: true);
   } catch (_) {}

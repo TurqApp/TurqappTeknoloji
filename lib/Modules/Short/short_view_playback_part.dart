@@ -1880,6 +1880,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
               _segmentCacheRuntimeService.markShortConsumed(
                 currentShort.docID,
               );
+              controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
             }
           }
           _lastProgressPersistAt = now;
@@ -1893,6 +1894,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (shouldAutoAdvance) {
       _isTransitioning = true;
       _segmentCacheRuntimeService.markShortConsumed(currentDocId);
+      controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
       VideoTelemetryService.instance.onCompleted(currentDocId);
       _detachVideoEndListener(vc);
       unawaited(_goToNextVideo());

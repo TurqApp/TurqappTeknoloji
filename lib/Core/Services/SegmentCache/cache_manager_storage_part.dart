@@ -12,6 +12,16 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     });
   }
 
+  void _flushDirtyIndexNow() {
+    _persistTimer?.cancel();
+    _persistTimer = null;
+    final hadDirtyState = _persistDirty;
+    _persistDirty = false;
+    if (hadDirtyState || _index.entries.isNotEmpty) {
+      unawaited(persistIndex());
+    }
+  }
+
   /// Index'i JSON olarak disk'e yaz.
   Future<void> persistIndex() async {
     try {
@@ -217,14 +227,19 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
   }
 
   /// Kullanıcının tükettiği içerikleri cache'ten temizler.
-  Future<void> clearConsumedCache({double progressThreshold = 0.50}) async {
+  Future<void> clearConsumedCache({
+    double progressThreshold = 0.50,
+    String source = 'manual',
+  }) async {
     final reservedShortCount = _reservedShortCount();
     final reservedFeedCount = _reservedFeedCount();
     final toRemove = <VideoCacheEntry>[];
+    final removalReasons = <String>[];
     for (final entry in _index.entries.values) {
-      final consumed = entry.state == VideoCacheState.watched ||
-          entry.shortConsumedAt != null ||
-          entry.watchProgress >= progressThreshold;
+      final watchedState = entry.state == VideoCacheState.watched;
+      final shortConsumed = entry.shortConsumedAt != null;
+      final progressConsumed = entry.watchProgress >= progressThreshold;
+      final consumed = watchedState || shortConsumed || progressConsumed;
       if (!consumed) continue;
       if (entry.state == VideoCacheState.playing) continue;
       if (_isReserveProtected(
@@ -235,9 +250,19 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         continue;
       }
       toRemove.add(entry);
+      removalReasons.add(
+        '${entry.docID}'
+        '(watched=$watchedState,shortConsumed=$shortConsumed,progress=${entry.watchProgress.toStringAsFixed(3)})',
+      );
     }
 
-    if (toRemove.isEmpty) return;
+    if (toRemove.isEmpty) {
+      debugPrint(
+        '[CacheManager] Consumed cache cleared: 0 entries '
+        'source=$source threshold=$progressThreshold',
+      );
+      return;
+    }
 
     for (final entry in toRemove) {
       await _evictEntry(entry);
@@ -246,9 +271,12 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     _recentlyPlayed.removeWhere(
       (docID) => !_index.entries.containsKey(docID),
     );
+    await persistIndex();
 
     debugPrint(
-      '[CacheManager] Consumed cache cleared: ${toRemove.length} entries',
+      '[CacheManager] Consumed cache cleared: ${toRemove.length} entries '
+      'source=$source threshold=$progressThreshold '
+      'docs=${removalReasons.join(",")}',
     );
   }
 

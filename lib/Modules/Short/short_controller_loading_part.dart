@@ -6,6 +6,16 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  bool _isConsumedShortPostForResume(PostsModel post) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return false;
+    final cacheManager = maybeFindSegmentCacheManager();
+    final entry = cacheManager?.getEntry(docId);
+    if (entry == null) return false;
+    return entry.shortConsumedAt != null ||
+        entry.watchProgress >= 0.80;
+  }
+
   void schedulePersistVisibleSnapshot({
     Duration delay = const Duration(milliseconds: 220),
   }) {
@@ -35,14 +45,32 @@ extension ShortControllerLoadingPart on ShortController {
     }
     final eligible = persisted.remainingPosts
         .where(_isEligibleShortPost)
+        .where((post) => !_isConsumedShortPostForResume(post))
         .toList(growable: false);
     if (eligible.isEmpty) {
       return const <PostsModel>[];
     }
-    return _filterVisibleShortPosts(
+    final restored = await _filterVisibleShortPosts(
       eligible,
       hydrateAuthors: false,
     );
+    final restoredDocIds = restored
+        .take(8)
+        .map((post) => post.docID)
+        .where((docId) => docId.trim().isNotEmpty)
+        .join(',');
+    _log(
+      '[ShortResumeQueue] status=restore_payload '
+      'manifest=${persisted.manifestId} '
+      'slot=${persisted.cursorSlotIndex} '
+      'item=${persisted.cursorItemIndex} '
+      'savedAtMs=${persisted.savedAtMs} '
+      'remaining=${persisted.remainingPosts.length} '
+      'eligible=${eligible.length} '
+      'restored=${restored.length} '
+      'docs=$restoredDocIds',
+    );
+    return restored;
   }
 
   Future<List<PostsModel>> _loadOfflineReadyShortPosts({
@@ -414,7 +442,8 @@ extension ShortControllerLoadingPart on ShortController {
         lastIndex.value = 0;
         _preferFreshLaunchIndex = false;
         _log(
-          '[ShortResumeQueue] status=restored count=${resumedQueue.length}',
+          '[ShortResumeQueue] status=restored count=${resumedQueue.length} '
+          'first=${resumedQueue.first.docID}',
         );
         unawaited(preloadRange(0, range: 0));
       } else if (sessionMode == _ShortSessionSourceMode.mobileCacheOnly) {
@@ -961,7 +990,10 @@ extension ShortControllerLoadingPart on ShortController {
       return;
     }
     final visibleIndex = lastIndex.value.clamp(0, shorts.length - 1);
-    final remainingPosts = shorts.skip(visibleIndex).toList(growable: false);
+    final remainingPosts = shorts
+        .skip(visibleIndex)
+        .where((post) => !_isConsumedShortPostForResume(post))
+        .toList(growable: false);
     final cursor = _shortManifestRepository.currentCursorSnapshot();
     final state = ShortResumeState(
       manifestId: cursor.manifestId,

@@ -8,6 +8,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
     _resetWatchStateForSessionStart();
+    await clearConsumedCache(source: 'session_init');
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
     _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
@@ -312,11 +313,15 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   void markShortConsumed(String docID) {
     final entry = _index.entries[docID];
     if (entry == null) return;
+    final wasAlreadyConsumed = entry.shortConsumedAt != null;
     final now = DateTime.now();
     entry.lastAccessedAt = now;
     entry.lastUserInteractionAt = now;
     entry.shortConsumedAt ??= now;
     _markDirty();
+    if (!wasAlreadyConsumed) {
+      _flushDirtyIndexNow();
+    }
   }
 
   void markReservedForShort(String docID) {
