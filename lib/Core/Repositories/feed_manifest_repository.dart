@@ -48,6 +48,7 @@ class FeedManifestRepository extends GetxService {
 
   static const int _maxSlotBytes = 16 * 1024 * 1024;
   static const int _maxConcurrentSlotLoads = 4;
+  static const Duration _activeRetryDelay = Duration(milliseconds: 700);
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -77,8 +78,7 @@ class FeedManifestRepository extends GetxService {
   Future<FeedManifestPoolResult> _loadRollingPool({
     required bool forceRefresh,
   }) async {
-    final active =
-        await _firestore.collection('feedManifest').doc('active').get();
+    final active = await _loadActiveManifestDoc();
     final activeData = active.data() ?? const <String, dynamic>{};
     final nextManifestId = (activeData['manifestId'] ?? '').toString().trim();
     final generatedAt = int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
@@ -119,6 +119,17 @@ class FeedManifestRepository extends GetxService {
       loadedSlotCount: loadedSlotCount,
       generatedAt: _generatedAt,
     );
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>>
+      _loadActiveManifestDoc() async {
+    try {
+      return await _firestore.collection('feedManifest').doc('active').get();
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+      await Future<void>.delayed(_activeRetryDelay);
+      return _firestore.collection('feedManifest').doc('active').get();
+    }
   }
 
   Future<void> _ensureSlotsLoaded(
