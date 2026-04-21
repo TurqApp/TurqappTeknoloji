@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.f29_generateFeedManifestScheduled = exports.f29_generateFeedManifestCallable = void 0;
 exports.resolveFeedManifestSlotForNow = resolveFeedManifestSlotForNow;
 exports.rollingFeedManifestDates = rollingFeedManifestDates;
+exports.buildRollingFeedManifestTargets = buildRollingFeedManifestTargets;
 exports.istanbulSlotRangeForDateHour = istanbulSlotRangeForDateHour;
 exports.buildFeedManifestItems = buildFeedManifestItems;
 exports.buildFeedManifestSlot = buildFeedManifestSlot;
@@ -144,6 +145,25 @@ function rollingFeedManifestDates(nowMs, days = ROLLING_DAYS) {
         out.push(formatDateIstanbul(nowMs - index * DAY_MS));
     }
     return out;
+}
+function buildRollingFeedManifestTargets(nowMs) {
+    const resolved = resolveFeedManifestSlotForNow(nowMs);
+    const dates = rollingFeedManifestDates(nowMs).slice().reverse();
+    const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
+    const targets = [];
+    for (const date of dates) {
+        const eligibleHours = date === resolved.date
+            ? slotHours.filter((hour) => hour <= resolved.slotHour)
+            : slotHours;
+        for (const slotHour of eligibleHours) {
+            targets.push({
+                date,
+                slotHour,
+                isCurrent: date === resolved.date && slotHour === resolved.slotHour,
+            });
+        }
+    }
+    return targets;
 }
 function istanbulSlotRangeForDateHour(date, slotHour) {
     const normalized = date.trim();
@@ -544,6 +564,33 @@ async function refreshActiveFeedManifestIndex(publishedAt) {
     });
     await db.collection(FEED_MANIFEST_COLLECTION).doc("active").set(active, { merge: true });
 }
+async function generateRollingFeedManifestBackfill(nowMs) {
+    const db = (0, firestore_1.getFirestore)();
+    const targets = buildRollingFeedManifestTargets(nowMs);
+    const results = [];
+    for (const target of targets) {
+        const slotId = slotIdForHour(target.slotHour);
+        const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${target.date}_${slotId}`).get();
+        const data = snapshot.data();
+        const hasPublishedSlot = snapshot.exists &&
+            (asString(data?.status) || "active") === "active" &&
+            Math.max(0, Math.floor(asNumber(data?.itemCount))) > 0 &&
+            asString(data?.path).length > 0;
+        if (hasPublishedSlot && !target.isCurrent)
+            continue;
+        const range = istanbulSlotRangeForDateHour(target.date, target.slotHour);
+        results.push(await generateFeedManifest({
+            actor: target.isCurrent ? "scheduled" : "scheduled_backfill",
+            date: target.date,
+            slotHour: target.slotHour,
+            startMs: range.startMs,
+            endMs: range.endMs,
+            publish: true,
+            generatedAt: Date.now(),
+        }));
+    }
+    return results;
+}
 exports.f29_generateFeedManifestCallable = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 300,
@@ -597,19 +644,17 @@ exports.f29_generateFeedManifestScheduled = (0, scheduler_1.onSchedule)({
         return;
     }
     const nowMs = Date.now();
-    const resolved = resolveFeedManifestSlotForNow(nowMs);
-    const defaultRange = istanbulSlotRangeForDateHour(resolved.date, resolved.slotHour);
     try {
-        const result = await generateFeedManifest({
-            actor: "scheduled",
-            date: resolved.date,
-            slotHour: resolved.slotHour,
-            startMs: defaultRange.startMs,
-            endMs: defaultRange.endMs,
-            publish: true,
-            generatedAt: nowMs,
+        const results = await generateRollingFeedManifestBackfill(nowMs);
+        console.log("feed_manifest_scheduled_done", {
+            generatedSlots: results.length,
+            slots: results.map((result) => ({
+                date: result.date,
+                slotId: result.slotId,
+                itemCount: result.itemCount,
+                published: result.published,
+            })),
         });
-        console.log("feed_manifest_scheduled_done", result);
     }
     catch (err) {
         const status = err?.response?.status;

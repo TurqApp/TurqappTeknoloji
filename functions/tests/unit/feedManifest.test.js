@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  buildRollingFeedManifestTargets,
   buildFeedManifestItems,
   buildFeedManifestActiveIndex,
   buildFeedManifestSlot,
@@ -171,6 +172,28 @@ test("feed manifest slot uses 3-hour Istanbul windows", () => {
     "2026-04-20",
     "2026-04-19",
   ]);
+});
+
+test("feed manifest rolling targets backfill prior days and only eligible slots for today", () => {
+  const nowMs = Date.parse("2026-04-21T05:48:00.000+03:00");
+  const targets = buildRollingFeedManifestTargets(nowMs);
+
+  assert.equal(targets.length, 18);
+  assert.deepEqual(
+    targets.slice(0, 3),
+    [
+      { date: "2026-04-19", slotHour: 0, isCurrent: false },
+      { date: "2026-04-19", slotHour: 3, isCurrent: false },
+      { date: "2026-04-19", slotHour: 6, isCurrent: false },
+    ],
+  );
+  assert.deepEqual(
+    targets.slice(-2),
+    [
+      { date: "2026-04-21", slotHour: 0, isCurrent: false },
+      { date: "2026-04-21", slotHour: 3, isCurrent: true },
+    ],
+  );
 });
 
 test("feed manifest slot payload path identity is stable", () => {
