@@ -1,6 +1,25 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedPart on SocialProfileController {
+  void _applyPrimaryBuckets(
+    ProfileBuckets buckets, {
+    bool replaceReshares = true,
+  }) {
+    allPosts.assignAll(buckets.all);
+    photos.assignAll(buckets.photos);
+    if (replaceReshares || buckets.reshares.isNotEmpty || reshares.isEmpty) {
+      reshares.assignAll(buckets.reshares);
+    }
+    final isOwnProfile =
+        CurrentUserService.instance.effectiveUserId.trim() == userID.trim();
+    if (isOwnProfile) {
+      scheduledPosts.assignAll(buckets.scheduled);
+    } else {
+      scheduledPosts.clear();
+    }
+    bootstrapFeedPlaybackAfterDataChange();
+  }
+
   Future<void> _performGetPosts({bool initial = false}) async {
     await _fetchPrimaryBuckets(initial: initial, limitOverride: pageSize);
   }
@@ -50,26 +69,19 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
   }
 
   Future<void> _performRestoreCachedBuckets() async {
-    final buckets = await _profileRepository.readCachedBuckets(userID);
+    final buckets =
+        await ProfilePostsSnapshotRepository.ensure().readLocalBuckets(
+      userId: userID,
+      limit: pageSize,
+    );
     if (buckets == null) return;
-    final isOwnProfile =
-        CurrentUserService.instance.effectiveUserId.trim() == userID.trim();
-    var applied = false;
-    if (buckets.all.isNotEmpty) {
-      allPosts.assignAll(buckets.all);
-      applied = true;
+    if (buckets.all.isEmpty &&
+        buckets.photos.isEmpty &&
+        buckets.reshares.isEmpty &&
+        buckets.scheduled.isEmpty) {
+      return;
     }
-    if (buckets.photos.isNotEmpty) {
-      photos.assignAll(buckets.photos);
-    }
-    if (isOwnProfile && buckets.scheduled.isNotEmpty) {
-      scheduledPosts.assignAll(buckets.scheduled);
-    } else {
-      scheduledPosts.clear();
-    }
-    if (applied) {
-      bootstrapFeedPlaybackAfterDataChange();
-    }
+    _applyPrimaryBuckets(buckets);
   }
 
   Future<void> _performFetchPrimaryBuckets({
@@ -91,6 +103,23 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
       }
 
       final limit = limitOverride ?? pageSize;
+      if (initial) {
+        final resource =
+            await ProfilePostsSnapshotRepository.ensure().loadProfile(
+          userId: userID,
+          limit: limit,
+          forceSync: force,
+        );
+        final buckets = resource.data;
+        if (buckets != null &&
+            (buckets.all.isNotEmpty ||
+                buckets.photos.isNotEmpty ||
+                buckets.reshares.isNotEmpty ||
+                buckets.scheduled.isNotEmpty)) {
+          _applyPrimaryBuckets(buckets);
+        }
+      }
+
       final page = await PerformanceService.traceFeedLoad(
         () => _profileRepository.fetchPrimaryPage(
           uid: userID,
@@ -102,12 +131,20 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
       );
 
       if (initial) {
-        allPosts.assignAll(page.all);
-        photos.assignAll(page.photos);
-        scheduledPosts.assignAll(page.scheduled);
+        _applyPrimaryBuckets(
+          ProfileBuckets(
+            all: page.all,
+            photos: page.photos,
+            videos: page.videos,
+            reshares: page.reshares,
+            scheduled: page.scheduled,
+          ),
+          replaceReshares: false,
+        );
       } else {
         allPosts.addAll(_dedupePosts(allPosts, page.all));
         photos.addAll(_dedupePosts(photos, page.photos));
+        reshares.addAll(_dedupePosts(reshares, page.reshares));
         scheduledPosts.addAll(_dedupePosts(scheduledPosts, page.scheduled));
       }
 
@@ -126,7 +163,7 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
           all: allPosts,
           photos: photos,
           videos: allPosts.where((post) => post.hasPlayableVideo).toList(),
-          reshares: const <PostsModel>[],
+          reshares: reshares,
           scheduled: scheduledPosts,
         ),
       );

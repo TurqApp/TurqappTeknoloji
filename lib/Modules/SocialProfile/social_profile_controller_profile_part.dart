@@ -143,6 +143,11 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
   Future<void> _performGetUserData() async {
     _userDocSub?.cancel();
     try {
+      final manifestHeader =
+          await ProfileManifestRepository.ensure().loadHeader(userId: userID);
+      if (manifestHeader != null && manifestHeader.isNotEmpty) {
+        _performApplyManifestHeader(manifestHeader);
+      }
       final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
@@ -181,6 +186,29 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
       _applyUserData(raw ?? const <String, dynamic>{});
     } catch (e) {
       print("SocialProfile.getUserData fallback error: $e");
+    }
+  }
+
+  void _performApplyManifestHeader(Map<String, dynamic> header) {
+    nickname.value = (header['nickname'] ?? '').toString().trim();
+    displayName.value = (header['displayName'] ?? '').toString().trim();
+    avatarUrl.value = (header['avatarUrl'] ?? '').toString().trim();
+    rozet.value = (header['rozet'] ?? '').toString().trim();
+    bio.value = (header['bio'] ?? '').toString().trim();
+    adres.value = (header['adres'] ?? '').toString().trim();
+    meslek.value = (header['meslekKategori'] ?? '').toString().trim();
+    final followerCount = header['followerCount'];
+    final followingCount = header['followingCount'];
+    if (followerCount is num) {
+      totalFollower.value = followerCount.toInt();
+    }
+    if (followingCount is num) {
+      totalFollowing.value = followingCount.toInt();
+    }
+    final nextDisplay = displayName.value;
+    if (nextDisplay.isNotEmpty) {
+      firstName.value = nextDisplay;
+      lastName.value = '';
     }
   }
 
