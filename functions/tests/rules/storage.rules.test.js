@@ -99,6 +99,21 @@ test("shortManifest slot payloads are auth readable and client write blocked", a
   await assertFails(uploadString(ref(authCtx.storage(), objectPath), "{}"));
 });
 
+test("feedManifest slot payloads are auth readable and client write blocked", async () => {
+  const objectPath = "feedManifest/2026-04-21/slots/slot_00.json";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadString(ref(context.storage(), objectPath), "{\"items\":[]}");
+  });
+
+  const authCtx = testEnv.authenticatedContext("feed-reader");
+  const unauthCtx = testEnv.unauthenticatedContext();
+
+  await assertSucceeds(getBytes(ref(authCtx.storage(), objectPath)));
+  await assertFails(getBytes(ref(unauthCtx.storage(), objectPath)));
+  await assertFails(uploadString(ref(authCtx.storage(), objectPath), "{}"));
+});
+
 test("market storage path allows owner write and blocks other users", async () => {
   const uid = "market-owner";
   const ownerCtx = testEnv.authenticatedContext(uid);

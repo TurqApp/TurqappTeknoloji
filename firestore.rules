@@ -2126,6 +2126,10 @@ service cloud.firestore {
       allow read: if isAuth();
       allow write: if false; // Cloud Functions/Admin SDK only
     }
+    match /feedManifest/{docId} {
+      allow read: if isAuth();
+      allow write: if false; // Cloud Functions/Admin SDK only
+    }
     match /adminConfig/admin/TurqAppVerified/{docId} {
       allow read: if isOwner(docId) || isAdmin();
       allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();

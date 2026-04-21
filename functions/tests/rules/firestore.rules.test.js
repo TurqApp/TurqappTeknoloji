@@ -145,6 +145,21 @@ test("shortManifest allows authenticated reads and blocks client writes", async 
   );
 });
 
+test("feedManifest allows authenticated reads and blocks client writes", async () => {
+  const unauthCtx = testEnv.unauthenticatedContext();
+  const authCtx = testEnv.authenticatedContext("feed-reader");
+  const authDb = authCtx.firestore();
+  const unauthDb = unauthCtx.firestore();
+
+  await assertSucceeds(getDoc(doc(authDb, "feedManifest/active")));
+  await assertFails(getDoc(doc(unauthDb, "feedManifest/active")));
+  await assertFails(
+    setDoc(doc(authDb, "feedManifest/2026-04-21_slot_00"), {
+      status: "published",
+    }),
+  );
+});
+
 test("marketStore allows owner to create item", async () => {
   const uid = "market-owner";
   const ownerCtx = testEnv.authenticatedContext(uid);

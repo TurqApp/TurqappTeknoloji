@@ -1,0 +1,754 @@
+import axios, { AxiosError } from "axios";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
+import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import * as functions from "firebase-functions";
+import { RateLimits } from "./rateLimiter";
+
+const REGION = getEnv("FEED_MANIFEST_REGION") || getEnv("TYPESENSE_REGION") || "us-central1";
+const POSTS_COLLECTION = "posts_search";
+const FEED_MANIFEST_COLLECTION = "feedManifest";
+const SCHEMA_VERSION = 1;
+const SLOT_SIZE = 240;
+const SLOT_HOURS = 3;
+const ROLLING_DAYS = 3;
+const MAX_SCAN_PAGES = 24;
+const TYPESENSE_PAGE_SIZE = 250;
+const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
+const ISTANBUL_UTC_OFFSET = "+03:00";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type FeedManifestCandidate = {
+  id?: unknown;
+  userID?: unknown;
+  authorNickname?: unknown;
+  authorDisplayName?: unknown;
+  authorAvatarUrl?: unknown;
+  rozet?: unknown;
+  metin?: unknown;
+  thumbnail?: unknown;
+  img?: unknown;
+  video?: unknown;
+  hlsMasterUrl?: unknown;
+  hlsStatus?: unknown;
+  hasPlayableVideo?: unknown;
+  aspectRatio?: unknown;
+  timeStamp?: unknown;
+  createdAtTs?: unknown;
+  shortId?: unknown;
+  shortUrl?: unknown;
+  likeCount?: unknown;
+  commentCount?: unknown;
+  savedCount?: unknown;
+  retryCount?: unknown;
+  statsCount?: unknown;
+  paylasGizliligi?: unknown;
+  deletedPost?: unknown;
+  gizlendi?: unknown;
+  arsiv?: unknown;
+  isUploading?: unknown;
+  flood?: unknown;
+  floodCount?: unknown;
+  mainFlood?: unknown;
+  contentType?: unknown;
+  surfaceTargets?: unknown;
+};
+
+type FeedManifestItem = {
+  docId: string;
+  canonicalId: string;
+  userID: string;
+  authorNickname: string;
+  authorDisplayName: string;
+  authorAvatarUrl: string;
+  rozet: string;
+  metin: string;
+  thumbnail: string;
+  posterCandidates: string[];
+  video: string;
+  hlsMasterUrl: string;
+  hlsStatus: string;
+  hasPlayableVideo: boolean;
+  aspectRatio: number;
+  timeStamp: number;
+  createdAtTs: number;
+  shortId: string;
+  shortUrl: string;
+  contentType: string;
+  source: "manifest";
+  stats: {
+    likeCount: number;
+    commentCount: number;
+    savedCount: number;
+    retryCount: number;
+    statsCount: number;
+  };
+  flags: {
+    deletedPost: false;
+    gizlendi: false;
+    arsiv: false;
+    flood: false;
+    floodCount: number;
+    mainFlood: "";
+    isFloodRoot: boolean;
+    paylasGizliligi: 0;
+  };
+};
+
+type FeedManifestSlot = {
+  schemaVersion: number;
+  date: string;
+  slotId: string;
+  slotHour: number;
+  manifestId: string;
+  itemCount: number;
+  generatedAt: number;
+  validFromMs: number;
+  validToMs: number;
+  items: FeedManifestItem[];
+};
+
+type FeedManifestActiveIndex = {
+  schemaVersion: number;
+  manifestId: string;
+  status: "active";
+  generatedAt: number;
+  publishedAt: number;
+  rollingDays: number;
+  itemsPerSlot: number;
+  slotHours: number;
+  slots: Array<{
+    date: string;
+    slotId: string;
+    slotHour: number;
+    itemCount: number;
+    generatedAt: number;
+    path: string;
+  }>;
+};
+
+type GenerateFeedManifestParams = {
+  actor: string;
+  date: string;
+  slotHour: number;
+  startMs: number;
+  endMs: number;
+  publish: boolean;
+  generatedAt: number;
+};
+
+type GenerateFeedManifestResult = {
+  ok: true;
+  published: boolean;
+  date: string;
+  slotId: string;
+  manifestId: string;
+  itemCount: number;
+  candidates: number;
+  validItems: number;
+  scannedPages: number;
+  found: number;
+  path: string;
+};
+
+function ensureAdmin() {
+  if (getApps().length === 0) initializeApp();
+}
+
+function requireAdminAuth(request: CallableRequest<unknown>): string {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "auth_required");
+  }
+  const token = request.auth?.token as { admin?: unknown } | undefined;
+  if (token?.admin !== true) {
+    throw new HttpsError("permission-denied", "admin_required");
+  }
+  RateLimits.admin(uid);
+  return uid;
+}
+
+function getEnv(name: string): string {
+  const fromProcess = String(process.env[name] || "").trim();
+  if (fromProcess) return fromProcess;
+  try {
+    return String(functions.config?.()?.feedmanifest?.[name.toLowerCase()] || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function getTypesenseBaseUrl(): string {
+  const raw = getEnv("TYPESENSE_HOST");
+  if (!raw) return "";
+  const hasProtocol = raw.startsWith("http://") || raw.startsWith("https://");
+  return (hasProtocol ? raw : `https://${raw}`).replace(/\/+$/g, "");
+}
+
+function getTypesenseApiKey(): string {
+  return getEnv("TYPESENSE_API_KEY");
+}
+
+function typesenseReady(): boolean {
+  return !!getTypesenseBaseUrl() && !!getTypesenseApiKey();
+}
+
+function headers() {
+  return {
+    "X-TYPESENSE-API-KEY": getTypesenseApiKey(),
+    "Content-Type": "application/json",
+  };
+}
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function asBool(value: unknown): boolean {
+  return value === true;
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function asInt(value: unknown, fallback = 0): number {
+  return Math.max(0, Math.floor(asNumber(value, fallback)));
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (typeof entry === "string") return entry.trim();
+      if (entry && typeof entry === "object") {
+        return asString((entry as Record<string, unknown>).url);
+      }
+      return "";
+    })
+    .filter(Boolean);
+}
+
+function clampSlotHour(value: unknown): number {
+  const raw = Math.floor(asNumber(value, 0));
+  if (!Number.isFinite(raw)) return 0;
+  const bounded = Math.max(0, Math.min(23, raw));
+  return Math.floor(bounded / SLOT_HOURS) * SLOT_HOURS;
+}
+
+function formatDateIstanbul(nowMs: number): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(nowMs));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+function hourIstanbul(nowMs: number): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Istanbul",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date(nowMs));
+  return Math.max(0, Math.min(23, Number(parts.find((part) => part.type === "hour")?.value || 0)));
+}
+
+export function resolveFeedManifestSlotForNow(nowMs: number): { date: string; slotHour: number } {
+  return {
+    date: formatDateIstanbul(nowMs),
+    slotHour: clampSlotHour(hourIstanbul(nowMs)),
+  };
+}
+
+export function rollingFeedManifestDates(nowMs: number, days = ROLLING_DAYS): string[] {
+  const out: string[] = [];
+  for (let index = 0; index < days; index += 1) {
+    out.push(formatDateIstanbul(nowMs - index * DAY_MS));
+  }
+  return out;
+}
+
+export function istanbulSlotRangeForDateHour(
+  date: string,
+  slotHour: number,
+): { startMs: number; endMs: number } {
+  const normalized = date.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(`invalid_manifest_date:${date}`);
+  }
+  const hour = clampSlotHour(slotHour);
+  const startMs = Date.parse(`${normalized}T${String(hour).padStart(2, "0")}:00:00.000${ISTANBUL_UTC_OFFSET}`);
+  const endMs = startMs + SLOT_HOURS * 60 * 60 * 1000 - 1;
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+    throw new Error(`invalid_manifest_slot:${date}:${slotHour}`);
+  }
+  return { startMs, endMs };
+}
+
+function stableHash(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function slotIdForHour(slotHour: number): string {
+  return `slot_${String(clampSlotHour(slotHour)).padStart(2, "0")}`;
+}
+
+function buildShortUrl(shortId: string, docId: string): string {
+  const id = shortId || docId;
+  return id ? `https://${TURQAPP_SHORT_DOMAIN}/p/${id}` : "";
+}
+
+function resolveCanonicalId(candidate: FeedManifestCandidate): string {
+  const mainFlood = asString(candidate.mainFlood);
+  if (mainFlood) return mainFlood;
+  const docId = asString(candidate.id);
+  const floodCount = asInt(candidate.floodCount, 1);
+  if (docId && floodCount > 1 && !asBool(candidate.flood)) return docId;
+  if (docId && /_\d+$/.test(docId)) return docId.replace(/_\d+$/, "");
+  return docId;
+}
+
+function qualityScore(candidate: FeedManifestCandidate): number {
+  return (
+    Math.log1p(asInt(candidate.likeCount) * 2) +
+    Math.log1p(asInt(candidate.commentCount) * 3) +
+    Math.log1p(asInt(candidate.savedCount) * 4) +
+    Math.log1p(asInt(candidate.statsCount)) +
+    Math.log1p(asInt(candidate.retryCount))
+  );
+}
+
+function normalizeManifestItem(candidate: FeedManifestCandidate): FeedManifestItem | null {
+  const docId = asString(candidate.id);
+  const canonicalId = resolveCanonicalId(candidate);
+  const userID = asString(candidate.userID);
+  const authorNickname = asString(candidate.authorNickname);
+  const authorDisplayName = asString(candidate.authorDisplayName) || authorNickname;
+  const authorAvatarUrl = asString(candidate.authorAvatarUrl);
+  const rozet = asString(candidate.rozet);
+  const metin = asString(candidate.metin);
+  const thumbnail = asString(candidate.thumbnail);
+  const img = asStringArray(candidate.img);
+  const posterCandidates = Array.from(new Set([thumbnail, ...img].filter(Boolean)));
+  const video = asString(candidate.video);
+  const hlsMasterUrl = asString(candidate.hlsMasterUrl);
+  const hlsStatus = asString(candidate.hlsStatus).toLowerCase();
+  const hasPlayableVideo = candidate.hasPlayableVideo === true && hlsMasterUrl.length > 0 && hlsStatus === "ready";
+  const flood = asBool(candidate.flood);
+  const floodCount = asInt(candidate.floodCount, 1);
+  const mainFlood = asString(candidate.mainFlood);
+  const isFloodRoot = !flood && !mainFlood && floodCount > 1;
+  const paylasGizliligi = Math.floor(asNumber(candidate.paylasGizliligi, 0));
+  const timeStamp = Math.floor(asNumber(candidate.timeStamp));
+  const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
+  const aspectRatio = asNumber(candidate.aspectRatio, hasPlayableVideo ? 0.5625 : 1);
+  const shortId = asString(candidate.shortId);
+  const shortUrl = asString(candidate.shortUrl) || buildShortUrl(shortId, docId);
+
+  if (!docId || !canonicalId || !userID) return null;
+  if (!authorNickname || !authorDisplayName || !authorAvatarUrl) return null;
+  if (flood || mainFlood) return null;
+  if (paylasGizliligi !== 0) return null;
+  if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv)) return null;
+  if (asBool(candidate.isUploading)) return null;
+  if (!Number.isFinite(timeStamp) || timeStamp <= 0) return null;
+  if (!shortUrl) return null;
+  if (!metin && posterCandidates.length === 0 && !hasPlayableVideo && !isFloodRoot) return null;
+
+  return {
+    docId,
+    canonicalId,
+    userID,
+    authorNickname,
+    authorDisplayName,
+    authorAvatarUrl,
+    rozet,
+    metin,
+    thumbnail,
+    posterCandidates,
+    video,
+    hlsMasterUrl,
+    hlsStatus,
+    hasPlayableVideo,
+    aspectRatio,
+    timeStamp,
+    createdAtTs,
+    shortId,
+    shortUrl,
+    contentType: asString(candidate.contentType),
+    source: "manifest",
+    stats: {
+      likeCount: asInt(candidate.likeCount),
+      commentCount: asInt(candidate.commentCount),
+      savedCount: asInt(candidate.savedCount),
+      retryCount: asInt(candidate.retryCount),
+      statsCount: asInt(candidate.statsCount),
+    },
+    flags: {
+      deletedPost: false,
+      gizlendi: false,
+      arsiv: false,
+      flood: false,
+      floodCount,
+      mainFlood: "",
+      isFloodRoot,
+      paylasGizliligi: 0,
+    },
+  };
+}
+
+export function buildFeedManifestItems(
+  candidates: FeedManifestCandidate[],
+  options?: {
+    seed?: string;
+    maxItems?: number;
+    maxPerUser?: number;
+  },
+): FeedManifestItem[] {
+  const seed = String(options?.seed || "feed_manifest");
+  const maxItems = Math.max(0, Math.floor(asNumber(options?.maxItems, SLOT_SIZE)));
+  const maxPerUser = Math.max(1, Math.floor(asNumber(options?.maxPerUser, 8)));
+  const seenCanonicalIds = new Set<string>();
+  const userCounts = new Map<string, number>();
+  const normalized: Array<{ item: FeedManifestItem; score: number; hash: number }> = [];
+
+  for (const candidate of candidates) {
+    const item = normalizeManifestItem(candidate);
+    if (!item || seenCanonicalIds.has(item.canonicalId)) continue;
+    seenCanonicalIds.add(item.canonicalId);
+    normalized.push({
+      item,
+      score: qualityScore(candidate),
+      hash: stableHash(`${seed}:${item.canonicalId}`),
+    });
+  }
+
+  normalized.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    if (right.item.timeStamp !== left.item.timeStamp) return right.item.timeStamp - left.item.timeStamp;
+    return left.hash - right.hash;
+  });
+
+  const ordered: FeedManifestItem[] = [];
+  const overflow: Array<{ item: FeedManifestItem; score: number; hash: number }> = [];
+  for (const entry of normalized) {
+    const nextUserCount = (userCounts.get(entry.item.userID) || 0) + 1;
+    if (nextUserCount > maxPerUser) {
+      overflow.push(entry);
+      continue;
+    }
+    ordered.push(entry.item);
+    userCounts.set(entry.item.userID, nextUserCount);
+    if (maxItems > 0 && ordered.length >= maxItems) return ordered;
+  }
+
+  for (const entry of overflow) {
+    ordered.push(entry.item);
+    if (maxItems > 0 && ordered.length >= maxItems) return ordered;
+  }
+  return ordered;
+}
+
+export function buildFeedManifestSlot(params: {
+  date: string;
+  slotHour: number;
+  manifestId: string;
+  generatedAt: number;
+  validFromMs: number;
+  validToMs: number;
+  items: FeedManifestItem[];
+}): FeedManifestSlot {
+  const slotHour = clampSlotHour(params.slotHour);
+  const slotId = slotIdForHour(slotHour);
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    date: params.date,
+    slotId,
+    slotHour,
+    manifestId: params.manifestId,
+    itemCount: params.items.length,
+    generatedAt: params.generatedAt,
+    validFromMs: params.validFromMs,
+    validToMs: params.validToMs,
+    items: params.items,
+  };
+}
+
+export async function generateFeedManifest(
+  params: GenerateFeedManifestParams,
+): Promise<GenerateFeedManifestResult> {
+  const slotHour = clampSlotHour(params.slotHour);
+  const slotId = slotIdForHour(slotHour);
+  const manifestId = `feed_${params.date}_${slotId}_v${params.generatedAt}`;
+  const fetchEndMs = Math.min(params.endMs, params.generatedAt);
+  const fetched = await fetchCandidatesFromTypesense({
+    limit: SLOT_SIZE * 4,
+    startMs: params.startMs - (ROLLING_DAYS - 1) * DAY_MS,
+    endMs: fetchEndMs,
+  });
+  const items = buildFeedManifestItems(fetched.candidates, {
+    seed: manifestId,
+    maxItems: SLOT_SIZE,
+    maxPerUser: 8,
+  });
+  const slot = buildFeedManifestSlot({
+    date: params.date,
+    slotHour,
+    manifestId,
+    generatedAt: params.generatedAt,
+    validFromMs: params.startMs,
+    validToMs: params.endMs,
+    items,
+  });
+  const path = `${FEED_MANIFEST_COLLECTION}/${params.date}/slots/${slot.slotId}.json`;
+
+  if (params.publish && slot.itemCount > 0) {
+    await publishFeedManifestSlot({
+      slot,
+      path,
+      publishedAt: Date.now(),
+    });
+  }
+
+  console.log("feed_manifest_generate", {
+    actor: params.actor,
+    date: params.date,
+    slotHour,
+    publish: params.publish,
+    candidates: fetched.candidates.length,
+    validItems: items.length,
+    scannedPages: fetched.scannedPages,
+    found: fetched.found,
+  });
+
+  return {
+    ok: true,
+    published: params.publish && slot.itemCount > 0,
+    date: params.date,
+    slotId,
+    manifestId,
+    itemCount: slot.itemCount,
+    candidates: fetched.candidates.length,
+    validItems: items.length,
+    scannedPages: fetched.scannedPages,
+    found: fetched.found,
+    path,
+  };
+}
+
+async function fetchCandidatesFromTypesense(params: {
+  limit: number;
+  startMs: number;
+  endMs: number;
+}): Promise<{ candidates: FeedManifestCandidate[]; scannedPages: number; found: number }> {
+  const baseUrl = getTypesenseBaseUrl();
+  const candidates: FeedManifestCandidate[] = [];
+  let found = 0;
+  let scannedPages = 0;
+
+  const filterParts = [
+    "paylasGizliligi:=0",
+    "arsiv:=false",
+    "deletedPost:=false",
+    "gizlendi:=false",
+    "isUploading:=false",
+    `timeStamp:>=${params.startMs}`,
+    `timeStamp:<=${params.endMs}`,
+  ];
+
+  for (let page = 1; page <= MAX_SCAN_PAGES && candidates.length < params.limit; page += 1) {
+    const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
+      headers: headers(),
+      timeout: 12000,
+      params: {
+        q: "*",
+        query_by: "metin,authorNickname,authorDisplayName",
+        per_page: TYPESENSE_PAGE_SIZE,
+        page,
+        sort_by: "timeStamp:desc",
+        filter_by: filterParts.join(" && "),
+      },
+    });
+    const body = resp.data || {};
+    const hits = Array.isArray(body.hits) ? body.hits : [];
+    found = Number(body.found || found || 0);
+    scannedPages = page;
+    for (const hit of hits) {
+      candidates.push((hit?.document || {}) as FeedManifestCandidate);
+    }
+    if (hits.length < TYPESENSE_PAGE_SIZE) break;
+  }
+
+  return { candidates, scannedPages, found };
+}
+
+async function publishFeedManifestSlot(params: {
+  slot: FeedManifestSlot;
+  path: string;
+  publishedAt: number;
+}) {
+  const bucket = getStorage().bucket();
+  const cacheControl = "public, max-age=300";
+
+  await bucket.file(params.path).save(JSON.stringify(params.slot), {
+    resumable: false,
+    contentType: "application/json; charset=utf-8",
+    metadata: { cacheControl },
+  });
+
+  const db = getFirestore();
+  const slotDoc = {
+    schemaVersion: params.slot.schemaVersion,
+    date: params.slot.date,
+    slotId: params.slot.slotId,
+    slotHour: params.slot.slotHour,
+    manifestId: params.slot.manifestId,
+    status: "active",
+    path: params.path,
+    itemCount: params.slot.itemCount,
+    itemsPerSlot: SLOT_SIZE,
+    generatedAt: params.slot.generatedAt,
+    validFromMs: params.slot.validFromMs,
+    validToMs: params.slot.validToMs,
+    publishedAt: params.publishedAt,
+  };
+  await db.collection(FEED_MANIFEST_COLLECTION).doc(`${params.slot.date}_${params.slot.slotId}`).set(slotDoc, { merge: true });
+  await refreshActiveFeedManifestIndex(params.publishedAt);
+}
+
+async function refreshActiveFeedManifestIndex(publishedAt: number) {
+  const db = getFirestore();
+  const nowMs = Date.now();
+  const dates = rollingFeedManifestDates(nowMs);
+  const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
+  const slots: FeedManifestActiveIndex["slots"] = [];
+
+  for (const date of dates) {
+    for (const slotHour of slotHours) {
+      const slotId = slotIdForHour(slotHour);
+      const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${date}_${slotId}`).get();
+      const data = snapshot.data();
+      if (!data || data.status !== "active") continue;
+      slots.push({
+        date,
+        slotId,
+        slotHour,
+        itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
+        generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
+        path: asString(data.path),
+      });
+    }
+  }
+
+  const active: FeedManifestActiveIndex = {
+    schemaVersion: SCHEMA_VERSION,
+    manifestId: `feed_active_v${publishedAt}`,
+    status: "active",
+    generatedAt: nowMs,
+    publishedAt,
+    rollingDays: ROLLING_DAYS,
+    itemsPerSlot: SLOT_SIZE,
+    slotHours: SLOT_HOURS,
+    slots: slots.filter((slot) => slot.path),
+  };
+
+  await db.collection(FEED_MANIFEST_COLLECTION).doc("active").set(active, { merge: true });
+}
+
+export const f29_generateFeedManifestCallable = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async (request: CallableRequest) => {
+    ensureAdmin();
+    const uid = requireAdminAuth(request);
+    if (!typesenseReady()) {
+      throw new HttpsError("failed-precondition", "typesense_not_configured");
+    }
+
+    const nowMs = Date.now();
+    const resolved = resolveFeedManifestSlotForNow(nowMs);
+    const date = asString(request.data?.date) || resolved.date;
+    const slotHour = request.data?.slotHour === undefined
+      ? resolved.slotHour
+      : clampSlotHour(request.data?.slotHour);
+    const defaultRange = istanbulSlotRangeForDateHour(date, slotHour);
+    const startMs = Math.floor(asNumber(request.data?.startMs, defaultRange.startMs));
+    const endMs = Math.floor(asNumber(request.data?.endMs, defaultRange.endMs));
+    const publish = request.data?.publish === true;
+
+    try {
+      return await generateFeedManifest({
+        actor: uid,
+        date,
+        slotHour,
+        startMs,
+        endMs,
+        publish,
+        generatedAt: nowMs,
+      });
+    } catch (err: any) {
+      const status = (err as AxiosError)?.response?.status;
+      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
+      console.error("feed_manifest_generate_failed", { status, detail });
+      throw new HttpsError("internal", "feed_manifest_generate_failed", detail);
+    }
+  },
+);
+
+export const f29_generateFeedManifestScheduled = onSchedule(
+  {
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5 */3 * * *",
+    timeZone: "Europe/Istanbul",
+    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
+  },
+  async () => {
+    ensureAdmin();
+    if (!typesenseReady()) {
+      console.log("feed_manifest_scheduled_skipped", { reason: "typesense_not_configured" });
+      return;
+    }
+
+    const nowMs = Date.now();
+    const resolved = resolveFeedManifestSlotForNow(nowMs);
+    const defaultRange = istanbulSlotRangeForDateHour(resolved.date, resolved.slotHour);
+    try {
+      const result = await generateFeedManifest({
+        actor: "scheduled",
+        date: resolved.date,
+        slotHour: resolved.slotHour,
+        startMs: defaultRange.startMs,
+        endMs: defaultRange.endMs,
+        publish: true,
+        generatedAt: nowMs,
+      });
+      console.log("feed_manifest_scheduled_done", result);
+    } catch (err: any) {
+      const status = (err as AxiosError)?.response?.status;
+      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
+      console.error("feed_manifest_scheduled_failed", { status, detail });
+      throw err;
+    }
+  },
+);

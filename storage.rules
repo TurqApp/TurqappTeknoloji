@@ -220,6 +220,13 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Feed manifest slot payloads. Client reads only; writes are published by
+    // Cloud Functions/Admin SDK.
+    match /feedManifest/{date}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if false;
+    }
+
     // Root-level assets (avatar2.png, logoblack.png)
     match /{fileName} {
       allow read: if isAuth();
