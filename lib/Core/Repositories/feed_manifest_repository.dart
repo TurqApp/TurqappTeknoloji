@@ -52,6 +52,7 @@ class FeedManifestRepository extends GetxService {
   static const int _maxConcurrentSlotLoads = 4;
   static const Duration _activeRetryDelay = Duration(milliseconds: 700);
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
+  static const Duration _slotDownloadTimeout = Duration(milliseconds: 1800);
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -174,7 +175,10 @@ class FeedManifestRepository extends GetxService {
 
   Future<void> _loadSlot(_FeedManifestSlotRef slot) async {
     try {
-      final bytes = await _storage.ref(slot.path).getData(_maxSlotBytes);
+      final bytes = await _storage
+          .ref(slot.path)
+          .getData(_maxSlotBytes)
+          .timeout(_slotDownloadTimeout);
       if (bytes == null || bytes.isEmpty) {
         _slotEntries[slot.path] = const <FeedManifestEntry>[];
         return;
@@ -184,8 +188,14 @@ class FeedManifestRepository extends GetxService {
         fallbackSlotId: slot.slotId,
         slotPath: slot.path,
       );
-    } catch (_) {
-      _slotEntries[slot.path] = const <FeedManifestEntry>[];
+    } catch (error) {
+      _slotEntries.remove(slot.path);
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedManifestRepo] stage=slot_load_skip path=${slot.path} '
+          'error=$error',
+        );
+      }
     }
   }
 

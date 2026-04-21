@@ -578,10 +578,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final manifestStartupAge =
         DateTime.now().difference(_feedManifestStartupGateStartedAt);
     if (manifestStartupAge < _feedManifestStartupGateWindow) {
-      final startupPrimeReady = await _ensureFeedManifestStartupReady(
-        currentUserId: currentUserId,
-      );
-      if (!startupPrimeReady) {
+      if (!_feedManifestAndroidStartupAuthPrimed) {
+        if (_feedManifestAndroidStartupAuthPrimeFuture == null) {
+          unawaited(_ensureFeedManifestStartupReady(
+            currentUserId: currentUserId,
+          ));
+        }
         if (_shouldLogDiagnostics) {
           debugPrint(
             '[FeedManifestPrimary] status=deferred_startup_auth_window '
@@ -594,7 +596,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
     final startedAt = DateTime.now();
     try {
-      final pool = await _feedManifestRepository.loadRollingPool();
+      final pool = await _feedManifestRepository
+          .loadRollingPool()
+          .timeout(FeedManifestPolicy.primaryLoadTimeout);
       if (pool.entries.isEmpty) {
         if (_shouldLogDiagnostics) {
           debugPrint('[FeedManifestPrimary] status=empty_pool');

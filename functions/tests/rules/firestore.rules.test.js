@@ -152,6 +152,7 @@ test("feedManifest allows authenticated reads and blocks client writes", async (
   const unauthDb = unauthCtx.firestore();
 
   await assertSucceeds(getDoc(doc(authDb, "feedManifest/active")));
+  await assertSucceeds(getDocs(collection(authDb, "feedManifest")));
   await assertFails(getDoc(doc(unauthDb, "feedManifest/active")));
   await assertFails(
     setDoc(doc(authDb, "feedManifest/2026-04-21_slot_00"), {

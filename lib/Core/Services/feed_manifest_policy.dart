@@ -9,6 +9,7 @@ class FeedManifestPolicy {
     defaultValue: kDebugMode,
   );
   static const bool typesenseGapEnabled = true;
+  static const Duration primaryLoadTimeout = Duration(milliseconds: 450);
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 6;
   static const int minUserSpacing = 3;
