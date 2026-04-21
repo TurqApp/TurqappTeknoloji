@@ -330,7 +330,7 @@ async function processUser({
 }
 
 async function listTargetUserIdsFromPosts(db, limitUsers, nowMs) {
-  const targetLimit = limitUsers > 0 ? limitUsers : 50;
+  const targetLimit = limitUsers > 0 ? limitUsers : Number.POSITIVE_INFINITY;
   const seen = new Set();
   let lastDoc = null;
 
