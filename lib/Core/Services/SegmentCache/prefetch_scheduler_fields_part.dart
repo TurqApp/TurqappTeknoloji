@@ -126,8 +126,6 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   bool get _quotaFillRemoteHasMore => _state.quotaFillRemoteHasMore;
   set _quotaFillRemoteHasMore(bool value) =>
       _state.quotaFillRemoteHasMore = value;
-  QueryDocumentSnapshot<Map<String, dynamic>>? get _quotaFillRemoteCursor =>
-      _state.quotaFillRemoteCursor;
   set _quotaFillRemoteCursor(
           QueryDocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.quotaFillRemoteCursor = value;

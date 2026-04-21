@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/feed_typesense_paging_contract.dart';
+import 'package:turqappv2/Core/Services/feed_typesense_policy.dart';
 
 void main() {
   group('FeedTypesensePagingContract', () {
@@ -156,44 +156,20 @@ void main() {
     });
   });
 
-  group('Feed primary source contract', () {
-    test('typesense page forces typesense mode for growth', () {
-      expect(
-        FeedSnapshotRepository.resolvePrimarySourceMode(
-          startAfter: Object(),
-          typesensePage: 2,
-        ),
-        FeedPrimarySourceMode.typesense,
-      );
+  group('Feed typesense policy contract', () {
+    test('typesense primary stays enabled and firestore fallback stays off', () {
+      expect(FeedTypesensePolicy.primaryEnabled, isTrue);
+      expect(FeedTypesensePolicy.firestoreFallbackEnabled, isFalse);
     });
 
-    test(
-        'initial page defaults to typesense and cursor page defaults to firestore',
-        () {
+    test('candidate limit honors floor for startup growth', () {
       expect(
-        FeedSnapshotRepository.resolvePrimarySourceMode(
-          startAfter: null,
-          typesensePage: null,
-        ),
-        FeedPrimarySourceMode.typesense,
+        FeedTypesensePolicy.resolveCandidateLimit(10),
+        FeedTypesensePolicy.minMotorCandidateLimit,
       );
       expect(
-        FeedSnapshotRepository.resolvePrimarySourceMode(
-          startAfter: Object(),
-          typesensePage: null,
-        ),
-        FeedPrimarySourceMode.firestore,
-      );
-    });
-
-    test('override wins over automatic source resolution', () {
-      expect(
-        FeedSnapshotRepository.resolvePrimarySourceMode(
-          startAfter: null,
-          typesensePage: 2,
-          override: FeedPrimarySourceMode.firestore,
-        ),
-        FeedPrimarySourceMode.firestore,
+        FeedTypesensePolicy.resolveCandidateLimit(120),
+        120,
       );
     });
   });

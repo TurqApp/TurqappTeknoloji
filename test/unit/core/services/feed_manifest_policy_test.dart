@@ -8,13 +8,12 @@ void main() {
     });
 
     test(
-        'deck seed changes by user, manifest, startup session, and refresh time',
+        'deck seed changes by user, manifest, and startup session',
         () {
       final base = FeedManifestPolicy.resolveDeckSeed(
         userId: 'u1',
         manifestId: 'm1',
         startupSeed: 10,
-        nowMs: 100000,
       );
 
       expect(
@@ -22,7 +21,6 @@ void main() {
           userId: 'u2',
           manifestId: 'm1',
           startupSeed: 10,
-          nowMs: 100000,
         ),
         isNot(base),
       );
@@ -31,7 +29,6 @@ void main() {
           userId: 'u1',
           manifestId: 'm2',
           startupSeed: 10,
-          nowMs: 100000,
         ),
         isNot(base),
       );
@@ -40,30 +37,45 @@ void main() {
           userId: 'u1',
           manifestId: 'm1',
           startupSeed: 11,
-          nowMs: 100000,
-        ),
-        isNot(base),
-      );
-      expect(
-        FeedManifestPolicy.resolveDeckSeed(
-          userId: 'u1',
-          manifestId: 'm1',
-          startupSeed: 10,
-          nowMs: 101000,
         ),
         isNot(base),
       );
     });
 
     test('gap candidate limit stays bounded', () {
-      expect(FeedManifestPolicy.resolveGapCandidateLimit(10), 20);
-      expect(FeedManifestPolicy.resolveGapCandidateLimit(40), 40);
-      expect(FeedManifestPolicy.resolveGapCandidateLimit(120), 60);
+      expect(
+        FeedManifestPolicy.resolveGapCandidateLimit(10),
+        FeedManifestPolicy.minGapCandidateLimit,
+      );
+      expect(
+        FeedManifestPolicy.resolveGapCandidateLimit(40),
+        FeedManifestPolicy.minGapCandidateLimit,
+      );
+      expect(FeedManifestPolicy.resolveGapCandidateLimit(120), 120);
+      expect(
+        FeedManifestPolicy.resolveGapCandidateLimit(999),
+        FeedManifestPolicy.maxGapCandidateLimit,
+      );
     });
 
     test('keeps per-user deck cap positive and conservative', () {
       expect(FeedManifestPolicy.maxItemsPerUser, greaterThan(0));
       expect(FeedManifestPolicy.maxItemsPerUser, lessThanOrEqualTo(4));
+    });
+
+    test('startup slot load budget scales by page and stays capped', () {
+      expect(
+        FeedManifestPolicy.resolveSlotLoadBudget(pageNumber: 1),
+        FeedManifestPolicy.startupSlotLoadBudget,
+      );
+      expect(
+        FeedManifestPolicy.resolveSlotLoadBudget(pageNumber: 2),
+        FeedManifestPolicy.startupSlotLoadBudget * 2,
+      );
+      expect(
+        FeedManifestPolicy.resolveSlotLoadBudget(pageNumber: 99),
+        FeedManifestPolicy.maxSlotLoadBudget,
+      );
     });
   });
 }
