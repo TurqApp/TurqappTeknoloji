@@ -22,6 +22,25 @@ void main() {
       expect(plan.organicIndexForRenderIndex(5), 5);
     });
 
+    test('can reserve fallback ad pages before Google ad is renderable', () {
+      final posts = List<PostsModel>.generate(
+        6,
+        (index) => _short('short-$index'),
+      );
+
+      final plan = buildShortAdRenderPlan(
+        posts,
+        adReady: false,
+        showFallbackWhenNotReady: true,
+      );
+
+      expect(plan.entries.length, 7);
+      expect(plan.entries[5].isAd, isTrue);
+      expect(plan.renderIndexForOrganicIndex(5), 6);
+      expect(plan.organicIndexForRenderIndex(5), isNull);
+      expect(plan.organicIndexForRenderIndex(6), 5);
+    });
+
     test('inserts ad pages only after full frequency windows', () {
       final posts = List<PostsModel>.generate(
         11,

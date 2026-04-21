@@ -129,6 +129,37 @@ extension ShortViewPlaybackPart on _ShortViewState {
     });
   }
 
+  void _scheduleShortAdAutoAdvance(int renderPage) {
+    _shortAdAutoAdvanceTimer?.cancel();
+    final nextRenderPage = renderPage + 1;
+    if (nextRenderPage >= _renderPlan.length) return;
+    final nextOrganicPage = _renderPlan.organicIndexForRenderIndex(
+      nextRenderPage,
+    );
+    if (nextOrganicPage == null) return;
+    _shortAdAutoAdvanceTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted ||
+          !_isShortRoutePlaybackActive ||
+          !_isAdPageActive ||
+          _currentRenderPage != renderPage ||
+          !pageController.hasClients) {
+        return;
+      }
+      _pendingAutoAdvancePage = nextOrganicPage;
+      try {
+        pageController.animateToPage(
+          nextRenderPage,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      } catch (_) {
+        try {
+          pageController.jumpToPage(nextRenderPage);
+        } catch (_) {}
+      }
+    });
+  }
+
   bool _shouldSuppressDuplicateAutoplayBootstrap(
     int page, {
     Duration minSpacing = const Duration(milliseconds: 450),
@@ -372,6 +403,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _completionWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
+    _shortAdAutoAdvanceTimer?.cancel();
 
     final nextDocId = !isAdPage &&
             nextOrganicPage >= 0 &&
@@ -415,6 +447,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _isAdPageActive = true;
         _showOverlayControls = false;
       });
+      _scheduleShortAdAutoAdvance(renderPage);
       return;
     }
 

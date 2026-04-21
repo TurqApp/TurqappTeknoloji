@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,6 +10,7 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Core/Services/startup_route_gate_policy.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'nav_bar_controller.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';

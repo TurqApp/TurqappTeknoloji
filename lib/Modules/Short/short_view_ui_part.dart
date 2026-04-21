@@ -5,41 +5,40 @@ extension ShortViewUiPart on _ShortViewState {
     return DecoratedBox(
       decoration: const BoxDecoration(color: Colors.black),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  AppBackButton(
-                    icon: CupertinoIcons.arrow_left,
-                    key: ValueKey(IntegrationTestKeys.actionShortBack),
-                    iconColor: Colors.white,
-                    surfaceColor: Color(0x50000000),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Center(
+        child: Stack(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 360),
                   child: AdmobKare(
-                    showChrome: false,
+                    key: ValueKey('short-admob-$adOrdinal'),
+                    contentPadding: EdgeInsets.zero,
+                    forceSingleLinePromoChips: true,
+                    suggestionPlacementId: 'feed',
                     onImpression: () {
-                      assert(() {
+                      if (kDebugMode) {
                         debugPrint(
                           '[ShortAdSlots] impression adOrdinal=$adOrdinal',
                         );
-                        return true;
-                      }());
+                      }
                     },
                   ),
                 ),
               ),
-              const Spacer(),
-            ],
-          ),
+            ),
+            const Positioned(
+              left: 20,
+              top: 20,
+              child: AppBackButton(
+                icon: CupertinoIcons.arrow_left,
+                key: ValueKey(IntegrationTestKeys.actionShortBack),
+                iconColor: Colors.white,
+                surfaceColor: Color(0x50000000),
+              ),
+            ),
+          ],
         ),
       ),
     );

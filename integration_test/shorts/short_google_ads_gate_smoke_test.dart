@@ -14,7 +14,7 @@ void main() {
   ensureIntegrationBinding();
 
   testWidgets(
-    'Short Google ads slot shows only when ready and keeps organic flow playable',
+    'Short ad slot shows Google or TurqApp fallback and keeps organic flow playable',
     (tester) async {
       final originalOnError = installTransientFlutterErrorPolicy();
       try {
@@ -70,22 +70,16 @@ void main() {
             );
 
             final sawAdPage = await _waitForAdGateDecision(tester);
-            if (sawAdPage) {
-              expect(
-                AdmobKare.hasRenderableBanner,
-                isTrue,
-                reason: 'Ad page rendered without a ready Google ad.',
-              );
-              expect(
-                find.byKey(const ValueKey('short-ad-page-1')),
-                findsOneWidget,
-              );
-            } else {
-              expect(
-                find.byKey(const ValueKey('short-ad-page-1')),
-                findsNothing,
-              );
-            }
+            expect(
+              sawAdPage,
+              isTrue,
+              reason:
+                  'Short should reserve the ad slot and show Google or TurqApp fallback.',
+            );
+            expect(
+              find.byKey(const ValueKey('short-ad-page-1')),
+              findsOneWidget,
+            );
 
             await swipeToShortIndex(
               tester,

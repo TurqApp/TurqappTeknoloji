@@ -58,6 +58,7 @@ class ShortAdRenderPlan {
 ShortAdRenderPlan buildShortAdRenderPlan(
   List<PostsModel> posts, {
   required bool adReady,
+  bool showFallbackWhenNotReady = false,
   int insertionFrequency = kShortAdInsertionFrequency,
 }) {
   if (posts.isEmpty) {
@@ -74,8 +75,10 @@ ShortAdRenderPlan buildShortAdRenderPlan(
         renderIndex: entries.length,
       ),
     );
-    final reachedInsertionBoundary =
-        adReady && insertionFrequency > 0 && (i + 1) % insertionFrequency == 0;
+    final shouldReserveAdSlot = adReady || showFallbackWhenNotReady;
+    final reachedInsertionBoundary = shouldReserveAdSlot &&
+        insertionFrequency > 0 &&
+        (i + 1) % insertionFrequency == 0;
     final hasMoreOrganicContent = i < posts.length - 1;
     if (reachedInsertionBoundary && hasMoreOrganicContent) {
       adOrdinal++;

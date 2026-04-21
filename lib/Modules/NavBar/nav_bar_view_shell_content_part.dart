@@ -1,6 +1,11 @@
 part of 'nav_bar_view.dart';
 
 extension _NavBarViewShellContentPart on NavBarView {
+  void _logNavTap(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[NavBarTap] $message');
+  }
+
   Widget _buildNavBarViewContent(BuildContext context) {
     return PopScope(
       canPop: false,
@@ -14,13 +19,13 @@ extension _NavBarViewShellContentPart on NavBarView {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         key: const ValueKey(IntegrationTestKeys.navBarRoot),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragEnd: _handleRootHorizontalSwipe,
-          child: Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              Column(
+        body: Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: _handleRootHorizontalSwipe,
+              child: Column(
                 children: [
                   const OfflineIndicator(),
                   Expanded(
@@ -28,28 +33,28 @@ extension _NavBarViewShellContentPart on NavBarView {
                   ),
                 ],
               ),
-              Obx(() {
-                if (controller.selectedIndex.value != 0) {
-                  return const SizedBox.shrink();
-                }
-                return Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: MediaQuery.of(context).padding.top - 3,
-                      color: Colors.white,
-                    ),
+            ),
+            Obx(() {
+              if (controller.selectedIndex.value != 0) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: MediaQuery.of(context).padding.top - 3,
+                    color: Colors.white,
                   ),
-                );
-              }),
-              Obx(() {
-                final showBar = controller.showBar.value;
-                return _buildNavBar(context, showBar: showBar);
-              }),
-            ],
-          ),
+                ),
+              );
+            }),
+            Obx(() {
+              final showBar = controller.showBar.value;
+              return _buildNavBar(context, showBar: showBar);
+            }),
+          ],
         ),
       ),
     );
@@ -165,6 +170,16 @@ extension _NavBarViewShellContentPart on NavBarView {
   }
 
   Future<void> _openShortRoute() async {
+    _logNavTap(
+      'open_short_route selectedIndex=${controller.selectedIndex.value}',
+    );
+    unawaited(
+      AdmobKare.warmupPool(
+        targetCount: 1,
+        maxRequestCount: 1,
+        bypassMinInterval: true,
+      ),
+    );
     final shortController = ensureShortController();
     const shortReadyTarget = StartupRouteGatePolicy.shortReadyTarget;
     shortController.beginShortOpenTrace(
@@ -227,7 +242,12 @@ extension _NavBarViewShellContentPart on NavBarView {
         'cacheReady': SegmentCacheManager.maybeFind()?.isReady ?? false,
       },
     );
+    _logNavTap(
+      'route_push readyCount=${shortController.shorts.length} '
+      'selectedIndex=${controller.selectedIndex.value}',
+    );
     await Get.to(() => const ShortView());
+    _logNavTap('route_pop selectedIndex=${controller.selectedIndex.value}');
     maybeFindAgendaController()?.resetVisibleFeedSurfaceAfterShortReturn();
     controller.resumeFeedIfNeeded();
   }
@@ -358,6 +378,9 @@ extension _NavBarViewShellContentPart on NavBarView {
     BuildContext context, {
     required int index,
   }) async {
+    _logNavTap(
+      'tap index=$index selectedIndex=${controller.selectedIndex.value}',
+    );
     if (index == 0 && controller.selectedIndex.value == 0) {
       final agendaCtrl = maybeFindAgendaController();
       if (agendaCtrl != null) {
@@ -431,6 +454,9 @@ extension _NavBarViewShellContentPart on NavBarView {
       if (index == (settingController.educationScreenIsOn.value ? 3 : 2)) {
         FocusScope.of(context).unfocus();
       }
+      _logNavTap(
+        'change_index target=$index from=${controller.selectedIndex.value}',
+      );
       controller.changeIndex(index);
       return;
     }

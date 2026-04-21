@@ -208,6 +208,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Timer? _playbackWatchdogTimer;
   Timer? _completionWatchdogTimer;
   Timer? _routeVisiblePlaybackBootstrapTimer;
+  Timer? _shortAdAutoAdvanceTimer;
   Duration _playbackWatchdogBaselinePosition = Duration.zero;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
@@ -224,6 +225,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
   int _stallWatchdogBufferingCycles = 0;
+  bool _didRequestShortAdWarmupFromBuild = false;
   bool _routeContextReady = false;
   bool _routeObserverSubscribed = false;
   static const Duration _shortAutoplaySegmentGateTimeout =
@@ -239,16 +241,32 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     return rawIndex.clamp(0, list.length - 1);
   }
 
+  void _logShortAdSlots(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[ShortAdSlots] $message');
+  }
+
   void _rebuildShortRenderPlan() {
     _renderPlan = buildShortAdRenderPlan(
       _cachedShorts,
       adReady: _shortAdRenderable,
+      showFallbackWhenNotReady: true,
     );
     _currentRenderPage = _renderPlan.renderIndexForOrganicIndex(currentPage);
+    _logShortAdSlots(
+      'render_plan posts=${_cachedShorts.length} '
+      'adReady=$_shortAdRenderable entries=${_renderPlan.length} '
+      'currentPage=$currentPage renderPage=$_currentRenderPage '
+      'adState=${AdmobKare.debugState}',
+    );
   }
 
   void _handleShortAdAvailabilityChanged() {
     final nextRenderable = AdmobKare.hasRenderableBanner;
+    _logShortAdSlots(
+      'availability_changed current=$_shortAdRenderable '
+      'next=$nextRenderable state=${AdmobKare.debugState}',
+    );
     if (_shortAdRenderable == nextRenderable || !mounted) {
       return;
     }
@@ -266,6 +284,47 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         pageController.jumpToPage(_currentRenderPage);
       } catch (_) {}
     });
+  }
+
+  void _ensureShortAdWarmupFromBuild() {
+    if (_didRequestShortAdWarmupFromBuild) return;
+    _didRequestShortAdWarmupFromBuild = true;
+    _logShortAdSlots(
+      'warmup_request source=view_build '
+      'state=${AdmobKare.debugState}',
+    );
+    unawaited(() async {
+      await AdmobKare.warmupPool(
+        targetCount: 1,
+        maxRequestCount: 1,
+        bypassMinInterval: true,
+      );
+      if (!mounted) return;
+      final nextRenderable = AdmobKare.hasRenderableBanner;
+      _logShortAdSlots(
+        'warmup_complete source=view_build next=$nextRenderable '
+        'state=${AdmobKare.debugState}',
+      );
+      final renderPlanHasAd = _renderPlan.entries.any((entry) => entry.isAd);
+      if (_shortAdRenderable == nextRenderable &&
+          (!nextRenderable || renderPlanHasAd)) {
+        return;
+      }
+      final previousRenderPage = _currentRenderPage;
+      _shortAdRenderable = nextRenderable;
+      _rebuildShortRenderPlan();
+      _updateShortViewState(() {});
+      if (!pageController.hasClients ||
+          previousRenderPage == _currentRenderPage) {
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !pageController.hasClients) return;
+        try {
+          pageController.jumpToPage(_currentRenderPage);
+        } catch (_) {}
+      });
+    }());
   }
 
   bool get _isShortRoutePlaybackActive {
@@ -486,7 +545,23 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     pageController = PageController(initialPage: _currentRenderPage);
     AdmobKare.availabilityRevision
         .addListener(_handleShortAdAvailabilityChanged);
+    _logShortAdSlots(
+      'warmup_request source=view_init '
+      'state=${AdmobKare.debugState}',
+    );
     unawaited(AdmobKare.warmupPool(targetCount: 1, maxRequestCount: 1));
+    Future<void>.delayed(const Duration(milliseconds: 1200), () async {
+      if (!mounted) return;
+      _logShortAdSlots(
+        'warmup_request source=view_init_delayed '
+        'state=${AdmobKare.debugState}',
+      );
+      await AdmobKare.warmupPool(
+        targetCount: 1,
+        maxRequestCount: 1,
+        bypassMinInterval: true,
+      );
+    });
     if (_cachedShorts.isNotEmpty) {
       _syncShortSurfaceAfterStartup();
     }
@@ -559,6 +634,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _playbackWatchdogTimer?.cancel();
     _completionWatchdogTimer?.cancel();
     _routeVisiblePlaybackBootstrapTimer?.cancel();
+    _shortAdAutoAdvanceTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
     _shortsWorker?.dispose();
@@ -600,5 +676,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   }
 
   @override
-  Widget build(BuildContext context) => _buildShortView(context);
+  Widget build(BuildContext context) {
+    _ensureShortAdWarmupFromBuild();
+    return _buildShortView(context);
+  }
 }

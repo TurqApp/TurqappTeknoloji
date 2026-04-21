@@ -51,6 +51,7 @@ class AdmobKare extends StatefulWidget {
   static bool get hasRenderableBanner => _AdmobKareState.hasRenderableBanner;
   static ValueListenable<int> get availabilityRevision =>
       _AdmobKareState._sharedAdAvailabilityRevision;
+  static Map<String, Object> get debugState => _AdmobKareState.debugState;
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
@@ -69,6 +70,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
   static int _globalFailureBurstCount = 0;
+  static Future<void>? _sdkInitFuture;
+  static bool _sdkInitialized = false;
   static const int _poolTargetCount = 10;
   static const int _poolLowWaterMark = 5;
   static const int _poolTopUpBatchCount = 5;
@@ -120,11 +123,47 @@ class _AdmobKareState extends State<AdmobKare> {
         _sharedAdAvailabilityRevision.value + 1;
   }
 
+  static Future<void> _ensureSdkInitialized() async {
+    if (_sdkInitialized) {
+      return;
+    }
+    final pending = _sdkInitFuture;
+    if (pending != null) {
+      await pending;
+      return;
+    }
+    final future = () async {
+      await MobileAds.instance.initialize();
+      _sdkInitialized = true;
+      _log('sdk initialized platform=${Platform.operatingSystem}');
+    }();
+    _sdkInitFuture = future;
+    try {
+      await future;
+    } catch (error) {
+      _sdkInitialized = false;
+      _log('sdk init failed: $error');
+      rethrow;
+    } finally {
+      if (identical(_sdkInitFuture, future)) {
+        _sdkInitFuture = null;
+      }
+    }
+  }
+
   static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
   static bool get hasReadyBanner => _readyPool.isNotEmpty;
   static bool get hasRenderableBanner =>
       _readyPool.any((ad) => ad.responseInfo != null);
+  static Map<String, Object> get debugState => <String, Object>{
+        'sdkInitialized': _sdkInitialized,
+        'readyPoolCount': _readyPool.length,
+        'renderablePoolCount':
+            _readyPool.where((ad) => ad.responseInfo != null).length,
+        'loadingCount': _loadingCount,
+        'cooldownActive': _globalCooldownRemaining() > Duration.zero,
+      };
   bool get _usesManagedSuggestion =>
       (widget.suggestionPlacementId?.trim().isNotEmpty ?? false);
   String get _managedSuggestionPlacementId =>
@@ -207,6 +246,15 @@ class _AdmobKareState extends State<AdmobKare> {
     if (targetCount <= 0) return;
     if (maxRequestCount <= 0) return;
     if (_globalCooldownRemaining() > Duration.zero) return;
+    _log(
+      'warmup request target=$targetCount maxRequestCount=$maxRequestCount '
+      'bypass=$bypassMinInterval state=$debugState',
+    );
+    try {
+      await _ensureSdkInitialized();
+    } catch (_) {
+      return;
+    }
 
     final now = DateTime.now();
     final lastAttempt = _lastWarmupAttemptAt;
@@ -218,6 +266,9 @@ class _AdmobKareState extends State<AdmobKare> {
     _lastWarmupAttemptAt = now;
 
     final missing = targetCount - (_readyPool.length + _loadingCount);
+    _log(
+      'warmup evaluate target=$targetCount missing=$missing state=$debugState',
+    );
     if (missing <= 0) return;
 
     final requestCount = missing.clamp(0, maxRequestCount);
@@ -565,6 +616,20 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _loadBanner() {
+    if (!_sdkInitialized) {
+      unawaited(() async {
+        try {
+          await _ensureSdkInitialized();
+        } catch (_) {
+          return;
+        }
+        if (_isDisposed) {
+          return;
+        }
+        _scheduleAttachBannerOrLoad();
+      }());
+      return;
+    }
     if (!_canStartOrRetryLoad()) {
       return;
     }
