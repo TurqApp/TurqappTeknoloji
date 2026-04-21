@@ -12,8 +12,7 @@ extension ShortControllerLoadingPart on ShortController {
     final cacheManager = maybeFindSegmentCacheManager();
     final entry = cacheManager?.getEntry(docId);
     if (entry == null) return false;
-    return entry.shortConsumedAt != null ||
-        entry.watchProgress >= 0.80;
+    return entry.shortConsumedAt != null;
   }
 
   void schedulePersistVisibleSnapshot({

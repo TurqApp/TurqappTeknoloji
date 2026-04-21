@@ -439,6 +439,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           .endSession(_cachedShorts[currentPage].docID);
     }
 
+    final resumedFromAdPage = _isAdPageActive;
     if (isAdPage) {
       isManuallyPaused = true;
       _silenceAllShortPlaybackForAdPage();
@@ -459,6 +460,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
       _showOverlayControls = true;
     });
     controller.schedulePersistVisibleSnapshot();
+    if (resumedFromAdPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted || !_isShortRoutePlaybackActive || _isAdPageActive) {
+          return;
+        }
+        final activeAdapter = controller.cache[currentPage];
+        if (activeAdapter == null || activeAdapter.isDisposed) {
+          return;
+        }
+        await _reassertActiveShortAudibility(currentPage, activeAdapter);
+        _scheduleDelayedShortAudibilityReassert(
+          currentPage,
+          activeAdapter,
+          delay: const Duration(milliseconds: 120),
+        );
+      });
+    }
     _recordShortPlaybackDispatch(
       'short_page_targeted',
       docId: nextDocId,
@@ -1876,7 +1894,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
               currentShort,
               currentSegment: currentSegment,
             );
-            if (currentSegment >= 3 || progress >= 0.80) {
+            if (currentSegment >= 1) {
               _segmentCacheRuntimeService.markShortConsumed(
                 currentShort.docID,
               );
