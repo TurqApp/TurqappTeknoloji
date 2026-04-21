@@ -658,6 +658,11 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
         }
       }
 
+      if (uploadedPosts.isNotEmpty) {
+        ensureProfileManifestSyncService().scheduleCurrentUserSync(
+          reason: 'post_publish',
+        );
+      }
       return uploadedPosts;
     } catch (e, stackTrace) {
       await _errorService.handleError(

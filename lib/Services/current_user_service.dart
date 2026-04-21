@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
+import 'package:turqappv2/Core/Services/profile_manifest_sync_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';

@@ -48,6 +48,9 @@ Future<void> _setAddressSelectorData(
     CurrentUserService.instance.effectiveUserId,
     {'adres': controller.addressController.text},
   );
+  ensureProfileManifestSyncService().scheduleCurrentUserSync(
+    reason: 'address_update',
+  );
 
   Get.back();
 }

@@ -316,6 +316,9 @@ extension EditPostControllerActionsPart on EditPostController {
           profileController.fetchPhotos(isInitial: true);
         }
       }
+      ensureProfileManifestSyncService().scheduleCurrentUserSync(
+        reason: 'edit_post',
+      );
     } catch (_) {
     } finally {
       bekle.value = false;

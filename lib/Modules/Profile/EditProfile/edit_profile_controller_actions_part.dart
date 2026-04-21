@@ -132,6 +132,9 @@ extension EditProfileControllerActionsPart on EditProfileController {
         "lastName": lastNameController.text,
         if (newImageUrl != null) "avatarUrl": newImageUrl,
       });
+      ensureProfileManifestSyncService().scheduleCurrentUserSync(
+        reason: 'edit_profile',
+      );
       await _refreshAvatarNicknameSurfaces(uid);
       await ensureAccountCenterService().refreshCurrentAccountMetadata();
 
@@ -158,6 +161,9 @@ extension EditProfileControllerActionsPart on EditProfileController {
           final uid = _currentUid;
           if (uid.isEmpty) return;
           await userService.updateFields({'avatarUrl': defaultAvatarUrl});
+          ensureProfileManifestSyncService().scheduleCurrentUserSync(
+            reason: 'remove_profile_photo',
+          );
           await _refreshAvatarNicknameSurfaces(uid);
           await ensureAccountCenterService().refreshCurrentAccountMetadata();
 

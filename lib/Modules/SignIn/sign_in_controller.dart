@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
 import 'package:turqappv2/Core/Repositories/user_subdoc_repository.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
+import 'package:turqappv2/Core/Services/profile_manifest_sync_service.dart';
 import 'package:turqappv2/Core/Services/user_document_schema.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';

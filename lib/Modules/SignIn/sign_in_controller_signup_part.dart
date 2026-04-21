@@ -73,6 +73,10 @@ extension SignInControllerSignupPart on SignInController {
         throw Exception('users-doc-not-created-after-signup');
       }
 
+      ensureProfileManifestSyncService().scheduleCurrentUserSync(
+        reason: 'signup_bootstrap',
+      );
+
       await MandatoryFollowService.instance.enforceForCurrentUser();
       accountProvisioned = true;
 

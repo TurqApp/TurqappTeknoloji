@@ -94,6 +94,9 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       await _applyOptimisticLocalPatch(normalizedFields);
       _purgeUserScopedCaches(firebaseUser.uid);
       await invalidateUserProfileCacheIfRegistered(firebaseUser.uid);
+      ensureProfileManifestSyncService().scheduleCurrentUserSync(
+        reason: 'user_update',
+      );
       if (normalizedFields.containsKey('isPrivate')) {
         await ViewerSurfaceInvalidationService.invalidateForViewer(
           firebaseUser.uid,

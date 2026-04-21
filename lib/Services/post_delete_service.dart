@@ -11,6 +11,7 @@ import '../Modules/Agenda/agenda_controller.dart';
 import '../Modules/Explore/explore_controller.dart';
 import '../Modules/Profile/MyProfile/profile_controller.dart';
 import '../Modules/Short/short_controller.dart';
+import '../Core/Services/profile_manifest_sync_service.dart';
 import '../Services/current_user_service.dart';
 
 /// Uygulama genelinde gönderi silme (soft delete) işlemini merkezileştirir.
@@ -99,6 +100,9 @@ class PostDeleteService {
       docId: model.docID,
     );
     await _invalidatePostCaches(<String>[model.docID]);
+    ensureProfileManifestSyncService().scheduleCurrentUserSync(
+      reason: 'delete_post',
+    );
 
     // 3.5) Bu gönderi yeniden paylaşıldıysa, tüm yeniden paylaşılan kopyaları kaldır
     try {

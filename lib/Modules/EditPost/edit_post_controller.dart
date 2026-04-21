@@ -20,6 +20,7 @@ import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import '../../Core/LocationFinderView/location_finder_view.dart';
 import '../../Core/Services/optimized_nsfw_service.dart';
+import '../../Core/Services/profile_manifest_sync_service.dart';
 import '../../Core/Services/video_compression_service.dart';
 import '../../Core/Services/media_compression_service.dart';
 import '../../Core/Services/webp_upload_service.dart';

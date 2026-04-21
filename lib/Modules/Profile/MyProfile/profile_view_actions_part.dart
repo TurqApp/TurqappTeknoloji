@@ -342,5 +342,8 @@ extension _ProfileViewActionsPart on _ProfileViewState {
     controller.photos.refresh();
     controller.videos.refresh();
     controller.allPosts.refresh();
+    ensureProfileManifestSyncService().scheduleCurrentUserSync(
+      reason: 'archive_post',
+    );
   }
 }

@@ -31,6 +31,7 @@ import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.da
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
+import 'package:turqappv2/Core/Services/profile_manifest_sync_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../Agenda/agenda_controller.dart';
 import '../NavBar/nav_bar_controller.dart';

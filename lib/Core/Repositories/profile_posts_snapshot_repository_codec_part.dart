@@ -3,6 +3,14 @@ part of 'profile_posts_snapshot_repository.dart';
 extension ProfilePostsSnapshotRepositoryCodecPart
     on ProfilePostsSnapshotRepository {
   Future<ProfileBuckets> _fetchBuckets(ProfilePostsSnapshotQuery query) async {
+    final manifestBuckets =
+        await ProfileManifestRepository.ensure().loadBuckets(
+      userId: query.userId,
+      limit: query.limit,
+    );
+    if (manifestBuckets != null) {
+      return manifestBuckets;
+    }
     final page = await _profileRepository.fetchPrimaryPage(
       uid: query.userId,
       limit: query.limit,
