@@ -1,13 +1,18 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
-import 'package:turqappv2/Core/Services/feed_typesense_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
+import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
+import 'package:turqappv2/Core/Services/feed_manifest_mixer.dart';
+import 'package:turqappv2/Core/Services/feed_manifest_policy.dart';
+import 'package:turqappv2/Core/Services/feed_typesense_policy.dart';
 import 'package:turqappv2/Core/Services/feed_typesense_paging_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/launch_motor_selection_service.dart';
@@ -82,6 +87,11 @@ class _FeedSnapshotRepositoryState {
   late final VisibilityPolicyService visibilityPolicy =
       VisibilityPolicyService.ensure();
   late final WarmLaunchPool warmLaunchPool = ensureWarmLaunchPool();
+  late final FeedManifestRepository feedManifestRepository =
+      ensureFeedManifestRepository();
+  late final FeedManifestMixer feedManifestMixer = const FeedManifestMixer();
+  late final FeedDiversityMemoryService feedDiversityMemory =
+      FeedDiversityMemoryService.ensure();
   late final MemoryScopedSnapshotStore<List<PostsModel>> memoryStore =
       MemoryScopedSnapshotStore<List<PostsModel>>();
   late final SharedPrefsScopedSnapshotStore<List<PostsModel>> snapshotStore =
@@ -137,6 +147,11 @@ extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   WarmLaunchPool get _warmLaunchPool => _state.warmLaunchPool;
+  FeedManifestRepository get _feedManifestRepository =>
+      _state.feedManifestRepository;
+  FeedManifestMixer get _feedManifestMixer => _state.feedManifestMixer;
+  FeedDiversityMemoryService get _feedDiversityMemory =>
+      _state.feedDiversityMemory;
   MemoryScopedSnapshotStore<List<PostsModel>> get _memoryStore =>
       _state.memoryStore;
   SharedPrefsScopedSnapshotStore<List<PostsModel>> get _snapshotStore =>
