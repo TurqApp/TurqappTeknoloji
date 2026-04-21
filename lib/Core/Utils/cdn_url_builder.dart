@@ -26,6 +26,16 @@ class CdnUrlBuilder {
     return url;
   }
 
+  /// CDN URL'sini mümkünse Firebase origin URL'sine geri çevirir.
+  /// Sadece v0/b tabanlı signed URL'lerde güvenlidir.
+  static String toOriginUrl(String url) {
+    if (url.isEmpty || !url.contains(cdnDomain)) return url;
+    if (url.contains('/v0/b/')) {
+      return url.replaceFirst(cdnDomain, storageBucket);
+    }
+    return url;
+  }
+
   /// Storage path'ten temiz CDN URL oluşturur.
   /// Worker otomatik olarak Firebase Storage formatına dönüştürür.
   static String _buildStorageUrl(String storagePath) {

@@ -2,6 +2,9 @@ part of 'network_awareness_service.dart';
 
 extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   static const Duration _connectivityPollInterval = Duration(seconds: 3);
+  static const MethodChannel _androidNetworkStateChannel = MethodChannel(
+    'turqapp.network_state/method',
+  );
 
   void _startNetworkMonitoring() async {
     final connectivity = await Connectivity().checkConnectivity();
@@ -9,7 +12,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       '[NetworkAwareness] source=initial_check results=${connectivity.map((e) => e.name).join(",")} '
       'current=${_currentNetwork.value.name}',
     );
-    _updateNetworkType(connectivity);
+    await _updateNetworkType(connectivity, source: 'initial_check');
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
       (results) {
@@ -17,7 +20,9 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
           '[NetworkAwareness] source=connectivity_stream results=${results.map((e) => e.name).join(",")} '
           'previous=${_currentNetwork.value.name}',
         );
-        _updateNetworkType(results);
+        unawaited(
+          _updateNetworkType(results, source: 'connectivity_stream'),
+        );
       },
     );
     _connectivityPollTimer?.cancel();
@@ -35,27 +40,38 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
         '[NetworkAwareness] source=poll_check results=${results.map((e) => e.name).join(",")} '
         'previous=${_currentNetwork.value.name}',
       );
-      _updateNetworkType(results);
+      await _updateNetworkType(results, source: 'poll_check');
     } catch (e) {
       debugPrint('[NetworkAwareness] source=poll_check_failed error=$e');
     }
   }
 
-  void _updateNetworkType(List<ConnectivityResult> results) {
+  Future<void> _updateNetworkType(
+    List<ConnectivityResult> results, {
+    required String source,
+  }) async {
     if (_debugOverrideNetwork != null) {
       return;
     }
     final previousNetwork = _currentNetwork.value;
-    if (results.contains(ConnectivityResult.wifi) ||
-        results.contains(ConnectivityResult.ethernet)) {
-      _currentNetwork.value = NetworkType.wifi;
-    } else if (results.contains(ConnectivityResult.mobile)) {
-      _currentNetwork.value = NetworkType.cellular;
-    } else if (results.any((r) => r != ConnectivityResult.none)) {
-      _currentNetwork.value = NetworkType.wifi;
-    } else {
-      _currentNetwork.value = NetworkType.none;
+    final resolvedFromConnectivity =
+        _resolveNetworkTypeFromConnectivity(results);
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        source == 'poll_check' &&
+        previousNetwork == NetworkType.wifi &&
+        resolvedFromConnectivity == NetworkType.cellular) {
+      debugPrint(
+        '[NetworkAwareness] source=sticky_wifi_ignore '
+        'results=${results.map((e) => e.name).join(",")} '
+        'previous=${previousNetwork.name}',
+      );
+      return;
     }
+    final resolved = await _reconcileNativeNetworkType(
+      results: results,
+      resolvedFromConnectivity: resolvedFromConnectivity,
+    );
+    _currentNetwork.value = resolved;
 
     debugPrint(
       '[NetworkAwareness] source=network_update resolved=${_currentNetwork.value.name} '
@@ -114,6 +130,58 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     if (agendaController != null) {
       agendaController.handleNetworkPolicyTransition(_currentNetwork.value);
     }
+  }
+
+  NetworkType _resolveNetworkTypeFromConnectivity(
+    List<ConnectivityResult> results,
+  ) {
+    if (results.contains(ConnectivityResult.wifi) ||
+        results.contains(ConnectivityResult.ethernet)) {
+      return NetworkType.wifi;
+    }
+    if (results.contains(ConnectivityResult.mobile)) {
+      return NetworkType.cellular;
+    }
+    if (results.any((r) => r != ConnectivityResult.none)) {
+      return NetworkType.wifi;
+    }
+    return NetworkType.none;
+  }
+
+  Future<NetworkType> _reconcileNativeNetworkType({
+    required List<ConnectivityResult> results,
+    required NetworkType resolvedFromConnectivity,
+  }) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return resolvedFromConnectivity;
+    }
+    if (resolvedFromConnectivity == NetworkType.wifi) {
+      return resolvedFromConnectivity;
+    }
+    try {
+      final nativeTransport = await _androidNetworkStateChannel
+          .invokeMethod<String>('getDefaultTransport');
+      final nativeResolved = switch (nativeTransport) {
+        'wifi' => NetworkType.wifi,
+        'cellular' => NetworkType.cellular,
+        'none' => NetworkType.none,
+        _ => resolvedFromConnectivity,
+      };
+      if (nativeResolved != resolvedFromConnectivity) {
+        debugPrint(
+          '[NetworkAwareness] source=native_override '
+          'connectivity=${resolvedFromConnectivity.name} '
+          'native=${nativeResolved.name} '
+          'results=${results.map((e) => e.name).join(",")}',
+        );
+        return nativeResolved;
+      }
+    } on MissingPluginException {
+      return resolvedFromConnectivity;
+    } catch (e) {
+      debugPrint('[NetworkAwareness] source=native_override_failed error=$e');
+    }
+    return resolvedFromConnectivity;
   }
 
   void debugSetNetworkOverride(NetworkType? type) {

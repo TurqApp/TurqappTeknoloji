@@ -45,16 +45,32 @@ extension ShortViewUiPart on _ShortViewState {
   }
 
   List<String> _resolvePendingShortPreviewUrls(PostsModel model) {
-    final candidates = <String>[
+    final rawCandidates = <String>[
       model.thumbnail.trim(),
       ...model.preferredVideoPosterUrls.map((url) => url.trim()),
       ...model.img.map((url) => url.trim()),
       ...CdnUrlBuilder.buildThumbnailUrlCandidates(model.docID),
-    ]
-        .map(CdnUrlBuilder.toCdnUrl)
-        .where((url) => url.trim().isNotEmpty)
-        .toSet()
-        .toList(growable: false);
+    ];
+    final candidates = <String>[];
+    for (final rawUrl in rawCandidates) {
+      final normalized = rawUrl.trim();
+      if (normalized.isEmpty) continue;
+      if (!candidates.contains(normalized)) {
+        candidates.add(normalized);
+      }
+      final cdnUrl = CdnUrlBuilder.toCdnUrl(normalized).trim();
+      if (cdnUrl.isNotEmpty && !candidates.contains(cdnUrl)) {
+        candidates.add(cdnUrl);
+      }
+      final originUrl = CdnUrlBuilder.toOriginUrl(normalized).trim();
+      if (originUrl.isNotEmpty && !candidates.contains(originUrl)) {
+        candidates.add(originUrl);
+      }
+      final originFromCdn = CdnUrlBuilder.toOriginUrl(cdnUrl).trim();
+      if (originFromCdn.isNotEmpty && !candidates.contains(originFromCdn)) {
+        candidates.add(originFromCdn);
+      }
+    }
     return candidates;
   }
 

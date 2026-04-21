@@ -28,6 +28,11 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     if (manager == null) return true;
     final current = manager.currentPlayingDocID?.trim() ?? '';
     final target = manager.targetPlaybackDocID?.trim() ?? '';
+    final hasShortFocus =
+        current.startsWith('short:') || target.startsWith('short:');
+    if (hasShortFocus) {
+      return false;
+    }
     return current.startsWith('feed:') ||
         target.startsWith('feed:') ||
         _isFeedSurfaceVisible;
@@ -54,7 +59,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   bool get _shouldAllowBackgroundQuotaFill =>
-      !_hasActiveFeedPlaybackWindow && !_hasActiveShortPlaybackWindow;
+      !_hasActiveFeedPlaybackWindow || _hasActiveShortPlaybackWindow;
 
   bool get _isOnWiFi {
     try {
