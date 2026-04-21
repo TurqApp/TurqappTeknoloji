@@ -6,6 +6,8 @@ const {buildOptions, asString, asNum} = require('./posts_migration_shared');
 const MANIFEST_POST_LIMIT = 80;
 const MANIFEST_RESHARE_LIMIT = 30;
 const MANIFEST_SCHEMA_VERSION = 1;
+const USER_SOURCE_USERS = 'users';
+const USER_SOURCE_POSTS = 'posts';
 
 function arg(name, fallback = undefined) {
   const idx = process.argv.indexOf(`--${name}`);
@@ -327,8 +329,44 @@ async function processUser({
   };
 }
 
-async function listTargetUserIds(db, explicitUid, limitUsers) {
+async function listTargetUserIdsFromPosts(db, limitUsers, nowMs) {
+  const targetLimit = limitUsers > 0 ? limitUsers : 50;
+  const seen = new Set();
+  let lastDoc = null;
+
+  while (seen.size < targetLimit) {
+    let query = db
+      .collection('Posts')
+      .where('arsiv', '==', false)
+      .where('flood', '==', false)
+      .where('timeStamp', '<=', nowMs)
+      .orderBy('timeStamp', 'desc')
+      .limit(200);
+    if (lastDoc) {
+      query = query.startAfter(lastDoc);
+    }
+    const snap = await query.get();
+    if (snap.empty) break;
+    for (const doc of snap.docs) {
+      const data = doc.data() || {};
+      if (!isVisiblePost(data, nowMs)) continue;
+      const uid = asString(data.userID);
+      if (!uid) continue;
+      seen.add(uid);
+      if (seen.size >= targetLimit) break;
+    }
+    lastDoc = snap.docs[snap.docs.length - 1] || null;
+    if (snap.size < 200) break;
+  }
+
+  return Array.from(seen);
+}
+
+async function listTargetUserIds(db, explicitUid, limitUsers, nowMs, userSource) {
   if (explicitUid) return [explicitUid];
+  if (userSource === USER_SOURCE_POSTS) {
+    return listTargetUserIdsFromPosts(db, limitUsers, nowMs);
+  }
   let query = db.collection('users').orderBy(admin.firestore.FieldPath.documentId());
   if (limitUsers > 0) {
     query = query.limit(limitUsers);
@@ -346,6 +384,7 @@ async function main() {
   const apply = hasFlag('apply');
   const nowMs = Number(arg('now-ms', `${Date.now()}`)) || Date.now();
   const generatedAt = Number(arg('generated-at', `${Date.now()}`)) || Date.now();
+  const userSource = asString(arg('user-source', USER_SOURCE_POSTS)) || USER_SOURCE_POSTS;
 
   const credential = admin.credential.cert(require(targetKey));
   const app = admin.initializeApp(
@@ -359,7 +398,13 @@ async function main() {
   try {
     const db = app.firestore();
     const bucket = app.storage().bucket();
-    const targetUserIds = await listTargetUserIds(db, uid, limitUsers);
+    const targetUserIds = await listTargetUserIds(
+      db,
+      uid,
+      limitUsers,
+      nowMs,
+      userSource,
+    );
     const results = [];
     for (const targetUid of targetUserIds) {
       const result = await processUser({
@@ -391,6 +436,7 @@ async function main() {
           apply,
           nowMs,
           generatedAt,
+          userSource,
           userCount: results.length,
         },
         null,
