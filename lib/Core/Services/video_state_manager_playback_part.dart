@@ -10,7 +10,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final trimmedKey = controllerKey.trim();
     final isShortHandle = trimmedKey.startsWith('short:');
     final isFeedHandle = trimmedKey.startsWith('feed:');
-    if (!isShortHandle && !isFeedHandle) {
+    final isSocialHandle = trimmedKey.startsWith('social_');
+    if (!isShortHandle && !isFeedHandle && !isSocialHandle) {
       return true;
     }
     final normalizedDocID = HlsSegmentPolicy.normalizeDocId(trimmedKey);
@@ -20,7 +21,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final scheduler = maybeFindPrefetchScheduler();
     final tierInfo = isShortHandle
         ? scheduler?.classifyShortTransferDoc(normalizedDocID)
-        : scheduler?.classifyFeedTransferDoc(normalizedDocID);
+        : (isSocialHandle
+            ? scheduler?.classifyTransferDoc(normalizedDocID)
+            : scheduler?.classifyFeedTransferDoc(normalizedDocID));
     if (tierInfo == null) {
       return true;
     }
@@ -29,7 +32,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return !(allowedSegmentWarm || allowedCacheOnly);
   }
 
-  bool _shouldKeepShortHandleWarmDuringExclusiveSwitch(
+  bool _shouldKeepWarmHandleDuringExclusiveSwitch(
     String? allowedDocID,
     String controllerKey,
     HLSAdapterPlaybackHandle handle,
@@ -39,8 +42,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return false;
     }
     final allowedKey = allowedDocID?.trim() ?? '';
-    if (!allowedKey.startsWith('short:')) return false;
-    if (!controllerKey.trim().startsWith('short:')) return false;
+    final controllerTrimmed = controllerKey.trim();
+    final shortWarm = allowedKey.startsWith('short:') &&
+        controllerTrimmed.startsWith('short:');
+    final socialWarm = allowedKey.startsWith('social_') &&
+        controllerTrimmed.startsWith('social_');
+    if (!shortWarm && !socialWarm) return false;
     return handle.adapter.preferWarmPoolPause;
   }
 
@@ -200,7 +207,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           var shouldStopPlayback =
               _shouldStopPlaybackForHiddenHandle(controllerKey);
           if (handle is HLSAdapterPlaybackHandle &&
-              _shouldKeepShortHandleWarmDuringExclusiveSwitch(
+              _shouldKeepWarmHandleDuringExclusiveSwitch(
                 allowedDocID,
                 controllerKey,
                 handle,

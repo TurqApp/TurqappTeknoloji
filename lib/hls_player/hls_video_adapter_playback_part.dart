@@ -50,8 +50,9 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPlay = autoPlay;
     _wantPause = false;
 
-    await _hls.loadVideo(
+    await _hls.loadVideoWithFallback(
       url,
+      fallbackUrl: _fallbackUrl,
       autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
       loop: loop,
     );
@@ -96,7 +97,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPause = false;
     if (_viewReady) {
       _markNativePlayRequest();
-      await _hls.loadVideo(url, autoPlay: true, loop: loop);
+      await _hls.loadVideoWithFallback(
+        url,
+        fallbackUrl: _fallbackUrl,
+        autoPlay: true,
+        loop: loop,
+      );
       if (resumeAt > Duration.zero) {
         await _hls.seekTo(resumeAt.inMilliseconds / 1000.0);
       }

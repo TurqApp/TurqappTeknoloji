@@ -18,6 +18,8 @@ class _SocialProfileScrollState {
   String? lastPlaybackRowUpdateIdentity;
   String? lastPlaybackCommandDocId;
   DateTime? lastPlaybackCommandAt;
+  String? lastStartupWarmSignature;
+  String? lastPlaybackWarmSignature;
   String? pendingCenteredIdentity;
   final Map<int, double> visibleFractions = <int, double>{};
   Timer? visibilityDebounce;
@@ -104,6 +106,14 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   DateTime? get _lastPlaybackCommandAt => _scrollState.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _scrollState.lastPlaybackCommandAt = value;
+  String? get _lastStartupWarmSignature =>
+      _scrollState.lastStartupWarmSignature;
+  set _lastStartupWarmSignature(String? value) =>
+      _scrollState.lastStartupWarmSignature = value;
+  String? get _lastPlaybackWarmSignature =>
+      _scrollState.lastPlaybackWarmSignature;
+  set _lastPlaybackWarmSignature(String? value) =>
+      _scrollState.lastPlaybackWarmSignature = value;
   String? get _pendingCenteredIdentity => _scrollState.pendingCenteredIdentity;
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;

@@ -54,6 +54,16 @@ class HlsSegmentPolicy {
   static String? normalizeDocId(String? rawDocId) {
     final normalized = rawDocId?.trim();
     if (normalized == null || normalized.isEmpty) return null;
+    const socialPrefixes = <String>[
+      'social_post_',
+      'social_reshare_',
+    ];
+    for (final prefix in socialPrefixes) {
+      if (normalized.startsWith(prefix)) {
+        final docId = normalized.substring(prefix.length).trim();
+        return docId.isEmpty ? null : docId;
+      }
+    }
     final separatorIndex = normalized.indexOf(':');
     if (separatorIndex < 0) return normalized;
     final docId = normalized.substring(separatorIndex + 1).trim();

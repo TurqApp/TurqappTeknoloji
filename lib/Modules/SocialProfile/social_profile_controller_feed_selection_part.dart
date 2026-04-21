@@ -1,6 +1,9 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
+  static const int _profileWarmPlayableCount =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
+
   void _performBootstrapFeedPlaybackAfterDataChange() {
     if (postSelection.value != 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -10,6 +13,8 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
         centeredIndex.value = -1;
         currentVisibleIndex.value = -1;
         lastCenteredIndex = null;
+        _lastStartupWarmSignature = null;
+        _lastPlaybackWarmSignature = null;
         return;
       }
       final target = resolveResumeCenteredIndex();
@@ -18,6 +23,10 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       currentVisibleIndex.value = target;
       lastCenteredIndex = target;
       capturePendingCenteredEntry(preferredIndex: target);
+      _performWarmProfilePlaybackWindow(
+        centered: target,
+        phase: 'startup',
+      );
       if (_performCanAutoplayCombinedEntry(activeEntries[target])) {
         _performEnsureCenteredPlaybackForIndex(target);
       } else {
@@ -215,18 +224,20 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
       if (currentDocId.isNotEmpty) {
         final dominantVisibleIndex = _visibleFractions.entries
-            .where((entry) => entry.key >= 0 && entry.key < activeEntries.length)
+            .where(
+                (entry) => entry.key >= 0 && entry.key < activeEntries.length)
             .fold<int>(
-              -1,
-              (bestIndex, entry) {
-                if (bestIndex == -1) return entry.key;
-                final bestFraction = _visibleFractions[bestIndex] ?? 0.0;
-                return entry.value > bestFraction ? entry.key : bestIndex;
-              },
-            );
+          -1,
+          (bestIndex, entry) {
+            if (bestIndex == -1) return entry.key;
+            final bestFraction = _visibleFractions[bestIndex] ?? 0.0;
+            return entry.value > bestFraction ? entry.key : bestIndex;
+          },
+        );
         final dominantVisibleIsNonPlayable = dominantVisibleIndex >= 0 &&
             dominantVisibleIndex < activeEntries.length &&
-            !_performCanAutoplayCombinedEntry(activeEntries[dominantVisibleIndex]) &&
+            !_performCanAutoplayCombinedEntry(
+                activeEntries[dominantVisibleIndex]) &&
             (_visibleFractions[dominantVisibleIndex] ?? 0.0) >=
                 FeedPlaybackSelectionPolicy.secondaryThreshold;
         final currentPlaybackKey = _performAgendaInstanceTag(
@@ -365,6 +376,10 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (showPfImage.value) return;
     final activeEntries = combinedFeedEntries;
     if (index < 0 || index >= activeEntries.length) return;
+    _performWarmProfilePlaybackWindow(
+      centered: index,
+      phase: 'playback_horizon',
+    );
     final entry = activeEntries[index];
     if (!_performCanAutoplayCombinedEntry(entry)) return;
     final docId = ((entry['docID'] as String?) ?? '').trim();
@@ -382,5 +397,110 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = issuedAt;
+  }
+
+  void _performWarmProfilePlaybackWindow({
+    required int centered,
+    required String phase,
+  }) {
+    if (postSelection.value != 0) return;
+    final activeEntries = combinedFeedEntries;
+    if (activeEntries.isEmpty) return;
+    if (centered < 0 || centered >= activeEntries.length) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final warmPosts = _resolveProfileWarmPosts(
+      centered: centered,
+      maxCount: _profileWarmPlayableCount,
+    );
+    if (warmPosts.isEmpty) return;
+    final signature =
+        '$phase:$centered:${warmPosts.map((post) => post.docID).join(',')}';
+    if (phase == 'startup') {
+      if (_lastStartupWarmSignature == signature) return;
+      _lastStartupWarmSignature = signature;
+    } else {
+      if (_lastPlaybackWarmSignature == signature) return;
+      _lastPlaybackWarmSignature = signature;
+    }
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager != null && cacheManager.isReady) {
+      cacheManager.cachePostCards(warmPosts);
+      for (final post in warmPosts) {
+        final docId = post.docID.trim();
+        final playbackUrl = post.playbackUrl.trim();
+        if (docId.isEmpty || playbackUrl.isEmpty) continue;
+        cacheManager.cacheHlsEntry(docId, playbackUrl);
+      }
+    }
+    var currentIndex = warmPosts.indexWhere((post) {
+      return post.docID.trim() ==
+          (((activeEntries[centered]['docID'] as String?) ?? '').trim());
+    });
+    if (currentIndex < 0) currentIndex = 0;
+    unawaited(
+      prefetch.updateFeedQueueForPosts(
+        warmPosts,
+        currentIndex,
+        maxDocs: warmPosts.length,
+      ),
+    );
+    final warmLogs = <String>[];
+    for (var i = 0; i < warmPosts.length; i++) {
+      final playableOffset = i;
+      final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(
+        playableOffset,
+      );
+      if (readySegments <= 0) continue;
+      prefetch.boostDoc(
+        warmPosts[i].docID,
+        readySegments: readySegments,
+      );
+      warmLogs.add(
+        '${i + 1}:${warmPosts[i].docID}:offset=$playableOffset:segments=$readySegments',
+      );
+    }
+    if (warmLogs.isEmpty) return;
+    debugPrint(
+      '[ProfileOnYukleme] phase=$phase centered=$centered '
+      'current=$currentIndex entries=${warmLogs.join(' | ')}',
+    );
+  }
+
+  List<PostsModel> _resolveProfileWarmPosts({
+    required int centered,
+    required int maxCount,
+  }) {
+    final activeEntries = combinedFeedEntries;
+    if (activeEntries.isEmpty || maxCount <= 0) {
+      return const <PostsModel>[];
+    }
+    final collected = <PostsModel>[];
+    final seenDocIds = <String>{};
+
+    void addEntryAt(int index) {
+      if (index < 0 || index >= activeEntries.length) return;
+      final entry = activeEntries[index];
+      if (!_performCanAutoplayCombinedEntry(entry)) return;
+      final post = entry['post'];
+      if (post is! PostsModel) return;
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) return;
+      if (post.playbackUrl.trim().isEmpty) return;
+      collected.add(post);
+    }
+
+    addEntryAt(centered);
+    for (var index = centered + 1;
+        index < activeEntries.length && collected.length < maxCount;
+        index++) {
+      addEntryAt(index);
+    }
+    for (var index = centered - 1;
+        index >= 0 && collected.length < maxCount;
+        index--) {
+      addEntryAt(index);
+    }
+    return collected;
   }
 }

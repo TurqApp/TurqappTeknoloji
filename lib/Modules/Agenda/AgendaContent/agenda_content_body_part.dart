@@ -228,6 +228,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           aspectRatio: displayAspect,
                                         );
                                       }
+                                      final instanceTag =
+                                          widget.instanceTag?.trim() ?? '';
+                                      final preferWarmPoolPauseOnAndroid =
+                                          instanceTag.startsWith('profile_') ||
+                                              instanceTag
+                                                  .startsWith('archives_') ||
+                                              instanceTag
+                                                  .startsWith('liked_post_') ||
+                                              instanceTag.startsWith('social_');
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
@@ -242,6 +251,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       shouldAutoResumeInlinePlatformView,
                                                   isPrimaryFeedSurface:
                                                       isPrimaryFeedSurfaceInstance,
+                                                  preferWarmPoolPauseOnAndroid:
+                                                      preferWarmPoolPauseOnAndroid,
                                                   preferResumePoster:
                                                       shouldSuppressGenericResumeThumbnail,
                                                   startupRecoveryWatchdogEnabled:

@@ -30,12 +30,22 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     final target = manager.targetPlaybackDocID?.trim() ?? '';
     final hasShortFocus =
         current.startsWith('short:') || target.startsWith('short:');
-    if (hasShortFocus) {
+    final hasProfileFocus =
+        current.startsWith('social_') || target.startsWith('social_');
+    if (hasShortFocus || hasProfileFocus) {
       return false;
     }
     return current.startsWith('feed:') ||
         target.startsWith('feed:') ||
         _isFeedSurfaceVisible;
+  }
+
+  bool get _hasActiveProfilePlaybackWindow {
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return false;
+    final current = manager.currentPlayingDocID?.trim() ?? '';
+    final target = manager.targetPlaybackDocID?.trim() ?? '';
+    return current.startsWith('social_') || target.startsWith('social_');
   }
 
   bool get _hasActiveShortPlaybackWindow {
@@ -53,13 +63,17 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     final target = manager.targetPlaybackDocID?.trim() ?? '';
     if (current.isEmpty && target.isEmpty) return false;
     return current.startsWith('feed:') ||
+        current.startsWith('social_') ||
         current.startsWith('short:') ||
         target.startsWith('feed:') ||
+        target.startsWith('social_') ||
         target.startsWith('short:');
   }
 
   bool get _shouldAllowBackgroundQuotaFill =>
-      !_hasActiveFeedPlaybackWindow || _hasActiveShortPlaybackWindow;
+      !_hasActiveFeedPlaybackWindow ||
+      _hasActiveShortPlaybackWindow ||
+      _hasActiveProfilePlaybackWindow;
 
   bool get _isOnWiFi {
     try {

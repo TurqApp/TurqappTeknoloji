@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';
 import '../Core/Services/SegmentCache/cache_manager.dart';
@@ -150,6 +151,19 @@ class HLSVideoAdapter extends ChangeNotifier {
   }
 
   String get url => _effectiveUrl;
+
+  String? get _fallbackUrl {
+    final candidates = <String>[
+      CdnUrlBuilder.toOriginUrl(_originalUrl).trim(),
+      _originalUrl.trim(),
+    ];
+    final effective = _effectiveUrl.trim();
+    for (final candidate in candidates) {
+      if (candidate.isEmpty || candidate == effective) continue;
+      return candidate;
+    }
+    return null;
+  }
 
   void _refreshProxyUrlIfNeeded() => _performRefreshProxyUrlIfNeeded();
 

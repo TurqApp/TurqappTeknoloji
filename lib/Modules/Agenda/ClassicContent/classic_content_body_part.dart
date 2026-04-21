@@ -527,6 +527,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
   Widget videoBody(BuildContext context) {
     final frameAspectRatio =
         _isIzBirakPost ? 0.92 : _resolvedClassicFrameAspectRatio;
+    final instanceTag = widget.instanceTag?.trim() ?? '';
+    final preferWarmPoolPauseOnAndroid = instanceTag.startsWith('profile_') ||
+        instanceTag.startsWith('archives_') ||
+        instanceTag.startsWith('liked_post_') ||
+        instanceTag.startsWith('social_');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -559,6 +564,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             overrideAutoPlay:
                                 shouldAutoResumeInlinePlatformView,
                             isPrimaryFeedSurface: isPrimaryFeedSurfaceInstance,
+                            preferWarmPoolPauseOnAndroid:
+                                preferWarmPoolPauseOnAndroid,
                             preferResumePoster:
                                 shouldSuppressGenericResumeThumbnail,
                             startupRecoveryWatchdogEnabled:
