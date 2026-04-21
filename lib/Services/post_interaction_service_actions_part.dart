@@ -228,12 +228,13 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
           final subSnap = await tx.get(subCommentRef);
           if (!subSnap.exists) return;
 
+          final parentSnap = await tx.get(parentRef);
+
           tx.update(subCommentRef, {
             'deleted': true,
             'deletedTimeStamp': timestamp,
           });
 
-          final parentSnap = await tx.get(parentRef);
           if (parentSnap.exists) {
             final parentData = parentSnap.data() as Map<String, dynamic>;
             final replies = (parentData['repliesCount'] ?? 0) as num;
@@ -254,12 +255,13 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
         final commentSnap = await tx.get(commentRef);
         if (!commentSnap.exists) return;
 
+        final postSnap = await tx.get(postRef);
+
         tx.update(commentRef, {
           'deleted': true,
           'deletedTimeStamp': timestamp,
         });
 
-        final postSnap = await tx.get(postRef);
         final stats = _statsFromSnapshot(postSnap);
         final next = math.max(stats.commentCount - 1, 0);
         tx.update(postRef, {'stats.commentCount': next});

@@ -376,12 +376,6 @@ class ShortManifestRepository extends GetxService {
     final flags = item['flags'] is Map
         ? Map<String, dynamic>.from(item['flags'] as Map)
         : const <String, dynamic>{};
-    final posters = item['posterCandidates'] is List
-        ? (item['posterCandidates'] as List)
-            .map((value) => value?.toString().trim() ?? '')
-            .where((value) => value.isNotEmpty && value != 'null')
-            .toList(growable: false)
-        : <String>[];
     return <String, dynamic>{
       'userID': item['userID'],
       'authorNickname': item['authorNickname'],
@@ -390,7 +384,7 @@ class ShortManifestRepository extends GetxService {
       'rozet': item['rozet'],
       'metin': item['metin'],
       'thumbnail': item['thumbnail'],
-      'img': posters,
+      'img': const <String>[],
       'video': item['video'],
       'hlsMasterUrl': item['hlsMasterUrl'],
       'hlsStatus': item['hlsStatus'],

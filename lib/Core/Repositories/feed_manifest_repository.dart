@@ -71,6 +71,7 @@ class FeedManifestRepository extends GetxService {
   final Map<String, List<FeedManifestEntry>> _slotEntries =
       <String, List<FeedManifestEntry>>{};
   Future<FeedManifestPoolResult>? _loadFuture;
+  Future<void>? _backgroundActiveSyncFuture;
 
   String get manifestId => _manifestId;
   int get generatedAt => _generatedAt;
@@ -106,39 +107,45 @@ class FeedManifestRepository extends GetxService {
     required int? maxSlotsToLoad,
   }) async {
     await _hydrateLocalCache();
-    try {
-      final active = await _loadActiveManifestDoc();
-      final activeData = active.data() ?? const <String, dynamic>{};
-      final nextManifestId = (activeData['manifestId'] ?? '').toString().trim();
-      final generatedAt =
-          int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
-      final slotRefs = _parseSlotRefs(activeData['slots']);
+    final hasLocalWindows = _windows.isNotEmpty;
+    if (forceRefresh || !hasLocalWindows) {
+      try {
+        final active = await _loadActiveManifestDoc();
+        final activeData = active.data() ?? const <String, dynamic>{};
+        final nextManifestId =
+            (activeData['manifestId'] ?? '').toString().trim();
+        final generatedAt =
+            int.tryParse('${activeData['generatedAt'] ?? 0}') ?? 0;
+        final slotRefs = _parseSlotRefs(activeData['slots']);
 
-      if (nextManifestId.isNotEmpty && slotRefs.isNotEmpty) {
-        _manifestId = nextManifestId;
-        _generatedAt = generatedAt;
-        await _mergeActiveWindow(
-          manifestId: nextManifestId,
-          generatedAt: generatedAt,
-          slotRefs: slotRefs,
-        );
-      } else if (_windows.isEmpty) {
-        _reset();
-        return const FeedManifestPoolResult(
-          manifestId: '',
-          entries: <FeedManifestEntry>[],
-          slotCount: 0,
-          loadedSlotCount: 0,
-          generatedAt: 0,
-        );
+        if (nextManifestId.isNotEmpty && slotRefs.isNotEmpty) {
+          _manifestId = nextManifestId;
+          _generatedAt = generatedAt;
+          await _mergeActiveWindow(
+            manifestId: nextManifestId,
+            generatedAt: generatedAt,
+            slotRefs: slotRefs,
+          );
+        } else if (_windows.isEmpty) {
+          _reset();
+          return const FeedManifestPoolResult(
+            manifestId: '',
+            entries: <FeedManifestEntry>[],
+            slotCount: 0,
+            loadedSlotCount: 0,
+            generatedAt: 0,
+          );
+        }
+      } catch (error) {
+        if (_windows.isEmpty) rethrow;
+        if (kDebugMode) {
+          debugPrint(
+            '[FeedManifestRepo] stage=active_fallback_to_local error=$error',
+          );
+        }
       }
-    } catch (error) {
-      if (_windows.isEmpty) rethrow;
-      if (kDebugMode) {
-        debugPrint(
-          '[FeedManifestRepo] stage=active_fallback_to_local error=$error',
-        );
-      }
+    } else {
+      _scheduleBackgroundActiveSyncIfNeeded();
     }
     final slotRefs = _flattenWindowSlotRefs();
     if (slotRefs.isEmpty) {
@@ -196,6 +203,32 @@ class FeedManifestRepository extends GetxService {
       slotRefs: slotRefs,
     );
     return true;
+  }
+
+  void _scheduleBackgroundActiveSyncIfNeeded() {
+    if (_backgroundActiveSyncFuture != null) return;
+    final nextRefreshAt = nextExpectedRefreshAt;
+    final now = DateTime.now();
+    final shouldSync = nextRefreshAt == null ||
+        !now.isBefore(nextRefreshAt.subtract(const Duration(minutes: 5)));
+    if (!shouldSync) return;
+
+    final future = () async {
+      try {
+        await syncActiveWindowIfChanged();
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint(
+            '[FeedManifestRepo] stage=background_active_sync_skip error=$error',
+          );
+        }
+      }
+    }();
+    _backgroundActiveSyncFuture = future.whenComplete(() {
+      if (identical(_backgroundActiveSyncFuture, future)) {
+        _backgroundActiveSyncFuture = null;
+      }
+    });
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>>
@@ -488,6 +521,9 @@ class FeedManifestRepository extends GetxService {
     final flags = item['flags'] is Map
         ? Map<String, dynamic>.from(item['flags'] as Map)
         : const <String, dynamic>{};
+    final hlsMasterUrl = (item['hlsMasterUrl'] ?? '').toString().trim();
+    final videoUrl = (item['video'] ?? '').toString().trim();
+    final hasPlayableVideo = hlsMasterUrl.isNotEmpty || videoUrl.isNotEmpty;
     final posters = item['posterCandidates'] is List
         ? (item['posterCandidates'] as List)
             .map((value) => value?.toString().trim() ?? '')
@@ -502,7 +538,7 @@ class FeedManifestRepository extends GetxService {
       'rozet': item['rozet'],
       'metin': item['metin'],
       'thumbnail': item['thumbnail'],
-      'img': posters,
+      'img': hasPlayableVideo ? const <String>[] : posters,
       'video': item['video'],
       'hlsMasterUrl': item['hlsMasterUrl'],
       'hlsStatus': item['hlsStatus'],

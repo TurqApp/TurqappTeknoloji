@@ -75,6 +75,7 @@ void main() {
       expect(entries.first.canonicalId, 'doc-1');
       expect(entries.first.post.shortUrl, 'https://turqapp.com/p/doc-1');
       expect(entries.first.post.authorAvatarUrl, contains('user-a'));
+      expect(entries.first.post.img, isEmpty);
       expect(entries[1].canonicalId, 'flood-root');
       expect(entries[1].post.isFloodSeriesRoot, isTrue);
     });
