@@ -28,6 +28,7 @@ void main() {
         nowMs: anchorMs,
         loadLimit: 30,
         lastDoc: null,
+        hasMore: true,
         usesPrimaryFeed: true,
         pageItemsPreplanned: true,
       );
@@ -61,6 +62,7 @@ void main() {
         nowMs: anchorMs,
         loadLimit: 30,
         lastDoc: null,
+        hasMore: true,
         usesPrimaryFeed: true,
       );
 

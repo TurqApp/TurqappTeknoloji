@@ -1006,12 +1006,6 @@ extension ShortControllerLoadingPart on ShortController {
       userId: userId,
       state: state,
     );
-    await ensureShortSnapshotRepository().persistHomeSnapshot(
-      userId: userId,
-      posts: remainingPosts,
-      limit: remainingPosts.length,
-      source: CachedResourceSource.scopedDisk,
-    );
   }
 
   void _remapCacheForNewList({

@@ -33,7 +33,6 @@ import 'package:turqappv2/Services/device_session_service.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import '../../Models/posts_model.dart';
 import '../PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'short_feed_application_service.dart';

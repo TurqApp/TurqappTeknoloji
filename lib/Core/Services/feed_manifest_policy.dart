@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:math';
 
 class FeedManifestPolicy {
@@ -6,14 +5,14 @@ class FeedManifestPolicy {
 
   static const bool primaryEnabled = bool.fromEnvironment(
     'FEED_MANIFEST_PRIMARY',
-    defaultValue: kDebugMode,
+    defaultValue: true,
   );
   static const bool typesenseGapEnabled = true;
   static const Duration primaryLoadTimeout = Duration(milliseconds: 1200);
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 12;
-  static const int minUserSpacing = 4;
-  static const int maxItemsPerUser = 2;
+  static const int minUserSpacing = 0;
+  static const int maxItemsPerUser = 1000000;
   static const int startupHeadRememberLimit = 60;
   static const int maxGapCandidateLimit = 180;
   static const int minGapCandidateLimit = 60;

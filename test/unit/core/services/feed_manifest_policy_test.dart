@@ -58,9 +58,9 @@ void main() {
       );
     });
 
-    test('keeps per-user deck cap positive and conservative', () {
-      expect(FeedManifestPolicy.maxItemsPerUser, greaterThan(0));
-      expect(FeedManifestPolicy.maxItemsPerUser, lessThanOrEqualTo(4));
+    test('does not impose author-spacing caps in runtime deck policy', () {
+      expect(FeedManifestPolicy.minUserSpacing, 0);
+      expect(FeedManifestPolicy.maxItemsPerUser, greaterThan(1000));
     });
 
     test('startup slot load budget scales by page and stays capped', () {

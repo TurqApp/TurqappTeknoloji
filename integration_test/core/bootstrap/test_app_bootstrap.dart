@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Services/integration_test_fixture_contract.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
@@ -732,17 +732,12 @@ Future<void> _primeShortSnapshotForSmoke(WidgetTester tester) async {
   final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
   if (uid.isEmpty) return;
 
-  final repository = ensureShortSnapshotRepository();
   try {
-    await repository.loadHome(
-      userId: uid,
-      forceSync: true,
-    );
-    await repository.bootstrapHome(userId: uid);
+    await ensureShortManifestRepository().warmStartupWindow();
     await tester.pump(const Duration(milliseconds: 250));
-    drainExpectedTesterExceptions(tester, context: 'short snapshot prime');
+    drainExpectedTesterExceptions(tester, context: 'short manifest prime');
   } catch (error) {
-    debugPrint('[integration-smoke] short snapshot prime skipped: $error');
+    debugPrint('[integration-smoke] short manifest prime skipped: $error');
   }
 }
 

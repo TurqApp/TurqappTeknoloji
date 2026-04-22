@@ -1243,6 +1243,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         nowMs: nowMs,
         loadLimit: loadLimit,
         lastDoc: effectiveLastDoc,
+        hasMore: effectiveHasMore,
         usesPrimaryFeed: effectiveUsesPrimaryFeed,
         maxItemsToAdd: usesPlannedColdPage ? loadLimit : null,
         pageItemsPreplanned: usesPlannedColdPage ||
@@ -1337,6 +1338,14 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
 
       hasMore.value = effectiveHasMore;
+      _reconcileFeedPageFetchTriggerToCurrentRunway(
+        reason: initial ? 'initial_apply' : 'append_apply',
+      );
+      if (effectiveHasMore) {
+        _maybeTriggerDeferredFeedGrowth(
+          reason: initial ? 'initial_apply' : 'append_apply',
+        );
+      }
       if (initial && liveConnected && effectiveHasMore) {
         _scheduleConnectedFeedReservoirStageWarmup(
           targetLimit: _connectedColdFeedStageTwoLimit,
@@ -2591,6 +2600,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         nowMs: nowMs,
         loadLimit: loadLimit,
         lastDoc: page.lastDoc,
+        hasMore: FeedTypesensePagingContract.resolveTopUpHasMore(
+          itemCount: page.items.length,
+          lastDoc: page.lastDoc,
+          nextTypesensePage: page.nextTypesensePage,
+        ),
         usesPrimaryFeed: page.usesPrimaryFeed,
         pageItemsPreplanned: page.itemsPreplanned,
       );
@@ -2622,6 +2636,14 @@ extension AgendaControllerLoadingPart on AgendaController {
         lastDoc: pageApplyPlan.lastDoc,
         nextTypesensePage: page.nextTypesensePage,
       );
+      _reconcileFeedPageFetchTriggerToCurrentRunway(
+        reason: forceNewLaunchSession ? 'refresh_reset' : 'refresh_merge',
+      );
+      if (hasMore.value) {
+        _maybeTriggerDeferredFeedGrowth(
+          reason: forceNewLaunchSession ? 'refresh_reset' : 'refresh_merge',
+        );
+      }
       _feedRefreshInFlight = true;
       _applyRefreshMergedAgenda(
         mergedAgenda: mergedAgenda,

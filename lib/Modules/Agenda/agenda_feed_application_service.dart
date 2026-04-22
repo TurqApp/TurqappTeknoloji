@@ -135,6 +135,7 @@ class AgendaFeedApplicationService {
     required int nowMs,
     required int loadLimit,
     required DocumentSnapshot<Map<String, dynamic>>? lastDoc,
+    required bool hasMore,
     required bool usesPrimaryFeed,
     int? maxItemsToAdd,
     bool pageItemsPreplanned = false,
@@ -174,7 +175,7 @@ class AgendaFeedApplicationService {
     return AgendaFeedPageApplyPlan(
       itemsToAdd: itemsToAdd,
       freshScheduledIds: freshScheduledIds,
-      hasMore: lastDoc != null && pageItems.length >= loadLimit,
+      hasMore: hasMore,
       lastDoc: lastDoc,
       usesPrimaryFeed: usesPrimaryFeed,
       pageItemsPreplanned: pageItemsPreplanned,

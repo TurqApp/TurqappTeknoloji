@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -94,7 +93,6 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
     if (userId.isNotEmpty) {
       await Future.wait(<Future<void>>[
         ensureFeedSnapshotRepository().clearUserSnapshots(userId: userId),
-        ensureShortSnapshotRepository().clearUserSnapshots(userId: userId),
       ]);
     }
 

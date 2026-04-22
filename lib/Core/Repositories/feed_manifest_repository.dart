@@ -72,6 +72,7 @@ class FeedManifestRepository extends GetxService {
       <String, List<FeedManifestEntry>>{};
   Future<FeedManifestPoolResult>? _loadFuture;
   Future<void>? _backgroundActiveSyncFuture;
+  Future<void>? _backgroundSlotPrefetchFuture;
 
   String get manifestId => _manifestId;
   int get generatedAt => _generatedAt;
@@ -164,6 +165,7 @@ class FeedManifestRepository extends GetxService {
       effectiveSlotRefs,
       forceRefresh: forceRefresh,
     );
+    _scheduleBackgroundSlotPrefetch(slotRefs);
     final entries = <FeedManifestEntry>[];
     var loadedSlotCount = 0;
     for (final slot in effectiveSlotRefs) {
@@ -227,6 +229,23 @@ class FeedManifestRepository extends GetxService {
     _backgroundActiveSyncFuture = future.whenComplete(() {
       if (identical(_backgroundActiveSyncFuture, future)) {
         _backgroundActiveSyncFuture = null;
+      }
+    });
+  }
+
+  void _scheduleBackgroundSlotPrefetch(List<_FeedManifestSlotRef> slots) {
+    if (_backgroundSlotPrefetchFuture != null || slots.isEmpty) return;
+    final pending = slots
+        .where((slot) => slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
+        .toList(growable: false);
+    if (pending.isEmpty) return;
+    final future = _ensureSlotsLoaded(
+      pending,
+      forceRefresh: false,
+    );
+    _backgroundSlotPrefetchFuture = future.whenComplete(() {
+      if (identical(_backgroundSlotPrefetchFuture, future)) {
+        _backgroundSlotPrefetchFuture = null;
       }
     });
   }

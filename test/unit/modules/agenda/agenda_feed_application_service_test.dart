@@ -29,6 +29,7 @@ void main() {
         nowMs: nowMs,
         loadLimit: 30,
         lastDoc: null,
+        hasMore: false,
         usesPrimaryFeed: true,
       );
 

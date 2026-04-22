@@ -148,8 +148,6 @@ class CurrentUserCacheStore {
     await Future.wait(<Future<void>>[
       maybeFindFeedSnapshotRepository()?.clearUserSnapshots(userId: userId) ??
           Future<void>.value(),
-      maybeFindShortSnapshotRepository()?.clearUserSnapshots(userId: userId) ??
-          Future<void>.value(),
       ProfilePostsSnapshotRepository.maybeFind()?.clearUserSnapshots(
             userId: userId,
           ) ??

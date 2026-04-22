@@ -9,7 +9,7 @@ import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
@@ -454,10 +454,8 @@ class SignInApplicationService {
     try {
       final userId = _ensureCurrentUserService().effectiveUserId.trim();
       if (userId.isEmpty) return;
-      final loadShortsFuture = ensureShortSnapshotRepository().loadHome(
-        userId: userId,
-        forceSync: true,
-      );
+      final loadShortsFuture =
+          ensureShortManifestRepository().warmStartupWindow();
       if (timeout == null) {
         await loadShortsFuture;
       } else {

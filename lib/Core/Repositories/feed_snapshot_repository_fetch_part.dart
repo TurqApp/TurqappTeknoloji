@@ -1,7 +1,5 @@
 part of 'feed_snapshot_repository.dart';
 
-bool _feedManifestAndroidDisabledForSession = false;
-
 extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
@@ -120,6 +118,48 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (manifestPage != null) {
       return manifestPage;
     }
+    final shouldUseFallback =
+        startAfter == null && (typesensePage == null || typesensePage <= 1);
+    if (shouldUseFallback) {
+      final warmFallback = await _loadWarmFeedFallbackPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+      );
+      if (warmFallback.items.isNotEmpty) {
+        if (_shouldLogDiagnostics) {
+          debugPrint(
+            '[FeedManifestPrimary] status=fallback_warm '
+            'uid=$normalizedUserId count=${warmFallback.items.length}',
+          );
+        }
+        return warmFallback;
+      }
+
+      final personalFallback = await _loadPersonalFallbackPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        preferCache: preferCache,
+        cacheOnly: cacheOnly,
+        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
+      );
+      if (personalFallback.items.isNotEmpty) {
+        if (_shouldLogDiagnostics) {
+          debugPrint(
+            '[FeedManifestPrimary] status=fallback_personal '
+            'uid=$normalizedUserId count=${personalFallback.items.length}',
+          );
+        }
+        return personalFallback;
+      }
+    }
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedManifestPrimary] status=manifest_only_empty '
@@ -148,13 +188,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (!FeedManifestPolicy.primaryEnabled ||
         cacheOnly ||
         currentUserId.trim().isEmpty) {
-      return null;
-    }
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        _feedManifestAndroidDisabledForSession) {
-      if (_shouldLogDiagnostics) {
-        debugPrint('[FeedManifestPrimary] status=disabled_android_session');
-      }
       return null;
     }
 
@@ -267,13 +300,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         nextTypesensePage: nextPage,
       );
     } catch (error) {
-      final isPermissionDenied =
-          error is FirebaseException && error.code == 'permission-denied' ||
-              '$error'.contains('permission-denied');
-      if (defaultTargetPlatform == TargetPlatform.android &&
-          isPermissionDenied) {
-        _feedManifestAndroidDisabledForSession = true;
-      }
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
@@ -283,6 +309,48 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       }
       return null;
     }
+  }
+
+  Future<FeedSourcePage> _loadWarmFeedFallbackPage({
+    required String currentUserId,
+    required Set<String> followingIds,
+    required Set<String> hiddenPostIds,
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+  }) async {
+    final posts = await _warmLaunchPool.loadPosts(
+      IndexPoolKind.feed,
+      limit: limit,
+      allowStale: true,
+    );
+    if (posts.isEmpty) {
+      return const FeedSourcePage(
+        items: <PostsModel>[],
+        lastDoc: null,
+        usesPrimaryFeed: false,
+        itemsPreplanned: true,
+        nextTypesensePage: null,
+      );
+    }
+    final visible = await filterVisiblePosts(
+      posts,
+      currentUserId: currentUserId,
+      followingIds: followingIds,
+      hiddenPostIds: hiddenPostIds,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+      summaryCacheOnly: true,
+      refreshNonPublicCachedSummaries: false,
+    );
+    return FeedSourcePage(
+      items: visible,
+      lastDoc: null,
+      usesPrimaryFeed: false,
+      itemsPreplanned: true,
+      nextTypesensePage: null,
+    );
   }
 
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({

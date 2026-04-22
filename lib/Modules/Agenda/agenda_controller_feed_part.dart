@@ -57,6 +57,67 @@ extension AgendaControllerFeedPart on AgendaController {
     );
   }
 
+  int _reachableFeedPageFetchTriggerCount() {
+    if (agendaList.isEmpty) {
+      return _feedInitialPageFetchTriggerCount;
+    }
+    final runwayTrigger = max(
+      FeedGrowthPolicy.postsPerGroup,
+      agendaList.length - FeedGrowthPolicy.growthRunwayPostCount,
+    );
+    return min(_nextPageFetchTriggerCount, runwayTrigger);
+  }
+
+  void _reconcileFeedPageFetchTriggerToCurrentRunway({
+    required String reason,
+  }) {
+    final reconciledTrigger = _reachableFeedPageFetchTriggerCount();
+    if (reconciledTrigger == _nextPageFetchTriggerCount) {
+      return;
+    }
+    debugPrint(
+      '[FeedFetchTrigger] source=reconcile '
+      'reason=$reason currentCount=${agendaList.length} '
+      'previousTrigger=$_nextPageFetchTriggerCount '
+      'nextTrigger=$reconciledTrigger',
+    );
+    _nextPageFetchTriggerCount = reconciledTrigger;
+  }
+
+  void _maybeTriggerDeferredFeedGrowth({
+    required String reason,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed ||
+          agendaList.isEmpty ||
+          isLoading.value ||
+          !hasMore.value ||
+          !scrollController.hasClients) {
+        return;
+      }
+      _reconcileFeedPageFetchTriggerToCurrentRunway(
+        reason: '${reason}_deferred_post_frame',
+      );
+      final centered = centeredIndex.value;
+      final viewedCount =
+          centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
+      if (viewedCount < _nextPageFetchTriggerCount) {
+        return;
+      }
+      final triggerCount = _nextPageFetchTriggerCount;
+      debugPrint(
+        '[FeedFetchTrigger] source=deferred_post_apply '
+        'reason=$reason viewedCount=$viewedCount '
+        'currentCount=${agendaList.length} triggerCount=$triggerCount',
+      );
+      _advanceFeedPageFetchTrigger(viewedCount);
+      fetchAgendaBigData(
+        pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
+        trigger: 'deferred_post_apply',
+      );
+    });
+  }
+
   void maybeTriggerFeedGrowthFromPromo({
     required String promoType,
     required int slotNumber,

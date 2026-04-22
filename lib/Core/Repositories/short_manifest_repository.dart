@@ -75,9 +75,16 @@ class ShortManifestRepository extends GetxService {
 
     final output = <PostsModel>[];
     while (output.length < normalizedPageSize) {
+      final currentPath = _slotPath(_cursorSlotIndex);
+      if (currentPath.isEmpty) {
+        break;
+      }
       final slot = await _ensureSlot(_cursorSlotIndex);
       if (slot.isEmpty) {
-        break;
+        _cursorSlotIndex++;
+        _cursorItemIndex = 0;
+        unawaited(_ensureTwoSlotWindow());
+        continue;
       }
       while (_cursorItemIndex < slot.length &&
           output.length < normalizedPageSize) {
@@ -118,6 +125,11 @@ class ShortManifestRepository extends GetxService {
         _loadFuture = null;
       }
     });
+  }
+
+  Future<void> warmStartupWindow() async {
+    await _ensureLoaded();
+    await _ensureTwoSlotWindow();
   }
 
   Future<void> _loadManifest() async {
@@ -253,9 +265,18 @@ class ShortManifestRepository extends GetxService {
   }
 
   Future<bool> _hasMore() async {
-    final current = await _ensureSlot(_cursorSlotIndex);
-    if (_cursorItemIndex < current.length) return true;
-    return _slotPath(_cursorSlotIndex + 1).isNotEmpty;
+    var slotIndex = _cursorSlotIndex;
+    var itemIndex = _cursorItemIndex;
+    while (true) {
+      final path = _slotPath(slotIndex);
+      if (path.isEmpty) return false;
+      final slot = await _ensureSlot(slotIndex);
+      if (itemIndex < slot.length) {
+        return true;
+      }
+      slotIndex++;
+      itemIndex = 0;
+    }
   }
 
   Future<void> _ensureTwoSlotWindow() async {

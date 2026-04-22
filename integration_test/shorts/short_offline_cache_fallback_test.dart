@@ -2,8 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:turqappv2/Core/Repositories/short_snapshot_repository.dart';
-import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
@@ -35,14 +33,6 @@ void main() {
             final cacheManager = SegmentCacheManager.ensure();
             await cacheManager.init();
             await cacheManager.clearAllCache();
-
-            final snapshotRepository = ensureShortSnapshotRepository();
-            await snapshotRepository.clearUserSnapshots(userId: userId);
-            await snapshotRepository.persistHomeSnapshot(
-              userId: userId,
-              posts: const <PostsModel>[],
-              source: CachedResourceSource.scopedDisk,
-            );
 
             final cachedPost = _buildOfflineShortPost();
             cacheManager.cachePostCards(<PostsModel>[cachedPost]);
