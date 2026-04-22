@@ -101,6 +101,21 @@ extension AgendaControllerFeedPart on AgendaController {
       final centered = centeredIndex.value;
       final viewedCount =
           centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
+      if (agendaList.length <= FeedGrowthPolicy.growthRunwayPostCount) {
+        final triggerCount = _nextPageFetchTriggerCount;
+        final effectiveViewedCount = max(viewedCount, triggerCount);
+        debugPrint(
+          '[FeedFetchTrigger] source=deferred_low_count '
+          'reason=$reason viewedCount=$viewedCount '
+          'currentCount=${agendaList.length} triggerCount=$triggerCount',
+        );
+        _advanceFeedPageFetchTrigger(effectiveViewedCount);
+        fetchAgendaBigData(
+          pageLimit: ReadBudgetRegistry.feedPageFetchLimit,
+          trigger: 'deferred_low_count',
+        );
+        return;
+      }
       if (viewedCount < _nextPageFetchTriggerCount) {
         return;
       }
@@ -1150,21 +1165,32 @@ extension AgendaControllerFeedPart on AgendaController {
     final viewedCount =
         centered >= 0 && centered < agendaList.length ? centered + 1 : 0;
     final normalTriggerReached = viewedCount >= _nextPageFetchTriggerCount;
+    final scrollRunwayTriggerReached =
+        scrollController.position.hasContentDimensions &&
+            scrollController.position.extentAfter <=
+                scrollController.position.viewportDimension * 2 &&
+            currentOffset > 0 &&
+            agendaList.length >= FeedGrowthPolicy.postsPerGroup;
     if (agendaList.isNotEmpty &&
         scrollController.position.hasContentDimensions &&
         hasMore.value &&
         !isLoading.value &&
-        normalTriggerReached) {
+        (normalTriggerReached || scrollRunwayTriggerReached)) {
       final triggerCount = _nextPageFetchTriggerCount;
+      final effectiveViewedCount =
+          normalTriggerReached ? viewedCount : max(viewedCount, triggerCount);
       final activeBlock = _resolveFeedWarmBlockIndex(centered);
       final activeGroupInBlock = _resolveFeedWarmGroupInBlock(centered);
       debugPrint(
-        '[FeedFetchTrigger] viewedCount=$viewedCount currentCount=${agendaList.length} '
+        '[FeedFetchTrigger] source=${normalTriggerReached ? "centered_index" : "scroll_runway"} '
+        'viewedCount=$viewedCount effectiveViewedCount=$effectiveViewedCount '
+        'currentCount=${agendaList.length} '
         'pageLimit=${ReadBudgetRegistry.feedPageFetchLimit} '
         'triggerCount=$triggerCount block=$activeBlock group=$activeGroupInBlock '
-        'resolvedViewedCount=$viewedCount',
+        'extentAfter=${scrollController.position.extentAfter.toStringAsFixed(1)} '
+        'viewport=${scrollController.position.viewportDimension.toStringAsFixed(1)}',
       );
-      _advanceFeedPageFetchTrigger(viewedCount);
+      _advanceFeedPageFetchTrigger(effectiveViewedCount);
       recordQALabScrollEvent(
         surface: 'feed',
         phase: 'near_end',
@@ -1174,6 +1200,8 @@ extension AgendaControllerFeedPart on AgendaController {
           'maxScrollExtent': scrollController.position.maxScrollExtent,
           'count': agendaList.length,
           'viewedCount': viewedCount,
+          'effectiveViewedCount': effectiveViewedCount,
+          'source': normalTriggerReached ? 'centered_index' : 'scroll_runway',
           'nextTriggerCount': _nextPageFetchTriggerCount,
           'activeBlock': activeBlock,
           'activeGroupInBlock': activeGroupInBlock,
