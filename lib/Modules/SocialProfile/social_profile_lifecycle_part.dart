@@ -179,11 +179,70 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
 
   Future<void> _changePostSelection(int index) async {
     await controller.setPostSelection(index);
+    if (index == 4 && !_marketLoading && _marketItems.isEmpty) {
+      unawaited(_loadMarketItems(force: false));
+    }
     final scrollController = _scrollControllerForSelection(index);
     if (!mounted) return;
     controller.showScrollToTop.value =
         scrollController.hasClients && scrollController.offset > 500;
     _scheduleOnScroll();
+  }
+
+  Future<void> _loadMarketItems({bool force = false}) async {
+    final uid = widget.userID.trim();
+    if (uid.isEmpty) return;
+    if (_marketLoading && !force) return;
+    _updateSocialProfileState(() {
+      _marketLoading = true;
+    });
+    try {
+      final items = await _loadSocialProfileMarketItems(
+        uid,
+        force: force,
+      );
+      _updateSocialProfileState(() {
+        _marketItems = items
+            .where((item) => item.status != 'archived')
+            .toList(growable: false);
+        controller.totalMarket.value = _marketItems.length;
+      });
+    } catch (_) {
+      _updateSocialProfileState(() {
+        _marketItems = const <MarketItemModel>[];
+        controller.totalMarket.value = 0;
+      });
+    } finally {
+      _updateSocialProfileState(() {
+        _marketLoading = false;
+      });
+    }
+  }
+
+  Future<List<MarketItemModel>> _loadSocialProfileMarketItems(
+    String userId, {
+    required bool force,
+  }) async {
+    if (force) {
+      final resource = await _marketSnapshotRepository.loadOwner(
+        userId: userId,
+        forceSync: true,
+      );
+      return resource.data ?? const <MarketItemModel>[];
+    }
+
+    final cached = await _marketSnapshotRepository.loadCachedOwner(
+      userId: userId,
+    );
+    if (cached.hasLocalSnapshot && cached.data != null) {
+      return cached.data!;
+    }
+
+    final live = await _marketSnapshotRepository.loadOwner(
+      userId: userId,
+      forceSync: true,
+    );
+    return live.data ?? const <MarketItemModel>[];
   }
 
   void _setCenteredIndex(int value) {

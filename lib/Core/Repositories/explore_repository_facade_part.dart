@@ -67,6 +67,23 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
         nowMs: nowMs,
       );
 
+  Future<ExploreQueryPage> fetchStoredFloodManifestPage({
+    required int offset,
+    int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,
+    int? nowMs,
+  }) =>
+      _fetchStoredFloodManifestPage(
+        offset: offset,
+        pageLimit: pageLimit,
+        nowMs: nowMs,
+      );
+
+  Future<void> ensureFloodManifestStoreFresh({bool force = false}) =>
+      _ensureFloodManifestStoreFresh(force: force);
+
+  Future<List<PostsModel>> loadFloodManifestSeries(String anyFloodId) =>
+      _loadFloodManifestSeries(anyFloodId);
+
   Future<ExploreQueryPage> fetchFloodFallbackPage({
     DocumentSnapshot? startAfter,
     int pageLimit = ReadBudgetRegistry.exploreFloodPageLimit,

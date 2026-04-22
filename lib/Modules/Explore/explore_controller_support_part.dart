@@ -76,6 +76,8 @@ extension ExploreControllerPublicPart on ExploreController {
     lastVideoDoc = null;
     lastPhotoDoc = null;
     lastFloodsDoc = null;
+    _floodManifestStoreOffset = 0;
+    _floodManifestStoreActive = true;
     exploreHasMore.value = true;
     videoHasMore.value = true;
     photoHasMore.value = true;

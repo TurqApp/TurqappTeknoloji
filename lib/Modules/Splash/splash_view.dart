@@ -24,6 +24,7 @@ import 'package:turqappv2/Core/Services/startup_route_gate_policy.dart';
 import 'package:turqappv2/Modules/Splash/splash_startup_orchestrator.dart';
 
 import '../../Core/Repositories/feed_snapshot_repository.dart';
+import '../../Core/Repositories/explore_repository.dart';
 import '../../Core/Repositories/job_home_snapshot_repository.dart';
 import '../../Core/Repositories/scholarship_snapshot_repository.dart';
 import '../../Core/Repositories/tutoring_snapshot_repository.dart';

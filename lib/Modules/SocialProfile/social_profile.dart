@@ -33,11 +33,17 @@ import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
+import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/profile_posts_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
+import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content.dart';
+import 'package:turqappv2/Modules/Market/market_detail_view.dart';
+import 'package:turqappv2/Modules/Market/market_offer_utils.dart';
 import 'package:turqappv2/Modules/Profile/AboutProfile/about_profile.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers.dart';
 import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
@@ -46,6 +52,7 @@ import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import '../../Core/Helpers/seen_count_label.dart';
+import '../../Core/Services/turq_image_cache_manager.dart';
 import '../Chat/chat.dart';
 import '../Chat/ChatListing/chat_listing_controller.dart';
 import '../Profile/SocialMediaLinks/social_media_content.dart';
@@ -67,9 +74,42 @@ part 'social_profile_sections_actions_part.dart';
 part 'social_profile_header_part.dart';
 part 'social_profile_header_actions_part.dart';
 
+Future<void> _prewarmSocialProfileSurface(String userId) async {
+  final normalizedUserId = userId.trim();
+  if (normalizedUserId.isEmpty) return;
+  try {
+    unawaited(
+      UserRepository.ensure().getUserRaw(
+        normalizedUserId,
+        preferCache: true,
+        cacheOnly: false,
+      ),
+    );
+    unawaited(
+      ProfilePostsSnapshotRepository.ensure()
+          .bootstrapProfile(
+            userId: normalizedUserId,
+            limit: 10,
+          )
+          .timeout(const Duration(milliseconds: 1600)),
+    );
+    unawaited(
+      MarketSnapshotRepository.ensure()
+          .loadOwner(
+            userId: normalizedUserId,
+            limit: 12,
+            forceSync: false,
+          )
+          .timeout(const Duration(milliseconds: 1600)),
+    );
+  } catch (_) {}
+}
+
 class SocialProfile extends StatefulWidget {
   final String userID;
-  const SocialProfile({super.key, required this.userID});
+  SocialProfile({super.key, required this.userID}) {
+    unawaited(_prewarmSocialProfileSurface(userID));
+  }
 
   @override
   State<SocialProfile> createState() => _SocialProfileState();
@@ -89,6 +129,10 @@ class _SocialProfileState extends State<SocialProfile> {
   bool _ownsChatListingController = false;
   final userService = CurrentUserService.instance;
   final ShortLinkService _shortLinkService = ShortLinkService();
+  final MarketSnapshotRepository _marketSnapshotRepository =
+      MarketSnapshotRepository.ensure();
+  List<MarketItemModel> _marketItems = const <MarketItemModel>[];
+  bool _marketLoading = false;
 
   ScrollController get _currentScrollController =>
       _scrollControllerForSelection(controller.postSelection.value);

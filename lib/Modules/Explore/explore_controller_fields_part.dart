@@ -40,6 +40,8 @@ class _ExploreControllerState {
   final floodsScroll = ScrollController();
   final exploreFloods = <PostsModel>[].obs;
   DocumentSnapshot? lastFloodsDoc;
+  int floodManifestStoreOffset = 0;
+  bool floodManifestStoreActive = true;
   final floodsHasMore = true.obs;
   final floodsIsLoading = false.obs;
   final floodsVisibleIndex = (-1).obs;
@@ -102,6 +104,12 @@ extension ExploreControllerFieldsPart on ExploreController {
   RxList<PostsModel> get exploreFloods => _state.exploreFloods;
   DocumentSnapshot? get lastFloodsDoc => _state.lastFloodsDoc;
   set lastFloodsDoc(DocumentSnapshot? value) => _state.lastFloodsDoc = value;
+  int get _floodManifestStoreOffset => _state.floodManifestStoreOffset;
+  set _floodManifestStoreOffset(int value) =>
+      _state.floodManifestStoreOffset = value;
+  bool get _floodManifestStoreActive => _state.floodManifestStoreActive;
+  set _floodManifestStoreActive(bool value) =>
+      _state.floodManifestStoreActive = value;
   RxBool get floodsHasMore => _state.floodsHasMore;
   RxBool get floodsIsLoading => _state.floodsIsLoading;
   RxInt get floodsVisibleIndex => _state.floodsVisibleIndex;

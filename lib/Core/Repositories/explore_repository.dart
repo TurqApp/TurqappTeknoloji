@@ -1,5 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -7,6 +13,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 
 part 'explore_repository_models_part.dart';
 part 'explore_repository_facade_part.dart';
+part 'explore_repository_cache_part.dart';
 part 'explore_repository_query_part.dart';
 part 'explore_repository_page_part.dart';
 
@@ -15,6 +22,7 @@ class ExploreRepository extends GetxService {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _firestore;
+  SharedPreferences? _prefs;
 
   static ExploreRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ExploreRepository>();

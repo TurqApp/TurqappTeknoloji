@@ -34,7 +34,12 @@ extension _SocialProfileContentPart on _SocialProfileState {
   }
 
   Widget _buildProfileBody(BuildContext context) {
-    if (controller.isPrivateContentBlockedFor(_myUserId)) {
+    final isPrivateBlocked = controller.isPrivateContentBlockedFor(_myUserId);
+    if (isPrivateBlocked) {
+      debugPrint(
+        '[SocialProfileGate] state=private_blocked userId=${widget.userID} '
+        'viewer=$_myUserId isPrivate=${controller.gizliHesap.value} following=${controller.takipEdiyorum.value}',
+      );
       return _buildPrivateState();
     }
 

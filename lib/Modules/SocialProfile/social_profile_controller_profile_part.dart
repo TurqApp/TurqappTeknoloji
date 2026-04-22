@@ -1,6 +1,22 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerProfilePart on SocialProfileController {
+  int? _extractCounterValue(
+    Map<String, dynamic> raw,
+    List<String> keys,
+  ) {
+    final stats = (raw["stats"] is Map)
+        ? Map<String, dynamic>.from(raw["stats"] as Map)
+        : const <String, dynamic>{};
+    for (final key in keys) {
+      final direct = raw[key];
+      if (direct is num) return direct.toInt();
+      final nested = stats[key];
+      if (nested is num) return nested.toInt();
+    }
+    return null;
+  }
+
   Future<void> _performLogProfileVisitIfNeeded() async {
     try {
       final current = CurrentUserService.instance.effectiveUserId;
@@ -32,12 +48,25 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         return;
       }
 
-      final summary = await _userSummaryResolver.resolve(
+      final raw = await _userRepository.getUserRaw(
         userID,
         preferCache: true,
+        cacheOnly: true,
       );
-      final followerCounter = summary?.followerCount ?? 0;
-      final followingCounter = summary?.followingCount ?? 0;
+      final followerCounter = _extractCounterValue(raw ?? const {}, <String>[
+            'counterOfFollowers',
+            'followersCount',
+            'takipci',
+            'followerCount',
+          ]) ??
+          0;
+      final followingCounter = _extractCounterValue(raw ?? const {}, <String>[
+            'counterOfFollowings',
+            'followingCount',
+            'takip',
+            'followCount',
+          ]) ??
+          0;
 
       totalFollower.value = followerCounter;
       totalFollowing.value = followingCounter;
@@ -142,38 +171,63 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
 
   Future<void> _performGetUserData() async {
     _userDocSub?.cancel();
+    _userDocSub = _userRepository.watchUserRaw(userID).listen((raw) {
+      if (raw == null || raw.isEmpty) return;
+      _applyUserData(raw);
+    });
     try {
-      final manifestHeader =
-          await ProfileManifestRepository.ensure().loadHeader(userId: userID);
-      if (manifestHeader != null && manifestHeader.isNotEmpty) {
-        _performApplyManifestHeader(manifestHeader);
+      final cachedRaw = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+        cacheOnly: true,
+      );
+      if (cachedRaw != null && cachedRaw.isNotEmpty) {
+        _applyUserData(cachedRaw);
       }
+
+      final raw = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+      );
+      if (raw != null && raw.isNotEmpty) {
+        _applyUserData(raw);
+        if (_needsHeaderSupplementalData(raw)) {
+          final freshRaw = await _userRepository.getUserRaw(
+            userID,
+            preferCache: false,
+            forceServer: true,
+          );
+          if (freshRaw != null && freshRaw.isNotEmpty) {
+            await _userRepository.putUserRaw(userID, freshRaw);
+            _applyUserData(freshRaw);
+          }
+        } else {
+          _applySupplementalUserData(raw);
+        }
+        return;
+      }
+
       final summary = await _userSummaryResolver.resolve(
         userID,
         preferCache: true,
       );
       if (summary != null) {
-        final cachedRaw = await _userRepository.getUserRaw(
-          userID,
-          preferCache: true,
-          cacheOnly: true,
-        );
-        final bootstrapData = (cachedRaw != null && cachedRaw.isNotEmpty)
-            ? cachedRaw
-            : summary.toMap();
-        _applyUserData(bootstrapData);
+        final bootstrapData = summary.toMap();
+        if (bootstrapData.isNotEmpty) {
+          _applyUserData(bootstrapData);
+        }
         if (_needsHeaderSupplementalData(bootstrapData)) {
-          final raw = await _userRepository.getUserRaw(
+          final freshRaw = await _userRepository.getUserRaw(
             userID,
             preferCache: false,
             forceServer: true,
           );
-          if (raw != null && raw.isNotEmpty) {
-            await _userRepository.putUserRaw(userID, raw);
-            _applyUserData(raw);
+          if (freshRaw != null && freshRaw.isNotEmpty) {
+            await _userRepository.putUserRaw(userID, freshRaw);
+            _applyUserData(freshRaw);
           }
-        } else if (cachedRaw != null && cachedRaw.isNotEmpty) {
-          _applySupplementalUserData(cachedRaw);
+        } else {
+          _applySupplementalUserData(bootstrapData);
         }
         return;
       }
@@ -182,33 +236,13 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     }
 
     try {
-      final raw = await _userRepository.getUserRaw(userID, preferCache: true);
+      final raw = await _userRepository.getUserRaw(
+        userID,
+        preferCache: true,
+      );
       _applyUserData(raw ?? const <String, dynamic>{});
     } catch (e) {
       print("SocialProfile.getUserData fallback error: $e");
-    }
-  }
-
-  void _performApplyManifestHeader(Map<String, dynamic> header) {
-    nickname.value = (header['nickname'] ?? '').toString().trim();
-    displayName.value = (header['displayName'] ?? '').toString().trim();
-    avatarUrl.value = (header['avatarUrl'] ?? '').toString().trim();
-    rozet.value = (header['rozet'] ?? '').toString().trim();
-    bio.value = (header['bio'] ?? '').toString().trim();
-    adres.value = (header['adres'] ?? '').toString().trim();
-    meslek.value = (header['meslekKategori'] ?? '').toString().trim();
-    final followerCount = header['followerCount'];
-    final followingCount = header['followingCount'];
-    if (followerCount is num) {
-      totalFollower.value = followerCount.toInt();
-    }
-    if (followingCount is num) {
-      totalFollowing.value = followingCount.toInt();
-    }
-    final nextDisplay = displayName.value;
-    if (nextDisplay.isNotEmpty) {
-      firstName.value = nextDisplay;
-      lastName.value = '';
     }
   }
 
@@ -254,6 +288,31 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     adres.value = (raw["adres"] ?? profile["adres"] ?? "").toString();
     meslek.value =
         (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
+    final followerCount = _extractCounterValue(raw, <String>[
+      'counterOfFollowers',
+      'followersCount',
+      'takipci',
+      'followerCount',
+    ]);
+    final followingCount = _extractCounterValue(raw, <String>[
+      'counterOfFollowings',
+      'followingCount',
+      'takip',
+      'followCount',
+    ]);
+    if (followerCount != null) {
+      totalFollower.value = followerCount;
+    }
+    if (followingCount != null) {
+      totalFollowing.value = followingCount;
+    }
+    if (followerCount != null || followingCount != null) {
+      _counterCache[userID] = _SocialCounterCacheEntry(
+        followers: totalFollower.value,
+        followings: totalFollowing.value,
+        cachedAt: DateTime.now(),
+      );
+    }
 
     totalMarket.value = 0;
     final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
@@ -298,6 +357,24 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         (postsCount is num) ? postsCount.toInt() : totalPosts.value;
     totalLikes.value =
         (likesCount is num) ? likesCount.toInt() : totalLikes.value;
+    final followerCount = _extractCounterValue(raw, <String>[
+      'counterOfFollowers',
+      'followersCount',
+      'takipci',
+      'followerCount',
+    ]);
+    final followingCount = _extractCounterValue(raw, <String>[
+      'counterOfFollowings',
+      'followingCount',
+      'takip',
+      'followCount',
+    ]);
+    if (followerCount != null) {
+      totalFollower.value = followerCount;
+    }
+    if (followingCount != null) {
+      totalFollowing.value = followingCount;
+    }
   }
 
   void _performPruneCaches() {

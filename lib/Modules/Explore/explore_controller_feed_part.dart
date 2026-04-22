@@ -942,12 +942,7 @@ extension ExploreControllerFeedPart on ExploreController {
     capturePendingFloodEntry();
     try {
       if (lastFloodsDoc == null) _floodsEmptyScans = 0;
-      int pagesFetched = 0;
-      const int maxPages = ReadBudgetRegistry.explorePostsMaxPages;
-      const int pageLimit = _exploreFloodListBatchSize;
       const int targetBatch = _exploreFloodListBatchSize;
-      List<PostsModel> accumulated = [];
-      bool noMoreServerPages = false;
       final existingIDs = exploreFloods.map((e) => e.docID).toSet();
       final int remainingSlots =
           (_exploreFloodListMaxItems - exploreFloods.length)
@@ -957,74 +952,59 @@ extension ExploreControllerFeedPart on ExploreController {
         return;
       }
 
-      while (pagesFetched < maxPages && !noMoreServerPages) {
-        ExploreQueryPage page;
+      final shouldUseStoredManifest =
+          _floodManifestStoreActive && lastFloodsDoc == null;
+      if (shouldUseStoredManifest) {
         final nowMs = DateTime.now().millisecondsSinceEpoch;
-        try {
-          page = await _exploreRepository.fetchFloodServerPage(
-            startAfter: lastFloodsDoc,
-            pageLimit: pageLimit,
-            nowMs: nowMs,
-          );
-        } catch (_) {
-          page = await _exploreRepository.fetchFloodFallbackPage(
-            startAfter: lastFloodsDoc,
-            pageLimit: pageLimit,
-            nowMs: nowMs,
-          );
-        }
-        if (page.items.isEmpty) {
-          noMoreServerPages = true;
-          break;
-        }
-        if (!page.hasMore) noMoreServerPages = true;
-        lastFloodsDoc = page.lastDoc;
-
-        List<PostsModel> batch = [];
-        for (final model in page.items) {
-          if (model.flood == true) {
-            continue;
+        await _exploreRepository.ensureFloodManifestStoreFresh(
+          force: exploreFloods.isEmpty && _floodManifestStoreOffset == 0,
+        );
+        final storedPage = await _exploreRepository.fetchStoredFloodManifestPage(
+          offset: _floodManifestStoreOffset,
+          pageLimit: remainingSlots,
+          nowMs: nowMs,
+        );
+        if (storedPage.items.isNotEmpty) {
+          var batch = storedPage.items
+              .where((model) => model.flood == false)
+              .where((model) => model.floodCount > 1)
+              .where((model) => !existingIDs.contains(model.docID))
+              .where((model) => model.deletedPost != true)
+              .where((model) => model.timeStamp <= nowMs)
+              .toList(growable: false);
+          batch = await _filterByPrivacy(batch);
+          if (batch.isNotEmpty) {
+            final prioritized = _prioritizeCachedVideos(batch);
+            if (exploreFloods.isEmpty) {
+              _performResetFloodChildPrefetchPlan();
+            }
+            exploreFloods.addAll(prioritized);
+            _performRestoreFloodSeriesFocus();
+            _performScheduleExploreFloodPrefetchFromVisible();
+            _floodsEmptyScans = 0;
+            _floodManifestStoreOffset += storedPage.items.length;
+            floodsHasMore.value = storedPage.hasMore &&
+                exploreFloods.length < _exploreFloodListMaxItems;
+            debugPrint(
+              '[FloodManifestStore] status=apply scope=explore offset=$_floodManifestStoreOffset added=${prioritized.length} hasMore=${floodsHasMore.value}',
+            );
+            return;
           }
-          if (model.floodCount <= 1) {
-            continue;
+          _floodManifestStoreOffset += storedPage.items.length;
+          floodsHasMore.value = storedPage.hasMore;
+          if (!storedPage.hasMore) {
+            _floodManifestStoreActive = false;
           }
-          if (existingIDs.contains(model.docID)) {
-            continue;
-          }
-          batch.add(model);
-        }
-        batch = batch.where((post) => post.deletedPost != true).toList();
-        batch = batch.where((post) => post.timeStamp <= nowMs).toList();
-        batch = await _filterByPrivacy(batch);
-        if (batch.isNotEmpty) {
-          accumulated.addAll(batch);
-          if (accumulated.length >= remainingSlots) {
-            break;
-          }
-        }
-        pagesFetched++;
-      }
-
-      if (accumulated.isNotEmpty) {
-        final boundedAccumulated = accumulated.length > remainingSlots
-            ? accumulated.take(remainingSlots).toList(growable: false)
-            : accumulated;
-        final prioritized = _prioritizeCachedVideos(boundedAccumulated);
-        if (exploreFloods.isEmpty) {
-          _performResetFloodChildPrefetchPlan();
-        }
-        exploreFloods.addAll(prioritized);
-        _performRestoreFloodSeriesFocus();
-        _performScheduleExploreFloodPrefetchFromVisible();
-        _floodsEmptyScans = 0;
-        floodsHasMore.value = !noMoreServerPages &&
-            exploreFloods.length < _exploreFloodListMaxItems;
-      } else {
-        _floodsEmptyScans++;
-        if (_floodsEmptyScans >= 2 || noMoreServerPages) {
+        } else {
+          _floodManifestStoreActive = false;
           floodsHasMore.value = false;
         }
+        if (!floodsHasMore.value) {
+          return;
+        }
       }
+      _floodsEmptyScans++;
+      floodsHasMore.value = false;
     } catch (_) {}
     floodsIsLoading.value = false;
   }

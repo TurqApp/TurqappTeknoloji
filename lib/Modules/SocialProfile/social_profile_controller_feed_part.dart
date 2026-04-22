@@ -1,6 +1,50 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedPart on SocialProfileController {
+  int _initialFreshHeadLimit(int limit) {
+    if (limit <= 0) return 0;
+    return limit < 3 ? limit : 3;
+  }
+
+  bool _hasUsableBuckets(ProfileBuckets? buckets) {
+    if (buckets == null) return false;
+    return buckets.all.isNotEmpty ||
+        buckets.photos.isNotEmpty ||
+        buckets.reshares.isNotEmpty ||
+        buckets.scheduled.isNotEmpty;
+  }
+
+  Future<ProfileBuckets?> _loadFirstUsableProfileBuckets({
+    required int limit,
+    required bool force,
+  }) async {
+    await for (final resource in ProfilePostsSnapshotRepository.ensure()
+        .openProfile(
+      userId: userID,
+      limit: limit,
+      forceSync: force,
+    )) {
+      final buckets = resource.data;
+      debugPrint(
+        '[SocialProfilePrimary] stage=stream userId=$userID source=${resource.source.name} '
+        'all=${buckets?.all.length ?? 0} photos=${buckets?.photos.length ?? 0} '
+        'reshares=${buckets?.reshares.length ?? 0} scheduled=${buckets?.scheduled.length ?? 0}',
+      );
+      if (_hasUsableBuckets(buckets)) {
+        return buckets;
+      }
+    }
+    return null;
+  }
+
+  void _appendPrimaryBuckets(ProfileBuckets buckets) {
+    allPosts.addAll(_dedupePosts(allPosts, buckets.all));
+    photos.addAll(_dedupePosts(photos, buckets.photos));
+    reshares.addAll(_dedupePosts(reshares, buckets.reshares));
+    scheduledPosts.addAll(_dedupePosts(scheduledPosts, buckets.scheduled));
+    bootstrapFeedPlaybackAfterDataChange();
+  }
+
   void _applyPrimaryBuckets(
     ProfileBuckets buckets, {
     bool replaceReshares = true,
@@ -97,6 +141,11 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
     isLoadingPhoto.value = true;
     isLoadingScheduled.value = true;
     try {
+      debugPrint(
+        '[SocialProfilePrimary] stage=start userId=$userID initial=$initial force=$force '
+        'limit=${limitOverride ?? pageSize} hasMore=$_hasMorePrimary all=${allPosts.length} '
+        'photos=${photos.length} reshares=${reshares.length} scheduled=${scheduledPosts.length}',
+      );
       if (initial) {
         _lastPrimaryDoc = null;
         _hasMorePrimary = true;
@@ -104,20 +153,59 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
 
       final limit = limitOverride ?? pageSize;
       if (initial) {
-        final resource =
-            await ProfilePostsSnapshotRepository.ensure().loadProfile(
-          userId: userID,
-          limit: limit,
-          forceSync: force,
-        );
-        final buckets = resource.data;
-        if (buckets != null &&
-            (buckets.all.isNotEmpty ||
-                buckets.photos.isNotEmpty ||
-                buckets.reshares.isNotEmpty ||
-                buckets.scheduled.isNotEmpty)) {
-          _applyPrimaryBuckets(buckets);
+        final headLimit = _initialFreshHeadLimit(limit);
+        if (headLimit > 0) {
+          final freshHead = await PerformanceService.traceFeedLoad(
+            () => _profileRepository.fetchPrimaryPage(
+              uid: userID,
+              startAfter: null,
+              limit: headLimit,
+            ),
+            postCount: allPosts.length,
+            feedMode: 'profile_primary_head',
+          );
+          debugPrint(
+            '[SocialProfilePrimary] stage=fresh_head userId=$userID '
+            'all=${freshHead.all.length} photos=${freshHead.photos.length} '
+            'videos=${freshHead.videos.length} scheduled=${freshHead.scheduled.length} '
+            'hasMore=${freshHead.hasMore}',
+          );
+          if (_hasUsableBuckets(freshHead)) {
+            _applyPrimaryBuckets(
+              ProfileBuckets(
+                all: freshHead.all,
+                photos: freshHead.photos,
+                videos: freshHead.videos,
+                reshares: freshHead.reshares,
+                scheduled: freshHead.scheduled,
+              ),
+              replaceReshares: false,
+            );
+            _lastPrimaryDoc = freshHead.lastDoc;
+            _hasMorePrimary = freshHead.hasMore;
+            lastPostDoc = _lastPrimaryDoc;
+            lastPostDocPhoto = _lastPrimaryDoc;
+            lastScheduledDoc = _lastPrimaryDoc;
+          }
         }
+
+        final buckets = await _loadFirstUsableProfileBuckets(
+          limit: limit,
+          force: force,
+        );
+        if (_hasUsableBuckets(buckets)) {
+          _appendPrimaryBuckets(buckets!);
+        }
+        hasMorePosts.value = _hasMorePrimary;
+        hasMorePhoto.value = _hasMorePrimary;
+        hasMoreScheduled.value = _hasMorePrimary;
+        debugPrint(
+          '[SocialProfilePrimary] stage=initial_mix userId=$userID '
+          'all=${allPosts.length} photos=${photos.length} '
+          'reshares=${reshares.length} scheduled=${scheduledPosts.length} '
+          'hasMore=$_hasMorePrimary',
+        );
+        return;
       }
 
       final page = await PerformanceService.traceFeedLoad(
@@ -128,6 +216,11 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
         ),
         postCount: allPosts.length,
         feedMode: 'profile_primary',
+      );
+      debugPrint(
+        '[SocialProfilePrimary] stage=page userId=$userID initial=$initial '
+        'all=${page.all.length} photos=${page.photos.length} videos=${page.videos.length} '
+        'reshares=${page.reshares.length} scheduled=${page.scheduled.length} hasMore=${page.hasMore}',
       );
 
       if (initial) {
@@ -167,8 +260,16 @@ extension SocialProfileControllerFeedPart on SocialProfileController {
           scheduled: scheduledPosts,
         ),
       );
+      debugPrint(
+        '[SocialProfilePrimary] stage=applied userId=$userID initial=$initial '
+        'all=${allPosts.length} photos=${photos.length} reshares=${reshares.length} '
+        'scheduled=${scheduledPosts.length} hasMore=$_hasMorePrimary',
+      );
       bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
+      debugPrint(
+        '[SocialProfilePrimary] stage=error userId=$userID initial=$initial force=$force error=$e',
+      );
       print('_fetchPrimaryBuckets(SocialProfile) error: $e');
     } finally {
       _isLoadingPrimary = false;

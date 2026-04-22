@@ -774,6 +774,15 @@ extension _SplashViewWarmPart on _SplashViewState {
           )
           .catchError((_) {});
     });
+    unawaited(
+      ExploreRepository.ensure()
+          .ensureFloodManifestStoreFresh()
+          .timeout(
+            onWiFi ? const Duration(seconds: 3) : const Duration(seconds: 2),
+            onTimeout: () {},
+          )
+          .catchError((_) {}),
+    );
   }
 
   bool _isOnWiFiNow() {

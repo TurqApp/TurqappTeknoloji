@@ -240,6 +240,7 @@ export * from "./26_userBanAdmin";
 export * from "./27_nicknameChange";
 export * from "./28_shortManifest";
 export * from "./29_feedManifest";
+export * from "./30_floodManifest";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore

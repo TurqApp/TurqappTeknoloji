@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_controller.dart';
 import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/explore_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
@@ -444,6 +445,7 @@ class SignInApplicationService {
         _warmStoryRowAfterAuth(timeout: const Duration(seconds: 2)),
         _warmAgendaAfterAuth(timeout: const Duration(seconds: 2)),
         _warmShortsAfterAuth(timeout: const Duration(seconds: 2)),
+        _warmFloodManifestAfterAuth(timeout: const Duration(seconds: 2)),
       ], eagerError: false);
     } catch (_) {}
   }
@@ -461,6 +463,25 @@ class SignInApplicationService {
       } else {
         await Future.any([
           loadShortsFuture,
+          Future.delayed(timeout),
+        ]);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _warmFloodManifestAfterAuth({
+    Duration? timeout,
+  }) async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      final warmFloodManifestFuture =
+          ExploreRepository.ensure().ensureFloodManifestStoreFresh();
+      if (timeout == null) {
+        await warmFloodManifestFuture;
+      } else {
+        await Future.any([
+          warmFloodManifestFuture,
           Future.delayed(timeout),
         ]);
       }

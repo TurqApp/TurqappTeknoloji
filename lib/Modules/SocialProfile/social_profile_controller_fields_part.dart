@@ -159,6 +159,8 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
       _profileState.storyUserModel = value;
   StreamSubscription<Map<String, dynamic>?>? get _userDocSub =>
       _profileState.userDocSub;
+  set _userDocSub(StreamSubscription<Map<String, dynamic>?>? value) =>
+      _profileState.userDocSub = value;
 
   RxList<SocialMediaModel> get socialMediaList => _feedState.socialMediaList;
   RxList<PostsModel> get reshares => _feedState.reshares;

@@ -1,8 +1,11 @@
 part of 'flood_listing_controller.dart';
 
 extension FloodListingControllerDataPart on FloodListingController {
+  Future<List<PostsModel>> _loadFloodsFromManifest(String anyFloodID) async {
+    return ExploreRepository.ensure().loadFloodManifestSeries(anyFloodID);
+  }
+
   Future<void> getFloods(int floodCount, String anyFloodID) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
     capturePendingCenteredEntry();
     floods.clear();
     _visibleFractions.clear();
@@ -10,6 +13,15 @@ extension FloodListingControllerDataPart on FloodListingController {
     _playableQueueIndexByRawIndex.clear();
     _promotedSecondSegmentBatchStarts.clear();
 
+    final manifestItems = await _loadFloodsFromManifest(anyFloodID);
+    if (manifestItems.isNotEmpty) {
+      floods.assignAll(manifestItems);
+      resumeCenteredPost();
+      _scheduleInitialFloodSegmentPriorityPlan();
+      return;
+    }
+
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
     final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
     final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
     Map<String, PostsModel> fetched = <String, PostsModel>{};
