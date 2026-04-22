@@ -206,6 +206,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String uid,
     required _ConversationParticipantPreviewState previewState,
     int? unreadCount,
+    bool bestEffort = false,
   }) async {
     final update = <String, dynamic>{
       'previewText.$uid': previewState.previewText,
@@ -214,10 +215,18 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     if (unreadCount != null) {
       update['unread.$uid'] = unreadCount < 0 ? 0 : unreadCount;
     }
-    await _firestore
-        .collection('conversations')
-        .doc(chatId)
-        .set(update, SetOptions(merge: true));
+    try {
+      await _firestore
+          .collection('conversations')
+          .doc(chatId)
+          .set(update, SetOptions(merge: true));
+    } on FirebaseException catch (error) {
+      if (bestEffort &&
+          (error.code == 'permission-denied' || error.code == 'not-found')) {
+        return;
+      }
+      rethrow;
+    }
   }
 
   int _countUnreadMessagesForUser(
@@ -249,10 +258,9 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
       final batch = _firestore.batch();
       final end = (start + chunkSize).clamp(0, ids.length).toInt();
       for (final messageId in ids.sublist(start, end)) {
-        batch.set(
+        batch.update(
           _messageRef(chatId, messageId),
           update,
-          SetOptions(merge: true),
         );
       }
       await batch.commit();
@@ -264,47 +272,61 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String messageId,
     required String currentUid,
   }) async {
-    final conversation = await getConversation(
-      chatId,
-      preferCache: true,
-      cacheOnly: false,
-    );
-    final currentUnread = participantIntValue(
-      conversation?['unread'],
-      currentUid,
-      defaultValue: 0,
-    );
-    final affectedMessages = await _fetchConversationMessagesByIds(
-      chatId,
-      <String>[messageId],
-    );
-    final unreadDelta = _countUnreadMessagesForUser(
-      affectedMessages,
-      currentUid,
-    );
-    final mediaPurge = _purgeMessageMediaUrls(chatId, <String>[messageId]);
-    await _messageRef(chatId, messageId).set({
-      "deletedFor": FieldValue.arrayUnion([currentUid]),
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
-    await mediaPurge;
-    final previewState = await _resolveConversationParticipantPreviewState(
-      chatId,
-      currentUid,
-    );
-    await _setConversationParticipantPreviewState(
-      chatId: chatId,
-      uid: currentUid,
-      previewState: previewState,
-      unreadCount: (currentUnread - unreadDelta).clamp(0, 1 << 30).toInt(),
+    final normalizedChatId = chatId.trim();
+    final normalizedMessageId = messageId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedChatId.isEmpty ||
+        normalizedMessageId.isEmpty ||
+        normalizedUid.isEmpty) {
+      return;
+    }
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final invocationStackTrace = StackTrace.current;
+    try {
+      await _messageRef(normalizedChatId, normalizedMessageId).set({
+        'deletedFor': FieldValue.arrayUnion(<String>[normalizedUid]),
+        'updatedDate': nowMs,
+      }, SetOptions(merge: true));
+    } on FirebaseException catch (error, stackTrace) {
+      _debugDeletePermissionDenied(
+        stage: 'set_message_deleted_for_user',
+        error: error,
+        errorStackTrace: stackTrace,
+        invocationStackTrace: invocationStackTrace,
+        details: <String, Object?>{
+          'chatId': normalizedChatId,
+          'messageId': normalizedMessageId,
+          'currentUid': normalizedUid,
+        },
+      );
+      rethrow;
+    }
+    debugPrint(
+      '[ChatDelete] stage=message_deleted_for_user_remote_and_local status=ok '
+      'chatId=$normalizedChatId messageId=$normalizedMessageId '
+      'uid=$normalizedUid',
     );
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.messageDeletedForUser(
-        chatId: chatId,
-        messageIds: <String>[messageId],
-        userId: currentUid,
+        chatId: normalizedChatId,
+        messageIds: <String>[normalizedMessageId],
+        userId: normalizedUid,
       ),
     );
+    unawaited(() async {
+      try {
+        final previewState = await _resolveConversationParticipantPreviewState(
+          normalizedChatId,
+          normalizedUid,
+        );
+        await _setConversationParticipantPreviewState(
+          chatId: normalizedChatId,
+          uid: normalizedUid,
+          previewState: previewState,
+          bestEffort: true,
+        );
+      } catch (_) {}
+    }());
   }
 
   Future<void> deleteMessagesForUser({
@@ -318,48 +340,59 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         .toSet()
         .toList(growable: false);
     if (ids.isEmpty) return;
-    final conversation = await getConversation(
-      chatId,
-      preferCache: true,
-      cacheOnly: false,
-    );
-    final currentUnread = participantIntValue(
-      conversation?['unread'],
-      currentUid,
-      defaultValue: 0,
-    );
-    final affectedMessages = await _fetchConversationMessagesByIds(chatId, ids);
-    final unreadDelta = _countUnreadMessagesForUser(
-      affectedMessages,
-      currentUid,
-    );
-    final mediaPurge = _purgeMessageMediaUrls(chatId, ids);
-    await _commitMessageUpdatesInChunks(
-      chatId,
-      ids,
-      update: {
-        "deletedFor": FieldValue.arrayUnion([currentUid]),
-        "updatedDate": DateTime.now().millisecondsSinceEpoch,
-      },
-    );
-    await mediaPurge;
-    final previewState = await _resolveConversationParticipantPreviewState(
-      chatId,
-      currentUid,
-    );
-    await _setConversationParticipantPreviewState(
-      chatId: chatId,
-      uid: currentUid,
-      previewState: previewState,
-      unreadCount: (currentUnread - unreadDelta).clamp(0, 1 << 30).toInt(),
+    final normalizedChatId = chatId.trim();
+    final normalizedUid = currentUid.trim();
+    if (normalizedChatId.isEmpty || normalizedUid.isEmpty) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final invocationStackTrace = StackTrace.current;
+    try {
+      await _commitMessageUpdatesInChunks(
+        normalizedChatId,
+        ids,
+        update: <String, dynamic>{
+          'deletedFor': FieldValue.arrayUnion(<String>[normalizedUid]),
+          'updatedDate': nowMs,
+        },
+      );
+    } on FirebaseException catch (error, stackTrace) {
+      _debugDeletePermissionDenied(
+        stage: 'set_messages_deleted_for_user',
+        error: error,
+        errorStackTrace: stackTrace,
+        invocationStackTrace: invocationStackTrace,
+        details: <String, Object?>{
+          'chatId': normalizedChatId,
+          'count': ids.length,
+          'currentUid': normalizedUid,
+        },
+      );
+      rethrow;
+    }
+    debugPrint(
+      '[ChatDelete] stage=messages_deleted_for_user_remote_and_local status=ok '
+      'chatId=$normalizedChatId count=${ids.length} uid=$normalizedUid',
     );
     CacheInvalidationService.ensure().publish(
       CacheInvalidationEvent.messageDeletedForUser(
-        chatId: chatId,
+        chatId: normalizedChatId,
         messageIds: ids,
-        userId: currentUid,
+        userId: normalizedUid,
       ),
     );
+    unawaited(() async {
+      try {
+        final previewState = await _resolveConversationParticipantPreviewState(
+          normalizedChatId,
+          normalizedUid,
+        );
+        await _setConversationParticipantPreviewState(
+          chatId: normalizedChatId,
+          uid: normalizedUid,
+          previewState: previewState,
+          bestEffort: true,
+        );
+      } catch (_) {}
+    }());
   }
 
   Future<void> unsendMessage({
@@ -413,6 +446,7 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
         uid: participantUid,
         previewState: previewState,
         unreadCount: (currentUnread - unreadDelta).clamp(0, 1 << 30).toInt(),
+        bestEffort: true,
       );
     }
     CacheInvalidationService.ensure().publish(

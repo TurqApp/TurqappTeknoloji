@@ -1,13 +1,103 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerLocalCachePart on ChatController {
+  Set<String> _expandLocalDeletedIdVariants(Iterable<String> ids) {
+    final out = <String>{};
+    for (final raw in ids) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) continue;
+      out.add(trimmed);
+      final normalized = trimmed.replaceFirst(RegExp(r'^conv_'), '');
+      if (normalized.isNotEmpty) {
+        out.add(normalized);
+        out.add('conv_$normalized');
+      }
+    }
+    return out;
+  }
+
   String get _localChatWindowKey {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return "chat_window_cache_guest_$chatID";
     return "chat_window_cache_${uid}_$chatID";
   }
 
+  String get _localDeletedMessagesKey {
+    final uid = CurrentUserService.instance.effectiveUserId;
+    if (uid.isEmpty) return "chat_deleted_messages_guest_$chatID";
+    return "chat_deleted_messages_${uid}_$chatID";
+  }
+
+  Future<void> _loadLocalDeletedMessages() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = _expandLocalDeletedIdVariants(
+        prefs.getStringList(_localDeletedMessagesKey) ?? const <String>[],
+      );
+      _localDeletedMessageIds
+        ..clear()
+        ..addAll(ids);
+    } catch (_) {}
+  }
+
+  Future<void> _rememberLocalDeletedMessages(
+      Iterable<String> messageIds) async {
+    final ids = _expandLocalDeletedIdVariants(messageIds).toList();
+    if (ids.isEmpty) return;
+    _localDeletedMessageIds.addAll(ids);
+    debugPrint(
+      '[ChatDelete] stage=local_deleted_cache_buffered '
+      'chatId=$chatID added=${ids.length} total=${_localDeletedMessageIds.length}',
+    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final capped = _localDeletedMessageIds.toList(growable: false);
+      final start = capped.length > 1000 ? capped.length - 1000 : 0;
+      await prefs.setStringList(
+        _localDeletedMessagesKey,
+        capped.sublist(start),
+      );
+      debugPrint(
+        '[ChatDelete] stage=local_deleted_cache_persisted '
+        'chatId=$chatID persisted=${capped.length - start}',
+      );
+    } catch (_) {}
+  }
+
+  bool _isLocallyDeletedMessageId(String anyId) {
+    final variants = _expandLocalDeletedIdVariants(<String>[anyId]);
+    if (variants.isEmpty) return false;
+    for (final variant in variants) {
+      if (_localDeletedMessageIds.contains(variant)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isLocallyDeletedMessageModel(MessageModel message) {
+    final variants = _expandLocalDeletedIdVariants(
+      <String>[message.rawDocID, message.docID],
+    );
+    if (variants.isEmpty) return false;
+    for (final variant in variants) {
+      if (_localDeletedMessageIds.contains(variant)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isConversationMessageHiddenLocally(MessageModel message) {
+    if (_isLocallyDeletedMessageModel(message)) return true;
+    final ts = message.timeStamp.toInt();
+    return _deletedConversationCutoffMs > 0 &&
+        ts > 0 &&
+        ts <= _deletedConversationCutoffMs;
+  }
+
   Future<bool> _loadLocalConversationWindow() async {
+    await _loadLocalDeletedMessages();
     final prefs = await SharedPreferences.getInstance();
     final cacheKey = _localChatWindowKey;
     try {
@@ -23,6 +113,7 @@ extension ChatControllerLocalCachePart on ChatController {
       for (final item in decoded) {
         if (item is! Map) continue;
         final m = _deserializeLocalMessage(Map<String, dynamic>.from(item));
+        if (m != null && _isConversationMessageHiddenLocally(m)) continue;
         if (m != null) restored.add(m);
       }
       if (restored.isEmpty) {
@@ -33,7 +124,7 @@ extension ChatControllerLocalCachePart on ChatController {
       _conversationMessages
         ..clear()
         ..addEntries(
-          restored.map((message) => MapEntry(message.rawDocID, message)),
+          restored.map((message) => MapEntry(message.docID, message)),
         );
       messages.value = restored;
       return true;
@@ -88,9 +179,13 @@ extension ChatControllerLocalCachePart on ChatController {
 
   MessageModel? _deserializeLocalMessage(Map<String, dynamic> data) {
     try {
+      final docID = (data["docID"] ?? "").toString();
+      final rawDocID = (data["rawDocID"] ?? "").toString().trim().isNotEmpty
+          ? (data["rawDocID"] ?? "").toString()
+          : docID.replaceFirst(RegExp(r'^conv_'), '');
       return MessageModel(
-        docID: (data["docID"] ?? "").toString(),
-        rawDocID: (data["rawDocID"] ?? "").toString(),
+        docID: docID,
+        rawDocID: rawDocID,
         source: (data["source"] ?? "conversation").toString(),
         timeStamp: data["timeStamp"] is num ? data["timeStamp"] as num : 0,
         userID: (data["userID"] ?? "").toString(),

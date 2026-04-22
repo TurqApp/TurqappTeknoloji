@@ -50,7 +50,9 @@ class _ChatControllerState {
   bool isLoadingOlderInternal = false;
   bool conversationHasMore = true;
   DocumentSnapshot<Map<String, dynamic>>? conversationOldestCursor;
+  int deletedConversationCutoffMs = 0;
   final conversationMessages = <String, MessageModel>{};
+  final localDeletedMessageIds = <String>{};
   final showScrollDownButton = false.obs;
   final scrollDownOpacity = 0.0.obs;
   final isLoadingOlder = false.obs;
@@ -134,8 +136,12 @@ extension ChatControllerFieldsPart on ChatController {
   set _conversationOldestCursor(
           DocumentSnapshot<Map<String, dynamic>>? value) =>
       _state.conversationOldestCursor = value;
+  int get _deletedConversationCutoffMs => _state.deletedConversationCutoffMs;
+  set _deletedConversationCutoffMs(int value) =>
+      _state.deletedConversationCutoffMs = value < 0 ? 0 : value;
   Map<String, MessageModel> get _conversationMessages =>
       _state.conversationMessages;
+  Set<String> get _localDeletedMessageIds => _state.localDeletedMessageIds;
   RxBool get showScrollDownButton => _state.showScrollDownButton;
   RxDouble get scrollDownOpacity => _state.scrollDownOpacity;
   RxBool get isLoadingOlder => _state.isLoadingOlder;

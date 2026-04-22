@@ -1,6 +1,21 @@
 part of 'chat_controller.dart';
 
 extension _ChatControllerConversationX on ChatController {
+  Future<void> _loadDeletedConversationCutoff() async {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    if (uid.isEmpty || userID.trim().isEmpty) {
+      _deletedConversationCutoffMs = 0;
+      return;
+    }
+    _deletedConversationCutoffMs =
+        await _conversationRepository.fetchDeletedCutoffForConversation(
+      uid,
+      userID,
+      preferCache: true,
+      cacheOnly: _isOffline,
+    );
+  }
+
   Future<void> _clearConversationUnread() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
@@ -184,6 +199,7 @@ extension _ChatControllerConversationX on ChatController {
     _conversationHasMore = false;
     _updateHasMoreOlder();
 
+    await _loadDeletedConversationCutoff();
     final hasLocalWindow = await _loadLocalConversationWindow();
     _deltaFloorTimestampMs =
         hasLocalWindow ? 0 : DateTime.now().millisecondsSinceEpoch;

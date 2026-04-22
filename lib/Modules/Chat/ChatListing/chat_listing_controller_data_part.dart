@@ -441,6 +441,10 @@ extension ChatListingControllerDataPart on ChatListingController {
       for (final item in list)
         item.chatID: ChatListingModel.fromJson(item.toJson()),
     };
+    final previous = existingByChatId[snapshot.id];
+    if (previous != null && previous.deleted.contains("__deleted__")) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final userCache = ensureUserProfileCacheService();
     final listing = await _buildListingFromConversationData(
@@ -456,6 +460,23 @@ extension ChatListingControllerDataPart on ChatListingController {
     final next = {
       for (final entry in existingByChatId.entries) entry.key: entry.value,
     };
+    final previousForListing = existingByChatId[listing.chatID];
+    if (previousForListing != null) {
+      final preservedFlags = <String>{
+        ...listing.deleted,
+        ...previousForListing.deleted.where(
+          (flag) => flag == "__deleted__" || flag == "__archived__",
+        ),
+      };
+      listing.deleted = preservedFlags.toList(growable: false);
+      if (previousForListing.hasAuthoritativePreview &&
+          !listing.hasAuthoritativePreview) {
+        listing.hasAuthoritativePreview = true;
+        if (previousForListing.lastMessage.isNotEmpty) {
+          listing.lastMessage = previousForListing.lastMessage;
+        }
+      }
+    }
     next[listing.chatID] = listing;
     final sorted = _sortChatListings(next.values.toList(growable: false));
     list.assignAll(sorted);
@@ -475,7 +496,11 @@ extension ChatListingControllerDataPart on ChatListingController {
       _cancelLiveWindowListeners();
       return;
     }
-    final desiredChatIds = _sortChatListings(_cloneCurrentList())
+    final desiredChatIds = _sortChatListings(
+          _cloneCurrentList()
+              .where((item) => !item.deleted.contains("__deleted__"))
+              .toList(growable: false),
+        )
         .take(_liveConversationWindowSize)
         .map((item) => item.chatID.trim())
         .where((chatId) => chatId.isNotEmpty)

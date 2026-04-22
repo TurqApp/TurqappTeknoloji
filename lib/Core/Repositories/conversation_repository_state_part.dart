@@ -22,6 +22,31 @@ dynamic _cloneConversationValue(dynamic value) {
 }
 
 extension ConversationRepositoryStatePart on ConversationRepository {
+  void _debugDeletePermissionDenied({
+    required String stage,
+    required FirebaseException error,
+    required StackTrace errorStackTrace,
+    required StackTrace invocationStackTrace,
+    Map<String, Object?> details = const <String, Object?>{},
+  }) {
+    if (error.code != 'permission-denied') return;
+    final detailString = details.entries
+        .map((entry) => '${entry.key}=${entry.value}')
+        .join(' ');
+    debugPrint(
+      '[ChatDelete] stage=$stage status=permission_denied '
+      '${detailString.isEmpty ? '' : '$detailString '}message=${error.message ?? ''}',
+    );
+    debugPrintStack(
+      label: '[ChatDelete] stage=$stage invocation_stack',
+      stackTrace: invocationStackTrace,
+    );
+    debugPrintStack(
+      label: '[ChatDelete] stage=$stage error_stack',
+      stackTrace: errorStackTrace,
+    );
+  }
+
   List<String> normalizeConversationParticipants({
     required String chatId,
     required String currentUid,
@@ -154,21 +179,50 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required String chatId,
     required bool archived,
   }) async {
-    await _firestore
-        .collection("users")
-        .doc(currentUid)
-        .collection("chatArchives")
-        .doc(otherUserId)
-        .set({
-      "userID": otherUserId,
-      "chatID": chatId,
-      "archived": archived,
-      "updatedDate": DateTime.now().millisecondsSinceEpoch,
-    }, SetOptions(merge: true));
+    final invocationStackTrace = StackTrace.current;
+    try {
+      await _firestore
+          .collection("users")
+          .doc(currentUid)
+          .collection("chatArchives")
+          .doc(otherUserId)
+          .set({
+        "userID": otherUserId,
+        "chatID": chatId,
+        "archived": archived,
+        "updatedDate": DateTime.now().millisecondsSinceEpoch,
+      }, SetOptions(merge: true));
+    } on FirebaseException catch (error, stackTrace) {
+      _debugDeletePermissionDenied(
+        stage: 'set_archived_user_state',
+        error: error,
+        errorStackTrace: stackTrace,
+        invocationStackTrace: invocationStackTrace,
+        details: <String, Object?>{
+          'chatId': chatId,
+          'currentUid': currentUid,
+          'otherUserId': otherUserId,
+          'archived': archived,
+        },
+      );
+      rethrow;
+    }
     try {
       await _firestore.collection("conversations").doc(chatId).set({
         "archived.$currentUid": archived,
       }, SetOptions(merge: true));
+    } on FirebaseException catch (error, stackTrace) {
+      _debugDeletePermissionDenied(
+        stage: 'set_archived_conversation_state',
+        error: error,
+        errorStackTrace: stackTrace,
+        invocationStackTrace: invocationStackTrace,
+        details: <String, Object?>{
+          'chatId': chatId,
+          'currentUid': currentUid,
+          'archived': archived,
+        },
+      );
     } catch (_) {}
   }
 
@@ -209,35 +263,46 @@ extension ConversationRepositoryStatePart on ConversationRepository {
     required int deletedAt,
   }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final conversationRef = _firestore.collection("conversations").doc(chatId);
-    await _firestore
-        .collection("users")
-        .doc(currentUid)
-        .collection("chatDeletions")
-        .doc(otherUserId)
-        .set({
-      "userID": otherUserId,
-      "chatID": chatId,
-      "deletedAt": deletedAt,
-      "updatedDate": now,
-    }, SetOptions(merge: true));
+    final invocationStackTrace = StackTrace.current;
+    try {
+      await _firestore
+          .collection("users")
+          .doc(currentUid)
+          .collection("chatDeletions")
+          .doc(otherUserId)
+          .set({
+        "userID": otherUserId,
+        "chatID": chatId,
+        "deletedAt": deletedAt,
+        "updatedDate": now,
+      }, SetOptions(merge: true));
 
-    await _firestore
-        .collection("users")
-        .doc(currentUid)
-        .collection("chatArchives")
-        .doc(otherUserId)
-        .set({
-      "userID": otherUserId,
-      "chatID": chatId,
-      "archived": false,
-      "updatedDate": now,
-    }, SetOptions(merge: true));
-
-    await conversationRef.set({
-      "deletedAt.$currentUid": deletedAt,
-      "archived.$currentUid": false,
-    }, SetOptions(merge: true));
+      await _firestore
+          .collection("users")
+          .doc(currentUid)
+          .collection("chatArchives")
+          .doc(otherUserId)
+          .set({
+        "userID": otherUserId,
+        "chatID": chatId,
+        "archived": false,
+        "updatedDate": now,
+      }, SetOptions(merge: true));
+    } on FirebaseException catch (error, stackTrace) {
+      _debugDeletePermissionDenied(
+        stage: 'set_deleted_cutoff',
+        error: error,
+        errorStackTrace: stackTrace,
+        invocationStackTrace: invocationStackTrace,
+        details: <String, Object?>{
+          'chatId': chatId,
+          'currentUid': currentUid,
+          'otherUserId': otherUserId,
+          'deletedAt': deletedAt,
+        },
+      );
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> getConversation(

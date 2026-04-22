@@ -26,11 +26,29 @@ extension ChatControllerActionsPart on ChatController {
     final ids =
         messageIds.map((id) => id.trim()).where((id) => id.isNotEmpty).toSet();
     if (ids.isEmpty) return;
+    debugPrint(
+      '[ChatDelete] stage=local_invalidation_received '
+      'chatId=$chatID count=${ids.length} ids=${ids.join(",")}',
+    );
+    unawaited(_rememberLocalDeletedMessages(ids));
     final beforeLength = _conversationMessages.length;
     _conversationMessages.removeWhere(
-      (_, message) => ids.contains(message.rawDocID),
+      (key, message) {
+        final rawId = message.rawDocID.trim();
+        final normalizedDocId = message.docID
+            .trim()
+            .replaceFirst(RegExp(r'^conv_'), '');
+        final normalizedKey = key.trim().replaceFirst(RegExp(r'^conv_'), '');
+        return ids.contains(rawId) ||
+            ids.contains(normalizedDocId) ||
+            ids.contains(normalizedKey);
+      },
     );
     selectedMessageIds.removeWhere(ids.contains);
+    debugPrint(
+      '[ChatDelete] stage=local_invalidation_applied '
+      'chatId=$chatID before=$beforeLength after=${_conversationMessages.length}',
+    );
     if (beforeLength == _conversationMessages.length) return;
     _refreshMergedMessages();
   }
@@ -113,6 +131,29 @@ extension ChatControllerActionsPart on ChatController {
     }
   }
 
+  Future<void> deleteSingleMessage(MessageModel model) async {
+    final uid = CurrentUserService.instance.effectiveUserId.trim();
+    final messageId = model.rawDocID.trim().isNotEmpty
+        ? model.rawDocID.trim()
+        : model.docID.trim().replaceFirst(RegExp(r'^conv_'), '');
+    if (uid.isEmpty || messageId.isEmpty) return;
+    try {
+      debugPrint(
+        '[ChatDelete] stage=chat_controller_delete_single '
+        'chatId=$chatID messageId=$messageId uid=$uid '
+        'rawDocID=${model.rawDocID} docID=${model.docID}',
+      );
+      await _conversationRepository.deleteMessageForUser(
+        chatId: chatID,
+        messageId: messageId,
+        currentUid: uid,
+      );
+      _applyDeletedMessages(<String>[messageId]);
+    } catch (_) {
+      AppSnackbar('common.error'.tr, 'chat.messages_delete_failed'.tr);
+    }
+  }
+
   void _applyConversationSnapshot(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
     required bool replace,
@@ -125,8 +166,24 @@ extension ChatControllerActionsPart on ChatController {
       final data = doc.data();
       final senderId = data["senderId"] ?? "";
       final deletedFor = List<String>.from(data["deletedFor"] ?? []);
-      if (deletedFor.contains(currentUID)) {
-        _conversationMessages.remove("conv_${doc.id}");
+      final createdDateRaw = data["createdDate"];
+      final createdDateMs = createdDateRaw is Timestamp
+          ? createdDateRaw.millisecondsSinceEpoch
+          : createdDateRaw is num
+              ? createdDateRaw.toInt()
+              : int.tryParse("$createdDateRaw") ?? 0;
+      if (deletedFor.contains(currentUID) ||
+          (_deletedConversationCutoffMs > 0 &&
+              createdDateMs > 0 &&
+              createdDateMs <= _deletedConversationCutoffMs) ||
+          _isLocallyDeletedMessageId(doc.id) ||
+          _isLocallyDeletedMessageId('conv_${doc.id}')) {
+        _conversationMessages.removeWhere(
+          (key, message) =>
+              key == "conv_${doc.id}" ||
+              message.rawDocID == doc.id ||
+              message.docID == 'conv_${doc.id}',
+        );
         continue;
       }
       final status = data["status"] ?? "";

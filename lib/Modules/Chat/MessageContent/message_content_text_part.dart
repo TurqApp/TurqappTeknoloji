@@ -296,7 +296,10 @@ extension MessageContentTextPart on MessageContent {
                         isDestructive: true,
                         onTap: () {
                           Navigator.of(context).pop();
-                          controller.deleteMessage();
+                          Future<void>.delayed(
+                            Duration.zero,
+                            controller.deleteMessage,
+                          );
                         },
                       ),
                     ],

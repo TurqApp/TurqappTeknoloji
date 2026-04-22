@@ -68,6 +68,34 @@ extension ConversationRepositoryQueryPart on ConversationRepository {
     }
   }
 
+  Future<int> fetchDeletedCutoffForConversation(
+    String uid,
+    String otherUserId, {
+    required bool preferCache,
+    required bool cacheOnly,
+  }) async {
+    final normalizedUid = uid.trim();
+    final normalizedOtherUserId = otherUserId.trim();
+    if (normalizedUid.isEmpty || normalizedOtherUserId.isEmpty) return 0;
+    try {
+      final ref = _firestore
+          .collection("users")
+          .doc(normalizedUid)
+          .collection("chatDeletions")
+          .doc(normalizedOtherUserId);
+      final snap = cacheOnly
+          ? await ref.get(const GetOptions(source: Source.cache))
+          : preferCache
+              ? await ref.get(const GetOptions(source: Source.serverAndCache))
+              : await ref.get(const GetOptions(source: Source.server));
+      final data = snap.data();
+      if (!snap.exists || data == null || data.isEmpty) return 0;
+      return _asConversationInt(data["deletedAt"]);
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
       fetchUserConversations(
     String uid, {

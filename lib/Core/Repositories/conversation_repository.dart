@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/cache_invalidation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';

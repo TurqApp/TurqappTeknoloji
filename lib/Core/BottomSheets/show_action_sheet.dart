@@ -34,7 +34,18 @@ Future<void> showActionSheet({
           .map((action) => CupertinoActionSheetAction(
                 onPressed: () {
                   Get.back();
-                  action['onPressed']();
+                  final callback = action['onPressed'];
+                  if (callback is! Function) return;
+                  Future.sync(() => callback()).catchError((error, stackTrace) {
+                    FlutterError.reportError(
+                      FlutterErrorDetails(
+                        exception: error,
+                        stack: stackTrace is StackTrace ? stackTrace : null,
+                        library: 'show_action_sheet',
+                        context: ErrorDescription('run action sheet action'),
+                      ),
+                    );
+                  });
                 },
                 isDestructiveAction: action['isDestructive'] ?? false,
                 child: Text(

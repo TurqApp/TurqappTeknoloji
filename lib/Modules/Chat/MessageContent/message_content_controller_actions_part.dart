@@ -311,21 +311,39 @@ extension MessageContentControllerActionsPart on MessageContentController {
           'isDestructive': true,
           'color': Colors.red,
           'onPressed': () async {
-            await _conversationRepository.deleteMessageForUser(
-              chatId: mainID,
-              messageId: model.rawDocID,
-              currentUid: currentUid,
+            final messageId = model.rawDocID.trim();
+            final fallbackMessageId = messageId.isNotEmpty
+                ? messageId
+                : model.docID.trim().replaceFirst(RegExp(r'^conv_'), '');
+            if (fallbackMessageId.isEmpty) return;
+            debugPrint(
+              '[ChatDelete] stage=ui_delete_tap chatId=$mainID '
+              'messageId=$fallbackMessageId currentUid=$currentUid '
+              'rawDocID=${model.rawDocID} docID=${model.docID}',
             );
-          },
-        },
-        {
-          'text': 'chat.delete_for_everyone'.tr,
-          'isDestructive': false,
-          'color': Colors.red,
-          'onPressed': () async {
-            await _conversationRepository.unsendMessage(
-              chatId: mainID,
-              messageId: model.rawDocID,
+            try {
+              await ensureChatController(
+                chatID: mainID,
+                userID: model.userID,
+                tag: mainID,
+              ).deleteSingleMessage(model);
+            } catch (error, stackTrace) {
+              debugPrint(
+                '[ChatDelete] stage=ui_delete_tap_result status=fail '
+                'chatId=$mainID messageId=$fallbackMessageId '
+                'currentUid=$currentUid error=$error',
+              );
+              debugPrintStack(
+                label: '[ChatDelete] stage=ui_delete_tap_result error_stack',
+                stackTrace: stackTrace,
+              );
+              AppSnackbar('common.error'.tr, 'chat.messages_delete_failed'.tr);
+              return;
+            }
+            debugPrint(
+              '[ChatDelete] stage=ui_delete_tap_result status=ok '
+              'chatId=$mainID messageId=$fallbackMessageId '
+              'currentUid=$currentUid',
             );
           },
         },
