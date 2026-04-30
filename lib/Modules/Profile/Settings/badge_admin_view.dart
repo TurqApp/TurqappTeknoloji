@@ -11,9 +11,11 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/verified_account_repository.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 part 'badge_admin_view_actions_part.dart';
 part 'badge_admin_view_applications_part.dart';
@@ -157,7 +159,7 @@ class _BadgeAdminViewState extends State<BadgeAdminView> {
                 future: _canAccessFuture,
                 builder: (context, accessSnap) {
                   if (accessSnap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const AppStateView.loading();
                   }
                   if (accessSnap.data != true) {
                     return Center(

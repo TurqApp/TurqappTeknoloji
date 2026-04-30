@@ -5,14 +5,14 @@ extension JobFinderContentPart on JobFinder {
     return Obx(() {
       final bottomInset = AdminAccessService.isKnownAdminSync() ? 104.0 : 24.0;
       if (!controller.listingSelectionReady.value) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
       if (controller.isLoading.value && controller.list.isEmpty) {
         return Column(
           children: [
             _kesfetHeader(isSearching: false, context: context),
             const Expanded(
-              child: Center(child: CupertinoActivityIndicator()),
+              child: AppStateView.loading(title: ''),
             ),
           ],
         );
@@ -21,8 +21,9 @@ extension JobFinderContentPart on JobFinder {
         return Column(
           children: [
             _kesfetHeader(isSearching: false, context: context),
-            const SizedBox(height: 50),
-            EmptyRow(text: "common.no_results".tr),
+            Expanded(
+              child: AppStateView.empty(title: "common.no_results".tr),
+            ),
           ],
         );
       }
@@ -48,10 +49,12 @@ extension JobFinderContentPart on JobFinder {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _kesfetHeader(isSearching: isSearching, context: context),
-              EmptyRow(
-                text: isSearching
-                    ? "pasaj.job_finder.no_search_result".tr
-                    : "pasaj.job_finder.no_city_listing".tr,
+              Expanded(
+                child: AppStateView.empty(
+                  title: isSearching
+                      ? "pasaj.job_finder.no_search_result".tr
+                      : "pasaj.job_finder.no_city_listing".tr,
+                ),
               ),
             ],
           );
@@ -84,10 +87,12 @@ extension JobFinderContentPart on JobFinder {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _kesfetHeader(isSearching: isSearching, context: context),
-            EmptyRow(
-              text: isSearching
-                  ? "pasaj.job_finder.no_search_result".tr
-                  : "pasaj.job_finder.no_city_listing".tr,
+            Expanded(
+              child: AppStateView.empty(
+                title: isSearching
+                    ? "pasaj.job_finder.no_search_result".tr
+                    : "pasaj.job_finder.no_city_listing".tr,
+              ),
             ),
           ],
         );

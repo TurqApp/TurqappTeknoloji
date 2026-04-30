@@ -41,7 +41,7 @@ extension ReportRepositoryFacadePart on ReportRepository {
       throw StateError('report_target_required');
     }
 
-    final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+    final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('submitReport');
     await callable.call(<String, dynamic>{
       'reporterUserId': reporterUserId,

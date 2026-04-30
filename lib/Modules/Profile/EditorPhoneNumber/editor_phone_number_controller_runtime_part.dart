@@ -29,7 +29,7 @@ Future<void> _loadEditorPhoneInitial(
 Future<String> _resolveEditorPhoneAccountEmail(
   EditorPhoneNumberController controller,
 ) async {
-  final current = FirebaseAuth.instance.currentUser;
+  final current = controller._userService.currentAuthUser;
   if (current == null) return '';
 
   final authEmail = normalizeEmailAddress(current.email);

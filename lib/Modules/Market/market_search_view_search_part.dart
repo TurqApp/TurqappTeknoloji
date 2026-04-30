@@ -10,7 +10,7 @@ extension _MarketSearchViewSearchPart on _MarketSearchViewState {
       if (!showRecentSearches &&
           controller.isSearchLoading.value &&
           items.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
+        return const AppStateView.loading();
       }
 
       if (showRecentSearches) {

@@ -17,7 +17,7 @@ extension TutoringViewContentPart on TutoringView {
             if (!viewModeController.isReady.value) {
               return const SizedBox(
                 height: 280,
-                child: Center(child: CupertinoActivityIndicator()),
+                child: AppStateView.loading(title: ''),
               );
             }
 
@@ -157,7 +157,8 @@ extension TutoringViewContentPart on TutoringView {
             child: TurqSearchBar(
               controller: tutoringController.searchPreviewController,
               hintText: 'tutoring.search_hint'.tr,
-              onTap: () => Get.to(() => const TutoringSearch()),
+              onTap: () =>
+                  const EducationDetailNavigationService().openTutoringSearch(),
             ),
           ),
           8.pw,
@@ -217,7 +218,7 @@ extension TutoringViewContentPart on TutoringView {
     return Obx(() {
       if (tutoringController.isLoading.value ||
           tutoringController.isSearchLoading.value) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
 
       final content = TutoringWidgetBuilder(

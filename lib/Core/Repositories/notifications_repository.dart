@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 part 'notifications_repository_helpers_part.dart';
@@ -18,5 +19,5 @@ class NotificationsRepository extends GetxService {
     return Get.put(NotificationsRepository(), permanent: true);
   }
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = AppFirestore.instance;
 }

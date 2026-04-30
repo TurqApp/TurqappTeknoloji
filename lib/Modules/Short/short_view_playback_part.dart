@@ -708,9 +708,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
     final handleKey =
         controller.playbackHandleKeyForDoc(_cachedShorts[page].docID);
-    final state = VideoStateManager.instance.getVideoState(
-      handleKey,
-    );
+    final state = _playbackRuntimeService.getSavedPlaybackState(handleKey);
     if (state == null || state.position <= const Duration(milliseconds: 50)) {
       return null;
     }

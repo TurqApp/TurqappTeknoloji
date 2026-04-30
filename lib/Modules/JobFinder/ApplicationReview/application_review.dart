@@ -2,11 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv_utils.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'application_review_controller.dart';
 
 part 'application_review_content_part.dart';
@@ -73,19 +74,12 @@ class _ApplicationReviewState extends State<ApplicationReview> {
         bottom: false,
         child: Obx(() {
           if (controller.isLoading.value && controller.applicants.isEmpty) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading(title: '');
           }
 
           if (controller.applicants.isEmpty) {
-            return Center(
-              child: Text(
-                "pasaj.job_finder.no_applicants".tr,
-                style: const TextStyle(
-                  fontFamily: "MontserratMedium",
-                  fontSize: 15,
-                  color: Colors.grey,
-                ),
-              ),
+            return AppStateView.empty(
+              title: "pasaj.job_finder.no_applicants".tr,
             );
           }
 

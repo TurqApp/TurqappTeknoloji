@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/silent_refresh_gate.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/user_post_link_service.dart';
 
 part 'saved_posts_controller_base_part.dart';

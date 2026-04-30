@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Models/job_application_model.dart';
 import 'my_applications_controller.dart';
 
@@ -57,7 +57,7 @@ class _MyApplicationsState extends State<MyApplications> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading(title: '');
         }
 
         return RefreshIndicator(
@@ -66,9 +66,11 @@ class _MyApplicationsState extends State<MyApplications> {
             padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
             children: [
               if (controller.applications.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 60),
-                  child: EmptyRow(text: "pasaj.job_finder.no_applications".tr),
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.55,
+                  child: AppStateView.empty(
+                    title: "pasaj.job_finder.no_applications".tr,
+                  ),
                 )
               else
                 ...controller.applications.map(_applicationCard),

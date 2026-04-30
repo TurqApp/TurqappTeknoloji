@@ -190,8 +190,8 @@ extension _MarketControllerHomePart on MarketController {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      final preferences = ensureLocalPreferenceRepository();
+      final stored = await preferences.getInt(_listingSelectionKeyFor(uid));
       listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
     } catch (_) {
       listingSelection.value = 1;
@@ -204,8 +204,8 @@ extension _MarketControllerHomePart on MarketController {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
+      final preferences = ensureLocalPreferenceRepository();
+      await preferences.setInt(
         _listingSelectionKeyFor(uid),
         listingSelection.value == 1 ? 1 : 0,
       );

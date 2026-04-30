@@ -28,7 +28,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     if (cacheFirst) {
       snap = await PerformanceService.traceOperation(
         'story_load_cache_first',
-        () => FirebaseFirestore.instance
+        () => AppFirestore.instance
             .collection('stories')
             .orderBy('createdDate', descending: true)
             .limit(limit)
@@ -39,7 +39,7 @@ extension StoryRepositoryCachePart on StoryRepository {
       if (snap.docs.isEmpty) {
         snap = await PerformanceService.traceOperation(
           'story_load_network_fallback',
-          () => FirebaseFirestore.instance
+          () => AppFirestore.instance
               .collection('stories')
               .orderBy('createdDate', descending: true)
               .limit(limit)
@@ -49,7 +49,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     } else {
       snap = await PerformanceService.traceOperation(
         'story_load_network',
-        () => FirebaseFirestore.instance
+        () => AppFirestore.instance
             .collection('stories')
             .orderBy('createdDate', descending: true)
             .limit(limit)
@@ -121,7 +121,8 @@ extension StoryRepositoryCachePart on StoryRepository {
         rawData ?? _fallbackUserData(userId, current),
       );
 
-      final canSeeAuthor = _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
+      final canSeeAuthor =
+          _visibilityPolicy.canViewerSeeDiscoveryAuthorFromSummary(
         authorUserId: userId,
         followingIds: followingIds,
         rozet: (data['rozet'] ?? '').toString(),
@@ -331,7 +332,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     for (var i = 0; i < ids.length; i += chunkSize) {
       final end = (i + chunkSize > ids.length) ? ids.length : i + chunkSize;
       final chunk = ids.sublist(i, end);
-      final snap = await FirebaseFirestore.instance
+      final snap = await AppFirestore.instance
           .collection('stories')
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
@@ -365,7 +366,7 @@ extension StoryRepositoryCachePart on StoryRepository {
   }) async {
     final cleanId = musicId.trim();
     if (cleanId.isEmpty) return const <StoryModel>[];
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .where('musicId', isEqualTo: cleanId)
         .limit(limit)
@@ -395,7 +396,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     if (storyId.isEmpty) return null;
     if (preferCache) {
       try {
-        final cached = await FirebaseFirestore.instance
+        final cached = await AppFirestore.instance
             .collection('stories')
             .doc(storyId)
             .get(const GetOptions(source: Source.cache));
@@ -404,10 +405,8 @@ extension StoryRepositoryCachePart on StoryRepository {
         }
       } catch (_) {}
     }
-    final server = await FirebaseFirestore.instance
-        .collection('stories')
-        .doc(storyId)
-        .get();
+    final server =
+        await AppFirestore.instance.collection('stories').doc(storyId).get();
     if (!server.exists) return null;
     return Map<String, dynamic>.from(server.data() ?? const {});
   }
@@ -420,7 +419,7 @@ extension StoryRepositoryCachePart on StoryRepository {
     if (userId.isEmpty) return const <StoryModel>[];
 
     Future<QuerySnapshot<Map<String, dynamic>>> runQuery(GetOptions? options) {
-      final query = FirebaseFirestore.instance
+      final query = AppFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: userId)
           .orderBy('createdDate', descending: true);

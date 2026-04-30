@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/LocationBasedTutoring/location_based_tutoring_controller.dart';
@@ -73,10 +73,10 @@ class _LocationBasedTutoringState extends State<LocationBasedTutoring> {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return Center(child: CupertinoActivityIndicator());
+                  return const AppStateView.loading(title: '');
                 } else if (controller.tutoringList.isEmpty) {
-                  return Center(
-                    child: Text('tutoring.no_listings_in_region'.tr),
+                  return AppStateView.empty(
+                    title: 'tutoring.no_listings_in_region'.tr,
                   );
                 } else {
                   final content = SingleChildScrollView(

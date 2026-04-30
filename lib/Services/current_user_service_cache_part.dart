@@ -46,7 +46,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
 
   Future<void> _persistViewSelection(String uid, int selection) async {
     if (uid.isEmpty) return;
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     _lastKnownViewSelection = selection;
     viewSelectionRx.value = selection;
     await _prefs?.setInt(_viewSelectionKey(uid), selection);
@@ -56,7 +56,7 @@ extension CurrentUserServiceCachePart on CurrentUserService {
     CurrentUserModel user,
   ) async {
     if (user.userID.isEmpty) return user;
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final stored = _prefs?.getInt(_viewSelectionKey(user.userID));
     _lastKnownViewSelection = stored ?? user.viewSelection;
     if (stored == null || stored == user.viewSelection) {

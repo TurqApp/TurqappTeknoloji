@@ -40,7 +40,7 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
                 () => controller.isLoading.value &&
                         controller.likedScholarships.isEmpty &&
                         controller.bookmarkedScholarships.isEmpty
-                    ? const Center(child: CupertinoActivityIndicator())
+                    ? const AppStateView.loading()
                     : PageView(
                         controller: controller.pageController,
                         onPageChanged: controller.onTabChanged,
@@ -113,21 +113,10 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
           await controller.fetchSavedItems();
         },
         child: scholarships.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(AppIcons.info, size: 35, color: Colors.grey),
-                    Text(
-                      emptyMessage,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontFamily: 'MontserratMedium',
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
+            ? AppStateView.empty(
+                title: emptyMessage,
+                icon: AppIcons.info,
+                color: Colors.grey,
               )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),

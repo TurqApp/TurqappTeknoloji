@@ -94,27 +94,32 @@ extension _TestsShellContentPart on _TestsState {
                 PullDownMenuItem(
                   icon: CupertinoIcons.bookmark,
                   title: 'common.saved'.tr,
-                  onTap: () => Get.to(() => SavedTests()),
+                  onTap: () =>
+                      const EducationTestNavigationService().openSavedTests(),
                 ),
                 PullDownMenuItem(
                   icon: Icons.history,
                   title: 'pasaj.common.my_results'.tr,
-                  onTap: () => Get.to(() => MyTestResults()),
+                  onTap: () => const EducationTestNavigationService()
+                      .openMyTestResults(),
                 ),
                 PullDownMenuItem(
                   icon: CupertinoIcons.doc_text,
                   title: 'tests.my_tests_title'.tr,
-                  onTap: () => Get.to(() => MyTests()),
+                  onTap: () =>
+                      const EducationTestNavigationService().openMyTests(),
                 ),
                 PullDownMenuItem(
                   icon: Icons.add,
                   title: 'common.create'.tr,
-                  onTap: () => Get.to(() => CreateTest()),
+                  onTap: () =>
+                      const EducationTestNavigationService().openCreateTest(),
                 ),
                 PullDownMenuItem(
                   icon: Icons.exit_to_app,
                   title: 'tests.join_button'.tr,
-                  onTap: () => Get.to(() => TestEntry()),
+                  onTap: () =>
+                      const EducationTestNavigationService().openTestEntry(),
                 ),
               ],
             ),

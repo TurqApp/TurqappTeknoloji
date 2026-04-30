@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/social_media_model.dart';
 
 part 'social_media_links_repository_query_part.dart';

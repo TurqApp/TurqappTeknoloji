@@ -450,7 +450,7 @@ extension EducationControllerPasajPart on EducationController {
     try {
       await ensureStartupSnapshotManifestStore().updateRouteHint(
         userId: uid,
-        routeHint: 'nav_education',
+        routeHint: StartupRouteHint.education.value,
         loggedIn: true,
         extra: <String, dynamic>{
           'educationTabId': tabId,

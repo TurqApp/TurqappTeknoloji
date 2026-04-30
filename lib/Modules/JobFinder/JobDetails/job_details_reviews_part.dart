@@ -355,7 +355,8 @@ extension JobDetailsReviewsPart on _JobDetailsState {
                     ? item.ilanBasligi
                     : item.meslek;
                 return GestureDetector(
-                  onTap: () => Get.off(() => JobDetails(model: item)),
+                  onTap: () =>
+                      detailNavigationService.replaceWithJobDetails(item),
                   child: Container(
                     width: (Get.width * 0.43).clamp(142.0, 166.0),
                     margin: const EdgeInsets.only(right: 10),

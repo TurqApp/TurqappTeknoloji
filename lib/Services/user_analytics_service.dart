@@ -5,6 +5,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_summary_models.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class UserAnalyticsService {
@@ -39,7 +40,7 @@ class UserAnalyticsService {
       final uid = _currentUid;
       if (uid.isEmpty) return;
 
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Analytics')
           .doc('CachePerformance')
           .collection(uid)
@@ -70,7 +71,7 @@ class UserAnalyticsService {
 
       final durationMinutes = endTime.difference(startTime).inMinutes;
 
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Analytics')
           .doc('UserSessions')
           .collection(uid)
@@ -96,7 +97,7 @@ class UserAnalyticsService {
       final uid = _currentUid;
       if (uid.isEmpty) return;
 
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Analytics')
           .doc('FeatureUsage')
           .collection(uid)
@@ -125,7 +126,7 @@ class UserAnalyticsService {
       final uid = _currentUid;
       if (uid.isEmpty) return;
 
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Analytics')
           .doc('RuntimeHealth')
           .collection(uid)

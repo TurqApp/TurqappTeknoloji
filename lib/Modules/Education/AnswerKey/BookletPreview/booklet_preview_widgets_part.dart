@@ -124,7 +124,9 @@ extension BookletPreviewWidgetsPart on _BookletPreviewState {
       imageUrl: controller.avatarUrl.value.trim(),
       onTap: isCurrentUserId(controller.model.userID)
           ? null
-          : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
+          : () => const ProfileNavigationService().openSocialProfile(
+                controller.model.userID,
+              ),
     );
   }
 
@@ -133,12 +135,9 @@ extension BookletPreviewWidgetsPart on _BookletPreviewState {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () {
-            Get.to(
-              () => ReportUser(
-                userID: controller.model.userID,
-                postID: controller.model.docID,
-                commentID: '',
-              ),
+            const ReportUserNavigationService().openReportUser(
+              userId: controller.model.userID,
+              postId: controller.model.docID,
             );
           },
           title: 'answer_key.report_book'.tr,

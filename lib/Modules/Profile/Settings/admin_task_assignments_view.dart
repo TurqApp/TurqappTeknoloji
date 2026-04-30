@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -66,7 +67,7 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                 future: _canAccessFuture,
                 builder: (context, accessSnap) {
                   if (accessSnap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const AppStateView.loading();
                   }
                   if (accessSnap.data != true) {
                     return Center(

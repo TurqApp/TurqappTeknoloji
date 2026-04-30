@@ -6,6 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -46,8 +49,8 @@ class FeedManifestRepository extends GetxService {
   FeedManifestRepository({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  })  : _firestore = firestore ?? AppFirestore.instance,
+        _storage = storage ?? AppFirebaseStorage.instance;
 
   static const Duration manifestWindowCadence = Duration(hours: 3);
   static const int _maxSlotBytes = 16 * 1024 * 1024;
@@ -236,7 +239,8 @@ class FeedManifestRepository extends GetxService {
   void _scheduleBackgroundSlotPrefetch(List<_FeedManifestSlotRef> slots) {
     if (_backgroundSlotPrefetchFuture != null || slots.isEmpty) return;
     final pending = slots
-        .where((slot) => slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
+        .where((slot) =>
+            slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
         .toList(growable: false);
     if (pending.isEmpty) return;
     final future = _ensureSlotsLoaded(
@@ -386,7 +390,8 @@ class FeedManifestRepository extends GetxService {
   }
 
   Future<SharedPreferences> _ensurePrefs() async {
-    return _prefs ??= await SharedPreferences.getInstance();
+    return _prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
   }
 
   Future<void> _mergeActiveWindow({

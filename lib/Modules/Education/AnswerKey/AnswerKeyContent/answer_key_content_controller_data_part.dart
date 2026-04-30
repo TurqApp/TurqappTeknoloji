@@ -34,9 +34,7 @@ extension AnswerKeyContentControllerDataPart on AnswerKeyContentController {
   void _updateViewCount() {
     final currentUserId = _resolveAnswerKeyContentCurrentUidFacade();
     if (currentUserId.isNotEmpty && model.userID != currentUserId) {
-      FirebaseFirestore.instance.collection('books').doc(model.docID).update({
-        'viewCount': FieldValue.increment(1),
-      }).then((_) {
+      ensureBookletRepository().incrementViewCount(model.docID).then((_) {
         model.viewCount += 1;
         return null;
       }).catchError((e) {

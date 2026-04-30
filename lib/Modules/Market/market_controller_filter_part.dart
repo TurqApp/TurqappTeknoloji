@@ -35,8 +35,8 @@ extension _MarketControllerFilterPart on MarketController {
 
   Future<void> _performClearRecentSearches() async {
     recentSearches.clear();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_marketRecentSearchesKey);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.remove(_marketRecentSearchesKey);
   }
 
   int _performCompareCategoryPriority(String left, String right) {
@@ -283,9 +283,9 @@ extension _MarketControllerFilterPart on MarketController {
   }
 
   Future<void> _performLoadRecentSearches() async {
-    final prefs = await SharedPreferences.getInstance();
-    final values =
-        prefs.getStringList(_marketRecentSearchesKey) ?? const <String>[];
+    final preferences = ensureLocalPreferenceRepository();
+    final values = await preferences.getStringList(_marketRecentSearchesKey) ??
+        const <String>[];
     final next = values
         .map((item) => item.trim())
         .where((item) => item.isNotEmpty)
@@ -312,8 +312,8 @@ extension _MarketControllerFilterPart on MarketController {
     if (!_sameStringList(recentSearches, next)) {
       recentSearches.assignAll(next);
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_marketRecentSearchesKey, next);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setStringList(_marketRecentSearchesKey, next);
   }
 
   Future<void> _performLoadAllCityOptions() async {

@@ -8,7 +8,7 @@ extension NotificationContentActionsPart on _NotificationContentState {
       return;
     }
     if (model.userID != _currentUserId) {
-      Get.to(() => SocialProfile(userID: model.userID));
+      const ProfileNavigationService().openSocialProfile(model.userID);
     }
   }
 

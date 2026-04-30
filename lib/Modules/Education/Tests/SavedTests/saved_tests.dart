@@ -1,8 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Tests/SavedTests/saved_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
@@ -66,21 +65,11 @@ class _SavedTestsState extends State<SavedTests> {
 
   Widget _buildContent() {
     if (controller.isLoading.value) {
-      return const Center(
-        child: CupertinoActivityIndicator(
-          radius: 20,
-          color: Colors.black,
-        ),
-      );
+      return const AppStateView.loading(title: '');
     }
 
     if (controller.list.isEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          EmptyRow(text: 'tests.saved_empty'.tr),
-        ],
-      );
+      return AppStateView.empty(title: 'tests.saved_empty'.tr);
     }
 
     return Padding(

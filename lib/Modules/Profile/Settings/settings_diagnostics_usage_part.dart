@@ -23,8 +23,7 @@ extension _SettingsViewDiagnosticsUsagePart on _SettingsViewState {
     final queueLastSyncText = queueLastSyncMs <= 0
         ? "common.no_results".tr
         : DateTime.fromMillisecondsSinceEpoch(queueLastSyncMs).toString();
-    final lastSignIn =
-        FirebaseAuth.instance.currentUser?.metadata.lastSignInTime;
+    final lastSignIn = userService.currentAuthUser?.metadata.lastSignInTime;
     final loginDate = lastSignIn == null
         ? "settings.diagnostics.unknown".tr
         : "${lastSignIn.day.toString().padLeft(2, '0')}.${lastSignIn.month.toString().padLeft(2, '0')}.${lastSignIn.year}";

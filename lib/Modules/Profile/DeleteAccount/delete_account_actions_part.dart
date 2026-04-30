@@ -11,7 +11,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = CurrentUserService.instance.currentAuthUser;
     if (user == null) {
       AppSnackbar(
         'delete_account.no_email_title'.tr,
@@ -26,7 +26,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
 
     try {
       await user.getIdToken(true);
-      await FirebaseFunctions.instanceFor(region: "europe-west3")
+      await AppCloudFunctions.instanceFor(region: "europe-west3")
           .httpsCallable("sendEmailVerificationCode")
           .call({
         "email": _email,
@@ -93,7 +93,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = CurrentUserService.instance.currentAuthUser;
     if (user == null) {
       AppSnackbar(
         'delete_account.no_email_title'.tr,
@@ -109,7 +109,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
     try {
       await user.getIdToken(true);
       final idToken = await user.getIdToken();
-      await FirebaseFunctions.instanceFor(region: "europe-west3")
+      await AppCloudFunctions.instanceFor(region: "europe-west3")
           .httpsCallable("verifyEmailCode")
           .call({
         "email": _email,
@@ -136,8 +136,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
   }
 
   Future<void> _requestDelete(BuildContext context) async {
-    final auth = FirebaseAuth.instance;
-    final user = auth.currentUser;
+    final user = CurrentUserService.instance.currentAuthUser;
     if (user == null) return;
 
     try {
@@ -150,9 +149,6 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
       final scheduledAt = now.add(
         const Duration(days: _DeleteAccountState._deletionGraceDays),
       );
-      final userRef =
-          FirebaseFirestore.instance.collection("users").doc(user.uid);
-
       await _userRepository.updateUserFields(
         user.uid,
         {
@@ -166,7 +162,7 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
         mergeIntoCache: false,
       );
 
-      await userRef.collection("account_actions").add({
+      await _userRepository.addAccountAction(user.uid, {
         "type": "deletion",
         "status": "pending",
         "reason": "self_service_request",
@@ -177,18 +173,10 @@ extension _DeleteAccountActionsPart on _DeleteAccountState {
       await _hideUserPosts(user.uid);
 
       await ensureAccountCenterService().removeAccount(user.uid);
-      await CurrentUserService.instance.logout();
-      await auth.signOut();
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PopScope(
-            canPop: false,
-            child: SignIn(),
-          ),
-        ),
+      await const SessionExitCoordinator().exitToSignIn(
+        reason: SessionExitReason.accountDeleted,
       );
+      if (!mounted) return;
 
       AppSnackbar(
         'delete_account.request_received_title'.tr,

@@ -35,7 +35,7 @@ extension CreateBookControllerSubmissionPart on CreateBookController {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('books').doc(docID).set({
+      await _bookletRepository.saveBooklet(docID, {
         'basimTarihi': basimTarihiController.text,
         'baslik': baslikController.text,
         'cover': existingBook?.cover ?? '',
@@ -47,7 +47,7 @@ extension CreateBookControllerSubmissionPart on CreateBookController {
         'userID':
             existingBook?.userID ?? CurrentUserService.instance.effectiveUserId,
         'viewCount': existingBook?.viewCount ?? 0,
-      }, SetOptions(merge: true));
+      });
 
       await _bookletRepository.replaceAnswerKeys(
         docID,
@@ -108,34 +108,20 @@ extension CreateBookControllerSubmissionPart on CreateBookController {
         return;
       }
 
-      final storagePath = 'books/$docID/cover.webp';
-      final firebaseStorageRef = FirebaseStorage.instance.ref().child(
-            storagePath,
-          );
-      final uploadTask = firebaseStorageRef.putData(
-        webpData,
-        SettableMetadata(
-          contentType: 'image/webp',
-          cacheControl: 'public, max-age=31536000, immutable',
-        ),
+      final storagePathWithoutExt = 'books/$docID/cover';
+      final storagePath = '$storagePathWithoutExt.webp';
+      final downloadUrl = await WebpUploadService.uploadPreparedWebpBytes(
+        bytes: webpData,
+        storagePathWithoutExt: storagePathWithoutExt,
       );
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = (snapshot.bytesTransferred / snapshot.totalBytes * 100)
-            .toStringAsFixed(2);
-        print('Yukleme ilerlemesi: $progress%');
-      });
-
-      final taskSnapshot = await uploadTask;
-      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
       final cacheBustedUrl =
           '$downloadUrl${downloadUrl.contains('?') ? '&' : '?'}v=${DateTime.now().millisecondsSinceEpoch}';
 
-      await FirebaseFirestore.instance.collection('books').doc(docID).update({
-        'cover': cacheBustedUrl,
-        'coverStoragePath': storagePath,
-        'coverFormat': 'webp',
-      });
+      await _bookletRepository.updateBookletCover(
+        bookletId: docID,
+        coverUrl: cacheBustedUrl,
+        storagePath: storagePath,
+      );
 
       AppSnackbar(
         'answer_key.cover_updated'.tr,

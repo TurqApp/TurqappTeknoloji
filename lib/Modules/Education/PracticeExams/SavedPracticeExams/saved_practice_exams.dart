@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/SavedPracticeExams/saved_practice_exams_controller.dart';
 
@@ -53,20 +53,11 @@ class _SavedPracticeExamsState extends State<SavedPracticeExams> {
   Widget _buildSavedPracticeExamsContent() {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
 
       if (controller.savedExams.isEmpty) {
-        return Center(
-          child: Text(
-            'practice.saved_empty'.tr,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 15,
-              fontFamily: "MontserratMedium",
-            ),
-          ),
-        );
+        return AppStateView.empty(title: 'practice.saved_empty'.tr);
       }
 
       return Padding(

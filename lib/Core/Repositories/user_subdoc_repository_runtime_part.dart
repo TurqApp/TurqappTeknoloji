@@ -2,7 +2,7 @@ part of 'user_subdoc_repository.dart';
 
 extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
   void _handleUserSubdocRepositoryInit() {
-    SharedPreferences.getInstance().then((prefs) {
+    ensureLocalPreferenceRepository().sharedPreferences().then((prefs) {
       _prefs = prefs;
     });
   }
@@ -34,7 +34,7 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
       }
     }
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(collection)
@@ -60,7 +60,7 @@ extension UserSubdocRepositoryRuntimePart on UserSubdocRepository {
     required bool merge,
   }) async {
     if (uid.isEmpty || collection.isEmpty || docId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(collection)

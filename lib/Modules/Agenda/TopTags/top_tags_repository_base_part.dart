@@ -7,19 +7,19 @@ const String _topTagsPrefsKey = 'top_tags_repository_v1';
 
 abstract class _TopTagsRepositoryBase extends GetxService {
   _TopTagsRepositoryBase({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+      : _db = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _db;
   List<HashtagModel>? _memory;
   DateTime? _memoryAt;
   final List<PostsModel> _feedMemory = <PostsModel>[];
   DocumentSnapshot<Map<String, dynamic>>? _lastFeedDoc;
-  SharedPreferences? _prefs;
+  LocalPreferenceRepository? _preferences;
 
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    _preferences = ensureLocalPreferenceRepository();
   }
 }
 

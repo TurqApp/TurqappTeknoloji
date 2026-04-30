@@ -4,8 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
@@ -15,6 +15,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 
 part 'permissions_view_catalog_part.dart';
@@ -102,7 +103,7 @@ class _PermissionsViewState extends State<PermissionsView>
             BackButtons(text: 'permissions.title'.tr),
             Expanded(
               child: _loading
-                  ? const Center(child: CupertinoActivityIndicator())
+                  ? const AppStateView.loading()
                   : RefreshIndicator(
                       onRefresh: _refreshStatuses,
                       child: ListView(

@@ -2,7 +2,7 @@ part of 'market_controller.dart';
 
 extension _MarketControllerActionsPart on MarketController {
   Future<void> _performOpenItem(MarketItemModel item) async {
-    await Get.to(() => MarketDetailView(item: item));
+    await const MarketDetailNavigationService().openMarketDetail(item);
     await loadHomeData(forceRefresh: true);
   }
 
@@ -63,7 +63,8 @@ extension _MarketControllerActionsPart on MarketController {
   Future<void> _performOpenRoundMenu(String key) async {
     switch (key) {
       case 'create':
-        final result = await Get.to(() => const MarketCreateView());
+        final result =
+            await const MarketDetailNavigationService().openMarketCreate();
         if (result != null) {
           if (result is Map) {
             final item = MarketItemModel.fromJson(
@@ -80,15 +81,15 @@ extension _MarketControllerActionsPart on MarketController {
         }
         return;
       case 'my_items':
-        await Get.to(() => const MarketMyItemsView());
+        await const MarketDetailNavigationService().openMarketMyItems();
         await loadHomeData(forceRefresh: true);
         return;
       case 'saved':
-        await Get.to(() => const MarketSavedView());
+        await const MarketDetailNavigationService().openMarketSaved();
         await loadHomeData(forceRefresh: true);
         return;
       case 'offers':
-        await Get.to(() => const MarketOffersView());
+        await const MarketDetailNavigationService().openMarketOffers();
         await loadHomeData(forceRefresh: true);
         return;
       case 'categories':

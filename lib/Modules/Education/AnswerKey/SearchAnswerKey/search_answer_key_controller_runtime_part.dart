@@ -151,6 +151,6 @@ extension SearchAnswerKeyControllerFacadePart on SearchAnswerKeyController {
   void resetSearch() => _resetSearchState();
 
   void navigateToPreview(BookletModel model) {
-    Get.to(() => BookletPreview(model: model));
+    const AnswerKeyNavigationService().openBookletPreview(model);
   }
 }

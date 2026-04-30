@@ -5,9 +5,8 @@ extension ExploreControllerRecentSearchPart on ExploreController {
 
   Future<void> _applyUserCacheQuota() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        prefs.getInt('offline_cache_quota_gb') ?? 3,
+        await _localPreferences.getInt('offline_cache_quota_gb') ?? 3,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
@@ -147,12 +146,11 @@ extension ExploreControllerRecentSearchPart on ExploreController {
     try {
       final key = _recentSearchUsersCacheKey();
       if (key == null) return;
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(key);
+      final raw = await _localPreferences.getString(key);
       if (raw == null || raw.trim().isEmpty) return;
       final parsed = jsonDecode(raw);
       if (parsed is! List) {
-        await prefs.remove(key);
+        await _localPreferences.remove(key);
         return;
       }
 
@@ -176,14 +174,13 @@ extension ExploreControllerRecentSearchPart on ExploreController {
       if (restored.isNotEmpty) {
         recentSearchUsers.value = restored;
       } else if (parsed.isNotEmpty) {
-        await prefs.remove(key);
+        await _localPreferences.remove(key);
       }
     } catch (_) {
       try {
         final key = _recentSearchUsersCacheKey();
         if (key == null) return;
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(key);
+        await _localPreferences.remove(key);
       } catch (_) {}
     }
   }
@@ -192,7 +189,6 @@ extension ExploreControllerRecentSearchPart on ExploreController {
     try {
       final key = _recentSearchUsersCacheKey();
       if (key == null) return;
-      final prefs = await SharedPreferences.getInstance();
       final payload = recentSearchUsers
           .take(_recentSearchUsersLimit)
           .map(
@@ -205,7 +201,7 @@ extension ExploreControllerRecentSearchPart on ExploreController {
             },
           )
           .toList(growable: false);
-      await prefs.setString(key, jsonEncode(payload));
+      await _localPreferences.setString(key, jsonEncode(payload));
     } catch (_) {}
   }
 

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Utils/phone_utils.dart';
 
 class PhoneAccountLimitReached implements Exception {
@@ -31,9 +32,7 @@ class PhoneAccountLimiter {
 
   DocumentReference<Map<String, dynamic>> _phoneDocRef(String phone) {
     final normalized = normalize(phone);
-    return FirebaseFirestore.instance
-        .collection(collectionName)
-        .doc(normalized);
+    return AppFirestore.instance.collection(collectionName).doc(normalized);
   }
 
   Future<({bool allowed, int count, int limit})> checkCanCreate(
@@ -55,9 +54,9 @@ class PhoneAccountLimiter {
     required Map<String, dynamic> userData,
   }) async {
     final phoneRef = _phoneDocRef(phone);
-    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    final userRef = AppFirestore.instance.collection('users').doc(uid);
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await AppFirestore.instance.runTransaction((tx) async {
       final phoneSnap = await tx.get(phoneRef);
 
       final data = phoneSnap.data() ?? <String, dynamic>{};
@@ -98,7 +97,7 @@ class PhoneAccountLimiter {
     final oldRef = _phoneDocRef(oldPhone);
     final newRef = _phoneDocRef(newPhone);
 
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await AppFirestore.instance.runTransaction((tx) async {
       final newSnap = await tx.get(newRef);
       final newData = newSnap.data() ?? <String, dynamic>{};
       final int newCount = (newData['count'] ?? 0) as int;
@@ -146,7 +145,7 @@ class PhoneAccountLimiter {
     required String phone,
   }) async {
     final ref = _phoneDocRef(phone);
-    await FirebaseFirestore.instance.runTransaction((tx) async {
+    await AppFirestore.instance.runTransaction((tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) return;
       final data = snap.data() ?? {};

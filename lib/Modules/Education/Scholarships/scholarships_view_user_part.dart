@@ -92,7 +92,7 @@ extension ScholarshipsViewUserPart on _ScholarshipsViewState {
     final uid = userData?['userID']?.toString() ?? '';
     if (uid != CurrentUserService.instance.effectiveUserId) {
       return () {
-        Get.to(() => SocialProfile(userID: uid));
+        const ProfileNavigationService().openSocialProfile(uid);
       };
     }
     return null;

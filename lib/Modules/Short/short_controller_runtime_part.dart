@@ -107,9 +107,9 @@ extension _ShortControllerRuntimeX on ShortController {
 
   Future<void> applyUserCacheQuota() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        prefs.getInt('offline_cache_quota_gb') ?? 3,
+        await preferences.getInt('offline_cache_quota_gb') ?? 3,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
@@ -149,7 +149,8 @@ extension _ShortControllerRuntimeX on ShortController {
     for (final imageUrl in post.img) {
       addUrl(imageUrl);
     }
-    for (final cdnUrl in CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID)) {
+    for (final cdnUrl
+        in CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID)) {
       addUrl(cdnUrl);
     }
     return urls;

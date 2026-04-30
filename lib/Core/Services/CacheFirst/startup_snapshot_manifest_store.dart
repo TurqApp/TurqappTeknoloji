@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 
 import 'cache_scope_namespace.dart';
 import 'cached_resource.dart';
@@ -190,7 +191,7 @@ class StartupSnapshotManifestStore extends GetxService {
   SharedPreferences? _prefs;
 
   Future<SharedPreferences> _prefsInstance() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     return _prefs!;
   }
 

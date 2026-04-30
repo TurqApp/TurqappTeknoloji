@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 
 final int _defaultStartupSurfaceOrderSeed =
     DateTime.now().millisecondsSinceEpoch;
@@ -40,7 +41,8 @@ Future<void> rotateStartupMotorSessionsOnAppLaunch({
   SharedPreferences? prefs,
   String? deviceSalt,
 }) async {
-  final effectivePrefs = prefs ?? await SharedPreferences.getInstance();
+  final effectivePrefs =
+      prefs ?? await ensureLocalPreferenceRepository().sharedPreferences();
   final normalizedSalt = (deviceSalt ?? '').trim();
   for (final entry in _startupSurfaceMotorCountByNamespace.entries) {
     final namespace = entry.key;

@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 
 class TypesenseEducationAdminService {
   TypesenseEducationAdminService._();
@@ -12,7 +13,7 @@ class TypesenseEducationAdminService {
   static TypesenseEducationAdminService get instance => ensure();
 
   final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'us-central1');
+      AppCloudFunctions.instanceFor(region: 'us-central1');
 
   static dynamic _cloneValue(dynamic value) {
     if (value is Map) {

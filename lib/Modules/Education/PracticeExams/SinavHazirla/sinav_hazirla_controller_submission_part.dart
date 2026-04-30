@@ -46,14 +46,13 @@ extension SinavHazirlaControllerSubmissionPart on SinavHazirlaController {
   Future<void> uploadImage(File imageFile, String docID) async {
     try {
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: imageFile,
         storagePathWithoutExt: 'practiceExams/$docID/cover',
       );
-      await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID)
-          .update({"cover": downloadUrl});
+      await ensurePracticeExamRepository().updatePracticeExamCover(
+        examId: docID,
+        coverUrl: downloadUrl,
+      );
     } catch (e) {
       AppSnackbar('common.error'.tr, 'tests.image_upload_failed_short'.tr);
     }
@@ -76,26 +75,28 @@ extension SinavHazirlaControllerSubmissionPart on SinavHazirlaController {
         selectedTime.value.minute,
       );
 
-      await FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(docID.value)
-          .set({
-        "sinavAdi": sinavIsmi.value.text,
-        "sinavAciklama": aciklama.value.text,
-        "timeStamp": combinedDateTime.millisecondsSinceEpoch,
-        "dersler": currentDersler,
-        "sinavTuru": sinavTuru.value,
-        "kpssSecilenLisans": sinavTuru.value == _sinavTuruKpss
-            ? _normalizeKpssLisans(kpssSecilenLisans.value)
-            : sinavTuru.value,
-        "soruSayilari":
-            soruSayisiTextFields.map((controller) => controller.text).toList(),
-        "taslak": true,
-        "public": public.value,
-        "userID": CurrentUserService.instance.effectiveUserId,
-        "bitisDk": sure.value,
-        "bitis": combinedDateTime.millisecondsSinceEpoch + (sure.value * 60000),
-      }, SetOptions(merge: true));
+      await ensurePracticeExamRepository().savePracticeExam(
+        examId: docID.value,
+        data: {
+          "sinavAdi": sinavIsmi.value.text,
+          "sinavAciklama": aciklama.value.text,
+          "timeStamp": combinedDateTime.millisecondsSinceEpoch,
+          "dersler": currentDersler,
+          "sinavTuru": sinavTuru.value,
+          "kpssSecilenLisans": sinavTuru.value == _sinavTuruKpss
+              ? _normalizeKpssLisans(kpssSecilenLisans.value)
+              : sinavTuru.value,
+          "soruSayilari": soruSayisiTextFields
+              .map((controller) => controller.text)
+              .toList(),
+          "taslak": true,
+          "public": public.value,
+          "userID": CurrentUserService.instance.effectiveUserId,
+          "bitisDk": sure.value,
+          "bitis":
+              combinedDateTime.millisecondsSinceEpoch + (sure.value * 60000),
+        },
+      );
 
       if (cover.value != null) {
         await uploadImage(cover.value!, docID.value);

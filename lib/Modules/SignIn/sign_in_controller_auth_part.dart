@@ -171,7 +171,7 @@ extension SignInControllerAuthPart on SignInController {
     wait.value = true;
     try {
       UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+          await _signInApplicationService.signInForPasswordReset(
         email: resetMail.value,
         password: newPassword,
       );

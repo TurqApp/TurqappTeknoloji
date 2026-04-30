@@ -163,7 +163,7 @@ extension JobDetailsActionsPart on _JobDetailsState {
                                     SizedBox(height: 20),
                                     GestureDetector(
                                       onTap: () async {
-                                        Get.to(() => Cv());
+                                        await detailNavigationService.openCv();
                                       },
                                       child: Container(
                                         height: 50,
@@ -250,8 +250,8 @@ extension JobDetailsActionsPart on _JobDetailsState {
                         child: GestureDetector(
                           onTap: () {
                             noYesAlert(
-                              title:
-                                  "pasaj.job_finder.application_cancel_title".tr,
+                              title: "pasaj.job_finder.application_cancel_title"
+                                  .tr,
                               message:
                                   "pasaj.job_finder.application_cancel_body".tr,
                               cancelText: "common.cancel".tr,

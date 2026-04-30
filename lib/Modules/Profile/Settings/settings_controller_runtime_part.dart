@@ -8,21 +8,21 @@ extension SettingsControllerRuntimePart on SettingsController {
   }
 
   Future<void> loadEducationPreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getBool(_prefKey);
+    final preferences = ensureLocalPreferenceRepository();
+    final value = await preferences.getBool(_prefKey);
     educationScreenIsOn.value = value ?? true;
   }
 
   Future<void> toggleEducationScreen() async {
     educationScreenIsOn.value = !educationScreenIsOn.value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, educationScreenIsOn.value);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setBool(_prefKey, educationScreenIsOn.value);
   }
 
   Future<void> setEducationScreen(bool value) async {
     educationScreenIsOn.value = value;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefKey, value);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setBool(_prefKey, value);
   }
 
   Future<void> _migrateEducationVisibility() async {
@@ -32,19 +32,20 @@ extension SettingsControllerRuntimePart on SettingsController {
   }
 
   Future<void> loadPasajPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedVersion = prefs.getInt(_pasajOrderVersionKey) ?? 0;
+    final preferences = ensureLocalPreferenceRepository();
+    final storedVersion = await preferences.getInt(_pasajOrderVersionKey) ?? 0;
     final normalizedOrder = pasajTabs.toList(growable: false);
     pasajOrder.assignAll(normalizedOrder);
     if (storedVersion < _currentPasajOrderVersion) {
-      await prefs.setStringList(_pasajOrderKey, normalizedOrder);
-      await prefs.setInt(
+      await preferences.setStringList(_pasajOrderKey, normalizedOrder);
+      await preferences.setInt(
         _pasajOrderVersionKey,
         _currentPasajOrderVersion,
       );
     }
 
-    final storedHidden = prefs.getStringList(_pasajVisibilityKey) ?? const [];
+    final storedHidden =
+        await preferences.getStringList(_pasajVisibilityKey) ?? const [];
     final normalizedHidden = storedHidden
         .map(pasajLegacyTitleToId)
         .where(pasajTabs.contains)
@@ -73,13 +74,13 @@ extension SettingsControllerRuntimePart on SettingsController {
   }
 
   Future<void> _persistPasajPrefs() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final hidden = pasajTabs
         .where((title) => !(pasajVisibility[title] ?? true))
         .toList(growable: false);
-    await prefs.setStringList(_pasajOrderKey, pasajOrder);
-    await prefs.setStringList(_pasajVisibilityKey, hidden);
-    await prefs.setInt(
+    await preferences.setStringList(_pasajOrderKey, pasajOrder);
+    await preferences.setStringList(_pasajVisibilityKey, hidden);
+    await preferences.setInt(
       _pasajOrderVersionKey,
       _currentPasajOrderVersion,
     );
@@ -95,8 +96,8 @@ Future<Map<String, bool>> loadPasajVisibilitySnapshot() async {
     };
   }
 
-  final prefs = await SharedPreferences.getInstance();
-  final hidden = (prefs.getStringList(
+  final preferences = ensureLocalPreferenceRepository();
+  final hidden = (await preferences.getStringList(
             userScopedKey(_settingsPasajVisibilityKeyPrefix),
           ) ??
           const <String>[])

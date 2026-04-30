@@ -5,18 +5,26 @@ String resolveStartupManifestRouteHint({
   required int freshWindowMs,
   required String routeHint,
 }) {
-  if (manifestAgeMs == null || manifestAgeMs < 0) return 'unknown';
-  if (manifestAgeMs > freshWindowMs) return 'unknown';
-  switch (routeHint.trim()) {
-    case 'nav_feed':
-    case 'nav_home':
-    case 'nav_explore':
-    case 'nav_profile':
-    case 'nav_education':
-      return routeHint.trim();
-    default:
-      return 'unknown';
+  if (manifestAgeMs == null || manifestAgeMs < 0) {
+    return StartupRouteHint.unknown.value;
   }
+  if (manifestAgeMs > freshWindowMs) return StartupRouteHint.unknown.value;
+  return normalizeStartupRouteHint(routeHint);
+}
+
+class _StartupRouteTelemetryValues {
+  const _StartupRouteTelemetryValues({
+    required this.requestedStartupRouteHint,
+    required this.effectiveStartupRouteHint,
+    required this.resolvedStartupRouteHint,
+  });
+
+  final String requestedStartupRouteHint;
+  final String effectiveStartupRouteHint;
+  final String resolvedStartupRouteHint;
+
+  bool get fallbackApplied =>
+      requestedStartupRouteHint != effectiveStartupRouteHint;
 }
 
 extension _SplashViewStartupPart on _SplashViewState {
@@ -69,7 +77,8 @@ extension _SplashViewStartupPart on _SplashViewState {
           ) ??
           (effectiveUserId.isNotEmpty ? await store.load(userId: null) : null);
 
-      _previousStartupRouteHint = manifest?.routeHint ?? 'unknown';
+      _previousStartupRouteHint =
+          manifest?.routeHint ?? StartupRouteHint.unknown.value;
       _previousStartupLoggedIn = manifest?.loggedIn ?? loggedIn;
       _previousStartupMinimumPrepared =
           manifest?.minimumStartupPrepared ?? false;
@@ -90,7 +99,7 @@ extension _SplashViewStartupPart on _SplashViewState {
         userId: effectiveUserId,
       );
     } catch (_) {
-      _previousStartupRouteHint = 'unknown';
+      _previousStartupRouteHint = StartupRouteHint.unknown.value;
       _previousStartupLoggedIn = loggedIn;
       _previousStartupMinimumPrepared = false;
       _previousStartupNavIndex = null;
@@ -161,40 +170,35 @@ extension _SplashViewStartupPart on _SplashViewState {
 
   String _effectiveStartupRouteHint() {
     if (QALabMode.enabled) {
-      return 'nav_feed';
+      return StartupRouteHint.feed.value;
     }
     final requested = _requestedStartupRouteHint();
-    switch (requested) {
-      case 'nav_explore':
-      case 'nav_profile':
-      case 'nav_education':
-        return _isStartupRouteWarm(requested) ? requested : 'nav_feed';
-      default:
-        return requested;
+    if (startupRouteHintRequiresWarmReadiness(requested)) {
+      return _isStartupRouteWarm(requested)
+          ? requested
+          : StartupRouteHint.feed.value;
     }
+    return requested;
+  }
+
+  StartupRouteHint _effectiveStartupRouteHintKind() {
+    return startupRouteHintKind(_effectiveStartupRouteHint());
   }
 
   bool _shouldRequireFeedReadiness() {
-    switch (_effectiveStartupRouteHint()) {
-      case 'nav_explore':
-      case 'nav_profile':
-      case 'nav_education':
-        return false;
-      default:
-        return true;
-    }
+    return !startupRouteHintRequiresWarmReadiness(_effectiveStartupRouteHint());
   }
 
   bool _shouldPrioritizeProfileWarmups() {
-    return _effectiveStartupRouteHint() == 'nav_profile';
+    return _effectiveStartupRouteHintKind() == StartupRouteHint.profile;
   }
 
   bool _shouldPrioritizeExploreWarmups() {
-    return _effectiveStartupRouteHint() == 'nav_explore';
+    return _effectiveStartupRouteHintKind() == StartupRouteHint.explore;
   }
 
   String? _effectiveEducationTabId() {
-    if (_effectiveStartupRouteHint() != 'nav_education') {
+    if (_effectiveStartupRouteHintKind() != StartupRouteHint.education) {
       return null;
     }
     final tabId = (_previousEducationTabId ?? '').trim();
@@ -233,18 +237,18 @@ extension _SplashViewStartupPart on _SplashViewState {
   }
 
   bool _isStartupRouteWarm(String routeHint) {
-    switch (routeHint) {
-      case 'nav_explore':
+    switch (startupRouteHintKind(routeHint)) {
+      case StartupRouteHint.explore:
         return _surfaceRecordIsWarm(
           _startupSurfaceRecord('explore'),
         );
-      case 'nav_profile':
+      case StartupRouteHint.profile:
         return _surfaceRecordIsWarm(
           _startupSurfaceRecord('profile'),
           minItemCount: 0,
           allowHeaderOnly: true,
         );
-      case 'nav_education':
+      case StartupRouteHint.education:
         final tabId = (_previousEducationTabId ?? '').trim();
         if (tabId == PasajTabIds.market) {
           return _surfaceRecordIsWarm(
@@ -261,19 +265,25 @@ extension _SplashViewStartupPart on _SplashViewState {
         }
         return _surfaceRecordIsWarm(_startupSurfaceRecord('market')) ||
             _surfaceRecordIsWarm(_startupSurfaceRecord('jobs'));
-      case 'nav_feed':
-      case 'nav_home':
+      case StartupRouteHint.feed:
+      case StartupRouteHint.home:
         return true;
-      default:
+      case StartupRouteHint.unknown:
         return false;
     }
   }
 
   String _resolvedStartupRouteHintForTelemetry({
-    required bool loggedIn,
+    required StartupDecision startupDecision,
+    required bool educationEnabled,
   }) {
-    if (!loggedIn) return 'sign_in';
-    return _resolvedLoggedInStartupRouteHint();
+    if (!startupDecision.shouldOpenAuthenticatedHome) return 'sign_in';
+    final primaryTab = startupDecision.primaryTab;
+    if (primaryTab == null) return StartupRouteHint.feed.value;
+    return PrimaryTabRouter.routeHintFor(
+      primaryTab,
+      educationEnabled: educationEnabled,
+    );
   }
 
   Map<String, dynamic> _startupSurfaceTelemetryFields(
@@ -302,34 +312,137 @@ extension _SplashViewStartupPart on _SplashViewState {
     };
   }
 
-  Map<String, dynamic> _startupAnalyticsExtra({
-    required String surface,
-    required int launchToRouteMs,
-    required bool loggedIn,
-    Map<String, dynamic> extra = const <String, dynamic>{},
-  }) {
+  Map<String, dynamic> _startupWarmupPriorityTelemetryFields() {
     return <String, dynamic>{
-      'launchToRouteMs': launchToRouteMs,
-      'resolvedStartupRouteHint': _resolvedStartupRouteHintForTelemetry(
-        loggedIn: loggedIn,
-      ),
-      'effectiveStartupRouteHint': _effectiveStartupRouteHint(),
-      'requestedStartupRouteHint': _requestedStartupRouteHint(),
-      'startupRouteFallbackApplied':
-          _requestedStartupRouteHint() != _effectiveStartupRouteHint(),
       'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
       'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
       'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
       'startupPrioritizeEducationWarmups': _shouldPrioritizeEducationWarmups(),
+    };
+  }
+
+  Map<String, dynamic> _startupManifestContextTelemetryFields() {
+    return <String, dynamic>{
       'previousStartupRouteHint': _previousStartupRouteHint,
       'previousStartupLoggedIn': _previousStartupLoggedIn,
       'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
       'previousStartupNavIndex': _previousStartupNavIndex,
       'previousEducationTabId': _previousEducationTabId,
       'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
+    };
+  }
+
+  Map<String, dynamic> _startupRouteTelemetryFields(
+    _StartupRouteTelemetryValues routeTelemetry,
+  ) {
+    return <String, dynamic>{
+      'requestedStartupRouteHint': routeTelemetry.requestedStartupRouteHint,
+      'effectiveStartupRouteHint': routeTelemetry.effectiveStartupRouteHint,
+      'resolvedStartupRouteHint': routeTelemetry.resolvedStartupRouteHint,
+      'startupRouteFallbackApplied': routeTelemetry.fallbackApplied,
+    };
+  }
+
+  Map<String, dynamic> _startupAnalyticsExtra({
+    required String surface,
+    required int launchToRouteMs,
+    required _StartupRouteTelemetryValues routeTelemetry,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) {
+    return <String, dynamic>{
+      'launchToRouteMs': launchToRouteMs,
+      ..._startupRouteTelemetryFields(routeTelemetry),
+      ..._startupWarmupPriorityTelemetryFields(),
+      ..._startupManifestContextTelemetryFields(),
       ..._startupSurfaceTelemetryFields(surface, prefix: 'manifest'),
       ...extra,
     };
+  }
+
+  Map<String, dynamic> _startupDecisionTelemetryFields({
+    required _StartupRouteTelemetryValues routeTelemetry,
+    required StartupDecision startupDecision,
+  }) {
+    return <String, dynamic>{
+      ..._startupRouteTelemetryFields(routeTelemetry),
+      'startupRootTarget': startupDecision.rootTarget.name,
+      'startupPrimaryTab': startupDecision.primaryTab?.name,
+      ..._startupWarmupPriorityTelemetryFields(),
+    };
+  }
+
+  Map<String, dynamic> _startupWarmReadinessTelemetryFields() {
+    return <String, dynamic>{
+      'feedWarmSnapshotHit': _feedWarmSnapshotHit,
+      'feedWarmSnapshotSource': _feedWarmSnapshotSource,
+      'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+      'feedStartupShardHydrated': _feedStartupShardHydrated,
+      'feedStartupShardAgeMs': _feedStartupShardAgeMs,
+      'shortWarmSnapshotHit': _shortWarmSnapshotHit,
+      'shortWarmSnapshotSource': _shortWarmSnapshotSource,
+      'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+      'shortStartupShardHydrated': _shortStartupShardHydrated,
+      'shortStartupShardAgeMs': _shortStartupShardAgeMs,
+      ..._startupManifestContextTelemetryFields(),
+      ..._startupSurfaceTelemetryFields('feed', prefix: 'manifestFeed'),
+      ..._startupSurfaceTelemetryFields('short', prefix: 'manifestShort'),
+      ..._startupSurfaceTelemetryFields(
+        'explore',
+        prefix: 'manifestExplore',
+      ),
+      ..._startupSurfaceTelemetryFields(
+        'profile',
+        prefix: 'manifestProfile',
+      ),
+      ..._startupSurfaceTelemetryFields('market', prefix: 'manifestMarket'),
+      ..._startupSurfaceTelemetryFields('jobs', prefix: 'manifestJobs'),
+    };
+  }
+
+  Map<String, dynamic> _startupNavigationManifestExtra({
+    required _StartupRouteTelemetryValues routeTelemetry,
+    required StartupDecision startupDecision,
+    required int? startupNavSelectedIndex,
+  }) {
+    return <String, dynamic>{
+      ..._startupDecisionTelemetryFields(
+        routeTelemetry: routeTelemetry,
+        startupDecision: startupDecision,
+      ),
+      ..._startupWarmReadinessTelemetryFields(),
+      'navSelectedIndex': startupNavSelectedIndex,
+    };
+  }
+
+  void _trackStartupRuntimeHealthSummary({
+    required PlaybackKpiService playbackKpi,
+    required String surface,
+    required int launchToRouteMs,
+    required _StartupRouteTelemetryValues routeTelemetry,
+    bool includeRenderDiff = false,
+    bool includePlaybackWindow = false,
+    Map<String, dynamic> extra = const <String, dynamic>{},
+  }) {
+    unawaited(
+      UserAnalyticsService.instance.trackRuntimeHealthSummary(
+        surface: surface,
+        cacheFirst: playbackKpi.summarizeCacheFirst(
+          surfaceKeyPrefix: '${surface}_',
+        ),
+        renderDiff: includeRenderDiff
+            ? playbackKpi.summarizeRenderDiff(surface: surface)
+            : null,
+        playbackWindow: includePlaybackWindow
+            ? playbackKpi.summarizePlaybackWindow(surface: surface)
+            : null,
+        extra: _startupAnalyticsExtra(
+          surface: surface,
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: routeTelemetry,
+          extra: extra,
+        ),
+      ),
+    );
   }
 
   bool _hasWarmStartupSurface(
@@ -352,20 +465,43 @@ extension _SplashViewStartupPart on _SplashViewState {
     );
   }
 
-  String _resolvedLoggedInStartupRouteHint() {
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    switch (_preferredStartupNavIndex()) {
-      case 1:
-        return 'nav_explore';
-      case 3:
-        return hasEducation ? 'nav_education' : 'nav_profile';
-      case 4:
-        return 'nav_profile';
-      case 0:
-      default:
-        return 'nav_feed';
-    }
+  bool _startupEducationEnabled() {
+    return maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
+  }
+
+  StartupDecision _decideStartupRoute({
+    required bool loggedIn,
+    required bool educationEnabled,
+    String effectiveUserId = '',
+    String? requestedStartupRouteHint,
+    String? effectiveStartupRouteHint,
+  }) {
+    final requested = requestedStartupRouteHint ?? _requestedStartupRouteHint();
+    final effective = effectiveStartupRouteHint ?? _effectiveStartupRouteHint();
+    return const AppDecisionCoordinator().decideStartup(
+      StartupDecisionInput(
+        authState: loggedIn
+            ? StartupAuthState.authenticated
+            : StartupAuthState.unauthenticated,
+        effectiveUserId: effectiveUserId,
+        requestedRouteHint: effective,
+        educationEnabled: educationEnabled,
+        minimumStartupPrepared: _minimumStartupPrepared,
+        routeHintIsWarm: requested == effective,
+      ),
+    );
+  }
+
+  int? _startupNavSelectedIndex({
+    required bool loggedIn,
+    required StartupDecision startupDecision,
+    required bool educationEnabled,
+  }) {
+    if (!loggedIn || !startupDecision.shouldOpenAuthenticatedHome) return null;
+    return PrimaryTabRouter.selectedIndexForDecision(
+      startupDecision,
+      educationEnabled: educationEnabled,
+    );
   }
 
   Future<void> _performNavigateToPrimaryRoute() async {
@@ -396,8 +532,27 @@ extension _SplashViewStartupPart on _SplashViewState {
         DateTime.now().millisecondsSinceEpoch - appLaunchEpochMs;
     final requestedStartupRouteHint = _requestedStartupRouteHint();
     final effectiveStartupRouteHint = _effectiveStartupRouteHint();
-    final resolvedStartupRouteHint = _resolvedStartupRouteHintForTelemetry(
+    final educationEnabled = _startupEducationEnabled();
+    final startupDecision = _decideStartupRoute(
       loggedIn: loggedIn,
+      educationEnabled: educationEnabled,
+      effectiveUserId: effectiveUserId,
+      requestedStartupRouteHint: requestedStartupRouteHint,
+      effectiveStartupRouteHint: effectiveStartupRouteHint,
+    );
+    final startupNavSelectedIndex = _startupNavSelectedIndex(
+      loggedIn: loggedIn,
+      startupDecision: startupDecision,
+      educationEnabled: educationEnabled,
+    );
+    final resolvedStartupRouteHint = _resolvedStartupRouteHintForTelemetry(
+      startupDecision: startupDecision,
+      educationEnabled: educationEnabled,
+    );
+    final startupRouteTelemetry = _StartupRouteTelemetryValues(
+      requestedStartupRouteHint: requestedStartupRouteHint,
+      effectiveStartupRouteHint: effectiveStartupRouteHint,
+      resolvedStartupRouteHint: resolvedStartupRouteHint,
     );
     final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi != null) {
@@ -406,149 +561,70 @@ extension _SplashViewStartupPart on _SplashViewState {
         {
           'launchToRouteMs': launchToRouteMs,
           'loggedIn': loggedIn,
-          'requestedStartupRouteHint': requestedStartupRouteHint,
-          'effectiveStartupRouteHint': effectiveStartupRouteHint,
-          'resolvedStartupRouteHint': resolvedStartupRouteHint,
-          'startupRouteFallbackApplied':
-              requestedStartupRouteHint != effectiveStartupRouteHint,
+          ..._startupDecisionTelemetryFields(
+            routeTelemetry: startupRouteTelemetry,
+            startupDecision: startupDecision,
+          ),
           'minimumStartupPrepared': _minimumStartupPrepared,
-          'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
-          'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
-          'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
-          'startupPrioritizeEducationWarmups':
-              _shouldPrioritizeEducationWarmups(),
-          'feedWarmSnapshotHit': _feedWarmSnapshotHit,
-          'feedWarmSnapshotSource': _feedWarmSnapshotSource,
-          'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
-          'feedStartupShardHydrated': _feedStartupShardHydrated,
-          'feedStartupShardAgeMs': _feedStartupShardAgeMs,
-          'shortWarmSnapshotHit': _shortWarmSnapshotHit,
-          'shortWarmSnapshotSource': _shortWarmSnapshotSource,
-          'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
-          'shortStartupShardHydrated': _shortStartupShardHydrated,
-          'shortStartupShardAgeMs': _shortStartupShardAgeMs,
-          'previousStartupRouteHint': _previousStartupRouteHint,
-          'previousStartupLoggedIn': _previousStartupLoggedIn,
-          'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
-          'previousStartupNavIndex': _previousStartupNavIndex,
-          'previousEducationTabId': _previousEducationTabId,
-          'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
-          ..._startupSurfaceTelemetryFields('feed', prefix: 'manifestFeed'),
-          ..._startupSurfaceTelemetryFields('short', prefix: 'manifestShort'),
-          ..._startupSurfaceTelemetryFields(
-            'explore',
-            prefix: 'manifestExplore',
-          ),
-          ..._startupSurfaceTelemetryFields(
-            'profile',
-            prefix: 'manifestProfile',
-          ),
-          ..._startupSurfaceTelemetryFields('market', prefix: 'manifestMarket'),
-          ..._startupSurfaceTelemetryFields('jobs', prefix: 'manifestJobs'),
+          ..._startupWarmReadinessTelemetryFields(),
         },
       );
       if (loggedIn) {
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'feed',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'feed_',
-            ),
-            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'feed'),
-            playbackWindow: playbackKpi.summarizePlaybackWindow(
-              surface: 'feed',
-            ),
-            extra: _startupAnalyticsExtra(
-              surface: 'feed',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-              extra: <String, dynamic>{
-                'warmSnapshotHit': _feedWarmSnapshotHit,
-                'warmSnapshotSource': _feedWarmSnapshotSource,
-                'warmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
-                'startupShardHydrated': _feedStartupShardHydrated,
-                'startupShardAgeMs': _feedStartupShardAgeMs,
-              },
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'feed',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
+          includeRenderDiff: true,
+          includePlaybackWindow: true,
+          extra: <String, dynamic>{
+            'warmSnapshotHit': _feedWarmSnapshotHit,
+            'warmSnapshotSource': _feedWarmSnapshotSource,
+            'warmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
+            'startupShardHydrated': _feedStartupShardHydrated,
+            'startupShardAgeMs': _feedStartupShardAgeMs,
+          },
         );
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'short',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'short_',
-            ),
-            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'short'),
-            playbackWindow: playbackKpi.summarizePlaybackWindow(
-              surface: 'short',
-            ),
-            extra: _startupAnalyticsExtra(
-              surface: 'short',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-              extra: <String, dynamic>{
-                'warmSnapshotHit': _shortWarmSnapshotHit,
-                'warmSnapshotSource': _shortWarmSnapshotSource,
-                'warmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
-                'startupShardHydrated': _shortStartupShardHydrated,
-                'startupShardAgeMs': _shortStartupShardAgeMs,
-              },
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'short',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
+          includeRenderDiff: true,
+          includePlaybackWindow: true,
+          extra: <String, dynamic>{
+            'warmSnapshotHit': _shortWarmSnapshotHit,
+            'warmSnapshotSource': _shortWarmSnapshotSource,
+            'warmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
+            'startupShardHydrated': _shortStartupShardHydrated,
+            'startupShardAgeMs': _shortStartupShardAgeMs,
+          },
         );
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'explore',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'explore_',
-            ),
-            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'explore'),
-            extra: _startupAnalyticsExtra(
-              surface: 'explore',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'explore',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
+          includeRenderDiff: true,
         );
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'profile',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'profile_',
-            ),
-            renderDiff: playbackKpi.summarizeRenderDiff(surface: 'profile'),
-            extra: _startupAnalyticsExtra(
-              surface: 'profile',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'profile',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
+          includeRenderDiff: true,
         );
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'market',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'market_',
-            ),
-            extra: _startupAnalyticsExtra(
-              surface: 'market',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'market',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
         );
-        unawaited(
-          UserAnalyticsService.instance.trackRuntimeHealthSummary(
-            surface: 'jobs',
-            cacheFirst: playbackKpi.summarizeCacheFirst(
-              surfaceKeyPrefix: 'jobs_',
-            ),
-            extra: _startupAnalyticsExtra(
-              surface: 'jobs',
-              launchToRouteMs: launchToRouteMs,
-              loggedIn: loggedIn,
-            ),
-          ),
+        _trackStartupRuntimeHealthSummary(
+          playbackKpi: playbackKpi,
+          surface: 'jobs',
+          launchToRouteMs: launchToRouteMs,
+          routeTelemetry: startupRouteTelemetry,
         );
       }
     }
@@ -559,77 +635,23 @@ extension _SplashViewStartupPart on _SplashViewState {
         loggedIn: loggedIn,
         minimumStartupPrepared: _minimumStartupPrepared,
         launchToRouteMs: launchToRouteMs,
-        extra: <String, dynamic>{
-          'requestedStartupRouteHint': requestedStartupRouteHint,
-          'effectiveStartupRouteHint': effectiveStartupRouteHint,
-          'resolvedStartupRouteHint': resolvedStartupRouteHint,
-          'startupRouteFallbackApplied':
-              requestedStartupRouteHint != effectiveStartupRouteHint,
-          'startupRequiresFeedReadiness': _shouldRequireFeedReadiness(),
-          'startupPrioritizeExploreWarmups': _shouldPrioritizeExploreWarmups(),
-          'startupPrioritizeProfileWarmups': _shouldPrioritizeProfileWarmups(),
-          'startupPrioritizeEducationWarmups':
-              _shouldPrioritizeEducationWarmups(),
-          'feedWarmSnapshotHit': _feedWarmSnapshotHit,
-          'feedWarmSnapshotSource': _feedWarmSnapshotSource,
-          'feedWarmSnapshotAgeMs': _feedWarmSnapshotAgeMs,
-          'feedStartupShardHydrated': _feedStartupShardHydrated,
-          'feedStartupShardAgeMs': _feedStartupShardAgeMs,
-          'shortWarmSnapshotHit': _shortWarmSnapshotHit,
-          'shortWarmSnapshotSource': _shortWarmSnapshotSource,
-          'shortWarmSnapshotAgeMs': _shortWarmSnapshotAgeMs,
-          'shortStartupShardHydrated': _shortStartupShardHydrated,
-          'shortStartupShardAgeMs': _shortStartupShardAgeMs,
-          'previousStartupRouteHint': _previousStartupRouteHint,
-          'previousStartupLoggedIn': _previousStartupLoggedIn,
-          'previousStartupMinimumPrepared': _previousStartupMinimumPrepared,
-          'previousStartupNavIndex': _previousStartupNavIndex,
-          'previousEducationTabId': _previousEducationTabId,
-          'previousStartupManifestAgeMs': _previousStartupManifestAgeMs,
-          'navSelectedIndex': loggedIn ? _preferredStartupNavIndex() : null,
-          ..._startupSurfaceTelemetryFields('feed', prefix: 'manifestFeed'),
-          ..._startupSurfaceTelemetryFields('short', prefix: 'manifestShort'),
-          ..._startupSurfaceTelemetryFields(
-            'explore',
-            prefix: 'manifestExplore',
-          ),
-          ..._startupSurfaceTelemetryFields(
-            'profile',
-            prefix: 'manifestProfile',
-          ),
-          ..._startupSurfaceTelemetryFields('market', prefix: 'manifestMarket'),
-          ..._startupSurfaceTelemetryFields('jobs', prefix: 'manifestJobs'),
-        },
+        extra: _startupNavigationManifestExtra(
+          routeTelemetry: startupRouteTelemetry,
+          startupDecision: startupDecision,
+          startupNavSelectedIndex: startupNavSelectedIndex,
+        ),
       ),
     );
     _didNavigate = true;
-    if (loggedIn) {
-      final preferredIndex = _preferredStartupNavIndex();
-      if (preferredIndex != null) {
-        ensureNavBarController().selectedIndex.value = preferredIndex;
+    if (startupDecision.shouldOpenAuthenticatedHome) {
+      if (startupNavSelectedIndex != null) {
+        ensureNavBarController().selectedIndex.value = startupNavSelectedIndex;
       }
       await AppRootNavigationService.offAllToAuthenticatedHome();
       return;
     }
-    await AppRootNavigationService.offAllToSignIn();
-  }
-
-  int? _preferredStartupNavIndex() {
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    final profileIndex = hasEducation ? 4 : 3;
-    switch (_effectiveStartupRouteHint()) {
-      case 'nav_feed':
-      case 'nav_home':
-        return 0;
-      case 'nav_explore':
-        return 1;
-      case 'nav_education':
-        return hasEducation ? 3 : 0;
-      case 'nav_profile':
-        return profileIndex;
-      default:
-        return null;
+    if (startupDecision.shouldOpenSignIn) {
+      await AppRootNavigationService.offAllToSignIn();
     }
   }
 
@@ -701,7 +723,7 @@ extension _SplashViewStartupPart on _SplashViewState {
       }
       return;
     }
-    if (_effectiveStartupRouteHint() == 'nav_education') {
+    if (_effectiveStartupRouteHintKind() == StartupRouteHint.education) {
       try {
         final marketEnabled = _shouldPrioritizeEducationMarketWarmups()
             ? await _isSplashPasajTabEnabled(PasajTabIds.market)

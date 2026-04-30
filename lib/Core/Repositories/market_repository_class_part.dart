@@ -7,7 +7,9 @@ abstract class _MarketRepositoryBase extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _state.prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _state.prefs = prefs);
   }
 }
 

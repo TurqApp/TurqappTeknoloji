@@ -120,3 +120,30 @@ Future<String> _performUploadBytesAsWebp({
   );
   return ref.getDownloadURL();
 }
+
+Future<String> _performUploadPreparedWebpBytes({
+  required FirebaseStorage storage,
+  required Uint8List bytes,
+  required String storagePathWithoutExt,
+}) async {
+  if (bytes.isEmpty) {
+    throw Exception('WebP data is empty');
+  }
+  final uid = await _performEnsureUploadAuthReady();
+  final ref = storage.ref().child('$storagePathWithoutExt.webp');
+  if (kDebugMode) {
+    debugPrint('[UploadPreflight][PreparedWebP] bytes=${bytes.length}');
+  }
+  await _performPutDataWithSingleAuthRetry(
+    ref,
+    bytes,
+    SettableMetadata(
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000, immutable',
+      customMetadata: {
+        if ((uid ?? '').isNotEmpty) 'uploaderUid': uid!,
+      },
+    ),
+  );
+  return ref.getDownloadURL();
+}

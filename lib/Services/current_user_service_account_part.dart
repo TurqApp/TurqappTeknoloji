@@ -33,7 +33,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
     if (firebaseUser == null) return;
 
     try {
-      final snapshot = await FirebaseFirestore.instance
+      final snapshot = await AppFirestore.instance
           .collection('users')
           .doc(firebaseUser.uid)
           .get();
@@ -487,7 +487,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   }
 
   Future<void> _loadLastEmailPromptAt() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final key = _emailPromptTimestampKey();
     if (key == null) {
       _lastEmailPromptAt = null;
@@ -499,7 +499,7 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   }
 
   Future<void> _saveLastEmailPromptAt(DateTime value) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final key = _emailPromptTimestampKey();
     if (key == null) return;
     await _prefs?.setInt(key, value.millisecondsSinceEpoch);

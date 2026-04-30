@@ -3,7 +3,8 @@ part of 'test_past_result_content.dart';
 extension _TestPastResultContentCardPart on _TestPastResultContentState {
   Widget _buildResultCard() {
     return GestureDetector(
-      onTap: () => Get.to(() => MyPastTestResultsPreview(model: model)),
+      onTap: () => const EducationResultNavigationService()
+          .openTestPastResultPreview(model),
       child: Container(
         margin: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
         decoration: BoxDecoration(

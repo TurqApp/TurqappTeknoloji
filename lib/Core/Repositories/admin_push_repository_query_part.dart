@@ -60,7 +60,7 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
     }
 
     const pageSize = 350;
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+    Query<Map<String, dynamic>> query = AppFirestore.instance
         .collection('users')
         .orderBy(FieldPath.documentId)
         .limit(pageSize);
@@ -80,7 +80,7 @@ extension AdminPushRepositoryQueryPart on AdminPushRepository {
       }
 
       if (users.docs.length < pageSize) break;
-      query = FirebaseFirestore.instance
+      query = AppFirestore.instance
           .collection('users')
           .orderBy(FieldPath.documentId)
           .startAfterDocument(users.docs.last)

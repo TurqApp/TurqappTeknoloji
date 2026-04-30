@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 
@@ -21,7 +22,7 @@ class SignInRemoteService extends GetxService {
   }
 
   final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'europe-west3');
+      AppCloudFunctions.instanceFor(region: 'europe-west3');
   final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 10),

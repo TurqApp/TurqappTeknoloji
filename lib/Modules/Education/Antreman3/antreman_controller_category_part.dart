@@ -3,8 +3,8 @@ part of 'antreman_controller.dart';
 extension AntremanControllerCategoryPart on AntremanController {
   Future<void> loadMainCategory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_mainCategoryPrefKey) ?? '';
+      final preferences = ensureLocalPreferenceRepository();
+      final saved = await preferences.getString(_mainCategoryPrefKey) ?? '';
       if (saved.isNotEmpty && subjects.containsKey(saved)) {
         mainCategory.value = saved;
       } else {
@@ -23,8 +23,8 @@ extension AntremanControllerCategoryPart on AntremanController {
     expandedIndex.value = -1;
     expandedSubIndex.value = -1;
     _mainCategoryPromptShown = false;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_mainCategoryPrefKey, category);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setString(_mainCategoryPrefKey, category);
     unawaited(_prefetchSelectedMainCategoryOnWifi(category));
   }
 

@@ -188,11 +188,12 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
           PullDownMenuItem(
             onTap: () {
               _suspendAgendaFeedForRoute();
-              Get.to(() => ReportUser(
-                    userID: widget.model.userID,
-                    postID: widget.model.docID,
-                    commentID: "",
-                  ))?.then((_) {
+              const ReportUserNavigationService()
+                  .openReportUser(
+                userId: widget.model.userID,
+                postId: widget.model.docID,
+              )
+                  .then((_) {
                 _restoreAgendaFeedCenter();
               });
             },

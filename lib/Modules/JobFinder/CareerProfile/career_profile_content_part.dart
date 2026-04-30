@@ -17,7 +17,7 @@ extension _CareerProfileContentPart on _CareerProfileState {
         top: false,
         child: Obx(() {
           if (controller.isLoading.value && !controller.cvVar.value) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading(title: '');
           }
 
           if (!controller.cvVar.value) {
@@ -357,7 +357,7 @@ extension _CareerProfileContentPart on _CareerProfileState {
   }
 
   Future<void> _openCvEditor() async {
-    await Get.to(() => Cv());
+    await const EducationDetailNavigationService().openCv();
     await controller.loadCvData();
   }
 }

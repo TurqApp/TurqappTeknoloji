@@ -94,7 +94,9 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
   }
 
   Future<void> _performArchiveItem() async {
-    if (_isUpdatingStatus || item.id.trim().isEmpty || item.userId.trim().isEmpty) {
+    if (_isUpdatingStatus ||
+        item.id.trim().isEmpty ||
+        item.userId.trim().isEmpty) {
       return;
     }
     _updateViewState(() {
@@ -445,9 +447,10 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
           preferCache: false,
           forceRefresh: true,
         ),
-        if (!_isOwner) _currentUserId.trim().isNotEmpty
-            ? MarketSavedStore.isSaved(_currentUserId.trim(), item.id)
-            : Future<bool>.value(false),
+        if (!_isOwner)
+          _currentUserId.trim().isNotEmpty
+              ? MarketSavedStore.isSaved(_currentUserId.trim(), item.id)
+              : Future<bool>.value(false),
       ]);
       final latest = results[0] as MarketItemModel?;
       if (latest != null && mounted) {
@@ -502,7 +505,8 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
   }
 
   Future<void> _performOpenEdit() async {
-    final result = await Get.to(() => MarketCreateView(initialItem: item));
+    final result = await const MarketDetailNavigationService()
+        .openMarketCreate(initialItem: item);
     if (result == null) return;
     await _refreshItem();
   }

@@ -175,6 +175,49 @@ extension PostRepositoryInteractionPart on PostRepository {
     }
   }
 
+  Future<PostDislikeToggleResult> _performToggleDislike(String postId) async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    final normalizedPostId = postId.trim();
+    if (userId.isEmpty || normalizedPostId.isEmpty) {
+      return const PostDislikeToggleResult(liked: false, disliked: false);
+    }
+
+    final cached = await fetchPostRawById(normalizedPostId);
+    if (cached == null) {
+      return const PostDislikeToggleResult(liked: false, disliked: false);
+    }
+
+    final docRef = _firestore.collection('Posts').doc(normalizedPostId);
+    final currentDislikes =
+        List<String>.from((cached['begenmeme'] as List?) ?? const []);
+    final currentLikes =
+        List<String>.from((cached['begeniler'] as List?) ?? const []);
+
+    var liked = currentLikes.contains(userId);
+    var disliked = currentDislikes.contains(userId);
+
+    if (liked) {
+      await docRef.update({
+        'begeniler': FieldValue.arrayRemove([userId]),
+      });
+      liked = false;
+    }
+
+    if (disliked) {
+      await docRef.update({
+        'begenmeme': FieldValue.arrayRemove([userId]),
+      });
+      disliked = false;
+    } else {
+      await docRef.update({
+        'begenmeme': FieldValue.arrayUnion([userId]),
+      });
+      disliked = true;
+    }
+
+    return PostDislikeToggleResult(liked: liked, disliked: disliked);
+  }
+
   Future<bool> _performToggleReshare(PostsModel model) async {
     final state = attachPost(model);
     final wasReshared = state.reshared.value;

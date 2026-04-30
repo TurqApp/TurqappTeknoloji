@@ -58,7 +58,7 @@ extension EducationViewBodyPart on EducationView {
               onTap: () {
                 if (_tabIdForIndex(controller.selectedTab.value) ==
                     PasajTabIds.market) {
-                  Get.to(() => const MarketSearchView());
+                  const MarketDetailNavigationService().openMarketSearch();
                   return;
                 }
                 controller.isSearchMode.value = true;

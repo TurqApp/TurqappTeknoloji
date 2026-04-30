@@ -196,8 +196,8 @@ extension PersonalizedControllerDataPart on PersonalizedController {
 
   Future<void> _loadCachedList() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey);
+      final preferences = ensureLocalPreferenceRepository();
+      final raw = await preferences.getString(_cacheKey);
       if (raw == null || raw.isEmpty) return;
       final decoded = json.decode(raw) as List<dynamic>;
       final items = decoded
@@ -220,8 +220,8 @@ extension PersonalizedControllerDataPart on PersonalizedController {
         ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
       final top =
           sorted.take(_personalizedCacheLimit).map((e) => e.toJson()).toList();
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cacheKey, json.encode(top));
+      final preferences = ensureLocalPreferenceRepository();
+      await preferences.setString(_cacheKey, json.encode(top));
     } catch (_) {}
   }
 }

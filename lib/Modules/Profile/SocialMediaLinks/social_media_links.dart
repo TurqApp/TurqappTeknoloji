@@ -5,6 +5,7 @@ import 'package:flutter_reorderable_grid_view/widgets/reorderable_builder.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Profile/SocialMediaLinks/social_media_links_controller.dart';
 
 import '../../../Models/social_media_model.dart';
@@ -93,11 +94,7 @@ class _SocialMediaLinksState extends State<SocialMediaLinks> {
                     builder: (children) {
                       if (controller.isLoading.value &&
                           controller.list.isEmpty) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.black,
-                          ),
-                        );
+                        return const AppStateView.loading();
                       }
                       return GridView(
                         padding: EdgeInsets.zero,

@@ -125,7 +125,7 @@ extension ChatListingShellContentPart on _ChatListingState {
         backgroundColor: Colors.black,
         color: Colors.white,
         child: controller.waiting.value
-            ? const Center(child: CupertinoActivityIndicator())
+            ? const AppStateView.loading()
             : !hasResults
                 ? (isSearching
                     ? EmptyRow(text: 'common.no_results'.tr)

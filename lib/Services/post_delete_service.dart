@@ -7,6 +7,7 @@ import '../Core/Repositories/user_repository.dart';
 import '../Core/Services/IndexPool/index_pool_store.dart';
 import '../Core/Services/typesense_post_service.dart';
 import '../Core/Repositories/profile_repository.dart';
+import '../Core/Services/app_firestore.dart';
 import '../Modules/Agenda/agenda_controller.dart';
 import '../Modules/Explore/explore_controller.dart';
 import '../Modules/Profile/MyProfile/profile_controller.dart';
@@ -56,7 +57,7 @@ class PostDeleteService {
   }
 
   Future<void> softDelete(PostsModel model) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     final postRef = firestore.collection('Posts').doc(model.docID);
@@ -125,7 +126,7 @@ class PostDeleteService {
   }
 
   Future<void> _cascadeDeleteReshares(String originalPostID) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final mappingCol = firestore
         .collection('Posts')
         .doc(originalPostID)
@@ -152,7 +153,7 @@ class PostDeleteService {
   }
 
   Future<void> _cascadeDeleteSharedAs(String originalPostID) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
     final sharedSnap = await firestore
@@ -327,7 +328,7 @@ class PostDeleteService {
   Future<void> _decrementOwnerLikeCounter(PostsModel model) async {
     try {
       // Gönderiye ait toplam beğeni sayısı
-      final likesColl = FirebaseFirestore.instance
+      final likesColl = AppFirestore.instance
           .collection('Posts')
           .doc(model.docID)
           .collection('likes');
@@ -344,8 +345,9 @@ class PostDeleteService {
 
       if (likeCount <= 0) return;
 
-      final userRef =
-          FirebaseFirestore.instance.collection('users').doc(model.userID);
+      final userRef = AppFirestore.instance.collection('users').doc(
+            model.userID,
+          );
       final userSnap = await userRef.get();
       final currentCount = (userSnap.data()?['counterOfLikes'] ?? 0) as int;
       final dec = likeCount > currentCount ? currentCount : likeCount;

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
@@ -139,9 +138,7 @@ class SessionBootstrap {
         stackTrace: stackTrace,
       );
       try {
-        await CurrentUserService.instance.logout();
-        await CurrentUserService.instance.signOutAuth();
-        await ensureAccountCenterService().signOutAllLocal();
+        await _defaultClearAuthAndLocalSessions();
       } catch (recoveryError, recoveryStackTrace) {
         _failureReporter.record(
           kind: StartupSessionFailureKind.firstLaunchCleanup,
@@ -177,11 +174,11 @@ class SessionBootstrap {
     }
     try {
       return (await _ensureAuthReady(
-                timeout: _authRestoreWaitFor(
-                  prefs: prefs,
-                  hadReturningSessionHint: hadReturningSessionHint,
-                ),
-              ))
+            timeout: _authRestoreWaitFor(
+              prefs: prefs,
+              hadReturningSessionHint: hadReturningSessionHint,
+            ),
+          ))
               ?.trim() ??
           '';
     } catch (error, stackTrace) {
@@ -210,18 +207,22 @@ class SessionBootstrap {
     const firstLaunchKey = 'app_has_launched_before';
     final hasLaunchedBefore = prefs.getBool(firstLaunchKey) ?? false;
     final isFirstLaunch = !hasLaunchedBefore;
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = CurrentUserService.instance.currentAuthUser;
 
     if (!hasLaunchedBefore && firebaseUser != null) {
-      await CurrentUserService.instance.logout();
-      await CurrentUserService.instance.signOutAuth();
-      await ensureAccountCenterService().signOutAllLocal();
+      await _defaultClearAuthAndLocalSessions();
     }
 
     if (!hasLaunchedBefore) {
       await prefs.setBool(firstLaunchKey, true);
     }
     return isFirstLaunch;
+  }
+
+  static Future<void> _defaultClearAuthAndLocalSessions() async {
+    await CurrentUserService.instance.logout();
+    await CurrentUserService.instance.signOutAuth();
+    await ensureAccountCenterService().signOutAllLocal();
   }
 
   static String _defaultReadEffectiveUserId() {
@@ -239,7 +240,7 @@ class SessionBootstrap {
 
   static Future<void> _defaultSyncCurrentAccountToAccountCenter() async {
     final userService = CurrentUserService.instance;
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    final firebaseUser = userService.currentAuthUser;
     final currentUser = userService.currentUser;
     if (firebaseUser == null || currentUser == null) return;
 

@@ -28,25 +28,13 @@ extension SinavSorusuHazirlaControllerRuntimePart
 
   Future<void> _createQuestionDrafts() async {
     try {
-      for (int i = 0; i < tumDersler.length; i++) {
-        final soruSayisi = int.tryParse(derslerinSoruSayilari[i]) ?? 0;
-        for (int j = 0; j < soruSayisi; j++) {
-          await FirebaseFirestore.instance
-              .collection('practiceExams')
-              .doc(docID)
-              .collection('Sorular')
-              .doc(DateTime.now().microsecondsSinceEpoch.toString())
-              .set({
-            'id': j,
-            'soru': '',
-            'ders': tumDersler[i],
-            'konu': '',
-            'dogruCevap': 'A',
-            'yanitlayanlar': [],
-          });
-          SetOptions(merge: true);
-        }
-      }
+      await _practiceExamRepository.createQuestionDrafts(
+        examId: docID,
+        lessons: tumDersler,
+        questionCounts: derslerinSoruSayilari
+            .map((value) => int.tryParse(value) ?? 0)
+            .toList(growable: false),
+      );
       await _practiceExamRepository.invalidateQuestionCaches(examId: docID);
       final questions = await _practiceExamRepository.fetchQuestions(
         docID,
@@ -63,12 +51,7 @@ extension SinavSorusuHazirlaControllerRuntimePart
 
   Future<void> _completeExam() async {
     try {
-      await FirebaseFirestore.instance
-          .collection('practiceExams')
-          .doc(docID)
-          .set({
-        'taslak': false,
-      }, SetOptions(merge: true));
+      await _practiceExamRepository.publishPracticeExam(docID);
       await ensurePracticeExamRepository().invalidateExamListingCaches(
         examId: docID,
       );

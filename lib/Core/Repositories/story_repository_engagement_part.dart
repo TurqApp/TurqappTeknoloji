@@ -6,7 +6,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required int limit,
   }) async {
     if (storyId.isEmpty) return const <String>[];
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Viewers')
@@ -17,7 +17,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
 
   Future<int> _performFetchStoryViewerCount(String storyId) async {
     if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
+    final counts = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Viewers')
@@ -31,7 +31,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required int limit,
   }) async {
     if (storyId.isEmpty) return const <StoryCommentModel>[];
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Yorumlar')
@@ -45,7 +45,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
 
   Future<int> _performFetchStoryCommentCount(String storyId) async {
     if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
+    final counts = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Yorumlar')
@@ -58,7 +58,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     String storyId,
   ) async {
     if (storyId.isEmpty) return null;
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Yorumlar')
@@ -77,7 +77,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String gif,
   }) async {
     if (storyId.isEmpty || userId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Yorumlar')
@@ -94,7 +94,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String commentId,
   }) async {
     if (storyId.isEmpty || commentId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Yorumlar')
@@ -107,7 +107,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String userId,
   }) async {
     if (storyId.isEmpty || userId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('screenshots')
@@ -126,7 +126,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     if (currentUid.isEmpty || targetUserId.isEmpty || latestStoryTime <= 0) {
       return;
     }
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(currentUid)
         .collection('readStories')
@@ -141,7 +141,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
 
   Future<List<String>> _performFetchStoryLikeIds(String storyId) async {
     if (storyId.isEmpty) return const <String>[];
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('likes')
@@ -151,7 +151,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
 
   Future<int> _performFetchStoryLikeCount(String storyId) async {
     if (storyId.isEmpty) return 0;
-    final counts = await FirebaseFirestore.instance
+    final counts = await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('likes')
@@ -176,7 +176,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     final likeCountFuture = fetchStoryLikeCount(storyId);
     final likeStatusFuture = currentUid.trim().isEmpty
         ? Future<bool>.value(false)
-        : FirebaseFirestore.instance
+        : AppFirestore.instance
             .collection('stories')
             .doc(storyId)
             .collection('likes')
@@ -222,7 +222,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String currentUid,
   }) async {
     if (storyId.isEmpty || currentUid.trim().isEmpty) return false;
-    final docRef = FirebaseFirestore.instance
+    final docRef = AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('likes')
@@ -248,8 +248,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     if (storyId.isEmpty || currentUid.trim().isEmpty || emoji.trim().isEmpty) {
       return currentReaction;
     }
-    final docRef =
-        FirebaseFirestore.instance.collection('stories').doc(storyId);
+    final docRef = AppFirestore.instance.collection('stories').doc(storyId);
 
     if (currentReaction == emoji) {
       await docRef.update({
@@ -274,7 +273,7 @@ extension StoryRepositoryEngagementPart on StoryRepository {
     required String currentUid,
   }) async {
     if (storyId.isEmpty || currentUid.trim().isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('stories')
         .doc(storyId)
         .collection('Viewers')

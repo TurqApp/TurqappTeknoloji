@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_campaign_editor_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_campaign_list_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
@@ -149,7 +150,7 @@ class _AdsCenterHomeViewState extends State<AdsCenterHomeView>
       appBar: _buildAppBar(),
       body: Obx(() {
         if (_controller.loading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading();
         }
 
         if (!_controller.canAccess.value) {

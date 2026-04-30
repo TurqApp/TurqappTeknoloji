@@ -163,7 +163,8 @@ class _ApplicationCardState extends State<_ApplicationCard> {
                     InkWell(
                       onTap: userId.isEmpty
                           ? null
-                          : () => Get.to(() => SocialProfile(userID: userId)),
+                          : () => const ProfileNavigationService()
+                              .openSocialProfile(userId),
                       child: Text(
                         'TurqApp: ${currentNickname.isEmpty ? '@-' : currentNickname}',
                         style: TextStyle(
@@ -310,7 +311,7 @@ class _ApplicationCardState extends State<_ApplicationCard> {
         return;
       }
 
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('setUserBadgeByUserId');
       await callable.call<Map<String, dynamic>>({
         'userId': userId,

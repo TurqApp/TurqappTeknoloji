@@ -4,7 +4,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
   Duration _resolveSavedResumePosition(HLSVideoAdapter adapter) {
     final savedState =
-        VideoStateManager.instance.getVideoState(playbackHandleKey);
+        _playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
     final savedPosition = savedState?.position ?? Duration.zero;
     if (savedPosition > Duration.zero) {
       return savedPosition;
@@ -41,7 +41,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     adapter.queueSeekAndPlay(savedPosition);
     _lastQueuedSavedResumePosition = savedPosition;
     _lastQueuedSavedResumeAt = DateTime.now();
-    VideoStateManager.instance.clearVideoState(playbackHandleKey);
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     _recordPlaybackDispatch(
       'feed_card_restore_saved_seek',
       source: source,
@@ -855,7 +855,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             adapter.queueSeekAndPlay(savedPosition);
             _lastQueuedSavedResumePosition = savedPosition;
             _lastQueuedSavedResumeAt = DateTime.now();
-            VideoStateManager.instance.clearVideoState(playbackHandleKey);
+            _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
           }
           _recordPlaybackDispatch(
             'feed_card_adapter_restart_stopped',

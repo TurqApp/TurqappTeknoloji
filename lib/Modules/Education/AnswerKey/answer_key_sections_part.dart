@@ -22,7 +22,7 @@ extension AnswerKeySectionsPart on AnswerKey {
 
   Widget _buildSearch() {
     return GestureDetector(
-      onTap: () => Get.to(() => SearchAnswerKey()),
+      onTap: () => const AnswerKeyNavigationService().openSearchAnswerKey(),
       child: Container(
         color: Colors.white,
         padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
@@ -69,9 +69,8 @@ extension AnswerKeySectionsPart on AnswerKey {
           return Padding(
             padding: EdgeInsets.only(right: 25, left: index == 0 ? 20 : 0),
             child: GestureDetector(
-              onTap: () => Get.to(
-                () => CategoryBasedAnswerKey(sinavTuru: dersler1[index]),
-              ),
+              onTap: () => const AnswerKeyNavigationService()
+                  .openCategoryAnswerKey(dersler1[index]),
               child: Column(
                 children: [
                   Container(
@@ -107,36 +106,15 @@ extension AnswerKeySectionsPart on AnswerKey {
 
   Widget _buildListingBody(List<dynamic> items) {
     if (controller.isLoading.value || controller.isSearchLoading.value) {
-      return const Center(child: CupertinoActivityIndicator());
+      return const AppStateView.loading();
     }
     if (items.isEmpty) {
-      return Container(
-        color: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 15),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lightbulb_outline, color: Colors.black),
-                  const SizedBox(height: 7),
-                  Text(
-                    controller.hasActiveSearch
-                        ? 'answer_key.search_empty'.tr
-                        : 'answer_key.no_optical_forms'.tr,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'Montserrat',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      return AppStateView.empty(
+        title: controller.hasActiveSearch
+            ? 'answer_key.search_empty'.tr
+            : 'answer_key.no_optical_forms'.tr,
+        icon: Icons.lightbulb_outline,
+        padding: const EdgeInsets.only(top: 15),
       );
     }
 

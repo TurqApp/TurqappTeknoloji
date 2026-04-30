@@ -5,8 +5,11 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
@@ -24,9 +27,6 @@ import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details_controller.dart';
 import 'package:turqappv2/Modules/JobFinder/job_localization_utils.dart';
 import 'package:turqappv2/Modules/Agenda/TagPosts/tag_posts.dart';
-import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -50,6 +50,8 @@ class _JobDetailsState extends State<JobDetails> {
   late final JobDetailsController controller;
   final EducationFeedPostShareService shareService =
       const EducationFeedPostShareService();
+  final EducationDetailNavigationService detailNavigationService =
+      const EducationDetailNavigationService();
 
   JobModel get model => widget.model;
 
@@ -77,7 +79,7 @@ class _JobDetailsState extends State<JobDetails> {
         await UsernameLookupRepository.ensure().findUidForHandle(mention) ?? '';
 
     if (targetUid.isNotEmpty && targetUid != _currentUid) {
-      await Get.to(() => SocialProfile(userID: targetUid));
+      await const ProfileNavigationService().openSocialProfile(targetUid);
     }
   }
 

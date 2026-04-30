@@ -8,17 +8,18 @@ class MarketSchemaService extends _MarketSchemaServiceBase {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    _preferences = ensureLocalPreferenceRepository();
   }
 }
 
 class _MarketSchemaServiceState {
   final schema = <String, dynamic>{}.obs;
-  SharedPreferences? prefs;
+  LocalPreferenceRepository? preferences;
 }
 
 extension MarketSchemaServiceFieldsPart on MarketSchemaService {
   RxMap<String, dynamic> get schema => _state.schema;
-  SharedPreferences? get _prefs => _state.prefs;
-  set _prefs(SharedPreferences? value) => _state.prefs = value;
+  LocalPreferenceRepository? get _preferences => _state.preferences;
+  set _preferences(LocalPreferenceRepository? value) =>
+      _state.preferences = value;
 }

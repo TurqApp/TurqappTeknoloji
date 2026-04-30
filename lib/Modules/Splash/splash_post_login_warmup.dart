@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/notification_service.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
@@ -266,9 +266,8 @@ class PostLoginWarmup {
       return Duration.zero;
     }
     return Duration(
-      milliseconds: isFirstLaunch
-          ? (onWiFi ? 1200 : 1500)
-          : (onWiFi ? 900 : 1200),
+      milliseconds:
+          isFirstLaunch ? (onWiFi ? 1200 : 1500) : (onWiFi ? 900 : 1200),
     );
   }
 
@@ -285,9 +284,9 @@ class PostLoginWarmup {
 
   Future<void> _applyGlobalMediaCacheQuota() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        prefs.getInt('offline_cache_quota_gb') ?? 3,
+        await preferences.getInt('offline_cache_quota_gb') ?? 3,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       final cache = SegmentCacheManager.maybeFind();

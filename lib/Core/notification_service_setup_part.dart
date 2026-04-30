@@ -7,7 +7,7 @@ extension NotificationServiceSetupPart on NotificationService {
     });
 
     _authStateSub ??=
-        FirebaseAuth.instance.authStateChanges().listen((user) async {
+        AppFirebaseAuth.instance.authStateChanges().listen((user) async {
       if (user != null) {
         await _syncCurrentToken();
       }
@@ -31,12 +31,12 @@ extension NotificationServiceSetupPart on NotificationService {
   }
 
   Future<void> _persistToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     if (token.isEmpty) return;
 
     final currentUid = _currentUid;
     final tokenKey = _tokenPrefsKey(currentUid);
-    final saved = prefs.getString(tokenKey);
+    final saved = await preferences.getString(tokenKey);
     if (currentUid.isNotEmpty) {
       await UserRepository.ensure().updateUserFields(
         currentUid,
@@ -45,7 +45,7 @@ extension NotificationServiceSetupPart on NotificationService {
     }
 
     if (token != saved) {
-      await prefs.setString(tokenKey, token);
+      await preferences.setString(tokenKey, token);
     }
   }
 

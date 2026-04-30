@@ -24,7 +24,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   }
 
   Future<Map<String, dynamic>?> _readPrefs(String docId) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_scholarshipRepositoryPrefsPrefix$docId';
     final raw = prefs?.getString(prefsKey);
@@ -65,7 +65,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       data: _cloneDoc(data),
       cachedAt: DateTime.now(),
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_scholarshipRepositoryPrefsPrefix$docId',
       jsonEncode({
@@ -79,7 +79,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final cleanId = docId.trim();
     if (cleanId.isEmpty) return;
     _memory.remove(cleanId);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('$_scholarshipRepositoryPrefsPrefix$cleanId');
   }
 
@@ -95,7 +95,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   }
 
   Future<List<Map<String, dynamic>>?> _readQueryPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_scholarshipRepositoryPrefsPrefix:$key';
     final raw = prefs?.getString(prefsKey);
@@ -138,7 +138,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       items: _cloneDocs(items),
       cachedAt: DateTime.now(),
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_scholarshipRepositoryPrefsPrefix:$key',
       jsonEncode({
@@ -151,13 +151,13 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   Future<void> _removeRawDoc(String cacheKey) async {
     final normalized = cacheKey.trim();
     if (normalized.isEmpty) return;
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('$_scholarshipRepositoryPrefsPrefix:$normalized');
   }
 
   Future<void> _invalidateQueryPrefix(String prefix) async {
     _queryMemory.removeWhere((key, _) => key.startsWith(prefix));
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {
@@ -185,7 +185,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   }
 
   Future<bool?> _readApplyPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_scholarshipRepositoryApplyPrefix$key';
     final raw = prefs?.getString(prefsKey);
@@ -224,7 +224,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
       value: value,
       cachedAt: DateTime.now(),
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_scholarshipRepositoryApplyPrefix$key',
       jsonEncode({
@@ -238,12 +238,12 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
     final normalized = key.trim();
     if (normalized.isEmpty) return;
     _applyMemory.remove(normalized);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('$_scholarshipRepositoryApplyPrefix$normalized');
   }
 
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_scholarshipRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
@@ -254,7 +254,7 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   }
 
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_scholarshipRepositoryPrefsPrefix:$cacheKey';
     final raw = prefs?.getString(prefsKey);

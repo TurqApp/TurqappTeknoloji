@@ -50,7 +50,7 @@ extension AdsFeatureFlagsServiceRuntimePart on AdsFeatureFlagsService {
   }
 
   Future<void> setFlags(AdFeatureFlags next) async {
-    final batch = FirebaseFirestore.instance.batch();
+    final batch = AppFirestore.instance.batch();
     batch.set(_primaryRef, next.toMap(), SetOptions(merge: true));
     batch.delete(_legacyRef);
     await batch.commit();

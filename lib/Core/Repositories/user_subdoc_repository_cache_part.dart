@@ -25,7 +25,8 @@ Future<void> _putUserSubdoc(
     data: _cloneUserSubdocMap(data),
     cachedAt: cachedAt,
   );
-  repository._prefs ??= await SharedPreferences.getInstance();
+  repository._prefs ??=
+      await ensureLocalPreferenceRepository().sharedPreferences();
   await repository._prefs?.setString(
     _userSubdocPrefsKey(key),
     jsonEncode({
@@ -54,7 +55,8 @@ Future<Map<String, dynamic>?> _getUserSubdocFromPrefs(
   String key, {
   required Duration ttl,
 }) async {
-  repository._prefs ??= await SharedPreferences.getInstance();
+  repository._prefs ??=
+      await ensureLocalPreferenceRepository().sharedPreferences();
   final prefs = repository._prefs;
   final prefsKey = _userSubdocPrefsKey(key);
   final raw = prefs?.getString(prefsKey);
@@ -94,7 +96,8 @@ Future<void> _invalidateUserSubdoc(
 }) async {
   final key = _userSubdocCacheKey(uid, collection, docId);
   repository._memory.remove(key);
-  repository._prefs ??= await SharedPreferences.getInstance();
+  repository._prefs ??=
+      await ensureLocalPreferenceRepository().sharedPreferences();
   await repository._prefs?.remove(_userSubdocPrefsKey(key));
 }
 

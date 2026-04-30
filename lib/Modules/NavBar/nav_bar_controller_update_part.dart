@@ -205,14 +205,15 @@ extension _NavBarControllerUpdatePart on NavBarController {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final firstSeenMs = prefs.getInt(_ratingFirstSeenAtKey) ?? 0;
-    final lastShownMs = prefs.getInt(_ratingLastShownAtKey) ?? 0;
-    final lastStoreTapMs = prefs.getInt(_ratingLastStoreTapAtKey) ?? 0;
+    final firstSeenMs = await preferences.getInt(_ratingFirstSeenAtKey) ?? 0;
+    final lastShownMs = await preferences.getInt(_ratingLastShownAtKey) ?? 0;
+    final lastStoreTapMs =
+        await preferences.getInt(_ratingLastStoreTapAtKey) ?? 0;
 
     if (firstSeenMs <= 0) {
-      await prefs.setInt(_ratingFirstSeenAtKey, nowMs);
+      await preferences.setInt(_ratingFirstSeenAtKey, nowMs);
       return;
     }
 
@@ -238,7 +239,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }
 
     _ratingSheetShownThisSession = true;
-    await prefs.setInt(_ratingLastShownAtKey, nowMs);
+    await preferences.setInt(_ratingLastShownAtKey, nowMs);
 
     await Get.bottomSheet(
       isDismissible: true,
@@ -306,7 +307,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
                 height: 52,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await prefs.setInt(
+                    await preferences.setInt(
                       _ratingLastStoreTapAtKey,
                       nowMs,
                     );

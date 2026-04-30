@@ -12,12 +12,9 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
         PullDownMenuItem(
           onTap: () {
             if (trimmedUserId.isEmpty || trimmedScholarshipId.isEmpty) return;
-            Get.to(
-              () => ReportUser(
-                userID: trimmedUserId,
-                postID: trimmedScholarshipId,
-                commentID: '',
-              ),
+            const ReportUserNavigationService().openReportUser(
+              userId: trimmedUserId,
+              postId: trimmedScholarshipId,
             );
           },
           title: 'tutoring.report_listing'.tr,
@@ -124,15 +121,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                     onTap: isLoading
                         ? null
                         : () {
-                            // Ensure fresh controller instance for edit screen
-                            Get.delete<CreateScholarshipController>(
-                                force: true);
-                            Get.to(
-                              () => CreateScholarshipView(),
-                              arguments: {
-                                'scholarshipData': scholarshipData,
-                                'scholarshipId': scholarshipData['docId'],
-                              },
+                            ScholarshipNavigationService.openEdit(
+                              scholarshipData,
                             );
                           },
                     child: Container(

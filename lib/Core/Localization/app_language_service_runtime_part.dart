@@ -9,9 +9,10 @@ extension AppLanguageServiceRuntimePart on AppLanguageService {
   }
 
   Future<AppLanguageService> init() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     _currentCode.value = AppLanguageService._normalizeCode(
-        prefs.getString(AppLanguageService._prefKey));
+      await preferences.getString(AppLanguageService._prefKey),
+    );
     return this;
   }
 
@@ -20,8 +21,8 @@ extension AppLanguageServiceRuntimePart on AppLanguageService {
     if (_currentCode.value == normalized) return;
     _currentCode.value = normalized;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(AppLanguageService._prefKey, normalized);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setString(AppLanguageService._prefKey, normalized);
     await Get.updateLocale(AppLanguageService._localeForCode(normalized));
   }
 }

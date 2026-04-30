@@ -42,8 +42,8 @@ extension _ChatControllerConversationX on ChatController {
   Future<void> _markConversationOpenedNow() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setInt(
       conversationApplicationService.buildOpenedStorageKey(
         uid: uid,
         chatId: chatID,
@@ -55,17 +55,17 @@ extension _ChatControllerConversationX on ChatController {
   Future<void> _markConversationOpenedAt(int timestampMs) async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final key = conversationApplicationService.buildOpenedStorageKey(
       uid: uid,
       chatId: chatID,
     );
-    final old = prefs.getInt(key) ?? 0;
+    final old = await preferences.getInt(key) ?? 0;
     if (conversationApplicationService.shouldPersistOpenedAt(
       previousOpenedAtMs: old,
       candidateTimestampMs: timestampMs,
     )) {
-      await prefs.setInt(key, timestampMs);
+      await preferences.setInt(key, timestampMs);
     }
   }
 

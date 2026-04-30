@@ -1,8 +1,8 @@
 import 'dart:io';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:crop_your_image/crop_your_image.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';

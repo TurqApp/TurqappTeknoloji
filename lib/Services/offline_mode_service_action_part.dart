@@ -64,7 +64,7 @@ extension PendingActionExecutionPart on PendingAction {
       return PendingActionExecutionResult.skipped('invalid_profile_payload');
     }
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     await firestore.collection('users').doc(uid).update(fields);
     return const PendingActionExecutionResult.applied();
   }
@@ -76,7 +76,7 @@ extension PendingActionExecutionPart on PendingAction {
       return PendingActionExecutionResult.skipped('invalid_like_payload');
     }
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final postSnap = await firestore.collection('Posts').doc(postId).get();
     if (!postSnap.exists) {
       return PendingActionExecutionResult.skipped('post_missing');
@@ -98,7 +98,7 @@ extension PendingActionExecutionPart on PendingAction {
       return PendingActionExecutionResult.skipped('invalid_like_payload');
     }
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
     final likeRef = postRef.collection('likes').doc(userId);
     final userLikeRef = firestore
@@ -170,7 +170,7 @@ extension PendingActionExecutionPart on PendingAction {
       return PendingActionExecutionResult.skipped('invalid_save_payload');
     }
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
     final saveRef = postRef.collection('saveds').doc(userId);
     final userSaveRef = firestore
@@ -224,7 +224,7 @@ extension PendingActionExecutionPart on PendingAction {
         (text.trim().isEmpty && imgs.isEmpty && videos.isEmpty)) {
       return PendingActionExecutionResult.skipped('invalid_comment_payload');
     }
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final postRef = firestore.collection('Posts').doc(postId);
     final commentIdRaw = (data['clientCommentId'] ?? '').toString().trim();
     final commentRef = commentIdRaw.isNotEmpty

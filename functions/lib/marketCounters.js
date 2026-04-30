@@ -10,6 +10,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const rateLimiter_1 = require("./rateLimiter");
+const adminAccess_1 = require("./adminAccess");
 const REGION = "europe-west1";
 const MARKET_COUNTER_VERSION = 1;
 const MARKET_VIEW_SHARD_COUNT = 5;
@@ -51,24 +52,7 @@ function requireAuth(request) {
     return uid;
 }
 async function requireAdminAuth(request) {
-    const uid = requireAuth(request);
-    const claims = request.auth?.token;
-    if (claims?.admin === true) {
-        rateLimiter_1.RateLimits.admin(uid);
-        return uid;
-    }
-    const allowSnap = await db().doc("adminConfig/admin").get();
-    const allowedRaw = allowSnap.data()?.allowedUserIds;
-    if (Array.isArray(allowedRaw)) {
-        const allowed = allowedRaw
-            .map((value) => String(value ?? "").trim())
-            .filter((value) => value.length > 0);
-        if (allowed.includes(uid)) {
-            rateLimiter_1.RateLimits.admin(uid);
-            return uid;
-        }
-    }
-    throw new https_1.HttpsError("permission-denied", "admin_required");
+    return await (0, adminAccess_1.requireCallableAdminUid)(request.auth, db());
 }
 function parseRecordMarketViewBatchRequest(data, request) {
     requireAuth(request);

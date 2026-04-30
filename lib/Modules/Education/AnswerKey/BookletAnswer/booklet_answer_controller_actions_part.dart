@@ -29,22 +29,21 @@ extension BookletAnswerControllerActionsPart on BookletAnswerController {
     netScore.value = net;
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(CurrentUserService.instance.effectiveUserId)
-          .collection('KitapcikCevaplari')
-          .add({
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
-        'kitapcikID': anaModel.docID,
-        'baslik': model.baslik,
-        'cevaplar': cevaplar,
-        'dogruCevaplar': model.dogruCevaplar,
-        'dogru': correct,
-        'yanlis': wrong,
-        'bos': empty,
-        'puan': score,
-        'net': net,
-      });
+      await ensureBookletRepository().saveBookletAnswerResult(
+        userId: CurrentUserService.instance.effectiveUserId,
+        data: {
+          'timeStamp': DateTime.now().millisecondsSinceEpoch,
+          'kitapcikID': anaModel.docID,
+          'baslik': model.baslik,
+          'cevaplar': cevaplar,
+          'dogruCevaplar': model.dogruCevaplar,
+          'dogru': correct,
+          'yanlis': wrong,
+          'bos': empty,
+          'puan': score,
+          'net': net,
+        },
+      );
       completed.value = true;
     } catch (_) {}
   }

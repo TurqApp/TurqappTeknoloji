@@ -4,12 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Services/market_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -21,7 +22,6 @@ import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_
 import 'package:turqappv2/Modules/Market/market_listing_card.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
-import 'package:turqappv2/Modules/Market/market_detail_view.dart';
 import 'package:turqappv2/Modules/Profile/SavedPosts/saved_posts_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
@@ -128,12 +128,10 @@ class _SavedPostsState extends State<SavedPosts> {
     required String emptyText,
   }) {
     if (controller.isLoading.value && posts.isEmpty) {
-      return const Center(
-        child: CupertinoActivityIndicator(color: Colors.grey),
-      );
+      return const AppStateView.loading(title: '');
     }
     if (posts.isEmpty) {
-      return Center(child: EmptyRow(text: emptyText));
+      return AppStateView.empty(title: emptyText);
     }
 
     return SizedBox.expand(
@@ -268,9 +266,7 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CupertinoActivityIndicator(color: Colors.grey),
-          );
+          return const AppStateView.loading(title: '');
         }
         final items = snapshot.data ?? const <MarketItemModel>[];
         return RefreshIndicator(
@@ -287,8 +283,8 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                   children: [
                     SizedBox(
                       height: MediaQuery.of(context).size.height * 0.45,
-                      child: Center(
-                        child: EmptyRow(text: 'pasaj.market.saved_empty'.tr),
+                      child: AppStateView.empty(
+                        title: 'pasaj.market.saved_empty'.tr,
                       ),
                     ),
                   ],
@@ -303,7 +299,8 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                       item: item,
                       isSaved: true,
                       onOpen: () async {
-                        await Get.to(() => MarketDetailView(item: item));
+                        await const MarketDetailNavigationService()
+                            .openMarketDetail(item);
                         if (!mounted) return;
                         setState(() => _reload(force: true));
                       },
@@ -363,9 +360,7 @@ class _SavedJobsTabState extends State<_SavedJobsTab> {
   Widget build(BuildContext context) {
     return Obx(() {
       if (_controller.isLoading.value && _controller.list.isEmpty) {
-        return const Center(
-          child: CupertinoActivityIndicator(color: Colors.black),
-        );
+        return const AppStateView.loading(title: '');
       }
 
       return RefreshIndicator(
@@ -378,10 +373,8 @@ class _SavedJobsTabState extends State<_SavedJobsTab> {
                 children: [
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.45,
-                    child: Center(
-                      child: EmptyRow(
-                        text: 'pasaj.job_finder.no_saved_jobs'.tr,
-                      ),
+                    child: AppStateView.empty(
+                      title: 'pasaj.job_finder.no_saved_jobs'.tr,
                     ),
                   ),
                 ],
@@ -441,7 +434,7 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
     return Obx(() {
       final items = _controller.bookmarkedScholarships;
       if (_controller.isLoading.value && items.isEmpty) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
 
       return RefreshIndicator(
@@ -454,8 +447,8 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
                 children: [
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.45,
-                    child: Center(
-                      child: EmptyRow(text: 'scholarship.saved_empty'.tr),
+                    child: AppStateView.empty(
+                      title: 'scholarship.saved_empty'.tr,
                     ),
                   ),
                 ],

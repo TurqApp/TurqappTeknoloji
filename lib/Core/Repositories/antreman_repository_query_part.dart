@@ -6,7 +6,7 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
       yield null;
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     yield prefs.getInt(_localScorePrefsKey(userId, now: now));
   }
 
@@ -19,7 +19,7 @@ extension AntremanRepositoryQueryPart on AntremanRepository {
 
   Future<int?> getMonthlyScore(String userId, {DateTime? now}) async {
     if (userId.isEmpty) return null;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     return prefs.getInt(_localScorePrefsKey(userId, now: now));
   }
 

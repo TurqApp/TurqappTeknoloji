@@ -4,8 +4,8 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
   Future<void> _store(List<HashtagModel> items) async {
     _memory = items.toList(growable: false);
     _memoryAt = DateTime.now();
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.setString(
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
+    await preferences.setString(
       _topTagsPrefsKey,
       jsonEncode({
         't': _memoryAt!.millisecondsSinceEpoch,
@@ -30,24 +30,24 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
   }
 
   Future<List<HashtagModel>?> _readPrefs({required int limit}) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final raw = _prefs?.getString(_topTagsPrefsKey);
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
+    final raw = await preferences.getString(_topTagsPrefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decodedRaw = jsonDecode(raw);
       if (decodedRaw is! Map<String, dynamic>) {
-        await _prefs?.remove(_topTagsPrefsKey);
+        await preferences.remove(_topTagsPrefsKey);
         return null;
       }
       final decoded = decodedRaw;
       final ts = (decoded['t'] as num?)?.toInt() ?? 0;
       if (ts <= 0) {
-        await _prefs?.remove(_topTagsPrefsKey);
+        await preferences.remove(_topTagsPrefsKey);
         return null;
       }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) > _topTagsTtl) {
-        await _prefs?.remove(_topTagsPrefsKey);
+        await preferences.remove(_topTagsPrefsKey);
         return null;
       }
       final items = (decoded['items'] as List?) ?? const [];
@@ -64,7 +64,7 @@ extension _TopTagsRepositoryCacheX on TopTagsRepository {
           .take(limit)
           .toList(growable: false);
     } catch (_) {
-      await _prefs?.remove(_topTagsPrefsKey);
+      await preferences.remove(_topTagsPrefsKey);
       return null;
     }
   }

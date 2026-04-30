@@ -2,7 +2,7 @@ part of 'post_interaction_service.dart';
 
 class PostInteractionService extends GetxController {
   PostInteractionService({FirebaseFirestore? firestore, FirebaseAuth? auth})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   final UserSubcollectionRepository _userSubcollectionRepository =

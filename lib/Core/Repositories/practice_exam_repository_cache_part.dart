@@ -16,7 +16,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
     final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedPracticeExams(items: cloned, cachedAt: now);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
@@ -47,7 +47,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   }
 
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
@@ -61,7 +61,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
     String cacheKey,
     List<Map<String, dynamic>> data,
   ) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_practiceExamRepositoryPrefsPrefix:$cacheKey',
       jsonEncode({
@@ -84,7 +84,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   }
 
   Future<List<SinavModel>?> _getFromPrefs(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_practiceExamRepositoryPrefsPrefix:$cacheKey';
     final raw = prefs?.getString(prefsKey);
@@ -127,7 +127,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   }
 
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_practiceExamRepositoryPrefsPrefix:$cacheKey';
     final raw = prefs?.getString(prefsKey);
@@ -165,7 +165,7 @@ extension PracticeExamRepositoryCachePart on PracticeExamRepository {
   }
 
   Future<List<Map<String, dynamic>>?> _getRawList(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_practiceExamRepositoryPrefsPrefix:$cacheKey';
     final raw = prefs?.getString(prefsKey);

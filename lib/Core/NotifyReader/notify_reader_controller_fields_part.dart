@@ -1,17 +1,5 @@
 part of 'notify_reader_controller.dart';
 
-const String _notifyReaderCommentType = kNotificationPostTypeCommentLower;
-const Set<String> _notifyReaderProfileTypes = <String>{'follow', 'user'};
-const Set<String> _notifyReaderTutoringTypes = <String>{
-  'tutoring_application',
-  'tutoring_status',
-};
-const Set<String> _notifyReaderChatTypes = <String>{'message', 'chat'};
-const Set<String> _notifyReaderMarketTypes = <String>{
-  'market_offer',
-  'market_offer_status',
-};
-
 class _NotifyReaderControllerState {
   final NotifyLookupRepository lookupRepository =
       ensureNotifyLookupRepository();

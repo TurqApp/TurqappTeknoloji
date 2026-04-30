@@ -1,4 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdsAnalyticsService {
@@ -28,7 +28,7 @@ class AdsAnalyticsService {
     };
 
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('adsLogEvent')
           .call(payload);
     } catch (_) {
@@ -97,7 +97,7 @@ class AdsAnalyticsService {
     _managedViewKeys.add(viewKey);
 
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('adsLogManagedSliderView')
           .call({
         'sliderId': cleanSliderId,

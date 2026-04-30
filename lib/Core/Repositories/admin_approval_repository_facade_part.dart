@@ -1,11 +1,10 @@
 part of 'admin_approval_repository.dart';
 
 extension AdminApprovalRepositoryFacadePart on AdminApprovalRepository {
-  CollectionReference<Map<String, dynamic>> get _ref =>
-      FirebaseFirestore.instance
-          .collection('adminConfig')
-          .doc(AdminApprovalRepository._adminConfigDocId)
-          .collection('adminApprovals');
+  CollectionReference<Map<String, dynamic>> get _ref => AppFirestore.instance
+      .collection('adminConfig')
+      .doc(AdminApprovalRepository._adminConfigDocId)
+      .collection('adminApprovals');
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchApprovals() {
     return _ref.orderBy('createdAt', descending: true).snapshots();

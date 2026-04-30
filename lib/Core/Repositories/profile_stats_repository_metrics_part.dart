@@ -56,7 +56,7 @@ extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
     final nowMs = now.millisecondsSinceEpoch;
     final ts30 = now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
 
-    final postsSnap = await FirebaseFirestore.instance
+    final postsSnap = await AppFirestore.instance
         .collection('Posts')
         .where('userID', isEqualTo: uid)
         .get();
@@ -108,7 +108,7 @@ extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
     final ts30 = now.subtract(const Duration(days: 30)).millisecondsSinceEpoch;
     final threshold = now.subtract(const Duration(days: 30));
 
-    final storiesSnap = await FirebaseFirestore.instance
+    final storiesSnap = await AppFirestore.instance
         .collection('stories')
         .where('userId', isEqualTo: uid)
         .get();
@@ -134,7 +134,7 @@ extension ProfileStatsRepositoryMetricsPart on ProfileStatsRepository {
     }
 
     try {
-      final actualVisitsAgg = await FirebaseFirestore.instance
+      final actualVisitsAgg = await AppFirestore.instance
           .collection('users')
           .doc(uid)
           .collection('ProfileVisits')

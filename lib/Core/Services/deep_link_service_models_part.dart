@@ -1,12 +1,5 @@
 part of 'deep_link_service.dart';
 
-class _ParsedDeepLink {
-  final String type;
-  final String id;
-
-  _ParsedDeepLink({required this.type, required this.id});
-}
-
 class _PostLookupCache {
   final PostsModel? model;
   final DateTime cachedAt;

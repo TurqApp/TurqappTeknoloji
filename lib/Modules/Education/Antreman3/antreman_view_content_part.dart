@@ -122,7 +122,7 @@ extension _AntremanViewContentPart on AntremanView2 {
               }
 
               if (!controller.mainCategoryLoaded.value) {
-                return const Center(child: CircularProgressIndicator());
+                return const AppStateView.loading(title: '');
               }
 
               if (controller.mainCategory.value.isEmpty) {
@@ -185,18 +185,12 @@ extension _AntremanViewContentPart on AntremanView2 {
 
   Widget _buildSearchResults(BuildContext context) {
     if (controller.isSearchLoading.value) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppStateView.loading(title: '');
     }
 
     if (controller.searchResults.isEmpty) {
-      return Center(
-        child: Text(
-          'training.search_no_match'.tr,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontFamily: 'MontserratMedium',
-          ),
-        ),
+      return AppStateView.empty(
+        title: 'training.search_no_match'.tr,
       );
     }
 

@@ -126,9 +126,9 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
         }
 
         try {
-          await CurrentUserService.instance.logout();
-          await CurrentUserService.instance.signOutAuth();
-          await AppRootNavigationService.offAllToSignIn();
+          await const SessionExitCoordinator().exitToSignIn(
+            reason: SessionExitReason.manualLogout,
+          );
         } catch (e) {
           print("Sign out failed: $e");
         }

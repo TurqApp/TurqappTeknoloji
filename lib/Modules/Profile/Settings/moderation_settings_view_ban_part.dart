@@ -12,6 +12,8 @@ class _UserBanSectionState extends State<_UserBanSection> {
   final TextEditingController _reasonController = TextEditingController();
   final AdminApprovalRepository _approvalRepository =
       AdminApprovalRepository.ensure();
+  final ModerationRepository _moderationRepository =
+      ensureModerationRepository();
   final UserRepository _userRepository = UserRepository.ensure();
   bool _saving = false;
 
@@ -24,13 +26,7 @@ class _UserBanSectionState extends State<_UserBanSection> {
 
   @override
   Widget build(BuildContext context) {
-    final stream = FirebaseFirestore.instance
-        .collection('adminConfig')
-        .doc('admin')
-        .collection('bannedUser')
-        .orderBy('updatedAt', descending: true)
-        .limit(50)
-        .snapshots();
+    final stream = _moderationRepository.watchBannedUsers();
 
     return Container(
       width: double.infinity,
@@ -160,19 +156,14 @@ class _UserBanSectionState extends State<_UserBanSection> {
             stream: stream,
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
-                return const Padding(
+                return const AppStateView.loading(
                   padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: CircularProgressIndicator()),
                 );
               }
               if (snap.hasError) {
-                return Text(
-                  'admin.moderation.ban_list_failed'.tr,
-                  style: const TextStyle(
-                    fontFamily: 'MontserratMedium',
-                    fontSize: 12,
-                    color: Colors.black54,
-                  ),
+                return AppStateView.error(
+                  title: 'admin.moderation.ban_list_failed'.tr,
+                  color: Colors.black54,
                 );
               }
 
@@ -440,7 +431,7 @@ class _UserBanSectionState extends State<_UserBanSection> {
         return;
       }
 
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable(callableName);
       final response = await callable.call<Map<String, dynamic>>(payload);
       final data = Map<String, dynamic>.from(response.data);

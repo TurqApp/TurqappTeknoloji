@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 
 part 'typesense_post_service_cache_part.dart';
 part 'typesense_post_service_query_part.dart';
@@ -103,14 +105,14 @@ class TypesensePostService {
 
   final List<({String label, FirebaseFunctions fn})> _targets =
       <({String label, FirebaseFunctions fn})>[
-    (label: 'default', fn: FirebaseFunctions.instance),
+    (label: 'default', fn: AppCloudFunctions.instance),
     (
       label: 'us-central1',
-      fn: FirebaseFunctions.instanceFor(region: 'us-central1'),
+      fn: AppCloudFunctions.instanceFor(region: 'us-central1'),
     ),
     (
       label: 'europe-west1',
-      fn: FirebaseFunctions.instanceFor(region: 'europe-west1'),
+      fn: AppCloudFunctions.instanceFor(region: 'europe-west1'),
     ),
   ];
   final Map<String, _CachedPostCardsResult> _memory =

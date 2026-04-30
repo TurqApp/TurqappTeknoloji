@@ -76,6 +76,26 @@ extension ScholarshipRepositoryActionPart on ScholarshipRepository {
     await _storeApply('$cleanScholarshipId::$cleanUserId', value);
   }
 
+  Future<String> createScholarship(Map<String, dynamic> data) async {
+    if (data.isEmpty) return '';
+    final docRef = await ScholarshipFirestorePath.collection().add(data);
+    await ScholarshipFirestorePath.doc(docRef.id).set(
+      {'likesCount': 0, 'bookmarksCount': 0},
+      SetOptions(merge: true),
+    );
+    return docRef.id;
+  }
+
+  Future<void> updateScholarshipData({
+    required String scholarshipId,
+    required Map<String, dynamic> data,
+  }) async {
+    final cleanId = scholarshipId.trim();
+    if (cleanId.isEmpty || data.isEmpty) return;
+    await ScholarshipFirestorePath.doc(cleanId).update(data);
+    await _removeDocCache(cleanId);
+  }
+
   Future<bool> toggleLike(
     String scholarshipId, {
     required String userId,

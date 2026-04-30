@@ -8,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pinch_zoom/pinch_zoom.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
@@ -23,7 +24,6 @@ import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import '../../../Core/Helpers/ImagePreview/image_preview.dart';
 import '../../Agenda/TagPosts/tag_posts.dart';
 import '../../Explore/explore_controller.dart';
-import '../../SocialProfile/social_profile.dart';
 
 part 'message_content_reply_parts.dart';
 part 'message_content_body_parts.dart';

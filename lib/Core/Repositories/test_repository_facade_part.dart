@@ -9,7 +9,7 @@ class _TimedTests {
 
 class TestRepository extends GetxService {
   TestRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   static const Duration _ttl = Duration(hours: 12);
@@ -35,7 +35,9 @@ TestRepository _ensureTestRepository() =>
     _maybeFindTestRepository() ?? Get.put(TestRepository(), permanent: true);
 
 void _handleTestRepositoryInit(TestRepository repository) {
-  SharedPreferences.getInstance().then((prefs) => repository._prefs = prefs);
+  ensureLocalPreferenceRepository()
+      .sharedPreferences()
+      .then((prefs) => repository._prefs = prefs);
 }
 
 extension TestRepositoryFacadePart on TestRepository {}

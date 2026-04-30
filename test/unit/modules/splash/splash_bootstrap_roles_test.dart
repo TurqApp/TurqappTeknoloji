@@ -13,40 +13,46 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  test('StartupBootstrap runs core startup prerequisites and returns prefs',
-      () async {
-    final events = <String>[];
-    SharedPreferences.setMockInitialValues(<String, Object>{'ready': true});
+  test(
+    'StartupBootstrap runs core startup prerequisites and defers audio init',
+    () async {
+      final events = <String>[];
+      SharedPreferences.setMockInitialValues(<String, Object>{'ready': true});
 
-    final bootstrap = StartupBootstrap(
-      firebaseStartupWait: Duration.zero,
-      waitForFirebaseBootstrap: () async {
-        events.add('firebase');
-      },
-      initializeFirestoreConfig: () async {
-        events.add('firestore');
-      },
-      readPreferences: () async {
-        events.add('prefs');
-        return SharedPreferences.getInstance();
-      },
-      initializeAudioContext: () async {
-        events.add('audio');
-      },
-    );
+      final bootstrap = StartupBootstrap(
+        firebaseStartupWait: Duration.zero,
+        waitForFirebaseBootstrap: () async {
+          events.add('firebase');
+        },
+        initializeFirestoreConfig: () async {
+          events.add('firestore');
+        },
+        readPreferences: () async {
+          events.add('prefs');
+          return SharedPreferences.getInstance();
+        },
+        initializeAudioContext: () async {
+          events.add('audio');
+        },
+      );
 
-    final prefs = await bootstrap.run();
+      final prefs = await bootstrap.run();
 
-    expect(prefs.getBool('ready'), isTrue);
-    expect(events, contains('firebase'));
-    expect(events, contains('firestore'));
-    expect(events, contains('prefs'));
-    expect(events, contains('audio'));
-    expect(
-      events.indexOf('firebase'),
-      lessThan(events.indexOf('firestore')),
-    );
-  });
+      expect(prefs.getBool('ready'), isTrue);
+      expect(events, contains('firebase'));
+      expect(events, contains('firestore'));
+      expect(events, contains('prefs'));
+      expect(events, isNot(contains('audio')));
+      expect(
+        events.indexOf('firebase'),
+        lessThan(events.indexOf('firestore')),
+      );
+
+      await bootstrap.initializeDeferredAudioContext();
+
+      expect(events, contains('audio'));
+    },
+  );
 
   test(
     'SessionBootstrap syncs account center for logged-in flow',
@@ -84,7 +90,7 @@ void main() {
   );
 
   test(
-    'SessionBootstrap retries auth restore before declaring logged-out startup',
+    'SessionBootstrap skips auth restore when no returning-session hint exists',
     () async {
       final events = <String>[];
       final prefs = await SharedPreferences.getInstance();
@@ -116,13 +122,16 @@ void main() {
       final result = await bootstrap.run(prefs: prefs);
 
       expect(result.isFirstLaunch, isFalse);
-      expect(result.loggedIn, isTrue);
+      expect(result.loggedIn, isFalse);
       expect(
         events.where((event) => event == 'currentUser.init').length,
-        2,
+        1,
       );
-      expect(events, contains('ensureAuthReady:900'));
-      expect(events, contains('accountCenter.sync'));
+      expect(
+        events.any((event) => event.startsWith('ensureAuthReady:')),
+        isFalse,
+      );
+      expect(events, isNot(contains('accountCenter.sync')));
     },
   );
 
@@ -305,8 +314,7 @@ void main() {
 
     expect(
       failures.any(
-        (failure) =>
-            failure.kind == StartupSessionFailureKind.backgroundWarmup,
+        (failure) => failure.kind == StartupSessionFailureKind.backgroundWarmup,
       ),
       isTrue,
     );

@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -81,9 +81,9 @@ class _MyStatisticViewState extends State<MyStatisticView> {
                 children: [
                   BackButtons(text: 'statistics.title'.tr),
                   if (controller.isLoading.value)
-                    const Padding(
-                      padding: EdgeInsets.all(15),
-                      child: Center(child: CupertinoActivityIndicator()),
+                    const SizedBox(
+                      height: 72,
+                      child: AppStateView.loading(title: ''),
                     ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15),

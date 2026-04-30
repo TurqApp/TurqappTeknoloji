@@ -46,9 +46,9 @@ extension TestEntryControllerRuntimePart on TestEntryController {
 
   void joinTest(BuildContext context) {
     if (model.value == null) return;
-    Get.to(
-      () => SolveTest(testID: model.value!.docID, showSucces: showAlert),
-    )?.then((_) {
+    const EducationTestNavigationService()
+        .openSolveTest(testID: model.value!.docID, showSucces: showAlert)
+        .then((_) {
       model.value = null;
       textController.text = '';
     });

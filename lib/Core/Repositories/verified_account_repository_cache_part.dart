@@ -22,7 +22,8 @@ Future<void> _storeVerifiedAccountStatus(
     exists: exists,
     cachedAt: cachedAt,
   );
-  repository._prefs ??= await SharedPreferences.getInstance();
+  repository._prefs ??=
+      await ensureLocalPreferenceRepository().sharedPreferences();
   await repository._prefs?.setString(
     _verifiedAccountPrefsKey(repository, key),
     jsonEncode({
@@ -50,7 +51,8 @@ Future<bool?> _getVerifiedAccountFromPrefs(
   VerifiedAccountRepository repository,
   String key,
 ) async {
-  repository._prefs ??= await SharedPreferences.getInstance();
+  repository._prefs ??=
+      await ensureLocalPreferenceRepository().sharedPreferences();
   final prefs = repository._prefs;
   final prefsKey = _verifiedAccountPrefsKey(repository, key);
   final raw = prefs?.getString(prefsKey);
@@ -91,7 +93,7 @@ String _verifiedAccountPrefsKey(
 }
 
 CollectionReference<Map<String, dynamic>> _verifiedAccountCollection() {
-  return FirebaseFirestore.instance
+  return AppFirestore.instance
       .collection('adminConfig')
       .doc('admin')
       .collection('TurqAppVerified');

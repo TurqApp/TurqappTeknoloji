@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'iz_birak_subscription_service_runtime_part.dart';
@@ -13,7 +14,7 @@ class IzBirakSubscriptionService extends GetxService {
   static IzBirakSubscriptionService ensure() =>
       _ensureIzBirakSubscriptionService();
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = AppFirestore.instance;
   final RxSet<String> subscribedPostIds = <String>{}.obs;
   final Set<String> _loadingPostIds = <String>{};
 

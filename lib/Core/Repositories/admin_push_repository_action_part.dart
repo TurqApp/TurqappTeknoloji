@@ -76,7 +76,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
     const batchSize = 400;
 
     for (var i = 0; i < targetUids.length; i += batchSize) {
-      final batch = FirebaseFirestore.instance.batch();
+      final batch = AppFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
         NotificationsRepository.ensure().queueCreateInboxItem(
@@ -119,7 +119,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
     var written = 0;
 
     for (var i = 0; i < targetUids.length; i += batchSize) {
-      final batch = FirebaseFirestore.instance.batch();
+      final batch = AppFirestore.instance.batch();
       final chunk = targetUids.skip(i).take(batchSize);
       for (final targetUid in chunk) {
         NotificationsRepository.ensure().queueCreateInboxItem(

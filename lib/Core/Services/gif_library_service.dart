@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -20,7 +21,7 @@ class GifLibraryService {
   static const String _manifestKey = 'giphyGif.globalManifest.v1';
 
   CollectionReference<Map<String, dynamic>> get _globalCollection =>
-      FirebaseFirestore.instance.collection('giphyGif');
+      AppFirestore.instance.collection('giphyGif');
 
   Future<void> recordUsage(
     String url, {
@@ -35,7 +36,7 @@ class GifLibraryService {
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final docId = _stableId(cleanUrl);
-    final ref = FirebaseFirestore.instance
+    final ref = AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('giphyGif')
@@ -135,7 +136,7 @@ class GifLibraryService {
 
   Future<List<Map<String, dynamic>>> _loadManifest() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final raw = prefs.getString(_manifestKey);
       if (raw == null || raw.isEmpty) return const <Map<String, dynamic>>[];
       final decoded = jsonDecode(raw);
@@ -169,7 +170,8 @@ class GifLibraryService {
       return restored;
     } catch (_) {
       try {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs =
+            await ensureLocalPreferenceRepository().sharedPreferences();
         await prefs.remove(_manifestKey);
       } catch (_) {}
       return const <Map<String, dynamic>>[];
@@ -178,7 +180,7 @@ class GifLibraryService {
 
   Future<void> _persistManifest(List<Map<String, dynamic>> items) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       await prefs.setString(_manifestKey, jsonEncode(items));
     } catch (_) {}
   }

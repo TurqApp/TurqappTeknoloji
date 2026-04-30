@@ -102,7 +102,7 @@ Future<List<TutoringModel>> _fetchTutoringOwnerItems(
 ) async {
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <TutoringModel>[];
-  final snapshot = await FirebaseFirestore.instance
+  final snapshot = await AppFirestore.instance
       .collection('educators')
       .where('userID', isEqualTo: normalizedUserId)
       .get(const GetOptions(source: Source.serverAndCache));

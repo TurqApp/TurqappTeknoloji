@@ -120,7 +120,7 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
         ? scheduledAt
         : (postTimeStamp != 0 ? postTimeStamp : nowMs);
 
-    await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
+    await AppFirestore.instance.collection('Posts').doc(upload.id).set({
       "arsiv": true,
       "debugMode": false,
       "deletedPost": false,

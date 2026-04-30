@@ -7,10 +7,8 @@ extension FollowRepositoryQueryPart on FollowRepository {
     required int fetchLimit,
     required Source source,
   }) async {
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection(relation);
+    Query<Map<String, dynamic>> query =
+        AppFirestore.instance.collection('users').doc(uid).collection(relation);
     try {
       final snap = await query
           .orderBy('timeStamp', descending: true)
@@ -144,7 +142,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
       }
     }
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(relation)
@@ -161,7 +159,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
     int? toExclusive,
   }) async {
     if (uid.isEmpty) return 0;
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+    Query<Map<String, dynamic>> query = AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('followers')
@@ -196,7 +194,7 @@ extension FollowRepositoryQueryPart on FollowRepository {
       }
     }
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await AppFirestore.instance
         .collection('users')
         .doc(me)
         .collection('followings')

@@ -167,7 +167,8 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
           GestureDetector(
             onTap: _isOwner || item.userId.trim().isEmpty
                 ? null
-                : () => Get.to(() => SocialProfile(userID: item.userId)),
+                : () => const ProfileNavigationService()
+                    .openSocialProfile(item.userId),
             child: Row(
               children: [
                 CachedUserAvatar(
@@ -267,7 +268,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
               Expanded(
                 child: _secondaryButton(
                   label: 'pasaj.market.messages'.tr,
-                  onTap: () => Get.to(() => ChatListing()),
+                  onTap: () => const ChatNavigationService().openChatListing(),
                 ),
               ),
             ],
@@ -278,7 +279,8 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
               Expanded(
                 child: _secondaryButton(
                   label: 'pasaj.market.offers'.tr,
-                  onTap: () => Get.to(() => const MarketOffersView()),
+                  onTap: () =>
+                      const MarketDetailNavigationService().openMarketOffers(),
                 ),
               ),
               const SizedBox(width: 8),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Core/Helpers/QRCode/qr_scanner_controller.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 
@@ -88,7 +88,8 @@ class _QrScannerViewState extends State<QrScannerView> {
                   controller.onDetect(code);
                 }
                 if (code.toString().length == 28) {
-                  Get.to(() => SocialProfile(userID: code.toString()));
+                  const ProfileNavigationService()
+                      .openSocialProfile(code.toString());
                 }
               },
             ),

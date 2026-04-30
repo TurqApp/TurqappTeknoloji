@@ -32,7 +32,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     final normalizedUid = uid.trim();
     final normalizedStoryId = storyId.trim();
     if (normalizedUid.isEmpty || normalizedStoryId.isEmpty) return;
-    final ref = FirebaseStorage.instance
+    final ref = AppFirebaseStorage.instance
         .ref()
         .child('stories/$normalizedUid/$normalizedStoryId');
     await _deleteStoryStorageRefRecursively(ref);
@@ -58,7 +58,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
   Future<void> _performMarkExpiredStoriesDeleted(String uid) async {
     try {
       final expiry = DateTime.now().subtract(const Duration(hours: 24));
-      final expiredSnap = await FirebaseFirestore.instance
+      final expiredSnap = await AppFirestore.instance
           .collection('stories')
           .where('userId', isEqualTo: uid)
           .get();
@@ -69,7 +69,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
         try {
           final model = StoryModel.fromDoc(doc);
           if (model.createdAt.isAfter(expiry)) continue;
-          await FirebaseFirestore.instance
+          await AppFirestore.instance
               .collection('stories')
               .doc(model.id)
               .update({
@@ -96,7 +96,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
     final musicId = (raw['musicId'] ?? '').toString().trim();
     final uid = (raw['userId'] ?? '').toString().trim();
-    await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
+    await AppFirestore.instance.collection('stories').doc(storyId).update({
       'deleted': true,
       'deletedAt': DateTime.now().millisecondsSinceEpoch,
       'deleteReason': reason,
@@ -111,7 +111,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
   Future<void> _performRestoreDeletedStory(String storyId) async {
     if (storyId.isEmpty) return;
     final raw = await getStoryRaw(storyId, preferCache: true) ?? const {};
-    await FirebaseFirestore.instance.collection('stories').doc(storyId).update({
+    await AppFirestore.instance.collection('stories').doc(storyId).update({
       'deleted': false,
       'deletedAt': 0,
       'deleteReason': FieldValue.delete(),
@@ -129,17 +129,14 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     final musicId = (raw['musicId'] ?? '').toString().trim();
 
     try {
-      await FirebaseFirestore.instance
-          .collection('stories')
-          .doc(storyId)
-          .delete();
+      await AppFirestore.instance.collection('stories').doc(storyId).delete();
     } catch (_) {}
     await _purgeStoryMediaUrls(raw);
     await _purgeStoryStorageDirectory(uid, storyId);
 
     if (uid.isNotEmpty) {
       try {
-        await FirebaseFirestore.instance
+        await AppFirestore.instance
             .collection('users')
             .doc(uid)
             .collection('DeletedStories')
@@ -148,7 +145,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       } catch (_) {}
 
       try {
-        final archiveSnap = await FirebaseFirestore.instance
+        final archiveSnap = await AppFirestore.instance
             .collection('users')
             .doc(uid)
             .collection('DeletedStories')
@@ -182,7 +179,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
         : story.userId;
     if (uid.trim().isEmpty) return '';
 
-    final docRef = FirebaseFirestore.instance.collection('stories').doc();
+    final docRef = AppFirestore.instance.collection('stories').doc();
     final createdAt = DateTime.now().millisecondsSinceEpoch;
     final storyId = docRef.id;
 
@@ -376,7 +373,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
     var parseErrorCount = 0;
 
     try {
-      final archiveSnap = await FirebaseFirestore.instance
+      final archiveSnap = await AppFirestore.instance
           .collection('users')
           .doc(uid)
           .collection('DeletedStories')
@@ -421,7 +418,7 @@ extension StoryRepositoryDeletedPart on StoryRepository {
       debugPrint('Deleted stories archive fetch error: $e');
     }
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('stories')
         .where('userId', isEqualTo: uid)
         .get();

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -73,7 +73,8 @@ class ShortController extends _ShortControllerBase {
     int anchorIndex, {
     int behindCount = 1,
     int aheadCount = 5,
-  }) => _ShortControllerRuntimeX(this).warmPosterWindowAround(
+  }) =>
+      _ShortControllerRuntimeX(this).warmPosterWindowAround(
         anchorIndex,
         behindCount: behindCount,
         aheadCount: aheadCount,

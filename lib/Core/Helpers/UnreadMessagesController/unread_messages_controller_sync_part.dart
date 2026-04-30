@@ -144,7 +144,7 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
 
   Future<void> _hydratePersistedReadState(String uid) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final prefix = "chat_last_opened_${uid}_";
       final next = <String, int>{};
       for (final key in prefs.getKeys()) {
@@ -168,7 +168,7 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
     final key = _chatListingCacheKey(uid);
     if (key.isEmpty) return false;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final raw = prefs.getString(key);
       if (raw == null || raw.isEmpty) return false;
       final decoded = jsonDecode(raw);
@@ -396,7 +396,7 @@ extension UnreadMessagesControllerSyncPart on UnreadMessagesController {
     final uid = _currentUid;
     if (uid.isEmpty || chatId.trim().isEmpty || cutoffMs <= 0) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       await prefs.setInt("chat_last_opened_${uid}_$chatId", cutoffMs);
     } catch (_) {}
   }

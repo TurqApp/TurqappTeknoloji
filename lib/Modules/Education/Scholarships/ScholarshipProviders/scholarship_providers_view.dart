@@ -2,10 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipProviders/scholarship_providers_controller.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -62,7 +63,7 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
-                    ? Center(child: CupertinoActivityIndicator())
+                    ? const AppStateView.loading()
                     : SingleChildScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
                         child: Padding(
@@ -72,15 +73,8 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
                             children: [
                               Obx(
                                 () => controller.providers.isEmpty
-                                    ? Center(
-                                        child: Text(
-                                          'scholarship.providers_empty'.tr,
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 16,
-                                            fontFamily: 'MontserratMedium',
-                                          ),
-                                        ),
+                                    ? AppStateView.empty(
+                                        title: 'scholarship.providers_empty'.tr,
                                       )
                                     : ListView.builder(
                                         shrinkWrap: true,
@@ -95,10 +89,11 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
                                                   _currentUid) {
                                                 null;
                                               } else {
-                                                Get.to(
-                                                  () => SocialProfile(
-                                                    userID: provider['userID'],
-                                                  ),
+                                                const ProfileNavigationService()
+                                                    .openSocialProfile(
+                                                  provider['userID']
+                                                          ?.toString() ??
+                                                      '',
                                                 );
                                               }
                                             },

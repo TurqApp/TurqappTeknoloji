@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test.dart';
+import 'package:turqappv2/Core/Services/education_test_navigation_service.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyTests/my_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
@@ -74,7 +74,7 @@ class _MyTestsState extends State<MyTests> {
 
   Widget _buildCreateButton() {
     return GestureDetector(
-      onTap: () => Get.to(() => const CreateTest()),
+      onTap: () => const EducationTestNavigationService().openCreateTest(),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(

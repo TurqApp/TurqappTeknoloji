@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 part 'config_repository_query_part.dart';
 part 'config_repository_storage_part.dart';
@@ -13,14 +13,12 @@ class ConfigRepository extends GetxService {
   static const Duration _defaultTtl = Duration(minutes: 30);
   static const String _prefsKeyPrefix = 'config_repository_v1';
 
-  SharedPreferences? _prefs;
+  LocalPreferenceRepository? _preferences;
   final Map<String, _CachedConfigDoc> _memory = {};
 
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) {
-      _prefs = prefs;
-    });
+    _preferences = ensureLocalPreferenceRepository();
   }
 }

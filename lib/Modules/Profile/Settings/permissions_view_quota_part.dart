@@ -4,9 +4,9 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
   int _normalizeDisplayQuota(int gb) => normalizeStorageBudgetPlanGb(gb);
 
   Future<void> _loadQuota() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final saved = _normalizeDisplayQuota(
-      prefs.getInt(_PermissionsViewState._quotaKey) ?? 3,
+      await preferences.getInt(_PermissionsViewState._quotaKey) ?? 3,
     );
     await StorageBudgetManager.maybeFind()?.applyPlanGb(saved);
     await SegmentCacheManager.maybeFind()?.setUserLimitGB(saved);
@@ -15,8 +15,8 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
 
   Future<void> _setQuota(int gb) async {
     final displayQuota = _normalizeDisplayQuota(gb);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_PermissionsViewState._quotaKey, displayQuota);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setInt(_PermissionsViewState._quotaKey, displayQuota);
     try {
       await StorageBudgetManager.maybeFind()?.applyPlanGb(displayQuota);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(displayQuota);
@@ -76,28 +76,19 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
     final capacityBytes = profile.streamCacheSoftStopBytes;
     final rawUsedBytes = cacheManager?.totalTrackedUsageBytes ?? 0;
     final usedBytes = rawUsedBytes.clamp(0, capacityBytes);
-    final fillRatio = capacityBytes <= 0
-        ? 0.0
-        : (usedBytes / capacityBytes).clamp(0.0, 1.0);
-    final visibleRatio = usedBytes > 0
-        ? fillRatio.clamp(0.01, 1.0)
-        : 0.0;
-    final percent = usedBytes > 0
-        ? (fillRatio * 100).round().clamp(1, 100)
-        : 0;
+    final fillRatio =
+        capacityBytes <= 0 ? 0.0 : (usedBytes / capacityBytes).clamp(0.0, 1.0);
+    final visibleRatio = usedBytes > 0 ? fillRatio.clamp(0.01, 1.0) : 0.0;
+    final percent = usedBytes > 0 ? (fillRatio * 100).round().clamp(1, 100) : 0;
     final isLowUsage = fillRatio <= 0.25;
-    final fillStartColor = isLowUsage
-        ? const Color(0xFFFF5A5F)
-        : const Color(0xFF34C759);
-    final fillEndColor = isLowUsage
-        ? const Color(0xFFD92D20)
-        : const Color(0xFF0E9F3E);
-    final badgeBackground = isLowUsage
-        ? const Color(0xFFFFE3E3)
-        : const Color(0xFFE8F7EC);
-    final badgeTextColor = isLowUsage
-        ? const Color(0xFFD92D20)
-        : const Color(0xFF15803D);
+    final fillStartColor =
+        isLowUsage ? const Color(0xFFFF5A5F) : const Color(0xFF34C759);
+    final fillEndColor =
+        isLowUsage ? const Color(0xFFD92D20) : const Color(0xFF0E9F3E);
+    final badgeBackground =
+        isLowUsage ? const Color(0xFFFFE3E3) : const Color(0xFFE8F7EC);
+    final badgeTextColor =
+        isLowUsage ? const Color(0xFFD92D20) : const Color(0xFF15803D);
 
     return Container(
       margin: const EdgeInsets.only(top: 12),

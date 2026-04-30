@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Repositories/admin_push_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -399,9 +400,8 @@ class _AdminPushViewState extends State<AdminPushView> {
               stream: _adminPushRepository.watchReports(limit: 20),
               builder: (context, snap) {
                 if (!snap.hasData) {
-                  return const Padding(
+                  return const AppStateView.loading(
                     padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Center(child: CircularProgressIndicator()),
                   );
                 }
                 final docs = snap.data!;
@@ -521,7 +521,7 @@ class _AdminPushViewState extends State<AdminPushView> {
   Widget build(BuildContext context) {
     if (_checkingAccess) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: AppStateView.loading(),
       );
     }
 

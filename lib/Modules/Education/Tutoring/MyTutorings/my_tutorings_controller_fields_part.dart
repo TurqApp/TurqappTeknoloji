@@ -2,6 +2,7 @@ part of 'my_tutorings_controller_library.dart';
 
 class _MyTutoringsControllerState {
   final UserSummaryResolver userSummaryResolver = UserSummaryResolver.ensure();
+  final TutoringRepository tutoringRepository = ensureTutoringRepository();
   final TutoringSnapshotRepository tutoringSnapshotRepository =
       ensureTutoringSnapshotRepository();
   final RxList<TutoringModel> myTutorings = <TutoringModel>[].obs;
@@ -17,6 +18,7 @@ class _MyTutoringsControllerState {
 
 extension MyTutoringsControllerFieldsPart on MyTutoringsController {
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
+  TutoringRepository get _tutoringRepository => _state.tutoringRepository;
   TutoringSnapshotRepository get _tutoringSnapshotRepository =>
       _state.tutoringSnapshotRepository;
   RxList<TutoringModel> get myTutorings => _state.myTutorings;

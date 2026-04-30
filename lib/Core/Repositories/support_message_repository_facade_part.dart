@@ -14,7 +14,7 @@ SupportMessageRepository ensureSupportMessageRepository() {
 
 extension SupportMessageRepositoryFacadePart on SupportMessageRepository {
   CollectionReference<Map<String, dynamic>> get _ref =>
-      FirebaseFirestore.instance.collection('supportMessages');
+      AppFirestore.instance.collection('supportMessages');
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchOwnMessages(String userId) {
     if (userId.trim().isEmpty) {

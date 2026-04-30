@@ -3,7 +3,7 @@ part of 'optical_form_repository.dart';
 extension OpticalFormRepositoryActionPart on OpticalFormRepository {
   Future<void> _removeCacheKey(String key) async {
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('${OpticalFormRepository._prefsPrefix}:$key');
   }
 
@@ -22,6 +22,22 @@ extension OpticalFormRepositoryActionPart on OpticalFormRepository {
       }
       await batch.commit();
     }
+  }
+
+  Future<void> saveForm(
+    String formId,
+    Map<String, dynamic> data,
+  ) async {
+    final normalizedFormId = formId.trim();
+    if (normalizedFormId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('optikForm').doc(normalizedFormId).set(data);
+    await _removeCacheKey('doc:$normalizedFormId');
+    final ownerUserId = (data['userID'] ?? '').toString().trim();
+    final snapshotRepository = maybeFindOpticalFormSnapshotRepository();
+    if (ownerUserId.isNotEmpty) {
+      await snapshotRepository?.invalidateUserScopedSurfaces(ownerUserId);
+    }
+    await snapshotRepository?.invalidateAllSurfaces();
   }
 
   Future<void> initializeUserAnswers(

@@ -525,7 +525,7 @@ extension ChatBodyPart on ChatView {
               child: Obx(
                 () => GestureDetector(
                   onTap: () {
-                    Get.to(() => SocialProfile(userID: userID));
+                    const ProfileNavigationService().openSocialProfile(userID);
                   },
                   child: Row(
                     children: [

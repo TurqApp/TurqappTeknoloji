@@ -2,44 +2,14 @@ part of 'deneme_sinavlari.dart';
 
 extension DenemeSinavlariSectionsPart on DenemeSinavlari {
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.quiz_outlined,
-              size: 60,
-              color: Colors.grey,
-            ),
-            20.ph,
-            Text(
-              controller.hasActiveSearch
-                  ? 'practice.search_empty_title'.tr
-                  : 'practice.empty_title'.tr,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontFamily: 'MontserratBold',
-              ),
-              textAlign: TextAlign.center,
-            ),
-            10.ph,
-            Text(
-              controller.hasActiveSearch
-                  ? 'practice.search_empty_body_query'.tr
-                  : 'practice.empty_body'.tr,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-                fontFamily: 'MontserratMedium',
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return AppStateView.empty(
+      title: controller.hasActiveSearch
+          ? 'practice.search_empty_title'.tr
+          : 'practice.empty_title'.tr,
+      message: controller.hasActiveSearch
+          ? 'practice.search_empty_body_query'.tr
+          : 'practice.empty_body'.tr,
+      icon: Icons.quiz_outlined,
     );
   }
 
@@ -100,7 +70,8 @@ extension DenemeSinavlariSectionsPart on DenemeSinavlari {
 
   Widget _buildSearchEntry() {
     return GestureDetector(
-      onTap: () => Get.to(() => SearchDeneme()),
+      onTap: () =>
+          const PracticeExamNavigationService().openSearchPracticeExams(),
       child: Container(
         color: Colors.white,
         child: Padding(

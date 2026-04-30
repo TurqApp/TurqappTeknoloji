@@ -345,7 +345,7 @@ class _DeferredNotificationInboxActionsState
           final prevIndex = widget.agendaController.lastCenteredIndex;
           widget.agendaController.lastCenteredIndex = prevIndex;
           widget.agendaController.suspendPlaybackForOverlay();
-          Get.to(() => ChatListing())?.then((_) {
+          const ChatNavigationService().openChatListing().then((_) {
             widget.agendaController.resumePlaybackAfterOverlay();
             try {
               unawaited(

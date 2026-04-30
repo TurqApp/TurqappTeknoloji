@@ -156,7 +156,7 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
 
   Future<List<MusicModel>> _loadCache({bool ignoreTtl = false}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final cacheKey = StoryMusicLibraryService._cacheKey;
       final cacheTimeKey = StoryMusicLibraryService._cacheTimeKey;
       if (!ignoreTtl) {
@@ -211,7 +211,8 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
       return restored;
     } catch (_) {
       try {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs =
+            await ensureLocalPreferenceRepository().sharedPreferences();
         await prefs.remove(StoryMusicLibraryService._cacheKey);
         await prefs.remove(StoryMusicLibraryService._cacheTimeKey);
       } catch (_) {}
@@ -221,7 +222,7 @@ extension StoryMusicLibraryServiceFetchPart on StoryMusicLibraryService {
 
   Future<void> _persistCache(List<MusicModel> tracks) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       await prefs.setString(
         StoryMusicLibraryService._cacheKey,
         jsonEncode(tracks.map((e) => e.toCacheMap()).toList()),

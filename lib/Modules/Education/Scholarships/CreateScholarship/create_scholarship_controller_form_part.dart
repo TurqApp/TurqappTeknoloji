@@ -302,7 +302,7 @@ extension CreateScholarshipControllerFormPart on CreateScholarshipController {
     if (formKey.currentState!.validate()) {
       final tag = controllerTag;
       if (tag == null || tag.isEmpty) return;
-      Get.to(() => ScholarshipPreviewView(controllerTag: tag));
+      ScholarshipNavigationService.openCreatePreview(tag);
     }
   }
 }

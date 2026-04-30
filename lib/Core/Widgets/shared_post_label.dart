@@ -1,8 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Themes/app_tokens.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Services/reshare_helper.dart';
 
@@ -130,7 +129,7 @@ class _SharedPostLabelState extends State<SharedPostLabel> {
           // Kendi ID'si ise tıklanabilir olmasın
           final currentUserID = CurrentUserService.instance.effectiveUserId;
           if (effectiveUserID != currentUserID) {
-            Get.to(() => SocialProfile(userID: effectiveUserID));
+            const ProfileNavigationService().openSocialProfile(effectiveUserID);
           }
         },
         child: useBackdrop

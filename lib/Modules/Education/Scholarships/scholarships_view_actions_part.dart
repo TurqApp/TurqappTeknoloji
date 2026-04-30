@@ -559,8 +559,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     featureName: 'scholarship.create_title'.tr,
                   );
                   if (!allowed) return;
-                  Get.delete<CreateScholarshipController>(force: true);
-                  Get.to(CreateScholarshipView())?.then((_) async {
+                  ScholarshipNavigationService.openCreate(
+                    resetController: true,
+                  ).then((_) async {
                     await controller.fetchScholarships();
                     await controller.refreshTotalCount();
                   });
@@ -575,7 +576,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     featureName: 'scholarship.my_listings'.tr,
                   );
                   if (!allowed) return;
-                  Get.to(MyScholarshipView())?.then((_) async {
+                  ScholarshipNavigationService.openMyScholarships()
+                      .then((_) async {
                     await controller.fetchScholarships();
                     await controller.refreshTotalCount();
                   });
@@ -584,17 +586,17 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
               PullDownMenuItem(
                 title: 'common.saved'.tr,
                 icon: CupertinoIcons.bookmark,
-                onTap: () => Get.to(() => SavedItemsView()),
+                onTap: ScholarshipNavigationService.openSavedItems,
               ),
               PullDownMenuItem(
                 title: 'common.applications'.tr,
                 icon: CupertinoIcons.doc_plaintext,
-                onTap: () => Get.to(() => ApplicationsView()),
+                onTap: ScholarshipNavigationService.openApplications,
               ),
               PullDownMenuItem(
                 title: 'explore.tab.for_you'.tr,
                 icon: CupertinoIcons.star,
-                onTap: () => Get.to(PersonalizedView()),
+                onTap: ScholarshipNavigationService.openPersonalized,
               ),
               PullDownMenuItem(
                 title: 'settings.title'.tr,

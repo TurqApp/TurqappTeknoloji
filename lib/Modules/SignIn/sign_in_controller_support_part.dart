@@ -14,8 +14,7 @@ void _logSignupOtp(String stage, [Map<String, Object?> details = const {}]) {
 }
 
 void _ensureFeedTabSelected() {
-  final nav = maybeFindNavBarController() ?? ensureNavBarController();
-  nav.selectedIndex.value = 0;
+  const PrimaryTabRouter().openFeed();
 }
 
 String _formatSeconds(int seconds) {

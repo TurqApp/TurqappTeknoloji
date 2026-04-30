@@ -269,7 +269,6 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
           ? 'marketStore/$uid/$itemId/cover'
           : 'marketStore/$uid/$itemId/image_$imageIndex';
       final url = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: path,
       );

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 part 'profile_stats_repository_metrics_part.dart';
 part 'profile_stats_repository_cache_part.dart';
@@ -20,7 +22,7 @@ class ProfileStatsRepository extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) {
+    ensureLocalPreferenceRepository().sharedPreferences().then((prefs) {
       _prefs = prefs;
     });
   }

@@ -85,7 +85,7 @@ extension ProfileControllerLifecyclePart on ProfileController {
 
   void _performOnInit() {
     _activeUid = _resolvedActiveUid;
-    _authSub = FirebaseAuth.instance.authStateChanges().listen(_onAuthChanged);
+    _authSub = userService.authStateChanges().listen(_onAuthChanged);
 
     _performBindCacheWorkers();
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {

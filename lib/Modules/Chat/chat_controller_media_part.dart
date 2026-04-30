@@ -105,7 +105,7 @@ extension ChatControllerMediaPart on ChatController {
     _clearMediaFailure();
     isUploading.value = true;
     uploadPercent.value = 1;
-    final storage = FirebaseStorage.instance;
+    final storage = AppFirebaseStorage.instance;
     final uuid = Uuid();
 
     final downloadUrls = <String>[];
@@ -324,7 +324,7 @@ extension ChatControllerMediaPart on ChatController {
     isUploading.value = true;
     uploadPercent.value = 1;
     final uuid = Uuid();
-    final storage = FirebaseStorage.instance;
+    final storage = AppFirebaseStorage.instance;
 
     try {
       if (IntegrationMediaTestHarness.consumeFailure(
@@ -389,7 +389,6 @@ extension ChatControllerMediaPart on ChatController {
       if (thumbBytes != null) {
         try {
           thumbUrl = await WebpUploadService.uploadBytesAsWebp(
-            storage: storage,
             bytes: thumbBytes,
             storagePathWithoutExt:
                 'ChatAssets/$chatID/videos/${videoFileName}_thumb',
@@ -492,7 +491,7 @@ extension ChatControllerMediaPart on ChatController {
         throw StateError('audio_upload_failed');
       }
       final file = File(path);
-      final storage = FirebaseStorage.instance;
+      final storage = AppFirebaseStorage.instance;
       final fileName = Uuid().v4();
       final ref = storage.ref().child('ChatAssets/$chatID/voice/$fileName.m4a');
       final uploadTask = ref.putFile(

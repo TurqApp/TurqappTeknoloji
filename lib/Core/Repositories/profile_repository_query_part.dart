@@ -40,7 +40,7 @@ extension ProfileRepositoryQueryPart on ProfileRepository {
   bool _isOwnProfileRequest(String uid) {
     final normalizedUid = uid.trim();
     if (normalizedUid.isEmpty) return false;
-    final authUid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    final authUid = AppFirebaseAuth.instance.currentUser?.uid.trim() ?? '';
     if (authUid.isNotEmpty && authUid == normalizedUid) return true;
     final effectiveUid = CurrentUserService.instance.effectiveUserId.trim();
     return effectiveUid.isNotEmpty && effectiveUid == normalizedUid;

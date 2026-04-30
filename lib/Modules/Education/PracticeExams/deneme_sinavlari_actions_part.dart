@@ -17,7 +17,8 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
                 title: 'common.create'.tr,
                 onTap: () {
                   if (controller.okul.value) {
-                    Get.to(() => SinavHazirla());
+                    const PracticeExamNavigationService()
+                        .openCreatePracticeExam();
                   } else {
                     controller.showOkulAlert.value = true;
                   }
@@ -26,31 +27,34 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
               PullDownMenuItem(
                 icon: Icons.history,
                 title: 'pasaj.common.my_results'.tr,
-                onTap: () => Get.to(() => SinavSonuclarim()),
+                onTap: () => const PracticeExamNavigationService()
+                    .openMyPracticeExamResults(),
               ),
               PullDownMenuItem(
                 icon: CupertinoIcons.doc_text,
                 title: 'pasaj.common.published'.tr,
-                onTap: () => Get.to(() => const MyPracticeExams()),
+                onTap: () =>
+                    const PracticeExamNavigationService().openMyPracticeExams(),
               ),
               PullDownMenuItem(
                 icon: CupertinoIcons.bookmark,
                 title: 'common.saved'.tr,
-                onTap: () => Get.to(() => const SavedPracticeExams()),
+                onTap: () => const PracticeExamNavigationService()
+                    .openSavedPracticeExams(),
               ),
               PullDownMenuItem(
                 icon: CupertinoIcons.search,
                 title: 'common.search'.tr,
-                onTap: () => Get.to(() => SearchDeneme()),
+                onTap: () => const PracticeExamNavigationService()
+                    .openSearchPracticeExams(),
               ),
               PullDownMenuItem(
                 icon: CupertinoIcons.slider_horizontal_3,
                 title: 'practice.slider_management'.tr,
-                onTap: () => Get.to(
-                  () => SliderAdminView(
-                    sliderId: 'online_sinav',
-                    title: 'pasaj.tabs.online_exam'.tr,
-                  ),
+                onTap: () =>
+                    const SliderAdminNavigationService().openSliderAdmin(
+                  sliderId: 'online_sinav',
+                  title: 'pasaj.tabs.online_exam'.tr,
                 ),
               ),
             ],
@@ -115,7 +119,8 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
                 12.ph,
                 GestureDetector(
                   onTap: () {
-                    Get.to(() => BecomeVerifiedAccount());
+                    const VerifiedAccountNavigationService()
+                        .openBecomeVerifiedAccount();
                   },
                   child: Container(
                     height: 50,

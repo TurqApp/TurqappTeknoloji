@@ -9,10 +9,10 @@ extension _MyPastTestResultsPreviewContentPart
         Expanded(
           child: Obx(() {
             if (controller.isLoading.value) {
-              return const Center(child: CupertinoActivityIndicator());
+              return const AppStateView.loading(title: '');
             }
             if (controller.soruList.isEmpty || controller.yanitlar.isEmpty) {
-              return EmptyRow(text: 'tests.results_empty'.tr);
+              return AppStateView.empty(title: 'tests.results_empty'.tr);
             }
             return SingleChildScrollView(
               child: Column(

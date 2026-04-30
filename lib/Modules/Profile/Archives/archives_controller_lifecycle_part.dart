@@ -47,7 +47,7 @@ extension _ArchiveControllerLifecyclePart on ArchiveController {
   }
 
   void _bindAuth() {
-    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
+    _authSub = CurrentUserService.instance.authStateChanges().listen((user) {
       final nextUserId = user?.uid;
       if (_currentUserId != nextUserId) {
         _currentUserId = nextUserId;

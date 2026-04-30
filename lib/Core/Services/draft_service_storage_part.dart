@@ -50,21 +50,21 @@ extension DraftServiceStoragePart on DraftService {
   }
 
   Future<void> _saveDraftsToStorage() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final draftsJson = _drafts.map((draft) => draft.toJson()).toList();
-    await prefs.setString(_activeDraftsKey, jsonEncode(draftsJson));
+    await preferences.setString(_activeDraftsKey, jsonEncode(draftsJson));
   }
 
   Future<void> _loadDraftsFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final draftsString = prefs.getString(_activeDraftsKey);
+    final preferences = ensureLocalPreferenceRepository();
+    final draftsString = await preferences.getString(_activeDraftsKey);
 
     _drafts.clear();
     if (draftsString != null) {
       try {
         final decoded = jsonDecode(draftsString);
         if (decoded is! List) {
-          await prefs.remove(_activeDraftsKey);
+          await preferences.remove(_activeDraftsKey);
           return;
         }
         var shouldPrune = false;
@@ -89,14 +89,16 @@ extension DraftServiceStoragePart on DraftService {
           await _saveDraftsToStorage();
         }
       } catch (_) {
-        await prefs.remove(_activeDraftsKey);
+        await preferences.remove(_activeDraftsKey);
       }
     }
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    _autoSaveEnabled.value = prefs.getBool(DraftService._autoSaveKey) ?? true;
-    _autoSaveInterval.value = prefs.getInt('auto_save_interval') ?? 30;
+    final preferences = ensureLocalPreferenceRepository();
+    _autoSaveEnabled.value =
+        await preferences.getBool(DraftService._autoSaveKey) ?? true;
+    _autoSaveInterval.value =
+        await preferences.getInt('auto_save_interval') ?? 30;
   }
 }

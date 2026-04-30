@@ -577,8 +577,10 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   void _scheduleDeferredInitialNetworkBootstrap({
     required String reason,
+    bool allowEmptyAgenda = false,
   }) {
-    if (!ContentPolicy.isConnected || agendaList.isEmpty) {
+    final agendaReady = agendaList.isNotEmpty;
+    if (!ContentPolicy.isConnected || (!allowEmptyAgenda && !agendaReady)) {
       return;
     }
     if (_startupHeadFinalized ||
@@ -593,7 +595,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     debugPrint(
       '[FeedStartupSurface] status=schedule_deferred_initial_load '
       'reason=$reason delayMs=${_deferredInitialNetworkBootstrapDelay.inMilliseconds} '
-      'agendaCount=${agendaList.length}',
+      'agendaCount=${agendaList.length} allowEmptyAgenda=$allowEmptyAgenda',
     );
     _deferredInitialNetworkBootstrapTimer = Timer(
       _deferredInitialNetworkBootstrapDelay,
@@ -603,15 +605,20 @@ extension AgendaControllerLoadingPart on AgendaController {
         }
         _deferredInitialNetworkBootstrapTimer = null;
         if (!ContentPolicy.isConnected ||
-            agendaList.isEmpty ||
             _startupHeadFinalized ||
             isLoading.value ||
             _ensureInitialLoadInFlight) {
+          if (!allowEmptyAgenda || agendaList.isNotEmpty) {
+            return;
+          }
+        }
+        if (!allowEmptyAgenda && agendaList.isEmpty) {
           return;
         }
         debugPrint(
           '[FeedStartupSurface] status=run_deferred_initial_load '
-          'reason=$reason agendaCount=${agendaList.length}',
+          'reason=$reason agendaCount=${agendaList.length} '
+          'allowEmptyAgenda=$allowEmptyAgenda',
         );
         unawaited(ensureInitialFeedLoaded());
       },
@@ -2357,6 +2364,10 @@ extension AgendaControllerLoadingPart on AgendaController {
     try {
       final authReady = await _awaitFeedAuthReadiness();
       if (!authReady) {
+        _scheduleDeferredInitialNetworkBootstrap(
+          reason: 'auth_not_ready_retry',
+          allowEmptyAgenda: true,
+        );
         return;
       }
       final now = DateTime.now();

@@ -123,11 +123,10 @@ extension JobDetailsMetaPart on _JobDetailsState {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () {
-            Get.to(() => ReportUser(
-                  userID: controller.model.value.userID,
-                  postID: controller.model.value.docID,
-                  commentID: "",
-                ));
+            const ReportUserNavigationService().openReportUser(
+              userId: controller.model.value.userID,
+              postId: controller.model.value.docID,
+            );
           },
           title: 'pasaj.market.report_listing'.tr,
           icon: CupertinoIcons.exclamationmark_circle,

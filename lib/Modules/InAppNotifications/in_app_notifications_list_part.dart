@@ -8,9 +8,9 @@ extension InAppNotificationsListPart on _InAppNotificationsState {
     final children = <Widget>[const SizedBox(height: 6)];
 
     if (controller.list.isEmpty) {
-      children.add(EmptyRow(text: 'notifications.empty'.tr));
+      children.add(AppStateView.empty(title: 'notifications.empty'.tr));
     } else if (notifications.isEmpty) {
-      children.add(EmptyRow(text: emptyText));
+      children.add(AppStateView.empty(title: emptyText));
     } else {
       children.addAll(_buildGroupedList(notifications));
     }

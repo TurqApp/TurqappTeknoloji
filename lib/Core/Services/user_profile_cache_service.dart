@@ -5,8 +5,10 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_cache_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/metadata_read_policy.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
@@ -27,11 +29,11 @@ class _CachedUserProfile {
     required Map<String, dynamic> data,
     required this.cachedAt,
   }) : data = data.map(
-         (key, value) => MapEntry(
-           key,
-           _cloneCachedUserProfileValue(value),
-         ),
-       );
+          (key, value) => MapEntry(
+            key,
+            _cloneCachedUserProfileValue(value),
+          ),
+        );
 }
 
 dynamic _cloneCachedUserProfileValue(dynamic value) {
@@ -44,9 +46,7 @@ dynamic _cloneCachedUserProfileValue(dynamic value) {
     );
   }
   if (value is List) {
-    return value
-        .map(_cloneCachedUserProfileValue)
-        .toList(growable: false);
+    return value.map(_cloneCachedUserProfileValue).toList(growable: false);
   }
   return value;
 }

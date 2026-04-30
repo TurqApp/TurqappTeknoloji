@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
-import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
-import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_soru_sonuclar.dart';
+import 'package:turqappv2/Core/Services/education_question_bank_navigation_service.dart';
+import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_grid.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_preview.dart';
@@ -41,18 +42,12 @@ class _CikmisSorularState extends State<CikmisSorular> {
 
   Widget _buildSearchResults() {
     if (controller.isSearchLoading.value) {
-      return const Center(child: CupertinoActivityIndicator());
+      return const AppStateView.loading(title: '');
     }
 
     if (controller.searchResults.isEmpty) {
-      return Center(
-        child: Text(
-          'past_questions.search_empty'.tr,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontFamily: 'MontserratMedium',
-          ),
-        ),
+      return AppStateView.empty(
+        title: 'past_questions.search_empty'.tr,
       );
     }
 
@@ -179,7 +174,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
     final bodyContent = Expanded(
       child: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading(title: '');
         }
         return controller.hasActiveSearch
             ? _buildSearchResults()
@@ -202,23 +197,17 @@ class _CikmisSorularState extends State<CikmisSorular> {
                     icon: Icons.history,
                     title: 'pasaj.common.my_results'.tr,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CikmisSoruSonuclar(),
-                        ),
-                      );
+                      const EducationQuestionBankNavigationService()
+                          .openPastQuestionResults();
                     },
                   ),
                   PullDownMenuItem(
                     icon: CupertinoIcons.slider_horizontal_3,
                     title: 'practice.slider_management'.tr,
                     onTap: () {
-                      Get.to(
-                        () => SliderAdminView(
-                          sliderId: 'denemeler',
-                          title: 'past_questions.title'.tr,
-                        ),
+                      const SliderAdminNavigationService().openSliderAdmin(
+                        sliderId: 'denemeler',
+                        title: 'past_questions.title'.tr,
                       );
                     },
                   ),
@@ -267,21 +256,17 @@ class _CikmisSorularState extends State<CikmisSorular> {
             icon: Icons.history,
             title: 'pasaj.common.my_results'.tr,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CikmisSoruSonuclar()),
-              );
+              const EducationQuestionBankNavigationService()
+                  .openPastQuestionResults();
             },
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
             title: 'practice.slider_management'.tr,
             onTap: () {
-              Get.to(
-                () => SliderAdminView(
-                  sliderId: 'denemeler',
-                  title: 'past_questions.title'.tr,
-                ),
+              const SliderAdminNavigationService().openSliderAdmin(
+                sliderId: 'denemeler',
+                title: 'past_questions.title'.tr,
               );
             },
           ),

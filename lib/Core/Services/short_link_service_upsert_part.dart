@@ -152,7 +152,7 @@ extension ShortLinkServiceUpsertPart on ShortLinkService {
     Object? lastError;
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        final fn = FirebaseFunctions.instanceFor(region: 'us-central1');
+        final fn = AppCloudFunctions.instanceFor(region: 'us-central1');
         final callable = fn.httpsCallable(
           callableName,
           options: HttpsCallableOptions(

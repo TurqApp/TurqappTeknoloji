@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/SavedOpticalForms/saved_optical_forms_controller.dart';
 
@@ -54,18 +54,12 @@ class _SavedOpticalFormsState extends State<SavedOpticalForms> {
               child: SingleChildScrollView(
                 child: Obx(
                   () => controller.isLoading.value
-                      ? const Center(child: CupertinoActivityIndicator())
+                      ? const AppStateView.loading()
                       : Obx(
                           () => controller.list.isEmpty
-                              ? Padding(
+                              ? AppStateView.empty(
+                                  title: 'answer_key.saved_empty'.tr,
                                   padding: const EdgeInsets.all(15),
-                                  child: Text(
-                                    'answer_key.saved_empty'.tr,
-                                    style: TextStyle(
-                                      fontFamily: "MontserratMedium",
-                                      fontSize: 16,
-                                    ),
-                                  ),
                                 )
                               : Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 15),

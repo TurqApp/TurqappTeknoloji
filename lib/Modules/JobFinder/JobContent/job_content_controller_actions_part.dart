@@ -20,13 +20,10 @@ extension JobContentControllerActionsPart on JobContentController {
       return;
     }
 
-    final ref = FirebaseFirestore.instance
-        .collection(JobCollection.name)
-        .doc(model.docID);
-    await ref.update({
-      "ended": false,
-      "timeStamp": now,
-    });
+    await _jobRepository.reactivateJob(
+      jobDocId: model.docID,
+      timeStamp: now,
+    );
 
     final myJobAdsController = maybeFindMyJobAdsController();
     if (myJobAdsController != null) {

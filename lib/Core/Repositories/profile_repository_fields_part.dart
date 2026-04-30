@@ -4,7 +4,7 @@ class ProfileRepository extends _ProfileRepositoryBase {
   ProfileRepository({
     FirebaseFirestore? firestore,
   }) : super(
-          firestore: firestore ?? FirebaseFirestore.instance,
+          firestore: firestore ?? AppFirestore.instance,
         );
 }
 

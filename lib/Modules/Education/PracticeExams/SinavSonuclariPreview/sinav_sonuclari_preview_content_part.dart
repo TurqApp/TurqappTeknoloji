@@ -10,7 +10,7 @@ extension SinavSonuclariPreviewContentPart on _SinavSonuclariPreviewState {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CupertinoActivityIndicator());
+                  return const AppStateView.loading(title: '');
                 }
                 if (controller.isInitialized.value &&
                     controller.soruList.isEmpty) {

@@ -36,6 +36,62 @@ extension TutoringRepositoryActionPart on TutoringRepository {
     return !isFavorite;
   }
 
+  Future<String> createTutoring(Map<String, dynamic> data) async {
+    if (data.isEmpty) return '';
+    final docRef = _firestore.collection('educators').doc();
+    await docRef.set(data);
+    return docRef.id;
+  }
+
+  Future<void> updateTutoring({
+    required String docId,
+    required Map<String, dynamic> data,
+  }) async {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('educators').doc(normalizedDocId).update(data);
+    _memory.remove('doc:$normalizedDocId');
+  }
+
+  Future<void> markExpiredTutorings(
+    Iterable<TutoringModel> tutorings, {
+    required int now,
+    required int staleBefore,
+  }) async {
+    final batch = _firestore.batch();
+    var changed = false;
+
+    for (final tutoring in tutorings) {
+      if (tutoring.ended == true) continue;
+      if (tutoring.timeStamp < staleBefore) {
+        final tutoringId = tutoring.docID.trim();
+        if (tutoringId.isEmpty) continue;
+        batch.update(
+          _firestore.collection('educators').doc(tutoringId),
+          {'ended': true, 'endedAt': now},
+        );
+        _memory.remove('doc:$tutoringId');
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      await batch.commit();
+    }
+  }
+
+  Future<void> reactivateTutoring(String tutoringId) async {
+    final normalizedTutoringId = tutoringId.trim();
+    if (normalizedTutoringId.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _firestore.collection('educators').doc(normalizedTutoringId).update({
+      'ended': false,
+      'endedAt': 0,
+      'timeStamp': now,
+    });
+    _memory.remove('doc:$normalizedTutoringId');
+  }
+
   Future<bool> toggleApplication({
     required String tutoringId,
     required String ownerUid,

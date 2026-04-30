@@ -99,7 +99,7 @@ extension _PostCountManagerActionsX on PostCountManager {
     getStatsCount(postID).value = newCount.clamp(0, double.infinity).toInt();
 
     try {
-      await FirebaseFirestore.instance.collection('Posts').doc(postID).update({
+      await AppFirestore.instance.collection('Posts').doc(postID).update({
         'stats.statsCount': FieldValue.increment(inc),
       });
     } catch (e) {
@@ -114,7 +114,7 @@ extension _PostCountManagerActionsX on PostCountManager {
     required int increment,
     required RxInt Function(String postId) readLocal,
   }) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final batch = firestore.batch();
 
     batch.update(

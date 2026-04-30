@@ -1,9 +1,9 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryContentProfiles/story_content_profiles.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StorySeens/story_seens_controller.dart';
-import '../../../../Core/empty_row.dart';
 
 class StorySeens extends StatefulWidget {
   final String storyID;
@@ -70,7 +70,7 @@ class _StorySeensState extends State<StorySeens> {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: 'story.no_seens'.tr),
+                      child: AppStateView.empty(title: 'story.no_seens'.tr),
                     ),
             )
           ],

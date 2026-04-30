@@ -6,6 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 import 'integration_test_mode.dart';
 import 'qa_lab_mode.dart';

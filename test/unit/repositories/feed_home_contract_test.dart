@@ -8,18 +8,16 @@ void main() {
     test('defines the canonical primary home feed path', () {
       const contract = FeedHomeContract.primaryHybridV1;
 
-      expect(contract.contractId, 'feed_home_primary_hybrid_v1');
+      expect(contract.contractId, 'feed_home_primary_global_v2');
       expect(
         contract.primarySource,
-        FeedHomePrimarySource.userFeedReferences,
+        FeedHomePrimarySource.globalApprovedPosts,
       );
       expect(
         contract.supplementalSources,
         const <FeedHomeSupplementalSource>[
           FeedHomeSupplementalSource.ownRecentPosts,
-          FeedHomeSupplementalSource.celebrityRecentPosts,
           FeedHomeSupplementalSource.publicScheduledIzBirakPosts,
-          FeedHomeSupplementalSource.globalBadgePosts,
         ],
       );
       expect(
@@ -29,71 +27,36 @@ void main() {
           FeedHomeFallbackPath.legacyPage,
         ],
       );
-      expect(contract.usesPrimaryFeedPaging, isTrue);
-      expect(contract.primaryCollection, 'userFeeds');
-      expect(contract.primaryItemsSubcollection, 'items');
+      expect(contract.usesPrimaryFeedPaging, isFalse);
+      expect(contract.primaryCollection, 'Posts');
+      expect(contract.primaryItemsSubcollection, isEmpty);
       expect(contract.celebrityCollection, 'celebAccounts');
       expect(
         contract.requiredReferenceFields,
         const <String>[
-          'postId',
-          'authorId',
           'timeStamp',
-          'isCelebrity',
-          'expiresAt',
+          'userID',
         ],
       );
     });
 
-    test('repository is bound to the canonical home feed contract', () {
-      final repositorySource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository.dart',
-      ).readAsStringSync();
-      final fetchSource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
-      ).readAsStringSync();
-
-      expect(
-        repositorySource,
-        contains('FeedHomeContract.primaryHybridV1'),
-      );
-      expect(
-        fetchSource,
-        contains("feedContract': contract.contractId"),
-      );
-    });
-
-    test('repository fallback order preserves personal feed before legacy page',
+    test('repository remains manifest-first with warm and personal fallbacks',
         () {
       final fetchSource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
-      final personalPrimaryEmpty =
-          fetchSource.indexOf('fallback=personal reason=primary_empty');
-      final legacyPersonalEmpty =
-          fetchSource.indexOf('fallback=legacy reason=personal_empty');
-      final personalVisibleEmpty = fetchSource.indexOf('fallback=personal \'');
-      final legacyVisibleEmpty = fetchSource.indexOf('fallback=legacy \'');
-
-      expect(personalPrimaryEmpty, greaterThanOrEqualTo(0));
-      expect(legacyPersonalEmpty, greaterThan(personalPrimaryEmpty));
-      expect(personalVisibleEmpty, greaterThanOrEqualTo(0));
-      expect(legacyVisibleEmpty, greaterThan(personalVisibleEmpty));
-      expect(
-          fetchSource,
-          contains(
-              'final personalFallback = await _loadPersonalFallbackPage('));
-      expect(fetchSource, contains('return _loadLegacyPage('));
+      expect(fetchSource, contains('_tryLoadFeedManifestPrimaryPage('));
+      expect(fetchSource, contains('_loadWarmFeedFallbackPage('));
+      expect(fetchSource, contains('_loadPersonalFallbackPage('));
+      expect(fetchSource, contains("status=fallback_warm"));
+      expect(fetchSource, contains("status=fallback_personal"));
     });
 
-    test('legacy fallback stays scoped to explicit opt-out and exhausted paths',
+    test('explicit opt-out is manifest-only and legacy page is unreachable', 
         () {
       final fetchSource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
-      ).readAsStringSync();
-      final agendaSource = File(
-        '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/agenda_controller_loading_cache_part.dart',
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(
@@ -101,14 +64,12 @@ void main() {
         contains('if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {'),
       );
       expect(
-        RegExp(r'return _loadLegacyPage\(').allMatches(fetchSource).length,
-        3,
-      );
-      expect(
-        agendaSource,
+        fetchSource,
         contains(
-            "if (uid.isEmpty) {\n      return _loadLegacyAgendaSourcePage("),
+          "return const FeedSourcePage(\n        items: <PostsModel>[],",
+        ),
       );
+      expect(fetchSource, isNot(contains('_loadLegacyPage(')));
     });
   });
 }

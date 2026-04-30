@@ -555,9 +555,11 @@ extension AntremanControllerActionsPart on AntremanController {
   Future<List<QuestionBankModel>> _loadCachedCategoryPool(
       String categoryKey) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cacheTime = prefs.getInt(_cacheTimeKeyForCategory(categoryKey));
-      final payload = prefs.getString(_cacheKeyForCategory(categoryKey));
+      final preferences = ensureLocalPreferenceRepository();
+      final cacheTime =
+          await preferences.getInt(_cacheTimeKeyForCategory(categoryKey));
+      final payload =
+          await preferences.getString(_cacheKeyForCategory(categoryKey));
       if (cacheTime == null || payload == null || payload.isEmpty) {
         return <QuestionBankModel>[];
       }
@@ -588,12 +590,12 @@ extension AntremanControllerActionsPart on AntremanController {
     List<QuestionBankModel> docs,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final payload = jsonEncode(
         docs.map((question) => question.toJson()).toList(),
       );
-      await prefs.setString(_cacheKeyForCategory(categoryKey), payload);
-      await prefs.setInt(
+      await preferences.setString(_cacheKeyForCategory(categoryKey), payload);
+      await preferences.setInt(
         _cacheTimeKeyForCategory(categoryKey),
         DateTime.now().millisecondsSinceEpoch,
       );

@@ -232,8 +232,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
 
     final archiveController = maybeFindArchiveController();
     if (archiveController != null) {
-      final archiveIndex =
-          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
         archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
@@ -267,8 +267,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
 
     final tagPostsController = maybeFindTagPostsController();
     if (tagPostsController != null) {
-      final tagPostIndex =
-          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
         tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
@@ -331,8 +331,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
 
     final archiveController = maybeFindArchiveController();
     if (archiveController != null) {
-      final archiveIndex =
-          archiveController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (archiveIndex >= 0) {
         archiveController.capturePendingCenteredEntry(model: widget.model);
         archiveController.lastCenteredIndex = archiveIndex;
@@ -367,8 +367,8 @@ extension ClassicContentHelpersPart on _ClassicContentState {
 
     final tagPostsController = maybeFindTagPostsController();
     if (tagPostsController != null) {
-      final tagPostIndex =
-          tagPostsController.list.indexWhere((p) => p.docID == widget.model.docID);
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
       if (tagPostIndex >= 0) {
         tagPostsController.capturePendingCenteredEntry(model: widget.model);
         tagPostsController.lastCenteredIndex = tagPostIndex;
@@ -433,8 +433,9 @@ extension ClassicContentHelpersPart on _ClassicContentState {
       return;
     }
 
-    final route = Get.to(() => SocialProfile(userID: widget.model.userID));
-    route?.then((_) {
+    final route =
+        const ProfileNavigationService().openSocialProfile(widget.model.userID);
+    route.then((_) {
       _restoreClassicFeedCenter();
     });
   }

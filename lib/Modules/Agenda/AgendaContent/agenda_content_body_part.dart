@@ -593,7 +593,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
 
         final currentUid = controller.userService.effectiveUserId;
         if (targetUid.isNotEmpty && targetUid != currentUid) {
-          await Get.to(() => SocialProfile(userID: targetUid));
+          await const ProfileNavigationService().openSocialProfile(targetUid);
         }
       },
     );

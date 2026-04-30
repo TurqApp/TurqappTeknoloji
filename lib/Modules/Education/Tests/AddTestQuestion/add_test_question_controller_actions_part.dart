@@ -14,24 +14,22 @@ extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: imageFile,
         storagePathWithoutExt:
             'Testler/$testID/${DateTime.now().millisecondsSinceEpoch}',
       );
 
-      await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .collection("Sorular")
-          .doc(soruList[index].docID)
-          .set({
-        "img": downloadUrl,
-        "id": soruList[index].id,
-        "dogruCevap": soruList[index].dogruCevap,
-        "yanitlayanlar": [],
-        "max": 5,
-      }, SetOptions(merge: true));
+      await _testRepository.saveQuestion(
+        testId: testID,
+        questionId: soruList[index].docID,
+        data: {
+          "img": downloadUrl,
+          "id": soruList[index].id,
+          "dogruCevap": soruList[index].dogruCevap,
+          "yanitlayanlar": [],
+          "max": 5,
+        },
+      );
 
       soruList[index] = TestReadinessModel(
         id: soruList[index].id,
@@ -69,9 +67,7 @@ extension AddTestQuestionControllerActionsPart on AddTestQuestionController {
 
   Future<void> publishTest() async {
     if (!legacyTestsNetworkEnabled) return;
-    await FirebaseFirestore.instance.collection("Testler").doc(testID).set({
-      "taslak": false,
-    }, SetOptions(merge: true));
+    await _testRepository.publishTest(testID);
     Get.back();
   }
 }

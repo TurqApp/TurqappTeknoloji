@@ -61,14 +61,14 @@ extension _MarketSnapshotRepositoryDataX on MarketSnapshotRepository {
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
-      snapshot = await FirebaseFirestore.instance
+      snapshot = await AppFirestore.instance
           .collection('marketStore')
           .where('userId', isEqualTo: normalizedUserId)
           .orderBy('createdAt', descending: true)
           .limit(normalizedLimit)
           .get(options);
     } on FirebaseException {
-      snapshot = await FirebaseFirestore.instance
+      snapshot = await AppFirestore.instance
           .collection('marketStore')
           .where('userId', isEqualTo: normalizedUserId)
           .limit(normalizedLimit)

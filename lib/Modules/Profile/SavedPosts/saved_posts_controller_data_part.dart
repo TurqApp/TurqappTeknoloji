@@ -12,7 +12,7 @@ extension SavedPostsControllerDataPart on SavedPostsController {
   }
 
   void _bindAuth() {
-    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
+    _authSub = CurrentUserService.instance.authStateChanges().listen((user) {
       _currentUserId = user?.uid;
       _savedPostsSub?.cancel();
       _clearLists();

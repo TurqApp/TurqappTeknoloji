@@ -55,7 +55,7 @@ class _MarketSavedViewState extends State<MarketSavedView> {
         future: _savedFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppStateView.loading();
           }
           final items = snapshot.data ?? const <MarketItemModel>[];
           return RefreshIndicator(

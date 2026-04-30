@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
 import '../../Agenda/AgendaContent/agenda_content.dart';
 import 'archives_controller.dart';
@@ -52,9 +52,7 @@ class _ArchivesState extends State<Archives> {
                 final centeredIndex = controller.centeredIndex.value;
                 controller.lastCenteredIndex = centeredIndex;
                 if (controller.isLoading.value && controller.list.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Colors.black),
-                  );
+                  return const AppStateView.loading(title: '');
                 }
                 if (controller.list.isEmpty) {
                   return _buildEmptyState();
@@ -118,7 +116,9 @@ class _ArchivesState extends State<Archives> {
     return Column(
       children: [
         BackButtons(text: "settings.archive".tr),
-        EmptyRow(text: "common.no_results".tr),
+        Expanded(
+          child: AppStateView.empty(title: "common.no_results".tr),
+        ),
       ],
     );
   }

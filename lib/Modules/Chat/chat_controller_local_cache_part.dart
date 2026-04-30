@@ -30,9 +30,10 @@ extension ChatControllerLocalCachePart on ChatController {
 
   Future<void> _loadLocalDeletedMessages() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final ids = _expandLocalDeletedIdVariants(
-        prefs.getStringList(_localDeletedMessagesKey) ?? const <String>[],
+        await preferences.getStringList(_localDeletedMessagesKey) ??
+            const <String>[],
       );
       _localDeletedMessageIds
         ..clear()
@@ -50,10 +51,10 @@ extension ChatControllerLocalCachePart on ChatController {
       'chatId=$chatID added=${ids.length} total=${_localDeletedMessageIds.length}',
     );
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final capped = _localDeletedMessageIds.toList(growable: false);
       final start = capped.length > 1000 ? capped.length - 1000 : 0;
-      await prefs.setStringList(
+      await preferences.setStringList(
         _localDeletedMessagesKey,
         capped.sublist(start),
       );
@@ -98,14 +99,14 @@ extension ChatControllerLocalCachePart on ChatController {
 
   Future<bool> _loadLocalConversationWindow() async {
     await _loadLocalDeletedMessages();
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final cacheKey = _localChatWindowKey;
     try {
-      final raw = prefs.getString(cacheKey);
+      final raw = await preferences.getString(cacheKey);
       if (raw == null || raw.isEmpty) return false;
       final decoded = jsonDecode(raw);
       if (decoded is! List) {
-        await prefs.remove(cacheKey);
+        await preferences.remove(cacheKey);
         return false;
       }
 
@@ -117,7 +118,7 @@ extension ChatControllerLocalCachePart on ChatController {
         if (m != null) restored.add(m);
       }
       if (restored.isEmpty) {
-        await prefs.remove(cacheKey);
+        await preferences.remove(cacheKey);
         return false;
       }
       restored.sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
@@ -129,17 +130,17 @@ extension ChatControllerLocalCachePart on ChatController {
       messages.value = restored;
       return true;
     } catch (_) {
-      await prefs.remove(cacheKey);
+      await preferences.remove(cacheKey);
     }
     return false;
   }
 
   Future<void> _saveLocalConversationWindow(List<MessageModel> input) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final list = input.take(_localChatWindowLimit).toList();
       final payload = list.map(_serializeLocalMessage).toList();
-      await prefs.setString(_localChatWindowKey, jsonEncode(payload));
+      await preferences.setString(_localChatWindowKey, jsonEncode(payload));
     } catch (_) {}
   }
 

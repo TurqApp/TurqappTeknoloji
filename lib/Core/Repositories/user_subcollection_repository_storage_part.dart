@@ -23,7 +23,7 @@ extension UserSubcollectionRepositoryStoragePart
     final cloned = _cloneEntriesImpl(items);
     final cachedAt = DateTime.now();
     _memory[key] = _CachedUserSubcollection(items: cloned, cachedAt: cachedAt);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKeyImpl(key),
       jsonEncode({
@@ -41,7 +41,7 @@ extension UserSubcollectionRepositoryStoragePart
   }) async {
     final key = _cacheKeyImpl(uid, subcollection);
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKeyImpl(key));
   }
 
@@ -64,7 +64,7 @@ extension UserSubcollectionRepositoryStoragePart
     String key, {
     required bool allowStale,
   }) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKeyImpl(key);
     final raw = prefs?.getString(prefsKey);

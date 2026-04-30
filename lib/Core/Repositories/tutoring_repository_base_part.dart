@@ -2,7 +2,7 @@ part of 'tutoring_repository.dart';
 
 abstract class _TutoringRepositoryBase extends GetxService {
   _TutoringRepositoryBase({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   final Map<String, _TimedValue<dynamic>> _memory =

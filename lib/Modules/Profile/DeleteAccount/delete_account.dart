@@ -1,21 +1,20 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
+import 'package:turqappv2/Runtime/session_exit_coordinator.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import '../../../Core/app_snackbar.dart';
 import '../../../Services/phone_account_limiter.dart';
-import '../../SignIn/sign_in.dart';
 
 part 'delete_account_actions_part.dart';
 part 'delete_account_content_part.dart';

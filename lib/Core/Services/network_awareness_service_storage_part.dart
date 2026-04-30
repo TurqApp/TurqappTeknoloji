@@ -58,8 +58,9 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
   }
 
   Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final settingsString = prefs.getString(_networkAwarenessSettingsKey);
+    final preferences = ensureLocalPreferenceRepository();
+    final settingsString =
+        await preferences.getString(_networkAwarenessSettingsKey);
 
     if (settingsString != null) {
       try {
@@ -68,24 +69,25 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
         );
         _settings.value = NetworkSettings.fromJson(settingsJson);
       } catch (_) {
-        await prefs.remove(_networkAwarenessSettingsKey);
+        await preferences.remove(_networkAwarenessSettingsKey);
       }
     }
   }
 
   Future<void> _saveSettings() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final settingsString = Uri(
       queryParameters: _settings.value
           .toJson()
           .map((key, value) => MapEntry(key, value.toString())),
     ).query;
-    await prefs.setString(_networkAwarenessSettingsKey, settingsString);
+    await preferences.setString(_networkAwarenessSettingsKey, settingsString);
   }
 
   Future<void> _loadDataUsage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final dataUsageString = prefs.getString(_networkAwarenessDataUsageKey);
+    final preferences = ensureLocalPreferenceRepository();
+    final dataUsageString =
+        await preferences.getString(_networkAwarenessDataUsageKey);
 
     if (dataUsageString != null) {
       try {
@@ -94,19 +96,19 @@ extension NetworkAwarenessServiceStoragePart on NetworkAwarenessService {
         );
         _dataUsage.value = DataUsageStats.fromJson(dataUsageJson);
       } catch (_) {
-        await prefs.remove(_networkAwarenessDataUsageKey);
+        await preferences.remove(_networkAwarenessDataUsageKey);
       }
     }
   }
 
   Future<void> _saveDataUsage() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final dataUsageString = Uri(
       queryParameters: _dataUsage.value
           .toJson()
           .map((key, value) => MapEntry(key, value.toString())),
     ).query;
-    await prefs.setString(
+    await preferences.setString(
       _networkAwarenessDataUsageKey,
       dataUsageString,
     );

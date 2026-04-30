@@ -51,21 +51,15 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading();
         }
         final offers = snapshot.data ?? const <MarketOfferModel>[];
         if (offers.isEmpty) {
-          return Center(
-            child: Text(
-              'pasaj.market.offer_empty'.trParams({
-                'subtitle': normalizeLowercase(subtitle),
-              }),
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
+          return AppStateView.empty(
+            title: 'pasaj.market.offer_empty'.trParams({
+              'subtitle': normalizeLowercase(subtitle),
+            }),
+            color: Colors.black54,
           );
         }
         return RefreshIndicator(

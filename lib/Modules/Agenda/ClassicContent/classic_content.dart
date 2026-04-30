@@ -17,7 +17,9 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -48,7 +50,6 @@ import 'package:turqappv2/Modules/Profile/MyProfile/profile_controller.dart';
 import 'package:turqappv2/Modules/Short/short_controller.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
@@ -65,7 +66,6 @@ import '../../../Core/texts.dart';
 import '../../../Core/Services/upload_queue_service.dart';
 import '../../../Themes/app_tokens.dart';
 import '../../Social/PostSharers/post_sharers.dart';
-import '../../SocialProfile/social_profile.dart';
 import '../../PostCreator/post_creator.dart';
 import '../TagPosts/tag_posts.dart';
 import 'classic_content_controller.dart';
@@ -277,7 +277,8 @@ class _ClassicContentState extends State<ClassicContent>
         : widget.model.originalUserID.trim();
     final oldSourcePostId = oldWidget.model.originalPostID.trim();
     final newSourcePostId = widget.model.originalPostID.trim();
-    if (oldSourceUserId != newSourceUserId || oldSourcePostId != newSourcePostId) {
+    if (oldSourceUserId != newSourceUserId ||
+        oldSourcePostId != newSourcePostId) {
       _refreshQuotedSourceFuture();
     }
   }

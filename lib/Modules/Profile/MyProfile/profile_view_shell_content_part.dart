@@ -101,7 +101,12 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
         slivers: [
           SliverToBoxAdapter(child: header()),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
-          SliverToBoxAdapter(child: EmptyRow(text: "profile.no_posts".tr)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: "profile.no_posts".tr),
+            ),
+          ),
           const SliverToBoxAdapter(child: SizedBox(height: 50)),
         ],
       );
@@ -280,7 +285,7 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
 
   void _openChatListing() {
     _suspendProfileFeedForRoute();
-    Get.to(() => ChatListing())?.then((_) {
+    const ChatNavigationService().openChatListing().then((_) {
       _resumeProfileFeedAfterRoute();
     });
   }

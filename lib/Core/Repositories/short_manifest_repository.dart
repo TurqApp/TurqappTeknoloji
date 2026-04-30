@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/short_resume_state_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -41,8 +43,8 @@ class ShortManifestRepository extends GetxService {
   ShortManifestRepository({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  })  : _firestore = firestore ?? AppFirestore.instance,
+        _storage = storage ?? AppFirebaseStorage.instance;
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -239,12 +241,10 @@ class ShortManifestRepository extends GetxService {
     );
     if (persisted == null) return;
     if (persisted.manifestId != _manifestId) return;
-    _cursorSlotIndex = persisted.cursorSlotIndex < 0
-        ? 0
-        : persisted.cursorSlotIndex;
-    _cursorItemIndex = persisted.cursorItemIndex < 0
-        ? 0
-        : persisted.cursorItemIndex;
+    _cursorSlotIndex =
+        persisted.cursorSlotIndex < 0 ? 0 : persisted.cursorSlotIndex;
+    _cursorItemIndex =
+        persisted.cursorItemIndex < 0 ? 0 : persisted.cursorItemIndex;
     _logTiming(
       'cursor_restore_ready',
       metadata: <String, Object?>{

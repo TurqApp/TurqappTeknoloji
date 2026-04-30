@@ -25,7 +25,7 @@ extension ProfileRepositoryCachePart on ProfileRepository {
   String _archiveKey(String uid) => '$_archiveKeyPrefix::$uid';
 
   Future<SharedPreferences> _archivePrefsInstance() async {
-    return SharedPreferences.getInstance();
+    return ensureLocalPreferenceRepository().sharedPreferences();
   }
 
   List<PostsModel> _decodeArchiveItems(dynamic rawItems) {

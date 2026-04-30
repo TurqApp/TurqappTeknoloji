@@ -53,8 +53,8 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     GestureDetector(
-                      onTap: () =>
-                          Get.to(() => SocialProfile(userID: app.userID)),
+                      onTap: () => const ProfileNavigationService()
+                          .openSocialProfile(app.userID),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(25),
                         child: SizedBox(

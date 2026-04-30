@@ -213,75 +213,75 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
         Transform.translate(
           offset: const Offset(3, 0),
           child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(0);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.tag,
-                  selected: controller.postSelection.value == 0,
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(0);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.tag,
+                    selected: controller.postSelection.value == 0,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(3);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.repeat,
-                  selected: controller.postSelection.value == 3,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(3);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.repeat,
+                    selected: controller.postSelection.value == 3,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(1);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.play_circle_outline,
-                  selected: controller.postSelection.value == 1,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(1);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.play_circle_outline,
+                    selected: controller.postSelection.value == 1,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(2);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.photo_outlined,
-                  selected: controller.postSelection.value == 2,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(2);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.photo_outlined,
+                    selected: controller.postSelection.value == 2,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(5);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.access_time,
-                  selected: controller.postSelection.value == 5,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(5);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.access_time,
+                    selected: controller.postSelection.value == 5,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  _changePostSelection(4);
-                },
-                child: _buildPostSelectionIcon(
-                  icon: Icons.shopping_bag_outlined,
-                  selected: controller.postSelection.value == 4,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    _changePostSelection(4);
+                  },
+                  child: _buildPostSelectionIcon(
+                    icon: Icons.shopping_bag_outlined,
+                    selected: controller.postSelection.value == 4,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ],
     );
@@ -323,16 +323,16 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
         SliverToBoxAdapter(child: header()),
         if (_marketLoading)
           const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 28),
-              child: Center(child: CupertinoActivityIndicator()),
+            child: SizedBox(
+              height: 220,
+              child: AppStateView.loading(title: ''),
             ),
           )
         else if (_marketItems.isEmpty)
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: EmptyRow(text: 'profile.no_listings'.tr),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: 'profile.no_listings'.tr),
             ),
           )
         else
@@ -360,7 +360,7 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
     return GestureDetector(
       onTap: () async {
         _suspendCenteredPostForRoute();
-        await Get.to(() => MarketDetailView(item: item));
+        await const MarketDetailNavigationService().openMarketDetail(item);
         await _loadMarketItems(force: true);
         _resumeCenteredPostAfterRoute();
       },
@@ -473,7 +473,8 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
                     child: ElevatedButton(
                       onPressed: () async {
                         _suspendCenteredPostForRoute();
-                        await Get.to(() => MarketDetailView(item: item));
+                        await const MarketDetailNavigationService()
+                            .openMarketDetail(item);
                         await _loadMarketItems(force: true);
                         _resumeCenteredPostAfterRoute();
                       },

@@ -70,9 +70,8 @@ class _StoryInteractionOptimizerRuntimePart {
       _service._pendingWrites.clear();
       _service._pendingUsers.clear();
 
-      final batch = FirebaseFirestore.instance.batch();
-      final userDocRef =
-          FirebaseFirestore.instance.collection('users').doc(uid);
+      final batch = AppFirestore.instance.batch();
+      final userDocRef = AppFirestore.instance.collection('users').doc(uid);
 
       for (final entry in currentWrites.entries) {
         batch.set(

@@ -42,7 +42,7 @@ class FeedPlaybackSelectionPolicy {
       : const Duration(milliseconds: 180);
 
   static Duration get pendingPlaybackTargetRetentionDuration =>
-      _isAndroidPlatform ? const Duration(milliseconds: 120) : Duration.zero;
+      _isAndroidPlatform ? const Duration(milliseconds: 220) : Duration.zero;
 
   static bool shouldPlayCenteredItem({
     required bool isCentered,

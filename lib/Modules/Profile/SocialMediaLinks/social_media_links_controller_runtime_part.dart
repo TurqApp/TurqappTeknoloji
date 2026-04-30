@@ -140,7 +140,6 @@ extension _SocialMediaControllerRuntimeX on SocialMediaController {
       throw Exception('Uygunsuz görsel tespit edildi');
     }
     return WebpUploadService.uploadFileAsWebp(
-      storage: FirebaseStorage.instance,
       file: file,
       storagePathWithoutExt: 'users/$currentUid/social_links/$docID',
     );

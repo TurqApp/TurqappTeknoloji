@@ -16,7 +16,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
     final cleaned = postId.trim();
     if (cleaned.isEmpty) return;
     _memory.removeWhere((cacheKey, _) => cacheKey.split('|').contains(cleaned));
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {
@@ -34,7 +34,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
 
   Future<void> _performInvalidateAll() async {
     _memory.clear();
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs
@@ -59,7 +59,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
   }
 
   Future<_CachedPostCardsResult?> _performGetFromPrefs(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(cacheKey);
     try {
@@ -133,7 +133,7 @@ extension TypesensePostServiceCachePart on TypesensePostService {
     );
     _memory[cacheKey] = cached;
     try {
-      _prefs ??= await SharedPreferences.getInstance();
+      _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
       await _prefs?.setString(
         _prefsKey(cacheKey),
         jsonEncode(<String, dynamic>{

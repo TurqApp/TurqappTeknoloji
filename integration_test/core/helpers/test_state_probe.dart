@@ -76,8 +76,8 @@ void expectCountNeverDropsToZeroAfterReplay(
 void expectFeedUsesPrimaryContract(Map<String, dynamic> payload) {
   expect(
     payload['usesPrimaryFeedPaging'],
-    isTrue,
-    reason: 'feed unexpectedly fell back to legacy paging',
+    FeedHomeContract.primaryHybridV1.usesPrimaryFeedPaging,
+    reason: 'feed paging mode drifted from the canonical primary contract',
   );
   expect(
     payload['feedContractId'],

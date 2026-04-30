@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 
 import 'cache_first_serialization.dart';
 import 'cached_resource.dart';
@@ -146,7 +147,8 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
   }
 
   Future<SharedPreferences> _ensurePrefs() async {
-    return _prefs ??= await SharedPreferences.getInstance();
+    return _prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
   }
 
   String _prefsKey(ScopedSnapshotKey key) => '$prefsPrefix:${key.storageKey}';

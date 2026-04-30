@@ -117,11 +117,12 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
           if (postsConsumedInBlock >= blockPostCount) {
             break;
           }
-          final postEntry = Map<String, dynamic>.from(filteredEntries[postCursor])
-            ..putIfAbsent('renderType', () => 'post')
-            ..putIfAbsent('renderBlockIndex', () => renderBlockIndex)
-            ..putIfAbsent('renderSlotNumber', () => renderSlotNumber)
-            ..putIfAbsent('renderGroupNumber', () => renderGroupNumber);
+          final postEntry =
+              Map<String, dynamic>.from(filteredEntries[postCursor])
+                ..putIfAbsent('renderType', () => 'post')
+                ..putIfAbsent('renderBlockIndex', () => renderBlockIndex)
+                ..putIfAbsent('renderSlotNumber', () => renderSlotNumber)
+                ..putIfAbsent('renderGroupNumber', () => renderGroupNumber);
           renderEntries.add(postEntry);
           postCursor++;
           continue;
@@ -133,9 +134,7 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
           break;
         }
 
-        final promoType = slotType == FeedRenderSlotType.recommended
-            ? 'recommended'
-            : 'ad';
+        final promoType = promoOrdinal.isEven ? 'ad' : 'recommended';
         renderEntries.add(<String, dynamic>{
           'renderType': 'promo',
           'promoType': promoType,
@@ -144,9 +143,7 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
           'renderSlotNumber': renderSlotNumber,
           'renderGroupNumber': renderGroupNumber,
           'recommendedBatch':
-              slotType == FeedRenderSlotType.recommended
-                  ? recommendedOrdinal++
-                  : -1,
+              promoType == 'recommended' ? recommendedOrdinal++ : -1,
         });
         promoOrdinal++;
       }

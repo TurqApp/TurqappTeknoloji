@@ -8,14 +8,14 @@ extension _JobHomeSnapshotRepositoryDataX on JobHomeSnapshotRepository {
     const options = GetOptions(source: Source.serverAndCache);
     QuerySnapshot<Map<String, dynamic>> snapshot;
     try {
-      snapshot = await FirebaseFirestore.instance
+      snapshot = await AppFirestore.instance
           .collection(JobCollection.name)
           .where('userID', isEqualTo: normalizedUserId)
           .orderBy('timeStamp', descending: true)
           .limit(normalizedLimit)
           .get(options);
     } on FirebaseException {
-      snapshot = await FirebaseFirestore.instance
+      snapshot = await AppFirestore.instance
           .collection(JobCollection.name)
           .where('userID', isEqualTo: normalizedUserId)
           .limit(normalizedLimit)

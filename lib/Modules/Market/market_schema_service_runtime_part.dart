@@ -14,10 +14,11 @@ MarketSchemaService ensureMarketSchemaService() {
 
 extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
   Future<Map<String, dynamic>> loadSchema({bool forceRefresh = false}) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
 
     if (!forceRefresh) {
-      final cachedRaw = _prefs?.getString(_marketSchemaCacheKey) ?? '';
+      final cachedRaw =
+          await preferences.getString(_marketSchemaCacheKey) ?? '';
       if (cachedRaw.isNotEmpty) {
         try {
           final parsed = Map<String, dynamic>.from(
@@ -31,11 +32,11 @@ extension _MarketSchemaServiceRuntimePart on MarketSchemaService {
 
     final fallback = await _loadFallbackSchema();
     schema.assignAll(fallback);
-    await _prefs?.setString(
+    await preferences.setString(
       _marketSchemaCacheKey,
       json.encode(fallback),
     );
-    await _prefs?.setInt(
+    await preferences.setInt(
       _marketSchemaCacheVersionKey,
       (fallback['version'] as num?)?.toInt() ?? 1,
     );

@@ -133,7 +133,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
           child: Stack(
             children: [
               if (!controller.listingSelectionReady.value)
-                const Center(child: CupertinoActivityIndicator(animating: true))
+                const AppStateView.loading()
               else
                 _shouldShowLoading()
                     ? _buildLoadingIndicator()
@@ -155,7 +155,7 @@ extension ScholarshipsViewBodyPart on _ScholarshipsViewState {
   }
 
   Widget _buildLoadingIndicator() {
-    return Center(child: CupertinoActivityIndicator(animating: true));
+    return const AppStateView.loading();
   }
 
   Widget _buildScholarshipsList() {

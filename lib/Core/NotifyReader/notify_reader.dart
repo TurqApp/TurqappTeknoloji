@@ -3,7 +3,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/NotifyReader/notify_reader_route_decision.dart';
 
 import 'notify_reader_controller.dart';
 
@@ -21,15 +21,6 @@ class _NotifyReaderState extends State<NotifyReader> {
   late final NotifyReaderController controller;
   bool _ownsController = false;
   bool _routed = false;
-  static const _profileTypes = {'user', 'follow'};
-  static const _postTypes = {
-    'posts',
-    'like',
-    'reshared_posts',
-    'shared_as_posts',
-  };
-  static const _chatTypes = {'chat', 'message'};
-  static const _marketTypes = {'market_offer', 'market_offer_status'};
 
   @override
   void initState() {
@@ -65,35 +56,31 @@ class _NotifyReaderState extends State<NotifyReader> {
   }
 
   void _routeByType() {
-    final rawType = widget.type.trim();
-    final normalized = normalizeSearchText(rawType);
-
-    if (widget.docID.trim().isEmpty) {
+    final decision = resolveLegacyNotifyReaderRoute(
+      type: widget.type,
+      docId: widget.docID,
+    );
+    if (!decision.canOpen) {
       Get.back();
       return;
     }
 
-    if (_profileTypes.contains(normalized)) {
-      controller.goToProfile(widget.docID);
-      return;
+    switch (decision.action) {
+      case NotifyReaderRouteAction.profile:
+        controller.goToProfile(decision.targetId);
+      case NotifyReaderRouteAction.post:
+        controller.goToPost(decision.targetId);
+      case NotifyReaderRouteAction.postComments:
+        controller.goToPostComments(decision.targetId);
+      case NotifyReaderRouteAction.chat:
+        controller.goToChat(decision.targetId);
+      case NotifyReaderRouteAction.market:
+        controller.goToMarket(decision.targetId);
+      case NotifyReaderRouteAction.job:
+      case NotifyReaderRouteAction.tutoring:
+      case NotifyReaderRouteAction.missing:
+        Get.back();
     }
-    if (_postTypes.contains(normalized)) {
-      controller.goToPost(widget.docID);
-      return;
-    }
-    if (normalized == "comment") {
-      controller.goToPostComments(widget.docID);
-      return;
-    }
-    if (_chatTypes.contains(normalized)) {
-      controller.goToChat(widget.docID);
-      return;
-    }
-    if (_marketTypes.contains(normalized)) {
-      controller.goToMarket(widget.docID);
-      return;
-    }
-    Get.back();
   }
 
   @override

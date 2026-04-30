@@ -87,20 +87,14 @@ class _ModerationThresholdList extends StatelessWidget {
             ),
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
-                return const Padding(
+                return const AppStateView.loading(
                   padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(child: CircularProgressIndicator()),
                 );
               }
               if (snap.hasError) {
-                return Padding(
+                return AppStateView.error(
+                  title: 'admin.moderation.list_failed'.tr,
                   padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'admin.moderation.list_failed'.tr,
-                      style: const TextStyle(fontFamily: 'MontserratMedium'),
-                    ),
-                  ),
                 );
               }
               final docs = snap.data ?? const <ModerationFlaggedPost>[];

@@ -197,8 +197,8 @@ extension JobDetailsBodyPart on _JobDetailsState {
                     GestureDetector(
                       onTap: current.userID == _currentUid
                           ? null
-                          : () => Get.to(
-                              () => SocialProfile(userID: current.userID)),
+                          : () => const ProfileNavigationService()
+                              .openSocialProfile(current.userID),
                       child: Row(
                         children: [
                           CachedUserAvatar(

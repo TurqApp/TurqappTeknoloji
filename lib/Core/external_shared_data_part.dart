@@ -28,7 +28,7 @@ void bildirimGonderiliyor(
   final currentUserId = CurrentUserService.instance.effectiveUserId;
   if (currentUserId.isEmpty) return;
   if (gonderilecekUserID != currentUserId) {
-    FirebaseFirestore.instance
+    AppFirestore.instance
         .collection("users")
         .doc(gonderilecekUserID)
         .collection("Bildirimler")
@@ -43,7 +43,7 @@ void bildirimGonderiliyor(
       "isRead": false,
     });
 
-    FirebaseFirestore.instance
+    AppFirestore.instance
         .collection("users")
         .doc(gonderilecekUserID)
         .update({"bildirim": true});

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/integration_test_state_probe.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -26,8 +27,7 @@ class VideoSessionMetrics {
     required this.videoId,
     required this.videoUrl,
     required this.qaSurface,
-  })
-      : sessionStart = DateTime.now();
+  }) : sessionStart = DateTime.now();
 
   int get ttffMs => firstFrameAt != null
       ? firstFrameAt!.difference(sessionStart).inMilliseconds
@@ -133,12 +133,11 @@ class VideoTelemetryService {
   /// Start tracking a video session.
   void startSession(String videoId, String videoUrl) {
     final qaSurface = _inferQALabSurface();
-    _activeSessions[videoId] =
-        VideoSessionMetrics(
-          videoId: videoId,
-          videoUrl: videoUrl,
-          qaSurface: qaSurface,
-        );
+    _activeSessions[videoId] = VideoSessionMetrics(
+      videoId: videoId,
+      videoUrl: videoUrl,
+      qaSurface: qaSurface,
+    );
     recordQALabVideoEvent(
       code: 'video_session_started',
       message: 'Video session started',
@@ -294,7 +293,7 @@ class VideoTelemetryService {
     if (session.watchTimeSeconds < 1.0) return;
 
     try {
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Analytics')
           .doc('VideoPlayback')
           .collection(uid)
@@ -310,7 +309,8 @@ class VideoTelemetryService {
 
   String _inferQALabSurface() {
     final snapshot = IntegrationTestStateProbe.snapshot();
-    final route = (snapshot['currentRoute'] ?? '').toString().trim().toLowerCase();
+    final route =
+        (snapshot['currentRoute'] ?? '').toString().trim().toLowerCase();
 
     bool registered(String key) =>
         (snapshot[key] as Map<String, dynamic>? ??

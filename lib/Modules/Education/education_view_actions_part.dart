@@ -282,7 +282,7 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'common.applications'.tr,
             icon: CupertinoIcons.doc_plaintext,
-            onTap: () => Get.to(() => ApplicationsView()),
+            onTap: ScholarshipNavigationService.openApplications,
           ),
           PullDownMenuItem(
             title: 'scholarship.create_title'.tr,
@@ -293,8 +293,9 @@ extension EducationViewActionsPart on EducationView {
                 featureName: 'scholarship.create_title'.tr,
               );
               if (!allowed) return;
-              Get.delete<CreateScholarshipController>(force: true);
-              Get.to(CreateScholarshipView());
+              await ScholarshipNavigationService.openCreate(
+                resetController: true,
+              );
             },
           ),
           PullDownMenuItem(
@@ -306,18 +307,18 @@ extension EducationViewActionsPart on EducationView {
                 featureName: 'scholarship.my_listings'.tr,
               );
               if (!allowed) return;
-              Get.to(MyScholarshipView());
+              await ScholarshipNavigationService.openMyScholarships();
             },
           ),
           PullDownMenuItem(
             title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
-            onTap: () => Get.to(() => SavedItemsView()),
+            onTap: ScholarshipNavigationService.openSavedItems,
           ),
           PullDownMenuItem(
             title: 'explore.tab.for_you'.tr,
             icon: CupertinoIcons.star,
-            onTap: () => Get.to(PersonalizedView()),
+            onTap: ScholarshipNavigationService.openPersonalized,
           ),
         ];
       case PasajTabIds.questionBank:
@@ -333,7 +334,8 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'pasaj.question_bank.solve_later'.tr,
             icon: CupertinoIcons.repeat,
-            onTap: () => Get.to(() => ThenSolve()),
+            onTap: () =>
+                const EducationQuestionBankNavigationService().openThenSolve(),
           ),
         ];
       case PasajTabIds.market:
@@ -341,7 +343,8 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'common.search'.tr,
             icon: CupertinoIcons.search,
-            onTap: () => Get.to(() => const MarketSearchView()),
+            onTap: () =>
+                const MarketDetailNavigationService().openMarketSearch(),
           ),
           PullDownMenuItem(
             title: 'pasaj.market.add_listing'.tr,
@@ -351,7 +354,7 @@ extension EducationViewActionsPart on EducationView {
               if (marketController != null) {
                 marketController.openRoundMenu('create');
               } else {
-                Get.to(() => const MarketCreateView());
+                const MarketDetailNavigationService().openMarketCreate();
               }
             },
           ),
@@ -379,11 +382,9 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'market',
-                title: 'pasaj.tabs.market'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'market',
+              title: 'pasaj.tabs.market'.tr,
             ),
           ),
         ];
@@ -392,16 +393,15 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             icon: Icons.history,
             title: 'pasaj.common.my_results'.tr,
-            onTap: () => Get.to(() => CikmisSoruSonuclar()),
+            onTap: () => const EducationQuestionBankNavigationService()
+                .openPastQuestionResults(),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
             title: 'pasaj.common.slider_admin'.tr,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'denemeler',
-                title: 'pasaj.tabs.practice_exams'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'denemeler',
+              title: 'pasaj.tabs.practice_exams'.tr,
             ),
           ),
         ];
@@ -410,7 +410,8 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             icon: CupertinoIcons.search,
             title: 'common.search'.tr,
-            onTap: () => Get.to(() => SearchDeneme()),
+            onTap: () =>
+                const PracticeExamNavigationService().openSearchPracticeExams(),
           ),
           PullDownMenuItem(
             icon: Icons.add,
@@ -421,33 +422,34 @@ extension EducationViewActionsPart on EducationView {
                 featureName: 'tests.create_title'.tr,
               );
               if (!allowed) return;
-              Get.to(() => SinavHazirla());
+              const PracticeExamNavigationService().openCreatePracticeExam();
             },
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.slider_horizontal_3,
             title: 'pasaj.common.slider_admin'.tr,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'online_sinav',
-                title: 'pasaj.tabs.online_exam'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'online_sinav',
+              title: 'pasaj.tabs.online_exam'.tr,
             ),
           ),
           PullDownMenuItem(
             icon: Icons.history,
             title: 'pasaj.common.my_results'.tr,
-            onTap: () => Get.to(() => SinavSonuclarim()),
+            onTap: () => const PracticeExamNavigationService()
+                .openMyPracticeExamResults(),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.doc_text,
             title: 'pasaj.common.published'.tr,
-            onTap: () => Get.to(() => const MyPracticeExams()),
+            onTap: () =>
+                const PracticeExamNavigationService().openMyPracticeExams(),
           ),
           PullDownMenuItem(
             icon: CupertinoIcons.bookmark,
             title: 'common.saved'.tr,
-            onTap: () => Get.to(() => const SavedPracticeExams()),
+            onTap: () =>
+                const PracticeExamNavigationService().openSavedPracticeExams(),
           ),
         ];
       case PasajTabIds.answerKey:
@@ -455,46 +457,48 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'common.search'.tr,
             icon: CupertinoIcons.search,
-            onTap: () => Get.to(() => const SearchAnswerKey()),
+            onTap: () =>
+                const AnswerKeyNavigationService().openSearchAnswerKey(),
           ),
           PullDownMenuItem(
             title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
-            onTap: () => Get.to(SavedOpticalForms()),
+            onTap: () =>
+                const AnswerKeyNavigationService().openSavedOpticalForms(),
           ),
           PullDownMenuItem(
             title: 'pasaj.answer_key.join'.tr,
             icon: CupertinoIcons.arrow_right,
-            onTap: () => Get.to(OpticalFormEntry()),
+            onTap: () =>
+                const AnswerKeyNavigationService().openOpticalFormEntry(),
           ),
           PullDownMenuItem(
             title: 'common.create'.tr,
             icon: CupertinoIcons.add_circled,
-            onTap: () => Get.to(AnswerKeyCreatingOption(
-              onBack: () {
-                maybeFindAnswerKeyController()?.refreshData();
-              },
-            )),
+            onTap: () => const AnswerKeyNavigationService().openCreateAnswerKey(
+                onBack: () {
+              maybeFindAnswerKeyController()?.refreshData();
+            }),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.my_results'.tr,
             icon: CupertinoIcons.chart_bar_square,
-            onTap: () => Get.to(MyBookletResults()),
+            onTap: () =>
+                const AnswerKeyNavigationService().openMyBookletResults(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'cevap_anahtari',
-                title: 'pasaj.tabs.answer_key'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'cevap_anahtari',
+              title: 'pasaj.tabs.answer_key'.tr,
             ),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.published'.tr,
             icon: CupertinoIcons.book,
-            onTap: () => Get.to(OpticsAndBooksPublished()),
+            onTap: () =>
+                const AnswerKeyNavigationService().openPublishedAnswerKeys(),
           ),
         ];
       case PasajTabIds.tutoring:
@@ -502,41 +506,45 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'common.search'.tr,
             icon: CupertinoIcons.search,
-            onTap: () => Get.to(() => const TutoringSearch()),
+            onTap: () =>
+                const EducationDetailNavigationService().openTutoringSearch(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.my_applications'.tr,
             icon: CupertinoIcons.doc_text_search,
-            onTap: () => Get.to(() => MyTutoringApplications()),
+            onTap: () => const EducationDetailNavigationService()
+                .openMyTutoringApplications(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.post_listing'.tr,
             icon: CupertinoIcons.add_circled,
-            onTap: () => Get.to(CreateTutoringView()),
+            onTap: () =>
+                const EducationDetailNavigationService().openCreateTutoring(),
           ),
           PullDownMenuItem(
             title: 'pasaj.market.my_listings'.tr,
             icon: CupertinoIcons.list_bullet,
-            onTap: () => Get.to(MyTutorings()),
+            onTap: () =>
+                const EducationDetailNavigationService().openMyTutorings(),
           ),
           PullDownMenuItem(
             title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
-            onTap: () => Get.to(() => SavedTutorings()),
+            onTap: () =>
+                const EducationDetailNavigationService().openSavedTutorings(),
           ),
           PullDownMenuItem(
             title: 'pasaj.tutoring.nearby_listings'.tr,
             icon: CupertinoIcons.location_solid,
-            onTap: () => Get.to(() => LocationBasedTutoring()),
+            onTap: () => const EducationDetailNavigationService()
+                .openLocationBasedTutoring(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'ozel_ders',
-                title: 'pasaj.tabs.tutoring'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'ozel_ders',
+              title: 'pasaj.tabs.tutoring'.tr,
             ),
           ),
         ];
@@ -550,7 +558,8 @@ extension EducationViewActionsPart on EducationView {
           PullDownMenuItem(
             title: 'pasaj.common.my_applications'.tr,
             icon: CupertinoIcons.doc_text_search,
-            onTap: () => Get.to(() => MyApplications()),
+            onTap: () => const EducationDetailNavigationService()
+                .openMyJobApplications(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.post_listing'.tr,
@@ -561,7 +570,7 @@ extension EducationViewActionsPart on EducationView {
                 featureName: 'pasaj.common.post_listing'.tr,
               );
               if (!allowed) return;
-              Get.to(() => JobCreator());
+              await const EducationDetailNavigationService().openJobCreator();
             },
           ),
           PullDownMenuItem(
@@ -573,27 +582,27 @@ extension EducationViewActionsPart on EducationView {
                 featureName: 'pasaj.market.my_listings'.tr,
               );
               if (!allowed) return;
-              Get.to(() => MyJobAds());
+              await const EducationDetailNavigationService().openMyJobAds();
             },
           ),
           PullDownMenuItem(
             title: 'pasaj.job_finder.career_profile'.tr,
             icon: CupertinoIcons.person_crop_circle,
-            onTap: () => Get.to(() => CareerProfile()),
+            onTap: () =>
+                const EducationDetailNavigationService().openCareerProfile(),
           ),
           PullDownMenuItem(
             title: 'common.saved'.tr,
             icon: CupertinoIcons.bookmark,
-            onTap: () => Get.to(() => SavedJobs()),
+            onTap: () =>
+                const EducationDetailNavigationService().openSavedJobs(),
           ),
           PullDownMenuItem(
             title: 'pasaj.common.slider_admin'.tr,
             icon: CupertinoIcons.slider_horizontal_3,
-            onTap: () => Get.to(
-              () => SliderAdminView(
-                sliderId: 'is_bul',
-                title: 'pasaj.tabs.job_finder'.tr,
-              ),
+            onTap: () => const SliderAdminNavigationService().openSliderAdmin(
+              sliderId: 'is_bul',
+              title: 'pasaj.tabs.job_finder'.tr,
             ),
           ),
         ];

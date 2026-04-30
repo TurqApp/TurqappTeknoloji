@@ -1,8 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
 
@@ -51,19 +50,19 @@ class _SavedJobsState extends State<SavedJobs> {
                 children: [BackButtons(text: "pasaj.job_finder.saved_jobs".tr)],
               ),
             ),
-            Obx(() {
-              if (controller.isLoading.value) {
-                return const Center(
-                  child: CupertinoActivityIndicator(color: Colors.black),
-                );
-              }
+            Expanded(
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const AppStateView.loading(title: '');
+                }
 
-              if (controller.list.isEmpty) {
-                return EmptyRow(text: "pasaj.job_finder.no_saved_jobs".tr);
-              }
+                if (controller.list.isEmpty) {
+                  return AppStateView.empty(
+                    title: "pasaj.job_finder.no_saved_jobs".tr,
+                  );
+                }
 
-              return Expanded(
-                child: ListView.builder(
+                return ListView.builder(
                   itemCount: controller.list.length,
                   itemBuilder: (context, index) {
                     return JobContent(
@@ -71,9 +70,9 @@ class _SavedJobsState extends State<SavedJobs> {
                       isGrid: false,
                     );
                   },
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ],
         ),
       ),

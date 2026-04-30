@@ -89,8 +89,8 @@ extension _LocationBasedTutoringControllerRuntimeX
 
   Future<void> writeCache(List<TutoringModel> items) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
+      final preferences = ensureLocalPreferenceRepository();
+      await preferences.setString(
         LocationBasedTutoringController._cacheKey,
         jsonEncode(
           items
@@ -106,13 +106,13 @@ extension _LocationBasedTutoringControllerRuntimeX
 
   Future<List<TutoringModel>> readCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final cacheKey = LocationBasedTutoringController._cacheKey;
-      final raw = prefs.getString(cacheKey);
+      final raw = await preferences.getString(cacheKey);
       if (raw == null || raw.isEmpty) return const <TutoringModel>[];
       final decoded = jsonDecode(raw);
       if (decoded is! List) {
-        await prefs.remove(cacheKey);
+        await preferences.remove(cacheKey);
         return const <TutoringModel>[];
       }
       final restored = decoded
@@ -127,13 +127,13 @@ extension _LocationBasedTutoringControllerRuntimeX
           .where((item) => item.docID.isNotEmpty)
           .toList(growable: false);
       if (restored.isEmpty && decoded.isNotEmpty) {
-        await prefs.remove(cacheKey);
+        await preferences.remove(cacheKey);
       }
       return restored;
     } catch (_) {
       try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(LocationBasedTutoringController._cacheKey);
+        final preferences = ensureLocalPreferenceRepository();
+        await preferences.remove(LocationBasedTutoringController._cacheKey);
       } catch (_) {}
       return const <TutoringModel>[];
     }

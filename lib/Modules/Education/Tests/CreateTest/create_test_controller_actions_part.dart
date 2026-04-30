@@ -31,16 +31,14 @@ extension CreateTestControllerActionsPart on CreateTestController {
     if (!legacyTestsNetworkEnabled) return;
     try {
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: imageFile,
         storagePathWithoutExt:
             'Testler/${testID.value}/${DateTime.now().millisecondsSinceEpoch}',
       );
-      await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID.value.toString())
-          .set({"img": downloadUrl}, SetOptions(merge: true));
-      SetOptions(merge: true);
+      await _testRepository.setTestImage(
+        testId: testID.value.toString(),
+        imageUrl: downloadUrl,
+      );
     } catch (e) {
       print("Error uploading image: $e");
     }
@@ -55,15 +53,15 @@ extension CreateTestControllerActionsPart on CreateTestController {
   Future<void> saveTest(BuildContext context) async {
     if (!legacyTestsNetworkEnabled) return;
     if (!await TextModerationService.ensureAllowed([aciklama.text])) return;
-    await FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID.value.toString())
-        .update({
-      "aciklama": aciklama.text,
-      "dersler": selectedDers.toList(),
-      "paylasilabilir": paylasilabilir.value,
-      "testTuru": testTuru.value,
-    });
+    await _testRepository.updateTestDetails(
+      testId: testID.value.toString(),
+      data: {
+        "aciklama": aciklama.text,
+        "dersler": selectedDers.toList(),
+        "paylasilabilir": paylasilabilir.value,
+        "testTuru": testTuru.value,
+      },
+    );
     if (imageFile.value != null) {
       await yukle(imageFile.value!);
     }
@@ -73,19 +71,19 @@ extension CreateTestControllerActionsPart on CreateTestController {
   Future<void> prepareTest(BuildContext context) async {
     if (!legacyTestsNetworkEnabled) return;
     if (!await TextModerationService.ensureAllowed([aciklama.text])) return;
-    await FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID.value.toString())
-        .set({
-      "aciklama": aciklama.text,
-      "dersler": selectedDers.toList(),
-      "favoriler": [],
-      "paylasilabilir": paylasilabilir.value,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
-      "userID": CurrentUserService.instance.effectiveUserId,
-      "taslak": true,
-      "testTuru": testTuru.value,
-    }, SetOptions(merge: true));
+    await _testRepository.prepareDraftTest(
+      testId: testID.value.toString(),
+      data: {
+        "aciklama": aciklama.text,
+        "dersler": selectedDers.toList(),
+        "favoriler": [],
+        "paylasilabilir": paylasilabilir.value,
+        "timeStamp": DateTime.now().millisecondsSinceEpoch.toString(),
+        "userID": CurrentUserService.instance.effectiveUserId,
+        "taslak": true,
+        "testTuru": testTuru.value,
+      },
+    );
     if (imageFile.value != null) {
       await yukle(imageFile.value!);
     }

@@ -44,7 +44,7 @@ extension UserRepositoryProfilePart on UserRepository {
     bool mergeIntoCache = true,
   }) async {
     if (uid.isEmpty || data.isEmpty) return;
-    await FirebaseFirestore.instance.collection('users').doc(uid).update(data);
+    await AppFirestore.instance.collection('users').doc(uid).update(data);
     if (!mergeIntoCache) return;
     final existing =
         _cache.peekProfile(uid, allowStale: true) ?? const <String, dynamic>{};
@@ -59,7 +59,7 @@ extension UserRepositoryProfilePart on UserRepository {
     bool mergeIntoCache = true,
   }) async {
     if (uid.isEmpty || data.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .set(data, SetOptions(merge: true));
@@ -69,6 +69,18 @@ extension UserRepositoryProfilePart on UserRepository {
     final merged = _cloneUserProfileRawMap(existing)
       ..addAll(_cloneUserProfileRawMap(data));
     await _cache.putProfile(uid, merged);
+  }
+
+  Future<void> addAccountAction(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    if (uid.isEmpty || data.isEmpty) return;
+    await AppFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('account_actions')
+        .add(data);
   }
 
   UserSummary? peekUser(String uid, {bool allowStale = true}) {

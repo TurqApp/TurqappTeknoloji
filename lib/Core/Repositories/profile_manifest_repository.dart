@@ -8,6 +8,8 @@ import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/scoped_snapshot_store.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/shared_prefs_scoped_snapshot_store.dart';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -15,8 +17,8 @@ class ProfileManifestRepository extends GetxService {
   ProfileManifestRepository({
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+  })  : _firestore = firestore ?? AppFirestore.instance,
+        _storage = storage ?? AppFirebaseStorage.instance;
 
   static const int _maxManifestBytes = 4 * 1024 * 1024;
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);

@@ -19,7 +19,8 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
               Expanded(
                 child: GestureDetector(
                   onTap: () async {
-                    await Get.to(() => MarketDetailView(item: item));
+                    await const MarketDetailNavigationService()
+                        .openMarketDetail(item);
                     if (!mounted) return;
                     _updateViewState(() => _reload(force: true));
                   },
@@ -122,7 +123,8 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
 
   Future<void> _onMenuAction(MarketItemModel item, String action) async {
     if (action == 'edit') {
-      final result = await Get.to(() => MarketCreateView(initialItem: item));
+      final result = await const MarketDetailNavigationService()
+          .openMarketCreate(initialItem: item);
       if (result != null && mounted) {
         _updateViewState(() => _reload(force: true));
       }

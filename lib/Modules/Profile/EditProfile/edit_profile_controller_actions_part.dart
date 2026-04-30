@@ -112,7 +112,6 @@ extension EditProfileControllerActionsPart on EditProfileController {
         final ts = DateTime.now().millisecondsSinceEpoch;
         final fileBase = '${uid}_${ts}_avatarUrl_thumb_150';
         newImageUrl = await WebpUploadService.uploadBytesAsWebp(
-          storage: FirebaseStorage.instance,
           bytes: croppedImage.value!,
           storagePathWithoutExt: 'users/$uid/$fileBase',
         );
@@ -192,7 +191,7 @@ extension EditProfileControllerActionsPart on EditProfileController {
     String? keepFileName,
   }) async {
     try {
-      final folderRef = FirebaseStorage.instance.ref().child('users/$uid');
+      final folderRef = AppFirebaseStorage.instance.ref().child('users/$uid');
       final list = await folderRef.listAll();
       for (final item in list.items) {
         final name = item.name;

@@ -1,9 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_feature_flags_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_repository_service.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdsDeliveryService {
@@ -51,7 +51,7 @@ class AdsDeliveryService {
 
     // Önce callable ile dene (server-side authority), hata olursa local fallback.
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('adsSimulateDelivery');
       final res = await callable.call(context.toMap());
       final data = _cloneMap(res.data as Map? ?? const <String, dynamic>{});
@@ -194,9 +194,7 @@ class AdsDeliveryService {
   Future<void> _logDelivery(
       AdDeliveryContext context, AdDeliveryResult result) async {
     try {
-      await FirebaseFirestore.instance
-          .collection(AdsCollections.deliveryLogs)
-          .add(
+      await AppFirestore.instance.collection(AdsCollections.deliveryLogs).add(
             result.toLogMap(
               userId: context.userId,
               country: context.country,

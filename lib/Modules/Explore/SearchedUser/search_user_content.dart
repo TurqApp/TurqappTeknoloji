@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
@@ -12,7 +13,6 @@ import 'package:turqappv2/Core/Utils/account_status_utils.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
 import 'package:turqappv2/Models/ogrenci_model.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class SearchUserContent extends StatelessWidget {
@@ -133,8 +133,8 @@ class SearchUserContent extends StatelessWidget {
                     }
                     final explore = maybeFindExploreController();
                     explore?.suspendExplorePreview();
-                    await Get.to(
-                      () => SocialProfile(userID: targetUid),
+                    await const ProfileNavigationService().openSocialProfile(
+                      targetUid,
                       preventDuplicates: false,
                     );
                     explore?.resumeExplorePreview();

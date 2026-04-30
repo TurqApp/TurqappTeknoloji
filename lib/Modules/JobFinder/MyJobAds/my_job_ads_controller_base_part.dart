@@ -5,6 +5,7 @@ const Duration _myJobAdsSilentRefreshInterval = Duration(minutes: 5);
 abstract class _MyJobAdsControllerBase extends GetxController {
   final JobHomeSnapshotRepository _jobHomeSnapshotRepository =
       ensureJobHomeSnapshotRepository();
+  final JobRepository _jobRepository = ensureJobRepository();
   final pageController = PageController();
   final isLoadingActive = true.obs;
   final isLoadingDeactive = true.obs;

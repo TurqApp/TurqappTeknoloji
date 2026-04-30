@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultContent/booklet_result_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/MyBookletResults/my_booklet_results_controller.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/ResultsAndAnswers/results_and_answers.dart';
@@ -40,34 +41,10 @@ class _MyBookletResultsState extends State<MyBookletResults> {
   }
 
   Widget _buildBooksEmpty() {
-    return Container(
-      color: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.only(top: 15),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  color: Colors.black,
-                ),
-                SizedBox(height: 7),
-                Text(
-                  "answer_key.books_empty".tr,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: "Montserrat",
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return AppStateView.empty(
+      title: 'answer_key.books_empty'.tr,
+      icon: Icons.lightbulb_outline,
+      padding: const EdgeInsets.only(top: 15),
     );
   }
 
@@ -153,34 +130,10 @@ class _MyBookletResultsState extends State<MyBookletResults> {
         ),
       );
     }
-    return Container(
-      color: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.only(top: 15),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.lightbulb_outline,
-                  color: Colors.black,
-                ),
-                SizedBox(height: 7),
-                Text(
-                  "answer_key.optical_empty".tr,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: "Montserrat",
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return AppStateView.empty(
+      title: 'answer_key.optical_empty'.tr,
+      icon: Icons.lightbulb_outline,
+      padding: const EdgeInsets.only(top: 15),
     );
   }
 
@@ -207,9 +160,7 @@ class _MyBookletResultsState extends State<MyBookletResults> {
                       controller.list.isEmpty &&
                       controller.optikSonuclari.isEmpty
                   ? const Expanded(
-                      child: Center(
-                        child: CircularProgressIndicator(color: Colors.black),
-                      ),
+                      child: AppStateView.loading(),
                     )
                   : Expanded(
                       child: PageView(

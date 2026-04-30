@@ -12,8 +12,9 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyForImpl(uid));
+      final stored = await _localPreferenceRepository.getInt(
+        _listingSelectionKeyForImpl(uid),
+      );
       listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
     } catch (_) {
       listingSelection.value = 1;
@@ -26,8 +27,7 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
+      await _localPreferenceRepository.setInt(
         _listingSelectionKeyForImpl(uid),
         listingSelection.value == 1 ? 1 : 0,
       );

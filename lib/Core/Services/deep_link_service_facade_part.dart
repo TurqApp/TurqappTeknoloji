@@ -27,10 +27,10 @@ extension DeepLinkServiceFacadePart on DeepLinkService {
 
   Future<void> handle(Uri uri) => _DeepLinkServiceRuntimeX(this).handle(uri);
 
-  Future<bool> _tryDirectFallback(_ParsedDeepLink parsed) =>
+  Future<bool> _tryDirectFallback(ParsedDeepLinkRoute parsed) =>
       _performTryDirectFallback(parsed);
 
-  _ParsedDeepLink? _parse(Uri uri) => _performParse(uri);
+  ParsedDeepLinkRoute? _parse(Uri uri) => _performParse(uri);
 
   Future<void> _openPost(String postId) => _performOpenPost(postId);
 

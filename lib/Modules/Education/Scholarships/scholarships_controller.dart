@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
@@ -19,10 +19,7 @@ import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 // Corporate ScholarshipsModel no longer used; only IndividualScholarshipsModel remains
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/DormitoryInfo/dormitory_info_view.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_view.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_view.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/PersonelInfo/personel_info_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 
 part 'scholarships_controller_data_part.dart';
 part 'scholarships_controller_actions_part.dart';

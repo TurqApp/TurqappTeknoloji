@@ -203,7 +203,10 @@ extension _ProfileViewScheduledPart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-            child: Center(child: EmptyRow(text: "profile.scheduled_none".tr)),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: "profile.scheduled_none".tr),
+            ),
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],

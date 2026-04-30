@@ -62,7 +62,7 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
         future: _itemsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppStateView.loading();
           }
 
           final visible = (snapshot.data ?? const <MarketItemModel>[])

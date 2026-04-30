@@ -306,8 +306,7 @@ extension CvControllerPersistencePart on CvController {
         "skills": skills.toList(),
         "findingJob": false,
       };
-      await FirebaseFirestore.instance.collection("CV").doc(uid).set(payload);
-      await _cvRepository.setCv(uid, payload);
+      await _cvRepository.saveCv(uid, payload);
       await _syncCurrentUserFieldsFromCvPayload(payload);
       Get.back();
       AppSnackbar('cv.created_title'.tr, 'cv.created_body'.tr);

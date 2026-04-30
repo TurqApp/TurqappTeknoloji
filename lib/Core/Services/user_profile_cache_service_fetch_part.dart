@@ -28,7 +28,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
     }
 
     if (cacheOnly) {
-      final doc = await FirebaseFirestore.instance
+      final doc = await AppFirestore.instance
           .collection('users')
           .doc(uid)
           .get(const GetOptions(source: Source.cache));
@@ -45,7 +45,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
 
     if (!forceServer && preferCache) {
       try {
-        final doc = await FirebaseFirestore.instance
+        final doc = await AppFirestore.instance
             .collection('users')
             .doc(uid)
             .get(const GetOptions(source: Source.cache));
@@ -58,7 +58,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
     }
 
     final server =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        await AppFirestore.instance.collection('users').doc(uid).get();
     if (!server.exists) {
       return _getFromMemory(
         uid,
@@ -89,11 +89,8 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
     bool cacheOnly = false,
   }) async {
     final out = <String, Map<String, dynamic>>{};
-    final unique = uids
-        .map((e) => e.trim())
-        .where(_isValidProfileUid)
-        .toSet()
-        .toList();
+    final unique =
+        uids.map((e) => e.trim()).where(_isValidProfileUid).toSet().toList();
     if (unique.isEmpty) return out;
 
     final missing = <String>[];
@@ -133,7 +130,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
 
       if (preferCache) {
         try {
-          final cacheSnap = await FirebaseFirestore.instance
+          final cacheSnap = await AppFirestore.instance
               .collection('users')
               .where(FieldPath.documentId, whereIn: chunk)
               .limit(chunk.length)
@@ -151,7 +148,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
       if (unresolved.isEmpty || cacheOnly) continue;
 
       try {
-        final serverSnap = await FirebaseFirestore.instance
+        final serverSnap = await AppFirestore.instance
             .collection('users')
             .where(FieldPath.documentId, whereIn: unresolved)
             .limit(unresolved.length)

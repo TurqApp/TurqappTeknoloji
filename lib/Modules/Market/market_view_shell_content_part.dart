@@ -51,7 +51,7 @@ extension MarketViewShellContentPart on MarketView {
   Widget _buildBody(BuildContext context) {
     return Obx(() {
       if (!controller.listingSelectionReady.value) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading();
       }
       return RefreshIndicator(
         onRefresh: controller.refreshHome,
@@ -131,7 +131,7 @@ extension MarketViewShellContentPart on MarketView {
                 controller.visibleItems.isEmpty)
               const SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(child: CircularProgressIndicator()),
+                child: AppStateView.loading(),
               )
             else if (controller.visibleItems.isEmpty)
               SliverFillRemaining(

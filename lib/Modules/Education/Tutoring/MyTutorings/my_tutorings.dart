@@ -1,9 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
-import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
@@ -45,15 +44,12 @@ class _MyTutoringsState extends State<MyTutorings> {
     return Obx(
       () {
         if (controller.isLoading.value && controller.myTutorings.isEmpty) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading(title: '');
         }
         if (controller.errorMessage.value.isNotEmpty &&
             controller.myTutorings.isEmpty) {
-          return Center(
-            child: Text(
-              controller.errorMessage.value,
-              style: TextStyles.textFieldTitle,
-            ),
+          return AppStateView.error(
+            title: controller.errorMessage.value,
           );
         }
 
@@ -91,11 +87,8 @@ class _MyTutoringsState extends State<MyTutorings> {
                     children: [
                       Obx(
                         () => controller.activeTutorings.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'tutoring.active_listings_empty'.tr,
-                                  style: TextStyles.textFieldTitle,
-                                ),
+                            ? AppStateView.empty(
+                                title: 'tutoring.active_listings_empty'.tr,
                               )
                             : Builder(
                                 builder: (context) {
@@ -122,11 +115,8 @@ class _MyTutoringsState extends State<MyTutorings> {
                       ),
                       Obx(
                         () => controller.expiredTutorings.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'tutoring.expired_listings_empty'.tr,
-                                  style: TextStyles.textFieldTitle,
-                                ),
+                            ? AppStateView.empty(
+                                title: 'tutoring.expired_listings_empty'.tr,
                               )
                             : SingleChildScrollView(
                                 child: TutoringWidgetBuilder(

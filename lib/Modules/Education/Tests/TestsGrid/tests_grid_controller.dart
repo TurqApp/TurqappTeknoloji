@@ -5,12 +5,10 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';
+import 'package:turqappv2/Core/Services/education_test_navigation_service.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
-import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test.dart';
-import 'package:turqappv2/Modules/Education/Tests/SolveTest/solve_test.dart';
-import 'package:turqappv2/Modules/Profile/MyProfile/profile_view.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'tests_grid_controller_data_part.dart';

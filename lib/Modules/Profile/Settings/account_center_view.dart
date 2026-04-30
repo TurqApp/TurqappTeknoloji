@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
+import 'package:turqappv2/Runtime/session_exit_coordinator.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Utils/stored_account_reauth_policy.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -39,7 +40,7 @@ class AccountCenterView extends StatelessWidget {
       future: _initFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading();
         }
 
         return _buildBodyContent(context);

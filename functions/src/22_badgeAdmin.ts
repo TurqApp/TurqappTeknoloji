@@ -1,6 +1,9 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { RateLimits } from "./rateLimiter";
+import {
+  requireCallableAdminUid,
+  verifiedAdminCollection,
+} from "./adminAccess";
 import { addInboxItem } from "./notificationInbox";
 import { normalizeUsernameLower } from "./userSchemaUtils";
 
@@ -15,7 +18,7 @@ const ONE_MONTH_MS = 30 * ONE_DAY_MS;
 const ONE_YEAR_MS = 365 * ONE_DAY_MS;
 
 function verifiedCollection() {
-  return db.collection("adminConfig").doc("admin").collection("TurqAppVerified");
+  return verifiedAdminCollection(db);
 }
 
 const BADGE_MAP = new Map<string, string>([
@@ -57,26 +60,7 @@ function ensureAuth(context: functions.https.CallableContext) {
 
 async function ensureAdmin(context: functions.https.CallableContext) {
   ensureAuth(context);
-  const uid = context.auth!.uid;
-  const claims = context.auth?.token as { admin?: unknown } | undefined;
-  if (claims?.admin === true) {
-    RateLimits.admin(uid);
-    return;
-  }
-
-  const allowSnap = await db.doc("adminConfig/admin").get();
-  const allowedRaw = allowSnap.data()?.allowedUserIds;
-  if (Array.isArray(allowedRaw)) {
-    const allowed = allowedRaw
-      .map((value: unknown) => String(value ?? "").trim())
-      .filter((value: string) => value.length > 0);
-    if (allowed.includes(uid)) {
-      RateLimits.admin(uid);
-      return;
-    }
-  }
-
-  throw new functions.https.HttpsError("permission-denied", "admin_required");
+  await requireCallableAdminUid(context.auth, db);
 }
 
 function normalizeNickname(raw: unknown): string {

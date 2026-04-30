@@ -145,10 +145,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
 
   void _didChangeAppLifecycleStateImpl(AppLifecycleState state) {
     if (_isDisposed) return;
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    final educationIndex = hasEducation ? 3 : -1;
-    final profileIndex = hasEducation ? 4 : 3;
+    final tabLayout = _primaryTabLayout();
 
     if (state == AppLifecycleState.paused) {
       _cancelShortSurfacePrimeImpl();
@@ -185,14 +182,14 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     if (state == AppLifecycleState.resumed) {
       _primeVisibleSurfaceAfterTabChangeImpl(
         index: selectedIndex.value,
-        educationIndex: educationIndex,
-        profileIndex: profileIndex,
+        educationIndex: tabLayout.educationIndex,
+        profileIndex: tabLayout.profileIndex,
       );
     }
 
     if (state == AppLifecycleState.resumed &&
-        educationIndex >= 0 &&
-        selectedIndex.value == educationIndex) {
+        tabLayout.educationIndex >= 0 &&
+        selectedIndex.value == tabLayout.educationIndex) {
       try {
         maybeFindEducationController()?.resetActivePasajSurfaceToTop();
       } catch (_) {}
@@ -201,9 +198,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
 
   void _changeIndexImpl(int index) {
     final previous = selectedIndex.value;
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    final educationIndex = hasEducation ? 3 : -1;
+    final tabLayout = _primaryTabLayout();
 
     if (index != previous) {
       _cancelShortSurfacePrimeImpl();
@@ -228,12 +223,12 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
         _resetPrimaryTabSurfacesForTransitionImpl(
-          educationIndex: educationIndex,
+          educationIndex: tabLayout.educationIndex,
         );
         _primeVisibleSurfaceAfterTabChangeImpl(
           index: index,
-          educationIndex: educationIndex,
-          profileIndex: hasEducation ? 4 : 3,
+          educationIndex: tabLayout.educationIndex,
+          profileIndex: tabLayout.profileIndex,
         );
         if (index == 0) {
           _resumeFeedIfNeededImpl();
@@ -420,10 +415,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     required bool includeHomeSurfaces,
   }) async {
     final normalizedIndex = index < 0 ? 0 : index;
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    final educationIndex = hasEducation ? 3 : -1;
-    final profileIndex = hasEducation ? 4 : 3;
+    final tabLayout = _primaryTabLayout();
 
     final tasks = <Future<void>>[];
     if (includeHomeSurfaces || normalizedIndex == 0) {
@@ -442,7 +434,8 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       if (explore != null) {
         tasks.add(explore.persistStartupShard());
       }
-    } else if (educationIndex >= 0 && normalizedIndex == educationIndex) {
+    } else if (tabLayout.educationIndex >= 0 &&
+        normalizedIndex == tabLayout.educationIndex) {
       final activeEducationTabId =
           maybeFindEducationController()?.currentPasajTabId();
       if (activeEducationTabId == PasajTabIds.market) {
@@ -456,7 +449,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
           tasks.add(jobs.persistStartupShard());
         }
       }
-    } else if (normalizedIndex == profileIndex) {
+    } else if (normalizedIndex == tabLayout.profileIndex) {
       final profile = ProfileController.maybeFind();
       if (profile != null) {
         tasks.add(profile.persistStartupShard());

@@ -13,7 +13,7 @@ class _CachedNotificationPreferences {
 extension NotificationPreferencesRepositoryRuntimePart
     on NotificationPreferencesRepository {
   void _handleNotificationPreferencesInit() {
-    SharedPreferences.getInstance().then((prefs) {
+    ensureLocalPreferenceRepository().sharedPreferences().then((prefs) {
       _prefs = prefs;
     });
   }

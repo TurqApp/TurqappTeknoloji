@@ -16,7 +16,7 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
       onTap: isCurrentUser
           ? null
           : () {
-              Get.to(() => SocialProfile(userID: podiumUserID));
+              const ProfileNavigationService().openSocialProfile(podiumUserID);
             },
       child: Column(
         children: [
@@ -147,7 +147,9 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
                   onTap: isCurrentUser
                       ? null
                       : () {
-                          Get.to(() => SocialProfile(userID: user['userID']));
+                          const ProfileNavigationService().openSocialProfile(
+                            user['userID']?.toString() ?? '',
+                          );
                         },
                   child: Row(
                     children: [

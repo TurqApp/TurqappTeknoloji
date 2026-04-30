@@ -32,10 +32,10 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
   Widget _buildCommentsList() {
     return Obx(() {
       if (controller.isLoading.value && controller.comments.isEmpty) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
       if (controller.comments.isEmpty) {
-        return Center(child: Text("training.no_comments".tr));
+        return AppStateView.empty(title: "training.no_comments".tr);
       }
       return ListView.builder(
         controller: controller.scrollController,

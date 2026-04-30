@@ -146,11 +146,8 @@ extension _BadgeAdminViewContentPart on _BadgeAdminViewState {
           stream: _verifiedAccountRepository.watchApplications(),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: CircularProgressIndicator(),
-                ),
+              return const AppStateView.loading(
+                padding: EdgeInsets.symmetric(vertical: 24),
               );
             }
             final docs = snap.data?.docs ?? const [];

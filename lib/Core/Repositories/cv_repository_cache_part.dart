@@ -31,8 +31,7 @@ extension CvRepositoryCachePart on CvRepository {
 
     if (cacheOnly) return null;
 
-    final snap =
-        await FirebaseFirestore.instance.collection('CV').doc(uid).get();
+    final snap = await AppFirestore.instance.collection('CV').doc(uid).get();
     final data = snap.exists && snap.data() != null
         ? Map<String, dynamic>.from(snap.data()!)
         : null;
@@ -47,7 +46,7 @@ extension CvRepositoryCachePart on CvRepository {
       data: data == null ? null : _cloneCvMap(data),
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(uid),
       jsonEncode({
@@ -57,9 +56,15 @@ extension CvRepositoryCachePart on CvRepository {
     );
   }
 
+  Future<void> saveCv(String uid, Map<String, dynamic> data) async {
+    if (uid.isEmpty || data.isEmpty) return;
+    await AppFirestore.instance.collection('CV').doc(uid).set(data);
+    await setCv(uid, data);
+  }
+
   Future<void> updateCvFields(String uid, Map<String, dynamic> data) async {
     if (uid.isEmpty || data.isEmpty) return;
-    await FirebaseFirestore.instance.collection('CV').doc(uid).update(data);
+    await AppFirestore.instance.collection('CV').doc(uid).update(data);
     final current = await getCv(uid, preferCache: true, forceRefresh: false) ??
         <String, dynamic>{};
     final merged = _cloneCvMap(current)..addAll(_cloneCvMap(data));
@@ -68,7 +73,7 @@ extension CvRepositoryCachePart on CvRepository {
 
   Future<void> invalidate(String uid) async {
     _memory.remove(uid);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKey(uid));
   }
 
@@ -85,7 +90,7 @@ extension CvRepositoryCachePart on CvRepository {
   }
 
   Future<Map<String, dynamic>?> _getFromPrefs(String uid) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(uid);
     final raw = prefs?.getString(prefsKey);

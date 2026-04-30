@@ -23,7 +23,7 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
 
   Future<void> _loadErrorHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final historyString = prefs.getString(_errorHandlingHistoryKey);
 
       if (historyString != null) {
@@ -59,7 +59,8 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
     } catch (e) {
       print('Failed to load error history: $e');
       try {
-        final prefs = await SharedPreferences.getInstance();
+        final prefs =
+            await ensureLocalPreferenceRepository().sharedPreferences();
         await prefs.remove(_errorHandlingHistoryKey);
       } catch (_) {}
     }
@@ -67,7 +68,7 @@ extension ErrorHandlingServiceHistoryPart on ErrorHandlingService {
 
   Future<void> _saveErrorHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
       final historyJson = _errorHistory.map((error) => error.toJson()).toList();
       await prefs.setString(
         _errorHandlingHistoryKey,

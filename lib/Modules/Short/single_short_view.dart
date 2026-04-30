@@ -19,7 +19,6 @@ import '../../Core/Services/playback_execution_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
-import '../../Core/Services/video_state_manager.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
 import '../../Themes/app_tokens.dart';

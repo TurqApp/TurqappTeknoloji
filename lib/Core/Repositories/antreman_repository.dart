@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/Education/question_bank_model.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/AntremanComments/antreman_comments_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 part 'antreman_repository_query_part.dart';
 part 'antreman_repository_action_part.dart';
@@ -25,7 +26,7 @@ class AntremanRepository {
   static const String _localScorePrefsPrefix = 'antreman_score_v1';
   static const String _localSavedPrefsPrefix = 'antreman_saved_v1';
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore = AppFirestore.instance;
   final Map<String, List<Comment>> _commentsCache = <String, List<Comment>>{};
   final Map<String, List<Reply>> _repliesCache = <String, List<Reply>>{};
   Map<String, List<String>>? _uniqueFieldsCache;
@@ -47,10 +48,11 @@ class AntremanRepository {
   String _localScorePrefsKey(String userId, {DateTime? now}) =>
       '$_localScorePrefsPrefix:$userId:${_monthKey(now)}';
 
-  String _localSavedPrefsKey(String userId) => '$_localSavedPrefsPrefix:$userId';
+  String _localSavedPrefsKey(String userId) =>
+      '$_localSavedPrefsPrefix:$userId';
 
   Future<Map<String, dynamic>> _readPrefsJsonMap(String key) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     final raw = prefs.getString(key);
     if (raw == null || raw.isEmpty) return <String, dynamic>{};
     final decoded = jsonDecode(raw);
@@ -64,7 +66,7 @@ class AntremanRepository {
     String key,
     Map<String, dynamic> value,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     await prefs.setString(key, jsonEncode(value));
   }
 }

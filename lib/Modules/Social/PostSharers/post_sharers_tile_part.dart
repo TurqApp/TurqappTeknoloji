@@ -56,7 +56,9 @@ class _PostSharerTileState extends State<_PostSharerTile> {
   }
 
   Future<void> _openProfile() async {
-    await Get.to(() => SocialProfile(userID: widget.sharer.userID));
+    await const ProfileNavigationService().openSocialProfile(
+      widget.sharer.userID,
+    );
     await _refreshFollowState();
   }
 

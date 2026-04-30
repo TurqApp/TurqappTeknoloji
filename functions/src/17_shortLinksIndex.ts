@@ -5,6 +5,7 @@ import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https
 import * as functions from "firebase-functions";
 import axios from "axios";
 import { enforceRateLimit, enforceRateLimitForKey } from "./rateLimiter";
+import { isUidInAdminAllowList } from "./adminAccess";
 
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
@@ -202,14 +203,7 @@ async function isAdminUid(
     () => ({}) as Record<string, unknown>
   );
   if (claims["admin"] === true) return true;
-
-  const allowSnap = await db.doc("adminConfig/admin").get();
-  const allowedRaw = allowSnap.data()?.allowedUserIds;
-  if (!Array.isArray(allowedRaw)) return false;
-  return allowedRaw
-    .map((value: unknown) => String(value ?? "").trim())
-    .filter((value: string) => value.length > 0)
-    .includes(uid);
+  return await isUidInAdminAllowList(uid, db);
 }
 
 function validateSlug(slug: string) {

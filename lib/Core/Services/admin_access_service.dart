@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -50,7 +50,7 @@ class AdminAccessService {
   }
 
   static Future<bool> canManageSliders() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = AppFirebaseAuth.instance.currentUser;
     final effectiveUid = CurrentUserService.instance.effectiveUserId.trim();
     final resolvedUid = (currentUser?.uid ?? effectiveUid).trim();
     if (resolvedUid.isEmpty) {
@@ -84,7 +84,7 @@ class AdminAccessService {
   }
 
   static Future<bool> isPrimaryAdmin() async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = AppFirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
     final token = await currentUser.getIdTokenResult(true);
     return _claimAsBool(token.claims?["admin"], fallback: false);
@@ -92,7 +92,7 @@ class AdminAccessService {
 
   static Future<List<String>> fetchAssignedTaskIds(
       {bool forceRefresh = false}) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = AppFirebaseAuth.instance.currentUser;
     if (currentUser == null) {
       _taskCache = <String>[];
       _lastTaskFetchAt = null;

@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 
 class TurqAppSuggestionPlacement {
   const TurqAppSuggestionPlacement({
@@ -495,8 +497,8 @@ class TurqAppSuggestionConfigService {
       TurqAppSuggestionConfigService._();
   static const Duration _ttl = Duration(minutes: 10);
 
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore = AppFirestore.instance;
+  final FirebaseStorage _storage = AppFirebaseStorage.instance;
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final Map<String, _CachedTurqAppSuggestionConfig> _cache =
       <String, _CachedTurqAppSuggestionConfig>{};

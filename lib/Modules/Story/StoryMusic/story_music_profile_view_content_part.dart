@@ -12,7 +12,7 @@ extension StoryMusicProfileViewContentPart on _StoryMusicProfileViewState {
               child: RefreshIndicator(
                 onRefresh: _load,
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const AppStateView.loading(title: '')
                     : CustomScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
@@ -20,15 +20,8 @@ extension StoryMusicProfileViewContentPart on _StoryMusicProfileViewState {
                           if (_entries.isEmpty)
                             SliverFillRemaining(
                               hasScrollBody: false,
-                              child: Center(
-                                child: Text(
-                                  'story_music.no_active_stories'.tr,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
-                                ),
+                              child: AppStateView.empty(
+                                title: 'story_music.no_active_stories'.tr,
                               ),
                             )
                           else

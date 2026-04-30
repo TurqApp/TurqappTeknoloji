@@ -17,7 +17,6 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
       final itemId = DateTime.now().millisecondsSinceEpoch.toString();
       final storagePath = 'slider/${widget.sliderId}/$itemId';
       final imageUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: storagePath,
       );
@@ -58,7 +57,6 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
           : (remoteDoc.data()['storagePath'] ?? '').toString();
       final storagePath = 'slider/${widget.sliderId}/$itemId';
       final imageUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: storagePath,
       );
@@ -81,7 +79,7 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
       }, SetOptions(merge: true));
 
       if (oldStoragePath.isNotEmpty && oldStoragePath != '$storagePath.webp') {
-        await FirebaseStorage.instance.ref().child(oldStoragePath).delete();
+        await AppFirebaseStorage.instance.ref().child(oldStoragePath).delete();
       }
       AppSnackbar('common.ok'.tr, 'slider_admin.updated'.tr);
     } catch (e) {
@@ -105,7 +103,7 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
         final storagePath = (remoteDoc.data()['storagePath'] ?? '').toString();
         await remoteDoc.reference.delete();
         if (storagePath.isNotEmpty) {
-          await FirebaseStorage.instance.ref().child(storagePath).delete();
+          await AppFirebaseStorage.instance.ref().child(storagePath).delete();
         }
       }
 
@@ -166,7 +164,7 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
 
     _updateViewState(() => _isBusy = true);
     try {
-      final batch = FirebaseFirestore.instance.batch();
+      final batch = AppFirestore.instance.batch();
       final currentDoc = docs[currentIndex];
       final targetDoc = docs[targetIndex];
       final currentOrder =
@@ -203,7 +201,7 @@ extension _SliderAdminViewActionsPart on _SliderAdminViewState {
         .toList();
     if (extras.isEmpty) return;
 
-    final batch = FirebaseFirestore.instance.batch();
+    final batch = AppFirestore.instance.batch();
     for (var i = 0; i < extras.length; i++) {
       batch.update(extras[i].reference, {'order': _defaults.length + i});
     }

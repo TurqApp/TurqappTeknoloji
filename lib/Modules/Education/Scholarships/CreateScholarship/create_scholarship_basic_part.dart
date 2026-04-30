@@ -210,7 +210,7 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             GestureDetector(
-              onTap: () => Get.to(ScholarshipsView()),
+              onTap: ScholarshipNavigationService.openScholarshipsHome,
               child: Container(
                 height: 40,
                 width: 80,

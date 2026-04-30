@@ -34,8 +34,8 @@ part 'post_content_base_lifecycle_part.dart';
 part 'post_content_base_playback_part.dart';
 part 'post_content_base_visibility_part.dart';
 
-const int _feedWarmWindowAheadCount = 5;
-const int _feedWarmWindowBehindCount = 3;
+const int _feedWarmWindowAheadCount = 4;
+const int _feedWarmWindowBehindCount = 2;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;

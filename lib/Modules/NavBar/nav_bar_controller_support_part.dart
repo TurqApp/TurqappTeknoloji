@@ -1,11 +1,28 @@
 part of 'nav_bar_controller.dart';
 
 extension _NavBarControllerSupportFacadePart on NavBarController {
+  _PrimaryTabLayout _primaryTabLayout() => _PrimaryTabLayout(
+        hasEducation:
+            maybeFindSettingsController()?.educationScreenIsOn.value ?? false,
+      );
+
   Future<void> _persistSelectedIndex(int index) =>
       _NavBarControllerSupportPart(this).persistSelectedIndex(index);
 
   Future<void> _persistStartupRouteHint(int index) =>
       _NavBarControllerSupportPart(this).persistStartupRouteHint(index);
+}
+
+class _PrimaryTabLayout {
+  const _PrimaryTabLayout({
+    required this.hasEducation,
+  });
+
+  final bool hasEducation;
+
+  int get educationIndex => hasEducation ? 3 : -1;
+
+  int get profileIndex => hasEducation ? 4 : 3;
 }
 
 class _NavBarControllerSupportPart {
@@ -26,9 +43,12 @@ class _NavBarControllerSupportPart {
   Future<void> restorePersistedIndex() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
-    final initialIndex =
-        normalizeSelectedIndex(_controller.selectedIndex.value);
     try {
+      final preferences = ensureLocalPreferenceRepository();
+      final storedIndex = await preferences.getInt(selectedIndexKeyFor(uid));
+      final initialIndex = normalizeSelectedIndex(
+        storedIndex ?? _controller.selectedIndex.value,
+      );
       if (_controller.selectedIndex.value != initialIndex) {
         _controller.selectedIndex.value = initialIndex;
       }
@@ -43,8 +63,8 @@ class _NavBarControllerSupportPart {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
+      final preferences = ensureLocalPreferenceRepository();
+      await preferences.setInt(
         selectedIndexKeyFor(uid),
         normalizeSelectedIndex(index),
       );
@@ -67,18 +87,10 @@ class _NavBarControllerSupportPart {
   }
 
   String routeHintForIndex(int index) {
-    final normalizedIndex = normalizeSelectedIndex(index);
-    final hasEducation =
-        maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-    final educationIndex = hasEducation ? 3 : -1;
-    final profileIndex = hasEducation ? 4 : 3;
-
-    if (normalizedIndex == 1) return 'nav_explore';
-    if (educationIndex >= 0 && normalizedIndex == educationIndex) {
-      return 'nav_education';
-    }
-    if (normalizedIndex == profileIndex) return 'nav_profile';
-    return 'nav_feed';
+    return PrimaryTabRouter.routeHintForSelectedIndex(
+      index,
+      educationEnabled: _controller._primaryTabLayout().hasEducation,
+    );
   }
 
   void handleOnInit() {
@@ -115,14 +127,11 @@ class _NavBarControllerSupportPart {
       await persistStartupRouteHint(_controller.selectedIndex.value);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_controller._isDisposed) return;
-        final hasEducation =
-            maybeFindSettingsController()?.educationScreenIsOn.value ?? false;
-        final educationIndex = hasEducation ? 3 : -1;
-        final profileIndex = hasEducation ? 4 : 3;
+        final tabLayout = _controller._primaryTabLayout();
         _controller._primeVisibleSurfaceAfterTabChangeImpl(
           index: _controller.selectedIndex.value,
-          educationIndex: educationIndex,
-          profileIndex: profileIndex,
+          educationIndex: tabLayout.educationIndex,
+          profileIndex: tabLayout.profileIndex,
         );
         if (_controller.selectedIndex.value == 0) {
           _controller._resumeFeedIfNeededImpl();

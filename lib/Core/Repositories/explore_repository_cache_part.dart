@@ -21,7 +21,7 @@ class _StoredFloodManifest {
 
 extension ExploreRepositoryCachePart on ExploreRepository {
   Future<SharedPreferences> _prefsInstance() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     return _prefs!;
   }
 
@@ -139,10 +139,11 @@ extension ExploreRepositoryCachePart on ExploreRepository {
           final kind = (item['kind'] ?? '').toString().trim();
           final eligible = item['eligible'] == true;
           if (kind != 'flood' || !eligible) return null;
-          final mainPostId =
-              (item['mainPostId'] ?? item['floodRootId'] ?? item['_manifestDocId'])
-                  .toString()
-                  .trim();
+          final mainPostId = (item['mainPostId'] ??
+                  item['floodRootId'] ??
+                  item['_manifestDocId'])
+              .toString()
+              .trim();
           if (mainPostId.isEmpty) return null;
           try {
             return PostsModel.fromMap(item, mainPostId);
@@ -190,12 +191,13 @@ extension ExploreRepositoryCachePart on ExploreRepository {
       '[FloodManifestStore] status=refresh_start force=$force reason=daily_sync',
     );
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'us-central1')
+      final callable = AppCloudFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('f30_getFloodManifestCallable');
       final response = await callable.call(<String, dynamic>{});
       final raw = response.data;
       if (raw is! Map) {
-        debugPrint('[FloodManifestStore] status=refresh_fail reason=invalid_payload');
+        debugPrint(
+            '[FloodManifestStore] status=refresh_fail reason=invalid_payload');
         return;
       }
       final payload = Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
@@ -207,7 +209,8 @@ extension ExploreRepositoryCachePart on ExploreRepository {
       final rootCount = _asInt(payload['rootCount']);
       final rawItems = payload['items'];
       if (rawItems is! List || rawItems.isEmpty) {
-        debugPrint('[FloodManifestStore] status=refresh_fail reason=empty_items');
+        debugPrint(
+            '[FloodManifestStore] status=refresh_fail reason=empty_items');
         return;
       }
       final items = rawItems
@@ -218,17 +221,16 @@ extension ExploreRepositoryCachePart on ExploreRepository {
             ),
           )
           .map((item) {
-            final docId =
-                (item['floodRootId'] ?? item['mainPostId'] ?? '').toString().trim();
-            return _normalizeFloodManifestDoc(item, docId);
-          })
-          .where((item) {
-            final docId = (item['_manifestDocId'] ?? '').toString().trim();
-            return docId.isNotEmpty;
-          })
-          .toList(growable: false);
+        final docId =
+            (item['floodRootId'] ?? item['mainPostId'] ?? '').toString().trim();
+        return _normalizeFloodManifestDoc(item, docId);
+      }).where((item) {
+        final docId = (item['_manifestDocId'] ?? '').toString().trim();
+        return docId.isNotEmpty;
+      }).toList(growable: false);
       if (items.isEmpty) {
-        debugPrint('[FloodManifestStore] status=refresh_fail reason=normalized_empty');
+        debugPrint(
+            '[FloodManifestStore] status=refresh_fail reason=normalized_empty');
         return;
       }
       await _writeStoredFloodManifest(
@@ -245,10 +247,12 @@ extension ExploreRepositoryCachePart on ExploreRepository {
     }
   }
 
-  Future<List<PostsModel>> _loadStoredFloodManifestSeries(String anyFloodId) async {
+  Future<List<PostsModel>> _loadStoredFloodManifestSeries(
+      String anyFloodId) async {
     final stored = await _readStoredFloodManifest();
     if (stored == null || stored.items.isEmpty) {
-      debugPrint('[FloodManifestStore] status=series_miss scope=store root=$anyFloodId');
+      debugPrint(
+          '[FloodManifestStore] status=series_miss scope=store root=$anyFloodId');
       return const <PostsModel>[];
     }
     final rootId = _normalizeFloodRootId(anyFloodId);
@@ -281,7 +285,8 @@ extension ExploreRepositoryCachePart on ExploreRepository {
     if (children is List) {
       for (final entry in children) {
         if (entry is! Map) continue;
-        final childData = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+        final childData =
+            Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
         final childId = (childData['docId'] ?? '').toString().trim();
         if (childId.isEmpty) continue;
         try {

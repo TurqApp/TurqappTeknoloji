@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/education_result_navigation_service.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Models/Education/booklet_result_model.dart';
-import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultPreview/booklet_result_preview.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/BookletResultContent/booklet_result_content_controller.dart';
 
 class BookletResultContent extends StatefulWidget {
@@ -52,7 +52,8 @@ class _BookletResultContentState extends State<BookletResultContent> {
       padding: const EdgeInsets.only(left: 15, right: 15),
       child: GestureDetector(
         onTap: () {
-          Get.to(() => BookletResultPreview(model: model));
+          const EducationResultNavigationService()
+              .openBookletResultPreview(model);
         },
         child: Container(
           color: Colors.white.withValues(alpha: 0.00000001),

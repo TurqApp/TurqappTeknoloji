@@ -25,6 +25,10 @@ void main() {
           await openCommentsForFirstFeedPost(tester);
 
           final replyCommentId = await ensureCommentTargetForSmoke(tester);
+          expect(
+            IntegrationTestKeys.commentReplyButton(replyCommentId),
+            startsWith('it-comment-reply-'),
+          );
 
           await tapItKey(
             tester,

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Modules/Education/AnswerKey/BookletPreview/booklet_preview.dart';
+import 'package:turqappv2/Core/Services/answer_key_navigation_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CategoryBasedAnswerKey/category_based_answer_key_controller.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
@@ -105,23 +106,11 @@ class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
                     Expanded(
                       child: Obx(
                         () => controller.isLoading.value
-                            ? Center(
-                                child: CupertinoActivityIndicator(
-                                  radius: 20,
-                                  color: Colors.black,
-                                ),
-                              )
+                            ? const AppStateView.loading()
                             : controller.filteredList.isEmpty
-                                ? Padding(
-                                    padding: EdgeInsets.all(15),
-                                    child: Text(
-                                      'common.no_results'.tr,
-                                      style: TextStyle(
-                                        fontFamily: "Montserrat",
-                                        fontSize: 15,
-                                        color: Colors.black,
-                                      ),
-                                    ),
+                                ? AppStateView.empty(
+                                    title: 'common.no_results'.tr,
+                                    padding: const EdgeInsets.all(15),
                                   )
                                 : ListView.builder(
                                     itemCount: controller.filteredList.length,
@@ -133,11 +122,10 @@ class _CategoryBasedAnswerKeyState extends State<CategoryBasedAnswerKey> {
                                           bottom: 15,
                                         ),
                                         child: GestureDetector(
-                                          onTap: () => Get.to(
-                                            () => BookletPreview(
-                                              model: controller
-                                                  .filteredList[index],
-                                            ),
+                                          onTap: () =>
+                                              const AnswerKeyNavigationService()
+                                                  .openBookletPreview(
+                                            controller.filteredList[index],
                                           ),
                                           child: Container(
                                             decoration: BoxDecoration(

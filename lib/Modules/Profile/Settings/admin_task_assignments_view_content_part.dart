@@ -339,11 +339,8 @@ extension _AdminTaskAssignmentsViewContentPart
             stream: _assignmentRepository.watchAssignments(),
             builder: (context, snap) {
               if (snap.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: CircularProgressIndicator(),
-                  ),
+                return const AppStateView.loading(
+                  padding: EdgeInsets.symmetric(vertical: 20),
                 );
               }
               final docs = snap.data?.docs ?? const [];

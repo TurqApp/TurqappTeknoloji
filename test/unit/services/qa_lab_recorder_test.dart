@@ -180,7 +180,7 @@ void main() {
         label: 'short_loaded',
         surface: 'short',
         route: '/ShortView',
-        timestamp: now.subtract(const Duration(seconds: 5)),
+        timestamp: now.subtract(const Duration(seconds: 9)),
         probe: probe,
       ),
       QALabCheckpoint(
@@ -1186,7 +1186,37 @@ void main() {
         metadata: const <String, dynamic>{
           'videoId': 'post-2',
           'isAudible': false,
-          'hasStableFocus': false,
+          'hasStableFocus': true,
+        },
+      ),
+      QALabIssue(
+        id: 'audio_3',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(seconds: 1)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-3',
+          'isAudible': true,
+          'hasStableFocus': true,
+        },
+      ),
+      QALabIssue(
+        id: 'audio_4',
+        source: QALabIssueSource.video,
+        severity: QALabIssueSeverity.info,
+        code: 'video_session_ended',
+        message: 'Video session ended',
+        timestamp: now.subtract(const Duration(milliseconds: 500)),
+        route: '/NavBar',
+        surface: 'feed',
+        metadata: const <String, dynamic>{
+          'videoId': 'post-4',
+          'isAudible': false,
+          'hasStableFocus': true,
         },
       ),
     ]);
@@ -1206,31 +1236,41 @@ void main() {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
-    recorder.checkpoints.add(
+    final probe = <String, dynamic>{
+      'feed': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'centeredIndex': 0,
+        'centeredDocId': 'post-1',
+        'playbackSuspended': false,
+        'pauseAll': false,
+        'canClaimPlaybackNow': true,
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
       QALabCheckpoint(
-        id: 'cp11',
+        id: 'cp11a',
+        label: 'feed_runtime',
+        surface: 'feed',
+        route: '/NavBar',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
+      QALabCheckpoint(
+        id: 'cp11b',
         label: 'feed_runtime',
         surface: 'feed',
         route: '/NavBar',
         timestamp: now,
-        probe: <String, dynamic>{
-          'feed': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'centeredIndex': 0,
-            'centeredDocId': 'post-1',
-            'playbackSuspended': false,
-            'pauseAll': false,
-            'canClaimPlaybackNow': true,
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-        },
+        probe: probe,
       ),
-    );
+    ]);
     recorder.lastNativePlaybackSnapshot
       ..clear()
       ..addAll(<String, dynamic>{
@@ -2820,35 +2860,63 @@ void main() {
     final recorder = QALabRecorder();
     final now = DateTime.now();
 
-    recorder.checkpoints.add(
+    final probe = <String, dynamic>{
+      'short': <String, dynamic>{
+        'registered': true,
+        'count': 2,
+        'activeIndex': 0,
+        'activeDocId': 'short-1',
+      },
+      'auth': <String, dynamic>{
+        'currentUid': 'user-1',
+        'isFirebaseSignedIn': true,
+        'currentUserLoaded': true,
+      },
+      'videoPlayback': <String, dynamic>{
+        'registered': true,
+        'currentPlayingDocID': 'short-1',
+        'registeredHandleCount': 1,
+        'savedStateCount': 0,
+      },
+    };
+
+    recorder.checkpoints.addAll(<QALabCheckpoint>[
+      QALabCheckpoint(
+        id: 'cp_short_retry_warmup',
+        label: 'short_runtime',
+        surface: 'short',
+        route: '/ShortView',
+        timestamp: now.subtract(const Duration(seconds: 5)),
+        probe: probe,
+      ),
       QALabCheckpoint(
         id: 'cp_short_retry',
         label: 'short_runtime',
         surface: 'short',
         route: '/ShortView',
         timestamp: now,
-        probe: <String, dynamic>{
-          'short': <String, dynamic>{
-            'registered': true,
-            'count': 2,
-            'activeIndex': 0,
-            'activeDocId': 'short-1',
-          },
-          'auth': <String, dynamic>{
-            'currentUid': 'user-1',
-            'isFirebaseSignedIn': true,
-            'currentUserLoaded': true,
-          },
-          'videoPlayback': <String, dynamic>{
-            'registered': true,
-            'currentPlayingDocID': 'short-1',
-            'registeredHandleCount': 1,
-            'savedStateCount': 0,
-          },
-        },
+        probe: probe,
       ),
-    );
+    ]);
     recorder.timelineEvents.addAll(<QALabTimelineEvent>[
+      QALabTimelineEvent(
+        id: 'short_settle_warmup_1',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(seconds: 8)),
+        metadata: const <String, dynamic>{'docId': 'short-warmup-1'},
+      ),
+      QALabTimelineEvent(
+        id: 'short_settle_warmup_2',
+        category: 'scroll',
+        code: 'settled',
+        route: '/ShortView',
+        surface: 'short',
+        timestamp: now.subtract(const Duration(seconds: 6)),
+        metadata: const <String, dynamic>{'docId': 'short-warmup-2'},
+      ),
       QALabTimelineEvent(
         id: 'short_settle_retry',
         category: 'scroll',

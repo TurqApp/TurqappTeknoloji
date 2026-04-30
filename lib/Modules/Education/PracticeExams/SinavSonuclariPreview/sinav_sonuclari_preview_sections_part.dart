@@ -2,30 +2,9 @@ part of 'sinav_sonuclari_preview.dart';
 
 extension SinavSonuclariPreviewSectionsPart on _SinavSonuclariPreviewState {
   Widget _buildEmptyState(String text) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.black,
-              size: 40,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              text,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: 'MontserratMedium',
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return AppStateView.empty(
+      title: text,
+      icon: Icons.error_outline,
     );
   }
 

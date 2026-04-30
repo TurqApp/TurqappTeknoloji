@@ -20,18 +20,11 @@ extension _TutoringApplicationReviewContentPart
       bottom: false,
       child: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading(title: '');
         }
         if (controller.applicants.isEmpty) {
-          return Center(
-            child: Text(
-              'tutoring.no_applications'.tr,
-              style: const TextStyle(
-                fontFamily: 'MontserratMedium',
-                fontSize: 15,
-                color: Colors.grey,
-              ),
-            ),
+          return AppStateView.empty(
+            title: 'tutoring.no_applications'.tr,
           );
         }
         return ListView.builder(

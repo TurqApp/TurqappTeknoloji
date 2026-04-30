@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/education_result_navigation_service.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
-import 'package:turqappv2/Modules/Education/Tests/MyPastTestResultsPreview.dart/my_past_test_results_preview.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestPastResultContent/test_past_result_content_controller.dart';
 
 part 'test_past_result_content_state_part.dart';

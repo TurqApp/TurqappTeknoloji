@@ -141,9 +141,7 @@ extension EditPostControllerActionsPart on EditPostController {
       }
 
       bekle.value = true;
-      final docRef =
-          FirebaseFirestore.instance.collection('Posts').doc(model.docID);
-      final storage = FirebaseStorage.instance;
+      final storage = AppFirebaseStorage.instance;
 
       List<String> finalImageUrls = [];
       String? newVideoDownloadUrl;
@@ -158,14 +156,12 @@ extension EditPostControllerActionsPart on EditPostController {
               targetQuality: CompressionQuality.high,
             );
             final url = await WebpUploadService.uploadBytesAsWebp(
-              storage: storage,
               bytes: compressed.compressedData,
               storagePathWithoutExt: 'Posts/${model.docID}/images/image_$index',
             );
             finalImageUrls.add(CdnUrlBuilder.toCdnUrl(url));
           } catch (_) {
             final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-              storage: storage,
               file: file,
               storagePathWithoutExt: 'Posts/${model.docID}/images/image_$index',
             );
@@ -191,7 +187,6 @@ extension EditPostControllerActionsPart on EditPostController {
         );
 
         final thumbDownloadUrl = await WebpUploadService.uploadFileAsWebp(
-          storage: storage,
           file: File(localThumbPath),
           storagePathWithoutExt:
               'Posts/${model.docID}/thumbnails/${DateTime.now().millisecondsSinceEpoch}_thumb',
@@ -254,7 +249,10 @@ extension EditPostControllerActionsPart on EditPostController {
         }
       }
 
-      await docRef.update(data);
+      await PostRepository.ensure().updatePostData(
+        postId: model.docID,
+        data: data,
+      );
 
       try {
         final agendaCtrl = maybeFindAgendaController();

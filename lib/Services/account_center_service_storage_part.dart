@@ -2,7 +2,8 @@ part of 'account_center_service.dart';
 
 extension AccountCenterServiceStoragePart on AccountCenterService {
   Future<SharedPreferences> _ensurePrefs() async {
-    return _prefs ??= await SharedPreferences.getInstance();
+    return _prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
   }
 
   int _nextSortOrderForPinned(bool isPinned, {String? excludingUid}) {

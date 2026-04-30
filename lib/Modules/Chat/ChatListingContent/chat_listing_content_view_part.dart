@@ -39,7 +39,7 @@ extension ChatListingContentViewPart on ChatListingContent {
   Widget _buildAvatar(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Get.to(() => SocialProfile(userID: model.userID));
+        const ProfileNavigationService().openSocialProfile(model.userID);
       },
       child: ClipOval(
         child: SizedBox(
@@ -182,8 +182,8 @@ extension ChatListingContentViewPart on ChatListingContent {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final rowTs = int.tryParse(model.timeStamp) ?? 0;
     final seenAtMs = rowTs > nowMs ? rowTs : nowMs;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setInt(
       'chat_last_opened_${_uid}_${model.chatID}',
       seenAtMs,
     );

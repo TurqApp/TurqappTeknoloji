@@ -19,7 +19,7 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading();
         }
         final leaf = controller.selectedLeaf.value;
         return ListView(

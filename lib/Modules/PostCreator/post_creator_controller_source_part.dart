@@ -208,10 +208,10 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
       String targetDocID = docID;
 
       try {
-        await FirebaseFirestore.instance
-            .collection('Posts')
-            .doc(targetDocID)
-            .update(update);
+        await _postRepository.updatePostData(
+          postId: targetDocID,
+          data: update,
+        );
       } on FirebaseException catch (e) {
         if (e.code != 'not-found') rethrow;
         final resolvedId = await _postRepository.resolveDocumentIdByLegacyId(
@@ -222,10 +222,10 @@ extension PostCreatorControllerSourcePart on PostCreatorController {
           rethrow;
         }
         targetDocID = resolvedId;
-        await FirebaseFirestore.instance
-            .collection('Posts')
-            .doc(targetDocID)
-            .update(update);
+        await _postRepository.updatePostData(
+          postId: targetDocID,
+          data: update,
+        );
       }
 
       final agenda = maybeFindAgendaController();

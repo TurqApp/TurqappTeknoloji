@@ -9,7 +9,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     final cloned = items.map(_clone).toList(growable: false);
     final cachedAt = DateTime.now();
     _memory[uid] = _CachedStoryHighlights(items: cloned, cachedAt: cachedAt);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(uid),
       jsonEncode({
@@ -36,7 +36,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     StoryHighlightModel model,
   ) async {
     if (uid.isEmpty || model.id.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')
@@ -50,7 +50,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     required String storyId,
   }) async {
     if (uid.isEmpty || highlightId.isEmpty || storyId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')
@@ -67,7 +67,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     required String coverUrl,
   }) async {
     if (uid.isEmpty || highlightId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')
@@ -84,7 +84,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     required String coverUrl,
   }) async {
     if (uid.isEmpty || highlightId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')
@@ -97,7 +97,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
     required String highlightId,
   }) async {
     if (uid.isEmpty || highlightId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')
@@ -107,7 +107,7 @@ extension StoryHighlightsRepositoryActionPart on StoryHighlightsRepository {
 
   Future<void> invalidate(String uid) async {
     _memory.remove(uid);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKey(uid));
   }
 }

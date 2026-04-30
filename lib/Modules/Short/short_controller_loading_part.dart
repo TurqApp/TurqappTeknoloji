@@ -809,6 +809,53 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       _lastDoc = result.lastDoc;
+      if (shorts.isEmpty) {
+        final initialPlan = _shortFeedApplicationService.buildInitialLoadPlan(
+          currentShorts: const <PostsModel>[],
+          snapshotPosts: result.posts,
+          isEligiblePost: _isEligibleShortPost,
+          snapshotPostsPreplanned: result.postsPreplanned,
+        );
+        final replacementItems = initialPlan.replacementItems;
+        _log(
+          '[ShortLaunchMotorApply] mode=initial '
+          'prefilled=${result.postsPreplanned} fetched=${result.posts.length} '
+          'replacement=${replacementItems?.length ?? 0} '
+          'bootstrapNext=${initialPlan.shouldBootstrapNextPage}',
+        );
+        if (replacementItems != null && replacementItems.isNotEmpty) {
+          final nextItems = _applyStartupShortPresentationOrder(
+            replacementItems,
+          );
+          _recordShortFetchEvent(
+            stage: 'initial_apply',
+            trigger: trigger,
+            metadata: <String, dynamic>{
+              'replacementCount': nextItems.length,
+            },
+          );
+          debugPrint(
+            '[ShortColdStart] stage=first_assign trigger=$trigger '
+            'beforeCount=0 appendCount=${nextItems.length} '
+            'afterCount=${nextItems.length}',
+          );
+          shorts.addAll(nextItems);
+          schedulePersistVisibleSnapshot();
+        }
+        hasMore.value = result.hasMore;
+        _recordShortFetchEvent(
+          stage: 'completed',
+          trigger: trigger,
+          metadata: <String, dynamic>{
+            'returnedCount': result.posts.length,
+            'addedCount': replacementItems?.length ?? 0,
+            'currentCount': shorts.length,
+            'hasMore': result.hasMore,
+          },
+        );
+        return;
+      }
+
       final appendPlan = _shortFeedApplicationService.buildAppendPlan(
         currentShorts: shorts.toList(growable: false),
         fetchedPosts: result.posts,

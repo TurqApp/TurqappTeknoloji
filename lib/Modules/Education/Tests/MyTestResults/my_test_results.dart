@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Tests/MyTestResults/my_test_results_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestPastResultContent/test_past_result_content.dart';
 
@@ -67,32 +67,13 @@ class _MyTestResultsState extends State<MyTestResults> {
 
   Widget _buildContent() {
     if (controller.isLoading.value) {
-      return const Center(child: CupertinoActivityIndicator());
+      return const AppStateView.loading(title: '');
     }
 
     if (controller.list.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.info_outline,
-              color: Colors.black,
-              size: 40,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'tests.my_results_empty'.tr,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: 'Montserrat',
-              ),
-            ),
-          ],
-        ),
+      return AppStateView.empty(
+        title: 'tests.my_results_empty'.tr,
+        icon: Icons.info_outline,
       );
     }
 

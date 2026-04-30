@@ -1,6 +1,110 @@
 part of 'post_repository.dart';
 
 extension PostRepositorySharingPart on PostRepository {
+  Future<void> savePostData({
+    required String postId,
+    required Map<String, dynamic> data,
+  }) async {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('Posts').doc(normalizedPostId).set(data);
+  }
+
+  Future<void> updatePostData({
+    required String postId,
+    required Map<String, dynamic> data,
+  }) async {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('Posts').doc(normalizedPostId).update(data);
+  }
+
+  Future<Map<String, String>> fetchGeneratedShortLinkFromServer(
+    String postId,
+  ) async {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty) return const <String, String>{};
+    final snap = await _firestore
+        .collection('Posts')
+        .doc(normalizedPostId)
+        .get(const GetOptions(source: Source.server));
+    final data = snap.data() ?? const <String, dynamic>{};
+    return {
+      'shortId': (data['shortId'] ?? '').toString().trim(),
+      'shortUrl': (data['shortUrl'] ?? '').toString().trim(),
+    };
+  }
+
+  Future<void> preparePostShellForUpload({
+    required String postId,
+    required String userId,
+    required int timeStamp,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedPostId.isEmpty || normalizedUserId.isEmpty) return;
+    final ref = _firestore.collection('Posts').doc(normalizedPostId);
+    await ref.set({
+      'userID': normalizedUserId,
+      'timeStamp': timeStamp,
+      'isUploading': true,
+      'hlsStatus': 'none',
+    }, SetOptions(merge: true));
+    await _firestore.waitForPendingWrites();
+  }
+
+  Future<bool> isPostShellVisibleOnServer({
+    required String postId,
+    required String userId,
+  }) async {
+    final normalizedPostId = postId.trim();
+    final normalizedUserId = userId.trim();
+    if (normalizedPostId.isEmpty || normalizedUserId.isEmpty) return false;
+    final snap = await _firestore
+        .collection('Posts')
+        .doc(normalizedPostId)
+        .get(const GetOptions(source: Source.server));
+    final shellUserId = (snap.data()?['userID'] ?? '').toString();
+    return snap.exists && shellUserId == normalizedUserId;
+  }
+
+  Future<void> recordPostShare({
+    required String targetPostId,
+    required String userId,
+    required String sharedPostId,
+    required bool quotedPost,
+    bool merge = false,
+  }) async {
+    final normalizedTargetPostId = targetPostId.trim();
+    final normalizedUserId = userId.trim();
+    final normalizedSharedPostId = sharedPostId.trim();
+    if (normalizedTargetPostId.isEmpty ||
+        normalizedUserId.isEmpty ||
+        normalizedSharedPostId.isEmpty) {
+      return;
+    }
+    await _firestore
+        .collection('Posts')
+        .doc(normalizedTargetPostId)
+        .collection('postSharers')
+        .doc(normalizedUserId)
+        .set({
+      'userID': normalizedUserId,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'sharedPostID': normalizedSharedPostId,
+      'quotedPost': quotedPost,
+    }, SetOptions(merge: merge));
+    _postSharersMemory.remove(normalizedTargetPostId);
+  }
+
+  Future<void> incrementRetryCount(String postId) async {
+    final normalizedPostId = postId.trim();
+    if (normalizedPostId.isEmpty) return;
+    await _firestore.collection('Posts').doc(normalizedPostId).update({
+      'stats.retryCount': FieldValue.increment(1),
+    });
+  }
+
   int _asReshareInt(Object? value) {
     if (value is num) return value.toInt();
     return int.tryParse((value ?? '').toString()) ?? 0;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/tutoring_content.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class TutoringCategoryModel {
@@ -160,7 +160,8 @@ class TutoringCategoryWidget extends StatelessWidget {
         children: categories.map((category) {
           return GestureDetector(
             onTap: () {
-              Get.to(() => TutoringContent(categoryName: category.name));
+              const EducationDetailNavigationService()
+                  .openTutoringCategory(category.name);
             },
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 10),

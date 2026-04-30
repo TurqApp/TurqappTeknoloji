@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
 class TurqAppSuggestionAdminView extends StatefulWidget {
   const TurqAppSuggestionAdminView({super.key});
@@ -602,7 +603,7 @@ class _TurqAppSuggestionAdminViewState
   Widget _buildBody() {
     final overview = _inventoryOverview;
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppStateView.loading();
     }
     if (_errorText != null && _errorText!.trim().isNotEmpty) {
       return Center(

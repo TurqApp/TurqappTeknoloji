@@ -14,6 +14,73 @@ extension JobRepositoryActionPart on JobRepository {
     );
   }
 
+  Future<void> saveJobData({
+    required String jobDocId,
+    required Map<String, dynamic> data,
+    required bool updateExisting,
+  }) async {
+    if (jobDocId.trim().isEmpty || data.isEmpty) return;
+    final ref = _firestore.collection(JobCollection.name).doc(jobDocId.trim());
+    if (updateExisting) {
+      await ref.update(data);
+    } else {
+      await ref.set(data);
+    }
+    _memory.remove('doc:${jobDocId.trim()}');
+  }
+
+  Future<void> updateJobLogo({
+    required String jobDocId,
+    required String logoUrl,
+  }) async {
+    if (jobDocId.trim().isEmpty) return;
+    await _firestore.collection(JobCollection.name).doc(jobDocId.trim()).set(
+      {'logo': logoUrl},
+      SetOptions(merge: true),
+    );
+    _memory.remove('doc:${jobDocId.trim()}');
+  }
+
+  Future<void> markEnded(String jobDocId) async {
+    if (jobDocId.trim().isEmpty) return;
+    await _firestore.collection(JobCollection.name).doc(jobDocId.trim()).update(
+      {'ended': true},
+    );
+    _memory.remove('doc:${jobDocId.trim()}');
+  }
+
+  Future<void> markEndedBatch(List<String> jobDocIds) async {
+    final ids = jobDocIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final id in ids) {
+      batch.update(
+        _firestore.collection(JobCollection.name).doc(id),
+        {'ended': true},
+      );
+      _memory.remove('doc:$id');
+    }
+    await batch.commit();
+  }
+
+  Future<void> reactivateJob({
+    required String jobDocId,
+    required int timeStamp,
+  }) async {
+    if (jobDocId.trim().isEmpty) return;
+    await _firestore.collection(JobCollection.name).doc(jobDocId.trim()).update(
+      {
+        'ended': false,
+        'timeStamp': timeStamp,
+      },
+    );
+    _memory.remove('doc:${jobDocId.trim()}');
+  }
+
   Future<void> saveReview({
     required String jobDocId,
     required String userId,

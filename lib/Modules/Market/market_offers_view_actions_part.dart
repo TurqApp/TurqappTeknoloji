@@ -42,6 +42,6 @@ extension _MarketOffersViewActionsPart on _MarketOffersViewState {
       AppSnackbar('common.error'.tr, 'pasaj.market.listing_unavailable'.tr);
       return;
     }
-    await Get.to(() => MarketDetailView(item: item));
+    await const MarketDetailNavigationService().openMarketDetail(item);
   }
 }

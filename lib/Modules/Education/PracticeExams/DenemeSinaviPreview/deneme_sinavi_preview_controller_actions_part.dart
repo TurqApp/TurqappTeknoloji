@@ -58,16 +58,12 @@ extension DenemeSinaviPreviewControllerActionsPart
   }
 
   Future<void> _sinaviBitirAlertImpl() async {
-    FirebaseFirestore.instance
-        .collection("practiceExams")
-        .doc(model.docID)
-        .collection("SinaviBitenler")
-        .doc(DateTime.now().millisecondsSinceEpoch.toString())
-        .set({
-      "userID": _currentUserId,
-      "timeStamp": DateTime.now().millisecondsSinceEpoch,
-    });
-    SetOptions(merge: true);
+    unawaited(
+      _practiceExamRepository.markExamCompleted(
+        examId: model.docID,
+        userId: _currentUserId,
+      ),
+    );
 
     final summary = await _getLatestExamSummaryImpl();
     final resultText = summary == null
@@ -160,32 +156,10 @@ extension DenemeSinaviPreviewControllerActionsPart
     try {
       final currentUid = _currentUserId;
       if (currentUid.isEmpty) return;
-      final examRef = FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(model.docID);
-      final applicationRef = examRef.collection("Basvurular").doc(currentUid);
-      var alreadyApplied = false;
-
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final applicationDoc = await transaction.get(applicationRef);
-        if (applicationDoc.exists) {
-          alreadyApplied = true;
-          return;
-        }
-
-        final examDoc = await transaction.get(examRef);
-        final currentCount = ((examDoc.data() ??
-                const <String, dynamic>{})['participantCount'] as num?) ??
-            0;
-
-        transaction.set(applicationRef, {
-          "userID": currentUid,
-          "timeStamp": DateTime.now().millisecondsSinceEpoch,
-        });
-        transaction.update(examRef, {
-          "participantCount": currentCount.toInt() + 1,
-        });
-      });
+      final alreadyApplied = await _practiceExamRepository.applyToPracticeExam(
+        examId: model.docID,
+        userId: currentUid,
+      );
 
       await _practiceExamRepository.invalidateExamListingCaches(
         examId: model.docID,

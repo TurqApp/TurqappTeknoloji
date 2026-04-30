@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Models/stored_account.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_application_service.dart';
@@ -150,6 +151,61 @@ void main() {
       expect(result.recoveredAfterAuth, isTrue);
     });
 
+    test('signInWithPassword stops post-auth work after auth failure',
+        () async {
+      final steps = <String>[];
+      final service = SignInApplicationService(
+        passwordSignIn: ({
+          required String email,
+          required String password,
+        }) async {
+          throw FirebaseAuthException(
+            code: 'wrong-password',
+            message: 'Wrong password',
+          );
+        },
+        authUserIdProvider: () => 'uid-should-not-be-used',
+        beginSessionClaim: (uid) => steps.add('claim:$uid'),
+        registerCurrentDeviceSession: () async {
+          steps.add('register-device');
+        },
+        schedulePostAuthTasks: (email) async {
+          steps.add('post-auth:$email');
+        },
+      );
+
+      final result = await service.signInWithPassword(
+        email: 'osman@example.com',
+        password: 'bad-secret',
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.failureCode, 'wrong-password');
+      expect(steps, isEmpty);
+    });
+
+    test('signInWithPassword reports generic failure before auth success',
+        () async {
+      final service = SignInApplicationService(
+        passwordSignIn: ({
+          required String email,
+          required String password,
+        }) async {
+          throw StateError('network unavailable before auth');
+        },
+        hasAuthUserProvider: () => false,
+      );
+
+      final result = await service.signInWithPassword(
+        email: 'osman@example.com',
+        password: 'secret',
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.recoveredAfterAuth, isFalse);
+      expect(result.failureCode, isNull);
+    });
+
     test('controller sign-in methods delegate to application service layer',
         () {
       final authSource = File(
@@ -168,6 +224,14 @@ void main() {
         contains('_signInApplicationService.signInWithStoredAccount'),
       );
       expect(
+        authSource,
+        contains('_signInApplicationService.signInForPasswordReset'),
+      );
+      expect(
+        authSource,
+        contains('_signInApplicationService.runForegroundPostAuthBootstrap'),
+      );
+      expect(
         accountSource,
         contains('_signInApplicationService.continueWithStoredAccount'),
       );
@@ -175,6 +239,22 @@ void main() {
         accountSource,
         contains(
             '_signInApplicationService.preferredIdentifierForStoredAccount'),
+      );
+    });
+
+    test('controller signup methods delegate auth creation to service layer',
+        () {
+      final signupSource = File(
+        '/Users/turqapp/Desktop/TurqApp/lib/Modules/SignIn/sign_in_controller_signup_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        signupSource,
+        contains('_signInApplicationService.createAuthUserForSignup'),
+      );
+      expect(
+        signupSource,
+        isNot(contains('FirebaseAuth.instance.createUserWithEmailAndPassword')),
       );
     });
 

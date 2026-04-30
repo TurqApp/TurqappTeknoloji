@@ -19,7 +19,7 @@ abstract class _DraftServiceBase extends GetxService {
 void _handleDraftServiceInit(DraftService service) {
   service._loadDraftsFromStorage();
   service._loadSettings();
-  service._authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+  service._authSub ??= AppFirebaseAuth.instance.authStateChanges().listen((_) {
     unawaited(service._loadDraftsFromStorage());
   });
 }

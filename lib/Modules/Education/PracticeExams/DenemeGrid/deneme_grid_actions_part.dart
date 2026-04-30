@@ -48,7 +48,7 @@ extension _DenemeGridActionsPart on DenemeGrid {
               color: Colors.purpleAccent,
               onTap: () {
                 Get.back();
-                Get.to(() => DenemeSinaviPreview(model: model));
+                const PracticeExamNavigationService().openPreview(model);
               },
             ),
             4.ph,
@@ -79,7 +79,8 @@ extension _DenemeGridActionsPart on DenemeGrid {
               color: Colors.indigo,
               onTap: () {
                 Get.back();
-                Get.to(() => SinavHazirla(sinavModel: model));
+                const PracticeExamNavigationService()
+                    .openCreatePracticeExam(model: model);
               },
             ),
             4.ph,
@@ -93,7 +94,7 @@ extension _DenemeGridActionsPart on DenemeGrid {
       );
       return;
     }
-    Get.to(() => DenemeSinaviPreview(model: model));
+    const PracticeExamNavigationService().openPreview(model);
   }
 
   Widget _ownerAction({

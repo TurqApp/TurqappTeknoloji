@@ -20,7 +20,7 @@ class OpticalFormRepository extends _OpticalFormRepositoryBase {
 
 abstract class _OpticalFormRepositoryBase extends GetxService {
   _OpticalFormRepositoryBase({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   static const Duration _ttl = Duration(hours: 6);
@@ -32,7 +32,9 @@ abstract class _OpticalFormRepositoryBase extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _prefs = prefs);
   }
 }
 

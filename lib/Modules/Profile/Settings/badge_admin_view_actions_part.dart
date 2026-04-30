@@ -53,7 +53,7 @@ extension _BadgeAdminViewActionsPart on _BadgeAdminViewState {
         return;
       }
 
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('setUserBadgeByNickname');
       final response = await callable.call<Map<String, dynamic>>({
         'nickname': nickname,

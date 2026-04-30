@@ -6,12 +6,10 @@ extension _LikedPostsContentPart on _LikedPostsState {
     required String emptyText,
   }) {
     if (controller.isLoading.value && posts.isEmpty) {
-      return const Center(
-        child: CupertinoActivityIndicator(color: Colors.grey),
-      );
+      return const AppStateView.loading(title: '');
     }
     if (posts.isEmpty) {
-      return Center(child: EmptyRow(text: emptyText));
+      return AppStateView.empty(title: emptyText);
     }
 
     return SizedBox.expand(

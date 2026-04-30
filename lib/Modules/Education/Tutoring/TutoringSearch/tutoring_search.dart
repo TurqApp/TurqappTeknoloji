@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/info_message.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringSearch/tutoring_search_controller.dart';
@@ -72,13 +72,13 @@ class _TutoringSearchState extends State<TutoringSearch> {
                   padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Obx(() {
                     if (!viewModeController.isReady.value) {
-                      return const Center(child: CupertinoActivityIndicator());
+                      return const AppStateView.loading(title: '');
                     }
                     if (controller.isLoading.value) {
-                      return const Center(child: CupertinoActivityIndicator());
+                      return const AppStateView.loading(title: '');
                     } else if (controller.searchResults.isEmpty) {
-                      return Center(
-                        child: Text('tutoring.search_empty'.tr),
+                      return AppStateView.empty(
+                        title: 'tutoring.search_empty'.tr,
                       );
                     } else {
                       return SingleChildScrollView(

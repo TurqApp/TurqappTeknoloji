@@ -3,10 +3,10 @@ part of 'explore_view.dart';
 extension _ExploreViewTabsPart on _ExploreViewState {
   Future<List<String>> _loadFloodRotationHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored =
-          prefs.getStringList(_ExploreViewState._floodRotationPrefsKey) ??
-              const [];
+      final stored = await ensureLocalPreferenceRepository().getStringList(
+            _ExploreViewState._floodRotationPrefsKey,
+          ) ??
+          const [];
       return stored
           .map((id) => id.trim())
           .where((id) => id.isNotEmpty)
@@ -19,13 +19,12 @@ extension _ExploreViewTabsPart on _ExploreViewState {
 
   Future<void> _persistFloodRotationHistory(List<PostsModel> ordered) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final topIds = ordered
           .map((post) => post.docID.trim())
           .where((id) => id.isNotEmpty)
           .take(_ExploreViewState._floodRotationMemoryCount)
           .toList(growable: false);
-      await prefs.setStringList(
+      await ensureLocalPreferenceRepository().setStringList(
         _ExploreViewState._floodRotationPrefsKey,
         topIds,
       );
@@ -224,8 +223,8 @@ extension _ExploreViewTabsPart on _ExploreViewState {
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.3,
                   ),
-                  Center(
-                    child: EmptyRow(text: 'explore.no_results'.tr),
+                  AppStateView.empty(
+                    title: 'explore.no_results'.tr,
                   ),
                 ],
               )
@@ -329,116 +328,122 @@ extension _ExploreViewTabsPart on _ExploreViewState {
           controller.resumeExplorePreview();
         },
         child: list.isEmpty && !controller.exploreIsLoading.value
-            ? Center(child: EmptyRow(text: 'explore.no_results'.tr))
-            : GridView.builder(
-                key: const PageStorageKey('Explore_SanaOzel'),
-                controller: controller.exploreScroll,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 1,
-                  crossAxisSpacing: 1,
-                  childAspectRatio: 0.68,
-                ),
-                itemCount:
-                    list.length + (controller.exploreHasMore.value ? 1 : 0),
-                itemBuilder: (context, i) {
-                  if (i == list.length) {
-                    return const Center(child: CupertinoActivityIndicator());
-                  }
-                  final model = list[i];
-                  final shouldPlayPreview = _shouldPlayExplorePreview(i);
-                  return RepaintBoundary(
-                    child: GestureDetector(
-                      onTap: () async {
-                        controller.suspendExplorePreview(
-                          focusIndex: i,
-                        );
-                        if (model.floodCount > 1) {
-                          await VideoControllerPool.pauseAll();
-                          await Get.to(() => FloodListing(
-                                mainModel: model,
-                                hostSurface:
-                                    FloodListingHostSurface.exploreSeries,
-                              ));
-                          controller.resumeExplorePreview();
-                          return;
-                        }
-                        await VideoControllerPool.pauseAll();
-                        final videos = list;
-                        await Get.to(
-                          () => SingleShortView(
-                            startList: videos,
-                            startModel: model,
-                          ),
-                        );
-                        controller.resumeExplorePreview();
-                      },
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildCoverFrame(
-                            aspectRatio: _safeAspectRatio(model.aspectRatio),
-                            child: shouldPlayPreview
-                                ? SmartMiniVideoPlayer(
-                                    key: ValueKey(
-                                      'explore_preview_${model.docID}_${model.playbackUrl}',
-                                    ),
-                                    videoUrl: model.playbackUrl,
-                                    thumbnailUrl: model.thumbnail,
-                                    visibilityKey: "${model.docID}_$i",
-                                    muted: true,
-                                    aspectRatio:
-                                        _safeAspectRatio(model.aspectRatio),
-                                    useAspectRatio: true,
-                                  )
-                                : CachedNetworkImage(
-                                    imageUrl: model.thumbnail,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 200,
-                                    memCacheHeight: 600,
-                                    placeholder: (c, u) => Container(
-                                      color: Colors.grey[300],
-                                    ),
-                                    errorWidget: (c, u, e) =>
-                                        const Icon(Icons.error),
-                                  ),
-                          ),
-                          Positioned(
-                            bottom: 6,
-                            left: 6,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  shouldPlayPreview
-                                      ? CupertinoIcons.play_circle_fill
-                                      : CupertinoIcons.eye,
-                                  color: Colors.white,
-                                  size: 13,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _formatCountCompact(model.stats.statsCount),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontFamily: "MontserratBold",
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (model.floodCount > 1)
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Texts.colorfulFloodForExplore,
-                            ),
-                        ],
-                      ),
+            ? AppStateView.empty(title: 'explore.no_results'.tr)
+            : list.isEmpty && controller.exploreIsLoading.value
+                ? const AppStateView.loading(title: '')
+                : GridView.builder(
+                    key: const PageStorageKey('Explore_SanaOzel'),
+                    controller: controller.exploreScroll,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 1,
+                      crossAxisSpacing: 1,
+                      childAspectRatio: 0.68,
                     ),
-                  );
-                },
-              ),
+                    itemCount:
+                        list.length + (controller.exploreHasMore.value ? 1 : 0),
+                    itemBuilder: (context, i) {
+                      if (i == list.length) {
+                        return const Center(
+                            child: CupertinoActivityIndicator());
+                      }
+                      final model = list[i];
+                      final shouldPlayPreview = _shouldPlayExplorePreview(i);
+                      return RepaintBoundary(
+                        child: GestureDetector(
+                          onTap: () async {
+                            controller.suspendExplorePreview(
+                              focusIndex: i,
+                            );
+                            if (model.floodCount > 1) {
+                              await VideoControllerPool.pauseAll();
+                              await Get.to(() => FloodListing(
+                                    mainModel: model,
+                                    hostSurface:
+                                        FloodListingHostSurface.exploreSeries,
+                                  ));
+                              controller.resumeExplorePreview();
+                              return;
+                            }
+                            await VideoControllerPool.pauseAll();
+                            final videos = list;
+                            await Get.to(
+                              () => SingleShortView(
+                                startList: videos,
+                                startModel: model,
+                              ),
+                            );
+                            controller.resumeExplorePreview();
+                          },
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildCoverFrame(
+                                aspectRatio:
+                                    _safeAspectRatio(model.aspectRatio),
+                                child: shouldPlayPreview
+                                    ? SmartMiniVideoPlayer(
+                                        key: ValueKey(
+                                          'explore_preview_${model.docID}_${model.playbackUrl}',
+                                        ),
+                                        videoUrl: model.playbackUrl,
+                                        thumbnailUrl: model.thumbnail,
+                                        visibilityKey: "${model.docID}_$i",
+                                        muted: true,
+                                        aspectRatio:
+                                            _safeAspectRatio(model.aspectRatio),
+                                        useAspectRatio: true,
+                                      )
+                                    : CachedNetworkImage(
+                                        imageUrl: model.thumbnail,
+                                        fit: BoxFit.cover,
+                                        memCacheWidth: 200,
+                                        memCacheHeight: 600,
+                                        placeholder: (c, u) => Container(
+                                          color: Colors.grey[300],
+                                        ),
+                                        errorWidget: (c, u, e) =>
+                                            const Icon(Icons.error),
+                                      ),
+                              ),
+                              Positioned(
+                                bottom: 6,
+                                left: 6,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      shouldPlayPreview
+                                          ? CupertinoIcons.play_circle_fill
+                                          : CupertinoIcons.eye,
+                                      color: Colors.white,
+                                      size: 13,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatCountCompact(
+                                          model.stats.statsCount),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontFamily: "MontserratBold",
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (model.floodCount > 1)
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Texts.colorfulFloodForExplore,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
       );
     });
   }
@@ -449,8 +454,11 @@ extension _ExploreViewTabsPart on _ExploreViewState {
       final focusedIndex = controller.resolveFloodSeriesFocusIndex();
       final showLoader =
           controller.floodsHasMore.value && controller.floodsIsLoading.value;
+      if (list.isEmpty && controller.floodsIsLoading.value) {
+        return const AppStateView.loading(title: '');
+      }
       if (list.isEmpty && !controller.floodsIsLoading.value) {
-        return Center(child: EmptyRow(text: 'explore.no_series'.tr));
+        return AppStateView.empty(title: 'explore.no_series'.tr);
       }
       return RefreshIndicator(
         backgroundColor: Colors.black,

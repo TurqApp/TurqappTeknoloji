@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 
 class TypesenseUserService {
   TypesenseUserService._();
@@ -13,14 +14,14 @@ class TypesenseUserService {
 
   final List<({String label, FirebaseFunctions fn})> _targets =
       <({String label, FirebaseFunctions fn})>[
-    (label: 'default', fn: FirebaseFunctions.instance),
+    (label: 'default', fn: AppCloudFunctions.instance),
     (
       label: 'us-central1',
-      fn: FirebaseFunctions.instanceFor(region: 'us-central1'),
+      fn: AppCloudFunctions.instanceFor(region: 'us-central1'),
     ),
     (
       label: 'europe-west1',
-      fn: FirebaseFunctions.instanceFor(region: 'europe-west1'),
+      fn: AppCloudFunctions.instanceFor(region: 'europe-west1'),
     ),
   ];
 

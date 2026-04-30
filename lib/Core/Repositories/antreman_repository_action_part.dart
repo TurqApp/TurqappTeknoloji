@@ -81,7 +81,7 @@ extension AntremanRepositoryActionPart on AntremanRepository {
     }
 
     final isCorrect = selectedAnswer == question.dogruCevap;
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     final currentAntPoint = prefs.getInt(_localScorePrefsKey(userId)) ??
         ((userData['antPoint'] ?? 100) as num).toInt();
     int newAntPoint = isCorrect ? currentAntPoint + 10 : currentAntPoint - 3;

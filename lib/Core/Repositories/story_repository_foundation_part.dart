@@ -1,6 +1,22 @@
 part of 'story_repository.dart';
 
 extension StoryRepositoryFoundationPart on StoryRepository {
+  String createStoryDocumentId() {
+    return AppFirestore.instance.collection('stories').doc().id;
+  }
+
+  Future<void> saveStoryData({
+    required String storyId,
+    required Map<String, dynamic> storyData,
+  }) async {
+    final normalizedStoryId = storyId.trim();
+    if (normalizedStoryId.isEmpty || storyData.isEmpty) return;
+    await AppFirestore.instance
+        .collection('stories')
+        .doc(normalizedStoryId)
+        .set(storyData);
+  }
+
   UserProfileCacheService _resolveUserCache() {
     return ensureUserProfileCacheService();
   }
@@ -36,7 +52,7 @@ extension StoryRepositoryFoundationPart on StoryRepository {
   }
 
   Future<void> _performEnsureInitialized() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     if (_storyRowCacheDirectoryPath != null) return;
     final dir = await getApplicationSupportDirectory();
     final storyDir = Directory('${dir.path}/story_mini_cache');

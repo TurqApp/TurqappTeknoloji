@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/OpticalFormContent/optical_form_content.dart';
@@ -54,11 +54,8 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
       controller: _scrollController,
       child: Obx(
         () => controller.isLoading.value
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: CupertinoActivityIndicator(),
-                ),
+            ? const AppStateView.loading(
+                padding: EdgeInsets.only(top: 40),
               )
             : Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -91,11 +88,8 @@ class _OpticsAndBooksPublishedState extends State<OpticsAndBooksPublished> {
       controller: _scrollController,
       child: Obx(
         () => controller.selection.value == 1 && controller.isLoading.value
-            ? const Center(
-                child: Padding(
-                  padding: EdgeInsets.only(top: 40),
-                  child: CupertinoActivityIndicator(),
-                ),
+            ? const AppStateView.loading(
+                padding: EdgeInsets.only(top: 40),
               )
             : ListView.builder(
                 shrinkWrap: true,

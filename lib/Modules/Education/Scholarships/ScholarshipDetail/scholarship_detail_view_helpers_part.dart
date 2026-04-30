@@ -206,7 +206,7 @@ extension ScholarshipDetailViewHelpersPart on ScholarshipDetailView {
       return;
     }
 
-    Get.to(SocialProfile(userID: trimmedUserId));
+    const ProfileNavigationService().openSocialProfile(trimmedUserId);
   }
 
   String _truncateLabel(String value, {required int maxChars}) {

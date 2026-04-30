@@ -13,7 +13,7 @@ extension _AntremanViewShellContentPart on AntremanView2 {
             icon: CupertinoIcons.repeat,
             onTap: () {
               controller.fetchSavedQuestions();
-              Get.to(() => ThenSolve());
+              const EducationQuestionBankNavigationService().openThenSolve();
             },
           ),
         ],

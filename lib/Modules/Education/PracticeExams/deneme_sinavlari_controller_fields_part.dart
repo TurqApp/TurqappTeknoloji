@@ -9,6 +9,7 @@ class _DenemeSinavlariControllerState {
   final userSummaryResolver = UserSummaryResolver.ensure();
   final practiceExamSnapshotRepository = ensurePracticeExamSnapshotRepository();
   final practiceExamRepository = ensurePracticeExamRepository();
+  final localPreferenceRepository = ensureLocalPreferenceRepository();
   final list = <SinavModel>[].obs;
   final okul = false.obs;
   final showButons = false.obs;
@@ -37,6 +38,8 @@ extension DenemeSinavlariControllerFieldsPart on DenemeSinavlariController {
       _state.practiceExamSnapshotRepository;
   PracticeExamRepository get _practiceExamRepository =>
       _state.practiceExamRepository;
+  LocalPreferenceRepository get _localPreferenceRepository =>
+      _state.localPreferenceRepository;
   RxList<SinavModel> get list => _state.list;
   RxBool get okul => _state.okul;
   RxBool get showButons => _state.showButons;

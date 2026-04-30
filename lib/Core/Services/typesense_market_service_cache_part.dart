@@ -15,7 +15,7 @@ extension TypesenseMarketSearchServiceCachePart
 
   Future<void> _performInvalidateAll() async {
     _memory.clear();
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs
@@ -50,7 +50,7 @@ extension TypesenseMarketSearchServiceCachePart
       return true;
     });
 
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {
@@ -91,7 +91,7 @@ extension TypesenseMarketSearchServiceCachePart
   }
 
   Future<_CachedMarketSearchResult?> _getCachedFromPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(key);
     final raw = prefs?.getString(prefsKey);
@@ -163,7 +163,7 @@ extension TypesenseMarketSearchServiceCachePart
       items: cloned,
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(key),
       jsonEncode(<String, dynamic>{

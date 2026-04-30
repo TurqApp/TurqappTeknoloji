@@ -275,8 +275,8 @@ extension JobDetailsControllerActionsPart on JobDetailsController {
   }
 
   Future<void> goToEdit() async {
-    final result =
-        await Get.to<JobModel?>(JobCreator(existingJob: model.value));
+    final result = await const EducationDetailNavigationService()
+        .openJobCreator(existingJob: model.value);
     if (result != null) {
       try {
         final refreshed = await _jobRepository.fetchById(

@@ -84,14 +84,14 @@ extension DraftServiceDraftsPart on DraftService {
 
   Future<void> setAutoSaveEnabled(bool enabled) async {
     _autoSaveEnabled.value = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(DraftService._autoSaveKey, enabled);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setBool(DraftService._autoSaveKey, enabled);
   }
 
   Future<void> setAutoSaveInterval(int seconds) async {
     _autoSaveInterval.value = seconds;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('auto_save_interval', seconds);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.setInt('auto_save_interval', seconds);
   }
 
   Map<String, dynamic> getDraftStats() {

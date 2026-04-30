@@ -5,18 +5,9 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(CupertinoIcons.clock, size: 40, color: Colors.grey),
-          const SizedBox(height: 12),
-          Text(
-            'story.deleted_stories.empty'.tr,
-            style: const TextStyle(color: Colors.grey),
-          ),
-        ],
-      ),
+    return AppStateView.empty(
+      title: 'story.deleted_stories.empty'.tr,
+      icon: CupertinoIcons.clock,
     );
   }
 }

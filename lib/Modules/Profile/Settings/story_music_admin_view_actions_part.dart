@@ -62,7 +62,6 @@ extension StoryMusicAdminViewActionsPart on _StoryMusicAdminViewState {
           ? _editingDocId
           : DateTime.now().millisecondsSinceEpoch.toString();
       final coverUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: 'storyMusic/$itemId/cover',
       );

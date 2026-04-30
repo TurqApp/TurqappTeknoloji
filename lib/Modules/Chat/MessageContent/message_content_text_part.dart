@@ -6,7 +6,7 @@ extension MessageContentTextPart on MessageContent {
     if (nick.isEmpty) return;
     final uid = await UsernameLookupRepository.ensure().findUidForHandle(nick);
     if (uid == null || uid.isEmpty) return;
-    Get.to(() => SocialProfile(userID: uid));
+    await const ProfileNavigationService().openSocialProfile(uid);
   }
 
   List<InlineSpan> _buildInteractiveSpans(String text, TextStyle baseStyle) {

@@ -59,7 +59,7 @@ extension MarketRepositoryActionPart on MarketRepository {
   }) async {
     if (docId.isEmpty || userId.isEmpty) return;
     try {
-      await FirebaseFunctions.instanceFor(region: 'europe-west1')
+      await AppCloudFunctions.instanceFor(region: 'europe-west1')
           .httpsCallable('recordMarketViewBatch')
           .call({
         'items': [

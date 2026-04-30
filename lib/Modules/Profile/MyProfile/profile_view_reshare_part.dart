@@ -124,7 +124,10 @@ extension _ProfileViewResharePart on _ProfileViewState {
           )
         else
           SliverToBoxAdapter(
-            child: Center(child: EmptyRow(text: "profile.no_reshares".tr)),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: "profile.no_reshares".tr),
+            ),
           ),
       ],
     );

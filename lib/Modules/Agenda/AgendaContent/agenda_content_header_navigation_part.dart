@@ -269,8 +269,9 @@ extension AgendaContentHeaderNavigationPart on _AgendaContentState {
     }
 
     videoController?.pause();
-    final route = Get.to(() => SocialProfile(userID: widget.model.userID));
-    route?.then((_) {
+    final route =
+        const ProfileNavigationService().openSocialProfile(widget.model.userID);
+    route.then((_) {
       _restoreAgendaFeedCenter();
     });
   }

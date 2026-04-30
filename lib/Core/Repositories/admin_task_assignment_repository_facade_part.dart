@@ -15,7 +15,7 @@ AdminTaskAssignmentRepository ensureAdminTaskAssignmentRepository() {
 extension AdminTaskAssignmentRepositoryFacadePart
     on AdminTaskAssignmentRepository {
   CollectionReference<Map<String, dynamic>> get _ref =>
-      FirebaseFirestore.instance.collection('adminTaskAssignments');
+      AppFirestore.instance.collection('adminTaskAssignments');
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchAssignments() {
     return _ref.orderBy('updatedAt', descending: true).snapshots();

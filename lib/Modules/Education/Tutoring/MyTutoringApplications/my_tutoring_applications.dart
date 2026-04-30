@@ -2,8 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
 import 'my_tutoring_applications_controller.dart';
 
@@ -52,7 +52,7 @@ class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CupertinoActivityIndicator());
+          return const AppStateView.loading(title: '');
         }
 
         return RefreshIndicator(
@@ -61,9 +61,11 @@ class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
             padding: const EdgeInsets.fromLTRB(0, 10, 0, 24),
             children: [
               if (controller.applications.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 60),
-                  child: EmptyRow(text: "tutoring.my_applications_empty".tr),
+                SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.55,
+                  child: AppStateView.empty(
+                    title: "tutoring.my_applications_empty".tr,
+                  ),
                 )
               else
                 ...controller.applications.map(_applicationCard),

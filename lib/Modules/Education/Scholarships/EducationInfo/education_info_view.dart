@@ -6,11 +6,11 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/container_buttons.dart';
-import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Utils/turkish_sort.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -104,7 +104,7 @@ class _EducationInfoViewState extends State<EducationInfoView> {
                     if (controller.isInitialLoading.value ||
                         controller.isLoading.value)
                       Expanded(
-                        child: Center(child: CupertinoActivityIndicator()),
+                        child: AppStateView.loading(),
                       ),
                   ],
                 ),

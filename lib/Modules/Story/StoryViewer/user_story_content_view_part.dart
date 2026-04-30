@@ -228,8 +228,9 @@ extension UserStoryContentViewPart on _UserStoryContentState {
           GestureDetector(
             onTap: () async {
               await _pauseCurrentStoryPlayback();
-              Get.to(() => SocialProfile(userID: currentUser.userID))
-                  ?.then((_) {
+              const ProfileNavigationService()
+                  .openSocialProfile(currentUser.userID)
+                  .then((_) {
                 if (mounted) {
                   unawaited(_resumeCurrentStoryPlayback());
                 }
@@ -256,9 +257,9 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                       GestureDetector(
                         onTap: () async {
                           await _pauseCurrentStoryPlayback();
-                          Get.to(() =>
-                                  SocialProfile(userID: currentUser.userID))
-                              ?.then((_) {
+                          const ProfileNavigationService()
+                              .openSocialProfile(currentUser.userID)
+                              .then((_) {
                             if (mounted) {
                               unawaited(_resumeCurrentStoryPlayback());
                             }

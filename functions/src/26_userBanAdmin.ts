@@ -1,6 +1,9 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { RateLimits } from "./rateLimiter";
+import {
+  bannedAdminCollection,
+  requireCallableAdminUid,
+} from "./adminAccess";
 
 if (admin.apps.length === 0) {
   admin.initializeApp();
@@ -21,26 +24,7 @@ function ensureAuth(context: functions.https.CallableContext) {
 
 async function ensureAdmin(context: functions.https.CallableContext) {
   ensureAuth(context);
-  const uid = context.auth!.uid;
-  const claims = context.auth?.token as { admin?: unknown } | undefined;
-  if (claims?.admin === true) {
-    RateLimits.admin(uid);
-    return;
-  }
-
-  const allowSnap = await db.doc("adminConfig/admin").get();
-  const allowedRaw = allowSnap.data()?.allowedUserIds;
-  if (Array.isArray(allowedRaw)) {
-    const allowed = allowedRaw
-      .map((value: unknown) => String(value ?? "").trim())
-      .filter((value: string) => value.length > 0);
-    if (allowed.includes(uid)) {
-      RateLimits.admin(uid);
-      return;
-    }
-  }
-
-  throw new functions.https.HttpsError("permission-denied", "admin_required");
+  await requireCallableAdminUid(context.auth, db);
 }
 
 function normalizeNickname(raw: unknown): string {
@@ -118,11 +102,7 @@ async function writeBanState(
   const displayName = String(userDoc.get("displayName") || "").trim();
   const avatarUrl = String(userDoc.get("avatarUrl") || "").trim();
   const rozet = String(userDoc.get("rozet") || "").trim();
-  const bannedRef = db
-    .collection("adminConfig")
-    .doc("admin")
-    .collection("bannedUser")
-    .doc(userDoc.id);
+  const bannedRef = bannedAdminCollection(db).doc(userDoc.id);
 
   if (action === "clear") {
     await userDoc.ref.set(

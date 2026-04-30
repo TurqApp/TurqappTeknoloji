@@ -80,7 +80,7 @@ extension _TestsSectionsPart on _TestsState {
 
   Widget _buildSearchField() {
     return GestureDetector(
-      onTap: () => Get.to(() => SearchTests()),
+      onTap: () => const EducationTestNavigationService().openSearchTests(),
       child: Container(
         color: Colors.white,
         child: Padding(

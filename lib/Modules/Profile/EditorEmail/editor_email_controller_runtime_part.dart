@@ -2,7 +2,7 @@ part of 'editor_email_controller_library.dart';
 
 extension _EditorEmailControllerRuntimeX on EditorEmailController {
   void seedFromCurrentSources() {
-    final authUser = FirebaseAuth.instance.currentUser;
+    final authUser = _userService.currentAuthUser;
     final currentUser = _userService.currentUser;
     final seededEmail = currentUser?.email.trim().isNotEmpty == true
         ? currentUser!.email.trim()
@@ -29,8 +29,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
       emailController.text = rawEmail;
     }
     final firestoreVerified = data['emailVerified'] == true;
-    final authVerified =
-        FirebaseAuth.instance.currentUser?.emailVerified == true;
+    final authVerified = _userService.currentAuthUser?.emailVerified == true;
     isEmailConfirmed.value = firestoreVerified || authVerified;
   }
 
@@ -44,7 +43,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _userService.currentAuthUser;
     final email = normalizeEmailAddress(emailController.text);
     if (user == null) {
       AppSnackbar('common.info'.tr, 'editor_email.session_missing'.tr);
@@ -57,7 +56,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
     isBusy.value = true;
     try {
       await user.getIdToken(true);
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('sendEmailVerificationCode')
           .call({
         'email': email,
@@ -92,7 +91,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
   Future<void> verifyAndConfirmEmail() async {
     if (isBusy.value) return;
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _userService.currentAuthUser;
     final email = normalizeEmailAddress(emailController.text);
     final code = codeController.text.trim();
 
@@ -114,7 +113,7 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
       await user.getIdToken(true);
       final idToken = await user.getIdToken();
 
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('verifyEmailCode')
           .call({
         'email': email,
@@ -123,11 +122,11 @@ extension _EditorEmailControllerRuntimeX on EditorEmailController {
         'idToken': idToken,
       });
 
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('markCurrentEmailVerified')
           .call({'idToken': idToken});
 
-      await FirebaseAuth.instance.currentUser?.reload();
+      await _userService.reloadCurrentAuthUser();
       await _userService.refreshEmailVerificationStatus(
         reloadAuthUser: true,
       );

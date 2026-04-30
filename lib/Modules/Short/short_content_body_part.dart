@@ -154,165 +154,162 @@ extension ShortsContentBodyPart on _ShortsContentState {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            GestureDetector(
-                              onTap: _openAvatarStoryOrProfile,
-                              child: SizedBox(
-                                width: 35,
-                                height: 35,
-                                child: CachedUserAvatar(
-                                  userId: model.userID,
-                                  imageUrl: controller.avatarUrl.value,
-                                  radius: 17.5,
-                                ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: _openAvatarStoryOrProfile,
+                            child: SizedBox(
+                              width: 35,
+                              height: 35,
+                              child: CachedUserAvatar(
+                                userId: model.userID,
+                                imageUrl: controller.avatarUrl.value,
+                                radius: 17.5,
                               ),
                             ),
-                            const SizedBox(width: 7),
-                            Expanded(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: _openAuthorProfile,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            controller.fullName.value,
-                                            maxLines: 1,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 14,
-                                              fontFamily:
-                                                  AppFontFamilies.mbold,
-                                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _openAuthorProfile,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          controller.fullName.value,
+                                          maxLines: 1,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontFamily: AppFontFamilies.mbold,
                                           ),
                                         ),
-                                        RozetContent(
-                                          size: 14,
-                                          userID: model.userID,
-                                          rozetValue: model.rozet,
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      controller.nickname.value.trim().isEmpty
-                                          ? ''
-                                          : '@${controller.nickname.value.trim()}',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 12,
-                                        fontFamily: AppFontFamilies.mregular,
                                       ),
+                                      RozetContent(
+                                        size: 14,
+                                        userID: model.userID,
+                                        rozetValue: model.rozet,
+                                      ),
+                                    ],
+                                  ),
+                                  Text(
+                                    controller.nickname.value.trim().isEmpty
+                                        ? ''
+                                        : '@${controller.nickname.value.trim()}',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                      fontFamily: AppFontFamilies.mregular,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                            SizedBox(width: 7),
-                            if (!controller.takipEdiyorum.value &&
-                                model.userID != _currentUserId)
-                              Transform.translate(
-                                offset: Offset(20, 0),
-                                child: Obx(() {
-                                  final isLoading =
-                                      controller.followLoading.value;
-                                  return ScaleTap(
-                                    enabled: !isLoading,
-                                    onPressed: isLoading
-                                        ? null
-                                        : () {
-                                            controller.onlyFollowUserOneTime();
-                                          },
-                                    child: Container(
-                                      height: 20,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                          color: Colors.transparent,
-                                          borderRadius: const BorderRadius.all(
-                                              Radius.circular(12)),
-                                          border:
-                                              Border.all(color: Colors.white)),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 15),
-                                        child: isLoading
-                                            ? const SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child:
-                                                    CupertinoActivityIndicator(
-                                                  color: Colors.white,
-                                                  radius: 7,
-                                                ),
-                                              )
-                                            : Text(
-                                                'following.follow'.tr,
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontFamily:
-                                                        AppFontFamilies.mmedium,
-                                                    fontSize:
-                                                        FontSizes.size12),
-                                              ),
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ),
+                          ),
+                          SizedBox(width: 7),
+                          if (!controller.takipEdiyorum.value &&
+                              model.userID != _currentUserId)
                             Transform.translate(
-                                offset: Offset(15, -12),
-                                child: pulldownmenu(context))
-                          ],
-                        ),
-                        ClickableTextContent(
-                          fontSize: 13,
-                          text: model.metin,
-                          toggleExpandOnTextTap: true,
-                          fontColor: Colors.white,
-                          hashtagColor: Colors.white,
-                          mentionColor: Colors.white,
-                          urlColor: Colors.blue,
-                          expandButtonColor: Colors.white,
-                          expandButtonFontSize: 13,
-                          onHashtagTap: (tag) {
-                            videoPlayerController.pause();
-                            Get.to(() => TagPosts(tag: tag))?.then((_) {
-                              resumeIfActive();
-                            });
-                          },
-                          onUrlTap: (v) async {
-                            volumeOff(false);
-                            final uniqueKey =
-                                DateTime.now().millisecondsSinceEpoch.toString();
-                            await RedirectionLink()
-                                .goToLink(v, uniqueKey: uniqueKey);
-                            volumeOff(true);
-                          },
-                          onMentionTap: (mention) {
-                            (() async {
-                              final targetUid =
-                                  await UsernameLookupRepository.ensure()
-                                          .findUidForHandle(mention) ??
-                                      "";
-                              if (targetUid.isNotEmpty &&
-                                  targetUid != _currentUserId) {
-                                volumeOff(false);
-                                await Get.to(
-                                    () => SocialProfile(userID: targetUid));
-                                volumeOff(true);
-                              }
-                            })();
-                          },
-                        ),
-                      ],
-                    ),
+                              offset: Offset(20, 0),
+                              child: Obx(() {
+                                final isLoading =
+                                    controller.followLoading.value;
+                                return ScaleTap(
+                                  enabled: !isLoading,
+                                  onPressed: isLoading
+                                      ? null
+                                      : () {
+                                          controller.onlyFollowUserOneTime();
+                                        },
+                                  child: Container(
+                                    height: 20,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                        color: Colors.transparent,
+                                        borderRadius: const BorderRadius.all(
+                                            Radius.circular(12)),
+                                        border:
+                                            Border.all(color: Colors.white)),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 15),
+                                      child: isLoading
+                                          ? const SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CupertinoActivityIndicator(
+                                                color: Colors.white,
+                                                radius: 7,
+                                              ),
+                                            )
+                                          : Text(
+                                              'following.follow'.tr,
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontFamily:
+                                                      AppFontFamilies.mmedium,
+                                                  fontSize: FontSizes.size12),
+                                            ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          Transform.translate(
+                              offset: Offset(15, -12),
+                              child: pulldownmenu(context))
+                        ],
+                      ),
+                      ClickableTextContent(
+                        fontSize: 13,
+                        text: model.metin,
+                        toggleExpandOnTextTap: true,
+                        fontColor: Colors.white,
+                        hashtagColor: Colors.white,
+                        mentionColor: Colors.white,
+                        urlColor: Colors.blue,
+                        expandButtonColor: Colors.white,
+                        expandButtonFontSize: 13,
+                        onHashtagTap: (tag) {
+                          videoPlayerController.pause();
+                          Get.to(() => TagPosts(tag: tag))?.then((_) {
+                            resumeIfActive();
+                          });
+                        },
+                        onUrlTap: (v) async {
+                          volumeOff(false);
+                          final uniqueKey =
+                              DateTime.now().millisecondsSinceEpoch.toString();
+                          await RedirectionLink()
+                              .goToLink(v, uniqueKey: uniqueKey);
+                          volumeOff(true);
+                        },
+                        onMentionTap: (mention) {
+                          (() async {
+                            final targetUid =
+                                await UsernameLookupRepository.ensure()
+                                        .findUidForHandle(mention) ??
+                                    "";
+                            if (targetUid.isNotEmpty &&
+                                targetUid != _currentUserId) {
+                              volumeOff(false);
+                              await const ProfileNavigationService()
+                                  .openSocialProfile(targetUid);
+                              volumeOff(true);
+                            }
+                          })();
+                        },
+                      ),
+                    ],
                   ),
+                ),
                 Padding(
                   padding: _actionSurfaceOuterPadding(context),
                   child: _buildActionSurface(child: butonlar(context)),

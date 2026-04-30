@@ -1,7 +1,9 @@
 part of 'tutoring_repository.dart';
 
 void _handleTutoringRepositoryInit(TutoringRepository repository) {
-  SharedPreferences.getInstance().then((prefs) => repository._prefs = prefs);
+  ensureLocalPreferenceRepository()
+      .sharedPreferences()
+      .then((prefs) => repository._prefs = prefs);
 }
 
 extension TutoringRepositoryCachePart on TutoringRepository {
@@ -38,7 +40,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
         DateTime.now().difference(memory.cachedAt) <= TutoringRepository._ttl) {
       return _cloneValue(memory.value);
     }
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${TutoringRepository._prefsPrefix}:$key';
     final raw = prefs?.getString(prefsKey);
@@ -77,7 +79,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
 
   Future<void> _removeCachedValue(String key) async {
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('${TutoringRepository._prefsPrefix}:$key');
   }
 
@@ -85,7 +87,7 @@ extension TutoringRepositoryCachePart on TutoringRepository {
     final now = DateTime.now();
     final cloned = _cloneValue(value);
     _memory[key] = _TimedValue<dynamic>(value: cloned, cachedAt: now);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${TutoringRepository._prefsPrefix}:$key',
       jsonEncode({

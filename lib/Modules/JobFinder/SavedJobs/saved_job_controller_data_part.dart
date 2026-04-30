@@ -132,14 +132,7 @@ extension SavedJobsControllerDataPart on SavedJobsController {
       }
       if (!cacheOnlyJobs && idsToMarkEnded.isNotEmpty) {
         for (final chunk in _chunkListImpl(idsToMarkEnded, 450)) {
-          final batch = FirebaseFirestore.instance.batch();
-          for (final docId in chunk) {
-            final ref = FirebaseFirestore.instance
-                .collection(JobCollection.name)
-                .doc(docId);
-            batch.update(ref, {"ended": true});
-          }
-          await batch.commit();
+          await _jobRepository.markEndedBatch(chunk);
         }
       }
 

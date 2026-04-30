@@ -5,12 +5,12 @@ abstract class _AdsFeatureFlagsServiceBase extends GetxService {
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _sub;
 
   DocumentReference<Map<String, dynamic>> get _primaryRef =>
-      FirebaseFirestore.instance
+      AppFirestore.instance
           .collection(AdsCollections.adminConfig)
           .doc(AdsCollections.adsFlagsDoc);
 
   DocumentReference<Map<String, dynamic>> get _legacyRef =>
-      FirebaseFirestore.instance
+      AppFirestore.instance
           .collection(AdsCollections.legacySystemFlags)
           .doc(AdsCollections.systemFlagsGlobalDoc);
 

@@ -66,7 +66,8 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
 
       final locationCity = _resolvePostLocationCity();
 
-      await FirebaseFirestore.instance.collection('Posts').doc(uuid).set({
+      final postTimeStamp = DateTime.now().millisecondsSinceEpoch;
+      await PostRepository.ensure().savePostData(postId: uuid, data: {
         'arsiv': false,
         if (imageUrls.isEmpty) 'aspectRatio': normalizedAR,
         'debugMode': false,
@@ -100,7 +101,7 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
         },
         'tags': [],
         'thumbnail': thumbnail,
-        'timeStamp': DateTime.now().millisecondsSinceEpoch,
+        'timeStamp': postTimeStamp,
         'userID': currentUserId,
         'video': video,
         'hlsStatus': 'none',
@@ -128,17 +129,12 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
               : originalPostID ?? '';
 
           if (targetPostID.isNotEmpty) {
-            await FirebaseFirestore.instance
-                .collection('Posts')
-                .doc(targetPostID)
-                .collection('postSharers')
-                .doc(currentUserId)
-                .set({
-              'userID': currentUserId,
-              'timestamp': DateTime.now().millisecondsSinceEpoch,
-              'sharedPostID': uuid,
-              'quotedPost': false,
-            });
+            await PostRepository.ensure().recordPostShare(
+              targetPostId: targetPostID,
+              userId: currentUserId,
+              sharedPostId: uuid,
+              quotedPost: false,
+            );
             print(
               'postSharers updated for post: $targetPostID by user: $currentUserId',
             );
@@ -177,7 +173,7 @@ extension UrlPostMakerControllerPublishPart on UrlPostMakerController {
         stabilized: false,
         tags: const [],
         thumbnail: thumbnail,
-        timeStamp: DateTime.now().millisecondsSinceEpoch,
+        timeStamp: postTimeStamp,
         userID: currentUserId,
         video: video,
         hlsStatus: 'none',

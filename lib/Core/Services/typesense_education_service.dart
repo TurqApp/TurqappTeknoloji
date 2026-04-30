@@ -1,6 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 
 enum EducationTypesenseEntity {
   scholarship,
@@ -47,7 +49,7 @@ class TypesenseEducationSearchService {
   static const String _prefsPrefix = 'typesense_education_search_v1';
 
   final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'us-central1');
+      AppCloudFunctions.instanceFor(region: 'us-central1');
   final Map<String, _CachedEducationSearchResult> _memory =
       <String, _CachedEducationSearchResult>{};
   SharedPreferences? _prefs;
@@ -204,7 +206,7 @@ class TypesenseEducationSearchService {
   Future<void> invalidateEntity(EducationTypesenseEntity entity) async {
     final entityPrefix = 'entity=${entity.apiLabel}|';
     _memory.removeWhere((key, _) => key.startsWith(entityPrefix));
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {
@@ -219,7 +221,7 @@ class TypesenseEducationSearchService {
 
   Future<void> invalidateAll() async {
     _memory.clear();
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs
@@ -253,7 +255,7 @@ class TypesenseEducationSearchService {
   }
 
   Future<_CachedEducationSearchResult?> _getCachedFromPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(key);
     final raw = prefs?.getString(prefsKey);
@@ -338,7 +340,7 @@ class TypesenseEducationSearchService {
       result: clonedResult,
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(key),
       jsonEncode(<String, dynamic>{

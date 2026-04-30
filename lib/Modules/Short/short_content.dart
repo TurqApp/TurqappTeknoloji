@@ -12,11 +12,12 @@ import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comments.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -30,7 +31,6 @@ import '../../Themes/app_fonts.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
 import '../Social/PostSharers/post_sharers.dart';
 import '../PostCreator/post_creator.dart';
-import '../SocialProfile/social_profile.dart';
 import '../Story/StoryRow/story_row_controller.dart';
 import '../Story/StoryRow/story_user_model.dart';
 import '../Story/StoryViewer/story_viewer.dart';
@@ -99,7 +99,7 @@ class _ShortsContentState extends State<ShortsContent> {
   Future<void> _openAuthorProfile() async {
     if (model.userID == _currentUserId) return;
     volumeOff(false);
-    await Get.to(() => SocialProfile(userID: model.userID));
+    await const ProfileNavigationService().openSocialProfile(model.userID);
     volumeOff(true);
   }
 

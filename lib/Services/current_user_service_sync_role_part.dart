@@ -12,7 +12,7 @@ class CurrentUserSyncRole {
 
   Future<bool> initialize() async {
     try {
-      _prefs ??= await SharedPreferences.getInstance();
+      _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
 
       final firebaseUser = service.currentAuthUser;
       if (firebaseUser == null) {

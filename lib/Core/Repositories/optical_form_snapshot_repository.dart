@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/Education/optical_form_model.dart';
@@ -262,7 +263,7 @@ class OpticalFormSnapshotRepository extends GetxService {
   ) async {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await AppFirestore.instance
         .collection('optikForm')
         .where('userID', isEqualTo: normalizedUserId)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -280,7 +281,7 @@ class OpticalFormSnapshotRepository extends GetxService {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <OpticalFormModel>[];
     final normalizedLimit = query.effectiveLimit;
-    final answeredRefsSnap = await FirebaseFirestore.instance
+    final answeredRefsSnap = await AppFirestore.instance
         .collection('users')
         .doc(normalizedUserId)
         .collection('answered_optical_forms')
@@ -290,7 +291,7 @@ class OpticalFormSnapshotRepository extends GetxService {
         if (refDoc.id.trim().isNotEmpty) refDoc.id.trim(),
     };
     if (formIds.isEmpty) {
-      final answersSnap = await FirebaseFirestore.instance
+      final answersSnap = await AppFirestore.instance
           .collectionGroup('Yanitlar')
           .where(FieldPath.documentId, isEqualTo: normalizedUserId)
           .get(const GetOptions(source: Source.serverAndCache));
@@ -330,7 +331,7 @@ class OpticalFormSnapshotRepository extends GetxService {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty || formTimestamps.isEmpty) return;
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final entries = formTimestamps.entries.toList(growable: false);
     for (var index = 0; index < entries.length; index += 200) {
       final batch = firestore.batch();
@@ -367,7 +368,7 @@ class OpticalFormSnapshotRepository extends GetxService {
     final byId = <String, OpticalFormModel>{};
     for (var i = 0; i < ids.length; i += 10) {
       final chunk = ids.skip(i).take(10).toList(growable: false);
-      final snap = await FirebaseFirestore.instance
+      final snap = await AppFirestore.instance
           .collection('optikForm')
           .where(FieldPath.documentId, whereIn: chunk)
           .get(const GetOptions(source: Source.serverAndCache));

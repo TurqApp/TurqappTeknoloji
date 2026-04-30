@@ -47,14 +47,14 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
   }
 
   Future<void> _performSaveQueueToStorage() async {
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final queueJson = _queue.map((item) => item.toJson()).toList();
-    await prefs.setString(_queueKey, jsonEncode(queueJson));
+    await preferences.setString(_queueKey, jsonEncode(queueJson));
   }
 
   Future<void> _performLoadQueueFromStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final queueString = prefs.getString(_queueKey);
+    final preferences = ensureLocalPreferenceRepository();
+    final queueString = await preferences.getString(_queueKey);
     _queue.clear();
     _completedCount.value = 0;
     _failedCount.value = 0;
@@ -63,7 +63,7 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
       try {
         final decoded = jsonDecode(queueString);
         if (decoded is! List) {
-          await prefs.remove(_queueKey);
+          await preferences.remove(_queueKey);
           return;
         }
         var shouldPrune = false;
@@ -102,7 +102,7 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
         }
         _notifyQueueUpdated();
       } catch (_) {
-        await prefs.remove(_queueKey);
+        await preferences.remove(_queueKey);
       }
     }
   }

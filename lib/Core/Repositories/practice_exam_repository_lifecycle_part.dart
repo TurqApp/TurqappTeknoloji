@@ -15,6 +15,8 @@ class PracticeExamRepository extends GetxService {
 
 extension _PracticeExamRepositoryLifecyclePart on PracticeExamRepository {
   void handleOnInit() {
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _prefs = prefs);
   }
 }

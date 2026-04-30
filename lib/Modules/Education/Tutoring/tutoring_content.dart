@@ -1,8 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_category.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_widget_builder.dart';
@@ -29,7 +28,7 @@ class TutoringContent extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return Center(child: CupertinoActivityIndicator());
+                  return const AppStateView.loading();
                 }
                 final filteredTutoringList =
                     controller.tutoringList.where((tutoring) {
@@ -37,12 +36,11 @@ class TutoringContent extends StatelessWidget {
                 }).toList();
 
                 if (filteredTutoringList.isEmpty) {
-                  return Center(
-                    child: Infomessage(
-                      infoMessage: 'tutoring.no_lessons_in_category'.trParams({
-                        'category': localizedCategoryName,
-                      }),
-                    ),
+                  return AppStateView.empty(
+                    title: 'tutoring.no_lessons_in_category'.trParams({
+                      'category': localizedCategoryName,
+                    }),
+                    icon: Icons.school_outlined,
                   );
                 }
 

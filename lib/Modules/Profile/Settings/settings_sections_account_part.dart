@@ -110,21 +110,24 @@ extension _SettingsViewSectionsAccountPart on _SettingsViewState {
           return buildRow(
             'settings.badge_application'.tr,
             CupertinoIcons.doc_text_search,
-            () => Get.to(() => BecomeVerifiedAccount()),
+            () => const VerifiedAccountNavigationService()
+                .openBecomeVerifiedAccount(),
           );
         }
         if (canRenew) {
           return buildRow(
             'settings.badge_renew'.tr,
             CupertinoIcons.arrow_clockwise_circle,
-            () => Get.to(() => BecomeVerifiedAccount()),
+            () => const VerifiedAccountNavigationService()
+                .openBecomeVerifiedAccount(),
           );
         }
         if (!hasBadge) {
           return buildRow(
             'settings.become_verified'.tr,
             CupertinoIcons.checkmark_seal,
-            () => Get.to(() => BecomeVerifiedAccount()),
+            () => const VerifiedAccountNavigationService()
+                .openBecomeVerifiedAccount(),
           );
         }
         return const SizedBox.shrink();

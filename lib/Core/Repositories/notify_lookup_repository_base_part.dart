@@ -10,7 +10,7 @@ const int _notifyMaxLookupEntries = 300;
 
 abstract class _NotifyLookupRepositoryBase extends GetxService {
   _NotifyLookupRepositoryBase({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   final Map<String, NotifyPostLookup> _postLookupCache =

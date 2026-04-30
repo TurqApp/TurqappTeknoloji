@@ -158,7 +158,10 @@ extension _SocialProfileContentPart on _SocialProfileState {
                 children: [
                   header(),
                   if (combinedPosts.isEmpty)
-                    EmptyRow(text: 'common.no_results'.tr),
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * 0.32,
+                      child: AppStateView.empty(title: 'common.no_results'.tr),
+                    ),
                 ],
               ),
             );

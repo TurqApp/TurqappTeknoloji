@@ -26,7 +26,6 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
   }
 
   Future<Map<String, String>> _awaitGeneratedPostShortLink(String docID) async {
-    final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
     const retryDelays = <Duration>[
       Duration(milliseconds: 250),
       Duration(milliseconds: 500),
@@ -36,10 +35,10 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
 
     for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
-        final snap = await ref.get(const GetOptions(source: Source.server));
-        final data = snap.data() ?? const <String, dynamic>{};
-        final shortId = (data["shortId"] ?? "").toString().trim();
-        final shortUrl = (data["shortUrl"] ?? "").toString().trim();
+        final resolved =
+            await _postRepository.fetchGeneratedShortLinkFromServer(docID);
+        final shortId = (resolved["shortId"] ?? "").toString().trim();
+        final shortUrl = (resolved["shortUrl"] ?? "").toString().trim();
         if (shortUrl.isNotEmpty) {
           return {
             "shortId": shortId,
@@ -85,14 +84,11 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
     required String uid,
     required int timeStamp,
   }) async {
-    final ref = FirebaseFirestore.instance.collection("Posts").doc(docID);
-    await ref.set({
-      "userID": uid,
-      "timeStamp": timeStamp,
-      "isUploading": true,
-      "hlsStatus": "none",
-    }, SetOptions(merge: true));
-    await FirebaseFirestore.instance.waitForPendingWrites();
+    await _postRepository.preparePostShellForUpload(
+      postId: docID,
+      userId: uid,
+      timeStamp: timeStamp,
+    );
 
     const retryDelays = <Duration>[
       Duration(milliseconds: 250),
@@ -102,9 +98,11 @@ extension _PostCreatorControllerUploadSupportX on PostCreatorController {
 
     for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
-        final snap = await ref.get(const GetOptions(source: Source.server));
-        final shellUserId = (snap.data()?["userID"] ?? '').toString();
-        if (snap.exists && shellUserId == uid) {
+        final isVisible = await _postRepository.isPostShellVisibleOnServer(
+          postId: docID,
+          userId: uid,
+        );
+        if (isVisible) {
           return;
         }
       } catch (_) {

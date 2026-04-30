@@ -14,6 +14,7 @@ class _CreateTestQuestionContentControllerState {
   final RxList<String> selections = ['A'].obs;
   final RxBool isLoading = false.obs;
   final RxBool isInvalid = false.obs;
+  final testRepository = ensureTestRepository();
 }
 
 extension CreateTestQuestionContentControllerFieldsPart
@@ -28,4 +29,5 @@ extension CreateTestQuestionContentControllerFieldsPart
   RxList<String> get selections => _state.selections;
   RxBool get isLoading => _state.isLoading;
   RxBool get isInvalid => _state.isInvalid;
+  TestRepository get _testRepository => _state.testRepository;
 }

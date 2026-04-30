@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
-import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_controller.dart';
@@ -66,9 +66,11 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
               child: Obx(
                 () => controller.isLoading.value &&
                         controller.myScholarships.isEmpty
-                    ? Center(child: CupertinoActivityIndicator())
+                    ? const AppStateView.loading()
                     : controller.myScholarships.isEmpty
-                        ? EmptyRow(text: 'scholarship.no_my_listings'.tr)
+                        ? AppStateView.empty(
+                            title: 'scholarship.no_my_listings'.tr,
+                          )
                         : ListView.builder(
                             itemCount: controller.myScholarships.length,
                             itemBuilder: (context, index) {

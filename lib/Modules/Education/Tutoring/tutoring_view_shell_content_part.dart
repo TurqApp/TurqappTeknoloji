@@ -19,41 +19,46 @@ extension TutoringViewShellContentPart on TutoringView {
                 PullDownMenuItem(
                   title: 'common.search'.tr,
                   icon: CupertinoIcons.search,
-                  onTap: () => Get.to(() => const TutoringSearch()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openTutoringSearch(),
                 ),
                 PullDownMenuItem(
                   title: 'tutoring.my_applications'.tr,
                   icon: CupertinoIcons.doc_text,
-                  onTap: () => Get.to(() => MyTutoringApplications()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openMyTutoringApplications(),
                 ),
                 PullDownMenuItem(
                   title: 'tutoring.create_listing'.tr,
                   icon: CupertinoIcons.add_circled,
-                  onTap: () => Get.to(CreateTutoringView()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openCreateTutoring(),
                 ),
                 PullDownMenuItem(
                   title: 'tutoring.my_listings'.tr,
                   icon: CupertinoIcons.list_bullet,
-                  onTap: () => Get.to(MyTutorings()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openMyTutorings(),
                 ),
                 PullDownMenuItem(
                   title: 'tutoring.saved'.tr,
                   icon: AppIcons.save,
-                  onTap: () => Get.to(() => SavedTutorings()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openSavedTutorings(),
                 ),
                 PullDownMenuItem(
                   title: 'pasaj.tutoring.nearby_listings'.tr,
                   icon: AppIcons.locationSolid,
-                  onTap: () => Get.to(() => LocationBasedTutoring()),
+                  onTap: () => const EducationDetailNavigationService()
+                      .openLocationBasedTutoring(),
                 ),
                 PullDownMenuItem(
                   title: 'tutoring.slider_admin'.tr,
                   icon: CupertinoIcons.slider_horizontal_3,
-                  onTap: () => Get.to(
-                    () => SliderAdminView(
-                      sliderId: 'ozel_ders',
-                      title: 'tutoring.title'.tr,
-                    ),
+                  onTap: () =>
+                      const SliderAdminNavigationService().openSliderAdmin(
+                    sliderId: 'ozel_ders',
+                    title: 'tutoring.title'.tr,
                   ),
                 ),
               ],

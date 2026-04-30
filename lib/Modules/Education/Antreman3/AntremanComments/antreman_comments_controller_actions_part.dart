@@ -18,7 +18,6 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
   Future<String?> uploadImage(File image) async {
     try {
       return await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: image,
         storagePathWithoutExt:
             'comments/${question.docID}/${DateTime.now().millisecondsSinceEpoch}',

@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/market_review_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class MarketReviewService {
   const MarketReviewService();
 
-  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore => AppFirestore.instance;
 
   Future<String> _resolveCurrentUserId() async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(

@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Models/music_model.dart';
@@ -31,5 +32,5 @@ class StoryMusicLibraryService {
       ensureUserSubcollectionRepository();
 
   CollectionReference<Map<String, dynamic>> get _collection =>
-      FirebaseFirestore.instance.collection('storyMusic');
+      AppFirestore.instance.collection('storyMusic');
 }

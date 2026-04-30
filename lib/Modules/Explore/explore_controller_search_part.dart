@@ -41,9 +41,9 @@ extension ExploreControllerSearchPart on ExploreController {
     Map<String, dynamic> payload,
   ) async {
     final targets = <FirebaseFunctions>[
-      FirebaseFunctions.instance,
-      FirebaseFunctions.instanceFor(region: 'us-central1'),
-      FirebaseFunctions.instanceFor(region: 'europe-west1'),
+      AppCloudFunctions.instance,
+      AppCloudFunctions.instanceFor(region: 'us-central1'),
+      AppCloudFunctions.instanceFor(region: 'europe-west1'),
     ];
 
     Object? lastError;

@@ -34,7 +34,7 @@ extension NotificationPreferencesRepositoryCachePart
       }
     }
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('settings')
@@ -58,7 +58,7 @@ extension NotificationPreferencesRepositoryCachePart
       yield _cloneNotificationPreferencesMap(cached);
     }
 
-    yield* FirebaseFirestore.instance
+    yield* AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('settings')
@@ -85,7 +85,7 @@ extension NotificationPreferencesRepositoryCachePart
       data: cloned,
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(key),
       jsonEncode({
@@ -99,7 +99,7 @@ extension NotificationPreferencesRepositoryCachePart
     if (uid.isEmpty) return;
     final key = _cacheKey(uid);
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKey(key));
   }
 
@@ -115,7 +115,7 @@ extension NotificationPreferencesRepositoryCachePart
   }
 
   Future<Map<String, dynamic>?> _getFromPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(key);
     final raw = prefs?.getString(prefsKey);

@@ -25,7 +25,7 @@ extension TutoringDetailSectionsPart on TutoringDetail {
                     .trim();
                 return GestureDetector(
                   onTap: () {
-                    Get.off(() => TutoringDetail(), arguments: item);
+                    detailNavigationService.replaceWithTutoringDetail(item);
                   },
                   child: Container(
                     width: (Get.width * 0.43).clamp(142.0, 166.0),
@@ -139,12 +139,9 @@ extension TutoringDetailSectionsPart on TutoringDetail {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () {
-            Get.to(
-              () => ReportUser(
-                userID: controller.tutoring.value.userID,
-                postID: controller.tutoring.value.docID,
-                commentID: "",
-              ),
+            const ReportUserNavigationService().openReportUser(
+              userId: controller.tutoring.value.userID,
+              postId: controller.tutoring.value.docID,
             );
           },
           title: 'tutoring.report_listing'.tr,

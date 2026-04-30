@@ -2,6 +2,7 @@ part of 'scholarships_controller.dart';
 
 class _ScholarshipsControllerState {
   final followRepository = ensureFollowRepository();
+  final localPreferenceRepository = ensureLocalPreferenceRepository();
   final scholarshipRepository = ensureScholarshipRepository();
   final scholarshipSnapshotRepository = ensureScholarshipSnapshotRepository();
   final scrollController = ScrollController();
@@ -36,6 +37,8 @@ class _ScholarshipsControllerState {
 
 extension ScholarshipsControllerFieldsPart on ScholarshipsController {
   FollowRepository get _followRepository => _state.followRepository;
+  LocalPreferenceRepository get _localPreferenceRepository =>
+      _state.localPreferenceRepository;
   ScholarshipRepository get _scholarshipRepository =>
       _state.scholarshipRepository;
   ScholarshipSnapshotRepository get _scholarshipSnapshotRepository =>

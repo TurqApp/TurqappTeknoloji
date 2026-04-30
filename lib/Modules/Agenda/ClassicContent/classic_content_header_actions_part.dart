@@ -52,7 +52,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         }
         agendaController.centeredIndex.value = -1;
         videoController?.pause();
-        Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
+        const ProfileNavigationService()
+            .openSocialProfile(widget.model.userID)
+            .then((v) {
           _restoreClassicFeedCenter();
         });
       }
@@ -241,7 +243,9 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
         }
         agendaController.centeredIndex.value = -1;
         videoController?.pause();
-        Get.to(() => SocialProfile(userID: widget.model.userID))?.then((v) {
+        const ProfileNavigationService()
+            .openSocialProfile(widget.model.userID)
+            .then((v) {
           _restoreClassicFeedCenter();
         });
       }

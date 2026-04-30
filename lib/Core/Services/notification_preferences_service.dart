@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Repositories/notification_preferences_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -57,7 +58,7 @@ class NotificationPreferencesService {
     final next = mergeWithDefaults(current);
     _writePath(next, path, value);
     await _repository.putPreferences(uid, next);
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('settings')

@@ -32,6 +32,16 @@ class PostSubcollectionPage {
   final bool hasMore;
 }
 
+class PostDislikeToggleResult {
+  const PostDislikeToggleResult({
+    required this.liked,
+    required this.disliked,
+  });
+
+  final bool liked;
+  final bool disliked;
+}
+
 class PostSharersPage {
   const PostSharersPage({
     required this.items,

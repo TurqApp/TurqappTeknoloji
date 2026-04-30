@@ -97,148 +97,141 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 7),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  GestureDetector(
-                                    onTap: _openAvatarStoryOrProfile,
-                                    child: SizedBox(
-                                      width: 35,
-                                      height: 35,
-                                      child: Obx(
-                                        () => CachedUserAvatar(
-                                          userId: widget.model.userID,
-                                          imageUrl: controller.avatarUrl.value,
-                                          radius: 17.5,
-                                        ),
-                                      ),
-                                    ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 7),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              onTap: _openAvatarStoryOrProfile,
+                              child: SizedBox(
+                                width: 35,
+                                height: 35,
+                                child: Obx(
+                                  () => CachedUserAvatar(
+                                    userId: widget.model.userID,
+                                    imageUrl: controller.avatarUrl.value,
+                                    radius: 17.5,
                                   ),
-                                  const SizedBox(width: 7),
-                                  Expanded(
-                                    child: GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: _openAuthorProfile,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Flexible(
-                                                child: Text(
-                                                  controller.fullName.value,
-                                                  maxLines: 1,
-                                                  style: AppTypography.postName
-                                                      .copyWith(
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              RozetContent(
-                                                size: 14,
-                                                userID: widget.model.userID,
-                                                rozetValue: widget.model.rozet,
-                                              ),
-                                            ],
-                                          ),
-                                          Text(
-                                            controller.nickname.value.trim().isEmpty
-                                                ? ''
-                                                : '@${controller.nickname.value.trim()}',
-                                            style: AppTypography.postHandle
-                                                .copyWith(
-                                              color: Colors.white70,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 7),
-                                  if (!controller.takipEdiyorum.value &&
-                                      widget.model.userID != _currentUserId)
-                                    Transform.translate(
-                                      offset: Offset(15, 0),
-                                      child: Obx(() {
-                                        final isLoading =
-                                            controller.followLoading.value;
-                                        return ScaleTap(
-                                          enabled: !isLoading,
-                                          onPressed: isLoading
-                                              ? null
-                                              : () {
-                                                  controller.toggleFollowStatus(
-                                                    widget.model.userID,
-                                                  );
-                                                },
-                                          child: Container(
-                                            height: 20,
-                                            alignment: Alignment.center,
-                                            decoration: BoxDecoration(
-                                                color: Colors.transparent,
-                                                borderRadius:
-                                                    const BorderRadius.all(
-                                                        Radius.circular(12)),
-                                                border: Border.all(
-                                                    color: Colors.white)),
-                                            child: Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 15),
-                                              child: isLoading
-                                                  ? const SizedBox(
-                                                      width: 14,
-                                                      height: 14,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                                    Color>(
-                                                                Colors.white),
-                                                      ),
-                                                    )
-                                                  : Text(
-                                                      'following.follow'.tr,
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontFamily:
-                                                              AppFontFamilies
-                                                                  .mmedium,
-                                                          fontSize: FontSizes
-                                                              .size12),
-                                                    ),
-                                            ),
-                                          ),
-                                        );
-                                      }),
-                                    ),
-                                  Transform.translate(
-                                    offset: Offset(15, -2),
-                                    child: pulldownmenu(context),
-                                  ),
-                                  SizedBox(
-                                    width: 12,
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                            HashtagTextVideoPost(
-                              text: widget.model.metin,
-                              color: Colors.white,
-                              volume: (bool) {
-                                ///gerek yok
-                              },
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _openAuthorProfile,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            controller.fullName.value,
+                                            maxLines: 1,
+                                            style:
+                                                AppTypography.postName.copyWith(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        RozetContent(
+                                          size: 14,
+                                          userID: widget.model.userID,
+                                          rozetValue: widget.model.rozet,
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      controller.nickname.value.trim().isEmpty
+                                          ? ''
+                                          : '@${controller.nickname.value.trim()}',
+                                      style: AppTypography.postHandle.copyWith(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 7),
+                            if (!controller.takipEdiyorum.value &&
+                                widget.model.userID != _currentUserId)
+                              Transform.translate(
+                                offset: Offset(15, 0),
+                                child: Obx(() {
+                                  final isLoading =
+                                      controller.followLoading.value;
+                                  return ScaleTap(
+                                    enabled: !isLoading,
+                                    onPressed: isLoading
+                                        ? null
+                                        : () {
+                                            controller.toggleFollowStatus(
+                                              widget.model.userID,
+                                            );
+                                          },
+                                    child: Container(
+                                      height: 20,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                          color: Colors.transparent,
+                                          borderRadius: const BorderRadius.all(
+                                              Radius.circular(12)),
+                                          border:
+                                              Border.all(color: Colors.white)),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 15),
+                                        child: isLoading
+                                            ? const SizedBox(
+                                                width: 14,
+                                                height: 14,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                          Color>(Colors.white),
+                                                ),
+                                              )
+                                            : Text(
+                                                'following.follow'.tr,
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontFamily:
+                                                        AppFontFamilies.mmedium,
+                                                    fontSize: FontSizes.size12),
+                                              ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            Transform.translate(
+                              offset: Offset(15, -2),
+                              child: pulldownmenu(context),
+                            ),
+                            SizedBox(
+                              width: 12,
                             ),
                           ],
                         ),
                       ),
+                      HashtagTextVideoPost(
+                        text: widget.model.metin,
+                        color: Colors.white,
+                        volume: (bool) {
+                          ///gerek yok
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 Padding(
                   padding: _actionSurfaceOuterPadding(context),
                   child: _buildActionSurface(child: butonlar(context)),
@@ -631,10 +624,12 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
         if (widget.model.userID != _currentUserId)
           PullDownMenuItem(
             onTap: () {
-              Get.to(() => ReportUser(
-                  userID: widget.model.userID,
-                  postID: widget.model.docID,
-                  commentID: ""))?.then((_) {});
+              const ReportUserNavigationService()
+                  .openReportUser(
+                    userId: widget.model.userID,
+                    postId: widget.model.docID,
+                  )
+                  .then((_) {});
             },
             title: 'common.report'.tr,
             icon: CupertinoIcons.info,

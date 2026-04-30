@@ -7,7 +7,7 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     final currentUid = _currentUid;
     if (targetUid.isNotEmpty && targetUid != currentUid) {
       _suspendClassicFeedForRoute();
-      await Get.to(() => SocialProfile(userID: targetUid));
+      await const ProfileNavigationService().openSocialProfile(targetUid);
       _restoreClassicFeedCenter();
     }
   }

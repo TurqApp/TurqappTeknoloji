@@ -180,19 +180,13 @@ extension StoryMusicAdminViewContentPart on _StoryMusicAdminViewState {
 
   Widget _buildLibraryList() {
     if (_isLoadingTracks) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppStateView.loading();
     }
     if (_tracks.isEmpty) {
-      return Padding(
+      return AppStateView.empty(
+        title: 'admin.story_music.no_tracks'.tr,
+        color: Colors.grey,
         padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Text(
-          'admin.story_music.no_tracks'.tr,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 15,
-            fontFamily: 'MontserratMedium',
-          ),
-        ),
       );
     }
 

@@ -51,7 +51,6 @@ extension CvControllerProfilePart on CvController {
       }
 
       final url = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: 'users/$uid/cv/profile_photo',
         quality: 88,

@@ -7,18 +7,14 @@ extension _BlockedUsersContentPart on _BlockedUsersState {
         Obx(() {
           if (controller.isLoading.value &&
               controller.blockedUserDetails.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(
-                child: CircularProgressIndicator(
-                  color: Colors.black,
-                ),
-              ),
+            return const SizedBox(
+              height: 240,
+              child: AppStateView.loading(title: ''),
             );
           }
 
           if (controller.blockedUserDetails.isEmpty) {
-            return EmptyRow(text: "blocked_users.empty".tr);
+            return AppStateView.empty(title: "blocked_users.empty".tr);
           }
 
           return ListView.builder(

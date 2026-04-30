@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -138,7 +139,7 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Future<void> _load() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     _startupHeadRecords
       ..clear()
       ..addAll(_decodeRecords(_prefs!.getString(_startupHeadKey)));

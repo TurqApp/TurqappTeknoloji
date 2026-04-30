@@ -101,14 +101,12 @@ class _DenemeSinaviYapControllerRuntimePart {
   }
 
   void sinaviGecersizSay() {
-    FirebaseFirestore.instance
-        .collection('practiceExams')
-        .doc(_controller.model.docID)
-        .set({
-      'gecersizSayilanlar': FieldValue.arrayUnion([
-        _controller._currentUserId,
-      ]),
-    }, SetOptions(merge: true));
+    unawaited(
+      _controller._practiceExamRepository.markExamInvalid(
+        examId: _controller.model.docID,
+        userId: _controller._currentUserId,
+      ),
+    );
     Get.back();
     _controller.showGecersizAlert();
   }
@@ -122,17 +120,6 @@ class _DenemeSinaviYapControllerRuntimePart {
     final docID = userId;
     final now = DateTime.now().millisecondsSinceEpoch.toInt();
     try {
-      await FirebaseFirestore.instance
-          .collection('practiceExams')
-          .doc(_controller.model.docID)
-          .collection('Yanitlar')
-          .doc(docID)
-          .set({
-        'yanitlar': _controller.selectedAnswers,
-        'userID': _controller._currentUserId,
-        'timeStamp': now,
-      });
-
       final yeniSonuclar = <DersVeSonuclar>[];
       for (final ders in _controller.model.dersler) {
         int dogru = 0;
@@ -160,22 +147,14 @@ class _DenemeSinaviYapControllerRuntimePart {
 
       _controller.dersSonuclari.value = yeniSonuclar;
 
-      for (final sonuc in _controller.dersSonuclari) {
-        await FirebaseFirestore.instance
-            .collection('practiceExams')
-            .doc(_controller.model.docID)
-            .collection('Yanitlar')
-            .doc(docID)
-            .collection(sonuc.ders)
-            .doc(docID)
-            .set({
-          'bos': sonuc.bos,
-          'yanlis': sonuc.yanlis,
-          'dogru': sonuc.dogru,
-          'ders': sonuc.ders,
-          'net': sonuc.dogru - (0.25 * sonuc.yanlis),
-        });
-      }
+      await _controller._practiceExamRepository.saveAnswerSession(
+        examId: _controller.model.docID,
+        answerDocId: docID,
+        userId: _controller._currentUserId,
+        answers: List<String>.from(_controller.selectedAnswers),
+        lessonResults: _controller.dersSonuclari.toList(growable: false),
+        timeStamp: now,
+      );
 
       await ensureUserSubcollectionRepository().upsertEntry(
         _controller._currentUserId,

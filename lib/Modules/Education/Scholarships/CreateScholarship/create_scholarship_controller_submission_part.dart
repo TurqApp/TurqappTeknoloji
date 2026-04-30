@@ -78,17 +78,11 @@ extension CreateScholarshipControllerSubmissionPart
       }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final ref = _storage
-          .ref()
-          .child('scholarships/${isLogo ? 'logos' : 'images'}/$timestamp.webp');
-      await ref.putData(
-        webpBytes,
-        SettableMetadata(
-          contentType: 'image/webp',
-          cacheControl: 'public, max-age=31536000, immutable',
-        ),
+      return await WebpUploadService.uploadPreparedWebpBytes(
+        bytes: webpBytes,
+        storagePathWithoutExt:
+            'scholarships/${isLogo ? 'logos' : 'images'}/$timestamp',
       );
-      return await ref.getDownloadURL();
     } catch (_) {
       AppSnackbar('common.error'.tr, 'scholarship.image_upload_failed'.tr);
       return null;
@@ -144,17 +138,11 @@ extension CreateScholarshipControllerSubmissionPart
         return null;
       }
 
-      final ref = _storage.ref().child(
-            'scholarships/templates/${DateTime.now().millisecondsSinceEpoch}.webp',
-          );
-      await ref.putData(
-        webpBytes,
-        SettableMetadata(
-          contentType: 'image/webp',
-          cacheControl: 'public, max-age=31536000, immutable',
-        ),
+      final downloadUrl = await WebpUploadService.uploadPreparedWebpBytes(
+        bytes: webpBytes,
+        storagePathWithoutExt:
+            'scholarships/templates/${DateTime.now().millisecondsSinceEpoch}',
       );
-      final downloadUrl = await ref.getDownloadURL();
       templateUrl.value = downloadUrl;
       template.value = 'template${selectedTemplateIndex.value + 1}';
       return downloadUrl;
@@ -243,14 +231,14 @@ extension CreateScholarshipControllerSubmissionPart
 
     try {
       await AppRootNavigationService.offAllToAuthenticatedHome();
-      maybeFindNavBarController()?.changeIndex(3);
+      const PrimaryTabRouter().openEducation();
     } catch (_) {}
 
     try {
       scholarshipsController.resetSearch();
     } catch (_) {}
 
-    Get.to(() => ScholarshipsView());
+    ScholarshipNavigationService.openScholarshipsHome();
     AppSnackbar('common.success'.tr, successMessage);
     resetForm();
   }
@@ -295,20 +283,10 @@ extension CreateScholarshipControllerSubmissionPart
         );
         final authorFields = await _authorFieldsForCurrentUser();
 
-        final docRef = await ScholarshipFirestorePath.collection(
-          firestore: _firestore,
-        ).add(<String, dynamic>{
+        await _scholarshipRepository.createScholarship(<String, dynamic>{
           ...scholarship.toJson(),
           ...authorFields,
         });
-
-        await ScholarshipFirestorePath.doc(
-          docRef.id,
-          firestore: _firestore,
-        ).set(
-          {'likesCount': 0, 'bookmarksCount': 0},
-          SetOptions(merge: true),
-        );
 
         await _navigateAfterSubmission('scholarship.published_success'.tr);
       } catch (_) {
@@ -360,13 +338,13 @@ extension CreateScholarshipControllerSubmissionPart
         );
         final authorFields = await _authorFieldsForCurrentUser();
 
-        await ScholarshipFirestorePath.doc(
-          scholarshipId.value,
-          firestore: _firestore,
-        ).update(<String, dynamic>{
-          ...scholarship.toJson(),
-          ...authorFields,
-        });
+        await _scholarshipRepository.updateScholarshipData(
+          scholarshipId: scholarshipId.value,
+          data: <String, dynamic>{
+            ...scholarship.toJson(),
+            ...authorFields,
+          },
+        );
 
         await _navigateAfterSubmission('scholarship.updated_success'.tr);
       } catch (_) {

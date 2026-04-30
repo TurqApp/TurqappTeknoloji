@@ -15,8 +15,9 @@ class _ViewModeControllerRuntimePart {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      controller.isGridView.value = prefs.getBool(viewModeKeyFor(uid)) ?? true;
+      final preferences = ensureLocalPreferenceRepository();
+      controller.isGridView.value =
+          await preferences.getBool(viewModeKeyFor(uid)) ?? true;
     } catch (_) {
       controller.isGridView.value = true;
     } finally {
@@ -28,8 +29,11 @@ class _ViewModeControllerRuntimePart {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(viewModeKeyFor(uid), controller.isGridView.value);
+      final preferences = ensureLocalPreferenceRepository();
+      await preferences.setBool(
+        viewModeKeyFor(uid),
+        controller.isGridView.value,
+      );
     } catch (_) {}
   }
 

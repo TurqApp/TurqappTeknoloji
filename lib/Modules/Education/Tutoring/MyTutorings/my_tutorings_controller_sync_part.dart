@@ -3,9 +3,9 @@ part of 'my_tutorings_controller_library.dart';
 extension MyTutoringsControllerSyncPart on MyTutoringsController {
   Future<void> _bootstrapData(String currentUserId) async {
     final cached = (await _tutoringSnapshotRepository.loadCachedOwner(
-      userId: currentUserId,
-    ))
-        .data ??
+          userId: currentUserId,
+        ))
+            .data ??
         const <TutoringModel>[];
     if (cached.isNotEmpty) {
       if (!_sameTutoringEntries(myTutorings, cached)) {
@@ -42,17 +42,17 @@ extension MyTutoringsControllerSyncPart on MyTutoringsController {
     }
     try {
       final tutorings = (await _tutoringSnapshotRepository.loadOwner(
-        userId: currentUserId,
-        forceSync: forceRefresh,
-      ))
-          .data ??
+            userId: currentUserId,
+            forceSync: forceRefresh,
+          ))
+              .data ??
           const <TutoringModel>[];
       await _archiveExpiredTutorings(tutorings);
       final refreshed = (await _tutoringSnapshotRepository.loadOwner(
-        userId: currentUserId,
-        forceSync: true,
-      ))
-          .data ??
+            userId: currentUserId,
+            forceSync: true,
+          ))
+              .data ??
           const <TutoringModel>[];
       if (!_sameTutoringEntries(myTutorings, refreshed)) {
         myTutorings.assignAll(refreshed);
@@ -77,40 +77,18 @@ extension MyTutoringsControllerSyncPart on MyTutoringsController {
   Future<void> _archiveExpiredTutorings(List<TutoringModel> tutorings) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-    final batch = FirebaseFirestore.instance.batch();
-    var changed = false;
-
-    for (final tutoring in tutorings) {
-      if (tutoring.ended == true) continue;
-      if (tutoring.timeStamp < thirtyDaysAgo) {
-        batch.update(
-          FirebaseFirestore.instance
-              .collection('educators')
-              .doc(tutoring.docID),
-          {'ended': true, 'endedAt': now},
-        );
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      await batch.commit();
-    }
+    await _tutoringRepository.markExpiredTutorings(
+      tutorings,
+      now: now,
+      staleBefore: thirtyDaysAgo,
+    );
   }
 
   Future<void> reactivateEndedTutoring(TutoringModel tutoring) async {
     final uid = getCurrentUserId();
     if (uid == null || tutoring.userID != uid || tutoring.ended != true) return;
 
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseFirestore.instance
-        .collection('educators')
-        .doc(tutoring.docID)
-        .update({
-      'ended': false,
-      'endedAt': 0,
-      'timeStamp': now,
-    });
+    await _tutoringRepository.reactivateTutoring(tutoring.docID);
 
     await fetchMyTutorings(uid);
     AppSnackbar(

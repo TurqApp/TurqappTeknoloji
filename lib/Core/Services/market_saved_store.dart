@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 class MarketSavedStore {
   MarketSavedStore._();
@@ -9,7 +10,7 @@ class MarketSavedStore {
   static MarketSavedStore ensure() =>
       maybeFind() ?? (_instance = MarketSavedStore._());
 
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseFirestore _firestore = AppFirestore.instance;
 
   static DocumentReference<Map<String, dynamic>> _userSavedDoc(
     String uid,

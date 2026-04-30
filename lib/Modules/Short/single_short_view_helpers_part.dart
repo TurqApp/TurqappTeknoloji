@@ -159,9 +159,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
   ) {
     if (index < 0 || index >= shorts.length || ctrl.isDisposed) return null;
     final handleKey = _playbackHandleKeyForDoc(shorts[index].docID);
-    final state = VideoStateManager.instance.getVideoState(
-      handleKey,
-    );
+    final state = _playbackRuntimeService.getSavedPlaybackState(handleKey);
     if (state == null || state.position <= const Duration(milliseconds: 50)) {
       return null;
     }

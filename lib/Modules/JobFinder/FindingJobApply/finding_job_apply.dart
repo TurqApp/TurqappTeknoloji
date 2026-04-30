@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
-import 'package:turqappv2/Modules/Profile/Cv/cv.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 
 import 'finding_job_apply_controller.dart';
 
@@ -130,7 +130,7 @@ class _FindingJobApplyState extends State<FindingJobApply> {
 
     return GestureDetector(
       onTap: () {
-        Get.to(() => Cv());
+        const EducationDetailNavigationService().openCv();
       },
       child: _buildActionContainer(
         child: Row(

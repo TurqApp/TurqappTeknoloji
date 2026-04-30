@@ -27,14 +27,7 @@ extension _DeepLinkServiceRuntimeX on DeepLinkService {
         return;
       }
 
-      if (parsed.type == 'edu' &&
-          (parsed.id.startsWith('question-') ||
-              parsed.id.startsWith('scholarship-') ||
-              parsed.id.startsWith('practiceexam-') ||
-              parsed.id.startsWith('pastquestion-') ||
-              parsed.id.startsWith('answerkey-') ||
-              parsed.id.startsWith('tutoring-') ||
-              parsed.id.startsWith('job-'))) {
+      if (shouldOpenEducationDeepLinkDirectly(parsed)) {
         await _openEducationLink(parsed.id);
         return;
       }

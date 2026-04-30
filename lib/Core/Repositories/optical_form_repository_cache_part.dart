@@ -39,7 +39,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
             OpticalFormRepository._ttl) {
       return _cloneValue(memory.value);
     }
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${OpticalFormRepository._prefsPrefix}:$key';
     final raw = prefs?.getString(prefsKey);
@@ -82,7 +82,7 @@ extension OpticalFormRepositoryCachePart on OpticalFormRepository {
     final now = DateTime.now();
     final cloned = _cloneValue(value);
     _memory[key] = _TimedValue<dynamic>(value: cloned, cachedAt: now);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${OpticalFormRepository._prefsPrefix}:$key',
       jsonEncode({

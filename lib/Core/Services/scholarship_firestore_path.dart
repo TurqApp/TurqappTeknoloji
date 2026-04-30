@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 class ScholarshipFirestorePath {
   ScholarshipFirestorePath._();
@@ -6,7 +7,7 @@ class ScholarshipFirestorePath {
   static CollectionReference<Map<String, dynamic>> collection({
     FirebaseFirestore? firestore,
   }) {
-    final db = firestore ?? FirebaseFirestore.instance;
+    final db = firestore ?? AppFirestore.instance;
     return db.collection('catalog').doc('education').collection('scholarships');
   }
 

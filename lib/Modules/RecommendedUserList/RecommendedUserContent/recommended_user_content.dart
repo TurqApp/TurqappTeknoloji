@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 import '../../../Models/recommended_user_model.dart';
 import 'recommended_user_content_controller.dart';
@@ -22,6 +22,11 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
   late final String _controllerTag;
 
   RecommendedUserModel get model => widget.model;
+
+  Future<void> _openProfile() async {
+    await const ProfileNavigationService().openSocialProfile(controller.userID);
+    await controller.getTakipStatus();
+  }
 
   @override
   void initState() {
@@ -77,12 +82,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                   alignment: Alignment.bottomRight,
                   children: [
                     GestureDetector(
-                      onTap: () {
-                        Get.to(() => SocialProfile(userID: controller.userID))
-                            ?.then((_) {
-                          controller.getTakipStatus();
-                        });
-                      },
+                      onTap: _openProfile,
                       child: Container(
                         decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -105,12 +105,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                 ),
                 SizedBox(height: compact ? 6 : 4),
                 GestureDetector(
-                  onTap: () {
-                    Get.to(() => SocialProfile(userID: controller.userID))
-                        ?.then((_) {
-                      controller.getTakipStatus();
-                    });
-                  },
+                  onTap: _openProfile,
                   child: Text(
                     "${model.firstName.trim()} ${model.lastName.trim()}",
                     textAlign: TextAlign.center,
@@ -123,12 +118,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    Get.to(() => SocialProfile(userID: controller.userID))
-                        ?.then((_) {
-                      controller.getTakipStatus();
-                    });
-                  },
+                  onTap: _openProfile,
                   child: Text(
                     "@${model.nickname}",
                     overflow: TextOverflow.ellipsis,

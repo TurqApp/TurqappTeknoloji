@@ -191,6 +191,9 @@ extension BookletPreviewControllerFacadePart on BookletPreviewController {
       BookletPreviewControllerRuntimePart(this).toggleBookmark();
 
   void navigateToAnswerKey(BuildContext context, AnswerKeySubModel subModel) {
-    Get.to(() => BookletAnswer(model: subModel, anaModel: model));
+    const AnswerKeyNavigationService().openBookletAnswer(
+      model: subModel,
+      anaModel: model,
+    );
   }
 }

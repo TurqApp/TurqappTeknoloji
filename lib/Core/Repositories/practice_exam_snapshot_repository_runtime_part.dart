@@ -281,7 +281,7 @@ Future<List<SinavModel>> _fetchPracticeExamOwnerItems(
 ) async {
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <SinavModel>[];
-  final snap = await FirebaseFirestore.instance
+  final snap = await AppFirestore.instance
       .collection('practiceExams')
       .where('userID', isEqualTo: normalizedUserId)
       .get();
@@ -301,7 +301,7 @@ Future<List<SinavModel>> _fetchPracticeExamTypeItems(
 ) async {
   final normalizedExamType = query.examType.trim();
   if (normalizedExamType.isEmpty) return const <SinavModel>[];
-  final snap = await FirebaseFirestore.instance
+  final snap = await AppFirestore.instance
       .collection('practiceExams')
       .where('sinavTuru', isEqualTo: normalizedExamType)
       .limit(ReadBudgetRegistry.practiceExamTypeInitialLimit)
@@ -317,7 +317,7 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <SinavModel>[];
   final normalizedLimit = query.effectiveLimit;
-  final answeredRefsSnap = await FirebaseFirestore.instance
+  final answeredRefsSnap = await AppFirestore.instance
       .collection('users')
       .doc(normalizedUserId)
       .collection('answered_practice_exams')
@@ -329,7 +329,7 @@ Future<List<SinavModel>> _fetchPracticeExamAnsweredItems(
   };
 
   if (examDocIds.isEmpty) {
-    final yanitlarSnap = await FirebaseFirestore.instance
+    final yanitlarSnap = await AppFirestore.instance
         .collectionGroup('Yanitlar')
         .where('userID', isEqualTo: normalizedUserId)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -377,7 +377,7 @@ Future<void> _backfillAnsweredPracticeExamRefs(
   final normalizedUserId = userId.trim();
   if (normalizedUserId.isEmpty || examTimestamps.isEmpty) return;
 
-  final firestore = FirebaseFirestore.instance;
+  final firestore = AppFirestore.instance;
   final entries = examTimestamps.entries.toList(growable: false);
   for (var index = 0; index < entries.length; index += 200) {
     final batch = firestore.batch();

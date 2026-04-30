@@ -18,18 +18,16 @@ extension _ProfileViewMarketPart on _ProfileViewState {
         SliverToBoxAdapter(child: header()),
         if (_marketLoading)
           const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(top: 28),
-              child: Center(child: CupertinoActivityIndicator()),
+            child: SizedBox(
+              height: 220,
+              child: AppStateView.loading(title: ''),
             ),
           )
         else if (_marketItems.isEmpty)
           SliverToBoxAdapter(
-            child: Builder(
-              builder: (_) => Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: EmptyRow(text: 'profile.no_listings'.tr),
-              ),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: 'profile.no_listings'.tr),
             ),
           )
         else
@@ -57,7 +55,7 @@ extension _ProfileViewMarketPart on _ProfileViewState {
     return GestureDetector(
       onTap: () async {
         _suspendProfileFeedForRoute();
-        await Get.to(() => MarketDetailView(item: item));
+        await const MarketDetailNavigationService().openMarketDetail(item);
         await _loadMarketItems(force: true);
         _resumeProfileFeedAfterRoute();
       },
@@ -170,7 +168,8 @@ extension _ProfileViewMarketPart on _ProfileViewState {
                     child: ElevatedButton(
                       onPressed: () async {
                         _suspendProfileFeedForRoute();
-                        await Get.to(() => MarketDetailView(item: item));
+                        await const MarketDetailNavigationService()
+                            .openMarketDetail(item);
                         await _loadMarketItems(force: true);
                         _resumeProfileFeedAfterRoute();
                       },

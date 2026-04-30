@@ -124,13 +124,12 @@ extension _SocialProfileHeaderPart on _SocialProfileState {
                   PullDownMenuItem(
                     onTap: () {
                       _setCenteredIndex(-1);
-                      Get.to(
-                        () => ReportUser(
-                          userID: widget.userID,
-                          postID: "",
-                          commentID: "",
-                        ),
-                      )?.then((_) {
+                      const ReportUserNavigationService()
+                          .openReportUser(
+                        userId: widget.userID,
+                        postId: "",
+                      )
+                          .then((_) {
                         controller.resumeCenteredPost();
                         controller.getUserData();
                       });

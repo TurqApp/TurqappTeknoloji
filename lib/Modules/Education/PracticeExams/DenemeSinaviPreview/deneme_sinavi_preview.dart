@@ -6,8 +6,11 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/education_feed_post_share_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Utils/current_user_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_owner_card.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
@@ -15,8 +18,6 @@ import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview_controller.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviYap/deneme_sinavi_yap.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/sinav_model.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -182,12 +183,9 @@ class _DenemeSinaviPreviewState extends State<DenemeSinaviPreview> {
       itemBuilder: (context) => [
         PullDownMenuItem(
           onTap: () {
-            Get.to(
-              () => ReportUser(
-                userID: controller.model.userID,
-                postID: controller.model.docID,
-                commentID: '',
-              ),
+            const ReportUserNavigationService().openReportUser(
+              userId: controller.model.userID,
+              postId: controller.model.docID,
             );
           },
           title: 'practice.report_exam'.tr,

@@ -1,5 +1,5 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Models/moderation_config_model.dart';
 
 class ModerationConfigService {
@@ -53,7 +53,7 @@ class ModerationConfigService {
 
   Future<ModerationConfigModel> ensureWithCallable() async {
     try {
-      final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('ensureModerationConfig');
       final res = await callable.call();
       final data = res.data;

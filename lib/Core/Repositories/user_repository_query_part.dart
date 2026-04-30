@@ -15,7 +15,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value;
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('email', isEqualTo: normalized)
         .limit(1)
@@ -42,7 +42,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value;
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('usernameLower', isEqualTo: normalized)
         .limit(1)
@@ -69,7 +69,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('email', isEqualTo: normalized)
         .limit(1)
@@ -101,7 +101,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value == null ? null : cached.value!['id']?.toString();
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('fcmToken', isEqualTo: normalized)
         .limit(1)
@@ -133,7 +133,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('nickname', isEqualTo: normalized)
         .limit(1)
@@ -165,7 +165,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 5)) {
       return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('nickname', isGreaterThanOrEqualTo: normalized)
         .where('nickname', isLessThan: '$normalized\uf8ff')
@@ -207,7 +207,7 @@ extension UserRepositoryQueryPart on UserRepository {
       return const <Map<String, dynamic>>[];
     }
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('nickname', isGreaterThanOrEqualTo: normalized)
         .where('nickname', isLessThan: '$normalized\uf8ff')
@@ -227,14 +227,12 @@ extension UserRepositoryQueryPart on UserRepository {
       },
       cachedAt: DateTime.now(),
     );
-    return items
-        .map((entry) => _cloneUserMap(entry))
-        .toList(growable: false);
+    return items.map((entry) => _cloneUserMap(entry)).toList(growable: false);
   }
 
   Stream<Map<String, dynamic>?> watchUserRaw(String uid) {
     if (uid.isEmpty) return const Stream<Map<String, dynamic>?>.empty();
-    return FirebaseFirestore.instance
+    return AppFirestore.instance
         .collection('users')
         .doc(uid)
         .snapshots()

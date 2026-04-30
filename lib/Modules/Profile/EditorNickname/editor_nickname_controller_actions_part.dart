@@ -22,7 +22,7 @@ extension EditorNicknameControllerActionsPart on EditorNicknameController {
         throw Exception('taken');
       }
 
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('changeOwnNickname')
           .call(<String, dynamic>{'nickname': normalized});
 

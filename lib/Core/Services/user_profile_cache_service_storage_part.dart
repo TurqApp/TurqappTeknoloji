@@ -24,7 +24,7 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
   }
 
   Future<void> _initialize() async {
-    _prefs = await SharedPreferences.getInstance();
+    _prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     _loadFromPrefs();
   }
 

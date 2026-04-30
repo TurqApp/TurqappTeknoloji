@@ -53,7 +53,7 @@ extension MarketRepositoryCachePart on MarketRepository {
       items: _cloneItems(items),
       cachedAt: DateTime.now(),
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${MarketRepository._prefsPrefix}::$key',
       json.encode(items.map((item) => item.toJson()).toList(growable: false)),
@@ -75,7 +75,7 @@ extension MarketRepositoryCachePart on MarketRepository {
   }
 
   Future<List<MarketItemModel>?> _getFromPrefs(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final dataKey = '${MarketRepository._prefsPrefix}::$key';
     final tsKey = '${MarketRepository._prefsPrefix}::$key::ts';
@@ -135,7 +135,7 @@ extension MarketRepositoryCachePart on MarketRepository {
     _memory.removeWhere(
       (key, _) => prefixes.any((prefix) => key.startsWith(prefix)),
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     if (prefs == null) return;
     final keys = prefs.getKeys().where((key) {

@@ -7,9 +7,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/NotifyReader/notify_reader_route_decision.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
+import 'package:turqappv2/Core/Services/app_firebase_messaging.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../main.dart'; // navigatorKey için
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
@@ -43,7 +45,7 @@ class NotificationService {
 
   static NotificationService get instance => ensure();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  final FirebaseMessaging _messaging = AppFirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
   bool _inited = false;
@@ -56,16 +58,6 @@ class NotificationService {
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
   bool _isHandlingTap = false;
 
-  static const _profileTypes = {'user', 'follow'};
-  static const _postTypes = {
-    'posts',
-    'like',
-    'reshared_posts',
-    'shared_as_posts',
-  };
-  static const _tutoringTypes = {'tutoring_application', 'tutoring_status'};
-  static const _marketTypes = {'market_offer', 'market_offer_status'};
-  static const _chatTypes = {'chat', 'message'};
   static const String _fcmTokenKeyPrefix = 'fcm_token';
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
@@ -92,7 +84,7 @@ class NotificationService {
 
   Future<void> _performInitialize() async {
     if (!_bgRegistered) {
-      FirebaseMessaging.onBackgroundMessage(
+      AppFirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
       _bgRegistered = true;
     }

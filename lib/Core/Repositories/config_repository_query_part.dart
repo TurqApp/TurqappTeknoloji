@@ -25,10 +25,8 @@ extension ConfigRepositoryQueryPart on ConfigRepository {
       }
     }
 
-    final doc = await FirebaseFirestore.instance
-        .collection('adminConfig')
-        .doc(docId)
-        .get();
+    final doc =
+        await AppFirestore.instance.collection('adminConfig').doc(docId).get();
     if (!doc.exists) return null;
     final data =
         Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});
@@ -55,7 +53,7 @@ extension ConfigRepositoryQueryPart on ConfigRepository {
       yield Map<String, dynamic>.from(cached);
     }
 
-    yield* FirebaseFirestore.instance
+    yield* AppFirestore.instance
         .collection('adminConfig')
         .doc(docId)
         .snapshots()
@@ -95,10 +93,8 @@ extension ConfigRepositoryQueryPart on ConfigRepository {
       }
     }
 
-    final doc = await FirebaseFirestore.instance
-        .collection(collection)
-        .doc(docId)
-        .get();
+    final doc =
+        await AppFirestore.instance.collection(collection).doc(docId).get();
     if (!doc.exists) return null;
     final data =
         Map<String, dynamic>.from(doc.data() ?? const <String, dynamic>{});

@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/profile_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Models/user_post_reference.dart';
@@ -21,8 +23,8 @@ class ProfileManifestSyncService extends GetxService {
   ProfileManifestSyncService({
     FirebaseStorage? storage,
     FirebaseFirestore? firestore,
-  })  : _storage = storage ?? FirebaseStorage.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance;
+  })  : _storage = storage ?? AppFirebaseStorage.instance,
+        _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseStorage _storage;
   final FirebaseFirestore _firestore;
@@ -171,8 +173,7 @@ class ProfileManifestSyncService extends GetxService {
       data['authorNickname'] = data['authorNickname'] ?? post.authorNickname;
       data['authorDisplayName'] =
           data['authorDisplayName'] ?? post.authorDisplayName;
-      data['authorAvatarUrl'] =
-          data['authorAvatarUrl'] ?? post.authorAvatarUrl;
+      data['authorAvatarUrl'] = data['authorAvatarUrl'] ?? post.authorAvatarUrl;
       data['rozet'] = data['rozet'] ?? post.rozet;
       data['metin'] = post.metin;
       data['thumbnail'] = post.thumbnail;

@@ -57,7 +57,9 @@ extension _ThenSolveShellContentPart on ThenSolve {
 
                       final savedQuestions = controller.savedQuestionsList;
                       if (savedQuestions.isEmpty) {
-                        return EmptyRow(text: 'training.solve_later_empty'.tr);
+                        return AppStateView.empty(
+                          title: 'training.solve_later_empty'.tr,
+                        );
                       }
 
                       return ListView.builder(

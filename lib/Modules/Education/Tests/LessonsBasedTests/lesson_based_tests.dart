@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Tests/LessonsBasedTests/lesson_based_tests_controller.dart';
 import 'package:turqappv2/Modules/Education/Tests/TestsGrid/tests_grid.dart';
 
@@ -83,37 +83,13 @@ class _LessonBasedTestsState extends State<LessonBasedTests> {
         .toList(growable: false);
 
     if (controller.isLoading.value) {
-      return const Center(child: CupertinoActivityIndicator());
+      return const AppStateView.loading(title: '');
     }
 
     if (filtered.isEmpty) {
-      return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.lightbulb_outline,
-                    color: Colors.black,
-                  ),
-                  const SizedBox(height: 7),
-                  Text(
-                    'tests.none_in_category'.tr,
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'Montserrat',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+      return AppStateView.empty(
+        title: 'tests.none_in_category'.tr,
+        icon: Icons.lightbulb_outline,
       );
     }
 

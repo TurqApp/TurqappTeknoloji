@@ -145,7 +145,7 @@ extension _SplashViewWarmPart on _SplashViewState {
   }
 
   bool _shouldPrioritizeEducationWarmups() {
-    return _effectiveStartupRouteHint() == 'nav_education';
+    return _effectiveStartupRouteHintKind() == StartupRouteHint.education;
   }
 
   Future<void> _performRunCriticalWarmStartLoads({

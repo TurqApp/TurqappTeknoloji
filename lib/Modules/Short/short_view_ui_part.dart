@@ -343,7 +343,7 @@ extension ShortViewUiPart on _ShortViewState {
                           await PostRepository.ensure().toggleLike(post);
                         },
                         onSwipeRight: () async {
-                          maybeFindNavBarController()?.changeIndex(0);
+                          const PrimaryTabRouter().openFeed();
                         },
                         volumeOff: (v) {
                           if (v) {

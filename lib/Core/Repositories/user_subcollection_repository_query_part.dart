@@ -42,7 +42,7 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
 
     if (cacheOnly) return const <UserSubcollectionEntry>[];
 
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+    Query<Map<String, dynamic>> query = AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(subcollection);
@@ -92,7 +92,7 @@ extension UserSubcollectionRepositoryQueryPart on UserSubcollectionRepository {
 
     if (cacheOnly) return null;
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(subcollection)

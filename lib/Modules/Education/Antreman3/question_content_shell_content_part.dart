@@ -19,7 +19,7 @@ extension QuestionContentShellContentPart on QuestionContent {
             controller.onQuestionScreenExit();
             controller.savedQuestionsList.clear();
             controller.fetchSavedQuestions();
-            Get.to(() => ThenSolve());
+            const EducationQuestionBankNavigationService().openThenSolve();
           },
           icon: Image.asset(
             'assets/icons/reshare.webp',

@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
+import 'package:turqappv2/Core/Services/education_question_bank_navigation_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/text_styles.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
-import 'package:turqappv2/Modules/Education/Antreman3/ThenSolve/then_solve.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -61,7 +62,7 @@ class AntremanView2 extends StatelessWidget {
             icon: CupertinoIcons.repeat,
             onTap: () {
               controller.fetchSavedQuestions();
-              Get.to(() => ThenSolve());
+              const EducationQuestionBankNavigationService().openThenSolve();
             },
           ),
         ],

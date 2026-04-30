@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Repositories/username_lookup_repository.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../StoryMaker/story_maker_controller.dart';
@@ -143,7 +143,8 @@ class StoryTextWidget extends StatelessWidget {
               username,
             );
             if ((targetUid ?? '').isNotEmpty) {
-              Get.to(() => SocialProfile(userID: targetUid!));
+              await const ProfileNavigationService()
+                  .openSocialProfile(targetUid!);
             }
           },
       ));
@@ -204,7 +205,8 @@ class StoryTextWidget extends StatelessWidget {
             decoration: (element.hasTextBg || isSourceBadge)
                 ? BoxDecoration(
                     color: Color(element.textBgColor),
-                    borderRadius: BorderRadius.circular(isSourceBadge ? 10 : 10),
+                    borderRadius:
+                        BorderRadius.circular(isSourceBadge ? 10 : 10),
                   )
                 : null,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

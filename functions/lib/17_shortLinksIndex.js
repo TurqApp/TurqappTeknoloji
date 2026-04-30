@@ -8,6 +8,7 @@ const https_1 = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const axios_1 = require("axios");
 const rateLimiter_1 = require("./rateLimiter");
+const adminAccess_1 = require("./adminAccess");
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
 const SHORT_LINK_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
@@ -139,14 +140,7 @@ async function isAdminUid(db, uid) {
     const claims = await (0, auth_1.getAuth)().getUser(uid).then((user) => (user.customClaims || {}), () => ({}));
     if (claims["admin"] === true)
         return true;
-    const allowSnap = await db.doc("adminConfig/admin").get();
-    const allowedRaw = allowSnap.data()?.allowedUserIds;
-    if (!Array.isArray(allowedRaw))
-        return false;
-    return allowedRaw
-        .map((value) => String(value ?? "").trim())
-        .filter((value) => value.length > 0)
-        .includes(uid);
+    return await (0, adminAccess_1.isUidInAdminAllowList)(uid, db);
 }
 function validateSlug(slug) {
     if (!slug || !/^[a-z0-9._-]{2,40}$/.test(slug)) {

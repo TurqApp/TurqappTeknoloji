@@ -28,6 +28,97 @@ extension TestRepositoryActionPart on TestRepository {
     }
   }
 
+  Future<void> setTestImage({
+    required String testId,
+    required String imageUrl,
+  }) async {
+    if (!legacyTestsNetworkEnabled) return;
+    final normalizedTestId = testId.trim();
+    if (normalizedTestId.isEmpty) return;
+    await _firestore.collection('Testler').doc(normalizedTestId).set(
+      {'img': imageUrl},
+      SetOptions(merge: true),
+    );
+    await _removeCacheKey('doc:$normalizedTestId');
+    await _removeCacheKey('raw:$normalizedTestId');
+  }
+
+  Future<void> updateTestDetails({
+    required String testId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (!legacyTestsNetworkEnabled) return;
+    final normalizedTestId = testId.trim();
+    if (normalizedTestId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('Testler').doc(normalizedTestId).update(data);
+    await _removeCacheKey('doc:$normalizedTestId');
+    await _removeCacheKey('raw:$normalizedTestId');
+    await maybeFindTestSnapshotRepository()?.invalidateAllSurfaces();
+  }
+
+  Future<void> prepareDraftTest({
+    required String testId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (!legacyTestsNetworkEnabled) return;
+    final normalizedTestId = testId.trim();
+    if (normalizedTestId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('Testler').doc(normalizedTestId).set(
+          data,
+          SetOptions(merge: true),
+        );
+    await _removeCacheKey('doc:$normalizedTestId');
+    await _removeCacheKey('raw:$normalizedTestId');
+    await maybeFindTestSnapshotRepository()?.invalidateAllSurfaces();
+  }
+
+  Future<void> saveQuestion({
+    required String testId,
+    required String questionId,
+    required Map<String, dynamic> data,
+  }) async {
+    if (!legacyTestsNetworkEnabled) return;
+    final normalizedTestId = testId.trim();
+    final normalizedQuestionId = questionId.trim();
+    if (normalizedTestId.isEmpty ||
+        normalizedQuestionId.isEmpty ||
+        data.isEmpty) {
+      return;
+    }
+    await _firestore
+        .collection('Testler')
+        .doc(normalizedTestId)
+        .collection('Sorular')
+        .doc(normalizedQuestionId)
+        .set(data, SetOptions(merge: true));
+    await _removeCacheKey('questions:$normalizedTestId');
+  }
+
+  Future<void> setQuestionCorrectAnswer({
+    required String testId,
+    required String questionId,
+    required String correctAnswer,
+  }) {
+    return saveQuestion(
+      testId: testId,
+      questionId: questionId,
+      data: {'dogruCevap': correctAnswer},
+    );
+  }
+
+  Future<void> publishTest(String testId) async {
+    if (!legacyTestsNetworkEnabled) return;
+    final normalizedTestId = testId.trim();
+    if (normalizedTestId.isEmpty) return;
+    await _firestore.collection('Testler').doc(normalizedTestId).set(
+      {'taslak': false},
+      SetOptions(merge: true),
+    );
+    await _removeCacheKey('doc:$normalizedTestId');
+    await _removeCacheKey('raw:$normalizedTestId');
+    await maybeFindTestSnapshotRepository()?.invalidateAllSurfaces();
+  }
+
   Future<void> submitAnswers(
     String testId, {
     required String userId,

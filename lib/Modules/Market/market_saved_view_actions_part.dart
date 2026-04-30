@@ -6,7 +6,7 @@ extension MarketSavedViewActionsPart on _MarketSavedViewState {
       item: item,
       isSaved: true,
       onOpen: () async {
-        await Get.to(() => MarketDetailView(item: item));
+        await const MarketDetailNavigationService().openMarketDetail(item);
         if (!mounted) return;
         _updateViewState(() => _reload(force: true));
       },

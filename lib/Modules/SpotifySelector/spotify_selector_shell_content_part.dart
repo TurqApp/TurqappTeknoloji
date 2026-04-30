@@ -20,20 +20,14 @@ extension _SpotifySelectorShellContentPart on _SpotifySelectorState {
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const AppStateView.loading();
                 }
 
                 final tracks = controller.currentTabTracks();
                 if (tracks.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'spotify.empty'.tr,
-                      style: const TextStyle(
-                        color: Color(0xFF7A828C),
-                        fontSize: 14,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
+                  return AppStateView.empty(
+                    title: 'spotify.empty'.tr,
+                    icon: CupertinoIcons.music_note_2,
                   );
                 }
 

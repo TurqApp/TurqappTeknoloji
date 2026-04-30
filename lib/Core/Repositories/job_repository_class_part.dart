@@ -3,7 +3,7 @@ part of 'job_repository.dart';
 class JobRepository extends GetxService {
   JobRepository({FirebaseFirestore? firestore})
       : _state = _JobRepositoryState(
-          firestore: firestore ?? FirebaseFirestore.instance,
+          firestore: firestore ?? AppFirestore.instance,
         );
 
   final _JobRepositoryState _state;
@@ -13,6 +13,8 @@ class JobRepository extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _prefs = prefs);
   }
 }

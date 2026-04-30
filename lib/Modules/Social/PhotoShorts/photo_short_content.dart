@@ -11,12 +11,13 @@ import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/FloodListing/flood_listing.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/story_viewer.dart';
@@ -27,7 +28,6 @@ import 'package:turqappv2/Core/sizes.dart';
 import '../../../Core/BottomSheets/no_yes_alert.dart';
 import '../../../Core/formatters.dart';
 import '../../../Core/rozet_content.dart';
-import '../../SocialProfile/ReportUser/report_user.dart';
 import '../hashtag_text_post.dart';
 import '../PostSharers/post_sharers.dart';
 import '../../PostCreator/post_creator.dart';
@@ -73,7 +73,8 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
 
   Future<void> _openAuthorProfile() async {
     if (widget.model.userID == _currentUserId) return;
-    await Get.to(() => SocialProfile(userID: widget.model.userID));
+    await const ProfileNavigationService()
+        .openSocialProfile(widget.model.userID);
   }
 
   Future<void> _openAvatarStoryOrProfile() async {

@@ -173,9 +173,8 @@ class PlaybackRuntimeService {
     final renderedVisualFrame = snapshot.isInitialized &&
         snapshot.hasRenderedFirstFrame &&
         !snapshot.isBuffering;
-    final hasAudiblePlaybackFrame = atPlaybackEnd ||
-        (renderedVisualFrame &&
-            (snapshot.isPlaying || reachedStablePlaybackPosition));
+    final hasAudiblePlaybackFrame =
+        atPlaybackEnd || (renderedVisualFrame && reachedStablePlaybackPosition);
     final hasStableVisualFrame = atPlaybackEnd ||
         (renderedVisualFrameForStableVisual &&
             (snapshot.allowRenderedFirstFrameAsStableVisual ||

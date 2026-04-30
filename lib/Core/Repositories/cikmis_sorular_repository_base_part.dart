@@ -16,7 +16,9 @@ abstract class _CikmisSorularRepositoryBase extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _prefs = prefs);
   }
 
   Future<List<Map<String, dynamic>>?> _readList(String key) =>
@@ -29,7 +31,7 @@ abstract class _CikmisSorularRepositoryBase extends GetxService {
 class CikmisSorularRepository extends _CikmisSorularRepositoryBase {
   CikmisSorularRepository({
     FirebaseStorage? storage,
-  }) : super(storage: storage ?? FirebaseStorage.instance);
+  }) : super(storage: storage ?? AppFirebaseStorage.instance);
 }
 
 CikmisSorularRepository? maybeFindCikmisSorularRepository() =>

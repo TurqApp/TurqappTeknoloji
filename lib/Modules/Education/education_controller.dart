@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
+import 'package:turqappv2/Runtime/app_decision_coordinator.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';

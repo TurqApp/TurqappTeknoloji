@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -21,6 +22,7 @@ import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/user_moderation_guard.dart';
 import 'package:turqappv2/Core/Services/user_summary_resolver.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Core/Services/user_profile_cache_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
@@ -34,7 +36,6 @@ import 'package:uuid/uuid.dart';
 import 'package:record/record.dart';
 import 'package:video_compress/video_compress.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../Core/Camera/chat_camera_capture_view.dart';
 import '../../Core/blocked_texts.dart';

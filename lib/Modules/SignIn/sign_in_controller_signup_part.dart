@@ -430,7 +430,7 @@ extension SignInControllerSignupPart on SignInController {
         nickname: nickname.value,
       );
 
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      await _signInApplicationService.createAuthUserForSignup(
         email: normalizeEmailAddress(email.value),
         password: password.value.trim(),
       );

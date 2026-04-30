@@ -7,10 +7,10 @@ final Set<String> _postRepositoryUploadRepairInFlight = <String>{};
 FirebaseFirestore _resolvePostRepositoryFirestore(
   FirebaseFirestore? firestore,
 ) =>
-    firestore ?? FirebaseFirestore.instance;
+    firestore ?? AppFirestore.instance;
 
 FirebaseAuth _resolvePostRepositoryAuth(FirebaseAuth? auth) =>
-    auth ?? FirebaseAuth.instance;
+    auth ?? AppFirebaseAuth.instance;
 
 PostInteractionService _resolvePostRepositoryInteractionService(
   PostInteractionService? interactionService,

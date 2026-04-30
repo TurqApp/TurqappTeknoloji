@@ -162,6 +162,25 @@ extension AccountCenterViewBodyContentPart on AccountCenterView {
 }
 
 extension AccountCenterViewActionsPart on AccountCenterView {
+  SessionExitCoordinator _accountSwitchExitCoordinator() {
+    return SessionExitCoordinator(
+      clearLocalSession: _clearCurrentSessionSilently,
+      signOutAuth: _signOutAuthSilently,
+    );
+  }
+
+  Future<void> _clearCurrentSessionSilently() async {
+    try {
+      await CurrentUserService.instance.logout();
+    } catch (_) {}
+  }
+
+  Future<void> _signOutAuthSilently() async {
+    try {
+      await CurrentUserService.instance.signOutAuth();
+    } catch (_) {}
+  }
+
   Future<void> _continueWithAccount(StoredAccount account) async {
     final currentUid = _currentUid;
     if (currentUid == account.uid) {
@@ -185,11 +204,6 @@ extension AccountCenterViewActionsPart on AccountCenterView {
           );
           await _userRepository.updateUserFields(currentUid, {'token': ''});
         } catch (_) {}
-
-        try {
-          await CurrentUserService.instance.logout();
-          await CurrentUserService.instance.signOutAuth();
-        } catch (_) {}
       }
 
       await accountCenter.markSessionState(
@@ -197,7 +211,10 @@ extension AccountCenterViewActionsPart on AccountCenterView {
         isSessionValid: false,
         requiresReauth: true,
       );
-      await AppRootNavigationService.offAllToSignIn(
+      await _accountSwitchExitCoordinator().exitToSignIn(
+        reason: SessionExitReason.accountSwitched,
+        clearLocalSession: currentUid.isNotEmpty,
+        signOutAuth: currentUid.isNotEmpty,
         initialIdentifier: identifier,
         storedAccountUid: account.uid,
       );
@@ -217,14 +234,12 @@ extension AccountCenterViewActionsPart on AccountCenterView {
         );
         await _userRepository.updateUserFields(currentUid, {'token': ''});
       } catch (_) {}
-
-      try {
-        await CurrentUserService.instance.logout();
-        await CurrentUserService.instance.signOutAuth();
-      } catch (_) {}
     }
 
-    await AppRootNavigationService.offAllToSignIn(
+    await _accountSwitchExitCoordinator().exitToSignIn(
+      reason: SessionExitReason.accountSwitched,
+      clearLocalSession: currentUid.isNotEmpty,
+      signOutAuth: currentUid.isNotEmpty,
       initialIdentifier: account.username,
       storedAccountUid: account.uid,
     );

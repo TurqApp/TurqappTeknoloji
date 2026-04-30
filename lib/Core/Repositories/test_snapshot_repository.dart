@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cache_first.dart';
 import 'package:turqappv2/Core/Services/legacy_tests_feature_gate.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
@@ -643,7 +644,7 @@ class TestSnapshotRepository extends GetxService {
     if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await AppFirestore.instance
         .collection('Testler')
         .where('userID', isEqualTo: normalizedUserId)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -659,7 +660,7 @@ class TestSnapshotRepository extends GetxService {
 
   Future<List<TestsModel>> _fetchAllItems(TestAllQuery query) async {
     if (!legacyTestsNetworkEnabled) return const <TestsModel>[];
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await AppFirestore.instance
         .collection('Testler')
         .get(const GetOptions(source: Source.serverAndCache));
     return snapshot.docs
@@ -674,7 +675,7 @@ class TestSnapshotRepository extends GetxService {
     if (normalizedType.isEmpty) {
       return const <TestsModel>[];
     }
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await AppFirestore.instance
         .collection('Testler')
         .where('testTuru', isEqualTo: normalizedType)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -689,7 +690,7 @@ class TestSnapshotRepository extends GetxService {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final normalizedLimit = query.effectiveLimit;
-    final answeredRefsSnap = await FirebaseFirestore.instance
+    final answeredRefsSnap = await AppFirestore.instance
         .collection('users')
         .doc(normalizedUserId)
         .collection('answered_tests')
@@ -699,7 +700,7 @@ class TestSnapshotRepository extends GetxService {
         if (refDoc.id.trim().isNotEmpty) refDoc.id.trim(),
     };
     if (testIds.isEmpty) {
-      final snapshot = await FirebaseFirestore.instance
+      final snapshot = await AppFirestore.instance
           .collectionGroup('Yanitlar')
           .where('userID', isEqualTo: normalizedUserId)
           .get(const GetOptions(source: Source.serverAndCache));
@@ -739,7 +740,7 @@ class TestSnapshotRepository extends GetxService {
     final normalizedUserId = userId.trim();
     if (normalizedUserId.isEmpty || testTimestamps.isEmpty) return;
 
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final entries = testTimestamps.entries.toList(growable: false);
     for (var index = 0; index < entries.length; index += 200) {
       final batch = firestore.batch();
@@ -772,7 +773,7 @@ class TestSnapshotRepository extends GetxService {
     final normalizedUserId = query.userId.trim();
     if (normalizedUserId.isEmpty) return const <TestsModel>[];
     final normalizedLimit = query.effectiveLimit;
-    final snapshot = await FirebaseFirestore.instance
+    final snapshot = await AppFirestore.instance
         .collection('Testler')
         .where('favoriler', arrayContains: normalizedUserId)
         .get(const GetOptions(source: Source.serverAndCache));
@@ -792,7 +793,7 @@ class TestSnapshotRepository extends GetxService {
     final normalizedPage = query.page < 1 ? 1 : query.page;
     final normalizedLimit =
         query.limit < 1 ? ReadBudgetRegistry.testSharedPageLimit : query.limit;
-    Query<Map<String, dynamic>> firestoreQuery = FirebaseFirestore.instance
+    Query<Map<String, dynamic>> firestoreQuery = AppFirestore.instance
         .collection('Testler')
         .where('paylasilabilir', isEqualTo: true)
         .orderBy('timeStamp', descending: true)
@@ -829,7 +830,7 @@ class TestSnapshotRepository extends GetxService {
       for (var i = 0; i < wanted.length; i += 10) i,
     ]) {
       final chunk = wanted.skip(chunkStart).take(10).toList(growable: false);
-      final snapshot = await FirebaseFirestore.instance
+      final snapshot = await AppFirestore.instance
           .collection('Testler')
           .where(FieldPath.documentId, whereIn: chunk)
           .get(const GetOptions(source: Source.serverAndCache));

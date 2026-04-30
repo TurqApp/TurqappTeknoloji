@@ -79,7 +79,6 @@ extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
       );
       if (thumbData == null || thumbData.isEmpty) return '';
       final uploadUrl = await WebpUploadService.uploadBytesAsWebp(
-        storage: FirebaseStorage.instance,
         bytes: thumbData,
         storagePathWithoutExt: 'highlights/$uid/$highlightId/cover',
       );

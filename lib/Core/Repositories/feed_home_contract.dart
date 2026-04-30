@@ -39,7 +39,7 @@ class FeedHomeContract {
       FeedHomeFallbackPath.personalSnapshot,
       FeedHomeFallbackPath.legacyPage,
     ],
-    usesPrimaryFeedPaging: true,
+    usesPrimaryFeedPaging: false,
     primaryCollection: 'Posts',
     primaryItemsSubcollection: '',
     celebrityCollection: 'celebAccounts',

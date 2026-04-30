@@ -2,6 +2,7 @@
 // Configures Firestore cache, persistence, and optimization settings
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 class FirestoreConfig {
   static bool _initialized = false;
@@ -12,7 +13,7 @@ class FirestoreConfig {
     if (_initialized) return;
 
     try {
-      final firestore = FirebaseFirestore.instance;
+      final firestore = AppFirestore.instance;
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📦 CACHE SETTINGS
@@ -32,9 +33,7 @@ class FirestoreConfig {
       firestore.settings = settings;
 
       _initialized = true;
-
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -82,8 +81,7 @@ class FirestoreConfig {
   /// Use sparingly - only when absolutely needed
   static Future<void> clearCache() async {
     try {
-      await FirebaseFirestore.instance.clearPersistence();
-    } catch (_) {
-    }
+      await AppFirestore.instance.clearPersistence();
+    } catch (_) {}
   }
 }

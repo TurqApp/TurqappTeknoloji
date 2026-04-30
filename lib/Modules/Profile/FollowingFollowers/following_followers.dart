@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/follower_content.dart';
 import 'package:turqappv2/Modules/Profile/FollowingFollowers/following_followers_controller.dart';
@@ -211,22 +212,15 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
           itemBuilder: (ctx, i) {
             if (list.isEmpty) {
               if (isLoading()) {
-                return const Padding(
-                  padding: EdgeInsets.only(top: 30),
-                  child: Center(child: CupertinoActivityIndicator()),
+                return SizedBox(
+                  height: MediaQuery.sizeOf(ctx).height * 0.5,
+                  child: const AppStateView.loading(title: ''),
                 );
               }
-              return Padding(
-                padding: EdgeInsets.only(top: 30),
-                child: Center(
-                  child: Text(
-                    'following.none'.tr,
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 15,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
+              return SizedBox(
+                height: MediaQuery.sizeOf(ctx).height * 0.5,
+                child: AppStateView.empty(
+                  title: 'following.none'.tr,
                 ),
               );
             }

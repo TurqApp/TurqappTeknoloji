@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -11,7 +12,6 @@ import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments
 import 'package:turqappv2/Services/current_user_service.dart';
 import '../../../../../Core/rozet_content.dart';
 import '../../../../../Models/story_comment_model.dart';
-import '../../../../SocialProfile/social_profile.dart';
 import 'story_comment_user_controller.dart';
 
 class StoryCommentUser extends StatefulWidget {
@@ -86,8 +86,8 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                   GestureDetector(
                     onTap: () {
                       if (widget.model.userID != _currentUserId) {
-                        Get.to(
-                            () => SocialProfile(userID: widget.model.userID));
+                        const ProfileNavigationService()
+                            .openSocialProfile(widget.model.userID);
                       }
                     },
                     child: SizedBox(
@@ -112,8 +112,8 @@ class _StoryCommentUserState extends State<StoryCommentUser> {
                             GestureDetector(
                               onTap: () {
                                 if (widget.model.userID != _currentUserId) {
-                                  Get.to(() => SocialProfile(
-                                      userID: widget.model.userID));
+                                  const ProfileNavigationService()
+                                      .openSocialProfile(widget.model.userID);
                                 }
                               },
                               child: Text(

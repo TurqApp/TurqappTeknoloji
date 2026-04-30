@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/firestore_config.dart';
 import 'package:turqappv2/main.dart';
 
@@ -21,7 +22,8 @@ class StartupBootstrap {
             }),
         _initializeFirestoreConfig =
             initializeFirestoreConfig ?? _defaultInitializeFirestoreConfig,
-        _readPreferences = readPreferences ?? SharedPreferences.getInstance,
+        _readPreferences = readPreferences ??
+            (() => ensureLocalPreferenceRepository().sharedPreferences()),
         _initializeAudioContext =
             initializeAudioContext ?? _defaultInitializeAudioContext;
 

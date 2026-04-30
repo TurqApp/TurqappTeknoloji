@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/slider_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Slider/slider_catalog.dart';
@@ -125,7 +126,7 @@ class SliderCacheService {
   final SliderRepository _sliderRepository = ensureSliderRepository();
 
   Future<SharedPreferences> _prefsInstance() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     return _prefs!;
   }
 

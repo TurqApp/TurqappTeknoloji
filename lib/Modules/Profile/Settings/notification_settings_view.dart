@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
 part 'notification_settings_view_categories_part.dart';
 part 'notification_settings_view_components_part.dart';
@@ -41,7 +42,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             BackButtons(text: 'notifications.title'.tr),
             Expanded(
               child: _loading
-                  ? const Center(child: CupertinoActivityIndicator())
+                  ? const AppStateView.loading()
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       children: [

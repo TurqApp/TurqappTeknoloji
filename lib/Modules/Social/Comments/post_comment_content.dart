@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/functions.dart';
@@ -12,7 +13,6 @@ import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Models/post_interactions_models_new.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content_controller.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
@@ -93,7 +93,8 @@ class _PostCommentContentState extends State<PostCommentContent> {
           GestureDetector(
             onTap: () {
               if (model.userID != currentUID) {
-                Get.to(() => SocialProfile(userID: model.userID));
+                const ProfileNavigationService()
+                    .openSocialProfile(model.userID);
               }
             },
             child: SizedBox(
@@ -120,7 +121,8 @@ class _PostCommentContentState extends State<PostCommentContent> {
                     GestureDetector(
                       onTap: () {
                         if (model.userID != currentUID) {
-                          Get.to(() => SocialProfile(userID: model.userID));
+                          const ProfileNavigationService()
+                              .openSocialProfile(model.userID);
                         }
                       },
                       child: Obx(

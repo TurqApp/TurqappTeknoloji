@@ -4,7 +4,8 @@ extension JobRepositoryCacheX on JobRepository {
   Future<void> clearAll() async {
     _memory.clear();
     _boolMemory.clear();
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final keys = prefs
         .getKeys()
         .where((key) => key.startsWith(JobRepository._prefsPrefix))
@@ -25,7 +26,8 @@ extension JobRepositoryCacheX on JobRepository {
   }
 
   Future<_TimedJobs?> _getFromPrefsEntry(String key) async {
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefsKey = '${JobRepository._prefsPrefix}::$key';
     final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
@@ -64,7 +66,8 @@ extension JobRepositoryCacheX on JobRepository {
       items: _cloneJobs(items),
       cachedAt: DateTime.now(),
     );
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final payload = jsonEncode(<String, dynamic>{
       'cachedAt': DateTime.now().toIso8601String(),
       'items': items
@@ -78,7 +81,8 @@ extension JobRepositoryCacheX on JobRepository {
   }
 
   Future<List<Map<String, dynamic>>?> _readList(String key) async {
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefsKey = '${JobRepository._prefsPrefix}::$key';
     final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
@@ -107,7 +111,8 @@ extension JobRepositoryCacheX on JobRepository {
   }
 
   Future<void> _writeList(String key, List<Map<String, dynamic>> items) async {
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await prefs.setString(
       '${JobRepository._prefsPrefix}::$key',
       jsonEncode(<String, dynamic>{
@@ -118,7 +123,8 @@ extension JobRepositoryCacheX on JobRepository {
   }
 
   Future<void> _invalidateListCache(String key) async {
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await prefs.remove('${JobRepository._prefsPrefix}::$key');
   }
 

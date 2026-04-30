@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -37,7 +38,7 @@ class WebpUploadService {
       );
 
   static Future<String> uploadFileAsWebp({
-    required FirebaseStorage storage,
+    FirebaseStorage? storage,
     required File file,
     required String storagePathWithoutExt,
     int quality = 85,
@@ -45,7 +46,7 @@ class WebpUploadService {
     int maxHeight = defaultMaxImageDimension,
   }) =>
       _performUploadFileAsWebp(
-        storage: storage,
+        storage: storage ?? AppFirebaseStorage.instance,
         file: file,
         storagePathWithoutExt: storagePathWithoutExt,
         quality: quality,
@@ -54,7 +55,7 @@ class WebpUploadService {
       );
 
   static Future<String> uploadBytesAsWebp({
-    required FirebaseStorage storage,
+    FirebaseStorage? storage,
     required Uint8List bytes,
     required String storagePathWithoutExt,
     int quality = 85,
@@ -62,11 +63,21 @@ class WebpUploadService {
     int maxHeight = defaultMaxImageDimension,
   }) =>
       _performUploadBytesAsWebp(
-        storage: storage,
+        storage: storage ?? AppFirebaseStorage.instance,
         bytes: bytes,
         storagePathWithoutExt: storagePathWithoutExt,
         quality: quality,
         maxWidth: maxWidth,
         maxHeight: maxHeight,
+      );
+
+  static Future<String> uploadPreparedWebpBytes({
+    required Uint8List bytes,
+    required String storagePathWithoutExt,
+  }) =>
+      _performUploadPreparedWebpBytes(
+        storage: AppFirebaseStorage.instance,
+        bytes: bytes,
+        storagePathWithoutExt: storagePathWithoutExt,
       );
 }

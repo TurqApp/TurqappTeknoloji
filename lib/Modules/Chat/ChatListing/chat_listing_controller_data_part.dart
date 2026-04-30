@@ -28,12 +28,12 @@ extension ChatListingControllerDataPart on ChatListingController {
     final key = _cacheKey;
     if (key.isEmpty) return null;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(key);
+      final preferences = ensureLocalPreferenceRepository();
+      final raw = await preferences.getString(key);
       if (raw == null || raw.isEmpty) return null;
       final decoded = jsonDecode(raw);
       if (decoded is! List) {
-        await prefs.remove(key);
+        await preferences.remove(key);
         return null;
       }
       final restored = decoded
@@ -41,13 +41,13 @@ extension ChatListingControllerDataPart on ChatListingController {
           .map(ChatListingModel.fromJson)
           .toList();
       if (restored.isEmpty && decoded.isNotEmpty) {
-        await prefs.remove(key);
+        await preferences.remove(key);
       }
       return restored;
     } catch (_) {
       try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(key);
+        final preferences = ensureLocalPreferenceRepository();
+        await preferences.remove(key);
       } catch (_) {}
       return null;
     }
@@ -57,13 +57,13 @@ extension ChatListingControllerDataPart on ChatListingController {
     final key = _cacheKey;
     if (key.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       if (items.isEmpty) {
-        await prefs.remove(key);
+        await preferences.remove(key);
         return;
       }
       final payload = jsonEncode(items.map((e) => e.toJson()).toList());
-      await prefs.setString(key, payload);
+      await preferences.setString(key, payload);
     } catch (_) {}
   }
 
@@ -251,7 +251,7 @@ extension ChatListingControllerDataPart on ChatListingController {
     required Map<String, ChatListingModel> existingByChatId,
   }) async {
     final userCache = ensureUserProfileCacheService();
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final tempList = <ChatListingModel>[];
     for (final doc in docs) {
       final item = await _buildListingFromConversationData(
@@ -260,7 +260,7 @@ extension ChatListingControllerDataPart on ChatListingController {
         preferCache: preferCache,
         cacheOnly: cacheOnly,
         existingByChatId: existingByChatId,
-        prefs: prefs,
+        preferences: preferences,
         userCache: userCache,
       );
       if (item != null) {
@@ -276,7 +276,7 @@ extension ChatListingControllerDataPart on ChatListingController {
     required bool preferCache,
     required bool cacheOnly,
     required Map<String, ChatListingModel> existingByChatId,
-    required SharedPreferences prefs,
+    required LocalPreferenceRepository preferences,
     required UserProfileCacheService userCache,
   }) async {
     final uid = _uid;
@@ -364,7 +364,7 @@ extension ChatListingControllerDataPart on ChatListingController {
     }
     final lastSenderId = (data["lastSenderId"] ?? "").toString();
     final seenKey = "chat_last_opened_${uid}_$chatId";
-    final seenTs = prefs.getInt(seenKey) ?? 0;
+    final seenTs = await preferences.getInt(seenKey) ?? 0;
     final deletedCutoff =
         _conversationRepository.participantIntValue(data["deletedAt"], uid);
     final isDeleted = deletedCutoff > 0 && ts > 0 && ts <= deletedCutoff;
@@ -445,7 +445,7 @@ extension ChatListingControllerDataPart on ChatListingController {
     if (previous != null && previous.deleted.contains("__deleted__")) {
       return;
     }
-    final prefs = await SharedPreferences.getInstance();
+    final preferences = ensureLocalPreferenceRepository();
     final userCache = ensureUserProfileCacheService();
     final listing = await _buildListingFromConversationData(
       chatId: snapshot.id,
@@ -453,7 +453,7 @@ extension ChatListingControllerDataPart on ChatListingController {
       preferCache: true,
       cacheOnly: _isOffline,
       existingByChatId: existingByChatId,
-      prefs: prefs,
+      preferences: preferences,
       userCache: userCache,
     );
     if (listing == null) return;
@@ -497,10 +497,10 @@ extension ChatListingControllerDataPart on ChatListingController {
       return;
     }
     final desiredChatIds = _sortChatListings(
-          _cloneCurrentList()
-              .where((item) => !item.deleted.contains("__deleted__"))
-              .toList(growable: false),
-        )
+      _cloneCurrentList()
+          .where((item) => !item.deleted.contains("__deleted__"))
+          .toList(growable: false),
+    )
         .take(_liveConversationWindowSize)
         .map((item) => item.chatID.trim())
         .where((chatId) => chatId.isNotEmpty)

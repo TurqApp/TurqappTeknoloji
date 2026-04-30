@@ -2,7 +2,7 @@ part of 'current_user_service.dart';
 
 User? _safeCurrentAuthUser() {
   try {
-    return FirebaseAuth.instance.currentUser;
+    return AppFirebaseAuth.instance.currentUser;
   } catch (_) {
     return null;
   }
@@ -10,7 +10,7 @@ User? _safeCurrentAuthUser() {
 
 Stream<User?> _safeAuthStateChanges() {
   try {
-    return FirebaseAuth.instance.authStateChanges();
+    return AppFirebaseAuth.instance.authStateChanges();
   } catch (_) {
     return const Stream<User?>.empty();
   }
@@ -18,7 +18,7 @@ Stream<User?> _safeAuthStateChanges() {
 
 Future<void> _safeSignOutAuth() async {
   try {
-    await FirebaseAuth.instance.signOut();
+    await AppFirebaseAuth.instance.signOut();
   } catch (_) {}
 }
 

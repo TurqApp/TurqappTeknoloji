@@ -12,7 +12,7 @@ extension ApplicantProfileContentPart on _ApplicantProfileState {
               child: Obx(() {
                 if (controller.isLoading.value ||
                     controller.isDetailsLoading.value) {
-                  return const Center(child: CupertinoActivityIndicator());
+                  return const AppStateView.loading();
                 }
 
                 return SingleChildScrollView(

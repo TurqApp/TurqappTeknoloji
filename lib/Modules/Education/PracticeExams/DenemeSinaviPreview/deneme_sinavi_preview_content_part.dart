@@ -55,24 +55,14 @@ extension DenemeSinaviPreviewContentPart on _DenemeSinaviPreviewState {
           children: [
             Obx(() {
               if (controller.isLoading.value) {
-                return const Center(child: CupertinoActivityIndicator());
+                return const AppStateView.loading();
               }
               if (controller.isInitialized.value &&
                   controller.displayName.value.isEmpty &&
                   controller.nickname.value.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      'practice.user_load_failed_body'.tr,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 15,
-                        fontFamily: 'MontserratMedium',
-                      ),
-                    ),
-                  ),
+                return AppStateView.empty(
+                  title: 'practice.user_load_failed_body'.tr,
+                  icon: Icons.person_off_outlined,
                 );
               }
               return RefreshIndicator(

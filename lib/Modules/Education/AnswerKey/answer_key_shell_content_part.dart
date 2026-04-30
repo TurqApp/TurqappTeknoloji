@@ -59,7 +59,7 @@ extension AnswerKeyShellContentPart on AnswerKey {
           children: [
             Obx(() {
               if (!controller.listingSelectionReady.value) {
-                return const Center(child: CupertinoActivityIndicator());
+                return const AppStateView.loading();
               }
               final items = controller.hasActiveSearch
                   ? controller.searchResults
@@ -90,38 +90,40 @@ extension AnswerKeyShellContentPart on AnswerKey {
                 PullDownMenuItem(
                   title: 'answer_key.published'.tr,
                   icon: AppIcons.book,
-                  onTap: () => Get.to(OpticsAndBooksPublished()),
+                  onTap: () => const AnswerKeyNavigationService()
+                      .openPublishedAnswerKeys(),
                 ),
                 PullDownMenuItem(
                   title: 'common.saved'.tr,
                   icon: AppIcons.save,
-                  onTap: () => Get.to(SavedOpticalForms()),
+                  onTap: () => const AnswerKeyNavigationService()
+                      .openSavedOpticalForms(),
                 ),
                 PullDownMenuItem(
                   title: 'answer_key.my_results'.tr,
                   icon: AppIcons.question,
-                  onTap: () => Get.to(MyBookletResults()),
+                  onTap: () =>
+                      const AnswerKeyNavigationService().openMyBookletResults(),
                 ),
                 PullDownMenuItem(
                   title: 'common.create'.tr,
                   icon: AppIcons.addCircled,
-                  onTap: () => Get.to(
-                    AnswerKeyCreatingOption(onBack: controller.refreshData),
-                  ),
+                  onTap: () => const AnswerKeyNavigationService()
+                      .openCreateAnswerKey(onBack: controller.refreshData),
                 ),
                 PullDownMenuItem(
                   title: 'pasaj.answer_key.join'.tr,
                   icon: AppIcons.arrowRight,
-                  onTap: () => Get.to(OpticalFormEntry()),
+                  onTap: () =>
+                      const AnswerKeyNavigationService().openOpticalFormEntry(),
                 ),
                 PullDownMenuItem(
                   title: 'practice.slider_management'.tr,
                   icon: CupertinoIcons.slider_horizontal_3,
-                  onTap: () => Get.to(
-                    () => SliderAdminView(
-                      sliderId: 'cevap_anahtari',
-                      title: 'answer_key.title'.tr,
-                    ),
+                  onTap: () =>
+                      const SliderAdminNavigationService().openSliderAdmin(
+                    sliderId: 'cevap_anahtari',
+                    title: 'answer_key.title'.tr,
                   ),
                 ),
               ],

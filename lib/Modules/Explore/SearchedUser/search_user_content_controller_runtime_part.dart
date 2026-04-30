@@ -9,8 +9,8 @@ Future<void> _goToSearchUserProfile(
   try {
     final explore = maybeFindExploreController();
     explore?.suspendExplorePreview();
-    await Get.to(
-      () => SocialProfile(userID: controller.userID),
+    await const ProfileNavigationService().openSocialProfile(
+      controller.userID,
       preventDuplicates: false,
     );
     explore?.resumeExplorePreview();

@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Repositories/job_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/job_saved_store.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -25,7 +26,6 @@ import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/job_review_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../JobCreator/job_creator.dart';
 import '../ApplicationReview/application_review.dart';
 
 part 'job_details_controller_data_part.dart';

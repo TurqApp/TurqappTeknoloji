@@ -28,8 +28,8 @@ extension ChatControllerForwardingPart on ChatController {
     final key = _chatListingCacheKey(currentUID);
     if (key.isEmpty) return const <ChatListingModel>[];
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(key);
+      final preferences = ensureLocalPreferenceRepository();
+      final raw = await preferences.getString(key);
       if (raw == null || raw.isEmpty) return const <ChatListingModel>[];
       final decoded = jsonDecode(raw);
       if (decoded is! List) return const <ChatListingModel>[];

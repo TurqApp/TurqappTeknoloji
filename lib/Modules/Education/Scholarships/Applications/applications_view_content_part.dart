@@ -11,7 +11,7 @@ extension _ApplicationsViewContentPart on _ApplicationsViewState {
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
-                    ? const Center(child: CupertinoActivityIndicator())
+                    ? const AppStateView.loading()
                     : SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         child: Padding(
@@ -21,12 +21,9 @@ extension _ApplicationsViewContentPart on _ApplicationsViewState {
                             children: [
                               Obx(
                                 () => controller.applications.isEmpty
-                                    ? Center(
-                                        child: EmptyRow(
-                                          text:
-                                              'scholarship.no_user_applications'
-                                                  .tr,
-                                        ),
+                                    ? AppStateView.empty(
+                                        title: 'scholarship.no_user_applications'
+                                            .tr,
                                       )
                                     : ListView.builder(
                                         shrinkWrap: true,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -9,7 +10,6 @@ import 'package:turqappv2/Core/Widgets/pasaj_grid_card.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_list_card_metrics.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content_controller.dart';
-import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 
 import '../job_finder_controller.dart';
@@ -30,6 +30,8 @@ class _JobContentState extends State<JobContent> {
   late final String _controllerTag;
   late final bool _ownsController;
   late final JobContentController controller;
+  final EducationDetailNavigationService detailNavigationService =
+      const EducationDetailNavigationService();
 
   bool get isGrid => widget.isGrid;
   JobModel get model => widget.model;
@@ -141,7 +143,7 @@ class _JobContentState extends State<JobContent> {
   }
 
   Future<void> _openDetails() async {
-    await Get.to(() => JobDetails(model: model));
+    await detailNavigationService.openJobDetails(model);
     final finderController = maybeFindJobFinderController();
     if (finderController != null) {
       await finderController.refreshJob(model.docID);

@@ -173,11 +173,12 @@ extension ShortsContentActionsPart on _ShortsContentState {
           PullDownMenuItem(
             onTap: () {
               volumeOff(false);
-              Get.to(() => ReportUser(
-                    userID: model.userID,
-                    postID: model.docID,
-                    commentID: "",
-                  ))?.then((_) {
+              const ReportUserNavigationService()
+                  .openReportUser(
+                userId: model.userID,
+                postId: model.docID,
+              )
+                  .then((_) {
                 volumeOff(true);
               });
             },
@@ -214,146 +215,174 @@ extension ShortsContentActionsPart on _ShortsContentState {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: canComment
-                  ? () {
-                      volumeOff(false);
-                      Get.bottomSheet(
-                        Builder(
-                          builder: (context) => buildPostCommentsSheet(
-                            context: context,
-                            postID: model.docID,
-                            userID: model.userID,
-                            collection: 'Posts',
-                            preferredHeightFactor: 0.55,
-                          ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: canComment
+                ? () {
+                    volumeOff(false);
+                    Get.bottomSheet(
+                      Builder(
+                        builder: (context) => buildPostCommentsSheet(
+                          context: context,
+                          postID: model.docID,
+                          userID: model.userID,
+                          collection: 'Posts',
+                          preferredHeightFactor: 0.55,
                         ),
-                        isScrollControlled: true,
-                        isDismissible: true,
-                        enableDrag: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        backgroundColor: Colors.transparent,
-                        barrierColor: Colors.black54,
-                      ).then((v) {
-                        volumeOff(true);
-                      });
-                    }
-                  : null,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    CupertinoIcons.bubble_right,
-                    color:
-                        canComment ? Colors.white : Colors.grey.withAlpha(80),
-                    size: 20,
+                      ),
+                      isScrollControlled: true,
+                      isDismissible: true,
+                      enableDrag: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
+                      backgroundColor: Colors.transparent,
+                      barrierColor: Colors.black54,
+                    ).then((v) {
+                      volumeOff(true);
+                    });
+                  }
+                : null,
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.bubble_right,
+                  color: canComment ? Colors.white : Colors.grey.withAlpha(80),
+                  size: 20,
+                ),
+                2.pw,
+                Text(
+                  NumberFormatter.format(controller.commentCount.value),
+                  style: TextStyle(
+                    color: canComment ? Colors.white : Colors.grey,
+                    fontSize: 12,
+                    fontFamily: AppFontFamilies.mmedium,
                   ),
-                  2.pw,
-                  Text(
-                    NumberFormatter.format(controller.commentCount.value),
-                    style: TextStyle(
-                      color: canComment ? Colors.white : Colors.grey,
-                      fontSize: 12,
-                      fontFamily: AppFontFamilies.mmedium,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: () async {
-                controller.toggleLike();
-              },
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    controller.isLiked.value
-                        ? CupertinoIcons.hand_thumbsup_fill
-                        : CupertinoIcons.hand_thumbsup,
-                    color: controller.isLiked.value
-                        ? Colors.blueAccent
-                        : Colors.white,
-                    size: 20,
+        ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: () async {
+              controller.toggleLike();
+            },
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  controller.isLiked.value
+                      ? CupertinoIcons.hand_thumbsup_fill
+                      : CupertinoIcons.hand_thumbsup,
+                  color: controller.isLiked.value
+                      ? Colors.blueAccent
+                      : Colors.white,
+                  size: 20,
+                ),
+                2.pw,
+                Text(
+                  NumberFormatter.format(controller.likeCount.value),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontFamily: AppFontFamilies.mmedium,
                   ),
-                  2.pw,
-                  Text(
-                    NumberFormatter.format(controller.likeCount.value),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontFamily: AppFontFamilies.mmedium,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: canReshare ? controller.toggleReshare : null,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.repeat,
-                    size: 20,
+        ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: canReshare ? controller.toggleReshare : null,
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.repeat,
+                  size: 20,
+                  color: canReshare
+                      ? (controller.isReshared.value
+                          ? Colors.green
+                          : Colors.white)
+                      : Colors.grey,
+                ),
+                2.pw,
+                Text(
+                  NumberFormatter.format(controller.retryCount.value.toInt()),
+                  style: TextStyle(
                     color: canReshare
                         ? (controller.isReshared.value
                             ? Colors.green
                             : Colors.white)
                         : Colors.grey,
+                    fontSize: 14,
+                    fontFamily: AppFontFamilies.mmedium,
                   ),
-                  2.pw,
-                  Text(
-                    NumberFormatter.format(controller.retryCount.value.toInt()),
-                    style: TextStyle(
-                      color: canReshare
-                          ? (controller.isReshared.value
-                              ? Colors.green
-                              : Colors.white)
-                          : Colors.grey,
-                      fontSize: 14,
-                      fontFamily: AppFontFamilies.mmedium,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: () {
-                controller.toggleSave();
-              },
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Row(
+        ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: () {
+              controller.toggleSave();
+            },
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  controller.isSaved.value
+                      ? CupertinoIcons.bookmark_fill
+                      : CupertinoIcons.bookmark,
+                  color:
+                      controller.isSaved.value ? Colors.orange : Colors.white,
+                  size: 20,
+                ),
+                2.pw,
+                Text(
+                  NumberFormatter.format(controller.savedCount.value),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontFamily: AppFontFamilies.mmedium,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: null,
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Obx(
+              () => Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    controller.isSaved.value
-                        ? CupertinoIcons.bookmark_fill
-                        : CupertinoIcons.bookmark,
-                    color:
-                        controller.isSaved.value ? Colors.orange : Colors.white,
+                    Icons.bar_chart,
                     size: 20,
+                    color: Colors.white,
                   ),
                   2.pw,
                   Text(
-                    NumberFormatter.format(controller.savedCount.value),
+                    NumberFormatter.format(
+                      controller.viewCount.value.toInt(),
+                    ),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -364,66 +393,37 @@ extension ShortsContentActionsPart on _ShortsContentState {
               ),
             ),
           ),
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: null,
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Obx(
-                () => Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.bar_chart,
-                      size: 20,
-                      color: Colors.white,
-                    ),
-                    2.pw,
-                    Text(
-                      NumberFormatter.format(
-                        controller.viewCount.value.toInt(),
-                      ),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontFamily: AppFontFamilies.mmedium,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Flexible(
-            flex: 2,
-            child: TextButton(
-              onPressed: () async {
-                await ShareActionGuard.run(() async {
-                  final url = await _resolveShortPublicUrl();
-                  await ShareLinkService.shareUrl(
-                    url: url,
-                    title: 'post.share_title'.tr,
-                    subject: 'post.share_title'.tr,
-                  );
-                });
-              },
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Transform.translate(
-                    offset: Offset(0, -2),
-                    child: Icon(
-                      CupertinoIcons.share_up,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+        ),
+        Flexible(
+          flex: 2,
+          child: TextButton(
+            onPressed: () async {
+              await ShareActionGuard.run(() async {
+                final url = await _resolveShortPublicUrl();
+                await ShareLinkService.shareUrl(
+                  url: url,
+                  title: 'post.share_title'.tr,
+                  subject: 'post.share_title'.tr,
+                );
+              });
+            },
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Transform.translate(
+                  offset: Offset(0, -2),
+                  child: Icon(
+                    CupertinoIcons.share_up,
+                    color: Colors.white,
+                    size: 20,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 }

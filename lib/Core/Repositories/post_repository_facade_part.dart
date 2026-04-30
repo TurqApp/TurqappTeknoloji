@@ -18,6 +18,9 @@ extension PostRepositoryFacadePart on PostRepository {
 
   Future<bool> toggleSave(PostsModel model) => _performToggleSave(model);
 
+  Future<PostDislikeToggleResult> toggleDislike(String postId) =>
+      _performToggleDislike(postId);
+
   Future<bool> toggleReshare(PostsModel model) => _performToggleReshare(model);
 
   Future<void> refreshInteraction(String postId) =>

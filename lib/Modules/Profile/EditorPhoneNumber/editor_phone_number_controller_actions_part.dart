@@ -16,7 +16,7 @@ extension EditorPhoneNumberControllerActionsPart
       return;
     }
 
-    final current = FirebaseAuth.instance.currentUser;
+    final current = _userService.currentAuthUser;
     if (current == null) {
       AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
@@ -30,7 +30,7 @@ extension EditorPhoneNumberControllerActionsPart
     isBusy.value = true;
     try {
       await current.getIdToken(true);
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('sendEmailVerificationCode')
           .call({
         "email": email,
@@ -76,7 +76,7 @@ extension EditorPhoneNumberControllerActionsPart
       return;
     }
 
-    final current = FirebaseAuth.instance.currentUser;
+    final current = _userService.currentAuthUser;
     if (current == null) {
       AppSnackbar('common.info'.tr, 'editor_phone.session_missing'.tr);
       return;
@@ -92,7 +92,7 @@ extension EditorPhoneNumberControllerActionsPart
       await current.getIdToken(true);
       final idToken = await current.getIdToken();
 
-      await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('verifyEmailCode')
           .call({
         "email": email,
@@ -101,7 +101,7 @@ extension EditorPhoneNumberControllerActionsPart
         "idToken": idToken,
       });
 
-      final result = await FirebaseFunctions.instanceFor(region: 'europe-west3')
+      final result = await AppCloudFunctions.instanceFor(region: 'europe-west3')
           .httpsCallable('updateUserPhoneNumberAfterEmailVerification')
           .call({
         "newPhone": phoneController.text.trim(),

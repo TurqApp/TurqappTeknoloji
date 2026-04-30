@@ -2,7 +2,7 @@ part of 'liked_posts_controller_library.dart';
 
 extension _LikedPostsControllerDataPart on LikedPostControllers {
   void _bindAuth() {
-    _authSub = FirebaseAuth.instance.userChanges().listen((user) {
+    _authSub = CurrentUserService.instance.authStateChanges().listen((user) {
       _currentUserId = user?.uid;
       _likedSub?.cancel();
       all.clear();

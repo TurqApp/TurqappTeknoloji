@@ -234,7 +234,6 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             for (int j = 0; j < post.images.length; j++) {
               try {
                 final url = await WebpUploadService.uploadBytesAsWebp(
-                  storage: FirebaseStorage.instance,
                   bytes: post.images[j],
                   storagePathWithoutExt: 'Posts/$docID/image_$j',
                   maxWidth: 600,
@@ -275,7 +274,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               if (videoSize > _maxVideoBytesForStorageRule) {
                 throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
               }
-              final videoRef = FirebaseStorage.instance
+              final videoRef = AppFirebaseStorage.instance
                   .ref()
                   .child('Posts/$docID/video.mp4');
               final uploadTask = await _putFileWithAuthRetry(
@@ -317,7 +316,6 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                   thumbWebp = thumbnailData;
                 }
                 final thumbUrl = await WebpUploadService.uploadBytesAsWebp(
-                  storage: FirebaseStorage.instance,
                   bytes: thumbWebp,
                   storagePathWithoutExt: 'Posts/$docID/thumbnail',
                 );
@@ -416,10 +414,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             final isFreshVideoUpload = post.video != null;
             final isPendingVideoProcessing =
                 isFreshVideoUpload && !isReusedVideoPost;
-            await FirebaseFirestore.instance
-                .collection('Posts')
-                .doc(docID)
-                .set({
+            await _postRepository.savePostData(postId: docID, data: {
               // ... (same data structure as before)
               "arsiv": false,
               if (!isImagePost) "aspectRatio": aspectRatio,
@@ -513,31 +508,21 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 index == 0) {
               try {
                 final currentUserId = _requireCurrentUid();
-                final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
                 final counterTargetPostId = _isQuotedPost
                     ? await resolveQuoteCounterTargetPostId()
                     : _sharedOriginalPostID;
-                await FirebaseFirestore.instance
-                    .collection("Posts")
-                    .doc(counterTargetPostId.isNotEmpty
-                        ? counterTargetPostId
-                        : _sharedOriginalPostID)
-                    .collection("postSharers")
-                    .doc(currentUserId)
-                    .set({
-                  "userID": currentUserId,
-                  "timestamp": shareTimestamp,
-                  "sharedPostID": docID,
-                }, SetOptions(merge: true));
+                final targetPostId = counterTargetPostId.isNotEmpty
+                    ? counterTargetPostId
+                    : _sharedOriginalPostID;
+                await _postRepository.recordPostShare(
+                  targetPostId: targetPostId,
+                  userId: currentUserId,
+                  sharedPostId: docID,
+                  quotedPost: false,
+                  merge: true,
+                );
                 if (_isQuotedPost) {
-                  await FirebaseFirestore.instance
-                      .collection("Posts")
-                      .doc(counterTargetPostId.isNotEmpty
-                          ? counterTargetPostId
-                          : _sharedOriginalPostID)
-                      .update({
-                    'stats.retryCount': FieldValue.increment(1),
-                  });
+                  await _postRepository.incrementRetryCount(targetPostId);
                 }
               } catch (_, __) {}
             }

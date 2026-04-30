@@ -30,7 +30,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) {
       return;
     }
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final now = timestampMs ?? DateTime.now().millisecondsSinceEpoch;
     final followingRef = firestore
         .collection('users')
@@ -58,7 +58,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     if (currentUid.isEmpty || otherUid.isEmpty || currentUid == otherUid) {
       return;
     }
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final followingRef = firestore
         .collection('users')
         .doc(currentUid)
@@ -84,7 +84,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     required int dailyLimit,
     required String todayKey,
   }) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final myFollowingRef = firestore
         .collection('users')
         .doc(currentUid)
@@ -164,7 +164,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     required int dailyLimit,
     required String todayKey,
   }) async {
-    final firestore = FirebaseFirestore.instance;
+    final firestore = AppFirestore.instance;
     final myFollowingRef = firestore
         .collection('users')
         .doc(currentUid)
@@ -237,7 +237,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     _memory.remove(uid);
     _relationMemory.remove(_relationKey(uid, 'followings'));
     _relationMemory.remove(_relationKey(uid, 'followers'));
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKey(uid));
     await _prefs?.remove(_relationPrefsKey(_relationKey(uid, 'followings')));
     await _prefs?.remove(_relationPrefsKey(_relationKey(uid, 'followers')));
@@ -248,7 +248,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     _memory.clear();
     final relationKeys = _relationMemory.keys.toList();
     _relationMemory.clear();
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     for (final uid in keys) {
       await _prefs?.remove(_prefsKey(uid));
     }

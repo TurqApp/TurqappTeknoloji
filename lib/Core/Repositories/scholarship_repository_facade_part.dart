@@ -16,5 +16,7 @@ ScholarshipRepository _ensureScholarshipRepository() =>
     Get.put(ScholarshipRepository(), permanent: true);
 
 void _handleScholarshipRepositoryInit(ScholarshipRepository repository) {
-  SharedPreferences.getInstance().then((prefs) => repository._prefs = prefs);
+  ensureLocalPreferenceRepository()
+      .sharedPreferences()
+      .then((prefs) => repository._prefs = prefs);
 }

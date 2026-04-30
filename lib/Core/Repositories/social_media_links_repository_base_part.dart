@@ -57,7 +57,7 @@ SocialMediaLinksRepository _ensureSocialMediaLinksRepository() {
 void _handleSocialMediaLinksRepositoryInit(
   SocialMediaLinksRepository repository,
 ) {
-  SharedPreferences.getInstance().then((prefs) {
+  ensureLocalPreferenceRepository().sharedPreferences().then((prefs) {
     repository._prefs = prefs;
   });
 }

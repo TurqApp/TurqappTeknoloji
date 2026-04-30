@@ -6,7 +6,7 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
     required SocialMediaModel model,
   }) async {
     if (uid.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('SosyalMedyaLinkleri')
@@ -28,7 +28,7 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
 
   Future<void> _deleteLinkImpl(String uid, String docId) async {
     if (uid.isEmpty || docId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('SosyalMedyaLinkleri')
@@ -45,12 +45,12 @@ extension SocialMediaLinksRepositoryActionPart on SocialMediaLinksRepository {
     List<SocialMediaModel> items,
   ) async {
     if (uid.isEmpty) return;
-    final batch = FirebaseFirestore.instance.batch();
+    final batch = AppFirestore.instance.batch();
     final normalized = <SocialMediaModel>[];
     for (var i = 0; i < items.length; i++) {
       final model = items[i];
       batch.update(
-        FirebaseFirestore.instance
+        AppFirestore.instance
             .collection('users')
             .doc(uid)
             .collection('SosyalMedyaLinkleri')

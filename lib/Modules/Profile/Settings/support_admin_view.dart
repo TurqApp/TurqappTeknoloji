@@ -5,8 +5,9 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
 
 class SupportAdminView extends StatefulWidget {
   const SupportAdminView({super.key});
@@ -33,7 +34,7 @@ class _SupportAdminViewState extends State<SupportAdminView> {
         if (accessSnap.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: SafeArea(
-              child: Center(child: CupertinoActivityIndicator()),
+              child: AppStateView.loading(),
             ),
           );
         }
@@ -138,21 +139,12 @@ class _SupportAdminViewState extends State<SupportAdminView> {
       stream: _repository.watchInbox(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CupertinoActivityIndicator(),
-          );
+          return const AppStateView.loading();
         }
         final docs = snapshot.data?.docs ?? const [];
         if (docs.isEmpty) {
-          return Center(
-            child: Text(
-              'admin.support.empty'.tr,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontSize: 15,
-                fontFamily: 'MontserratMedium',
-              ),
-            ),
+          return AppStateView.empty(
+            title: 'admin.support.empty'.tr,
           );
         }
         return ListView.builder(
@@ -199,7 +191,8 @@ class _SupportAdminViewState extends State<SupportAdminView> {
                 child: InkWell(
                   onTap: userId.trim().isEmpty
                       ? null
-                      : () => Get.to(() => SocialProfile(userID: userId)),
+                      : () => const ProfileNavigationService()
+                          .openSocialProfile(userId),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -19,7 +19,8 @@ extension PostRepositoryQueryPart on PostRepository {
       '${_pollSelectionPrefKeyPrefix}_${currentUid.trim()}_${postId.trim()}';
 
   Future<SharedPreferences> _ensurePrefsInstance() async {
-    return _prefs ??= await SharedPreferences.getInstance();
+    return _prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
   }
 
   Future<Map<String, PostsModel>> _performFetchPostsByIds(
@@ -199,12 +200,15 @@ extension PostRepositoryQueryPart on PostRepository {
       nowMs: nowMs,
       cutoffMs: cutoffMs,
     );
-    final items = result.hits.map((doc) {
-      final docId = (doc['id'] ?? '').toString().trim();
-      return _normalizeLikelyCompletedOwnPost(
-        PostsModel.fromMap(_typesenseDocToPostMap(doc, docId), docId),
-      );
-    }).where((post) => post.docID.trim().isNotEmpty).toList(growable: false);
+    final items = result.hits
+        .map((doc) {
+          final docId = (doc['id'] ?? '').toString().trim();
+          return _normalizeLikelyCompletedOwnPost(
+            PostsModel.fromMap(_typesenseDocToPostMap(doc, docId), docId),
+          );
+        })
+        .where((post) => post.docID.trim().isNotEmpty)
+        .toList(growable: false);
     return TypesenseMotorCandidatesPage(
       surface: result.surface,
       ownedMinutes: result.ownedMinutes,
@@ -364,17 +368,16 @@ extension PostRepositoryQueryPart on PostRepository {
     final nested = <List<PostsModel>>[];
     final concurrency = maxConcurrent < 1 ? 1 : maxConcurrent;
     final queryLimit = max(perAuthorLimit * 4, 12);
-    final upperBoundExclusive =
-        maxTimeExclusive != null && maxTimeExclusive > 0
-            ? maxTimeExclusive
-            : nowMs + 1;
+    final upperBoundExclusive = maxTimeExclusive != null && maxTimeExclusive > 0
+        ? maxTimeExclusive
+        : nowMs + 1;
     for (int i = 0; i < cleaned.length; i += concurrency) {
       final chunk = cleaned.sublist(
         i,
         i + concurrency > cleaned.length ? cleaned.length : i + concurrency,
       );
-        final futures = chunk.map((authorId) async {
-          final snap = await _getQueryWithSource(
+      final futures = chunk.map((authorId) async {
+        final snap = await _getQueryWithSource(
           _firestore
               .collection('Posts')
               .where('userID', isEqualTo: authorId)

@@ -28,31 +28,15 @@ extension PostControllerActionsPart on PostController {
     final userID = CurrentUserService.instance.effectiveUserId;
     if (userID.isEmpty) return;
 
-    final cached = await _postRepository.fetchPostRawById(postID);
-    if (cached == null) return;
-    final docRef = FirebaseFirestore.instance.collection("Posts").doc(postID);
-    final currentDislikes =
-        List<String>.from((cached["begenmeme"] as List?) ?? const []);
-    final currentLikes =
-        List<String>.from((cached["begeniler"] as List?) ?? const []);
-
-    if (currentLikes.contains(userID)) {
-      await docRef.update({
-        "begeniler": FieldValue.arrayRemove([userID])
-      });
+    final result = await _postRepository.toggleDislike(postID);
+    if (!result.liked) {
       begeniler.remove(userID);
     }
 
-    if (currentDislikes.contains(userID)) {
-      await docRef.update({
-        "begenmeme": FieldValue.arrayRemove([userID])
-      });
-      begenmeme.remove(userID);
+    if (result.disliked) {
+      if (!begenmeme.contains(userID)) begenmeme.add(userID);
     } else {
-      await docRef.update({
-        "begenmeme": FieldValue.arrayUnion([userID])
-      });
-      begenmeme.add(userID);
+      begenmeme.remove(userID);
     }
   }
 

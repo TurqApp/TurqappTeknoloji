@@ -94,7 +94,9 @@ extension DenemeSinaviPreviewSectionsPart on _DenemeSinaviPreviewState {
       imageUrl: controller.avatarUrl.value.trim(),
       onTap: isCurrentUserId(controller.model.userID)
           ? null
-          : () => Get.to(() => SocialProfile(userID: controller.model.userID)),
+          : () => const ProfileNavigationService().openSocialProfile(
+                controller.model.userID,
+              ),
     );
   }
 

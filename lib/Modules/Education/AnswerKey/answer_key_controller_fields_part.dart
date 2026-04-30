@@ -4,6 +4,8 @@ class _AnswerKeyControllerState {
   final AnswerKeySnapshotRepository answerKeySnapshotRepository =
       ensureAnswerKeySnapshotRepository();
   final BookletRepository bookletRepository = ensureBookletRepository();
+  final LocalPreferenceRepository localPreferenceRepository =
+      ensureLocalPreferenceRepository();
   final RxBool isLoading = false.obs;
   final RxBool isSearchLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
@@ -25,6 +27,8 @@ extension AnswerKeyControllerFieldsPart on AnswerKeyController {
   AnswerKeySnapshotRepository get _answerKeySnapshotRepository =>
       _state.answerKeySnapshotRepository;
   BookletRepository get _bookletRepository => _state.bookletRepository;
+  LocalPreferenceRepository get _localPreferenceRepository =>
+      _state.localPreferenceRepository;
   RxBool get isLoading => _state.isLoading;
   RxBool get isSearchLoading => _state.isSearchLoading;
   RxBool get isLoadingMore => _state.isLoadingMore;

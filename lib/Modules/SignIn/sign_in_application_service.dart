@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Utils/stored_account_reauth_policy.dart';
@@ -193,6 +194,26 @@ class SignInApplicationService {
     }
   }
 
+  Future<UserCredential> signInForPasswordReset({
+    required String email,
+    required String password,
+  }) {
+    return AppFirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<UserCredential> createAuthUserForSignup({
+    required String email,
+    required String password,
+  }) {
+    return AppFirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
   Future<bool> signInWithStoredAccount(StoredAccount account) async {
     if (!account.hasPasswordProvider) return false;
     await _markSessionState(
@@ -332,7 +353,7 @@ class SignInApplicationService {
     required String email,
     required String password,
   }) async {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
+    await AppFirebaseAuth.instance.signInWithEmailAndPassword(
       email: email,
       password: password,
     );

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 
 import '../Models/posts_model.dart';
@@ -22,7 +23,7 @@ class UserPostLinkService {
   }
 
   UserPostLinkService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance,
+      : _firestore = firestore ?? AppFirestore.instance,
         _userSubcollectionRepository = ensureUserSubcollectionRepository(),
         _postRepository = PostRepository.ensure();
 
@@ -61,8 +62,8 @@ class UserPostLinkService {
       if (cached.isNotEmpty) {
         yield cached
             .map(
-              (entry) =>
-                  UserPostReference.fromMap(_cloneUserRefData(entry.data), entry.id),
+              (entry) => UserPostReference.fromMap(
+                  _cloneUserRefData(entry.data), entry.id),
             )
             .toList(growable: false);
       }

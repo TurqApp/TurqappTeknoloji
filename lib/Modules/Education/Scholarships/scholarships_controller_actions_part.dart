@@ -351,16 +351,16 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
                   Navigator.pop(context);
                   switch (index) {
                     case 0:
-                      Get.to(() => PersonelInfoView());
+                      ScholarshipNavigationService.openPersonalInfo();
                       break;
                     case 1:
-                      Get.to(() => EducationInfoView());
+                      ScholarshipNavigationService.openEducationInfo();
                       break;
                     case 2:
-                      Get.to(() => FamilyInfoView());
+                      ScholarshipNavigationService.openFamilyInfo();
                       break;
                     case 3:
-                      Get.to(() => DormitoryInfoView());
+                      ScholarshipNavigationService.openDormitoryInfo();
                       break;
                   }
                 },

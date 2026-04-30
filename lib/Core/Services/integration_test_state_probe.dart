@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_controller.dart';
 import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
+import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/Services/integration_media_test_harness.dart';
 import 'package:turqappv2/Core/Services/integration_permission_test_harness.dart';
 import 'package:turqappv2/Models/message_model.dart';
@@ -425,7 +425,7 @@ class IntegrationTestStateProbe {
         activeUid.isEmpty ? null : accountCenter?.accountByUid(activeUid);
     var isFirebaseSignedIn = false;
     try {
-      isFirebaseSignedIn = FirebaseAuth.instance.currentUser != null;
+      isFirebaseSignedIn = AppFirebaseAuth.instance.currentUser != null;
     } catch (_) {
       isFirebaseSignedIn = false;
     }

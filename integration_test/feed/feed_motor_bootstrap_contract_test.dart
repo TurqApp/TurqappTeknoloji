@@ -75,7 +75,8 @@ void main() {
                 (payload['count'] as num?) != null &&
                 (payload['count'] as num).toInt() > 0 &&
                 payload['feedViewMode'] == 'forYou' &&
-                payload['usesPrimaryFeedPaging'] == true &&
+                payload['usesPrimaryFeedPaging'] ==
+                    FeedHomeContract.primaryHybridV1.usesPrimaryFeedPaging &&
                 payload['feedContractId'] ==
                     FeedHomeContract.primaryHybridV1.contractId,
             reason:

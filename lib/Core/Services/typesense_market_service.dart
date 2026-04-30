@@ -1,6 +1,8 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 
 part 'typesense_market_service_cache_part.dart';
@@ -33,7 +35,7 @@ class TypesenseMarketSearchService {
   static const String _prefsPrefix = 'typesense_market_search_v1';
 
   final FirebaseFunctions _functions =
-      FirebaseFunctions.instanceFor(region: 'us-central1');
+      AppCloudFunctions.instanceFor(region: 'us-central1');
   final Map<String, _CachedMarketSearchResult> _memory =
       <String, _CachedMarketSearchResult>{};
   SharedPreferences? _prefs;

@@ -4,13 +4,10 @@ extension _SolveTestShellContentPart on _SolveTestState {
   Widget _buildBodyContent(BuildContext context) {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CupertinoActivityIndicator());
+        return const AppStateView.loading(title: '');
       }
       if (controller.soruList.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.all(15),
-          child: EmptyRow(text: 'tests.solve_no_questions'.tr),
-        );
+        return AppStateView.empty(title: 'tests.solve_no_questions'.tr);
       }
       return Column(
         children: [

@@ -60,8 +60,7 @@ class _CreateScholarshipControllerState {
   final universiteMap = <String, List<String>>{}.obs;
   final tumUniversiteler = <String>[].obs;
   final higherEducationData = <dynamic>[].obs;
-  final firestore = FirebaseFirestore.instance;
-  final storage = FirebaseStorage.instance;
+  final scholarshipRepository = ensureScholarshipRepository();
   final templateKey = GlobalKey();
   String? controllerTag;
 }
@@ -126,8 +125,8 @@ extension CreateScholarshipControllerFieldsPart on CreateScholarshipController {
   RxMap<String, List<String>> get universiteMap => _state.universiteMap;
   RxList<String> get tumUniversiteler => _state.tumUniversiteler;
   RxList<dynamic> get higherEducationData => _state.higherEducationData;
-  FirebaseFirestore get _firestore => _state.firestore;
-  FirebaseStorage get _storage => _state.storage;
+  ScholarshipRepository get _scholarshipRepository =>
+      _state.scholarshipRepository;
   GlobalKey get templateKey => _state.templateKey;
   String? get controllerTag => _state.controllerTag;
   set controllerTag(String? value) => _state.controllerTag = value;

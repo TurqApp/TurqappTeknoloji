@@ -3,7 +3,7 @@ part of 'tutoring_application_review.dart';
 extension _TutoringApplicationReviewActionsPart
     on _TutoringApplicationReviewState {
   void _openProfile(String userId) {
-    Get.to(() => SocialProfile(userID: userId));
+    const ProfileNavigationService().openSocialProfile(userId);
   }
 
   Widget _buildFallbackAvatar() {

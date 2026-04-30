@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class AdminApprovalsView extends StatefulWidget {
@@ -40,10 +41,10 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
           BackButtons(text: 'admin.approvals.title'.tr),
           Expanded(
             child: FutureBuilder<bool>(
-              future: _canAccessFuture,
-              builder: (context, accessSnap) {
-                if (accessSnap.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                future: _canAccessFuture,
+                builder: (context, accessSnap) {
+                  if (accessSnap.connectionState == ConnectionState.waiting) {
+                  return const AppStateView.loading();
                 }
                 if (accessSnap.data != true) {
                   return _buildNoAccessState();
@@ -56,9 +57,7 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
                       stream: _approvalRepository.watchApprovals(),
                       builder: (context, snap) {
                         if (snap.connectionState == ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
+                          return const AppStateView.loading();
                         }
                         final docs = snap.data?.docs ?? const [];
                         if (docs.isEmpty) {
@@ -106,14 +105,8 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Text(
-        'admin.approvals.empty'.tr,
-        style: const TextStyle(
-          fontFamily: 'MontserratMedium',
-          fontSize: 13,
-        ),
-      ),
+    return AppStateView.empty(
+      title: 'admin.approvals.empty'.tr,
     );
   }
 }
@@ -159,11 +152,11 @@ class _ApprovalCardState extends State<_ApprovalCard> {
         (data['payload'] as Map?)?.cast<String, dynamic>() ?? const {},
       );
       if (type == 'badge_change' || type == 'badge') {
-        final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+        final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
             .httpsCallable('setUserBadgeByUserId');
         await callable.call<Map<String, dynamic>>(payload);
       } else if (type == 'user_ban') {
-        final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+        final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
             .httpsCallable('setUserBanByUserId');
         await callable.call<Map<String, dynamic>>(payload);
       } else {

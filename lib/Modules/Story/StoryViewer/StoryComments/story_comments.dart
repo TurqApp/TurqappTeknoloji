@@ -5,8 +5,8 @@ import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Core/empty_row.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/StoryCommentUser/story_comment_user.dart';
 import 'package:turqappv2/Modules/Story/StoryViewer/StoryComments/story_comments_controller.dart';
 
@@ -88,7 +88,7 @@ class _StoryCommentsState extends State<StoryComments> {
                   )
                 : Expanded(
                     child: Center(
-                    child: EmptyRow(text: 'story.no_comments'.tr),
+                    child: AppStateView.empty(title: 'story.no_comments'.tr),
                   ));
           }),
           Row(

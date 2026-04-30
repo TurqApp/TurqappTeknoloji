@@ -50,7 +50,7 @@ extension EducationFeedPostShareServicePublishPart
             )
             .toList();
 
-        await FirebaseFirestore.instance.collection('Posts').doc(postId).set({
+        await AppFirestore.instance.collection('Posts').doc(postId).set({
           'arsiv': false,
           'debugMode': false,
           'deletedPost': false,

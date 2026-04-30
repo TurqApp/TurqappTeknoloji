@@ -3,7 +3,7 @@ part of 'follower_content.dart';
 extension _FollowerContentViewPart on _FollowerContentState {
   void _openProfile() {
     if (widget.userID == _currentUid) return;
-    Get.to(() => SocialProfile(userID: widget.userID))!.then((v) {
+    const ProfileNavigationService().openSocialProfile(widget.userID).then((v) {
       controller.followControl(widget.userID);
     });
   }

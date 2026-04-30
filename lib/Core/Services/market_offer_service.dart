@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';
@@ -16,7 +17,7 @@ class MarketOfferService {
   static MarketOfferService ensure() =>
       maybeFind() ?? (_instance = MarketOfferService._());
 
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseFirestore _firestore = AppFirestore.instance;
 
   static Future<String> _resolveCurrentUid() async {
     final ensured = await CurrentUserService.instance.ensureAuthReady(

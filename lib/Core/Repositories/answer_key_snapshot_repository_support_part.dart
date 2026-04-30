@@ -161,7 +161,7 @@ Future<List<BookletModel>> _fetchAnswerKeyOwnerItems(
 ) async {
   final normalizedUserId = query.userId.trim();
   if (normalizedUserId.isEmpty) return const <BookletModel>[];
-  final snapshot = await FirebaseFirestore.instance
+  final snapshot = await AppFirestore.instance
       .collection('books')
       .where('userID', isEqualTo: normalizedUserId)
       .get(const GetOptions(source: Source.serverAndCache));
@@ -177,7 +177,7 @@ Future<List<BookletModel>> _fetchAnswerKeyTypeItems(
 ) async {
   final normalizedExamType = query.examType.trim();
   if (normalizedExamType.isEmpty) return const <BookletModel>[];
-  final snapshot = await FirebaseFirestore.instance
+  final snapshot = await AppFirestore.instance
       .collection('books')
       .where('sinavTuru', isEqualTo: normalizedExamType)
       .get(const GetOptions(source: Source.serverAndCache));

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -122,28 +123,18 @@ class _SearchAnswerKeyState extends State<SearchAnswerKey> {
       child: Obx(
         () {
           if (controller.isLoading.value) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading();
           }
           if (controller.searchController.text.trim().length < 2) {
-            return Center(
-              child: Text(
-                'answer_key.search_min_chars'.tr,
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontFamily: 'MontserratMedium',
-                ),
-              ),
+            return AppStateView.empty(
+              title: 'answer_key.search_min_chars'.tr,
+              color: Colors.black54,
             );
           }
           if (controller.filteredList.isEmpty) {
-            return Center(
-              child: Text(
-                'common.no_results'.tr,
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontFamily: 'MontserratMedium',
-                ),
-              ),
+            return AppStateView.empty(
+              title: 'common.no_results'.tr,
+              color: Colors.black54,
             );
           }
           return ListView.builder(

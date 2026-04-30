@@ -42,7 +42,7 @@ extension StoryHighlightsRepositoryCachePart on StoryHighlightsRepository {
     String uid, {
     required bool allowStale,
   }) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(uid);
     final raw = prefs?.getString(prefsKey);

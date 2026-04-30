@@ -86,7 +86,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
         bottom: false,
         child: Obx(() {
           if (controller.isLoading.value) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading(title: '');
           }
 
           final current = controller.tutoring.value;
@@ -391,7 +391,9 @@ extension TutoringDetailBodyPart on TutoringDetail {
       child: GestureDetector(
         onTap: model.userID == currentUserId
             ? null
-            : () => Get.to(() => SocialProfile(userID: model.userID)),
+            : () => const ProfileNavigationService().openSocialProfile(
+                  model.userID,
+                ),
         child: Row(
           children: [
             CachedUserAvatar(
@@ -467,15 +469,16 @@ extension TutoringDetailBodyPart on TutoringDetail {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () =>
-                  Get.to(() => const CreateTutoringView(), arguments: current),
+              onTap: () => detailNavigationService.openCreateTutoring(
+                existingTutoring: current,
+              ),
               child: _solidAction('common.edit'.tr),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: GestureDetector(
-              onTap: () => Get.to(() => ChatListing()),
+              onTap: () => const ChatNavigationService().openChatListing(),
               child: _outlinedAction('tutoring.messages'.tr),
             ),
           ),

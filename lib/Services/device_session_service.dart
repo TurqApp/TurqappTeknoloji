@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 
 class DeviceSessionService {
   DeviceSessionService._();
@@ -141,8 +141,8 @@ class DeviceSessionService {
     final secureExisting = (await _storage.read(key: _secureKey) ?? '').trim();
     if (secureExisting.isNotEmpty) return secureExisting;
 
-    final prefs = await SharedPreferences.getInstance();
-    final existing = (prefs.getString(_deviceKeyPref) ?? '').trim();
+    final preferences = ensureLocalPreferenceRepository();
+    final existing = (await preferences.getString(_deviceKeyPref) ?? '').trim();
     if (existing.isNotEmpty) return existing;
     return null;
   }
@@ -198,8 +198,8 @@ class DeviceSessionService {
 
   Future<void> _clearLegacyKeys() async {
     await _storage.delete(key: _secureKey);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_deviceKeyPref);
+    final preferences = ensureLocalPreferenceRepository();
+    await preferences.remove(_deviceKeyPref);
   }
 
   Future<void> _writeSecureKeyWithRecovery(String generated) async {

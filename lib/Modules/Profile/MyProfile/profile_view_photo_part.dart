@@ -174,7 +174,12 @@ extension _ProfileViewPhotoPart on _ProfileViewState {
             }, childCount: templist.length),
           )
         else
-          SliverToBoxAdapter(child: EmptyRow(text: "profile.no_photos".tr)),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: "profile.no_photos".tr),
+            ),
+          ),
       ],
     );
   }

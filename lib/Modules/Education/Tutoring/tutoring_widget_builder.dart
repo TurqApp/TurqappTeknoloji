@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
@@ -16,7 +17,6 @@ import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/MyTutorings/my_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
@@ -34,6 +34,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
   final bool isGridView;
   final Widget? infoMessage;
   final bool allowReactivate;
+  final EducationDetailNavigationService detailNavigationService =
+      const EducationDetailNavigationService();
 
   const TutoringWidgetBuilder({
     super.key,
@@ -102,7 +104,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
       await myTutoringsController.reactivateEndedTutoring(tutoring);
       return;
     }
-    await Get.to(() => TutoringDetail(), arguments: tutoring);
+    await detailNavigationService.openTutoringDetail(tutoring);
   }
 
   Future<void> _toggleSave({

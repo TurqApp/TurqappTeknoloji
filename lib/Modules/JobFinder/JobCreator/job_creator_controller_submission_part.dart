@@ -86,15 +86,14 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
       }
 
       final downloadUrl = await WebpUploadService.uploadBytesAsWebp(
-        storage: FirebaseStorage.instance,
         bytes: bytes,
         storagePathWithoutExt: "isBul/$docID/logo",
       );
 
-      await FirebaseFirestore.instance
-          .collection("isBul")
-          .doc(docID)
-          .set({"logo": downloadUrl}, SetOptions(merge: true));
+      await ensureJobRepository().updateJobLogo(
+        jobDocId: docID,
+        logoUrl: downloadUrl,
+      );
     } finally {
       try {
         if (await tempFile.exists()) await tempFile.delete();
@@ -168,19 +167,16 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
 
       if (existingJob != null) {
         jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
-        await FirebaseFirestore.instance
-            .collection("isBul")
-            .doc(docID)
-            .update(jobData);
       } else {
         jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
         jobData["viewCount"] = 0;
         jobData["applicationCount"] = 0;
-        await FirebaseFirestore.instance
-            .collection("isBul")
-            .doc(docID)
-            .set(jobData);
       }
+      await ensureJobRepository().saveJobData(
+        jobDocId: docID,
+        data: jobData,
+        updateExisting: existingJob != null,
+      );
 
       selection.value = 0;
       final shouldUploadLogo = croppedImage.value != null;

@@ -2,7 +2,7 @@ part of 'offline_mode_service.dart';
 
 extension OfflineModeServiceQueuePart on OfflineModeService {
   Future<void> _initialize() async {
-    _prefs = await SharedPreferences.getInstance();
+    _prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     await _loadPendingActions();
     await _loadDeadLetterActions();
     _loadStats();

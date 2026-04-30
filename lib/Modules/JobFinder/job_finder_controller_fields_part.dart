@@ -3,6 +3,7 @@ part of 'job_finder_controller.dart';
 class _JobFinderControllerState {
   final jobHomeSnapshotRepository = ensureJobHomeSnapshotRepository();
   final jobRepository = ensureJobRepository();
+  final localPreferenceRepository = ensureLocalPreferenceRepository();
   final cityDirectoryService = ensureCityDirectoryService();
   final imgList = <String>[
     AppAssets.practice1,
@@ -40,6 +41,8 @@ extension JobFinderControllerFieldsPart on JobFinderController {
   JobHomeSnapshotRepository get _jobHomeSnapshotRepository =>
       _state.jobHomeSnapshotRepository;
   JobRepository get _jobRepository => _state.jobRepository;
+  LocalPreferenceRepository get _localPreferenceRepository =>
+      _state.localPreferenceRepository;
   CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
   List<String> get imgList => _state.imgList;
   RxInt get innerTabIndex => _state.innerTabIndex;

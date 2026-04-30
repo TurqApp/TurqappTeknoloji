@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
-import '../../../../Core/empty_row.dart';
 import '../StoryContentProfiles/story_content_profiles.dart';
 import 'story_likes_controller.dart';
 
@@ -70,7 +70,7 @@ class _StoryLikesState extends State<StoryLikes> {
                       },
                     )
                   : Center(
-                      child: EmptyRow(text: "story.no_likes".tr),
+                      child: AppStateView.empty(title: "story.no_likes".tr),
                     ),
             )
           ],

@@ -6,7 +6,7 @@ extension ApplicantProfileWidgetsPart on _ApplicantProfileState {
   ) {
     return GestureDetector(
       onTap: () {
-        Get.to(() => SocialProfile(userID: controller.userID));
+        const ProfileNavigationService().openSocialProfile(controller.userID);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

@@ -17,7 +17,7 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
     final cloned = _cloneItemsImpl(items);
     final cachedAt = DateTime.now();
     _memory[uid] = _CachedSocialMediaLinks(items: cloned, cachedAt: cachedAt);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKeyImpl(uid),
       jsonEncode({
@@ -39,7 +39,7 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
 
   Future<void> _invalidateImpl(String uid) async {
     _memory.remove(uid);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKeyImpl(uid));
   }
 
@@ -62,7 +62,7 @@ extension SocialMediaLinksRepositoryStoragePart on SocialMediaLinksRepository {
     String uid, {
     required bool allowStale,
   }) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKeyImpl(uid);
     final raw = prefs?.getString(prefsKey);

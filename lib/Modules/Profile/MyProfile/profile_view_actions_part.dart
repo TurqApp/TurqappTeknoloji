@@ -22,7 +22,9 @@ extension _ProfileViewActionsPart on _ProfileViewState {
                 GestureDetector(
                   onTap: () {
                     _suspendProfileFeedForRoute();
-                    Get.to(() => BecomeVerifiedAccount())?.then((_) {
+                    const VerifiedAccountNavigationService()
+                        .openBecomeVerifiedAccount()
+                        .then((_) {
                       _resumeProfileFeedAfterRoute();
                     });
                   },
@@ -274,32 +276,7 @@ extension _ProfileViewActionsPart on _ProfileViewState {
   }
 
   Future<void> arsivle(PostsModel model) async {
-    await FirebaseFirestore.instance
-        .collection("Posts")
-        .doc(model.docID)
-        .update(
-      {
-        "arsiv": true,
-      },
-    );
-
-    try {
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final isVisible = (model.timeStamp <= nowMs) && !model.flood;
-      if (isVisible) {
-        final me = _myUserId;
-        if (me.isNotEmpty) {
-          await UserRepository.ensure().updateUserFields(
-            me,
-            {'counterOfPosts': FieldValue.increment(-1)},
-            mergeIntoCache: false,
-          );
-          await CurrentUserService.instance.applyLocalCounterDelta(
-            postsDelta: -1,
-          );
-        }
-      }
-    } catch (_) {}
+    await _postRepository.setArchived(model, true);
 
     final shortController = maybeFindShortController();
     final index = shortController?.shorts.indexOf(model) ?? -1;

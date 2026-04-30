@@ -21,8 +21,15 @@ class ReportReasonItem {
 }
 
 extension ReportRepositoryDataPart on ReportRepository {
+  Future<void> submitTrainingComplaint(Map<String, dynamic> data) async {
+    if (data.isEmpty) return;
+    await AppFirestore.instance.collection('reports').add(
+          _cloneReportDataMap(data),
+        );
+  }
+
   Stream<List<ReportAggregateItem>> watchAggregates({int limit = 100}) {
-    return FirebaseFirestore.instance
+    return AppFirestore.instance
         .collection('reportAggregates')
         .orderBy('lastReportAt', descending: true)
         .limit(limit)
@@ -43,7 +50,7 @@ extension ReportRepositoryDataPart on ReportRepository {
     String targetKey, {
     int limit = 20,
   }) {
-    return FirebaseFirestore.instance
+    return AppFirestore.instance
         .collection('reportAggregates')
         .doc(targetKey)
         .collection('reasons')
@@ -69,7 +76,7 @@ extension ReportRepositoryDataPart on ReportRepository {
 
   Future<Map<String, dynamic>> ensureConfigWithCallable() async {
     final uid = CurrentUserService.instance.effectiveUserId;
-    final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+    final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('ensureReportsConfig');
     final res = await callable.call(<String, dynamic>{
       if (uid.isNotEmpty) 'uid': uid,
@@ -90,7 +97,7 @@ extension ReportRepositoryDataPart on ReportRepository {
     required bool restore,
   }) async {
     final uid = CurrentUserService.instance.effectiveUserId;
-    final callable = FirebaseFunctions.instanceFor(region: 'europe-west3')
+    final callable = AppCloudFunctions.instanceFor(region: 'europe-west3')
         .httpsCallable('reviewReportedTarget');
     await callable.call(<String, dynamic>{
       'aggregateId': aggregateId,
@@ -101,7 +108,7 @@ extension ReportRepositoryDataPart on ReportRepository {
 
   Future<List<ReportModel>> fetchSelections() async {
     try {
-      final snap = await FirebaseFirestore.instance
+      final snap = await AppFirestore.instance
           .doc('adminConfig/reports')
           .get(const GetOptions(source: Source.serverAndCache));
       final data = snap.data();

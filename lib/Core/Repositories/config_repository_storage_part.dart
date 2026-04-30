@@ -23,8 +23,8 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
       data: _cloneMapImpl(data),
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.setString(
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
+    await preferences.setString(
       _prefsKeyImpl(key),
       jsonEncode({
         't': cachedAt.millisecondsSinceEpoch,
@@ -36,8 +36,8 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
   Future<void> _invalidateAdminConfigDocImpl(String docId) async {
     final key = _docKeyImpl(docId);
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.remove(_prefsKeyImpl(key));
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
+    await preferences.remove(_prefsKeyImpl(key));
   }
 
   Future<void> _putLegacyConfigDocImpl({
@@ -51,8 +51,8 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
       data: _cloneMapImpl(data),
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
-    await _prefs?.setString(
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
+    await preferences.setString(
       _prefsKeyImpl(key),
       jsonEncode({
         't': cachedAt.millisecondsSinceEpoch,
@@ -78,15 +78,14 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
     String key, {
     required Duration ttl,
   }) async {
-    _prefs ??= await SharedPreferences.getInstance();
-    final prefs = _prefs;
+    final preferences = _preferences ??= ensureLocalPreferenceRepository();
     final prefsKey = _prefsKeyImpl(key);
-    final raw = prefs?.getString(prefsKey);
+    final raw = await preferences.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decodedRaw = jsonDecode(raw);
       if (decodedRaw is! Map) {
-        await prefs?.remove(prefsKey);
+        await preferences.remove(prefsKey);
         return null;
       }
       final decoded = Map<String, dynamic>.from(
@@ -95,17 +94,17 @@ extension ConfigRepositoryStoragePart on ConfigRepository {
       final ts = _asIntImpl(decoded['t']);
       final data = (decoded['d'] as Map?)?.cast<String, dynamic>();
       if (ts <= 0 || data == null) {
-        await prefs?.remove(prefsKey);
+        await preferences.remove(prefsKey);
         return null;
       }
       final cachedAt = DateTime.fromMillisecondsSinceEpoch(ts);
       if (DateTime.now().difference(cachedAt) > ttl) {
-        await prefs?.remove(prefsKey);
+        await preferences.remove(prefsKey);
         return null;
       }
       return _cloneMapImpl(data);
     } catch (_) {
-      await prefs?.remove(prefsKey);
+      await preferences.remove(prefsKey);
       return null;
     }
   }

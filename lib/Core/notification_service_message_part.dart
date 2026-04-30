@@ -145,34 +145,28 @@ extension NotificationServiceMessagePart on NotificationService {
 
       final controller = ensureNotifyReaderController();
 
-      final normalized = normalizeSearchText(type.toString());
+      final decision = resolveNotificationTapRoute(
+        type: type.toString(),
+        docId: docID.toString(),
+      );
       try {
-        if (NotificationService._profileTypes.contains(normalized)) {
-          await controller.goToProfile(docID.toString());
-          return;
-        }
-        if (NotificationService._postTypes.contains(normalized)) {
-          await controller.goToPost(docID.toString());
-          return;
-        }
-        if (normalized == "comment") {
-          await controller.goToPostComments(docID.toString());
-          return;
-        }
-        if (normalized == "job_application") {
-          await controller.goToJob(docID.toString());
-          return;
-        }
-        if (NotificationService._tutoringTypes.contains(normalized)) {
-          await controller.goToTutoring(docID.toString());
-          return;
-        }
-        if (NotificationService._marketTypes.contains(normalized)) {
-          await controller.goToMarket(docID.toString());
-          return;
-        }
-        if (NotificationService._chatTypes.contains(normalized)) {
-          await controller.goToChat(docID.toString());
+        switch (decision.action) {
+          case NotifyReaderRouteAction.profile:
+            await controller.goToProfile(decision.targetId);
+          case NotifyReaderRouteAction.post:
+            await controller.goToPost(decision.targetId);
+          case NotifyReaderRouteAction.postComments:
+            await controller.goToPostComments(decision.targetId);
+          case NotifyReaderRouteAction.job:
+            await controller.goToJob(decision.targetId);
+          case NotifyReaderRouteAction.tutoring:
+            await controller.goToTutoring(decision.targetId);
+          case NotifyReaderRouteAction.market:
+            await controller.goToMarket(decision.targetId);
+          case NotifyReaderRouteAction.chat:
+            await controller.goToChat(decision.targetId);
+          case NotifyReaderRouteAction.missing:
+            break;
         }
       } finally {
         _isHandlingTap = false;
@@ -189,10 +183,10 @@ extension NotificationServiceMessagePart on NotificationService {
     String? targetUserID,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final preferences = ensureLocalPreferenceRepository();
       final fromUid = _currentUid;
       if (fromUid.isEmpty) return;
-      final myToken = prefs.getString(_tokenPrefsKey(fromUid));
+      final myToken = await preferences.getString(_tokenPrefsKey(fromUid));
 
       final targetUid = (targetUserID != null && targetUserID.trim().isNotEmpty)
           ? targetUserID.trim()

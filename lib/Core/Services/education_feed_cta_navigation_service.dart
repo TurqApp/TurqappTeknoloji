@@ -4,16 +4,15 @@ import 'package:turqappv2/Core/Repositories/notify_lookup_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
+import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
+import 'package:turqappv2/Core/Services/market_detail_navigation_service.dart';
+import 'package:turqappv2/Core/Services/practice_exam_navigation_service.dart';
 import 'package:turqappv2/Core/Utils/education_cta_utils.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
-import 'package:turqappv2/Modules/Market/market_detail_view.dart';
-import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviPreview/deneme_sinavi_preview.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
-import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail.dart';
-import 'package:turqappv2/Modules/JobFinder/JobDetails/job_details.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 
 class EducationFeedCtaNavigationService {
   const EducationFeedCtaNavigationService();
@@ -218,9 +217,8 @@ class EducationFeedCtaNavigationService {
       }
     }
 
-    await Get.to(
-      () => ScholarshipDetailView(),
-      arguments: {
+    await ScholarshipNavigationService.openDetailRoute(
+      {
         'model': model,
         'docId': docId,
         'scholarshipId': docId,
@@ -239,7 +237,7 @@ class EducationFeedCtaNavigationService {
       return;
     }
 
-    await Get.to(() => DenemeSinaviPreview(model: model));
+    await const PracticeExamNavigationService().openPreview(model);
   }
 
   Future<void> _openTutoring(String docId) async {
@@ -248,7 +246,9 @@ class EducationFeedCtaNavigationService {
       AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
-    await Get.to(() => TutoringDetail(), arguments: lookup.model);
+    await const EducationDetailNavigationService().openTutoringDetail(
+      lookup.model!,
+    );
   }
 
   Future<void> _openJob(String docId) async {
@@ -257,7 +257,9 @@ class EducationFeedCtaNavigationService {
       AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
-    await Get.to(() => JobDetails(model: lookup.model!));
+    await const EducationDetailNavigationService().openJobDetails(
+      lookup.model!,
+    );
   }
 
   Future<void> _openMarket(String docId) async {
@@ -269,6 +271,6 @@ class EducationFeedCtaNavigationService {
       AppSnackbar('common.error'.tr, 'education_feed.listing_not_found'.tr);
       return;
     }
-    await Get.to(() => MarketDetailView(item: item));
+    await const MarketDetailNavigationService().openMarketDetail(item);
   }
 }

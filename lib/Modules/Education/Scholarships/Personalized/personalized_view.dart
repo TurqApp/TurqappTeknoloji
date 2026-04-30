@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/Personalized/personalized_controller.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/scholarship_constants.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipDetail/scholarship_detail_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 import 'package:turqappv2/Themes/app_icons.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -95,7 +96,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   }
 
   Widget _buildInitialLoader() {
-    return const Center(child: CupertinoActivityIndicator());
+    return const AppStateView.loading();
   }
 
   Widget _buildContent(PersonalizedController controller) {
@@ -256,6 +257,6 @@ class _PersonalizedViewState extends State<PersonalizedView> {
       'docId': docId,
       'scholarshipId': docId,
     };
-    Get.to(() => ScholarshipDetailView(), arguments: scholarshipData);
+    await ScholarshipNavigationService.openDetailRoute(scholarshipData);
   }
 }

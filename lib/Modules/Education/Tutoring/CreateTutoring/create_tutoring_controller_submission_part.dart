@@ -3,7 +3,6 @@ part of 'create_tutoring_controller.dart';
 extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
   Future<List<String>> uploadImages() async {
     final imageUrls = <String>[];
-    final storage = firebase_storage.FirebaseStorage.instance;
     final userId = CurrentUserService.instance.effectiveUserId;
 
     final newLocalImages =
@@ -22,7 +21,6 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
           await tempFile.writeAsBytes(byteData.buffer.asUint8List());
 
           final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-            storage: storage,
             file: tempFile,
             storagePathWithoutExt:
                 'users/$userId/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
@@ -56,7 +54,6 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
           continue;
         }
         final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-          storage: storage,
           file: localFile,
           storagePathWithoutExt:
               'users/$userId/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
@@ -117,8 +114,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         rozet: profile['rozet'] ?? '',
       );
 
-      final docRef = FirebaseFirestore.instance.collection('educators').doc();
-      await docRef.set(tutoring.toJson());
+      await _tutoringRepository.createTutoring(tutoring.toJson());
       Get.back();
       AppSnackbar('common.success'.tr, 'tutoring.create.published'.tr);
       clearForm();
@@ -210,10 +206,10 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       }
 
       if (updateData.isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('educators')
-            .doc(docId)
-            .update(updateData);
+        await _tutoringRepository.updateTutoring(
+          docId: docId,
+          data: updateData,
+        );
         final patchedModel = _buildPatchedModel(
           initialData: initialData,
           docId: docId,

@@ -12,8 +12,9 @@ extension AnswerKeyControllerSearchPart on AnswerKeyController {
       return;
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final stored = prefs.getInt(_listingSelectionKeyFor(uid));
+      final stored = await _localPreferenceRepository.getInt(
+        _listingSelectionKeyFor(uid),
+      );
       listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
     } catch (_) {
       listingSelection.value = 1;
@@ -26,8 +27,7 @@ extension AnswerKeyControllerSearchPart on AnswerKeyController {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) return;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
+      await _localPreferenceRepository.setInt(
         _listingSelectionKeyFor(uid),
         listingSelection.value == 1 ? 1 : 0,
       );

@@ -57,7 +57,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
       data: cloned,
       cachedAt: cachedAt,
     );
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _prefsKey(key),
       jsonEncode({
@@ -71,7 +71,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
     if (uid.isEmpty) return;
     final key = _cacheKey(uid);
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove(_prefsKey(key));
   }
 
@@ -87,7 +87,7 @@ extension ProfileStatsRepositoryCachePart on ProfileStatsRepository {
   }
 
   Future<_CachedProfileStats?> _getFromPrefsEntry(String key) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _prefsKey(key);
     final raw = prefs?.getString(prefsKey);

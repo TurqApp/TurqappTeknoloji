@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/applicant_profile.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content_controller.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
 class ScholarshipApplicationsContent extends StatefulWidget {
@@ -61,15 +62,15 @@ class _ScholarshipApplicationsContentState
       padding: EdgeInsets.symmetric(horizontal: 15),
       child: Obx(() {
         if (controller.isLoading.value) {
-          return Padding(
+          return const Padding(
             padding: EdgeInsets.all(15),
-            child: CupertinoActivityIndicator(),
+            child: AppStateView.loading(),
           );
         }
 
         return GestureDetector(
           onTap: () {
-            Get.to(() => ApplicantProfile(userID: userID));
+            ScholarshipNavigationService.openApplicantProfile(userID);
           },
           child: Container(
             margin: EdgeInsets.symmetric(vertical: 5),

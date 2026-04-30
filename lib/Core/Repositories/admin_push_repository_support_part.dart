@@ -18,7 +18,7 @@ AdminPushRepository _ensureAdminPushRepository() {
 }
 
 CollectionReference<Map<String, dynamic>> _adminPushReportsRef() {
-  return FirebaseFirestore.instance
+  return AppFirestore.instance
       .collection('adminConfig')
       .doc('admin')
       .collection('pushReports');

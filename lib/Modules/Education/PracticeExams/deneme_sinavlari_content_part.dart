@@ -9,7 +9,7 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
         onRefresh: controller.getData,
         child: Obx(() {
           if (!controller.listingSelectionReady.value) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading(title: '');
           }
           final items = controller.hasActiveSearch
               ? controller.searchResults
@@ -25,7 +25,7 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
             );
           }
           if (controller.isSearchLoading.value) {
-            return const Center(child: CupertinoActivityIndicator());
+            return const AppStateView.loading(title: '');
           }
           if (items.isEmpty) {
             return _buildEmptyState();

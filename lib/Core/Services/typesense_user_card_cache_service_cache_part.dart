@@ -64,7 +64,8 @@ class _TypesenseUserCardCacheServiceCachePart {
 
   Future<void> invalidateAll() async {
     service._memory.clear();
-    service._prefs ??= await SharedPreferences.getInstance();
+    service._prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = service._prefs;
     if (prefs == null) return;
     final keys = prefs
@@ -89,7 +90,8 @@ class _TypesenseUserCardCacheServiceCachePart {
   }
 
   Future<_CachedUserCardsResult?> _getFromPrefs(String cacheKey) async {
-    service._prefs ??= await SharedPreferences.getInstance();
+    service._prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = service._prefs;
     final prefsKey = _prefsKey(cacheKey);
     try {
@@ -164,7 +166,8 @@ class _TypesenseUserCardCacheServiceCachePart {
     );
     service._memory[cacheKey] = cached;
     try {
-      service._prefs ??= await SharedPreferences.getInstance();
+      service._prefs ??=
+          await ensureLocalPreferenceRepository().sharedPreferences();
       await service._prefs?.setString(
         _prefsKey(cacheKey),
         jsonEncode(<String, dynamic>{

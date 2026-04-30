@@ -5,7 +5,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
+import 'package:turqappv2/Runtime/app_decision_coordinator.dart';
 import 'package:turqappv2/Runtime/app_root_navigation_service.dart';
+import 'package:turqappv2/Runtime/primary_tab_router.dart';
+import 'package:turqappv2/Runtime/startup_decision.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
@@ -89,7 +92,7 @@ class _SplashViewState extends State<SplashView> {
   bool _shortStartupShardHydrated = false;
   String _feedWarmSnapshotSource = 'none';
   final String _shortWarmSnapshotSource = 'none';
-  String _previousStartupRouteHint = 'unknown';
+  String _previousStartupRouteHint = StartupRouteHint.unknown.value;
   bool _previousStartupLoggedIn = false;
   bool _previousStartupMinimumPrepared = false;
   int? _previousStartupNavIndex;

@@ -2,7 +2,7 @@ part of 'market_repository_library.dart';
 
 class _MarketRepositoryState {
   _MarketRepositoryState({FirebaseFirestore? firestore})
-      : firestore = firestore ?? FirebaseFirestore.instance;
+      : firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore firestore;
   final Map<String, _TimedMarketItems> memory = <String, _TimedMarketItems>{};

@@ -50,7 +50,6 @@ extension StoryMakerControllerSavePart on StoryMakerController {
   }
 
   Future<String> _uploadStoryImageWithAuthRetry({
-    required FirebaseStorage storage,
     required File file,
     required String storagePathWithoutExt,
     required CurrentUserService currentUserService,
@@ -65,7 +64,6 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
         return await WebpUploadService.uploadFileAsWebp(
-          storage: storage,
           file: file,
           storagePathWithoutExt: storagePathWithoutExt,
         );
@@ -82,7 +80,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
   }
 
   Future<void> _saveStoryDocWithAuthRetry({
-    required DocumentReference<Map<String, dynamic>> docRef,
+    required String storyId,
     required Map<String, dynamic> storyData,
     required CurrentUserService currentUserService,
   }) async {
@@ -95,7 +93,10 @@ extension StoryMakerControllerSavePart on StoryMakerController {
     FirebaseException? lastError;
     for (var attempt = 0; attempt <= retryDelays.length; attempt++) {
       try {
-        await docRef.set(storyData);
+        await StoryRepository.ensure().saveStoryData(
+          storyId: storyId,
+          storyData: storyData,
+        );
         return;
       } on FirebaseException catch (e) {
         final code = e.code.trim().toLowerCase();
@@ -235,8 +236,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         AppSnackbar("common.error".tr, "story.no_user".tr);
         return;
       }
-      final docRef = FirebaseFirestore.instance.collection('stories').doc();
-      final storyId = docRef.id;
+      final storyId = StoryRepository.ensure().createStoryDocumentId();
 
       final elementsCopy = List<StoryElement>.from(elementsSnapshot);
 
@@ -274,7 +274,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
               return;
             }
             final ext = path.extension(file.path);
-            final ref = FirebaseStorage.instance.ref(
+            final ref = AppFirebaseStorage.instance.ref(
               'stories/$resolvedUid/$storyId/$ts$ext',
             );
             final task = await _uploadStoryVideoWithAuthRetry(
@@ -289,7 +289,6 @@ extension StoryMakerControllerSavePart on StoryMakerController {
             url = CdnUrlBuilder.toCdnUrl(await task.ref.getDownloadURL());
           } else {
             final downloadUrl = await _uploadStoryImageWithAuthRetry(
-              storage: FirebaseStorage.instance,
               file: file,
               currentUserService: currentUserService,
               storagePathWithoutExt: 'stories/$resolvedUid/$storyId/$ts',
@@ -373,7 +372,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         storyData['deleteReason'] = 'scheduled';
       }
       await _saveStoryDocWithAuthRetry(
-        docRef: docRef,
+        storyId: storyId,
         storyData: storyData,
         currentUserService: currentUserService,
       );

@@ -119,7 +119,7 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
     if (!await _canOpenUserContent(normalizedUserId, summary: userData)) {
       return;
     }
-    Get.to(() => SocialProfile(userID: normalizedUserId));
+    await const ProfileNavigationService().openSocialProfile(normalizedUserId);
   }
 
   Future<bool> _performCanOpenUserContent(
@@ -162,7 +162,7 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       AppSnackbar('common.info'.tr, 'deep_link.listing_not_found'.tr);
       return;
     }
-    await Get.to(() => MarketDetailView(item: item));
+    await const MarketDetailNavigationService().openMarketDetail(item);
   }
 
   Future<void> _performOpenEducationLink(String entityId) async {
@@ -172,30 +172,11 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       return;
     }
 
-    final navController = ensureNavBarController();
+    final didOpenEducation = const PrimaryTabRouter().openEducation();
+    if (!didOpenEducation) return;
     final educationController = ensureEducationController();
 
-    navController.changeIndex(3);
-
-    int targetTab = 0;
-    if (normalized.startsWith('scholarship:')) {
-      targetTab = 0;
-    } else if (normalized.startsWith('question:') ||
-        normalized.startsWith('question-')) {
-      targetTab = 1;
-    } else if (normalized.startsWith('practiceexam:')) {
-      targetTab = 2;
-    } else if (normalized.startsWith('pastquestion:')) {
-      targetTab = 3;
-    } else if (normalized.startsWith('answerkey:')) {
-      targetTab = 4;
-    } else if (normalized.startsWith('tutoring:')) {
-      targetTab = 5;
-    } else if (normalized.startsWith('job:')) {
-      targetTab = 6;
-    }
-
-    educationController.onTabTap(targetTab);
+    educationController.onTabTap(educationDeepLinkTabIndexFor(entityId));
   }
 
   Future<void> _performOpenJob(String jobId) async {
@@ -216,6 +197,6 @@ extension DeepLinkServiceOpenPart on DeepLinkService {
       return;
     }
 
-    await Get.to(() => JobDetails(model: model));
+    await const EducationDetailNavigationService().openJobDetails(model);
   }
 }

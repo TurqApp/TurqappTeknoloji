@@ -13,12 +13,24 @@ ModerationRepository ensureModerationRepository() {
 }
 
 extension ModerationRepositoryFacadePart on ModerationRepository {
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchBannedUsers({
+    int limit = 50,
+  }) {
+    return AppFirestore.instance
+        .collection('adminConfig')
+        .doc('admin')
+        .collection('bannedUser')
+        .orderBy('updatedAt', descending: true)
+        .limit(limit)
+        .snapshots();
+  }
+
   Stream<List<ModerationFlaggedPost>> watchFlaggedPosts({
     required int threshold,
     int limit = 200,
   }) {
     final safeThreshold = threshold.clamp(1, 1000);
-    return FirebaseFirestore.instance
+    return AppFirestore.instance
         .collection('Posts')
         .where('moderation.flagCount', isGreaterThanOrEqualTo: safeThreshold)
         .orderBy('moderation.flagCount', descending: true)

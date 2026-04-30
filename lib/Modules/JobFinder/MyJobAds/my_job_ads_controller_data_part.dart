@@ -130,10 +130,7 @@ extension MyJobAdsControllerDataPart on MyJobAdsController {
 
     for (final job in jobs) {
       if (job.timeStamp < thirtyDaysAgo) {
-        unawaited(FirebaseFirestore.instance
-            .collection(JobCollection.name)
-            .doc(job.docID)
-            .update({"ended": true}));
+        unawaited(_jobRepository.markEnded(job.docID));
       } else {
         validJobs.add(job);
       }

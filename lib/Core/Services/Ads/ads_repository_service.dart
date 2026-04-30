@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/Ads/ads_collections.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 
 class AdsRepositoryService {
@@ -18,19 +19,19 @@ class AdsRepositoryService {
   }
 
   CollectionReference<Map<String, dynamic>> get _campaigns =>
-      FirebaseFirestore.instance.collection(AdsCollections.campaigns);
+      AppFirestore.instance.collection(AdsCollections.campaigns);
 
   CollectionReference<Map<String, dynamic>> get _creatives =>
-      FirebaseFirestore.instance.collection(AdsCollections.creatives);
+      AppFirestore.instance.collection(AdsCollections.creatives);
 
   CollectionReference<Map<String, dynamic>> get _advertisers =>
-      FirebaseFirestore.instance.collection(AdsCollections.advertisers);
+      AppFirestore.instance.collection(AdsCollections.advertisers);
 
   CollectionReference<Map<String, dynamic>> get _dailyStats =>
-      FirebaseFirestore.instance.collection(AdsCollections.dailyStats);
+      AppFirestore.instance.collection(AdsCollections.dailyStats);
 
   CollectionReference<Map<String, dynamic>> get _deliveryLogs =>
-      FirebaseFirestore.instance.collection(AdsCollections.deliveryLogs);
+      AppFirestore.instance.collection(AdsCollections.deliveryLogs);
 
   Stream<List<AdCampaign>> watchCampaigns({
     AdCampaignStatus? status,

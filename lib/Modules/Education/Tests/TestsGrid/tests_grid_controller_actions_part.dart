@@ -245,8 +245,9 @@ extension TestsGridControllerActionsPart on TestsGridController {
                       color: Colors.purple,
                       onTap: () {
                         Get.back();
-                        Get.to(() => CreateTest(model: model))
-                            ?.then((_) => update());
+                        const EducationTestNavigationService()
+                            .openCreateTest(model: model)
+                            .then((_) => update());
                       },
                     ),
                     if (model.paylasilabilir) ...[
@@ -275,11 +276,9 @@ extension TestsGridControllerActionsPart on TestsGridController {
                       color: Colors.indigo,
                       onTap: () {
                         Get.back();
-                        Get.to(
-                          () => SolveTest(
-                            testID: model.docID,
-                            showSucces: showAlert,
-                          ),
+                        const EducationTestNavigationService().openSolveTest(
+                          testID: model.docID,
+                          showSucces: showAlert,
                         );
                       },
                     ),
@@ -303,7 +302,10 @@ extension TestsGridControllerActionsPart on TestsGridController {
       return;
     }
 
-    Get.to(() => SolveTest(testID: model.docID, showSucces: showAlert));
+    const EducationTestNavigationService().openSolveTest(
+      testID: model.docID,
+      showSucces: showAlert,
+    );
   }
 
   void showDeleteConfirmation(BuildContext context) {
@@ -418,13 +420,16 @@ extension TestsGridControllerActionsPart on TestsGridController {
 
   void navigateToProfile(BuildContext context) {
     if (model.userID != CurrentUserService.instance.effectiveUserId) {
-      Get.to(() => SocialProfile(userID: model.userID));
+      const ProfileNavigationService().openSocialProfile(model.userID);
       return;
     }
-    Get.to(() => ProfileView());
+    const ProfileNavigationService().openMyProfile();
   }
 
   void navigateToTestSolve(BuildContext context) {
-    Get.to(() => SolveTest(testID: model.docID, showSucces: showAlert));
+    const EducationTestNavigationService().openSolveTest(
+      testID: model.docID,
+      showSucces: showAlert,
+    );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Core/Services/visibility_policy_service.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -14,13 +16,13 @@ class TagPostsRepository {
   final VisibilityPolicyService _visibilityPolicy;
   final UserRepository _userRepository;
   final List<FirebaseFunctions> _functionsTargets = <FirebaseFunctions>[
-    FirebaseFunctions.instance,
-    FirebaseFunctions.instanceFor(region: 'us-central1'),
-    FirebaseFunctions.instanceFor(region: 'europe-west1'),
+    AppCloudFunctions.instance,
+    AppCloudFunctions.instanceFor(region: 'us-central1'),
+    AppCloudFunctions.instanceFor(region: 'europe-west1'),
   ];
 
   TagPostsRepository({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance,
+      : _db = firestore ?? AppFirestore.instance,
         _postRepository = PostRepository.ensure(),
         _visibilityPolicy = VisibilityPolicyService.ensure(),
         _userRepository = UserRepository.ensure();

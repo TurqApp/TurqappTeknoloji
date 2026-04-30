@@ -41,7 +41,7 @@ extension _TestRepositoryCacheX on TestRepository {
     final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedTests(items: cloned, cachedAt: now);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${TestRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
@@ -69,12 +69,12 @@ extension _TestRepositoryCacheX on TestRepository {
     final normalized = cacheKey.trim();
     if (normalized.isEmpty) return;
     _memory.remove(normalized);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('${TestRepository._prefsPrefix}:$normalized');
   }
 
   Future<void> _storeRawDoc(String cacheKey, Map<String, dynamic> data) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${TestRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
@@ -88,7 +88,7 @@ extension _TestRepositoryCacheX on TestRepository {
     String cacheKey,
     List<Map<String, dynamic>> data,
   ) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${TestRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
@@ -99,7 +99,7 @@ extension _TestRepositoryCacheX on TestRepository {
   }
 
   Future<List<Map<String, dynamic>>?> _getRawList(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
     final raw = prefs?.getString(prefsKey);
@@ -140,7 +140,7 @@ extension _TestRepositoryCacheX on TestRepository {
   }
 
   Future<Map<String, dynamic>?> _getRawDoc(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
     final raw = prefs?.getString(prefsKey);
@@ -190,7 +190,7 @@ extension _TestRepositoryCacheX on TestRepository {
   }
 
   Future<_TimedTests?> _getTimedFromPrefs(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${TestRepository._prefsPrefix}:$cacheKey';
     final raw = prefs?.getString(prefsKey);

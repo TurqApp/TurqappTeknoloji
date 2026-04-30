@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'my_admin_approval_results_view_tile_part.dart';
@@ -29,14 +30,8 @@ class MyAdminApprovalResultsView extends StatelessWidget {
   }
 
   Widget _buildMessageState(String text) {
-    return Center(
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontFamily: 'MontserratMedium',
-          fontSize: 13,
-        ),
-      ),
+    return AppStateView.empty(
+      title: text,
     );
   }
 
@@ -45,7 +40,7 @@ class MyAdminApprovalResultsView extends StatelessWidget {
       stream: _watchOwnApprovals(uid),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading();
         }
         if (snap.hasError) {
           return _buildMessageState(

@@ -21,7 +21,7 @@ class _TimedBooklets {
 
 class BookletRepository extends GetxService {
   BookletRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore _firestore;
   static const Duration _ttl = Duration(hours: 12);
@@ -61,14 +61,16 @@ extension BookletRepositoryCachePart on BookletRepository {
   }
 
   void _handleBookletRepositoryInit() {
-    SharedPreferences.getInstance().then((prefs) => _prefs = prefs);
+    ensureLocalPreferenceRepository()
+        .sharedPreferences()
+        .then((prefs) => _prefs = prefs);
   }
 
   Future<void> _store(String cacheKey, List<BookletModel> items) async {
     final cloned = _cloneItems(items);
     final now = DateTime.now();
     _memory[cacheKey] = _TimedBooklets(items: cloned, cachedAt: now);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${BookletRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
@@ -98,7 +100,7 @@ extension BookletRepositoryCachePart on BookletRepository {
     String cacheKey,
     List<Map<String, dynamic>> items,
   ) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '${BookletRepository._prefsPrefix}:$cacheKey',
       jsonEncode({
@@ -121,7 +123,7 @@ extension BookletRepositoryCachePart on BookletRepository {
   }
 
   Future<List<BookletModel>?> _getFromPrefs(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${BookletRepository._prefsPrefix}:$cacheKey';
     final raw = prefs?.getString(prefsKey);
@@ -164,7 +166,7 @@ extension BookletRepositoryCachePart on BookletRepository {
   }
 
   Future<List<Map<String, dynamic>>?> _readRawList(String cacheKey) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '${BookletRepository._prefsPrefix}:$cacheKey';
     final raw = prefs?.getString(prefsKey);

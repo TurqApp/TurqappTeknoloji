@@ -11,6 +11,7 @@ import {
   getFirestore,
 } from "firebase-admin/firestore";
 import { RateLimits } from "./rateLimiter";
+import { requireCallableAdminUid } from "./adminAccess";
 
 const REGION = "europe-west1";
 const MARKET_COUNTER_VERSION = 1;
@@ -100,26 +101,7 @@ function requireAuth(request: { auth?: { uid?: string } | null }): string {
 }
 
 async function requireAdminAuth(request: CallableRequest<unknown>): Promise<string> {
-  const uid = requireAuth(request);
-  const claims = request.auth?.token as { admin?: unknown } | undefined;
-  if (claims?.admin === true) {
-    RateLimits.admin(uid);
-    return uid;
-  }
-
-  const allowSnap = await db().doc("adminConfig/admin").get();
-  const allowedRaw = allowSnap.data()?.allowedUserIds;
-  if (Array.isArray(allowedRaw)) {
-    const allowed = allowedRaw
-      .map((value: unknown) => String(value ?? "").trim())
-      .filter((value: string) => value.length > 0);
-    if (allowed.includes(uid)) {
-      RateLimits.admin(uid);
-      return uid;
-    }
-  }
-
-  throw new HttpsError("permission-denied", "admin_required");
+  return await requireCallableAdminUid(request.auth, db());
 }
 
 export function parseRecordMarketViewBatchRequest(

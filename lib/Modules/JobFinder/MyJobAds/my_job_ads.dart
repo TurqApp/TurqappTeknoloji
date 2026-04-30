@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/empty_row.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 
 import '../JobContent/job_content.dart';
@@ -78,13 +78,11 @@ class _MyJobAdsState extends State<MyJobAds> {
   Widget _buildActiveAdsPage() {
     return Obx(() {
       if (controller.isLoadingActive.value && controller.active.isEmpty) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.black),
-        );
+        return const AppStateView.loading(title: '');
       }
 
       if (controller.active.isEmpty) {
-        return EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
+        return AppStateView.empty(title: "pasaj.job_finder.no_my_ads".tr);
       }
 
       return ListView.builder(
@@ -107,13 +105,11 @@ class _MyJobAdsState extends State<MyJobAds> {
   Widget _buildDeactiveAdsPage() {
     return Obx(() {
       if (controller.isLoadingDeactive.value && controller.deactive.isEmpty) {
-        return const Center(
-          child: CircularProgressIndicator(color: Colors.black),
-        );
+        return const AppStateView.loading(title: '');
       }
 
       if (controller.deactive.isEmpty) {
-        return EmptyRow(text: "pasaj.job_finder.no_my_ads".tr);
+        return AppStateView.empty(title: "pasaj.job_finder.no_my_ads".tr);
       }
 
       return ListView.builder(

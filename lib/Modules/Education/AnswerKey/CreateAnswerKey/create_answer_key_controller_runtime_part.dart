@@ -59,7 +59,7 @@ Future<void> _saveCreateAnswerKeyForm(
   }
   final docID = DateTime.now().millisecondsSinceEpoch.toString();
 
-  await FirebaseFirestore.instance.collection('optikForm').doc(docID).set({
+  await ensureOpticalFormRepository().saveForm(docID, {
     'max': controller.selection.value,
     'cevaplar': controller.selections.toList(),
     'name': controller.nameController.text.isNotEmpty

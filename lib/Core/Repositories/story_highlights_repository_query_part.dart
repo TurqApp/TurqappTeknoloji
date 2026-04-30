@@ -24,7 +24,7 @@ extension StoryHighlightsRepositoryQueryPart on StoryHighlightsRepository {
 
     if (cacheOnly) return const <StoryHighlightModel>[];
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('highlights')

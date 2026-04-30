@@ -10,12 +10,11 @@ extension CreateTestQuestionContentControllerActionsPart
 
   Future<void> fastSetData(String dogruCvp) {
     if (!legacyTestsNetworkEnabled) return Future<void>.value();
-    return FirebaseFirestore.instance
-        .collection("Testler")
-        .doc(testID)
-        .collection("Sorular")
-        .doc(model.docID)
-        .set({"dogruCevap": dogruCvp}, SetOptions(merge: true));
+    return _testRepository.setQuestionCorrectAnswer(
+      testId: testID,
+      questionId: model.docID,
+      correctAnswer: dogruCvp,
+    );
   }
 
   Future<void> pickImageFromGallery() async {
@@ -42,24 +41,22 @@ extension CreateTestQuestionContentControllerActionsPart
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: imageFile,
         storagePathWithoutExt:
             'Testler/$testID/${DateTime.now().millisecondsSinceEpoch}',
       );
 
-      await FirebaseFirestore.instance
-          .collection("Testler")
-          .doc(testID)
-          .collection("Sorular")
-          .doc(model.docID)
-          .set({
-        "img": downloadUrl,
-        "id": model.id,
-        "dogruCevap": model.dogruCevap,
-        "yanitlayanlar": [],
-        "max": model.max,
-      }, SetOptions(merge: true));
+      await _testRepository.saveQuestion(
+        testId: testID,
+        questionId: model.docID,
+        data: {
+          "img": downloadUrl,
+          "id": model.id,
+          "dogruCevap": model.dogruCevap,
+          "yanitlayanlar": [],
+          "max": model.max,
+        },
+      );
 
       model.img = downloadUrl;
       selectedImage.value = null;

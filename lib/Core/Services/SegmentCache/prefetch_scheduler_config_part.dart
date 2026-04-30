@@ -6,14 +6,14 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'Referer': '$_prefetchSchedulerCdnOrigin/',
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
-const int _prefetchSchedulerFeedLeadReadySegments = 3;
+const int _prefetchSchedulerFeedLeadReadySegments = 2;
 const int _prefetchSchedulerPriorityWindowSize = 5;
 const int _prefetchSchedulerWifiMinBreadthCount = 5;
 const int _prefetchSchedulerWifiMinDepthCount = 3;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 3;
 const int _prefetchSchedulerFeedRetainBehindCount = 2;
 const int _prefetchSchedulerFeedAheadCount = 5;
-const int _prefetchSchedulerFeedBehindCount = 3;
+const int _prefetchSchedulerFeedBehindCount = 2;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
 const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
 const int _prefetchSchedulerQuotaFillBurstSegments = 4;
@@ -99,21 +99,20 @@ int resolveFeedWindowReadySegments({
   int aheadCount = _prefetchSchedulerFeedAheadCount,
   int behindCount = _prefetchSchedulerFeedBehindCount,
   int hardBoostReadySegments = _prefetchSchedulerFeedLeadReadySegments,
+  int hardBoostCount = _prefetchSchedulerFeedHardBoostCount,
   int softWarmReadySegments = _prefetchSchedulerFeedSoftWarmReadySegments,
 }) {
   if (targetIndex < 0) {
     return hardBoostReadySegments;
   }
   final distance = targetIndex - currentIndex;
-  if (distance == 0) {
+  if (distance >= 0 && distance < hardBoostCount) {
     return hardBoostReadySegments;
   }
   if (distance > 0) {
     if (distance <= aheadCount) {
       return softWarmReadySegments;
     }
-  } else if (-distance <= behindCount) {
-    return 0;
   }
   return softWarmReadySegments;
 }

@@ -8,7 +8,7 @@ extension UserSubcollectionRepositoryActionPart on UserSubcollectionRepository {
     required Map<String, dynamic> data,
   }) async {
     if (uid.isEmpty || subcollection.isEmpty || docId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(subcollection)
@@ -30,7 +30,7 @@ extension UserSubcollectionRepositoryActionPart on UserSubcollectionRepository {
     required String docId,
   }) async {
     if (uid.isEmpty || subcollection.isEmpty || docId.isEmpty) return;
-    await FirebaseFirestore.instance
+    await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection(subcollection)

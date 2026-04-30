@@ -28,7 +28,7 @@ extension _EducationInfoViewFieldsPart on _EducationInfoViewState {
               controller.doctorateValue:
         return _buildHigherEducationFields(isUndergraduate: true);
       default:
-        return Center(child: EmptyRow(text: 'education_info.select_level'.tr));
+        return AppStateView.empty(title: 'education_info.select_level'.tr);
     }
   }
 

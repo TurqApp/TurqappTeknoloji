@@ -17,6 +17,8 @@ import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/iz_birak_subscription_service.dart';
 import 'package:turqappv2/Core/Services/post_story_share_service.dart';
 import 'package:turqappv2/Core/Services/relative_time_tick_service.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
@@ -46,7 +48,6 @@ import 'package:turqappv2/Modules/Profile/LikedPosts/liked_posts_controller.dart
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts.dart';
 import 'package:turqappv2/Modules/Social/PostSharers/post_sharers.dart';
-import 'package:turqappv2/Modules/SocialProfile/ReportUser/report_user.dart';
 import 'package:turqappv2/Modules/SocialProfile/social_profile_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
@@ -64,7 +65,6 @@ import '../../../Core/Services/upload_queue_service.dart';
 import '../../../Core/texts.dart';
 import '../../../Themes/app_colors.dart';
 import '../../../Themes/app_tokens.dart';
-import '../../SocialProfile/social_profile.dart';
 import '../Common/post_content_base.dart';
 import '../Common/post_content_controller.dart';
 import '../Common/reshare_attribution.dart';
@@ -132,12 +132,14 @@ class _AgendaContentState extends State<AgendaContent>
     return style.copyWith(fontSize: _agendaPlatformFontSize(fontSize));
   }
 
-  TextStyle get _agendaPostNameStyle => _agendaTypography(AppTypography.postName);
+  TextStyle get _agendaPostNameStyle =>
+      _agendaTypography(AppTypography.postName);
 
   TextStyle get _agendaPostHandleStyle =>
       _agendaTypography(AppTypography.postHandle);
 
-  TextStyle get _agendaPostMetaStyle => _agendaTypography(AppTypography.postMeta);
+  TextStyle get _agendaPostMetaStyle =>
+      _agendaTypography(AppTypography.postMeta);
 
   TextStyle get _agendaPostCaptionStyle =>
       _agendaTypography(AppTypography.postCaption);

@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
-import 'package:turqappv2/Modules/SocialProfile/social_profile.dart';
+import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'story_content_profile_controller.dart';
@@ -66,7 +66,8 @@ class _StoryContentProfilesState extends State<StoryContentProfiles> {
           GestureDetector(
             onTap: () {
               if (widget.userID != _currentUserId) {
-                Get.to(() => SocialProfile(userID: widget.userID));
+                const ProfileNavigationService()
+                    .openSocialProfile(widget.userID);
               }
             },
             child: Container(

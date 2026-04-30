@@ -2,7 +2,7 @@ part of 'practice_exam_repository.dart';
 
 class _PracticeExamRepositoryState {
   _PracticeExamRepositoryState({FirebaseFirestore? firestore})
-      : firestore = firestore ?? FirebaseFirestore.instance;
+      : firestore = firestore ?? AppFirestore.instance;
 
   final FirebaseFirestore firestore;
   final Map<String, _TimedPracticeExams> memory =

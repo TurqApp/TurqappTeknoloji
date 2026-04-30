@@ -34,7 +34,7 @@ extension SocialMediaLinksRepositoryQueryPart on SocialMediaLinksRepository {
 
     if (cacheOnly) return const <SocialMediaModel>[];
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .doc(uid)
         .collection('SosyalMedyaLinkleri')

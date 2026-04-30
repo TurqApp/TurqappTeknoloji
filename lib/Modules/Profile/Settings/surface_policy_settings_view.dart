@@ -4,6 +4,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
@@ -310,7 +311,7 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
             BackButtons(text: 'Akış ve Önbellek Ayarları'),
             Expanded(
               child: !_isReady
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const AppStateView.loading()
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
                       children: [

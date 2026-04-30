@@ -14,7 +14,7 @@ Future<void> _qaLabRemoteUploaderFlushPending(
     uploader.lastSyncState.value = 'awaiting_firebase';
     return;
   }
-  final auth = uploader._authOverride ?? FirebaseAuth.instance;
+  final auth = uploader._authOverride ?? AppFirebaseAuth.instance;
   final user = auth.currentUser;
   if (user == null) {
     uploader.lastSyncState.value = 'awaiting_auth';
@@ -40,7 +40,7 @@ Future<void> _qaLabRemoteUploaderFlushPending(
           : (sessionDocument['sessionId'] ?? '').toString().trim();
 
   try {
-    final firestore = uploader._firestoreOverride ?? FirebaseFirestore.instance;
+    final firestore = uploader._firestoreOverride ?? AppFirestore.instance;
     final scopeRef = firestore
         .collection(QALabMode.remoteCollectionName)
         .doc(QALabMode.remoteUploadScope);

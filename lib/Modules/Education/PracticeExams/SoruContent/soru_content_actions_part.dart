@@ -34,42 +34,39 @@ extension SoruContentActionsPart on _SoruContentState {
         return;
       }
       final downloadUrl = await WebpUploadService.uploadFileAsWebp(
-        storage: FirebaseStorage.instance,
         file: imageFile,
         storagePathWithoutExt:
             'practiceExams/$mainID/questions/${widget.model.docID}',
       );
 
-      FirebaseFirestore.instance
-          .collection("practiceExams")
-          .doc(widget.mainID)
-          .collection("Sorular")
-          .doc(widget.model.docID)
-          .set({
-        "id": widget.model.id,
-        "soru": downloadUrl,
-        "ders": widget.ders,
-        "konu": konu,
-        "dogruCevap": dogruCevap,
-        "yanitlayanlar": [],
-      }, SetOptions(merge: true));
+      await _practiceExamRepository.saveQuestion(
+        examId: widget.mainID,
+        questionId: widget.model.docID,
+        data: {
+          "id": widget.model.id,
+          "soru": downloadUrl,
+          "ders": widget.ders,
+          "konu": konu,
+          "dogruCevap": dogruCevap,
+          "yanitlayanlar": [],
+        },
+      );
     } catch (e) {
       print("Hata oluştu: $e");
     }
   }
 
   void fastSetData() {
-    FirebaseFirestore.instance
-        .collection("practiceExams")
-        .doc(widget.mainID)
-        .collection("Sorular")
-        .doc(widget.model.docID)
-        .set({
-      "id": widget.model.id,
-      "ders": widget.ders,
-      "konu": konu,
-      "dogruCevap": dogruCevap,
-      "yanitlayanlar": [],
-    }, SetOptions(merge: true));
+    _practiceExamRepository.saveQuestion(
+      examId: widget.mainID,
+      questionId: widget.model.docID,
+      data: {
+        "id": widget.model.id,
+        "ders": widget.ders,
+        "konu": konu,
+        "dogruCevap": dogruCevap,
+        "yanitlayanlar": [],
+      },
+    );
   }
 }

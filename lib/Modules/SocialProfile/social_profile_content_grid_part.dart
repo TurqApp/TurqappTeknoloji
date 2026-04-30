@@ -107,7 +107,10 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
           )
         else
           SliverToBoxAdapter(
-            child: Center(child: EmptyRow(text: 'profile.no_reshares'.tr)),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: 'profile.no_reshares'.tr),
+            ),
           ),
       ],
     );
@@ -122,7 +125,10 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
       return Column(
         children: [
           header(),
-          Center(child: EmptyRow(text: 'profile.no_photos'.tr)),
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.32,
+            child: AppStateView.empty(title: 'profile.no_photos'.tr),
+          ),
         ],
       );
     }
@@ -227,7 +233,10 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
       return Column(
         children: [
           header(),
-          Center(child: EmptyRow(text: 'profile.no_videos'.tr)),
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.32,
+            child: AppStateView.empty(title: 'profile.no_videos'.tr),
+          ),
         ],
       );
     }
@@ -455,7 +464,10 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
           )
         else
           SliverToBoxAdapter(
-            child: Center(child: EmptyRow(text: 'profile.scheduled_none'.tr)),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.32,
+              child: AppStateView.empty(title: 'profile.scheduled_none'.tr),
+            ),
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 50)),
       ],

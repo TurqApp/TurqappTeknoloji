@@ -3,7 +3,7 @@ part of 'booklet_repository.dart';
 extension BookletRepositoryActionPart on BookletRepository {
   Future<void> _removeCacheKey(String key) async {
     _memory.remove(key);
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('${BookletRepository._prefsPrefix}:$key');
   }
 
@@ -22,6 +22,57 @@ extension BookletRepositoryActionPart on BookletRepository {
       }
       await batch.commit();
     }
+  }
+
+  Future<void> saveBooklet(
+    String bookletId,
+    Map<String, dynamic> data,
+  ) async {
+    final normalizedBookletId = bookletId.trim();
+    if (normalizedBookletId.isEmpty || data.isEmpty) return;
+    await _firestore.collection('books').doc(normalizedBookletId).set(
+          data,
+          SetOptions(merge: true),
+        );
+    await _removeCacheKey('doc:$normalizedBookletId');
+  }
+
+  Future<void> updateBookletCover({
+    required String bookletId,
+    required String coverUrl,
+    required String storagePath,
+  }) async {
+    final normalizedBookletId = bookletId.trim();
+    if (normalizedBookletId.isEmpty) return;
+    await _firestore.collection('books').doc(normalizedBookletId).update({
+      'cover': coverUrl,
+      'coverStoragePath': storagePath,
+      'coverFormat': 'webp',
+    });
+    await _removeCacheKey('doc:$normalizedBookletId');
+    await maybeFindAnswerKeySnapshotRepository()?.invalidateAllSurfaces();
+  }
+
+  Future<void> incrementViewCount(String bookletId) async {
+    final normalizedBookletId = bookletId.trim();
+    if (normalizedBookletId.isEmpty) return;
+    await _firestore.collection('books').doc(normalizedBookletId).update({
+      'viewCount': FieldValue.increment(1),
+    });
+    await _removeCacheKey('doc:$normalizedBookletId');
+  }
+
+  Future<void> saveBookletAnswerResult({
+    required String userId,
+    required Map<String, dynamic> data,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty || data.isEmpty) return;
+    await _firestore
+        .collection('users')
+        .doc(normalizedUserId)
+        .collection('KitapcikCevaplari')
+        .add(data);
   }
 
   Future<void> replaceAnswerKeys(

@@ -91,9 +91,9 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
 
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
-    _prefs = await SharedPreferences.getInstance();
+    _prefs = await ensureLocalPreferenceRepository().sharedPreferences();
     _restoreFromPrefs();
-    _authSub ??= FirebaseAuth.instance.authStateChanges().listen((_) {
+    _authSub ??= AppFirebaseAuth.instance.authStateChanges().listen((_) {
       _memory = const <RecommendedUserModel>[];
       _cachedAt = null;
       _restoreFromPrefs();
@@ -120,7 +120,7 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
       return List<RecommendedUserModel>.from(_memory.take(limit));
     }
 
-    final snap = await FirebaseFirestore.instance
+    final snap = await AppFirestore.instance
         .collection('users')
         .where('isPrivate', isEqualTo: false)
         .limit(limit)

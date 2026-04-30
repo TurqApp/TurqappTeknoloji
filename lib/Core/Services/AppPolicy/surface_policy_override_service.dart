@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 
 class SurfacePolicyOverrideKeys {
   const SurfacePolicyOverrideKeys._();
@@ -66,7 +67,8 @@ class SurfacePolicyOverrideService extends GetxService {
   Map<String, int> _overrides = const <String, int>{};
 
   Future<void> ensureReady({SharedPreferences? prefs}) async {
-    _prefs ??= prefs ?? await SharedPreferences.getInstance();
+    _prefs ??=
+        prefs ?? await ensureLocalPreferenceRepository().sharedPreferences();
     _overrides = _decode(_prefs!.getString(_prefsKey));
   }
 

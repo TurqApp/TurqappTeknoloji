@@ -209,7 +209,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         if (nsfwImage.errorMessage != null) {
           upload.status = UploadStatus.failed;
           upload.errorMessage = 'upload_queue.nsfw_image_check_failed'.tr;
-          await FirebaseFirestore.instance
+          await AppFirestore.instance
               .collection('Posts')
               .doc(upload.id)
               .delete()
@@ -221,7 +221,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         if (nsfwImage.isNSFW) {
           upload.status = UploadStatus.failed;
           upload.errorMessage = 'upload_queue.nsfw_image_detected'.tr;
-          await FirebaseFirestore.instance
+          await AppFirestore.instance
               .collection('Posts')
               .doc(upload.id)
               .delete()
@@ -249,7 +249,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           if (videoSize > _maxVideoBytesForStorageRule) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.video_too_large'.tr;
-            await FirebaseFirestore.instance
+            await AppFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
@@ -274,7 +274,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           if (nsfwVideo.errorMessage != null) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.nsfw_video_check_failed'.tr;
-            await FirebaseFirestore.instance
+            await AppFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
@@ -286,7 +286,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           if (nsfwVideo.isNSFW) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.nsfw_video_detected'.tr;
-            await FirebaseFirestore.instance
+            await AppFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .delete()
@@ -298,7 +298,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         }
       }
 
-      await FirebaseFirestore.instance.collection('Posts').doc(upload.id).set({
+      await AppFirestore.instance.collection('Posts').doc(upload.id).set({
         "arsiv": true,
         "debugMode": false,
         "deletedPost": false,
@@ -386,7 +386,6 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           }
           final localBytes = await file.readAsBytes();
           final url = await WebpUploadService.uploadBytesAsWebp(
-            storage: FirebaseStorage.instance,
             bytes: localBytes,
             storagePathWithoutExt: 'Posts/${upload.id}/image_$i',
             maxWidth: 600,
@@ -410,11 +409,11 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       if (upload.videoPath != null) {
         final videoFile = checkedVideoFile ?? File(upload.videoPath!);
         if (await videoFile.exists()) {
-          final ref = FirebaseStorage.instance.ref().child(
+          final ref = AppFirebaseStorage.instance.ref().child(
                 'Posts/${upload.id}/video.mp4',
               );
           if (kDebugMode) {
-            final postDoc = await FirebaseFirestore.instance
+            final postDoc = await AppFirestore.instance
                 .collection('Posts')
                 .doc(upload.id)
                 .get();
@@ -459,7 +458,6 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
               thumbData = tData;
             }
             final tUrl = await WebpUploadService.uploadBytesAsWebp(
-              storage: FirebaseStorage.instance,
               bytes: thumbData,
               storagePathWithoutExt: 'Posts/${upload.id}/thumbnail',
             );
@@ -593,7 +591,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
             (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
       };
 
-      await FirebaseFirestore.instance
+      await AppFirestore.instance
           .collection('Posts')
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
@@ -618,7 +616,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           originalPostID.isNotEmpty) {
         try {
           final shareTimestamp = DateTime.now().millisecondsSinceEpoch;
-          await FirebaseFirestore.instance
+          await AppFirestore.instance
               .collection('Posts')
               .doc(originalPostID)
               .collection('postSharers')
@@ -633,7 +631,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
               sourcePostId: sourcePostID,
               originalPostId: originalPostID,
             );
-            await FirebaseFirestore.instance
+            await AppFirestore.instance
                 .collection('Posts')
                 .doc(counterTargetPostId.isNotEmpty
                     ? counterTargetPostId
@@ -658,7 +656,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         upload.status = UploadStatus.failed;
         upload.errorMessage = e.toString();
         _failedCount.value++;
-        await FirebaseFirestore.instance
+        await AppFirestore.instance
             .collection('Posts')
             .doc(upload.id)
             .delete()

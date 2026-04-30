@@ -92,12 +92,11 @@ class ShortFeedApplicationService {
   }) {
     final eligibleSnapshot =
         snapshotPosts.where(isEligiblePost).toList(growable: false);
-    final filteredSnapshot = snapshotPostsPreplanned
-        ? _dedupePreservingOrder(eligibleSnapshot)
-        : buildLaunchMotorPool(
-            eligibleSnapshot,
-            targetCount: snapshotPosts.length,
-          );
+    final filteredSnapshot = _resolveVisibleShortOrder(
+      eligibleSnapshot,
+      targetCount: snapshotPosts.length,
+      preplanned: snapshotPostsPreplanned,
+    );
     if (currentShorts.isEmpty) {
       if (filteredSnapshot.isNotEmpty) {
         return ShortInitialLoadPlan(
@@ -140,12 +139,11 @@ class ShortFeedApplicationService {
     required int previousIndex,
     bool fetchedPostsPreplanned = false,
   }) {
-    final orderedFetchedPosts = fetchedPostsPreplanned
-        ? _dedupePreservingOrder(fetchedPosts)
-        : buildLaunchMotorPool(
-            fetchedPosts,
-            targetCount: fetchedPosts.length,
-          );
+    final orderedFetchedPosts = _resolveVisibleShortOrder(
+      fetchedPosts,
+      targetCount: fetchedPosts.length,
+      preplanned: fetchedPostsPreplanned,
+    );
     final boundedPreviousIndex = previousShorts.isEmpty
         ? 0
         : previousIndex.clamp(0, previousShorts.length - 1);
@@ -177,13 +175,33 @@ class ShortFeedApplicationService {
         .toList(growable: false);
 
     return ShortAppendPlan(
-      itemsToAppend: fetchedPostsPreplanned
-          ? _dedupePreservingOrder(incoming)
-          : buildLaunchMotorPool(
-              incoming,
-              targetCount: incoming.length,
-            ),
+      itemsToAppend: _resolveVisibleShortOrder(
+        incoming,
+        targetCount: incoming.length,
+        preplanned: fetchedPostsPreplanned,
+      ),
     );
+  }
+
+  List<PostsModel> _resolveVisibleShortOrder(
+    List<PostsModel> posts, {
+    required int targetCount,
+    required bool preplanned,
+  }) {
+    if (posts.isEmpty || targetCount <= 0) {
+      return const <PostsModel>[];
+    }
+    if (preplanned) {
+      return _dedupePreservingOrder(posts);
+    }
+    final motorOrdered = buildLaunchMotorPool(
+      posts,
+      targetCount: targetCount,
+    );
+    if (motorOrdered.isNotEmpty) {
+      return motorOrdered;
+    }
+    return _dedupePreservingOrder(posts);
   }
 
   List<PostsModel> _buildLaunchMotorOrderedItems(

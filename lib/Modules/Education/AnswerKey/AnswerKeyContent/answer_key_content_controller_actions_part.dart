@@ -3,7 +3,7 @@ part of 'answer_key_content_controller.dart';
 extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
   void navigateToPreview(BuildContext context) {
     _updateViewCount();
-    Get.to(() => BookletPreview(model: model));
+    const AnswerKeyNavigationService().openBookletPreview(model);
   }
 
   void editBooklet(BuildContext context) {

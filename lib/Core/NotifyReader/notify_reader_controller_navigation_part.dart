@@ -67,7 +67,7 @@ extension NotifyReaderControllerNavigationPart on NotifyReaderController {
     String userID, {
     bool returnToNavbarOnClose = true,
   }) async {
-    await Get.to<SocialProfile>(() => SocialProfile(userID: userID));
+    await const ProfileNavigationService().openSocialProfile(userID);
     if (returnToNavbarOnClose) {
       toNavbar();
     }
@@ -107,7 +107,7 @@ extension NotifyReaderControllerNavigationPart on NotifyReaderController {
       return;
     }
     final model = lookup.model!;
-    await Get.to<JobDetails>(() => JobDetails(model: model));
+    await const EducationDetailNavigationService().openJobDetails(model);
     if (returnToNavbarOnClose) {
       toNavbar();
     }
@@ -126,7 +126,7 @@ extension NotifyReaderControllerNavigationPart on NotifyReaderController {
       return;
     }
     final model = lookup.model!;
-    await Get.to<TutoringDetail>(() => TutoringDetail(), arguments: model);
+    await const EducationDetailNavigationService().openTutoringDetail(model);
     if (returnToNavbarOnClose) {
       toNavbar();
     }
@@ -145,7 +145,7 @@ extension NotifyReaderControllerNavigationPart on NotifyReaderController {
       return;
     }
     final model = lookup.model!;
-    await Get.to(() => MarketDetailView(item: model));
+    await const MarketDetailNavigationService().openMarketDetail(model);
     if (returnToNavbarOnClose) {
       toNavbar();
     }

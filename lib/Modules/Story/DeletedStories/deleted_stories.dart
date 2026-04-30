@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Story/DeletedStories/deleted_stories_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_user_model.dart';
@@ -69,7 +70,7 @@ class _DeletedStoriesViewState extends State<DeletedStoriesView> {
             Expanded(
               child: Obx(() {
                 if (controller.list.isEmpty && controller.isLoading.value) {
-                  return Center(child: CupertinoActivityIndicator());
+                  return const AppStateView.loading(title: '');
                 }
                 return RefreshIndicator(
                   backgroundColor: Colors.black,

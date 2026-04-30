@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/job_categories.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/FamilyInfo/family_info_controller.dart';
@@ -96,7 +97,7 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
             Expanded(
               child: Obx(
                 () => controller.isLoading.value
-                    ? Center(child: CupertinoActivityIndicator())
+                    ? const AppStateView.loading()
                     : SingleChildScrollView(
                         controller: controller.scrollController,
                         physics: ScrollPhysics(),

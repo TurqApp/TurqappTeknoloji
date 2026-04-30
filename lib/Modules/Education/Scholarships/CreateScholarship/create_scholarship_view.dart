@@ -18,7 +18,7 @@ import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/CreateScholarship/create_scholarship_controller.dart';
-import 'package:turqappv2/Modules/Education/Scholarships/scholarships_view.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarship_navigation_service.dart';
 import 'dart:io';
 import 'package:turqappv2/Utils/empty_padding.dart';
 

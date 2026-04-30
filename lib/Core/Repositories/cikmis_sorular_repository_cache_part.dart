@@ -8,7 +8,8 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
             _cikmisSorularRepositoryTtl) {
       return _cloneItems(memory.items);
     }
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefsKey = '$_cikmisSorularRepositoryPrefsPrefix::$key';
     final raw = prefs.getString(prefsKey);
     if (raw == null || raw.isEmpty) return null;
@@ -44,7 +45,8 @@ extension _CikmisSorularRepositoryCachePart on _CikmisSorularRepositoryBase {
       items: _cloneItems(items),
       cachedAt: DateTime.now(),
     );
-    final prefs = _prefs ??= await SharedPreferences.getInstance();
+    final prefs =
+        _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await prefs.setString(
       '$_cikmisSorularRepositoryPrefsPrefix::$key',
       jsonEncode(<String, dynamic>{

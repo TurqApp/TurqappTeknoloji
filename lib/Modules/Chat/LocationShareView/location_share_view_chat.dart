@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'location_share_controller.dart';
 
 class LocationShareViewChat extends StatefulWidget {
@@ -44,7 +45,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
       body: Obx(() {
         final pos = controller.currentPosition.value;
         if (pos == null) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading();
         }
 
         return Stack(

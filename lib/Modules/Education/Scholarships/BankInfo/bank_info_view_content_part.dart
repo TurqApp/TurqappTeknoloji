@@ -46,7 +46,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
   Widget _buildLoadingOrContent(BuildContext context) {
     return Obx(
       () => controller.isLoading.value
-          ? const Center(child: CupertinoActivityIndicator())
+          ? const AppStateView.loading()
           : Column(
               children: [
                 Padding(

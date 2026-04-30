@@ -21,7 +21,7 @@ extension FollowRepositoryCachePart on FollowRepository {
   }
 
   void _handleFollowRepositoryInit() {
-    SharedPreferences.getInstance().then((prefs) {
+    ensureLocalPreferenceRepository().sharedPreferences().then((prefs) {
       _prefs = prefs;
     });
   }
@@ -60,7 +60,7 @@ extension FollowRepositoryCachePart on FollowRepository {
     String relationKey, {
     required bool allowStale,
   }) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = _relationPrefsKey(relationKey);
     final raw = prefs?.getString(prefsKey);
@@ -105,7 +105,7 @@ extension FollowRepositoryCachePart on FollowRepository {
           relationKey.substring(0, relationKey.length - ':followings'.length);
       _memory[uid] = _CachedFollowingSet(ids: ids.toSet(), cachedAt: cachedAt);
     }
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       _relationPrefsKey(relationKey),
       jsonEncode({

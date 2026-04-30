@@ -33,7 +33,7 @@ extension _PersonelInfoViewContentPart on _PersonelInfoViewState {
               Expanded(
                 child: Obx(
                   () => controller.isLoading.value
-                      ? const Center(child: CupertinoActivityIndicator())
+                      ? const AppStateView.loading()
                       : SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           child: Padding(

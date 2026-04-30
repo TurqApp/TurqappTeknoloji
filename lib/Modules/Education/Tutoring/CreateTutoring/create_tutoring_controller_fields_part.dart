@@ -2,6 +2,7 @@ part of 'create_tutoring_controller.dart';
 
 class _CreateTutoringControllerState {
   final cityDirectoryService = ensureCityDirectoryService();
+  final tutoringRepository = ensureTutoringRepository();
   final carouselCurrentIndex = 0.obs;
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -27,6 +28,7 @@ class _CreateTutoringControllerState {
 
 extension CreateTutoringControllerFieldsPart on CreateTutoringController {
   CityDirectoryService get _cityDirectoryService => _state.cityDirectoryService;
+  TutoringRepository get _tutoringRepository => _state.tutoringRepository;
   RxInt get carouselCurrentIndex => _state.carouselCurrentIndex;
   GlobalKey<FormState> get formKey => _state.formKey;
   TextEditingController get titleController => _state.titleController;

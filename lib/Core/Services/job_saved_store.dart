@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 
 class SavedJobRecord {
   final String jobId;
@@ -21,7 +23,7 @@ class JobSavedStore {
   static JobSavedStore ensure() =>
       maybeFind() ?? (_instance = JobSavedStore._());
 
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final FirebaseFirestore _firestore = AppFirestore.instance;
   static const String _prefsPrefix = 'job_saved_store_v1:';
   static SharedPreferences? _prefs;
 
@@ -213,7 +215,7 @@ class JobSavedStore {
   }
 
   static Future<List<SavedJobRecord>?> _readCache(String uid) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     final prefs = _prefs;
     final prefsKey = '$_prefsPrefix$uid';
     final raw = prefs?.getString(prefsKey);
@@ -269,7 +271,7 @@ class JobSavedStore {
     String uid,
     List<SavedJobRecord> items,
   ) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.setString(
       '$_prefsPrefix$uid',
       jsonEncode({
@@ -285,7 +287,7 @@ class JobSavedStore {
   }
 
   static Future<void> _invalidateCache(String uid) async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs ??= await ensureLocalPreferenceRepository().sharedPreferences();
     await _prefs?.remove('$_prefsPrefix${uid.trim()}');
   }
 }

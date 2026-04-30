@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
+import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
 import 'package:turqappv2/Core/Utils/phone_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
@@ -35,10 +36,7 @@ class MarketContactService {
     required String otherUid,
   }) async {
     final participants = <String>[currentUid, otherUid]..sort();
-    await FirebaseFirestore.instance
-        .collection('conversations')
-        .doc(chatId)
-        .set({
+    await AppFirestore.instance.collection('conversations').doc(chatId).set({
       'participants': participants,
       'userID1': participants.first,
       'userID2': participants.last,
@@ -235,7 +233,7 @@ class MarketContactService {
     if (direct.isNotEmpty) return direct;
     if (item.userId.trim().isEmpty) return '';
     try {
-      final snapshot = await FirebaseFirestore.instance
+      final snapshot = await AppFirestore.instance
           .collection('users')
           .doc(item.userId)
           .get(const GetOptions(source: Source.serverAndCache));
