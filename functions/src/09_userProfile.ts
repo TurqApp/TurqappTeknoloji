@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onCall, HttpsError, CallableRequest } from "firebase-functions/v2/https";
 import { RateLimits } from "./rateLimiter";
+import { canonicalizeKnownPublicUserAssetUrl } from "./postAssetUrlContract";
 
 const BATCH_SIZE = 500;
 const MAX_POSTS_PER_EXECUTION = 2000;
@@ -107,7 +108,9 @@ function extractProfileFields(data: admin.firestore.DocumentData): UserProfileFi
     "";
   const nickname = (data.nickname as string | undefined) ?? "";
   const username = (data.username as string | undefined) ?? "";
-  const avatarUrl = (data.avatarUrl as string | undefined) ?? null;
+  const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
+    (data.avatarUrl as string | undefined) ?? "",
+  ) || null;
   const rozet = (data.rozet as string | undefined) ?? "";
 
   return { nickname, username, displayName, avatarUrl, rozet };

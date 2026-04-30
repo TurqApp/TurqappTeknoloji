@@ -8,6 +8,7 @@ const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const axios_1 = require("axios");
 const rateLimiter_1 = require("./rateLimiter");
+const postAssetUrlContract_1 = require("./postAssetUrlContract");
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
 const USERS_COLLECTION = "users_search";
@@ -526,7 +527,7 @@ function buildSearchDoc(postId, data) {
     const userID = asString(data.userID);
     const authorNickname = asString(data.authorNickname);
     const authorDisplayName = asString(data.authorDisplayName) || authorNickname;
-    const authorAvatarUrl = asString(data.authorAvatarUrl);
+    const authorAvatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.authorAvatarUrl));
     const rozet = asString(data.rozet);
     const minuteOfHour = resolveMinuteOfHour(timeStamp);
     const surfaceTargets = resolveSurfaceTargets({
@@ -610,10 +611,10 @@ async function fetchAuthorSummary(authorId) {
         return {
             authorNickname,
             authorDisplayName,
-            authorAvatarUrl: asString(data.avatarUrl) ||
+            authorAvatarUrl: (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
                 asString(data.profileImage) ||
                 asString(data.photoUrl) ||
-                asString(data.imageUrl),
+                asString(data.imageUrl), normalizedAuthorId),
             rozet: asString(data.rozet),
         };
     }

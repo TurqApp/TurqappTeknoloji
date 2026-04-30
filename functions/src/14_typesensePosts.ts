@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
 import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
+import { canonicalizeKnownPublicUserAssetUrl } from "./postAssetUrlContract";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const POSTS_COLLECTION = "posts_search";
@@ -649,7 +650,9 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
   const userID = asString((data as any).userID);
   const authorNickname = asString((data as any).authorNickname);
   const authorDisplayName = asString((data as any).authorDisplayName) || authorNickname;
-  const authorAvatarUrl = asString((data as any).authorAvatarUrl);
+  const authorAvatarUrl = canonicalizeKnownPublicUserAssetUrl(
+    asString((data as any).authorAvatarUrl),
+  );
   const rozet = asString((data as any).rozet);
   const minuteOfHour = resolveMinuteOfHour(timeStamp);
   const surfaceTargets = resolveSurfaceTargets({
@@ -737,11 +740,13 @@ async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
     return {
       authorNickname,
       authorDisplayName,
-      authorAvatarUrl:
+      authorAvatarUrl: canonicalizeKnownPublicUserAssetUrl(
         asString((data as any).avatarUrl) ||
-        asString((data as any).profileImage) ||
-        asString((data as any).photoUrl) ||
-        asString((data as any).imageUrl),
+          asString((data as any).profileImage) ||
+          asString((data as any).photoUrl) ||
+          asString((data as any).imageUrl),
+        normalizedAuthorId,
+      ),
       rozet: asString((data as any).rozet),
     };
   } catch (err) {

@@ -1,0 +1,12 @@
+.DS_Store
+.env.local
+firestore-debug.log
+*.log
+reports/
+tests/
+scripts/
+coverage/
+tmp/
+tmp/**
+src/
+README.md

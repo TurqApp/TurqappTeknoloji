@@ -5,6 +5,7 @@ const admin = require("firebase-admin");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const https_1 = require("firebase-functions/v2/https");
 const rateLimiter_1 = require("./rateLimiter");
+const postAssetUrlContract_1 = require("./postAssetUrlContract");
 const BATCH_SIZE = 500;
 const MAX_POSTS_PER_EXECUTION = 2000;
 const REGION = "europe-west3";
@@ -80,7 +81,7 @@ function extractProfileFields(data) {
         "";
     const nickname = data.nickname ?? "";
     const username = data.username ?? "";
-    const avatarUrl = data.avatarUrl ?? null;
+    const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(data.avatarUrl ?? "") || null;
     const rozet = data.rozet ?? "";
     return { nickname, username, displayName, avatarUrl, rozet };
 }

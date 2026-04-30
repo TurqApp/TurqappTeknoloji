@@ -2,9 +2,11 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Authenticated users can read all files
     function isAuth() {
       return request.auth != null;
+    }
+    function isOwner(uid) {
+      return isAuth() && request.auth.uid == uid;
     }
     function canWritePostMedia(postId) {
       return isAuth()
@@ -17,6 +19,22 @@ service firebase.storage {
         && request.resource.metadata != null
         && request.resource.metadata.keys().hasAll(['uploaderUid'])
         && request.resource.metadata.uploaderUid == request.auth.uid;
+    }
+    function canWriteJobMedia(jobId) {
+      return isAuth()
+        && (
+          (
+            firestore.exists(/databases/(default)/documents/isBul/$(jobId))
+            && firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid
+          )
+          || hasMatchingUploaderMetadata()
+        );
+    }
+    function isPostThumbnailFile(fileName) {
+      return fileName == "thumbnail.jpg"
+        || fileName == "thumbnail.jpeg"
+        || fileName == "thumbnail.png"
+        || fileName == "thumbnail.webp";
     }
     function isUidTokenInChatId(chatId) {
       return isAuth()
@@ -53,29 +71,26 @@ service firebase.storage {
     // User profile images
     match /users/{uid}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == uid
+      allow write: if isOwner(uid)
                    && request.resource.size < 10 * 1024 * 1024; // 10MB limit
     }
 
-    // Post HLS segments and thumbnails - public read for CDN caching
+    // Post HLS playback assets - public read for CDN caching
     match /Posts/{postId}/hls/{allPaths=**} {
       allow read;
       allow write: if false; // Cloud Function only
     }
-    match /Posts/{postId}/thumbnail.jpg {
-      allow read;
-      allow write: if false; // Cloud Function only
-    }
 
-    // Post media (images, videos)
+    // Post media root files
     match /Posts/{postId}/{fileName} {
-      allow read: if isAuth();
-      allow write: if fileName != "thumbnail.jpg"
+      allow read: if isPostThumbnailFile(fileName) || isAuth();
+      allow write: if !isPostThumbnailFile(fileName)
                    && fileName != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
                    && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
     }
+    // Post nested media folders (images/, videos/, thumbnails/, ...)
     match /Posts/{postId}/{folder}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if folder != "hls"
@@ -87,27 +102,29 @@ service firebase.storage {
     // Story media (legacy uppercase + current lowercase)
     match /Stories/{uid}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == uid
+      allow write: if isOwner(uid)
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+    }
+    // Story HLS segments - public read for CDN
+    match /stories/{uid}/{storyId}/hls/{allPaths=**} {
+      allow read;
+      allow write: if false; // Cloud Function only
     }
     match /stories/{uid}/{storyId} {
       allow read: if isAuth();
-      allow write: if isAuth()
-                   && request.auth.uid == uid
+      allow write: if isOwner(uid)
                    && request.resource.size < 50 * 1024 * 1024; // 50MB limit
     }
     match /stories/{uid}/{storyId}/{fileName} {
       allow read: if isAuth();
       allow write: if fileName != "hls"
-                   && isAuth()
-                   && request.auth.uid == uid
+                   && isOwner(uid)
                    && request.resource.size < 50 * 1024 * 1024;
     }
     match /stories/{uid}/{storyId}/{folder}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if folder != "hls"
-                   && isAuth()
-                   && request.auth.uid == uid
+                   && isOwner(uid)
                    && request.resource.size < 50 * 1024 * 1024;
     }
 
@@ -192,19 +209,8 @@ service firebase.storage {
 
     match /isBul/{jobId}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if isAuth()
-                   && (
-                     (firestore.exists(/databases/(default)/documents/isBul/$(jobId))
-                      && firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid)
-                     || hasMatchingUploaderMetadata()
-                   )
+      allow write: if canWriteJobMedia(jobId)
                    && request.resource.size < 15 * 1024 * 1024;
-    }
-
-    // Story HLS segments - public read for CDN
-    match /stories/{uid}/{storyId}/hls/{allPaths=**} {
-      allow read;
-      allow write: if false; // Cloud Function only
     }
 
     // Public assets (logo, default avatar, etc.)

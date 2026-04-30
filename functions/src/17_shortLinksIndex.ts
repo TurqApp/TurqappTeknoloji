@@ -6,6 +6,10 @@ import * as functions from "firebase-functions";
 import axios from "axios";
 import { enforceRateLimit, enforceRateLimitForKey } from "./rateLimiter";
 import { isUidInAdminAllowList } from "./adminAccess";
+import {
+  canonicalizeKnownPublicPostAssetUrl,
+  canonicalizeKnownPublicUserAssetUrl,
+} from "./postAssetUrlContract";
 
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
@@ -641,6 +645,16 @@ function toDirectCdnImageUrl(imageUrl: string): string {
     } catch {
       // keep raw
     }
+  }
+
+  const canonicalPostAssetUrl = canonicalizeKnownPublicPostAssetUrl(raw);
+  if (canonicalPostAssetUrl !== raw) {
+    return canonicalPostAssetUrl;
+  }
+
+  const canonicalUserAssetUrl = canonicalizeKnownPublicUserAssetUrl(raw);
+  if (canonicalUserAssetUrl !== raw) {
+    return canonicalUserAssetUrl;
   }
 
   try {

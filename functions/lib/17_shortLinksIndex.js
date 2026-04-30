@@ -9,6 +9,7 @@ const functions = require("firebase-functions");
 const axios_1 = require("axios");
 const rateLimiter_1 = require("./rateLimiter");
 const adminAccess_1 = require("./adminAccess");
+const postAssetUrlContract_1 = require("./postAssetUrlContract");
 const REGION = getEnv("SHORT_LINK_REGION") || "us-central1";
 const SHORT_LINK_ROUTE_COLLECTION = "shortRoutes";
 const SHORT_LINK_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
@@ -504,6 +505,14 @@ function toDirectCdnImageUrl(imageUrl) {
         catch {
             // keep raw
         }
+    }
+    const canonicalPostAssetUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicPostAssetUrl)(raw);
+    if (canonicalPostAssetUrl !== raw) {
+        return canonicalPostAssetUrl;
+    }
+    const canonicalUserAssetUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(raw);
+    if (canonicalUserAssetUrl !== raw) {
+        return canonicalUserAssetUrl;
     }
     try {
         const parsed = new URL(raw);

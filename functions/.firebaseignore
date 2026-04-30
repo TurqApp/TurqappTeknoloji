@@ -1,0 +1,11 @@
+reports/
+tests/
+scripts/
+firestore-debug.log
+*.log
+coverage/
+tmp/
+tmp/**
+*.tsbuildinfo
+src/
+README.md

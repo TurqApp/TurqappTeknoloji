@@ -1,5 +1,4 @@
 import axios from "axios";
-import { randomUUID } from "crypto";
 import { getApps, initializeApp } from "firebase-admin/app";
 import {
   FieldValue,
@@ -9,12 +8,15 @@ import { getStorage } from "firebase-admin/storage";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as path from "path";
 import { pipeline } from "stream/promises";
+import {
+  buildCanonicalPostAssetUrlFromStoragePath,
+  buildCanonicalPostHlsUrl,
+} from "./postAssetUrlContract";
 
 const REGION = "europe-west1";
 const QUEUE_COLLECTION = "postsMigrationQueue";
 const USERS_COLLECTION = "users";
 const POSTS_COLLECTION = "Posts";
-const CDN_DOMAIN = "cdn.turqapp.com";
 const PREP_HORIZON_MS = 6 * 60 * 60 * 1000;
 const MAX_GROUPS_PER_RUN = 3;
 const LEASE_MS = 55 * 1000;
@@ -148,51 +150,6 @@ function asMapList(value: unknown): Array<{ url: string; aspectRatio: number }> 
       };
     })
     .filter((item): item is { url: string; aspectRatio: number } => Boolean(item));
-}
-
-function buildCdnUrl(storagePath: string): string {
-  return `https://${CDN_DOMAIN}/${storagePath}`;
-}
-
-function buildTokenizedCdnUrl(storagePath: string, token: string): string {
-  return `https://${CDN_DOMAIN}/v0/b/${bucket().name}/o/${encodeURIComponent(
-    storagePath,
-  )}?alt=media&token=${encodeURIComponent(token)}`;
-}
-
-function extractDownloadToken(metadata: unknown): string {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return "";
-  }
-  const raw = asString(
-    (metadata as { firebaseStorageDownloadTokens?: unknown })
-      .firebaseStorageDownloadTokens,
-  );
-  if (!raw) return "";
-  return raw
-    .split(",")
-    .map((item) => item.trim())
-    .find(Boolean) || "";
-}
-
-async function buildProtectedAssetUrl(storagePath: string): Promise<string> {
-  const file = bucket().file(storagePath);
-  const [metadata] = await file.getMetadata();
-  let token = extractDownloadToken(metadata.metadata);
-  if (!token) {
-    token = randomUUID();
-    await file.setMetadata({
-      metadata: {
-        ...(metadata.metadata || {}),
-        firebaseStorageDownloadTokens: token,
-      },
-    });
-  }
-  return buildTokenizedCdnUrl(storagePath, token);
-}
-
-function buildHlsUrl(docId: string): string {
-  return buildCdnUrl(`Posts/${docId}/hls/master.m3u8`);
 }
 
 function buildTargetMainFlood(docId: string, index: number): string {
@@ -448,7 +405,7 @@ async function resolveTargetMedia(sourceDoc: QueueDoc): Promise<MediaResolution>
           reason: `missing_image_${index}:${sourceDoc.docId}`,
         };
       }
-      const url = await buildProtectedAssetUrl(storagePath);
+      const url = buildCanonicalPostAssetUrlFromStoragePath(storagePath);
       result.img.push(url);
       result.imgMap.push({
         url,
@@ -479,16 +436,16 @@ async function resolveTargetMedia(sourceDoc: QueueDoc): Promise<MediaResolution>
       };
     }
 
-    result.video = buildHlsUrl(sourceDoc.docId);
+    result.video = buildCanonicalPostHlsUrl(sourceDoc.docId);
     result.hlsMasterUrl = result.video;
     result.hlsStatus = "ready";
-    result.thumbnail = await buildProtectedAssetUrl(thumbPath);
+    result.thumbnail = buildCanonicalPostAssetUrlFromStoragePath(thumbPath);
   } else if (asString(sourceDoc.sourceThumbnailUrl).length > 0) {
     const thumbPath = await pickExistingStoragePath(
       THUMB_EXT_CANDIDATES.map((ext) => `Posts/${sourceDoc.docId}/thumbnail.${ext}`),
     );
     if (thumbPath) {
-      result.thumbnail = await buildProtectedAssetUrl(thumbPath);
+      result.thumbnail = buildCanonicalPostAssetUrlFromStoragePath(thumbPath);
     }
   }
 

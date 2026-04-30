@@ -6,11 +6,33 @@ class CdnUrlBuilder {
   static const String storageBucket = 'turqappteknoloji.firebasestorage.app';
   static const String _firebaseHost = 'firebasestorage.googleapis.com';
 
+  static String _buildStorageUrl(String storagePath) {
+    return 'https://$cdnDomain/$storagePath';
+  }
+
+  static String _decodeFirebaseObjectPath(String url) {
+    try {
+      final parsed = Uri.parse(url);
+      final marker = '/o/';
+      final path = parsed.path;
+      final index = path.indexOf(marker);
+      if (index >= 0) {
+        return Uri.decodeComponent(path.substring(index + marker.length));
+      }
+    } catch (_) {}
+    return '';
+  }
+
   /// Firebase Storage download URL'sini CDN URL'sine dönüştürür.
   /// Token parametresi korunur (auth gerektiğinde).
   static String toCdnUrl(String url) {
     if (url.isEmpty) return url;
     if (url.contains(cdnDomain)) return url;
+
+    final objectPath = _decodeFirebaseObjectPath(url);
+    if (objectPath.startsWith('Posts/') || objectPath.startsWith('users/')) {
+      return _buildStorageUrl(objectPath);
+    }
 
     // Firebase Storage URL → CDN URL (host değiştir, path aynen kalsın)
     if (url.contains(_firebaseHost)) {
@@ -34,12 +56,6 @@ class CdnUrlBuilder {
       return url.replaceFirst(cdnDomain, storageBucket);
     }
     return url;
-  }
-
-  /// Storage path'ten temiz CDN URL oluşturur.
-  /// Worker otomatik olarak Firebase Storage formatına dönüştürür.
-  static String _buildStorageUrl(String storagePath) {
-    return 'https://$cdnDomain/$storagePath';
   }
 
   /// Post video HLS URL'si oluşturur.

@@ -7,6 +7,7 @@ const app_1 = require("firebase-admin/app");
 const firestore_2 = require("firebase-admin/firestore");
 const axios_1 = require("axios");
 const rateLimiter_1 = require("./rateLimiter");
+const postAssetUrlContract_1 = require("./postAssetUrlContract");
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const MAX_LIMIT = 100;
 const MAX_DETAILS_TEXT_LEN = 24000;
@@ -584,10 +585,10 @@ async function fetchAuthorSummary(userId) {
         return {
             nickname,
             displayName,
-            avatarUrl: asString(data.avatarUrl) ||
+            avatarUrl: (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
                 asString(data.photoUrl) ||
                 asString(data.profileImage) ||
-                asString(data.imageUrl),
+                asString(data.imageUrl), normalizedUserId),
             rozet: asString(data.rozet),
         };
     }
@@ -628,7 +629,7 @@ function buildScholarshipDoc(docId, data) {
     const displayName = asString(data.displayName) ||
         asString(data.authorDisplayName) ||
         nickname;
-    const avatarUrl = asString(data.avatarUrl) || asString(data.authorAvatarUrl);
+    const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) || asString(data.authorAvatarUrl));
     const begeniler = asStringArray(data.begeniler);
     const kaydedenler = asStringArray(data.kaydedenler);
     const { detailsJson: _detailsJson, ...rest } = base;
@@ -889,9 +890,9 @@ function buildComparableIndexedDoc(entity, docId, data) {
             asString(data.displayName) ||
             asString(data.authorDisplayName) ||
             nickname;
-        const avatarUrl = doc.avatarUrl ||
+        const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(doc.avatarUrl ||
             asString(data.avatarUrl) ||
-            asString(data.authorAvatarUrl);
+            asString(data.authorAvatarUrl));
         const rozet = doc.rozet || asString(data.rozet);
         return {
             ...doc,
@@ -906,8 +907,9 @@ function buildComparableIndexedDoc(entity, docId, data) {
         const displayName = doc.displayName ||
             asString(data.displayName) ||
             nickname;
-        const avatarUrl = asString(data.avatarUrl) ||
-            doc.avatarUrl;
+        const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
+            doc.avatarUrl ||
+            "");
         const rozet = doc.rozet || asString(data.rozet);
         return {
             ...doc,
@@ -923,8 +925,9 @@ function buildComparableIndexedDoc(entity, docId, data) {
     const displayName = doc.displayName ||
         asString(data.displayName) ||
         nickname;
-    const avatarUrl = asString(data.avatarUrl) ||
-        doc.avatarUrl;
+    const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
+        doc.avatarUrl ||
+        "");
     const rozet = doc.rozet || asString(data.rozet);
     return {
         ...doc,
@@ -952,10 +955,10 @@ async function buildSearchDocForIndexing(entity, docId, data) {
             asString(data.authorDisplayName) ||
             summary.displayName ||
             nickname;
-        const avatarUrl = doc.avatarUrl ||
+        const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(doc.avatarUrl ||
             asString(data.avatarUrl) ||
             asString(data.authorAvatarUrl) ||
-            summary.avatarUrl;
+            summary.avatarUrl);
         const rozet = doc.rozet ||
             asString(data.rozet) ||
             summary.rozet;
@@ -976,9 +979,9 @@ async function buildSearchDocForIndexing(entity, docId, data) {
             asString(data.displayName) ||
             summary.displayName ||
             nickname;
-        const avatarUrl = asString(data.avatarUrl) ||
+        const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
             doc.avatarUrl ||
-            summary.avatarUrl;
+            summary.avatarUrl);
         const rozet = doc.rozet || asString(data.rozet) || summary.rozet;
         return {
             ...doc,
@@ -1010,9 +1013,9 @@ async function buildSearchDocForIndexing(entity, docId, data) {
         asString(data.displayName) ||
         summary.displayName ||
         nickname;
-    const avatarUrl = asString(data.avatarUrl) ||
+    const avatarUrl = (0, postAssetUrlContract_1.canonicalizeKnownPublicUserAssetUrl)(asString(data.avatarUrl) ||
         doc.avatarUrl ||
-        summary.avatarUrl;
+        summary.avatarUrl);
     const rozet = doc.rozet || asString(data.rozet) || summary.rozet;
     return {
         ...doc,

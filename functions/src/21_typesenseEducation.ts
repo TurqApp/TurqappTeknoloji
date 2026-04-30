@@ -4,6 +4,7 @@ import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore, Query } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
 import { RateLimits } from "./rateLimiter";
+import { canonicalizeKnownPublicUserAssetUrl } from "./postAssetUrlContract";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
 const MAX_LIMIT = 100;
@@ -884,11 +885,13 @@ async function fetchAuthorSummary(userId: string): Promise<AuthorSummary> {
     return {
       nickname,
       displayName,
-      avatarUrl:
+      avatarUrl: canonicalizeKnownPublicUserAssetUrl(
         asString((data as any).avatarUrl) ||
-        asString((data as any).photoUrl) ||
-        asString((data as any).profileImage) ||
-        asString((data as any).imageUrl),
+          asString((data as any).photoUrl) ||
+          asString((data as any).profileImage) ||
+          asString((data as any).imageUrl),
+        normalizedUserId,
+      ),
       rozet: asString((data as any).rozet),
     };
   } catch (err) {
@@ -939,7 +942,9 @@ function buildScholarshipDoc(docId: string, data: Record<string, unknown>): Educ
     asString(data.displayName) ||
     asString(data.authorDisplayName) ||
     nickname;
-  const avatarUrl = asString(data.avatarUrl) || asString(data.authorAvatarUrl);
+  const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
+    asString(data.avatarUrl) || asString(data.authorAvatarUrl),
+  );
   const begeniler = asStringArray(data.begeniler);
   const kaydedenler = asStringArray(data.kaydedenler);
   const { detailsJson: _detailsJson, ...rest } = base;
@@ -1242,10 +1247,11 @@ function buildComparableIndexedDoc(
       asString((data as any).displayName) ||
       asString((data as any).authorDisplayName) ||
       nickname;
-    const avatarUrl =
+    const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
       doc.avatarUrl ||
       asString((data as any).avatarUrl) ||
-      asString((data as any).authorAvatarUrl);
+      asString((data as any).authorAvatarUrl),
+    );
     const rozet = doc.rozet || asString((data as any).rozet);
     return {
       ...doc,
@@ -1262,9 +1268,11 @@ function buildComparableIndexedDoc(
       doc.displayName ||
       asString((data as any).displayName) ||
       nickname;
-    const avatarUrl =
+    const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
       asString((data as any).avatarUrl) ||
-      doc.avatarUrl;
+      doc.avatarUrl ||
+      "",
+    );
     const rozet = doc.rozet || asString((data as any).rozet);
     return {
       ...doc,
@@ -1282,9 +1290,11 @@ function buildComparableIndexedDoc(
     doc.displayName ||
     asString((data as any).displayName) ||
     nickname;
-  const avatarUrl =
+  const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
     asString((data as any).avatarUrl) ||
-    doc.avatarUrl;
+    doc.avatarUrl ||
+    "",
+  );
   const rozet = doc.rozet || asString((data as any).rozet);
   return {
     ...doc,
@@ -1322,11 +1332,12 @@ async function buildSearchDocForIndexing(
       asString((data as any).authorDisplayName) ||
       summary.displayName ||
       nickname;
-    const avatarUrl =
+    const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
       doc.avatarUrl ||
       asString((data as any).avatarUrl) ||
       asString((data as any).authorAvatarUrl) ||
-      summary.avatarUrl;
+      summary.avatarUrl,
+    );
     const rozet =
       doc.rozet ||
       asString((data as any).rozet) ||
@@ -1351,10 +1362,11 @@ async function buildSearchDocForIndexing(
       asString((data as any).displayName) ||
       summary.displayName ||
       nickname;
-    const avatarUrl =
+    const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
       asString((data as any).avatarUrl) ||
       doc.avatarUrl ||
-      summary.avatarUrl;
+      summary.avatarUrl,
+    );
     const rozet = doc.rozet || asString((data as any).rozet) || summary.rozet;
     return {
       ...doc,
@@ -1388,10 +1400,11 @@ async function buildSearchDocForIndexing(
     asString((data as any).displayName) ||
     summary.displayName ||
     nickname;
-  const avatarUrl =
+  const avatarUrl = canonicalizeKnownPublicUserAssetUrl(
     asString((data as any).avatarUrl) ||
     doc.avatarUrl ||
-    summary.avatarUrl;
+    summary.avatarUrl,
+  );
   const rozet = doc.rozet || asString((data as any).rozet) || summary.rozet;
 
   return {
