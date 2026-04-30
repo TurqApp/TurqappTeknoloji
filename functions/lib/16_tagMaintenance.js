@@ -50,20 +50,7 @@ function isAllowedTag(tag, cfg) {
     return true;
 }
 async function desiredTagsFromPostData(data, cfg) {
-    const analysis = data.analysis || {};
-    let hashtags = Array.isArray(analysis.hashtags) ? analysis.hashtags : [];
-    let captionTags = Array.isArray(analysis.captionTags) ? analysis.captionTags : [];
-    // analysis yoksa caption'dan üret (uygulama şemasında sık görülen durum)
-    if (!hashtags.length && !captionTags.length) {
-        const caption = String(data.metin || data.caption || "");
-        if (caption.trim().length > 0) {
-            const derived = await (0, _04_tagSettings_1.generateTagDetails)({ caption });
-            hashtags = derived.hashtags || [];
-            captionTags = derived.captionTags || [];
-        }
-    }
-    const rootTags = Array.isArray(data.tags) ? data.tags : [];
-    return dedupeTags([...hashtags, ...captionTags, ...rootTags]).filter((t) => isAllowedTag(t, cfg));
+    return hashtagTagsFromPostData(data, cfg);
 }
 async function hashtagTagsFromPostData(data, cfg) {
     const analysis = data.analysis || {};

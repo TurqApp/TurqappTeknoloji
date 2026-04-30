@@ -58,24 +58,8 @@ async function desiredTagsFromPostData(
   data: Record<string, any>,
   cfg: Awaited<ReturnType<typeof getTagSettings>>
 ): Promise<string[]> {
-  const analysis = (data.analysis as Record<string, any> | undefined) || {};
-  let hashtags = Array.isArray(analysis.hashtags) ? analysis.hashtags : [];
-  let captionTags = Array.isArray(analysis.captionTags) ? analysis.captionTags : [];
-
-  // analysis yoksa caption'dan üret (uygulama şemasında sık görülen durum)
-  if (!hashtags.length && !captionTags.length) {
-    const caption = String(data.metin || data.caption || "");
-    if (caption.trim().length > 0) {
-      const derived = await generateTagDetails({ caption });
-      hashtags = derived.hashtags || [];
-      captionTags = derived.captionTags || [];
-    }
-  }
-
   const rootTags = Array.isArray(data.tags) ? data.tags : [];
-  return dedupeTags([...hashtags, ...captionTags, ...rootTags]).filter((t) =>
-    isAllowedTag(t, cfg)
-  );
+  return dedupeTags(rootTags).filter((t) => isAllowedTag(t, cfg));
 }
 
 async function hashtagTagsFromPostData(
