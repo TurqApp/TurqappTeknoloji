@@ -515,14 +515,21 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
   Future<void> recordView(String postId) async {
     if (!_isValidDocId(postId)) return;
     final userId = await _resolveCurrentUserId();
-    if (userId == null) return;
+    if (userId == null) {
+      debugPrint('[PostViewRecord] status=skip_no_user doc=$postId');
+      return;
+    }
 
     final postRef = _postRef(postId);
     final viewerDocRef = postRef.collection('viewers').doc(userId);
 
     await _firestore.runTransaction((tx) async {
       final existing = await tx.get(viewerDocRef);
-      if (existing.exists) return;
+      if (existing.exists) {
+        debugPrint(
+            '[PostViewRecord] status=already_seen doc=$postId uid=$userId');
+        return;
+      }
 
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
@@ -530,6 +537,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
       tx.set(viewerDocRef,
           PostViewerModel(userID: userId, timeStamp: _nowMs()).toMap());
       tx.update(postRef, {'stats.statsCount': stats.statsCount + 1});
+      debugPrint('[PostViewRecord] status=recorded doc=$postId uid=$userId');
     });
   }
 }

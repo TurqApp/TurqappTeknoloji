@@ -284,6 +284,15 @@ class _PostViewTrackerState extends State<PostViewTracker> {
   void _recordView() {
     if (!_hasRecordedView) {
       _hasRecordedView = true;
+      final hasImage = widget.post.img.any((entry) => entry.trim().isNotEmpty);
+      final hasText = widget.post.metin.trim().isNotEmpty;
+      final contentKind = widget.post.hasPlayableVideo
+          ? 'video'
+          : (hasImage ? 'image' : (hasText ? 'text' : 'unknown'));
+      debugPrint(
+        '[PostViewTracker] status=triggered doc=${widget.post.docID} '
+        'kind=$contentKind threshold=${widget.visibilityThreshold}',
+      );
       _controller.recordView(widget.post.docID, widget.post);
     }
   }
