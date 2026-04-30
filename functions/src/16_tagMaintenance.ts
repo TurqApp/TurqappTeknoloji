@@ -391,7 +391,7 @@ export const f15_pruneTagsCollection = onCall(
 
     for (const tagDoc of docs) {
       scanned += 1;
-      const postsSnap = await tagDoc.ref.collection("Posts").limit(1000).get();
+      const postsSnap = await tagDoc.ref.collection("posts").limit(1000).get();
       const actualCount = postsSnap.size;
       const storedCount = Number(tagDoc.data()?.count || 0);
 

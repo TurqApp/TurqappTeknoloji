@@ -50,7 +50,8 @@ function isAllowedTag(tag, cfg) {
     return true;
 }
 async function desiredTagsFromPostData(data, cfg) {
-    return hashtagTagsFromPostData(data, cfg);
+    const rootTags = Array.isArray(data.tags) ? data.tags : [];
+    return dedupeTags(rootTags).filter((t) => isAllowedTag(t, cfg));
 }
 async function hashtagTagsFromPostData(data, cfg) {
     const analysis = data.analysis || {};
@@ -298,7 +299,7 @@ exports.f15_pruneTagsCollection = (0, https_1.onCall)({
     let cleanedAddedAtFields = 0;
     for (const tagDoc of docs) {
         scanned += 1;
-        const postsSnap = await tagDoc.ref.collection("Posts").limit(1000).get();
+        const postsSnap = await tagDoc.ref.collection("posts").limit(1000).get();
         const actualCount = postsSnap.size;
         const storedCount = Number(tagDoc.data()?.count || 0);
         const docsWithAddedAt = postsSnap.docs.filter((d) => d.get("addedAt") != null);
