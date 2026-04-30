@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Repositories/explore_repository.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_unit_config_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
@@ -14,6 +15,8 @@ import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/video_emotion_config_service.dart';
+import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
+import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
@@ -134,6 +137,17 @@ class PostLoginWarmup {
             unawaited(runWarmStartLoads(isFirstLaunch: isFirstLaunch));
           },
         );
+      } else {
+        final guestManifestDelay = Duration(
+          milliseconds:
+              isFirstLaunch ? (onWiFi ? 250 : 500) : (onWiFi ? 400 : 700),
+        );
+        Future.delayed(guestManifestDelay, () {
+          if (_skipBackgroundStartupWork()) return;
+          unawaited(
+            _warmGuestStartupManifests(onWiFi: onWiFi),
+          );
+        });
       }
 
       _scheduleNotificationInitWhenStartupReady(
@@ -365,5 +379,26 @@ class PostLoginWarmup {
 
   Future<void> _requestTrackingPermission() async {
     return;
+  }
+
+  Future<void> _warmGuestStartupManifests({
+    required bool onWiFi,
+  }) async {
+    try {
+      await Future.wait<void>([
+        ensureShortManifestRepository().warmStartupWindow(),
+        ensureFeedManifestRepository().warmStartupWindow(
+          maxSlotsToLoad: onWiFi ? 2 : 1,
+        ),
+        ExploreRepository.ensure().ensureFloodManifestStoreFresh(),
+      ], eagerError: false);
+    } catch (error, stackTrace) {
+      _failureReporter.record(
+        kind: StartupSessionFailureKind.backgroundWarmup,
+        operation: 'PostLoginWarmup.warmGuestStartupManifests',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

@@ -6,7 +6,11 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
   Future<void> _ensureTopTagsAccessReady({
     bool forceTokenRefresh = false,
   }) async {
-    await CurrentUserService.instance.ensureAuthReady(
+    final currentUser = CurrentUserService.instance;
+    if (!forceTokenRefresh && !currentUser.hasAuthUser) {
+      return;
+    }
+    await currentUser.ensureAuthReady(
       waitForAuthState: true,
       forceTokenRefresh: forceTokenRefresh,
       timeout: _authReadyTimeout,

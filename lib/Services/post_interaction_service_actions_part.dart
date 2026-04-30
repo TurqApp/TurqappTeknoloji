@@ -514,7 +514,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
   Future<void> recordView(String postId) async {
     if (!_isValidDocId(postId)) return;
-    final userId = currentUserID;
+    final userId = await _resolveCurrentUserId();
     if (userId == null) return;
 
     final postRef = _postRef(postId);

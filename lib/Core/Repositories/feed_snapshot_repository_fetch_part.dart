@@ -88,7 +88,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     int? typesensePage,
   }) async {
     final normalizedUserId = userId.trim();
-    if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {
+    if (!usePrimaryFeedPaging) {
       if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedManifestPrimary] status=manifest_only_skip '
@@ -121,43 +121,45 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final shouldUseFallback =
         startAfter == null && (typesensePage == null || typesensePage <= 1);
     if (shouldUseFallback) {
-      final warmFallback = await _loadWarmFeedFallbackPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-      );
-      if (warmFallback.items.isNotEmpty) {
-        if (_shouldLogDiagnostics) {
-          debugPrint(
-            '[FeedManifestPrimary] status=fallback_warm '
-            'uid=$normalizedUserId count=${warmFallback.items.length}',
-          );
+      if (normalizedUserId.isNotEmpty) {
+        final warmFallback = await _loadWarmFeedFallbackPage(
+          currentUserId: normalizedUserId,
+          followingIds: followingIds,
+          hiddenPostIds: hiddenPostIds,
+          nowMs: nowMs,
+          cutoffMs: cutoffMs,
+          limit: limit,
+        );
+        if (warmFallback.items.isNotEmpty) {
+          if (_shouldLogDiagnostics) {
+            debugPrint(
+              '[FeedManifestPrimary] status=fallback_warm '
+              'uid=$normalizedUserId count=${warmFallback.items.length}',
+            );
+          }
+          return warmFallback;
         }
-        return warmFallback;
-      }
 
-      final personalFallback = await _loadPersonalFallbackPage(
-        currentUserId: normalizedUserId,
-        followingIds: followingIds,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: cutoffMs,
-        limit: limit,
-        preferCache: preferCache,
-        cacheOnly: cacheOnly,
-        refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-      );
-      if (personalFallback.items.isNotEmpty) {
-        if (_shouldLogDiagnostics) {
-          debugPrint(
-            '[FeedManifestPrimary] status=fallback_personal '
-            'uid=$normalizedUserId count=${personalFallback.items.length}',
-          );
+        final personalFallback = await _loadPersonalFallbackPage(
+          currentUserId: normalizedUserId,
+          followingIds: followingIds,
+          hiddenPostIds: hiddenPostIds,
+          nowMs: nowMs,
+          cutoffMs: cutoffMs,
+          limit: limit,
+          preferCache: preferCache,
+          cacheOnly: cacheOnly,
+          refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
+        );
+        if (personalFallback.items.isNotEmpty) {
+          if (_shouldLogDiagnostics) {
+            debugPrint(
+              '[FeedManifestPrimary] status=fallback_personal '
+              'uid=$normalizedUserId count=${personalFallback.items.length}',
+            );
+          }
+          return personalFallback;
         }
-        return personalFallback;
       }
     }
     if (_shouldLogDiagnostics) {
@@ -185,9 +187,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     required bool cacheOnly,
     required int? typesensePage,
   }) async {
-    if (!FeedManifestPolicy.primaryEnabled ||
-        cacheOnly ||
-        currentUserId.trim().isEmpty) {
+    if (!FeedManifestPolicy.primaryEnabled || cacheOnly) {
       return null;
     }
 

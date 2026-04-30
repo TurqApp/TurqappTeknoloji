@@ -4,6 +4,9 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
   CollectionReference<Map<String, dynamic>> get _usersPublicCollection =>
       AppFirestore.instance.collection('usersPublic');
 
+  bool get _shouldUseLegacyUsersFallback =>
+      CurrentUserService.instance.hasAuthUser;
+
   bool _isValidProfileUid(String uid) {
     final trimmed = uid.trim();
     return trimmed.isNotEmpty && !trimmed.contains('/');
@@ -35,18 +38,21 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
           .doc(uid)
           .get(const GetOptions(source: Source.cache));
       if (!doc.exists) {
-        try {
-          final legacyDoc = await AppFirestore.instance
-              .collection('users')
-              .doc(uid)
-              .get(const GetOptions(source: Source.cache));
-          if (legacyDoc.exists) {
-            final map =
-                _sanitizeProfile(legacyDoc.data() ?? const <String, dynamic>{});
-            _put(uid, map);
-            return map;
-          }
-        } catch (_) {}
+        if (_shouldUseLegacyUsersFallback) {
+          try {
+            final legacyDoc = await AppFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .get(const GetOptions(source: Source.cache));
+            if (legacyDoc.exists) {
+              final map = _sanitizeProfile(
+                legacyDoc.data() ?? const <String, dynamic>{},
+              );
+              _put(uid, map);
+              return map;
+            }
+          } catch (_) {}
+        }
         return _getFromMemory(uid, allowStale: readDecision.allowStaleRead);
       }
       final map = _sanitizeProfile(doc.data() ?? const <String, dynamic>{});
@@ -69,16 +75,19 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
 
     final server = await _usersPublicCollection.doc(uid).get();
     if (!server.exists) {
-      try {
-        final legacyServer =
-            await AppFirestore.instance.collection('users').doc(uid).get();
-        if (legacyServer.exists) {
-          final map = _sanitizeProfile(
-              legacyServer.data() ?? const <String, dynamic>{});
-          _put(uid, map);
-          return map;
-        }
-      } catch (_) {}
+      if (_shouldUseLegacyUsersFallback) {
+        try {
+          final legacyServer =
+              await AppFirestore.instance.collection('users').doc(uid).get();
+          if (legacyServer.exists) {
+            final map = _sanitizeProfile(
+              legacyServer.data() ?? const <String, dynamic>{},
+            );
+            _put(uid, map);
+            return map;
+          }
+        } catch (_) {}
+      }
       return _getFromMemory(uid, allowStale: readDecision.allowStaleRead);
     }
     final map = _sanitizeProfile(server.data() ?? const <String, dynamic>{});
@@ -178,18 +187,20 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
           unresolved.where((uid) => !result.containsKey(uid)).toList();
       if (stillUnresolved.isEmpty || cacheOnly) continue;
 
-      try {
-        final legacySnap = await AppFirestore.instance
-            .collection('users')
-            .where(FieldPath.documentId, whereIn: stillUnresolved)
-            .limit(stillUnresolved.length)
-            .get();
-        for (final doc in legacySnap.docs) {
-          final map = _sanitizeProfile(doc.data());
-          _put(doc.id, map);
-          result[doc.id] = map;
-        }
-      } catch (_) {}
+      if (_shouldUseLegacyUsersFallback) {
+        try {
+          final legacySnap = await AppFirestore.instance
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: stillUnresolved)
+              .limit(stillUnresolved.length)
+              .get();
+          for (final doc in legacySnap.docs) {
+            final map = _sanitizeProfile(doc.data());
+            _put(doc.id, map);
+            result[doc.id] = map;
+          }
+        } catch (_) {}
+      }
     }
 
     return result;

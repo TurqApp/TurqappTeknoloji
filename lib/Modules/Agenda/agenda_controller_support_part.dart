@@ -259,10 +259,6 @@ extension AgendaControllerPublicApiPart on AgendaController {
     required String trigger,
   }) async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty) {
-      _scheduleFeedManifestWindowSync(reason: 'skip_no_user');
-      return;
-    }
     try {
       final changed =
           await _feedSnapshotRepository.syncActiveFeedManifestWindow(

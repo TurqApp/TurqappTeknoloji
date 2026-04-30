@@ -190,37 +190,40 @@ extension _SocialProfileContentPart on _SocialProfileState {
                       info.visibleFraction,
                     );
                   },
-                  child: GetBuilder<SocialProfileController>(
-                    tag: controller.userID,
-                    id: controller.feedPlaybackRowUpdateId(
-                      docId: model.docID,
-                      isReshare: isReshare,
+                  child: PostViewTracker(
+                    post: model,
+                    child: GetBuilder<SocialProfileController>(
+                      tag: controller.userID,
+                      id: controller.feedPlaybackRowUpdateId(
+                        docId: model.docID,
+                        isReshare: isReshare,
+                      ),
+                      builder: (socialController) {
+                        final isCentered =
+                            socialController.centeredIndex.value == actualIndex;
+                        final shouldPlay =
+                            FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                          isCentered: isCentered,
+                          isSurfacePlaybackSuspended:
+                              socialController.surfacePlaybackSuspended.value,
+                          isOverlayBlockingPlayback:
+                              socialController.showPfImage.value,
+                        );
+                        return AgendaContent(
+                          key: itemKey,
+                          model: model,
+                          isPreview: false,
+                          shouldPlay: shouldPlay,
+                          instanceTag: socialController.agendaInstanceTag(
+                            docId: model.docID,
+                            isReshare: isReshare,
+                          ),
+                          isYenidenPaylasilanPost: isReshare,
+                          reshareUserID:
+                              isReshare ? socialController.userID : null,
+                        );
+                      },
                     ),
-                    builder: (socialController) {
-                      final isCentered =
-                          socialController.centeredIndex.value == actualIndex;
-                      final shouldPlay =
-                          FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-                        isCentered: isCentered,
-                        isSurfacePlaybackSuspended:
-                            socialController.surfacePlaybackSuspended.value,
-                        isOverlayBlockingPlayback:
-                            socialController.showPfImage.value,
-                      );
-                      return AgendaContent(
-                        key: itemKey,
-                        model: model,
-                        isPreview: false,
-                        shouldPlay: shouldPlay,
-                        instanceTag: socialController.agendaInstanceTag(
-                          docId: model.docID,
-                          isReshare: isReshare,
-                        ),
-                        isYenidenPaylasilanPost: isReshare,
-                        reshareUserID:
-                            isReshare ? socialController.userID : null,
-                      );
-                    },
                   ),
                 ),
                 SizedBox(

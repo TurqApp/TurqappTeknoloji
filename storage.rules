@@ -215,14 +215,14 @@ service firebase.storage {
     // Short manifest index and slot payloads. Client reads only; writes are
     // published by Cloud Functions/Admin SDK.
     match /shortManifest/{date}/{allPaths=**} {
-      allow read: if isAuth();
+      allow read;
       allow write: if false;
     }
 
     // Feed manifest slot payloads. Client reads only; writes are published by
     // Cloud Functions/Admin SDK.
     match /feedManifest/{date}/{allPaths=**} {
-      allow read: if isAuth();
+      allow read;
       allow write: if false;
     }
 

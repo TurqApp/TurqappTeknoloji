@@ -155,31 +155,36 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                       info.visibleFraction,
                     );
                   },
-                  child: Obx(() {
-                    final isCentered =
-                        controller.centeredIndex.value == actualIndex;
-                    final shouldPlay =
-                        FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-                      isCentered: isCentered,
-                      isSurfacePlaybackSuspended: controller.pausetheall.value,
-                      isOverlayBlockingPlayback: controller.showPfImage.value,
-                    );
-                    return Padding(
-                      padding: EdgeInsets.only(top: actualIndex == 0 ? 12 : 0),
-                      child: AgendaContent(
-                        key: itemKey,
-                        model: model,
-                        isPreview: false,
-                        shouldPlay: shouldPlay,
-                        instanceTag: controller.agendaInstanceTag(
-                          docId: model.docID,
-                          isReshare: isReshare,
+                  child: PostViewTracker(
+                    post: model,
+                    child: Obx(() {
+                      final isCentered =
+                          controller.centeredIndex.value == actualIndex;
+                      final shouldPlay =
+                          FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                        isCentered: isCentered,
+                        isSurfacePlaybackSuspended:
+                            controller.pausetheall.value,
+                        isOverlayBlockingPlayback: controller.showPfImage.value,
+                      );
+                      return Padding(
+                        padding:
+                            EdgeInsets.only(top: actualIndex == 0 ? 12 : 0),
+                        child: AgendaContent(
+                          key: itemKey,
+                          model: model,
+                          isPreview: false,
+                          shouldPlay: shouldPlay,
+                          instanceTag: controller.agendaInstanceTag(
+                            docId: model.docID,
+                            isReshare: isReshare,
+                          ),
+                          isYenidenPaylasilanPost: isReshare,
+                          reshareUserID: isReshare ? _myUserId : null,
                         ),
-                        isYenidenPaylasilanPost: isReshare,
-                        reshareUserID: isReshare ? _myUserId : null,
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
                 SizedBox(
                   height: 2,

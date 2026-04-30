@@ -88,7 +88,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     final cacheReadyVideoDocIds = _startupCacheReadyVideoDocIds(<PostsModel>[
       ...liveCandidates,
     ]);
-    final shownItems = _agendaFeedApplicationService.buildStartupPlannerHead(
+    var shownItems = _agendaFeedApplicationService.buildStartupPlannerHead(
       liveCandidates: liveCandidates,
       cacheCandidates: _feedSeededStartupHeadEnabled
           ? cacheCandidates
@@ -98,6 +98,29 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       cacheReadyVideoDocIds: cacheReadyVideoDocIds,
       allowSparseSlotFallback: allowSparseSlotFallback,
     );
+    final minimumHealthyStartupCount = min(targetCount, 3);
+    final shouldRescueLowYieldStartup =
+        shownItems.length < minimumHealthyStartupCount &&
+            liveCandidates.length >= minimumHealthyStartupCount;
+    if (shouldRescueLowYieldStartup) {
+      final rescuedItems = _agendaFeedApplicationService
+          .mergeLiveItemsPreservingCurrentOrder(
+            currentItems: const <PostsModel>[],
+            liveItems: liveCandidates,
+            liveItemsPreplanned: false,
+          )
+          .take(targetCount)
+          .toList(growable: false);
+      if (rescuedItems.length > shownItems.length) {
+        debugPrint(
+          '[FeedStartupPlanner] status=low_yield_rescue '
+          'rawCount=${liveCandidates.length} '
+          'plannedCount=${shownItems.length} '
+          'rescuedCount=${rescuedItems.length}',
+        );
+        shownItems = rescuedItems;
+      }
+    }
     _startupCacheOriginVideoDocIds
       ..clear()
       ..addAll(
@@ -465,17 +488,11 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }) async {
     final currentUserService = CurrentUserService.instance;
     final uid = currentUserService.effectiveUserId.trim();
-    if (uid.isEmpty || !currentUserService.hasAuthUser) {
+    final isGuestFeed = uid.isEmpty || !currentUserService.hasAuthUser;
+    if (isGuestFeed) {
       debugPrint(
-        '[FeedManifestOnly] status=skip_no_auth '
+        '[FeedManifestOnly] status=guest_manifest_mode '
         'uidPresent=${uid.isNotEmpty} hasAuthUser=${currentUserService.hasAuthUser}',
-      );
-      return _AgendaSourcePage(
-        const <PostsModel>[],
-        null,
-        true,
-        true,
-        null,
       );
     }
 

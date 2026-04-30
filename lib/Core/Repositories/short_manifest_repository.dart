@@ -214,7 +214,11 @@ class ShortManifestRepository extends GetxService {
   Future<void> _ensureManifestAccessReady({
     bool forceTokenRefresh = false,
   }) async {
-    await CurrentUserService.instance.ensureAuthReady(
+    final currentUser = CurrentUserService.instance;
+    if (!forceTokenRefresh && !currentUser.hasAuthUser) {
+      return;
+    }
+    await currentUser.ensureAuthReady(
       waitForAuthState: true,
       forceTokenRefresh: forceTokenRefresh,
       timeout: _authReadyTimeout,
@@ -228,6 +232,9 @@ class ShortManifestRepository extends GetxService {
       return await _firestore.collection('shortManifest').doc('active').get();
     } on FirebaseException catch (error) {
       if (error.code != 'permission-denied') rethrow;
+      if (!CurrentUserService.instance.hasAuthUser) {
+        rethrow;
+      }
       await _ensureManifestAccessReady(forceTokenRefresh: true);
       return _firestore.collection('shortManifest').doc('active').get();
     }

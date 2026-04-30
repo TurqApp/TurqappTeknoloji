@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/nickname_utils.dart';
+import 'package:turqappv2/Services/current_user_service.dart';
 
 import 'turq_image_cache_manager.dart';
 

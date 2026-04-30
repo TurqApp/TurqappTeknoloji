@@ -5,6 +5,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/post_interaction_widget.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'flood_listing_controller.dart';
@@ -132,13 +133,16 @@ class _FloodListingState extends State<FloodListing> {
                     );
                     final isLastItem = index == controller.floods.length - 1;
 
-                    final contentWidget = AgendaContent(
-                      key: ValueKey('flood-${model.docID}'),
-                      model: model,
-                      isPreview: true,
-                      instanceTag: controller.floodInstanceTag(model.docID),
-                      shouldPlay: shouldPlay,
-                      suppressFloodBadge: true,
+                    final contentWidget = PostViewTracker(
+                      post: model,
+                      child: AgendaContent(
+                        key: ValueKey('flood-${model.docID}'),
+                        model: model,
+                        isPreview: true,
+                        instanceTag: controller.floodInstanceTag(model.docID),
+                        shouldPlay: shouldPlay,
+                        suppressFloodBadge: true,
+                      ),
                     );
 
                     final children = <Widget>[];

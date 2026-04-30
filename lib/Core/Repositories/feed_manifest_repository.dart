@@ -106,6 +106,14 @@ class FeedManifestRepository extends GetxService {
     });
   }
 
+  Future<void> warmStartupWindow({
+    int? maxSlotsToLoad,
+  }) async {
+    await loadRollingPool(
+      maxSlotsToLoad: maxSlotsToLoad,
+    );
+  }
+
   Future<FeedManifestPoolResult> _loadRollingPool({
     required bool forceRefresh,
     required int? maxSlotsToLoad,
@@ -273,8 +281,12 @@ class FeedManifestRepository extends GetxService {
   Future<void> _ensureManifestAccessReady({
     bool forceTokenRefresh = false,
   }) async {
+    final currentUser = CurrentUserService.instance;
+    if (!forceTokenRefresh && !currentUser.hasAuthUser) {
+      return;
+    }
     final shouldForceRefresh = forceTokenRefresh || !_startupAuthPrimed;
-    await CurrentUserService.instance.ensureAuthReady(
+    await currentUser.ensureAuthReady(
       waitForAuthState: true,
       forceTokenRefresh: shouldForceRefresh,
       timeout: _authReadyTimeout,

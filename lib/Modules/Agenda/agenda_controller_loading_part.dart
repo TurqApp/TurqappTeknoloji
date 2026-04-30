@@ -2322,8 +2322,12 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   Future<bool> _awaitFeedAuthReadiness() async {
     final currentUser = CurrentUserService.instance;
-    if (currentUser.hasAuthUser &&
-        currentUser.effectiveUserId.trim().isNotEmpty) {
+    if (!currentUser.hasAuthUser ||
+        currentUser.effectiveUserId.trim().isEmpty) {
+      _lastFeedAuthUnavailableAt = null;
+      return true;
+    }
+    if (currentUser.effectiveUserId.trim().isNotEmpty) {
       _lastFeedAuthUnavailableAt = null;
       return true;
     }

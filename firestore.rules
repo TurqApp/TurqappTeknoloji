@@ -1026,7 +1026,7 @@ service cloud.firestore {
     }
 
     match /usersPublic/{uid} {
-      allow get, list: if isAuth();
+      allow get, list: if true;
       allow create, update, delete: if false;
     }
 
@@ -2043,7 +2043,7 @@ service cloud.firestore {
     // MISCELLANEOUS
     // ──────────────────────────────────────────────
     match /tags/{docId} {
-      allow read: if isAuth();
+      allow read: if true;
       allow write: if false;
       match /posts/{postId} {
         allow read: if isAuth();
@@ -2051,11 +2051,11 @@ service cloud.firestore {
       }
     }
     match /shortManifest/{docId} {
-      allow read: if isAuth();
+      allow read: if docId == "active" || isAuth();
       allow write: if false; // Cloud Functions/Admin SDK only
     }
     match /feedManifest/{docId} {
-      allow read: if isAuth();
+      allow read: if docId == "active" || isAuth();
       allow write: if false; // Cloud Functions/Admin SDK only
     }
     match /adminConfig/admin/TurqAppVerified/{docId} {

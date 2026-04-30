@@ -166,12 +166,15 @@ extension _AgendaViewFeedPart on AgendaView {
           info.visibleFraction,
         );
       },
-      child: _buildPostContent(
-        model: model,
-        stableKeyString: stableKeyString,
-        isReshare: isReshare,
-        reshareUserID: reshareUserID,
-        agendaIndex: agendaIndex,
+      child: PostViewTracker(
+        post: model,
+        child: _buildPostContent(
+          model: model,
+          stableKeyString: stableKeyString,
+          isReshare: isReshare,
+          reshareUserID: reshareUserID,
+          agendaIndex: agendaIndex,
+        ),
       ),
     );
 
