@@ -1,6 +1,9 @@
 part of 'user_profile_cache_service.dart';
 
 extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
+  CollectionReference<Map<String, dynamic>> get _usersPublicCollection =>
+      AppFirestore.instance.collection('usersPublic');
+
   bool _isValidProfileUid(String uid) {
     final trimmed = uid.trim();
     return trimmed.isNotEmpty && !trimmed.contains('/');
@@ -28,15 +31,23 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
     }
 
     if (cacheOnly) {
-      final doc = await AppFirestore.instance
-          .collection('users')
+      final doc = await _usersPublicCollection
           .doc(uid)
           .get(const GetOptions(source: Source.cache));
       if (!doc.exists) {
-        return _getFromMemory(
-          uid,
-          allowStale: readDecision.allowStaleRead,
-        );
+        try {
+          final legacyDoc = await AppFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .get(const GetOptions(source: Source.cache));
+          if (legacyDoc.exists) {
+            final map =
+                _sanitizeProfile(legacyDoc.data() ?? const <String, dynamic>{});
+            _put(uid, map);
+            return map;
+          }
+        } catch (_) {}
+        return _getFromMemory(uid, allowStale: readDecision.allowStaleRead);
       }
       final map = _sanitizeProfile(doc.data() ?? const <String, dynamic>{});
       _put(uid, map);
@@ -45,8 +56,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
 
     if (!forceServer && preferCache) {
       try {
-        final doc = await AppFirestore.instance
-            .collection('users')
+        final doc = await _usersPublicCollection
             .doc(uid)
             .get(const GetOptions(source: Source.cache));
         if (doc.exists) {
@@ -57,13 +67,19 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
       } catch (_) {}
     }
 
-    final server =
-        await AppFirestore.instance.collection('users').doc(uid).get();
+    final server = await _usersPublicCollection.doc(uid).get();
     if (!server.exists) {
-      return _getFromMemory(
-        uid,
-        allowStale: readDecision.allowStaleRead,
-      );
+      try {
+        final legacyServer =
+            await AppFirestore.instance.collection('users').doc(uid).get();
+        if (legacyServer.exists) {
+          final map = _sanitizeProfile(
+              legacyServer.data() ?? const <String, dynamic>{});
+          _put(uid, map);
+          return map;
+        }
+      } catch (_) {}
+      return _getFromMemory(uid, allowStale: readDecision.allowStaleRead);
     }
     final map = _sanitizeProfile(server.data() ?? const <String, dynamic>{});
     _put(uid, map);
@@ -130,8 +146,7 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
 
       if (preferCache) {
         try {
-          final cacheSnap = await AppFirestore.instance
-              .collection('users')
+          final cacheSnap = await _usersPublicCollection
               .where(FieldPath.documentId, whereIn: chunk)
               .limit(chunk.length)
               .get(const GetOptions(source: Source.cache));
@@ -148,12 +163,28 @@ extension UserProfileCacheServiceFetchPart on UserProfileCacheService {
       if (unresolved.isEmpty || cacheOnly) continue;
 
       try {
-        final serverSnap = await AppFirestore.instance
-            .collection('users')
+        final serverSnap = await _usersPublicCollection
             .where(FieldPath.documentId, whereIn: unresolved)
             .limit(unresolved.length)
             .get();
         for (final doc in serverSnap.docs) {
+          final map = _sanitizeProfile(doc.data());
+          _put(doc.id, map);
+          result[doc.id] = map;
+        }
+      } catch (_) {}
+
+      final stillUnresolved =
+          unresolved.where((uid) => !result.containsKey(uid)).toList();
+      if (stillUnresolved.isEmpty || cacheOnly) continue;
+
+      try {
+        final legacySnap = await AppFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: stillUnresolved)
+            .limit(stillUnresolved.length)
+            .get();
+        for (final doc in legacySnap.docs) {
           final map = _sanitizeProfile(doc.data());
           _put(doc.id, map);
           result[doc.id] = map;

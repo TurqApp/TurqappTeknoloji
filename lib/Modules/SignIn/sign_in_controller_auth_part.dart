@@ -88,24 +88,12 @@ extension SignInControllerAuthPart on SignInController {
     resetPhoneNumber.value = "";
     resetUserID.value = "";
     try {
-      final emailUser = await _userRepository.findUserByEmail(
-        email,
-        preferCache: true,
-      );
-
-      if (emailUser != null) {
-        resetPhoneNumber.value = (emailUser["phoneNumber"] ?? "").toString();
-        resetUserID.value = (emailUser["id"] ?? "").toString();
-        return;
-      }
-
       final nickUser = await _userRepository.findUserByNickname(
         nickname,
         preferCache: true,
       );
 
       if (nickUser != null) {
-        resetPhoneNumber.value = (nickUser["phoneNumber"] ?? "").toString();
         resetUserID.value = (nickUser["id"] ?? "").toString();
       }
     } catch (_) {}

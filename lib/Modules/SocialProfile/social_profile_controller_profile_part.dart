@@ -48,7 +48,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         return;
       }
 
-      final raw = await _userRepository.getUserRaw(
+      final raw = await _userRepository.getPublicUserRaw(
         userID,
         preferCache: true,
         cacheOnly: true,
@@ -171,12 +171,12 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
 
   Future<void> _performGetUserData() async {
     _userDocSub?.cancel();
-    _userDocSub = _userRepository.watchUserRaw(userID).listen((raw) {
+    _userDocSub = _userRepository.watchPublicUserRaw(userID).listen((raw) {
       if (raw == null || raw.isEmpty) return;
       _applyUserData(raw);
     });
     try {
-      final cachedRaw = await _userRepository.getUserRaw(
+      final cachedRaw = await _userRepository.getPublicUserRaw(
         userID,
         preferCache: true,
         cacheOnly: true,
@@ -185,14 +185,14 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         _applyUserData(cachedRaw);
       }
 
-      final raw = await _userRepository.getUserRaw(
+      final raw = await _userRepository.getPublicUserRaw(
         userID,
         preferCache: true,
       );
       if (raw != null && raw.isNotEmpty) {
         _applyUserData(raw);
         if (_needsHeaderSupplementalData(raw)) {
-          final freshRaw = await _userRepository.getUserRaw(
+          final freshRaw = await _userRepository.getPublicUserRaw(
             userID,
             preferCache: false,
             forceServer: true,
@@ -217,7 +217,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
           _applyUserData(bootstrapData);
         }
         if (_needsHeaderSupplementalData(bootstrapData)) {
-          final freshRaw = await _userRepository.getUserRaw(
+          final freshRaw = await _userRepository.getPublicUserRaw(
             userID,
             preferCache: false,
             forceServer: true,
@@ -236,7 +236,7 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     }
 
     try {
-      final raw = await _userRepository.getUserRaw(
+      final raw = await _userRepository.getPublicUserRaw(
         userID,
         preferCache: true,
       );
@@ -251,13 +251,11 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         ? Map<String, dynamic>.from(raw["profile"] as Map)
         : const <String, dynamic>{};
     final bioText = (raw["bio"] ?? profile["bio"] ?? "").toString().trim();
-    final addressText =
-        (raw["adres"] ?? profile["adres"] ?? "").toString().trim();
     final meslekText =
         (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "")
             .toString()
             .trim();
-    return bioText.isEmpty || addressText.isEmpty || meslekText.isEmpty;
+    return bioText.isEmpty || meslekText.isEmpty;
   }
 
   void _performApplyUserData(Map<String, dynamic> raw) {
@@ -282,10 +280,9 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
       lastName.value =
           (raw["lastName"] ?? profile["lastName"] ?? "").toString();
     }
-    email.value = (raw["email"] ?? profile["email"] ?? "").toString();
     rozet.value = (raw["rozet"] ?? profile["rozet"] ?? "").toString();
     bio.value = (raw["bio"] ?? profile["bio"] ?? "").toString();
-    adres.value = (raw["adres"] ?? profile["adres"] ?? "").toString();
+    adres.value = "";
     meslek.value =
         (raw["meslekKategori"] ?? profile["meslekKategori"] ?? "").toString();
     final followerCount = _extractCounterValue(raw, <String>[
@@ -323,34 +320,20 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
   }
 
   void _performApplySupplementalUserData(Map<String, dynamic> raw) {
-    final profile = (raw["profile"] is Map)
-        ? Map<String, dynamic>.from(raw["profile"] as Map)
-        : const <String, dynamic>{};
-    final preferences = (raw["preferences"] is Map)
-        ? Map<String, dynamic>.from(raw["preferences"] as Map)
-        : const <String, dynamic>{};
     final stats = (raw["stats"] is Map)
         ? Map<String, dynamic>.from(raw["stats"] as Map)
         : const <String, dynamic>{};
 
-    email.value = (raw["email"] ?? profile["email"] ?? "").toString();
-    token.value = (raw["token"] ?? "").toString();
-    phoneNumber.value =
-        (raw["phoneNumber"] ?? profile["phoneNumber"] ?? "").toString();
-    mailIzin.value =
-        (raw["mailIzin"] ?? preferences["mailIzin"] ?? false) == true;
-    aramaIzin.value =
-        (raw["aramaIzin"] ?? preferences["aramaIzin"] ?? false) == true;
+    email.value = "";
+    token.value = "";
+    phoneNumber.value = "";
+    mailIzin.value = false;
+    aramaIzin.value = false;
     ban.value = (raw["isBanned"] ?? raw["ban"] ?? false) == true;
     gizliHesap.value = (raw["isPrivate"] ?? raw["gizliHesap"] ?? false) == true;
     hesapOnayi.value =
         (raw["isApproved"] ?? raw["hesapOnayi"] ?? false) == true;
-    final blocked = raw["blockedUsers"];
-    if (blocked is List) {
-      blockedUsers.value = blocked.map((e) => e.toString()).toList();
-    } else {
-      blockedUsers.clear();
-    }
+    blockedUsers.clear();
     final postsCount = raw["counterOfPosts"] ?? stats["counterOfPosts"] ?? 0;
     final likesCount = raw["counterOfLikes"] ?? stats["counterOfLikes"] ?? 0;
     totalPosts.value =

@@ -3,7 +3,7 @@ import { CallableRequest, HttpsError, onCall, onRequest } from "firebase-functio
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldPath, getFirestore } from "firebase-admin/firestore";
 import axios, { AxiosError } from "axios";
-import { enforceRateLimitForKey, RateLimits } from "./rateLimiter";
+import { RateLimits } from "./rateLimiter";
 import { canonicalizeKnownPublicUserAssetUrl } from "./postAssetUrlContract";
 
 const REGION = getEnv("TYPESENSE_REGION") || "us-central1";
@@ -15,6 +15,7 @@ const MOTOR_CANDIDATE_MAX_LIMIT = 120;
 const SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD = 1.2;
 const FEED_MOTOR_CANDIDATE_MAX_PER_USER = 2;
 const FEED_MOTOR_CANDIDATE_MAX_PER_FLOOD_ROOT = 1;
+const authorSummaryCache = new Map<string, AuthorSummary>();
 
 function ensureAdmin() {
   if (getApps().length === 0) initializeApp();
@@ -721,11 +722,15 @@ async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
   if (!normalizedAuthorId) {
     return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
   }
+  const cached = authorSummaryCache.get(normalizedAuthorId);
+  if (cached) return cached;
 
   try {
     const snap = await getFirestore().collection("users").doc(normalizedAuthorId).get();
     if (!snap.exists) {
-      return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+      const empty = { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
+      authorSummaryCache.set(normalizedAuthorId, empty);
+      return empty;
     }
     const data = (snap.data() || {}) as Record<string, unknown>;
     const authorNickname = asString((data as any).nickname);
@@ -737,7 +742,7 @@ async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
         .join(" ")
         .trim() ||
       authorNickname;
-    return {
+    const summary = {
       authorNickname,
       authorDisplayName,
       authorAvatarUrl: canonicalizeKnownPublicUserAssetUrl(
@@ -749,6 +754,8 @@ async function fetchAuthorSummary(authorId: string): Promise<AuthorSummary> {
       ),
       rozet: asString((data as any).rozet),
     };
+    authorSummaryCache.set(normalizedAuthorId, summary);
+    return summary;
   } catch (err) {
     console.error("typesense_author_summary_fetch_failed", normalizedAuthorId, err);
     return { authorNickname: "", authorDisplayName: "", authorAvatarUrl: "", rozet: "" };
@@ -1623,51 +1630,8 @@ export const f14_searchPosts = onRequest(
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (req, res) => {
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "GET, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-    if (req.method === "OPTIONS") {
-      res.status(204).send("");
-      return;
-    }
-
-    if (req.method !== "GET") {
-      res.status(405).json({ error: "method_not_allowed" });
-      return;
-    }
-
-    const rateKey = String(req.headers["cf-connecting-ip"] || req.ip || "unknown");
-    enforceRateLimitForKey(rateKey, "typesense_http_search", 240, 60);
-
-    if (!typesenseReady()) {
-      res.status(503).json({ error: "typesense_not_configured" });
-      return;
-    }
-
-    const q = String(req.query.q || "").trim();
-    const tag = normalizeTag(String(req.query.tag || ""));
-    const includeNonPublic = req.query.includeNonPublic === "true";
-    if (!tag && q.length < 2) {
-      res.status(400).json({ error: "query_too_short", minLength: 2 });
-      return;
-    }
-
-    const limit = Math.max(1, Math.min(MAX_LIMIT, Number(req.query.limit || 20)));
-    const page = Math.max(1, Number(req.query.page || 1));
-
-    try {
-      res.json(
-        await searchPostsFromTypesense(q, limit, page, {
-          tag,
-          includeNonPublic,
-        })
-      );
-    } catch (err: any) {
-      const status = err?.response?.status || 500;
-      const detail = err?.response?.data || err?.message || "unknown_error";
-      res.status(status).json({ error: "typesense_search_failed", detail });
-    }
+    res.set("Cache-Control", "no-store");
+    res.status(403).json({ error: "disabled_use_callable" });
   }
 );
 
@@ -1688,7 +1652,9 @@ export const f14_searchPostsCallable = onCall(
 
     const q = String(request.data?.q || "").trim();
     const tag = normalizeTag(String(request.data?.tag || ""));
-    const includeNonPublic = request.data?.includeNonPublic === true;
+    const includeNonPublic =
+      request.data?.includeNonPublic === true &&
+      (request.auth?.token as { admin?: unknown } | undefined)?.admin === true;
     if (!tag && q.length < 2) {
       throw new HttpsError("invalid-argument", "query_too_short");
     }

@@ -36,7 +36,7 @@ extension UserSummaryResolverFacadePart on UserSummaryResolver {
       }
       return null;
     }
-    final raw = await _users.getUserRaw(
+    final raw = await _users.getPublicUserRaw(
       uid,
       preferCache: false,
       cacheOnly: cacheOnly,

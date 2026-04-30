@@ -84,13 +84,7 @@ export default {
     }
 
     if (!kvRaw) {
-      const refreshed = await resolveFromFunction(route, env);
-      if (refreshed) {
-        kvRaw = JSON.stringify(refreshed);
-        await env.TURQ_KV.put(kvKey, kvRaw, {
-          expirationTtl: CACHE_TTL_SECONDS,
-        });
-      } else if (route.kind === "e") {
+      if (route.kind === "e") {
         const fallback = fallbackHtml({
           title: "TurqApp eğitim bağlantısı",
           desc: "Paylaşımı açmak için uygulamayı kullan.",

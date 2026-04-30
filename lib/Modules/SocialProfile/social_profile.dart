@@ -80,7 +80,7 @@ Future<void> _prewarmSocialProfileSurface(String userId) async {
   if (normalizedUserId.isEmpty) return;
   try {
     unawaited(
-      UserRepository.ensure().getUserRaw(
+      UserRepository.ensure().getPublicUserRaw(
         normalizedUserId,
         preferCache: true,
         cacheOnly: false,

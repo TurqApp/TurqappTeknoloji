@@ -1184,13 +1184,12 @@ export const f15_getPostIdsByTagCallable = onCall(
         }
       }
 
-      // Shuffle to randomize listing order for the selected tag.
-      for (let i = postHits.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const tmp = postHits[i];
-        postHits[i] = postHits[j];
-        postHits[j] = tmp;
-      }
+      postHits.sort((left: { postId: string; timeStamp: number }, right: { postId: string; timeStamp: number }) => {
+        if (right.timeStamp !== left.timeStamp) {
+          return right.timeStamp - left.timeStamp;
+        }
+        return left.postId.localeCompare(right.postId);
+      });
 
       return {
         tag,

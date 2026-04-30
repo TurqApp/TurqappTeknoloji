@@ -7,6 +7,7 @@ extension ShareGridControllerRuntimePart on ShareGridController {
   }
 
   void _handleShareGridClose() {
+    _searchDebounce?.cancel();
     search.dispose();
     searchFocus.value.dispose();
   }
@@ -96,26 +97,30 @@ extension ShareGridControllerRuntimePart on ShareGridController {
     }
   }
 
-  Future<void> searchUser(String keyword) async {
-    if (keyword.trim().isEmpty) {
-      followings.clear();
-      getFolowers();
-      return;
-    }
+  void searchUser(String keyword) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final normalizedKeyword = keyword.trim();
+      if (normalizedKeyword.isEmpty) {
+        followings.clear();
+        await getFolowers();
+        return;
+      }
 
-    final results = await _userRepository.searchUsersByNicknamePrefix(
-      keyword,
-      limit: 20,
-    );
+      final results = await _userRepository.searchUsersByNicknamePrefix(
+        normalizedKeyword,
+        limit: 20,
+      );
 
-    followings.assignAll(
-      results
-          .map((raw) => OgrenciModel.fromMap(
-                (raw['id'] ?? '').toString(),
-                raw,
-              ))
-          .where((user) => user.userID.isNotEmpty)
-          .toList(growable: false),
-    );
+      followings.assignAll(
+        results
+            .map((raw) => OgrenciModel.fromMap(
+                  (raw['id'] ?? '').toString(),
+                  raw,
+                ))
+            .where((user) => user.userID.isNotEmpty)
+            .toList(growable: false),
+      );
+    });
   }
 }

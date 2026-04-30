@@ -165,6 +165,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
           body: "seni takip etmeye başladı",
           docID: userID,
           type: "User",
+          targetUserID: userID,
         );
       } else if (!outcome.nowFollowing && wasFollowing) {
         totalFollower.value--;
@@ -307,7 +308,7 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
       print("Kullanıcı bulunamadı.");
       return;
     }
-    final raw = await _userRepository.getUserRaw(
+    final raw = await _userRepository.getPublicUserRaw(
       userId,
       preferCache: true,
       cacheOnly: true,

@@ -52,6 +52,52 @@ function _firstNonEmptyString(...values: unknown[]): string {
   return "";
 }
 
+function _buildUsersPublicDoc(
+  uid: string,
+  data: Record<string, unknown> | undefined,
+): Record<string, unknown> {
+  const username = String(data?.username || data?.usernameLower || data?.nickname || "").trim();
+  const nickname = String(data?.nickname || username).trim();
+  const firstName = String(data?.firstName || "").trim();
+  const lastName = String(data?.lastName || "").trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  const displayName = String(data?.displayName || fullName || nickname).trim();
+  const avatarUrl = normalizeAvatarUrl(data?.avatarUrl);
+  const followerCount = toNonNegativeInt(
+    data?.followerCount ?? data?.counterOfFollowers ?? data?.takipciSayisi,
+  );
+  const followingCount = toNonNegativeInt(
+    data?.followingCount ?? data?.counterOfFollowings ?? data?.takipEdilenSayisi,
+  );
+  const postCount = toNonNegativeInt(
+    data?.postCount ?? data?.counterOfPosts ?? data?.gonderSayisi,
+  );
+
+  return {
+    userID: uid,
+    username,
+    usernameLower: normalizeUsernameLower(username || nickname || displayName),
+    nickname,
+    displayName,
+    fullName,
+    firstName,
+    lastName,
+    avatarUrl,
+    bio: String(data?.bio || "").trim(),
+    meslekKategori: String(data?.meslekKategori || "").trim(),
+    rozet: String(data?.rozet || data?.badge || "").trim(),
+    followerCount,
+    followersCount: followerCount,
+    followingCount,
+    postCount,
+    accountStatus: String(data?.accountStatus || "").trim(),
+    isPrivate: Boolean(data?.isPrivate ?? false),
+    isDeleted: Boolean(data?.isDeleted ?? false),
+    isApproved: Boolean(data?.isApproved ?? false),
+    updatedDate: Date.now(),
+  };
+}
+
 function _pickPostPreviewImage(
   data: Record<string, unknown> | undefined,
 ): string {
@@ -249,9 +295,11 @@ export const syncUserSchemaAndFlags = functions.firestore
     const uid = context.params.uid as string;
     const afterExists = change.after.exists;
     const afterData = (afterExists ? change.after.data() : undefined) as any | undefined;
+    const usersPublicRef = db.collection("usersPublic").doc(uid);
 
     // Delete case: nothing to normalize.
     if (!afterExists) {
+      await usersPublicRef.delete().catch(() => undefined);
       return;
     }
 
@@ -365,10 +413,12 @@ export const syncUserSchemaAndFlags = functions.firestore
     patch.ad = admin.firestore.FieldValue.delete();
 
     const userRef = db.collection("users").doc(uid);
+    const publicDoc = _buildUsersPublicDoc(uid, afterData);
     await db.runTransaction(async (tx) => {
       if (Object.keys(patch).length > 0) {
         tx.set(userRef, patch, { merge: true });
       }
+      tx.set(usersPublicRef, publicDoc, { merge: true });
       // Keep signup lightweight: only touch canonical subdocs when they already exist,
       // or when ad data must be materialized for advertiser accounts.
       if (afterData?.ad !== undefined || afterData?.isAdvertiser === true) {

@@ -47,6 +47,41 @@ function _firstNonEmptyString(...values) {
     }
     return "";
 }
+function _buildUsersPublicDoc(uid, data) {
+    const username = String(data?.username || data?.usernameLower || data?.nickname || "").trim();
+    const nickname = String(data?.nickname || username).trim();
+    const firstName = String(data?.firstName || "").trim();
+    const lastName = String(data?.lastName || "").trim();
+    const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    const displayName = String(data?.displayName || fullName || nickname).trim();
+    const avatarUrl = (0, userSchemaUtils_1.normalizeAvatarUrl)(data?.avatarUrl);
+    const followerCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.followerCount ?? data?.counterOfFollowers ?? data?.takipciSayisi);
+    const followingCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.followingCount ?? data?.counterOfFollowings ?? data?.takipEdilenSayisi);
+    const postCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.postCount ?? data?.counterOfPosts ?? data?.gonderSayisi);
+    return {
+        userID: uid,
+        username,
+        usernameLower: (0, userSchemaUtils_1.normalizeUsernameLower)(username || nickname || displayName),
+        nickname,
+        displayName,
+        fullName,
+        firstName,
+        lastName,
+        avatarUrl,
+        bio: String(data?.bio || "").trim(),
+        meslekKategori: String(data?.meslekKategori || "").trim(),
+        rozet: String(data?.rozet || data?.badge || "").trim(),
+        followerCount,
+        followersCount: followerCount,
+        followingCount,
+        postCount,
+        accountStatus: String(data?.accountStatus || "").trim(),
+        isPrivate: Boolean(data?.isPrivate ?? false),
+        isDeleted: Boolean(data?.isDeleted ?? false),
+        isApproved: Boolean(data?.isApproved ?? false),
+        updatedDate: Date.now(),
+    };
+}
 function _pickPostPreviewImage(data) {
     if (!data)
         return "";
@@ -198,8 +233,10 @@ exports.syncUserSchemaAndFlags = functions.firestore
     const uid = context.params.uid;
     const afterExists = change.after.exists;
     const afterData = (afterExists ? change.after.data() : undefined);
+    const usersPublicRef = db.collection("usersPublic").doc(uid);
     // Delete case: nothing to normalize.
     if (!afterExists) {
+        await usersPublicRef.delete().catch(() => undefined);
         return;
     }
     const patch = {};
@@ -328,10 +365,12 @@ exports.syncUserSchemaAndFlags = functions.firestore
     // Delete root ad on every run to prevent legacy writers from reintroducing duplication.
     patch.ad = admin.firestore.FieldValue.delete();
     const userRef = db.collection("users").doc(uid);
+    const publicDoc = _buildUsersPublicDoc(uid, afterData);
     await db.runTransaction(async (tx) => {
         if (Object.keys(patch).length > 0) {
             tx.set(userRef, patch, { merge: true });
         }
+        tx.set(usersPublicRef, publicDoc, { merge: true });
         // Keep signup lightweight: only touch canonical subdocs when they already exist,
         // or when ad data must be materialized for advertiser accounts.
         if (afterData?.ad !== undefined || afterData?.isAdvertiser === true) {

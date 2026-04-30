@@ -72,7 +72,7 @@ class SearchUserContent extends StatelessWidget {
       if (summary != null && summary.isDeleted) {
         return false;
       }
-      final data = await _userRepository.getUserRaw(targetUid);
+      final data = await _userRepository.getPublicUserRaw(targetUid);
       if (data == null) return false;
       if (isDeactivatedAccount(
         accountStatus: data['accountStatus'],

@@ -12,6 +12,7 @@ class _ShareGridControllerState {
   final RxList<OgrenciModel> followings = <OgrenciModel>[].obs;
   final Rx<OgrenciModel?> selectedUser = Rx<OgrenciModel?>(null);
   final Rx<FocusNode> searchFocus = FocusNode().obs;
+  Timer? searchDebounce;
   late final ChatListingController chatListingController =
       ChatListingController.maybeFind() ?? ChatListingController.ensure();
   final UserRepository userRepository = UserRepository.ensure();
@@ -29,6 +30,8 @@ extension ShareGridControllerFieldsPart on ShareGridController {
   RxList<OgrenciModel> get followings => _state.followings;
   Rx<OgrenciModel?> get selectedUser => _state.selectedUser;
   Rx<FocusNode> get searchFocus => _state.searchFocus;
+  Timer? get _searchDebounce => _state.searchDebounce;
+  set _searchDebounce(Timer? value) => _state.searchDebounce = value;
   ChatListingController get chatListingController =>
       _state.chatListingController;
   UserRepository get _userRepository => _state.userRepository;

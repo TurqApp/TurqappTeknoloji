@@ -221,7 +221,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       } catch (_) {}
 
       try {
-        final cachedRaw = await users.getUserRaw(
+        final cachedRaw = await users.getPublicUserRaw(
           uid,
           preferCache: true,
           cacheOnly: true,
@@ -273,7 +273,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       if (_resolvedUrl.isNotEmpty) return;
 
       try {
-        final fetchedRaw = await users.getUserRaw(
+        final fetchedRaw = await users.getPublicUserRaw(
           uid,
           preferCache: true,
           cacheOnly: false,

@@ -234,6 +234,8 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       'fullName': (raw['fullName'] ?? scoped['fullName'] ?? '').toString(),
       'token': (raw['token'] ?? scoped['token'] ?? '').toString(),
       'bio': (raw['bio'] ?? scoped['bio'] ?? '').toString(),
+      'meslekKategori':
+          (raw['meslekKategori'] ?? scoped['meslekKategori'] ?? '').toString(),
       'rozet': (raw['rozet'] ??
               raw['badge'] ??
               scoped['rozet'] ??

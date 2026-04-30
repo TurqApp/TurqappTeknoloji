@@ -1,6 +1,9 @@
 part of 'user_repository.dart';
 
 extension UserRepositoryQueryPart on UserRepository {
+  CollectionReference<Map<String, dynamic>> get _usersPublicCollection =>
+      AppFirestore.instance.collection('usersPublic');
+
   Future<bool> emailExists(
     String email, {
     bool preferCache = true,
@@ -42,8 +45,7 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value;
     }
-    final snap = await AppFirestore.instance
-        .collection('users')
+    final snap = await _usersPublicCollection
         .where('usernameLower', isEqualTo: normalized)
         .limit(1)
         .get();
@@ -133,11 +135,11 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 10)) {
       return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
-    final snap = await AppFirestore.instance
-        .collection('users')
+    final publicSnap = await _usersPublicCollection
         .where('nickname', isEqualTo: normalized)
         .limit(1)
         .get();
+    final snap = publicSnap;
     Map<String, dynamic>? result;
     if (snap.docs.isNotEmpty) {
       final doc = snap.docs.first;
@@ -165,12 +167,12 @@ extension UserRepositoryQueryPart on UserRepository {
             const Duration(minutes: 5)) {
       return cached.value == null ? null : _cloneUserMap(cached.value!);
     }
-    final snap = await AppFirestore.instance
-        .collection('users')
+    final publicSnap = await _usersPublicCollection
         .where('nickname', isGreaterThanOrEqualTo: normalized)
         .where('nickname', isLessThan: '$normalized\uf8ff')
         .limit(1)
         .get();
+    final snap = publicSnap;
     Map<String, dynamic>? result;
     if (snap.docs.isNotEmpty) {
       final doc = snap.docs.first;
@@ -207,12 +209,12 @@ extension UserRepositoryQueryPart on UserRepository {
       return const <Map<String, dynamic>>[];
     }
 
-    final snap = await AppFirestore.instance
-        .collection('users')
+    final publicSnap = await _usersPublicCollection
         .where('nickname', isGreaterThanOrEqualTo: normalized)
         .where('nickname', isLessThan: '$normalized\uf8ff')
         .limit(limit)
         .get();
+    final snap = publicSnap;
 
     final items = <Map<String, dynamic>>[];
     for (final doc in snap.docs) {

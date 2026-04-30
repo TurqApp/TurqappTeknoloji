@@ -776,13 +776,20 @@ service cloud.firestore {
         && request.query.limit <= 500
         && (request.query.offset == null || request.query.offset == 0);
     }
+    function canReadUsersRootPrivate() {
+      return isAuth()
+        && (
+          canManageAdminPanels()
+          || exists(/databases/$(database)/documents/adminTaskAssignments/$(request.auth.uid))
+        );
+    }
 
     // ──────────────────────────────────────────────
     // USERS
     // ──────────────────────────────────────────────
     match /users/{uid} {
-      allow get: if isAuth();
-      allow list: if canListUsersRoot();
+      allow get: if isOwner(uid) || canReadUsersRootPrivate();
+      allow list: if false;
       allow create: if isOwner(uid);
       // Kullanıcı kendi profilini güncelleyebilir; ancak moderasyon, rol ve
       // sayaç alanlarını client değiştiremez.
@@ -1016,6 +1023,11 @@ service cloud.firestore {
       match /{anySubcollection}/{docId} {
         allow read, write: if false;
       }
+    }
+
+    match /usersPublic/{uid} {
+      allow get, list: if isAuth();
+      allow create, update, delete: if false;
     }
 
     match /userFeeds/{uid} {
@@ -1257,8 +1269,7 @@ service cloud.firestore {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
       // Sahip: içerik alanlarını güncelleyebilir.
-      // İstemci sayaçları ise yalnızca tek alan ve izinli delta ile değiştirilebilir.
-      allow update: if isAuth() && canUpdatePostStatsCounters();
+      // Sayaç güncellemeleri istemciden değil, sunucu taraflı akışlardan gelmelidir.
       allow update: if isAuth() && canOwnerUpdatePostContent();
       allow update: if isAuth() && canFlagPostModerationUpdate();
       allow update: if isAdmin();

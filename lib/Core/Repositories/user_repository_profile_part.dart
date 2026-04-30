@@ -1,6 +1,9 @@
 part of 'user_repository.dart';
 
 extension UserRepositoryProfilePart on UserRepository {
+  CollectionReference<Map<String, dynamic>> get _usersPublicCollection =>
+      AppFirestore.instance.collection('usersPublic');
+
   Future<UserSummary?> getUser(
     String uid, {
     bool preferCache = true,
@@ -31,6 +34,75 @@ extension UserRepositoryProfilePart on UserRepository {
     );
     if (data == null) return null;
     return _cloneUserProfileRawMap(data);
+  }
+
+  Future<Map<String, dynamic>?> getPublicUserRaw(
+    String uid, {
+    bool preferCache = true,
+    bool cacheOnly = false,
+    bool forceServer = false,
+  }) async {
+    if (uid.isEmpty) return null;
+    if (!forceServer && preferCache) {
+      final cached = _cache.peekProfile(uid, allowStale: true);
+      if (cached != null) {
+        return _cloneUserProfileRawMap(cached);
+      }
+    }
+
+    if (cacheOnly) {
+      final doc = await _usersPublicCollection
+          .doc(uid)
+          .get(const GetOptions(source: Source.cache));
+      if (!doc.exists) {
+        return _cache.peekProfile(uid, allowStale: true);
+      }
+      final data = doc.data();
+      if (data == null) return null;
+      await _cache.putProfile(uid, data);
+      return _cloneUserProfileRawMap(data);
+    }
+
+    if (!forceServer && preferCache) {
+      try {
+        final doc = await _usersPublicCollection
+            .doc(uid)
+            .get(const GetOptions(source: Source.cache));
+        if (doc.exists) {
+          final data = doc.data();
+          if (data != null) {
+            await _cache.putProfile(uid, data);
+            return _cloneUserProfileRawMap(data);
+          }
+        }
+      } catch (_) {}
+    }
+
+    final server = await _usersPublicCollection.doc(uid).get();
+    if (!server.exists) {
+      return _cache.peekProfile(uid, allowStale: true);
+    }
+    final data = server.data();
+    if (data == null) return null;
+    await _cache.putProfile(uid, data);
+    return _cloneUserProfileRawMap(data);
+  }
+
+  Stream<Map<String, dynamic>?> watchPublicUserRaw(String uid) {
+    if (uid.isEmpty) return const Stream<Map<String, dynamic>?>.empty();
+    return _usersPublicCollection.doc(uid).snapshots().asyncMap((doc) async {
+      if (!doc.exists) return null;
+      final data = Map<String, dynamic>.from(doc.data() ?? const {});
+      final sanitized = Map<String, dynamic>.from(
+        _cache.peekProfile(
+              uid,
+              allowStale: true,
+            ) ??
+            const <String, dynamic>{},
+      )..addAll(data);
+      await _cache.putProfile(uid, sanitized);
+      return sanitized;
+    });
   }
 
   Future<void> putUserRaw(String uid, Map<String, dynamic> data) async {

@@ -190,7 +190,7 @@ extension NotificationServiceMessagePart on NotificationService {
 
       final targetUid = (targetUserID != null && targetUserID.trim().isNotEmpty)
           ? targetUserID.trim()
-          : (token.trim().isEmpty ? null : await _resolveUserIdByToken(token));
+          : null;
       if (targetUid == null || targetUid.isEmpty) return;
       if (targetUid == fromUid) return;
       if (token.trim().isNotEmpty &&
@@ -210,14 +210,6 @@ extension NotificationServiceMessagePart on NotificationService {
       });
     } catch (e) {
       debugPrint('Bildirim gönderme hatası: $e');
-    }
-  }
-
-  Future<String?> _resolveUserIdByToken(String token) async {
-    try {
-      return await UserRepository.ensure().findUserIdByFcmToken(token);
-    } catch (_) {
-      return null;
     }
   }
 }

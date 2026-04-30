@@ -205,7 +205,7 @@ class EducationFeedCtaNavigationService {
     Map<String, dynamic> userData = <String, dynamic>{'userID': ownerId};
 
     if (ownerId.isNotEmpty) {
-      final userDoc = await _userRepository.getUserRaw(
+      final userDoc = await _userRepository.getPublicUserRaw(
         ownerId,
         preferCache: true,
       );
