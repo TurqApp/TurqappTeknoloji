@@ -1134,7 +1134,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       final currentAgenda = agendaList.toList(growable: false);
       final liveConnected = ContentPolicy.isConnected;
       final sourcePageLimit = initial && liveConnected
-          ? FeedSnapshotRepository.startupHomeLimitValue
+          ? (isCityMode ? 50 : FeedSnapshotRepository.startupHomeLimitValue)
           : loadLimit;
       final shouldPreferCacheOnOpen = !liveConnected;
       final seenDocIds = currentAgenda
@@ -1190,7 +1190,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
       final rawPageVisibleItems = initial
-          ? (skipConnectedStartupSupport
+          ? ((isCityMode || skipConnectedStartupSupport)
               ? page.items
               : await _augmentStartupSupportCandidates(
                   candidates: page.items,
@@ -1210,10 +1210,12 @@ extension AgendaControllerLoadingPart on AgendaController {
               ? effectiveRawPageVisibleItems
                   .take(FeedSnapshotRepository.startupHomeLimitValue)
                   .toList(growable: false)
-              : _applyStartupPlannerHeadOrder(
+              : (isCityMode
+                  ? effectiveRawPageVisibleItems
+                  : _applyStartupPlannerHeadOrder(
                   effectiveRawPageVisibleItems,
                   allowSparseSlotFallback: liveConnected,
-                ))
+                )))
           : effectiveRawPageVisibleItems;
       if (initial &&
           currentAgenda.isEmpty &&

@@ -84,6 +84,9 @@ extension PostRepositoryFacadePart on PostRepository {
     int page = 1,
     int? nowMs,
     int? cutoffMs,
+    String locationCity = '',
+    bool randomize = false,
+    int randomWindowDays = 4,
   }) =>
       _performFetchTypesenseMotorCandidates(
         surface: surface,
@@ -92,6 +95,9 @@ extension PostRepositoryFacadePart on PostRepository {
         page: page,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
+        locationCity: locationCity,
+        randomize: randomize,
+        randomWindowDays: randomWindowDays,
       );
 
   Future<PostQueryPage> fetchAgendaWindowPage({

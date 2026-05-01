@@ -8,6 +8,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
     required int page,
     required int? nowMs,
     required int? cutoffMs,
+    required String locationCity,
+    required bool randomize,
+    required int randomWindowDays,
   }) {
     final nowBucket = nowMs == null ? 0 : nowMs ~/ 30000;
     final cutoffBucket = cutoffMs == null ? 0 : cutoffMs ~/ 60000;
@@ -18,6 +21,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
       '$page',
       '$nowBucket',
       '$cutoffBucket',
+      normalizeSearchText(locationCity),
+      randomize ? 'rand' : 'seq',
+      '$randomWindowDays',
     ].join('|');
   }
 
@@ -32,6 +38,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
     required int page,
     required int? nowMs,
     required int? cutoffMs,
+    required String locationCity,
+    required bool randomize,
+    required int randomWindowDays,
   }) async {
     final normalizedSurface = surface.trim().toLowerCase();
     final normalizedMinutes = ownedMinutes
@@ -60,6 +69,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
       page: page,
       nowMs: nowMs,
       cutoffMs: cutoffMs,
+      locationCity: locationCity,
+      randomize: randomize,
+      randomWindowDays: randomWindowDays,
     );
     final cached = _motorCandidatesMemory[cacheKey];
     if (cached != null && cached.isFresh) {
@@ -77,6 +89,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
       page: page,
       nowMs: nowMs,
       cutoffMs: cutoffMs,
+      locationCity: locationCity,
+      randomize: randomize,
+      randomWindowDays: randomWindowDays,
     ).then((result) {
       _motorCandidatesMemory[cacheKey] = _CachedMotorCandidatesResult(
         result: result,
@@ -97,6 +112,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
     required int page,
     required int? nowMs,
     required int? cutoffMs,
+    required String locationCity,
+    required bool randomize,
+    required int randomWindowDays,
   }) async {
     try {
       await _performFetchMotorCandidates(
@@ -106,6 +124,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
         page: page,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
+        locationCity: locationCity,
+        randomize: randomize,
+        randomWindowDays: randomWindowDays,
       );
     } catch (_) {}
   }
@@ -117,6 +138,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
     required int page,
     required int? nowMs,
     required int? cutoffMs,
+    required String locationCity,
+    required bool randomize,
+    required int randomWindowDays,
   }) async {
     Object? lastError;
     for (final target in _targets) {
@@ -137,6 +161,9 @@ extension TypesensePostServiceQueryPart on TypesensePostService {
             'page': page,
             if (nowMs != null) 'nowMs': nowMs,
             if (cutoffMs != null) 'cutoffMs': cutoffMs,
+            if (locationCity.trim().isNotEmpty) 'locationCity': locationCity.trim(),
+            if (randomize) 'randomize': true,
+            if (randomWindowDays > 0) 'randomWindowDays': randomWindowDays,
           },
         );
         final data = Map<String, dynamic>.from(response.data as Map? ?? {});

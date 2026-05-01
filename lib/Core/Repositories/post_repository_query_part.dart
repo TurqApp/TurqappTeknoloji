@@ -191,6 +191,9 @@ extension PostRepositoryQueryPart on PostRepository {
     required int page,
     required int? nowMs,
     required int? cutoffMs,
+    required String locationCity,
+    required bool randomize,
+    required int randomWindowDays,
   }) async {
     final result = await _typesensePostService.fetchMotorCandidates(
       surface: surface,
@@ -199,6 +202,9 @@ extension PostRepositoryQueryPart on PostRepository {
       page: page,
       nowMs: nowMs,
       cutoffMs: cutoffMs,
+      locationCity: locationCity,
+      randomize: randomize,
+      randomWindowDays: randomWindowDays,
     );
     final items = result.hits
         .map((doc) {

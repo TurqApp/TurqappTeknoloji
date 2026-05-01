@@ -126,7 +126,7 @@ extension AgendaControllerRenderPart on AgendaController {
       city: currentUserLocationCity,
     );
     final shouldFallbackToForYou =
-        filtered.isEmpty && !isLoading.value && (isFollowingMode || isCityMode);
+        filtered.isEmpty && !isLoading.value && isFollowingMode;
     if (shouldFallbackToForYou) {
       filtered = mergedFeedEntries.toList(growable: false);
       _queueFeedModeFallbackToForYou();

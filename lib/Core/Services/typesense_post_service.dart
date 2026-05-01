@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
+import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 part 'typesense_post_service_cache_part.dart';
 part 'typesense_post_service_query_part.dart';
@@ -146,6 +147,9 @@ class TypesensePostService {
     int page = 1,
     int? nowMs,
     int? cutoffMs,
+    String locationCity = '',
+    bool randomize = false,
+    int randomWindowDays = 4,
   }) =>
       _performFetchMotorCandidates(
         surface: surface,
@@ -154,6 +158,9 @@ class TypesensePostService {
         page: page,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
+        locationCity: locationCity,
+        randomize: randomize,
+        randomWindowDays: randomWindowDays,
       );
 
   Future<void> primeMotorCandidates({
@@ -163,6 +170,9 @@ class TypesensePostService {
     int page = 1,
     int? nowMs,
     int? cutoffMs,
+    String locationCity = '',
+    bool randomize = false,
+    int randomWindowDays = 4,
   }) =>
       _performPrimeMotorCandidates(
         surface: surface,
@@ -171,6 +181,9 @@ class TypesensePostService {
         page: page,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
+        locationCity: locationCity,
+        randomize: randomize,
+        randomWindowDays: randomWindowDays,
       );
 
   Future<void> invalidatePostId(String postId) =>

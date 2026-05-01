@@ -1052,6 +1052,9 @@ async function getMotorCandidatesFromTypesense(options) {
         throw new https_1.HttpsError("invalid-argument", "owned_minutes_required");
     }
     const nowMs = Number(options.nowMs || Date.now());
+    const locationCity = String(options.locationCity || "").trim();
+    const randomize = options.randomize === true;
+    const randomWindowDays = Math.max(1, Math.min(7, Number(options.randomWindowDays || 4)));
     const cutoffMs = Number(options.cutoffMs || 0) ||
         nowMs - 7 * 24 * 60 * 60 * 1000;
     const limit = Math.max(1, Math.min(MOTOR_CANDIDATE_MAX_LIMIT, Number(options.limit || 40)));
@@ -1062,15 +1065,20 @@ async function getMotorCandidatesFromTypesense(options) {
         "deletedPost:=false",
         "gizlendi:=false",
         "isUploading:=false",
-        `timeStamp:>=${cutoffMs}`,
+        `timeStamp:>=${randomize ? nowMs - randomWindowDays * 24 * 60 * 60 * 1000 : cutoffMs}`,
         `timeStamp:<=${nowMs}`,
     ];
+    if (locationCity) {
+        baseFilterParts.push(`locationCity:=${typesenseStringLiteral(locationCity)}`);
+    }
     const surfaceFilterParts = [...baseFilterParts];
     const strictFilterParts = [
         `surfaceTargets:=[${typesenseStringLiteral(surface)}]`,
         ...baseFilterParts,
-        `minuteOfHour:=[${ownedMinutes.join(",")}]`,
     ];
+    if (!randomize) {
+        strictFilterParts.push(`minuteOfHour:=[${ownedMinutes.join(",")}]`);
+    }
     if (surface === "short" || surface === "quota") {
         surfaceFilterParts.push("hasPlayableVideo:=true");
         surfaceFilterParts.push("hlsStatus:=ready");
@@ -1080,6 +1088,73 @@ async function getMotorCandidatesFromTypesense(options) {
         strictFilterParts.push("hlsStatus:=ready");
         strictFilterParts.push(`aspectRatio:<=${SHORT_SURFACE_LANDSCAPE_ASPECT_THRESHOLD}`);
         strictFilterParts.push("flood:=false");
+    }
+    if (randomize) {
+        const randomPerPage = Math.max(limit, Math.min(250, Math.max(limit * 4, 120)));
+        const maxRandomPages = 4;
+        const randomCandidates = new Map();
+        let totalFound = 0;
+        let totalOutOf = 0;
+        let totalSearchTimeMs = 0;
+        for (let randomPage = 1; randomPage <= maxRandomPages; randomPage += 1) {
+            const randomResp = await axios_1.default.get(`${getTypesenseBaseUrl()}/collections/${POSTS_COLLECTION}/documents/search`, {
+                headers: headers(),
+                timeout: 10000,
+                params: {
+                    q: "*",
+                    query_by: "metin",
+                    per_page: randomPerPage,
+                    page: randomPage,
+                    sort_by: "timeStamp:desc",
+                    filter_by: surfaceFilterParts.join(" && "),
+                },
+            });
+            const randomBody = randomResp.data || {};
+            const randomHits = Array.isArray(randomBody.hits) ? randomBody.hits : [];
+            totalFound = Number(randomBody.found || totalFound || 0);
+            totalOutOf = Number(randomBody.out_of || totalOutOf || 0);
+            totalSearchTimeMs += Number(randomBody.search_time_ms || 0);
+            for (const rawHit of randomHits) {
+                const candidate = {
+                    ...(rawHit?.document || {}),
+                    text_match: rawHit?.text_match || 0,
+                };
+                const candidateId = String(candidate.id || "").trim();
+                if (!candidateId || randomCandidates.has(candidateId))
+                    continue;
+                randomCandidates.set(candidateId, candidate);
+            }
+            if (randomHits.length < randomPerPage || randomCandidates.size >= limit * 4) {
+                break;
+            }
+        }
+        const randomSeed = `${locationCity}|${surface}|${nowMs}|${page}`;
+        const hashString = (value) => {
+            let hash = 2166136261;
+            for (let index = 0; index < value.length; index += 1) {
+                hash ^= value.charCodeAt(index);
+                hash = Math.imul(hash, 16777619);
+            }
+            return hash >>> 0;
+        };
+        const hits = Array.from(randomCandidates.values())
+            .sort((left, right) => {
+            const leftId = String(left.id || "");
+            const rightId = String(right.id || "");
+            return hashString(`${randomSeed}|${leftId}`) -
+                hashString(`${randomSeed}|${rightId}`);
+        })
+            .slice(0, limit);
+        return {
+            surface,
+            ownedMinutes,
+            page,
+            limit,
+            found: totalFound || hits.length,
+            out_of: totalOutOf || hits.length,
+            search_time_ms: totalSearchTimeMs,
+            hits,
+        };
     }
     const baseUrl = getTypesenseBaseUrl();
     const strictResp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
@@ -1631,6 +1706,9 @@ exports.f15_getMotorCandidatesCallable = (0, https_1.onCall)({
     const page = Math.max(1, Number(request.data?.page || 1));
     const nowMs = Number(request.data?.nowMs || Date.now());
     const cutoffMs = Number(request.data?.cutoffMs || 0);
+    const locationCity = String(request.data?.locationCity || "").trim();
+    const randomize = request.data?.randomize === true;
+    const randomWindowDays = Number(request.data?.randomWindowDays || 4);
     try {
         return await getMotorCandidatesFromTypesense({
             surface,
@@ -1639,6 +1717,9 @@ exports.f15_getMotorCandidatesCallable = (0, https_1.onCall)({
             page,
             nowMs,
             cutoffMs,
+            locationCity,
+            randomize,
+            randomWindowDays,
         });
     }
     catch (err) {

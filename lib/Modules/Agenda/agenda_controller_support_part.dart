@@ -191,7 +191,14 @@ extension AgendaControllerSupportPart on AgendaController {
 
   void setFeedViewMode(FeedViewMode mode) {
     if (feedViewMode.value == mode) return;
+    final previousMode = feedViewMode.value;
+    if (mode == FeedViewMode.city && currentUserLocationCity.trim().isEmpty) {
+      return;
+    }
     feedViewMode.value = mode;
+    if (previousMode == FeedViewMode.city || mode == FeedViewMode.city) {
+      unawaited(refreshAgenda(forceNewLaunchSession: true));
+    }
   }
 
   int _agendaCutoffMs(int nowMs) {

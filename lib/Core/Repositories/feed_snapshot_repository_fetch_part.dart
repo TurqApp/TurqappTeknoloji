@@ -86,8 +86,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     bool bypassInitialPrimaryCursorShift = false,
     FeedPrimarySourceMode? primarySourceOverride,
     int? typesensePage,
+    String locationCity = '',
   }) async {
     final normalizedUserId = userId.trim();
+    final normalizedLocationCity = locationCity.trim();
     if (!usePrimaryFeedPaging) {
       if (_shouldLogDiagnostics) {
         debugPrint(
@@ -102,6 +104,21 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         usesPrimaryFeed: true,
         itemsPreplanned: true,
         nextTypesensePage: null,
+      );
+    }
+
+    if (primarySourceOverride == FeedPrimarySourceMode.typesense &&
+        normalizedLocationCity.isNotEmpty &&
+        startAfter == null &&
+        (typesensePage == null || typesensePage <= 1)) {
+      return _loadCityTypesenseSeedPage(
+        currentUserId: normalizedUserId,
+        followingIds: followingIds,
+        hiddenPostIds: hiddenPostIds,
+        nowMs: nowMs,
+        cutoffMs: cutoffMs,
+        limit: limit,
+        locationCity: normalizedLocationCity,
       );
     }
 
@@ -511,6 +528,46 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       items: visible,
       lastDoc: null,
       usesPrimaryFeed: false,
+      itemsPreplanned: false,
+      nextTypesensePage: null,
+    );
+  }
+
+  Future<FeedSourcePage> _loadCityTypesenseSeedPage({
+    required String currentUserId,
+    required Set<String> followingIds,
+    required Set<String> hiddenPostIds,
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+    required String locationCity,
+  }) async {
+    final cityCandidates = await _postRepository.fetchTypesenseMotorCandidates(
+      surface: 'feed',
+      ownedMinutes: const <int>[0],
+      limit: limit,
+      page: 1,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      locationCity: locationCity,
+      randomize: true,
+      randomWindowDays: 4,
+    );
+    final visible = await filterVisiblePosts(
+      cityCandidates.items,
+      currentUserId: currentUserId,
+      followingIds: followingIds,
+      hiddenPostIds: hiddenPostIds,
+      nowMs: nowMs,
+      cutoffMs: cutoffMs,
+      limit: limit,
+      summaryCacheOnly: false,
+      refreshNonPublicCachedSummaries: false,
+    );
+    return FeedSourcePage(
+      items: visible,
+      lastDoc: null,
+      usesPrimaryFeed: true,
       itemsPreplanned: false,
       nextTypesensePage: null,
     );

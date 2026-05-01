@@ -488,6 +488,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
   }) async {
     final currentUserService = CurrentUserService.instance;
     final uid = currentUserService.effectiveUserId.trim();
+    final normalizedCity = isCityMode ? currentUserLocationCity.trim() : '';
     final isGuestFeed = uid.isEmpty || !currentUserService.hasAuthUser;
     if (isGuestFeed) {
       debugPrint(
@@ -519,8 +520,14 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       usePrimaryFeedPaging: usePrimaryFeedPaging ?? _usePrimaryFeedPaging,
       includeSupplementalSources: includeSupplementalSources,
       bypassInitialPrimaryCursorShift: bypassInitialPrimaryCursorShift,
-      primarySourceOverride: primarySourceOverride,
+      primarySourceOverride: primarySourceOverride ??
+          (normalizedCity.isNotEmpty &&
+                  resolvedStartAfter == null &&
+                  (resolvedTypesensePage == null || resolvedTypesensePage <= 1)
+              ? FeedPrimarySourceMode.typesense
+              : null),
       typesensePage: resolvedTypesensePage,
+      locationCity: normalizedCity,
     );
     if (cacheOnly && page.items.isEmpty) {
       final cacheManager = maybeFindSegmentCacheManager();

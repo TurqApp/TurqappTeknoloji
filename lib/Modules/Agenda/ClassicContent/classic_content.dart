@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:ui';
@@ -146,29 +147,37 @@ class _ClassicContentState extends State<ClassicContent>
     return fontSize - 1;
   }
 
-  TextStyle _classicTypography(TextStyle style) {
+  double _classicHeaderCaptionFontSize(double fontSize) {
+    final adjusted = _classicPlatformFontSize(fontSize);
+    if (!_useAndroidClassicTypography) return adjusted;
+    return max(1, adjusted - 1);
+  }
+
+  TextStyle _classicHeaderCaptionTypography(TextStyle style) {
     final fontSize = style.fontSize;
     if (fontSize == null) return style;
-    return style.copyWith(fontSize: _classicPlatformFontSize(fontSize));
+    return style.copyWith(fontSize: _classicHeaderCaptionFontSize(fontSize));
   }
 
   TextStyle get _classicPostNameStyle =>
-      _classicTypography(AppTypography.postName);
+      _classicHeaderCaptionTypography(AppTypography.postName);
 
   TextStyle get _classicPostHandleStyle =>
-      _classicTypography(AppTypography.postHandle);
+      _classicHeaderCaptionTypography(AppTypography.postHandle);
 
   TextStyle get _classicPostMetaStyle =>
-      _classicTypography(AppTypography.postMeta);
+      _classicHeaderCaptionTypography(AppTypography.postMeta);
 
   TextStyle get _classicPostCaptionStyle =>
-      _classicTypography(AppTypography.postCaption);
+      _classicHeaderCaptionTypography(AppTypography.postCaption);
 
   double get _classicPostCaptionFontSize =>
-      _classicPlatformFontSize(AppTypography.postCaption.fontSize ?? 14);
+      _classicHeaderCaptionFontSize(AppTypography.postCaption.fontSize ?? 14);
 
   double get _classicPostAttributionFontSize =>
-      _classicPlatformFontSize(AppTypography.postAttribution.fontSize ?? 11);
+      _classicHeaderCaptionFontSize(
+        AppTypography.postAttribution.fontSize ?? 11,
+      );
 
   String get _currentUid {
     final cachedUid =
