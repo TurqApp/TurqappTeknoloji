@@ -199,8 +199,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           final uid =
               await _ensureStorageUploadAuthReady() ?? _requireCurrentUid();
-          final locationCity =
-              post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
+          final locationCity = _resolvePostLocationCity().trim();
 
           // Storage rules require Posts/{docID}.userID to exist before media upload.
           await _preparePostShellForStorageUpload(

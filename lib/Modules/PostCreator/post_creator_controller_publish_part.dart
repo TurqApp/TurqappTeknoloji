@@ -468,8 +468,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
       );
 
       final publishTime = batchTimeStamp;
-      final locationCity =
-          post.location.trim().isNotEmpty ? _resolvePostLocationCity() : '';
+      final locationCity = _resolvePostLocationCity().trim();
 
       final pollPayload = post.poll.isNotEmpty
           ? _normalizePollForSave(post.poll, publishTime)
