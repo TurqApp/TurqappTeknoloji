@@ -9,6 +9,7 @@ class FeedManifestPolicy {
   );
   static const bool typesenseGapEnabled = true;
   static const Duration primaryLoadTimeout = Duration(milliseconds: 3000);
+  static const Duration primaryInitialGuestLoadTimeout = Duration(seconds: 16);
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 12;
   static const int minUserSpacing = 0;
@@ -44,5 +45,15 @@ class FeedManifestPolicy {
       maxSlotLoadBudget,
       max(startupSlotLoadBudget, normalizedPage * startupSlotLoadBudget),
     );
+  }
+
+  static Duration resolvePrimaryLoadTimeout({
+    required int pageNumber,
+    required bool hasAuthUser,
+  }) {
+    if (!hasAuthUser && pageNumber <= 1) {
+      return Duration.zero;
+    }
+    return primaryLoadTimeout;
   }
 }

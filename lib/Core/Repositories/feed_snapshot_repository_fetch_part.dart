@@ -218,12 +218,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final slotLoadBudget = FeedManifestPolicy.resolveSlotLoadBudget(
       pageNumber: pageNumber,
     );
+    final primaryLoadTimeout = FeedManifestPolicy.resolvePrimaryLoadTimeout(
+      pageNumber: pageNumber,
+      hasAuthUser: currentUserId.trim().isNotEmpty,
+    );
     try {
-      final pool = await _feedManifestRepository
-          .loadRollingPool(
-            maxSlotsToLoad: slotLoadBudget,
-          )
-          .timeout(FeedManifestPolicy.primaryLoadTimeout);
+      final poolFuture = _feedManifestRepository.loadRollingPool(
+        maxSlotsToLoad: slotLoadBudget,
+      );
+      final pool = primaryLoadTimeout == Duration.zero
+          ? await poolFuture
+          : await poolFuture.timeout(primaryLoadTimeout);
       if (pool.entries.isEmpty) {
         if (_shouldLogDiagnostics) {
           debugPrint('[FeedManifestPrimary] status=empty_pool');
@@ -327,6 +332,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           '[FeedManifestPrimary] status=ok elapsedMs=$elapsedMs '
           'page=$pageNumber nextPage=${nextPage ?? 0} '
           'manifest=${pool.manifestId} slots=${pool.loadedSlotCount}/${pool.slotCount} '
+          'timeoutMs=${primaryLoadTimeout.inMilliseconds} '
           'slotBudget=$slotLoadBudget '
           'pool=${pool.entries.length} gap=${deck.gapCount} '
           'visible=${visible.length} returned=${pageItems.length} '
@@ -346,7 +352,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         debugPrint(
           '[FeedManifestPrimary] status=fail elapsedMs=$elapsedMs '
-          'page=$pageNumber slotBudget=$slotLoadBudget error=$error',
+          'page=$pageNumber timeoutMs=${primaryLoadTimeout.inMilliseconds} '
+          'slotBudget=$slotLoadBudget error=$error',
         );
       }
       return null;
