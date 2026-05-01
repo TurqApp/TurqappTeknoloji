@@ -280,6 +280,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         minUserSpacing: FeedManifestPolicy.minUserSpacing,
         maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
       );
+      final consumedDocIds = _feedDiversityMemory.weeklyWatchedPenaltyDocIds();
+      final consumedFloodRootIds =
+          _feedDiversityMemory.weeklyWatchedFloodRootIds();
       final visibleEntries = _selectVisibleFeedManifestEntries(
         manifestEntries: pool.entries,
         gapEntries: gapEntries,
@@ -287,6 +290,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: deckLimit,
+        consumedDocIds: consumedDocIds,
+        consumedFloodRootIds: consumedFloodRootIds,
       );
       final visible = visibleEntries
           .map((entry) => entry.post)
@@ -493,6 +498,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     required List<FeedManifestEntry> manifestEntries,
     required List<FeedManifestEntry> gapEntries,
     required Set<String> hiddenPostIds,
+    required Set<String> consumedDocIds,
+    required Set<String> consumedFloodRootIds,
     required int nowMs,
     required int cutoffMs,
     required int limit,
@@ -506,6 +513,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final fallbackEntries = <FeedManifestDeckEntry>[];
     final seenCanonicals = <String>{};
     final seenDocIds = <String>{};
+    final skippedConsumedDocIds = <String>[];
+    final skippedConsumedFloodRootIds = <String>[];
 
     void considerEntry(
       FeedManifestEntry entry,
@@ -518,6 +527,26 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (!seenDocIds.add(docId)) return;
       if (!seenCanonicals.add(canonicalId)) return;
       if (hiddenPostIds.contains(docId)) return;
+      if (consumedDocIds.contains(docId)) {
+        if (skippedConsumedDocIds.length < 8) {
+          skippedConsumedDocIds.add(docId);
+        }
+        return;
+      }
+      final floodRootId = post.isFloodSeriesContent
+          ? (post.mainFlood.trim().isNotEmpty
+              ? post.mainFlood.trim()
+              : (post.isFloodSeriesRoot
+                  ? docId
+                  : docId.replaceFirst(RegExp(r'_\d+$'), '')))
+          : '';
+      if (floodRootId.isNotEmpty &&
+          consumedFloodRootIds.contains(floodRootId)) {
+        if (skippedConsumedFloodRootIds.length < 8) {
+          skippedConsumedFloodRootIds.add(floodRootId);
+        }
+        return;
+      }
       if (post.userID.trim().isEmpty) return;
       if (post.deletedPost == true || post.gizlendi) return;
       if (post.shouldHideWhileUploading) return;
@@ -556,6 +585,18 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
     for (final entry in gapEntries) {
       considerEntry(entry, FeedManifestDeckSource.gap);
+    }
+
+    if (_shouldLogDiagnostics &&
+        (skippedConsumedDocIds.isNotEmpty ||
+            skippedConsumedFloodRootIds.isNotEmpty)) {
+      debugPrint(
+        '[FeedManifestPrimary] status=consumed_visible_prune '
+        'skippedDocs=${skippedConsumedDocIds.length} '
+        'skippedFloodRoots=${skippedConsumedFloodRootIds.length} '
+        'docPreview=$skippedConsumedDocIds '
+        'floodPreview=$skippedConsumedFloodRootIds',
+      );
     }
 
     slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);

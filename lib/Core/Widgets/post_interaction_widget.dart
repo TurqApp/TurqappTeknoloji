@@ -248,7 +248,7 @@ class PostViewTracker extends StatefulWidget {
     super.key,
     required this.post,
     required this.child,
-    this.visibilityThreshold = 0.5,
+    this.visibilityThreshold = 0.01,
   });
 
   @override
@@ -281,7 +281,7 @@ class _PostViewTrackerState extends State<PostViewTracker> {
     super.dispose();
   }
 
-  void _recordView() {
+  void _recordView(double visibleFraction) {
     if (!_hasRecordedView) {
       _hasRecordedView = true;
       final hasImage = widget.post.img.any((entry) => entry.trim().isNotEmpty);
@@ -291,7 +291,8 @@ class _PostViewTrackerState extends State<PostViewTracker> {
           : (hasImage ? 'image' : (hasText ? 'text' : 'unknown'));
       debugPrint(
         '[PostViewTracker] status=triggered doc=${widget.post.docID} '
-        'kind=$contentKind threshold=${widget.visibilityThreshold}',
+        'kind=$contentKind threshold=${widget.visibilityThreshold} '
+        'visibleFraction=${visibleFraction.toStringAsFixed(3)}',
       );
       _controller.recordView(widget.post.docID, widget.post);
     }
@@ -303,7 +304,7 @@ class _PostViewTrackerState extends State<PostViewTracker> {
       key: Key('post_view_${widget.post.docID}'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction >= widget.visibilityThreshold) {
-          _recordView();
+          _recordView(info.visibleFraction);
         }
       },
       child: widget.child,

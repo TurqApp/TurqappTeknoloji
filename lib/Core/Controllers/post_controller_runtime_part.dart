@@ -43,6 +43,7 @@ extension PostControllerRuntimePart on PostController {
 
   Future<void> recordView(String postId, PostsModel post) async {
     try {
+      FeedDiversityMemoryService.ensure().noteViewedPost(post);
       await _interactionService.recordView(postId);
     } catch (e) {
       print('View recording error: $e');

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
@@ -50,7 +51,7 @@ class FeedDiversityMemoryService extends GetxService {
   bool get isReady => _ready;
 
   Set<String> startupHeadPenaltyDocIds({DateTime? now}) {
-    if (_shouldBypassPenaltyForCurrentUser()) {
+    if (_shouldBypassStartupHeadPenaltyForCurrentUser()) {
       return const <String>{};
     }
     final cutoff = (now ?? DateTime.now()).subtract(startupHeadWindow);
@@ -62,7 +63,7 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> startupHeadPenaltyFloodRootIds({DateTime? now}) {
-    if (_shouldBypassPenaltyForCurrentUser()) {
+    if (_shouldBypassStartupHeadPenaltyForCurrentUser()) {
       return const <String>{};
     }
     final cutoff = (now ?? DateTime.now()).subtract(startupHeadWindow);
@@ -74,9 +75,6 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> weeklyWatchedPenaltyDocIds({DateTime? now}) {
-    if (_shouldBypassPenaltyForCurrentUser()) {
-      return const <String>{};
-    }
     final cutoff = (now ?? DateTime.now()).subtract(weeklyWatchWindow);
     return _weeklyWatchRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -86,9 +84,6 @@ class FeedDiversityMemoryService extends GetxService {
   }
 
   Set<String> weeklyWatchedFloodRootIds({DateTime? now}) {
-    if (_shouldBypassPenaltyForCurrentUser()) {
-      return const <String>{};
-    }
     final cutoff = (now ?? DateTime.now()).subtract(weeklyWatchWindow);
     return _weeklyWatchRecords
         .where((entry) => entry.at.isAfter(cutoff))
@@ -101,7 +96,7 @@ class FeedDiversityMemoryService extends GetxService {
     Iterable<PostsModel> posts, {
     int limit = 20,
   }) {
-    if (_shouldBypassPenaltyForCurrentUser()) return;
+    if (_shouldBypassStartupHeadPenaltyForCurrentUser()) return;
     unawaited(_rememberStartupHead(posts, limit: limit));
   }
 
@@ -109,7 +104,6 @@ class FeedDiversityMemoryService extends GetxService {
     PostsModel post, {
     required int currentSegment,
   }) {
-    if (_shouldBypassPenaltyForCurrentUser()) return;
     if (!post.hasPlayableVideo || currentSegment < 1) return;
     final docId = post.docID.trim();
     if (docId.isEmpty) return;
@@ -120,7 +114,22 @@ class FeedDiversityMemoryService extends GetxService {
     unawaited(_rememberWatchedPost(post, queuedAt: now));
   }
 
-  bool _shouldBypassPenaltyForCurrentUser() {
+  void noteViewedPost(PostsModel post) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return;
+    if (_pendingWeeklyWatchDocIds.contains(docId)) return;
+    final now = DateTime.now();
+    if (_hasRecentWeeklyWatch(docId, now: now)) return;
+    final floodRootId = _resolveFloodRootId(post);
+    debugPrint(
+      '[FeedConsumed] status=mark_viewed '
+      'doc=$docId floodRoot=${floodRootId.isEmpty ? '-' : floodRootId}',
+    );
+    _pendingWeeklyWatchDocIds.add(docId);
+    unawaited(_rememberWatchedPost(post, queuedAt: now));
+  }
+
+  bool _shouldBypassStartupHeadPenaltyForCurrentUser() {
     final service = maybeFindCurrentUserService();
     if (service == null) return false;
     final markers = <String>{
