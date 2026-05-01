@@ -347,11 +347,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
         backgroundColor: Colors.black,
         color: Colors.white,
         onRefresh: () async {
-          controller.resetFloodSeriesListState();
-          controller.capturePendingFloodEntry(preferredIndex: 0);
-          controller.resetFloodChildPrefetchPlan();
-          await controller.fetchFloods();
-          controller.restoreFloodSeriesFocus();
+          await controller.refreshFloodsPreservingSurface();
         },
         child: ListView.builder(
           key: const PageStorageKey('Explore_Floods'),

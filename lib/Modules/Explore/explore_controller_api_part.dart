@@ -54,6 +54,9 @@ extension ExploreControllerApiX on ExploreController {
 
   Future<void> fetchFloods() => _performFetchFloods();
 
+  Future<void> refreshFloodsPreservingSurface() =>
+      _performRefreshFloodsPreservingSurface();
+
   Future<List<PostsModel>> _filterByPrivacy(List<PostsModel> items) =>
       _performFilterByPrivacy(items);
 

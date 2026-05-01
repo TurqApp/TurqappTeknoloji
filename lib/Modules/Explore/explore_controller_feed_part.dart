@@ -1059,6 +1059,86 @@ extension ExploreControllerFeedPart on ExploreController {
     floodsIsLoading.value = false;
   }
 
+  Future<void> _performRefreshFloodsPreservingSurface() async {
+    if (floodsIsLoading.value) return;
+    final previousItems = List<PostsModel>.from(exploreFloods);
+    final previousDocIds = previousItems
+        .map((post) => post.docID.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    floodsIsLoading.value = true;
+    try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final livePage = await _exploreRepository.fetchFloodServerPage(
+        pageLimit: _exploreFloodInitialHeadHydrateCount,
+        nowMs: nowMs,
+      );
+      if (livePage.items.isEmpty) {
+        if (previousItems.length > 1) {
+          final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+          exploreFloods.assignAll(shuffled);
+        }
+        capturePendingFloodEntry(preferredIndex: 0);
+        _performResetFloodChildPrefetchPlan();
+        _performRestoreFloodSeriesFocus();
+        return;
+      }
+
+      var batch = livePage.items
+          .where((model) => model.flood == false)
+          .where((model) => model.floodCount > 1)
+          .where((model) => model.deletedPost != true)
+          .where((model) => model.timeStamp <= nowMs)
+          .toList(growable: false);
+      batch = await _filterByPrivacy(batch);
+
+      if (batch.isEmpty) {
+        if (previousItems.length > 1) {
+          final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+          exploreFloods.assignAll(shuffled);
+        }
+        capturePendingFloodEntry(preferredIndex: 0);
+        _performResetFloodChildPrefetchPlan();
+        _performRestoreFloodSeriesFocus();
+        return;
+      }
+
+      final refreshedDocIds = batch
+          .map((post) => post.docID.trim())
+          .where((id) => id.isNotEmpty)
+          .toList(growable: false);
+      final hasNewFloods = previousDocIds.isEmpty ||
+          refreshedDocIds.any((id) => !previousDocIds.contains(id));
+
+      if (hasNewFloods) {
+        exploreFloods.assignAll(batch);
+      } else if (previousItems.length > 1) {
+        final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+        exploreFloods.assignAll(shuffled);
+      }
+
+      lastFloodsDoc = null;
+      _floodManifestStoreOffset = livePage.items.length;
+      _floodManifestStoreActive = true;
+      floodsHasMore.value =
+          livePage.hasMore && exploreFloods.length < _exploreFloodListMaxItems;
+      _floodsEmptyScans = 0;
+      floodsVisibleIndex.value = 0;
+      lastFloodVisibleIndex = 0;
+      capturePendingFloodEntry(preferredIndex: 0);
+      _performResetFloodChildPrefetchPlan();
+      _performRestoreFloodSeriesFocus();
+      _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: 0);
+      unawaited(_exploreRepository.ensureFloodManifestStoreFresh(force: true));
+    } catch (_) {
+      if (previousItems.isNotEmpty && exploreFloods.isEmpty) {
+        exploreFloods.assignAll(previousItems);
+      }
+    } finally {
+      floodsIsLoading.value = false;
+    }
+  }
+
   Future<List<PostsModel>> _performFilterByPrivacy(
     List<PostsModel> items,
   ) async {
