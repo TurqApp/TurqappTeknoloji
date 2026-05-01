@@ -101,7 +101,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   Future<void> _ensureWifiQuotaFillPlan() async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null || _paused) return;
-    if (!_isOnWiFi || _mobileSeedMode) return;
+    if (!_isQuotaFillNetworkEligible || _mobileSeedMode) return;
     if (!_shouldAllowBackgroundQuotaFill) {
       _abortStalePrefetchActivity(reason: 'quota_plan_background_gate');
       return;
@@ -124,8 +124,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
       debugPrint(
         '[ShortQuotaFill] status=plan_start enabled=$_automaticQuotaFillEnabled '
-        'wifi=$_isOnWiFi backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
-        'targetBytes=$_wifiQuotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes}',
+        'wifi=$_isOnWiFi cellular=$_isOnCellular backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
+        'targetBytes=$_quotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes}',
       );
 
       Future<void> seedFromLocalCandidates() async {

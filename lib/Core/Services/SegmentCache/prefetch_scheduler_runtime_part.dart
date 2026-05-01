@@ -1,6 +1,7 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
+  static const double _mobileQuotaFillTargetRatio = 0.05;
   int get activeDownloads => _activeDownloads;
   int get queueSize => _queue.length;
   bool get isPaused => _paused;
@@ -77,10 +78,9 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         target.startsWith('short:');
   }
 
-  bool get _shouldAllowBackgroundQuotaFill =>
-      !_hasActiveFeedPlaybackWindow ||
-      _hasActiveShortPlaybackWindow ||
-      _hasActiveProfilePlaybackWindow;
+  bool get _shouldAllowBackgroundQuotaFill => true;
+
+  bool get _useMinimalQuotaFillMode => !_hasActiveShortPlaybackWindow;
 
   bool get _isOnWiFi {
     try {
@@ -91,6 +91,14 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     } catch (_) {}
     return CacheNetworkPolicy.canPrefetch;
   }
+
+  bool get _isOnCellular => CacheNetworkPolicy.isOnCellular;
+
+  bool get _allowMobileQuotaFill =>
+      !_isOnWiFi &&
+      _isOnCellular &&
+      !_mobileSeedMode &&
+      CacheNetworkPolicy.canFetchOnDemand;
 
   int get _breadthCount {
     final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;
@@ -143,14 +151,27 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     return cache.softLimitBytes;
   }
 
+  int get _quotaFillTargetBytes {
+    final baseTargetBytes = _wifiQuotaFillTargetBytes;
+    if (baseTargetBytes <= 0) return 0;
+    if (_isOnWiFi) return baseTargetBytes;
+    if (_allowMobileQuotaFill) {
+      return (baseTargetBytes * _mobileQuotaFillTargetRatio).round();
+    }
+    return 0;
+  }
+
+  bool get _isQuotaFillNetworkEligible =>
+      (_isOnWiFi && CacheNetworkPolicy.canPrefetch) || _allowMobileQuotaFill;
+
   bool _hasReachedWifiQuotaFillTarget(SegmentCacheManager cacheManager) {
-    final targetBytes = _wifiQuotaFillTargetBytes;
+    final targetBytes = _quotaFillTargetBytes;
     if (targetBytes <= 0) return false;
     return cacheManager.totalTrackedUsageBytes >= targetBytes;
   }
 
   double _wifiQuotaFillRatio(SegmentCacheManager cacheManager) {
-    final targetBytes = _wifiQuotaFillTargetBytes;
+    final targetBytes = _quotaFillTargetBytes;
     if (targetBytes <= 0) return 0.0;
     return (cacheManager.totalTrackedUsageBytes / targetBytes).clamp(0.0, 1.0);
   }

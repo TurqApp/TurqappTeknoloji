@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f29_generateFeedManifestScheduled = exports.f29_generateFeedManifestCallable = void 0;
+exports.f29_refreshFeedManifestActiveCallable = exports.f29_generateFeedManifestScheduled = exports.f29_generateFeedManifestCallable = void 0;
 exports.resolveFeedManifestSlotForNow = resolveFeedManifestSlotForNow;
 exports.resolveLatestCompletedFeedManifestSlotForNow = resolveLatestCompletedFeedManifestSlotForNow;
 exports.rollingFeedManifestDates = rollingFeedManifestDates;
@@ -10,6 +10,7 @@ exports.buildFeedManifestItems = buildFeedManifestItems;
 exports.buildFeedManifestSlot = buildFeedManifestSlot;
 exports.buildFeedManifestActiveIndex = buildFeedManifestActiveIndex;
 exports.generateFeedManifest = generateFeedManifest;
+exports.refreshActiveFeedManifestIndex = refreshActiveFeedManifestIndex;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -533,6 +534,14 @@ async function refreshActiveFeedManifestIndex(publishedAt) {
         slots,
     });
     await db.collection(FEED_MANIFEST_COLLECTION).doc("active").set(active, { merge: true });
+    console.log("feed_manifest_active_refreshed", {
+        manifestId: active.manifestId,
+        publishedAt,
+        generatedAt: active.generatedAt,
+        slotCount: active.slots.length,
+        firstSlot: active.slots[0] || null,
+        lastSlot: active.slots[active.slots.length - 1] || null,
+    });
 }
 async function generateRollingFeedManifestBackfill(nowMs) {
     const db = (0, firestore_1.getFirestore)();
@@ -620,6 +629,51 @@ exports.f29_generateFeedManifestScheduled = (0, scheduler_1.onSchedule)({
         const detail = err?.message || "unknown_error";
         console.error("feed_manifest_scheduled_failed", { detail });
         throw err;
+    }
+});
+exports.f29_refreshFeedManifestActiveCallable = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: "256MiB",
+}, async (request) => {
+    ensureAdmin();
+    const isAdmin = request.auth?.token?.admin === true;
+    const providedSecret = asString(request.data?.secret);
+    const configuredSecret = getEnv("FEED_MANIFEST_ACTIVE_REFRESH_SECRET");
+    if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
+        throw new https_1.HttpsError("permission-denied", "admin_or_secret_required");
+    }
+    const uid = request.auth?.uid || "secret_refresh";
+    if (isAdmin && request.auth?.uid) {
+        rateLimiter_1.RateLimits.admin(request.auth.uid);
+    }
+    const publishedAt = Math.max(1, Math.floor(asNumber(request.data?.publishedAt, Date.now())));
+    try {
+        await refreshActiveFeedManifestIndex(publishedAt);
+        const snapshot = await (0, firestore_1.getFirestore)()
+            .collection(FEED_MANIFEST_COLLECTION)
+            .doc("active")
+            .get();
+        const active = snapshot.data() || {};
+        console.log("feed_manifest_active_refresh_done", {
+            actor: uid,
+            manifestId: asString(active.manifestId),
+            slotCount: Array.isArray(active.slots) ? active.slots.length : 0,
+        });
+        return {
+            ok: true,
+            manifestId: asString(active.manifestId),
+            slotCount: Array.isArray(active.slots) ? active.slots.length : 0,
+            firstSlot: Array.isArray(active.slots) ? active.slots[0] || null : null,
+            lastSlot: Array.isArray(active.slots)
+                ? active.slots[active.slots.length - 1] || null
+                : null,
+        };
+    }
+    catch (err) {
+        const detail = err?.message || "unknown_error";
+        console.error("feed_manifest_active_refresh_failed", { actor: uid, detail });
+        throw new https_1.HttpsError("internal", "feed_manifest_active_refresh_failed", detail);
     }
 });
 //# sourceMappingURL=29_feedManifest.js.map

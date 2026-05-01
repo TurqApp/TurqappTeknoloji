@@ -715,7 +715,7 @@ async function publishFeedManifestSlot(params: {
   await refreshActiveFeedManifestIndex(params.publishedAt);
 }
 
-async function refreshActiveFeedManifestIndex(publishedAt: number) {
+export async function refreshActiveFeedManifestIndex(publishedAt: number) {
   const db = getFirestore();
   const nowMs = Date.now();
   const slots: FeedManifestActiveSlotRecord[] = [];
@@ -743,6 +743,14 @@ async function refreshActiveFeedManifestIndex(publishedAt: number) {
   });
 
   await db.collection(FEED_MANIFEST_COLLECTION).doc("active").set(active, { merge: true });
+  console.log("feed_manifest_active_refreshed", {
+    manifestId: active.manifestId,
+    publishedAt,
+    generatedAt: active.generatedAt,
+    slotCount: active.slots.length,
+    firstSlot: active.slots[0] || null,
+    lastSlot: active.slots[active.slots.length - 1] || null,
+  });
 }
 
 async function generateRollingFeedManifestBackfill(nowMs: number) {
@@ -844,6 +852,58 @@ export const f29_generateFeedManifestScheduled = onSchedule(
       const detail = err?.message || "unknown_error";
       console.error("feed_manifest_scheduled_failed", { detail });
       throw err;
+    }
+  },
+);
+
+export const f29_refreshFeedManifestActiveCallable = onCall(
+  {
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: "256MiB",
+  },
+  async (request: CallableRequest) => {
+    ensureAdmin();
+    const isAdmin = (request.auth?.token as { admin?: unknown } | undefined)?.admin === true;
+    const providedSecret = asString(request.data?.secret);
+    const configuredSecret = getEnv("FEED_MANIFEST_ACTIVE_REFRESH_SECRET");
+    if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
+      throw new HttpsError("permission-denied", "admin_or_secret_required");
+    }
+    const uid = request.auth?.uid || "secret_refresh";
+    if (isAdmin && request.auth?.uid) {
+      RateLimits.admin(request.auth.uid);
+    }
+    const publishedAt = Math.max(
+      1,
+      Math.floor(asNumber(request.data?.publishedAt, Date.now())),
+    );
+
+    try {
+      await refreshActiveFeedManifestIndex(publishedAt);
+      const snapshot = await getFirestore()
+        .collection(FEED_MANIFEST_COLLECTION)
+        .doc("active")
+        .get();
+      const active = snapshot.data() || {};
+      console.log("feed_manifest_active_refresh_done", {
+        actor: uid,
+        manifestId: asString(active.manifestId),
+        slotCount: Array.isArray(active.slots) ? active.slots.length : 0,
+      });
+      return {
+        ok: true,
+        manifestId: asString(active.manifestId),
+        slotCount: Array.isArray(active.slots) ? active.slots.length : 0,
+        firstSlot: Array.isArray(active.slots) ? active.slots[0] || null : null,
+        lastSlot: Array.isArray(active.slots)
+          ? active.slots[active.slots.length - 1] || null
+          : null,
+      };
+    } catch (err: any) {
+      const detail = err?.message || "unknown_error";
+      console.error("feed_manifest_active_refresh_failed", { actor: uid, detail });
+      throw new HttpsError("internal", "feed_manifest_active_refresh_failed", detail);
     }
   },
 );

@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -38,6 +42,29 @@ class SignInEntryWarmService {
   SignInEntryWarmService._();
 
   static Future<void>? _inFlight;
+
+  static Future<void> _startQuotaFillAfterShortReady() async {
+    try {
+      final preferences = ensureLocalPreferenceRepository();
+      final quotaGb = normalizeStorageBudgetPlanGb(
+        await preferences.getInt('offline_cache_quota_gb') ?? 3,
+      );
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
+      final prefetch = maybeFindPrefetchScheduler();
+      if (prefetch != null) {
+        prefetch.resetWifiQuotaFillPlan();
+        await prefetch.ensureWifiQuotaFillPlan();
+      }
+      debugPrint(
+        '[AuthEntryWarm] status=refresh_ok label=quota_fill source=short_manifest quotaGb=$quotaGb',
+      );
+    } catch (error) {
+      debugPrint(
+        '[AuthEntryWarm] status=refresh_fail label=quota_fill source=short_manifest error=$error',
+      );
+    }
+  }
 
   static Future<List<String>> _loadVisiblePasajListingTabs() async {
     final resolved = await loadEffectivePasajVisibility(
@@ -327,6 +354,7 @@ class SignInEntryWarmService {
           'short_manifest',
           () => ensureShortManifestRepository().warmStartupWindow(),
         );
+        await _startQuotaFillAfterShortReady();
         final floodFuture = runFloodStep().catchError((error, stackTrace) {
           return;
         });

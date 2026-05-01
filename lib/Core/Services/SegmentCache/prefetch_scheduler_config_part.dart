@@ -120,10 +120,13 @@ int resolveFeedWindowReadySegments({
 @visibleForTesting
 bool shouldUsePrefetchQuotaFillMode({
   required bool isOnWiFi,
+  required bool allowCellularQuotaFill,
   required bool mobileSeedMode,
   required double watchProgress,
 }) {
-  return isOnWiFi && !mobileSeedMode && watchProgress <= 0.01;
+  return (isOnWiFi || allowCellularQuotaFill) &&
+      !mobileSeedMode &&
+      watchProgress <= 0.01;
 }
 
 @visibleForTesting

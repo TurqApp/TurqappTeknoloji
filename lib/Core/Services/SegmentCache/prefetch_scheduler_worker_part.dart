@@ -247,10 +247,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processQueue() async {
-    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+    if (!_isQuotaFillNetworkEligible) {
       debugPrint(
         '[ShortQuotaFill] status=skip reason=network_gate wifi=$_isOnWiFi '
-        'canPrefetch=${CacheNetworkPolicy.canPrefetch}',
+        'cellular=$_isOnCellular canPrefetch=${CacheNetworkPolicy.canPrefetch}',
       );
       pause();
       return;
@@ -261,7 +261,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       debugPrint(
         '[ShortQuotaFill] status=skip reason=target_reached '
         'usageBytes=${cacheManager.totalTrackedUsageBytes} '
-        'targetBytes=$_wifiQuotaFillTargetBytes',
+        'targetBytes=$_quotaFillTargetBytes',
       );
       _publishPrefetchHealthIfNeeded(force: true);
       return;
@@ -324,7 +324,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   _PrefetchJob _takeNextQueuedJob() {
-    if (!_isOnWiFi || _activeBankDownloads > 0 || _queue.length <= 1) {
+    if (!_isOnWiFi) {
+      final quotaIndex = _queue.indexWhere((job) => job.source == 'quota');
+      if (quotaIndex >= 0) {
+        return _queue.removeAt(quotaIndex);
+      }
+      return _queue.removeAt(0);
+    }
+
+    if (_activeBankDownloads > 0 || _queue.length <= 1) {
       return _queue.removeAt(0);
     }
 
@@ -340,7 +348,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processJob(_PrefetchJob job) async {
-    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+    if (!_isQuotaFillNetworkEligible) {
+      pause();
+      return;
+    }
+    if (!_isOnWiFi && job.source != 'quota') {
+      _requeueJob(job);
       pause();
       return;
     }
@@ -463,9 +476,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           _shouldAllowBackgroundQuotaFill &&
           shouldUsePrefetchQuotaFillMode(
             isOnWiFi: _isOnWiFi,
+            allowCellularQuotaFill: _allowMobileQuotaFill,
             mobileSeedMode: _mobileSeedMode,
             watchProgress: watchedProgress,
           );
+      final effectiveQuotaReadySegments =
+          quotaFillMode && _useMinimalQuotaFillMode
+              ? 1
+              : desiredReadySegments;
       final startupBurstMode = shouldUseStartupBurstPrefetch(
         isFocusedDoc: _focusedDocID == job.docID,
         isCurrentDoc: _isCurrentPriorityDoc(job.docID),
@@ -482,7 +500,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           segmentUris: segmentUris,
           variantDir: variantDir,
           cacheManager: cacheManager,
-          desiredReadySegments: desiredReadySegments,
+          desiredReadySegments: effectiveQuotaReadySegments,
         );
       } else if (_mobileSeedMode && isUnwatched) {
         final mobileOrdered = _pickMobileSeedSegments(
@@ -510,6 +528,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
       final orderedDownloads = toDownload.toList(growable: false);
       if (orderedDownloads.isEmpty) return;
+
+      if (quotaFillMode && _useMinimalQuotaFillMode) {
+        debugPrint(
+          '[ShortQuotaFill] status=minimal_mode doc=${job.docID} '
+          'desired=$desiredReadySegments effective=$effectiveQuotaReadySegments '
+          'activeFeed=$_hasActiveFeedPlaybackWindow activeShort=$_hasActiveShortPlaybackWindow '
+          'activeProfile=$_hasActiveProfilePlaybackWindow',
+        );
+      }
 
       final availableSlots =
           (_effectiveMaxConcurrent() - _activeDownloads).clamp(

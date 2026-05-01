@@ -8,11 +8,15 @@ import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.d
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/Services/mandatory_follow_service.dart';
@@ -492,7 +496,26 @@ class SignInApplicationService {
 
     await runStep('feed_manifest', _warmFeedManifestAfterAuth);
     await runStep('short_manifest', _warmShortsAfterAuth);
+    await runStep('quota_fill', _startQuotaFillAfterShortReady);
     await runStep('flood_manifest', _warmFloodManifestAfterAuth);
+  }
+
+  Future<void> _startQuotaFillAfterShortReady() async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      final preferences = ensureLocalPreferenceRepository();
+      final quotaGb = normalizeStorageBudgetPlanGb(
+        await preferences.getInt('offline_cache_quota_gb') ?? 3,
+      );
+      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
+      await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
+      final prefetch = maybeFindPrefetchScheduler();
+      if (prefetch != null) {
+        prefetch.resetWifiQuotaFillPlan();
+        await prefetch.ensureWifiQuotaFillPlan();
+      }
+    } catch (_) {}
   }
 
   Future<void> _warmFeedManifestAfterAuth({
