@@ -2505,6 +2505,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
     try {
+      await FeedDiversityMemoryService.ensure().ensureReady();
       if (forceNewLaunchSession) {
         final deviceSession = DeviceSessionService.instance;
         final deviceSalt = deviceSession.cachedDeviceKey;
@@ -2535,6 +2536,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       _startupPlaybackLockedAt = null;
       _lastPlaybackCommandDocId = null;
       _lastPlaybackCommandAt = null;
+
+      _pruneConsumedAgendaOnRefresh();
 
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
@@ -2642,13 +2645,17 @@ extension AgendaControllerLoadingPart on AgendaController {
               liveItems: page.items,
               liveItemsPreplanned: page.itemsPreplanned,
             );
-      final refreshTargetIndex = mergedAgenda.indexWhere(
+      final filteredMergedAgenda = _filterConsumedAgendaPosts(mergedAgenda);
+      final refreshTargetIndex = filteredMergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );
       final refreshTargetDocId =
-          refreshTargetIndex >= 0 && refreshTargetIndex < mergedAgenda.length
-              ? mergedAgenda[refreshTargetIndex].docID
-              : (mergedAgenda.isNotEmpty ? mergedAgenda.first.docID : null);
+          refreshTargetIndex >= 0 &&
+                  refreshTargetIndex < filteredMergedAgenda.length
+              ? filteredMergedAgenda[refreshTargetIndex].docID
+              : (filteredMergedAgenda.isNotEmpty
+                  ? filteredMergedAgenda.first.docID
+                  : null);
 
       _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
       lastDoc = pageApplyPlan.lastDoc;
@@ -2668,7 +2675,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
       _feedRefreshInFlight = true;
       _applyRefreshMergedAgenda(
-        mergedAgenda: mergedAgenda,
+        mergedAgenda: filteredMergedAgenda,
       );
       if (refreshEpoch == _feedMutationEpoch) {
         _pendingCenteredDocId = refreshTargetDocId;
@@ -2682,7 +2689,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         _lastPlaybackWindowSignature = null;
         _lastPlaybackRowUpdateDocId = null;
         lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
-        centeredIndex.value = refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
+        centeredIndex.value =
+            refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
       }
 
       if (refreshPlan.freshScheduledIds.isNotEmpty) {
@@ -2693,7 +2701,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
 
       _scheduleInitialFeedVideoPosterWarmup(
-        _initialVisibleVideoWarmupWindow(mergedAgenda),
+        _initialVisibleVideoWarmupWindow(filteredMergedAgenda),
       );
 
       if (agendaList.isNotEmpty && pageApplyPlan.itemsToAdd.isNotEmpty) {
@@ -2706,5 +2714,45 @@ extension AgendaControllerLoadingPart on AgendaController {
       isLoading.value = false;
       _scheduleFeedManifestWindowSync(reason: 'refresh_complete');
     }
+  }
+
+  void _pruneConsumedAgendaOnRefresh() {
+    final current = agendaList.toList(growable: false);
+    final filtered = _filterConsumedAgendaPosts(current);
+    final removedCount = current.length - filtered.length;
+    if (removedCount <= 0) return;
+    debugPrint(
+      '[FeedConsumedRefresh] status=prune_current removed=$removedCount '
+      'before=${current.length} after=${filtered.length}',
+    );
+    _applyRefreshMergedAgenda(mergedAgenda: filtered);
+  }
+
+  List<PostsModel> _filterConsumedAgendaPosts(List<PostsModel> items) {
+    if (items.isEmpty) return items;
+    final diversity = FeedDiversityMemoryService.ensure();
+    final consumedDocIds = diversity.weeklyWatchedPenaltyDocIds();
+    final consumedFloodRootIds = diversity.weeklyWatchedFloodRootIds();
+    if (consumedDocIds.isEmpty && consumedFloodRootIds.isEmpty) {
+      return items;
+    }
+    return items.where((post) {
+      final docId = post.docID.trim();
+      if (docId.isNotEmpty && consumedDocIds.contains(docId)) {
+        return false;
+      }
+      final floodRootId = post.isFloodSeriesContent
+          ? (post.mainFlood.trim().isNotEmpty
+              ? post.mainFlood.trim()
+              : (post.isFloodSeriesRoot
+                  ? docId
+                  : docId.replaceFirst(RegExp(r'_\d+$'), '')))
+          : '';
+      if (floodRootId.isNotEmpty &&
+          consumedFloodRootIds.contains(floodRootId)) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 }
