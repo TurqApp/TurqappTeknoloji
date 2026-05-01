@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.f29_generateFeedManifestScheduled = exports.f29_generateFeedManifestCallable = void 0;
 exports.resolveFeedManifestSlotForNow = resolveFeedManifestSlotForNow;
+exports.resolveLatestCompletedFeedManifestSlotForNow = resolveLatestCompletedFeedManifestSlotForNow;
 exports.rollingFeedManifestDates = rollingFeedManifestDates;
 exports.buildRollingFeedManifestTargets = buildRollingFeedManifestTargets;
 exports.istanbulSlotRangeForDateHour = istanbulSlotRangeForDateHour;
@@ -9,7 +10,6 @@ exports.buildFeedManifestItems = buildFeedManifestItems;
 exports.buildFeedManifestSlot = buildFeedManifestSlot;
 exports.buildFeedManifestActiveIndex = buildFeedManifestActiveIndex;
 exports.generateFeedManifest = generateFeedManifest;
-const axios_1 = require("axios");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -18,7 +18,7 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const functions = require("firebase-functions");
 const rateLimiter_1 = require("./rateLimiter");
 const REGION = getEnv("FEED_MANIFEST_REGION") || getEnv("TYPESENSE_REGION") || "us-central1";
-const POSTS_COLLECTION = "posts_search";
+const POSTS_COLLECTION = "Posts";
 const FEED_MANIFEST_COLLECTION = "feedManifest";
 const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
@@ -55,25 +55,6 @@ function getEnv(name) {
     catch {
         return "";
     }
-}
-function getTypesenseBaseUrl() {
-    const raw = getEnv("TYPESENSE_HOST");
-    if (!raw)
-        return "";
-    const hasProtocol = raw.startsWith("http://") || raw.startsWith("https://");
-    return (hasProtocol ? raw : `https://${raw}`).replace(/\/+$/g, "");
-}
-function getTypesenseApiKey() {
-    return getEnv("TYPESENSE_API_KEY");
-}
-function typesenseReady() {
-    return !!getTypesenseBaseUrl() && !!getTypesenseApiKey();
-}
-function headers() {
-    return {
-        "X-TYPESENSE-API-KEY": getTypesenseApiKey(),
-        "Content-Type": "application/json",
-    };
 }
 function asString(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -134,6 +115,15 @@ function hourIstanbul(nowMs) {
     return Math.max(0, Math.min(23, Number(parts.find((part) => part.type === "hour")?.value || 0)));
 }
 function resolveFeedManifestSlotForNow(nowMs) {
+    const hour = hourIstanbul(nowMs);
+    const endHour = ((Math.floor(hour / SLOT_HOURS) + 1) * SLOT_HOURS) % 24;
+    const slotDateMs = endHour === 0 ? nowMs + DAY_MS : nowMs;
+    return {
+        date: formatDateIstanbul(slotDateMs),
+        slotHour: clampSlotHour(endHour),
+    };
+}
+function resolveLatestCompletedFeedManifestSlotForNow(nowMs) {
     return {
         date: formatDateIstanbul(nowMs),
         slotHour: clampSlotHour(hourIstanbul(nowMs)),
@@ -147,21 +137,17 @@ function rollingFeedManifestDates(nowMs, days = ROLLING_DAYS) {
     return out;
 }
 function buildRollingFeedManifestTargets(nowMs) {
-    const resolved = resolveFeedManifestSlotForNow(nowMs);
-    const dates = rollingFeedManifestDates(nowMs).slice().reverse();
-    const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
+    const resolved = resolveLatestCompletedFeedManifestSlotForNow(nowMs);
     const targets = [];
-    for (const date of dates) {
-        const eligibleHours = date === resolved.date
-            ? slotHours.filter((hour) => hour <= resolved.slotHour)
-            : slotHours;
-        for (const slotHour of eligibleHours) {
-            targets.push({
-                date,
-                slotHour,
-                isCurrent: date === resolved.date && slotHour === resolved.slotHour,
-            });
-        }
+    const latestRange = istanbulSlotRangeForDateHour(resolved.date, resolved.slotHour);
+    const totalSlots = ROLLING_DAYS * (24 / SLOT_HOURS);
+    for (let offset = totalSlots - 1; offset >= 0; offset -= 1) {
+        const slotEndMsExclusive = latestRange.endMs + 1 - offset * SLOT_HOURS * 60 * 60 * 1000;
+        targets.push({
+            date: formatDateIstanbul(slotEndMsExclusive),
+            slotHour: clampSlotHour(hourIstanbul(slotEndMsExclusive)),
+            isCurrent: offset === 0,
+        });
     }
     return targets;
 }
@@ -171,8 +157,9 @@ function istanbulSlotRangeForDateHour(date, slotHour) {
         throw new Error(`invalid_manifest_date:${date}`);
     }
     const hour = clampSlotHour(slotHour);
-    const startMs = Date.parse(`${normalized}T${String(hour).padStart(2, "0")}:00:00.000${ISTANBUL_UTC_OFFSET}`);
-    const endMs = startMs + SLOT_HOURS * 60 * 60 * 1000 - 1;
+    const endExclusiveMs = Date.parse(`${normalized}T${String(hour).padStart(2, "0")}:00:00.000${ISTANBUL_UTC_OFFSET}`);
+    const startMs = endExclusiveMs - SLOT_HOURS * 60 * 60 * 1000;
+    const endMs = endExclusiveMs - 1;
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
         throw new Error(`invalid_manifest_slot:${date}:${slotHour}`);
     }
@@ -241,7 +228,6 @@ function normalizeManifestItem(candidate) {
     const floodCount = asInt(candidate.floodCount, 1);
     const mainFlood = asString(candidate.mainFlood);
     const isFloodRoot = !flood && !mainFlood && floodCount > 1;
-    const paylasGizliligi = Math.floor(asNumber(candidate.paylasGizliligi, 0));
     const timeStamp = Math.floor(asNumber(candidate.timeStamp));
     const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
     const aspectRatio = asNumber(candidate.aspectRatio, hasPlayableVideo ? 0.5625 : 1);
@@ -251,13 +237,7 @@ function normalizeManifestItem(candidate) {
         return null;
     if (!authorNickname || !authorDisplayName || !authorAvatarUrl)
         return null;
-    if (flood || mainFlood)
-        return null;
-    if (paylasGizliligi !== 0)
-        return null;
-    if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv))
-        return null;
-    if (asBool(candidate.isUploading))
+    if (!rozet)
         return null;
     if (!Number.isFinite(timeStamp) || timeStamp <= 0)
         return null;
@@ -416,7 +396,7 @@ async function generateFeedManifest(params) {
     const slotId = slotIdForHour(slotHour);
     const manifestId = `feed_${params.date}_${slotId}_v${params.generatedAt}`;
     const fetchEndMs = Math.min(params.endMs, params.generatedAt);
-    const fetched = await fetchCandidatesFromTypesense({
+    const fetched = await fetchCandidatesFromFirestore({
         limit: SLOT_SIZE * 4,
         startMs: params.startMs,
         endMs: fetchEndMs,
@@ -467,41 +447,35 @@ async function generateFeedManifest(params) {
         path,
     };
 }
-async function fetchCandidatesFromTypesense(params) {
-    const baseUrl = getTypesenseBaseUrl();
+async function fetchCandidatesFromFirestore(params) {
+    const db = (0, firestore_1.getFirestore)();
     const candidates = [];
     let found = 0;
     let scannedPages = 0;
-    const filterParts = [
-        "paylasGizliligi:=0",
-        "arsiv:=false",
-        "deletedPost:=false",
-        "gizlendi:=false",
-        "isUploading:=false",
-        `timeStamp:>=${params.startMs}`,
-        `timeStamp:<=${params.endMs}`,
-    ];
+    let lastDoc = null;
     for (let page = 1; page <= MAX_SCAN_PAGES && candidates.length < params.limit; page += 1) {
-        const resp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
-            headers: headers(),
-            timeout: 12000,
-            params: {
-                q: "*",
-                query_by: "metin,authorNickname,authorDisplayName",
-                per_page: TYPESENSE_PAGE_SIZE,
-                page,
-                sort_by: "timeStamp:desc",
-                filter_by: filterParts.join(" && "),
-            },
-        });
-        const body = resp.data || {};
-        const hits = Array.isArray(body.hits) ? body.hits : [];
-        found = Number(body.found || found || 0);
-        scannedPages = page;
-        for (const hit of hits) {
-            candidates.push((hit?.document || {}));
+        let query = db
+            .collection(POSTS_COLLECTION)
+            .where("timeStamp", ">=", params.startMs)
+            .where("timeStamp", "<=", params.endMs)
+            .orderBy("timeStamp", "desc")
+            .limit(TYPESENSE_PAGE_SIZE);
+        if (lastDoc) {
+            query = query.startAfter(lastDoc);
         }
-        if (hits.length < TYPESENSE_PAGE_SIZE)
+        const snapshot = await query.get();
+        scannedPages = page;
+        if (snapshot.empty)
+            break;
+        found += snapshot.size;
+        for (const doc of snapshot.docs) {
+            candidates.push({
+                id: doc.id,
+                ...doc.data(),
+            });
+        }
+        lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+        if (snapshot.docs.length < TYPESENSE_PAGE_SIZE)
             break;
     }
     return { candidates, scannedPages, found };
@@ -536,26 +510,22 @@ async function publishFeedManifestSlot(params) {
 async function refreshActiveFeedManifestIndex(publishedAt) {
     const db = (0, firestore_1.getFirestore)();
     const nowMs = Date.now();
-    const dates = rollingFeedManifestDates(nowMs);
-    const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
     const slots = [];
-    for (const date of dates) {
-        for (const slotHour of slotHours) {
-            const slotId = slotIdForHour(slotHour);
-            const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${date}_${slotId}`).get();
-            const data = snapshot.data();
-            if (!data)
-                continue;
-            slots.push({
-                date,
-                slotId,
-                slotHour,
-                itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
-                generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
-                path: asString(data.path),
-                status: asString(data.status) || "active",
-            });
-        }
+    for (const target of buildRollingFeedManifestTargets(nowMs)) {
+        const slotId = slotIdForHour(target.slotHour);
+        const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${target.date}_${slotId}`).get();
+        const data = snapshot.data();
+        if (!data)
+            continue;
+        slots.push({
+            date: target.date,
+            slotId,
+            slotHour: target.slotHour,
+            itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
+            generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
+            path: asString(data.path),
+            status: asString(data.status) || "active",
+        });
     }
     const active = buildFeedManifestActiveIndex({
         nowMs,
@@ -595,13 +565,9 @@ exports.f29_generateFeedManifestCallable = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
     ensureAdmin();
     const uid = requireAdminAuth(request);
-    if (!typesenseReady()) {
-        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
-    }
     const nowMs = Date.now();
     const resolved = resolveFeedManifestSlotForNow(nowMs);
     const date = asString(request.data?.date) || resolved.date;
@@ -624,9 +590,8 @@ exports.f29_generateFeedManifestCallable = (0, https_1.onCall)({
         });
     }
     catch (err) {
-        const status = err?.response?.status;
-        const detail = err?.response?.data || err?.message || "unknown_error";
-        console.error("feed_manifest_generate_failed", { status, detail });
+        const detail = err?.message || "unknown_error";
+        console.error("feed_manifest_generate_failed", { detail });
         throw new https_1.HttpsError("internal", "feed_manifest_generate_failed", detail);
     }
 });
@@ -636,13 +601,8 @@ exports.f29_generateFeedManifestScheduled = (0, scheduler_1.onSchedule)({
     memory: "512MiB",
     schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5 */3 * * *",
     timeZone: "Europe/Istanbul",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async () => {
     ensureAdmin();
-    if (!typesenseReady()) {
-        console.log("feed_manifest_scheduled_skipped", { reason: "typesense_not_configured" });
-        return;
-    }
     const nowMs = Date.now();
     try {
         const results = await generateRollingFeedManifestBackfill(nowMs);
@@ -657,9 +617,8 @@ exports.f29_generateFeedManifestScheduled = (0, scheduler_1.onSchedule)({
         });
     }
     catch (err) {
-        const status = err?.response?.status;
-        const detail = err?.response?.data || err?.message || "unknown_error";
-        console.error("feed_manifest_scheduled_failed", { status, detail });
+        const detail = err?.message || "unknown_error";
+        console.error("feed_manifest_scheduled_failed", { detail });
         throw err;
     }
 });

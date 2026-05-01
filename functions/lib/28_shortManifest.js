@@ -6,7 +6,6 @@ exports.istanbulDayRangeForDate = istanbulDayRangeForDate;
 exports.buildShortManifestItems = buildShortManifestItems;
 exports.buildIndexAndSlots = buildIndexAndSlots;
 exports.generateShortManifest = generateShortManifest;
-const axios_1 = require("axios");
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const storage_1 = require("firebase-admin/storage");
@@ -15,11 +14,11 @@ const scheduler_1 = require("firebase-functions/v2/scheduler");
 const functions = require("firebase-functions");
 const rateLimiter_1 = require("./rateLimiter");
 const REGION = getEnv("SHORT_MANIFEST_REGION") || getEnv("TYPESENSE_REGION") || "us-central1";
-const POSTS_COLLECTION = "posts_search";
+const POSTS_COLLECTION = "Posts";
 const SHORT_MANIFEST_COLLECTION = "shortManifest";
 const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
-const DEFAULT_MAX_SLOTS = 2;
+const DEFAULT_MAX_SLOTS = 1;
 const MAX_SLOTS = 12;
 const MAX_SCAN_PAGES = 24;
 const TYPESENSE_PAGE_SIZE = 250;
@@ -53,25 +52,6 @@ function getEnv(name) {
     catch {
         return "";
     }
-}
-function getTypesenseBaseUrl() {
-    const raw = getEnv("TYPESENSE_HOST");
-    if (!raw)
-        return "";
-    const hasProtocol = raw.startsWith("http://") || raw.startsWith("https://");
-    return (hasProtocol ? raw : `https://${raw}`).replace(/\/+$/g, "");
-}
-function getTypesenseApiKey() {
-    return getEnv("TYPESENSE_API_KEY");
-}
-function typesenseReady() {
-    return !!getTypesenseBaseUrl() && !!getTypesenseApiKey();
-}
-function headers() {
-    return {
-        "X-TYPESENSE-API-KEY": getTypesenseApiKey(),
-        "Content-Type": "application/json",
-    };
 }
 function asString(value) {
     return typeof value === "string" ? value.trim() : "";
@@ -152,6 +132,18 @@ function buildShortUrl(shortId, docId) {
     const id = shortId || docId;
     return id ? `https://${TURQAPP_SHORT_DOMAIN}/p/${id}` : "";
 }
+function resolveCanonicalId(candidate) {
+    const mainFlood = asString(candidate.mainFlood);
+    if (mainFlood)
+        return mainFlood;
+    const docId = asString(candidate.id);
+    const floodCount = asInt(candidate.floodCount, 1);
+    if (docId && floodCount > 1 && !asBool(candidate.flood))
+        return docId;
+    if (docId && /_\\d+$/.test(docId))
+        return docId.replace(/_\\d+$/, "");
+    return docId;
+}
 function qualityScore(candidate) {
     return (asInt(candidate.likeCount) * 3 +
         asInt(candidate.savedCount) * 4 +
@@ -161,6 +153,7 @@ function qualityScore(candidate) {
 }
 function normalizeManifestItem(candidate) {
     const docId = asString(candidate.id);
+    const canonicalId = resolveCanonicalId(candidate);
     const userID = asString(candidate.userID);
     const authorNickname = asString(candidate.authorNickname);
     const authorDisplayName = asString(candidate.authorDisplayName) || authorNickname;
@@ -171,20 +164,23 @@ function normalizeManifestItem(candidate) {
     const hlsMasterUrl = asString(candidate.hlsMasterUrl);
     const hlsStatus = asString(candidate.hlsStatus).toLowerCase();
     const floodCount = asInt(candidate.floodCount, 1);
-    const paylasGizliligi = Math.floor(asNumber(candidate.paylasGizliligi, 0));
+    const mainFlood = asString(candidate.mainFlood);
+    const isFloodRoot = !asBool(candidate.flood) && !mainFlood && floodCount > 1;
     const shortId = asString(candidate.shortId);
     const shortUrl = asString(candidate.shortUrl) || buildShortUrl(shortId, docId);
     const posterCandidates = Array.from(new Set([thumbnail, ...img].filter(Boolean)));
     const timeStamp = Math.floor(asNumber(candidate.timeStamp));
     const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
     const aspectRatio = asNumber(candidate.aspectRatio);
-    if (!docId || !userID)
+    if (!docId || !canonicalId || !userID)
         return null;
     if (!authorNickname || !authorDisplayName || !authorAvatarUrl || !rozet)
         return null;
+    if (asBool(candidate.flood) || mainFlood || isFloodRoot)
+        return null;
     if (!thumbnail || posterCandidates.length === 0)
         return null;
-    if (!hlsMasterUrl || hlsStatus !== "ready" || candidate.hasPlayableVideo !== true)
+    if (!hlsMasterUrl || hlsStatus !== "ready")
         return null;
     if (!Number.isFinite(aspectRatio) || aspectRatio <= 0)
         return null;
@@ -192,14 +188,9 @@ function normalizeManifestItem(candidate) {
         return null;
     if (!shortUrl)
         return null;
-    if (paylasGizliligi !== 0)
-        return null;
-    if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv))
-        return null;
-    if (asBool(candidate.isUploading) || asBool(candidate.flood) || floodCount > 1)
-        return null;
     return {
         docId,
+        canonicalId,
         userID,
         authorNickname,
         authorDisplayName,
@@ -217,6 +208,8 @@ function normalizeManifestItem(candidate) {
         createdAtTs,
         shortId,
         shortUrl,
+        contentType: asString(candidate.contentType),
+        source: "manifest",
         stats: {
             likeCount: asInt(candidate.likeCount),
             commentCount: asInt(candidate.commentCount),
@@ -229,7 +222,9 @@ function normalizeManifestItem(candidate) {
             gizlendi: false,
             arsiv: false,
             flood: false,
-            floodCount,
+            floodCount: asInt(candidate.floodCount, 1),
+            mainFlood: "",
+            isFloodRoot,
             paylasGizliligi: 0,
         },
     };
@@ -307,7 +302,7 @@ function buildIndexAndSlots(params) {
 async function generateShortManifest(params) {
     const manifestId = `short_${params.date}_v${params.generatedAt}`;
     const targetItemCount = params.maxSlots * SLOT_SIZE;
-    const fetched = await fetchCandidatesFromTypesense({
+    const fetched = await fetchCandidatesFromFirestore({
         limit: targetItemCount * 3,
         startMs: params.startMs,
         endMs: params.endMs,
@@ -354,45 +349,35 @@ async function generateShortManifest(params) {
         indexPath: `${SHORT_MANIFEST_COLLECTION}/${params.date}/index.json`,
     };
 }
-async function fetchCandidatesFromTypesense(params) {
-    const baseUrl = getTypesenseBaseUrl();
+async function fetchCandidatesFromFirestore(params) {
+    const db = (0, firestore_1.getFirestore)();
     const candidates = [];
     let found = 0;
     let scannedPages = 0;
-    const filterParts = [
-        "paylasGizliligi:=0",
-        "arsiv:=false",
-        "deletedPost:=false",
-        "gizlendi:=false",
-        "isUploading:=false",
-        "hasPlayableVideo:=true",
-        "hlsStatus:=ready",
-        "flood:=false",
-        "floodCount:<=1",
-        `timeStamp:>=${params.startMs}`,
-        `timeStamp:<=${params.endMs}`,
-    ];
+    let lastDoc = null;
     for (let page = 1; page <= MAX_SCAN_PAGES && candidates.length < params.limit; page += 1) {
-        const resp = await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
-            headers: headers(),
-            timeout: 12000,
-            params: {
-                q: "*",
-                query_by: "metin,authorNickname,authorDisplayName",
-                per_page: TYPESENSE_PAGE_SIZE,
-                page,
-                sort_by: "timeStamp:desc",
-                filter_by: filterParts.join(" && "),
-            },
-        });
-        const body = resp.data || {};
-        const hits = Array.isArray(body.hits) ? body.hits : [];
-        found = Number(body.found || found || 0);
-        scannedPages = page;
-        for (const hit of hits) {
-            candidates.push((hit?.document || {}));
+        let query = db
+            .collection(POSTS_COLLECTION)
+            .where("timeStamp", ">=", params.startMs)
+            .where("timeStamp", "<=", params.endMs)
+            .orderBy("timeStamp", "desc")
+            .limit(TYPESENSE_PAGE_SIZE);
+        if (lastDoc) {
+            query = query.startAfter(lastDoc);
         }
-        if (hits.length < TYPESENSE_PAGE_SIZE)
+        const snapshot = await query.get();
+        scannedPages = page;
+        if (snapshot.empty)
+            break;
+        found += snapshot.size;
+        for (const doc of snapshot.docs) {
+            candidates.push({
+                id: doc.id,
+                ...doc.data(),
+            });
+        }
+        lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+        if (snapshot.docs.length < TYPESENSE_PAGE_SIZE)
             break;
     }
     return { candidates, scannedPages, found };
@@ -438,13 +423,9 @@ exports.f28_generateShortManifestCallable = (0, https_1.onCall)({
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
     ensureAdmin();
     const uid = requireAdminAuth(request);
-    if (!typesenseReady()) {
-        throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
-    }
     const nowMs = Date.now();
     const requestedDate = asString(request.data?.date);
     const date = requestedDate || resolveShortManifestDateForNow(nowMs);
@@ -465,9 +446,8 @@ exports.f28_generateShortManifestCallable = (0, https_1.onCall)({
         });
     }
     catch (err) {
-        const status = err?.response?.status;
-        const detail = err?.response?.data || err?.message || "unknown_error";
-        console.error("short_manifest_generate_failed", { status, detail });
+        const detail = err?.message || "unknown_error";
+        console.error("short_manifest_generate_failed", { detail });
         throw new https_1.HttpsError("internal", "short_manifest_generate_failed", detail);
     }
 });
@@ -477,13 +457,8 @@ exports.f28_generateShortManifestScheduled = (0, scheduler_1.onSchedule)({
     memory: "512MiB",
     schedule: getEnv("SHORT_MANIFEST_SCHEDULE") || "10 0 * * *",
     timeZone: "Europe/Istanbul",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async () => {
     ensureAdmin();
-    if (!typesenseReady()) {
-        console.log("short_manifest_scheduled_skipped", { reason: "typesense_not_configured" });
-        return;
-    }
     const nowMs = Date.now();
     const date = resolveShortManifestDateForNow(nowMs);
     const defaultRange = istanbulDayRangeForDate(date);
@@ -500,9 +475,8 @@ exports.f28_generateShortManifestScheduled = (0, scheduler_1.onSchedule)({
         console.log("short_manifest_scheduled_done", result);
     }
     catch (err) {
-        const status = err?.response?.status;
-        const detail = err?.response?.data || err?.message || "unknown_error";
-        console.error("short_manifest_scheduled_failed", { status, detail });
+        const detail = err?.message || "unknown_error";
+        console.error("short_manifest_scheduled_failed", { detail });
         throw err;
     }
 });

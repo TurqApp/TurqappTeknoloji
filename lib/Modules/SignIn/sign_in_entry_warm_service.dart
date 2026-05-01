@@ -318,7 +318,10 @@ class SignInEntryWarmService {
       try {
         await runStep(
           'feed_manifest',
-          () => ensureFeedManifestRepository().warmStartupWindow(),
+          () async {
+            await ensureFeedManifestRepository().syncActiveWindowIfChanged();
+            await ensureFeedManifestRepository().warmStartupWindow();
+          },
         );
         await runStep(
           'short_manifest',

@@ -12,10 +12,13 @@ class FeedManifestPolicy {
   static const Duration primaryInitialGuestLoadTimeout = Duration(seconds: 16);
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 12;
+  static const int gapSlotBatchSize = 15;
+  static const Duration gapWindowDelay = Duration(hours: 1);
+  static const Duration gapWindowDuration = Duration(hours: 1);
   static const int minUserSpacing = 0;
   static const int maxItemsPerUser = 1000000;
   static const int startupHeadRememberLimit = 60;
-  static const int maxGapCandidateLimit = 180;
+  static const int maxGapCandidateLimit = 60;
   static const int minGapCandidateLimit = 60;
   static const int startupSlotLoadBudget = 24;
   static const int maxSlotLoadBudget = 24;

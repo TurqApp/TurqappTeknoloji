@@ -501,6 +501,7 @@ class SignInApplicationService {
     try {
       final userId = _ensureCurrentUserService().effectiveUserId.trim();
       if (userId.isEmpty) return;
+      await ensureFeedManifestRepository().syncActiveWindowIfChanged();
       final warmFeedManifestFuture =
           ensureFeedManifestRepository().warmStartupWindow();
       if (timeout == null) {

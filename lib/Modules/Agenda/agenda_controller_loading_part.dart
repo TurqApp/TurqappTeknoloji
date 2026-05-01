@@ -1130,9 +1130,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           : (pageLimit ?? fetchLimit);
       final currentAgenda = agendaList.toList(growable: false);
       final liveConnected = ContentPolicy.isConnected;
-      final sourcePageLimit = initial && liveConnected
-          ? (isCityMode ? 50 : FeedSnapshotRepository.startupHomeLimitValue)
-          : loadLimit;
+      final sourcePageLimit = initial ? loadLimit : (pageLimit ?? fetchLimit);
       final shouldPreferCacheOnOpen = !liveConnected;
       final seenDocIds = currentAgenda
           .map((post) => post.docID.trim())
@@ -1210,9 +1208,9 @@ extension AgendaControllerLoadingPart on AgendaController {
               : (isCityMode
                   ? effectiveRawPageVisibleItems
                   : _applyStartupPlannerHeadOrder(
-                  effectiveRawPageVisibleItems,
-                  allowSparseSlotFallback: liveConnected,
-                )))
+                      effectiveRawPageVisibleItems,
+                      allowSparseSlotFallback: liveConnected,
+                    )))
           : effectiveRawPageVisibleItems;
       if (initial &&
           currentAgenda.isEmpty &&
@@ -2649,13 +2647,12 @@ extension AgendaControllerLoadingPart on AgendaController {
       final refreshTargetIndex = filteredMergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );
-      final refreshTargetDocId =
-          refreshTargetIndex >= 0 &&
-                  refreshTargetIndex < filteredMergedAgenda.length
-              ? filteredMergedAgenda[refreshTargetIndex].docID
-              : (filteredMergedAgenda.isNotEmpty
-                  ? filteredMergedAgenda.first.docID
-                  : null);
+      final refreshTargetDocId = refreshTargetIndex >= 0 &&
+              refreshTargetIndex < filteredMergedAgenda.length
+          ? filteredMergedAgenda[refreshTargetIndex].docID
+          : (filteredMergedAgenda.isNotEmpty
+              ? filteredMergedAgenda.first.docID
+              : null);
 
       _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
       lastDoc = pageApplyPlan.lastDoc;
@@ -2689,8 +2686,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         _lastPlaybackWindowSignature = null;
         _lastPlaybackRowUpdateDocId = null;
         lastCenteredIndex = refreshTargetIndex >= 0 ? refreshTargetIndex : 0;
-        centeredIndex.value =
-            refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
+        centeredIndex.value = refreshTargetIndex >= 0 ? refreshTargetIndex : -1;
       }
 
       if (refreshPlan.freshScheduledIds.isNotEmpty) {

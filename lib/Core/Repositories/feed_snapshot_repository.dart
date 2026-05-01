@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
@@ -39,6 +41,7 @@ abstract class _FeedSnapshotRepositoryBase extends GetxService {
 
 class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
   static const String _homeSurfaceKey = 'feed_home_snapshot';
+  static const String _gapWindowPrefsKey = 'feed_gap_window_v1';
   static const int _defaultPersistLimit =
       ReadBudgetRegistry.feedHomeInitialLimit;
   static const int startupHomeLimit = _defaultPersistLimit;
@@ -55,6 +58,11 @@ class _FeedSnapshotRepositoryState {
   _FeedSnapshotRepositoryState(this.repository);
 
   final FeedSnapshotRepository repository;
+  SharedPreferences? prefs;
+  String? lastGapFinalSummary;
+  String? gapWindowCacheKey;
+  List<FeedManifestEntry> gapWindowCacheEntries = const <FeedManifestEntry>[];
+  Future<List<FeedManifestEntry>>? gapWindowCacheFuture;
 
   late final PostRepository postRepository = PostRepository.ensure();
   late final UserSummaryResolver userSummaryResolver =
@@ -137,6 +145,13 @@ extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
 }
 
 extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
+  void debugPrintLastGapSummary() {
+    if (!_shouldLogDiagnostics) return;
+    final summary = _state.lastGapFinalSummary?.trim();
+    if (summary == null || summary.isEmpty) return;
+    debugPrint(summary);
+  }
+
   Stream<CachedResource<List<PostsModel>>> openHome({
     required String userId,
     int limit = ReadBudgetRegistry.feedHomeInitialLimit,

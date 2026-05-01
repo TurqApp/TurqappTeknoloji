@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -8,11 +8,11 @@ import * as functions from "firebase-functions";
 import { RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("SHORT_MANIFEST_REGION") || getEnv("TYPESENSE_REGION") || "us-central1";
-const POSTS_COLLECTION = "posts_search";
+const POSTS_COLLECTION = "Posts";
 const SHORT_MANIFEST_COLLECTION = "shortManifest";
 const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
-const DEFAULT_MAX_SLOTS = 2;
+const DEFAULT_MAX_SLOTS = 1;
 const MAX_SLOTS = 12;
 const MAX_SCAN_PAGES = 24;
 const TYPESENSE_PAGE_SIZE = 250;
@@ -52,10 +52,14 @@ export type ShortManifestCandidate = {
   isUploading?: unknown;
   flood?: unknown;
   floodCount?: unknown;
+  mainFlood?: unknown;
+  contentType?: unknown;
+  surfaceTargets?: unknown;
 };
 
 type ShortManifestItem = {
   docId: string;
+  canonicalId: string;
   userID: string;
   authorNickname: string;
   authorDisplayName: string;
@@ -73,6 +77,8 @@ type ShortManifestItem = {
   createdAtTs: number;
   shortId: string;
   shortUrl: string;
+  contentType: string;
+  source: "manifest";
   stats: {
     likeCount: number;
     commentCount: number;
@@ -86,6 +92,8 @@ type ShortManifestItem = {
     arsiv: false;
     flood: false;
     floodCount: number;
+    mainFlood: "";
+    isFloodRoot: boolean;
     paylasGizliligi: 0;
   };
 };
@@ -165,28 +173,6 @@ function getEnv(name: string): string {
   } catch {
     return "";
   }
-}
-
-function getTypesenseBaseUrl(): string {
-  const raw = getEnv("TYPESENSE_HOST");
-  if (!raw) return "";
-  const hasProtocol = raw.startsWith("http://") || raw.startsWith("https://");
-  return (hasProtocol ? raw : `https://${raw}`).replace(/\/+$/g, "");
-}
-
-function getTypesenseApiKey(): string {
-  return getEnv("TYPESENSE_API_KEY");
-}
-
-function typesenseReady(): boolean {
-  return !!getTypesenseBaseUrl() && !!getTypesenseApiKey();
-}
-
-function headers() {
-  return {
-    "X-TYPESENSE-API-KEY": getTypesenseApiKey(),
-    "Content-Type": "application/json",
-  };
 }
 
 function asString(value: unknown): string {
@@ -275,6 +261,16 @@ function buildShortUrl(shortId: string, docId: string): string {
   return id ? `https://${TURQAPP_SHORT_DOMAIN}/p/${id}` : "";
 }
 
+function resolveCanonicalId(candidate: ShortManifestCandidate): string {
+  const mainFlood = asString(candidate.mainFlood);
+  if (mainFlood) return mainFlood;
+  const docId = asString(candidate.id);
+  const floodCount = asInt(candidate.floodCount, 1);
+  if (docId && floodCount > 1 && !asBool(candidate.flood)) return docId;
+  if (docId && /_\\d+$/.test(docId)) return docId.replace(/_\\d+$/, "");
+  return docId;
+}
+
 function qualityScore(candidate: ShortManifestCandidate): number {
   return (
     asInt(candidate.likeCount) * 3 +
@@ -287,6 +283,7 @@ function qualityScore(candidate: ShortManifestCandidate): number {
 
 function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifestItem | null {
   const docId = asString(candidate.id);
+  const canonicalId = resolveCanonicalId(candidate);
   const userID = asString(candidate.userID);
   const authorNickname = asString(candidate.authorNickname);
   const authorDisplayName = asString(candidate.authorDisplayName) || authorNickname;
@@ -297,7 +294,8 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
   const hlsMasterUrl = asString(candidate.hlsMasterUrl);
   const hlsStatus = asString(candidate.hlsStatus).toLowerCase();
   const floodCount = asInt(candidate.floodCount, 1);
-  const paylasGizliligi = Math.floor(asNumber(candidate.paylasGizliligi, 0));
+  const mainFlood = asString(candidate.mainFlood);
+  const isFloodRoot = !asBool(candidate.flood) && !mainFlood && floodCount > 1;
   const shortId = asString(candidate.shortId);
   const shortUrl = asString(candidate.shortUrl) || buildShortUrl(shortId, docId);
   const posterCandidates = Array.from(new Set([thumbnail, ...img].filter(Boolean)));
@@ -305,19 +303,18 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
   const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
   const aspectRatio = asNumber(candidate.aspectRatio);
 
-  if (!docId || !userID) return null;
+  if (!docId || !canonicalId || !userID) return null;
   if (!authorNickname || !authorDisplayName || !authorAvatarUrl || !rozet) return null;
+  if (asBool(candidate.flood) || mainFlood || isFloodRoot) return null;
   if (!thumbnail || posterCandidates.length === 0) return null;
-  if (!hlsMasterUrl || hlsStatus !== "ready" || candidate.hasPlayableVideo !== true) return null;
+  if (!hlsMasterUrl || hlsStatus !== "ready") return null;
   if (!Number.isFinite(aspectRatio) || aspectRatio <= 0) return null;
   if (!Number.isFinite(timeStamp) || timeStamp <= 0) return null;
   if (!shortUrl) return null;
-  if (paylasGizliligi !== 0) return null;
-  if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv)) return null;
-  if (asBool(candidate.isUploading) || asBool(candidate.flood) || floodCount > 1) return null;
 
   return {
     docId,
+    canonicalId,
     userID,
     authorNickname,
     authorDisplayName,
@@ -335,6 +332,8 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
     createdAtTs,
     shortId,
     shortUrl,
+    contentType: asString(candidate.contentType),
+    source: "manifest",
     stats: {
       likeCount: asInt(candidate.likeCount),
       commentCount: asInt(candidate.commentCount),
@@ -347,7 +346,9 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
       gizlendi: false,
       arsiv: false,
       flood: false,
-      floodCount,
+      floodCount: asInt(candidate.floodCount, 1),
+      mainFlood: "",
+      isFloodRoot,
       paylasGizliligi: 0,
     },
   };
@@ -446,7 +447,7 @@ export async function generateShortManifest(
 ): Promise<GenerateShortManifestResult> {
   const manifestId = `short_${params.date}_v${params.generatedAt}`;
   const targetItemCount = params.maxSlots * SLOT_SIZE;
-  const fetched = await fetchCandidatesFromTypesense({
+  const fetched = await fetchCandidatesFromFirestore({
     limit: targetItemCount * 3,
     startMs: params.startMs,
     endMs: params.endMs,
@@ -497,51 +498,39 @@ export async function generateShortManifest(
   };
 }
 
-async function fetchCandidatesFromTypesense(params: {
+async function fetchCandidatesFromFirestore(params: {
   limit: number;
   startMs: number;
   endMs: number;
 }): Promise<{ candidates: ShortManifestCandidate[]; scannedPages: number; found: number }> {
-  const baseUrl = getTypesenseBaseUrl();
+  const db = getFirestore();
   const candidates: ShortManifestCandidate[] = [];
   let found = 0;
   let scannedPages = 0;
-
-  const filterParts = [
-    "paylasGizliligi:=0",
-    "arsiv:=false",
-    "deletedPost:=false",
-    "gizlendi:=false",
-    "isUploading:=false",
-    "hasPlayableVideo:=true",
-    "hlsStatus:=ready",
-    "flood:=false",
-    "floodCount:<=1",
-    `timeStamp:>=${params.startMs}`,
-    `timeStamp:<=${params.endMs}`,
-  ];
+  let lastDoc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData> | null = null;
 
   for (let page = 1; page <= MAX_SCAN_PAGES && candidates.length < params.limit; page += 1) {
-    const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
-      headers: headers(),
-      timeout: 12000,
-      params: {
-        q: "*",
-        query_by: "metin,authorNickname,authorDisplayName",
-        per_page: TYPESENSE_PAGE_SIZE,
-        page,
-        sort_by: "timeStamp:desc",
-        filter_by: filterParts.join(" && "),
-      },
-    });
-    const body = resp.data || {};
-    const hits = Array.isArray(body.hits) ? body.hits : [];
-    found = Number(body.found || found || 0);
-    scannedPages = page;
-    for (const hit of hits) {
-      candidates.push((hit?.document || {}) as ShortManifestCandidate);
+    let query = db
+      .collection(POSTS_COLLECTION)
+      .where("timeStamp", ">=", params.startMs)
+      .where("timeStamp", "<=", params.endMs)
+      .orderBy("timeStamp", "desc")
+      .limit(TYPESENSE_PAGE_SIZE);
+    if (lastDoc) {
+      query = query.startAfter(lastDoc);
     }
-    if (hits.length < TYPESENSE_PAGE_SIZE) break;
+    const snapshot = await query.get();
+    scannedPages = page;
+    if (snapshot.empty) break;
+    found += snapshot.size;
+    for (const doc of snapshot.docs) {
+      candidates.push({
+        id: doc.id,
+        ...(doc.data() as ShortManifestCandidate),
+      });
+    }
+    lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    if (snapshot.docs.length < TYPESENSE_PAGE_SIZE) break;
   }
 
   return { candidates, scannedPages, found };
@@ -597,14 +586,10 @@ export const f28_generateShortManifestCallable = onCall(
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
     ensureAdmin();
     const uid = requireAdminAuth(request);
-    if (!typesenseReady()) {
-      throw new HttpsError("failed-precondition", "typesense_not_configured");
-    }
 
     const nowMs = Date.now();
     const requestedDate = asString(request.data?.date);
@@ -626,9 +611,8 @@ export const f28_generateShortManifestCallable = onCall(
         generatedAt: nowMs,
       });
     } catch (err: any) {
-      const status = (err as AxiosError)?.response?.status;
-      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
-      console.error("short_manifest_generate_failed", { status, detail });
+      const detail = err?.message || "unknown_error";
+      console.error("short_manifest_generate_failed", { detail });
       throw new HttpsError("internal", "short_manifest_generate_failed", detail);
     }
   },
@@ -641,15 +625,9 @@ export const f28_generateShortManifestScheduled = onSchedule(
     memory: "512MiB",
     schedule: getEnv("SHORT_MANIFEST_SCHEDULE") || "10 0 * * *",
     timeZone: "Europe/Istanbul",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async () => {
     ensureAdmin();
-    if (!typesenseReady()) {
-      console.log("short_manifest_scheduled_skipped", { reason: "typesense_not_configured" });
-      return;
-    }
-
     const nowMs = Date.now();
     const date = resolveShortManifestDateForNow(nowMs);
     const defaultRange = istanbulDayRangeForDate(date);
@@ -665,9 +643,8 @@ export const f28_generateShortManifestScheduled = onSchedule(
       });
       console.log("short_manifest_scheduled_done", result);
     } catch (err: any) {
-      const status = (err as AxiosError)?.response?.status;
-      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
-      console.error("short_manifest_scheduled_failed", { status, detail });
+      const detail = err?.message || "unknown_error";
+      console.error("short_manifest_scheduled_failed", { detail });
       throw err;
     }
   },

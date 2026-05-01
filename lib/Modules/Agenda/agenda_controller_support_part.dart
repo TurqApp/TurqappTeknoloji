@@ -293,6 +293,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
   }
 
   void handleNetworkPolicyTransition(NetworkType networkType) {
+    ensureFeedSnapshotRepository().debugPrintLastGapSummary();
     debugPrint(
       '[FeedNetworkPolicy] status=dispatch network=${networkType.name} '
       'frozen=$_renderWindowFrozenOnCellular agendaCount=${agendaList.length}',
@@ -317,6 +318,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
         ),
       );
     } else if (networkType == NetworkType.wifi) {
+      ensureFeedSnapshotRepository().debugPrintLastGapSummary();
       debugPrint(
         '[FeedStartupSurface] status=skip_network_repeat '
         'network=${networkType.name} agendaCount=${agendaList.length} '

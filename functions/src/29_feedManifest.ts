@@ -1,4 +1,3 @@
-import axios, { AxiosError } from "axios";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -8,7 +7,7 @@ import * as functions from "firebase-functions";
 import { RateLimits } from "./rateLimiter";
 
 const REGION = getEnv("FEED_MANIFEST_REGION") || getEnv("TYPESENSE_REGION") || "us-central1";
-const POSTS_COLLECTION = "posts_search";
+const POSTS_COLLECTION = "Posts";
 const FEED_MANIFEST_COLLECTION = "feedManifest";
 const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
@@ -197,28 +196,6 @@ function getEnv(name: string): string {
   }
 }
 
-function getTypesenseBaseUrl(): string {
-  const raw = getEnv("TYPESENSE_HOST");
-  if (!raw) return "";
-  const hasProtocol = raw.startsWith("http://") || raw.startsWith("https://");
-  return (hasProtocol ? raw : `https://${raw}`).replace(/\/+$/g, "");
-}
-
-function getTypesenseApiKey(): string {
-  return getEnv("TYPESENSE_API_KEY");
-}
-
-function typesenseReady(): boolean {
-  return !!getTypesenseBaseUrl() && !!getTypesenseApiKey();
-}
-
-function headers() {
-  return {
-    "X-TYPESENSE-API-KEY": getTypesenseApiKey(),
-    "Content-Type": "application/json",
-  };
-}
-
 function asString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -281,6 +258,18 @@ function hourIstanbul(nowMs: number): number {
 }
 
 export function resolveFeedManifestSlotForNow(nowMs: number): { date: string; slotHour: number } {
+  const hour = hourIstanbul(nowMs);
+  const endHour = ((Math.floor(hour / SLOT_HOURS) + 1) * SLOT_HOURS) % 24;
+  const slotDateMs = endHour === 0 ? nowMs + DAY_MS : nowMs;
+  return {
+    date: formatDateIstanbul(slotDateMs),
+    slotHour: clampSlotHour(endHour),
+  };
+}
+
+export function resolveLatestCompletedFeedManifestSlotForNow(
+  nowMs: number,
+): { date: string; slotHour: number } {
   return {
     date: formatDateIstanbul(nowMs),
     slotHour: clampSlotHour(hourIstanbul(nowMs)),
@@ -301,22 +290,20 @@ export function rollingFeedManifestDates(nowMs: number, days = ROLLING_DAYS): st
 
 export function buildRollingFeedManifestTargets(nowMs: number): FeedManifestGenerationTarget[] {
   const referenceNowMs = resolveFeedManifestReferenceNow(nowMs);
-  const resolved = resolveFeedManifestSlotForNow(referenceNowMs);
-  const dates = rollingFeedManifestDates(referenceNowMs).slice().reverse();
-  const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
+  const resolved = resolveLatestCompletedFeedManifestSlotForNow(
+    referenceNowMs,
+  );
   const targets: FeedManifestGenerationTarget[] = [];
 
-  for (const date of dates) {
-    const eligibleHours = date === resolved.date
-      ? slotHours.filter((hour) => hour <= resolved.slotHour)
-      : slotHours;
-    for (const slotHour of eligibleHours) {
-      targets.push({
-        date,
-        slotHour,
-        isCurrent: date === resolved.date && slotHour === resolved.slotHour,
-      });
-    }
+  const latestRange = istanbulSlotRangeForDateHour(resolved.date, resolved.slotHour);
+  const totalSlots = ROLLING_DAYS * (24 / SLOT_HOURS);
+  for (let offset = totalSlots - 1; offset >= 0; offset -= 1) {
+    const slotEndMsExclusive = latestRange.endMs + 1 - offset * SLOT_HOURS * 60 * 60 * 1000;
+    targets.push({
+      date: formatDateIstanbul(slotEndMsExclusive),
+      slotHour: clampSlotHour(hourIstanbul(slotEndMsExclusive)),
+      isCurrent: offset === 0,
+    });
   }
 
   return targets;
@@ -331,8 +318,11 @@ export function istanbulSlotRangeForDateHour(
     throw new Error(`invalid_manifest_date:${date}`);
   }
   const hour = clampSlotHour(slotHour);
-  const startMs = Date.parse(`${normalized}T${String(hour).padStart(2, "0")}:00:00.000${ISTANBUL_UTC_OFFSET}`);
-  const endMs = startMs + SLOT_HOURS * 60 * 60 * 1000 - 1;
+  const endExclusiveMs = Date.parse(
+    `${normalized}T${String(hour).padStart(2, "0")}:00:00.000${ISTANBUL_UTC_OFFSET}`,
+  );
+  const startMs = endExclusiveMs - SLOT_HOURS * 60 * 60 * 1000;
+  const endMs = endExclusiveMs - 1;
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
     throw new Error(`invalid_manifest_slot:${date}:${slotHour}`);
   }
@@ -407,7 +397,6 @@ function normalizeManifestItem(candidate: FeedManifestCandidate): FeedManifestIt
   const floodCount = asInt(candidate.floodCount, 1);
   const mainFlood = asString(candidate.mainFlood);
   const isFloodRoot = !flood && !mainFlood && floodCount > 1;
-  const paylasGizliligi = Math.floor(asNumber(candidate.paylasGizliligi, 0));
   const timeStamp = Math.floor(asNumber(candidate.timeStamp));
   const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
   const aspectRatio = asNumber(candidate.aspectRatio, hasPlayableVideo ? 0.5625 : 1);
@@ -416,10 +405,7 @@ function normalizeManifestItem(candidate: FeedManifestCandidate): FeedManifestIt
 
   if (!docId || !canonicalId || !userID) return null;
   if (!authorNickname || !authorDisplayName || !authorAvatarUrl) return null;
-  if (flood || mainFlood) return null;
-  if (paylasGizliligi !== 0) return null;
-  if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv)) return null;
-  if (asBool(candidate.isUploading)) return null;
+  if (!rozet) return null;
   if (!Number.isFinite(timeStamp) || timeStamp <= 0) return null;
   if (!shortUrl) return null;
   if (!metin && posterCandidates.length === 0 && !hasPlayableVideo && !isFloodRoot) return null;
@@ -602,7 +588,7 @@ export async function generateFeedManifest(
   const slotId = slotIdForHour(slotHour);
   const manifestId = `feed_${params.date}_${slotId}_v${params.generatedAt}`;
   const fetchEndMs = Math.min(params.endMs, params.generatedAt);
-  const fetched = await fetchCandidatesFromTypesense({
+  const fetched = await fetchCandidatesFromFirestore({
     limit: SLOT_SIZE * 4,
     startMs: params.startMs,
     endMs: fetchEndMs,
@@ -657,47 +643,39 @@ export async function generateFeedManifest(
   };
 }
 
-async function fetchCandidatesFromTypesense(params: {
+async function fetchCandidatesFromFirestore(params: {
   limit: number;
   startMs: number;
   endMs: number;
 }): Promise<{ candidates: FeedManifestCandidate[]; scannedPages: number; found: number }> {
-  const baseUrl = getTypesenseBaseUrl();
+  const db = getFirestore();
   const candidates: FeedManifestCandidate[] = [];
   let found = 0;
   let scannedPages = 0;
-
-  const filterParts = [
-    "paylasGizliligi:=0",
-    "arsiv:=false",
-    "deletedPost:=false",
-    "gizlendi:=false",
-    "isUploading:=false",
-    `timeStamp:>=${params.startMs}`,
-    `timeStamp:<=${params.endMs}`,
-  ];
+  let lastDoc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData> | null = null;
 
   for (let page = 1; page <= MAX_SCAN_PAGES && candidates.length < params.limit; page += 1) {
-    const resp = await axios.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/search`, {
-      headers: headers(),
-      timeout: 12000,
-      params: {
-        q: "*",
-        query_by: "metin,authorNickname,authorDisplayName",
-        per_page: TYPESENSE_PAGE_SIZE,
-        page,
-        sort_by: "timeStamp:desc",
-        filter_by: filterParts.join(" && "),
-      },
-    });
-    const body = resp.data || {};
-    const hits = Array.isArray(body.hits) ? body.hits : [];
-    found = Number(body.found || found || 0);
-    scannedPages = page;
-    for (const hit of hits) {
-      candidates.push((hit?.document || {}) as FeedManifestCandidate);
+    let query = db
+      .collection(POSTS_COLLECTION)
+      .where("timeStamp", ">=", params.startMs)
+      .where("timeStamp", "<=", params.endMs)
+      .orderBy("timeStamp", "desc")
+      .limit(TYPESENSE_PAGE_SIZE);
+    if (lastDoc) {
+      query = query.startAfter(lastDoc);
     }
-    if (hits.length < TYPESENSE_PAGE_SIZE) break;
+    const snapshot = await query.get();
+    scannedPages = page;
+    if (snapshot.empty) break;
+    found += snapshot.size;
+    for (const doc of snapshot.docs) {
+      candidates.push({
+        id: doc.id,
+        ...(doc.data() as FeedManifestCandidate),
+      });
+    }
+    lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+    if (snapshot.docs.length < TYPESENSE_PAGE_SIZE) break;
   }
 
   return { candidates, scannedPages, found };
@@ -740,26 +718,22 @@ async function publishFeedManifestSlot(params: {
 async function refreshActiveFeedManifestIndex(publishedAt: number) {
   const db = getFirestore();
   const nowMs = Date.now();
-  const dates = rollingFeedManifestDates(nowMs);
-  const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
   const slots: FeedManifestActiveSlotRecord[] = [];
 
-  for (const date of dates) {
-    for (const slotHour of slotHours) {
-      const slotId = slotIdForHour(slotHour);
-      const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${date}_${slotId}`).get();
-      const data = snapshot.data();
-      if (!data) continue;
-      slots.push({
-        date,
-        slotId,
-        slotHour,
-        itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
-        generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
-        path: asString(data.path),
-        status: asString(data.status) || "active",
-      });
-    }
+  for (const target of buildRollingFeedManifestTargets(nowMs)) {
+    const slotId = slotIdForHour(target.slotHour);
+    const snapshot = await db.collection(FEED_MANIFEST_COLLECTION).doc(`${target.date}_${slotId}`).get();
+    const data = snapshot.data();
+    if (!data) continue;
+    slots.push({
+      date: target.date,
+      slotId,
+      slotHour: target.slotHour,
+      itemCount: Math.max(0, Math.floor(asNumber(data.itemCount))),
+      generatedAt: Math.max(0, Math.floor(asNumber(data.generatedAt))),
+      path: asString(data.path),
+      status: asString(data.status) || "active",
+    });
   }
 
   const active = buildFeedManifestActiveIndex({
@@ -808,14 +782,10 @@ export const f29_generateFeedManifestCallable = onCall(
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest) => {
     ensureAdmin();
     const uid = requireAdminAuth(request);
-    if (!typesenseReady()) {
-      throw new HttpsError("failed-precondition", "typesense_not_configured");
-    }
 
     const nowMs = Date.now();
     const resolved = resolveFeedManifestSlotForNow(
@@ -841,9 +811,8 @@ export const f29_generateFeedManifestCallable = onCall(
         generatedAt: nowMs,
       });
     } catch (err: any) {
-      const status = (err as AxiosError)?.response?.status;
-      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
-      console.error("feed_manifest_generate_failed", { status, detail });
+      const detail = err?.message || "unknown_error";
+      console.error("feed_manifest_generate_failed", { detail });
       throw new HttpsError("internal", "feed_manifest_generate_failed", detail);
     }
   },
@@ -856,15 +825,9 @@ export const f29_generateFeedManifestScheduled = onSchedule(
     memory: "512MiB",
     schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5 */3 * * *",
     timeZone: "Europe/Istanbul",
-    secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async () => {
     ensureAdmin();
-    if (!typesenseReady()) {
-      console.log("feed_manifest_scheduled_skipped", { reason: "typesense_not_configured" });
-      return;
-    }
-
     const nowMs = Date.now();
     try {
       const results = await generateRollingFeedManifestBackfill(nowMs);
@@ -878,9 +841,8 @@ export const f29_generateFeedManifestScheduled = onSchedule(
         })),
       });
     } catch (err: any) {
-      const status = (err as AxiosError)?.response?.status;
-      const detail = (err as AxiosError)?.response?.data || err?.message || "unknown_error";
-      console.error("feed_manifest_scheduled_failed", { status, detail });
+      const detail = err?.message || "unknown_error";
+      console.error("feed_manifest_scheduled_failed", { detail });
       throw err;
     }
   },

@@ -251,10 +251,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
       await _feedDiversityMemory.ensureReady();
       final gapEntries = await _loadFeedManifestGapEntries(
+        manifestId: pool.manifestId,
         hiddenPostIds: hiddenPostIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         manifestGeneratedAt: pool.generatedAt,
+        primarySlotPath: _resolvePrimarySlotPath(pool.entries),
         limit: limit,
       );
       final seed = FeedManifestPolicy.resolveDeckSeed(
@@ -292,10 +294,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         limit: deckLimit,
         consumedDocIds: consumedDocIds,
         consumedFloodRootIds: consumedFloodRootIds,
+        newestManifestSlotPath: _resolvePrimarySlotPath(pool.entries),
       );
-      final visible = visibleEntries
-          .map((entry) => entry.post)
-          .toList(growable: false);
+      final visible =
+          visibleEntries.map((entry) => entry.post).toList(growable: false);
       if (_shouldLogDiagnostics && visibleEntries.isNotEmpty) {
         final visibleSlotCounts = <String, int>{};
         for (final entry in visibleEntries) {
@@ -323,6 +325,25 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (pageItems.isEmpty) {
         return null;
       }
+      final pageVisibleEntries =
+          visibleEntries.skip(pageStart).take(limit).toList(growable: false);
+      if (_shouldLogDiagnostics && pageVisibleEntries.isNotEmpty) {
+        final topPreview = pageVisibleEntries.take(5).map((entry) {
+          final post = entry.post;
+          final ageMinutes = max(
+            0,
+            ((nowMs - post.timeStamp.toInt()) / const Duration(minutes: 1).inMilliseconds)
+                .floor(),
+          );
+          final slotPath = entry.entry.slotPath.trim();
+          final slotLabel = slotPath == 'typesense_gap' ? 'gap' : slotPath;
+          return '$slotLabel:${post.docID}:age=${ageMinutes}m';
+        }).join(' | ');
+        debugPrint(
+          '[FeedManifestPrimary] status=top_page_preview '
+          'page=$pageNumber preview=$topPreview',
+        );
+      }
       if (pageNumber == 1) {
         _feedDiversityMemory.rememberStartupHead(
           pageItems,
@@ -337,6 +358,13 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           : null;
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        final totalVisibleGapCount = visibleEntries
+            .where((entry) => entry.source == FeedManifestDeckSource.gap)
+            .length;
+        final pageGapCount = pageVisibleEntries
+            .where((entry) => entry.source == FeedManifestDeckSource.gap)
+            .length;
+        final pageSlotFillCount = pageItems.length - pageGapCount;
         debugPrint(
           '[FeedManifestPrimary] status=ok elapsedMs=$elapsedMs '
           'page=$pageNumber nextPage=${nextPage ?? 0} '
@@ -348,6 +376,17 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           'skippedConsumed=${deck.skippedConsumedCount} '
           'skippedDuplicate=${deck.skippedDuplicateCount}',
         );
+        debugPrint(
+          '[GAP_FINAL] page=$pageNumber manifest=${pool.manifestId} '
+          'raw=${gapEntries.length} visible=$totalVisibleGapCount '
+          'pageGap=$pageGapCount pageSlotFill=$pageSlotFillCount '
+          'returned=${pageItems.length}',
+        );
+        _state.lastGapFinalSummary =
+            '[GAP_FINAL] page=$pageNumber manifest=${pool.manifestId} '
+            'raw=${gapEntries.length} visible=$totalVisibleGapCount '
+            'pageGap=$pageGapCount pageSlotFill=$pageSlotFillCount '
+            'returned=${pageItems.length}';
       }
       return FeedSourcePage(
         items: pageItems,
@@ -412,44 +451,223 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   }
 
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({
+    required String manifestId,
     required Set<String> hiddenPostIds,
     required int nowMs,
     required int cutoffMs,
     required int manifestGeneratedAt,
+    required String primarySlotPath,
     required int limit,
   }) async {
     if (!FeedManifestPolicy.typesenseGapEnabled) {
       return const <FeedManifestEntry>[];
     }
-    final gapCutoffMs = max(cutoffMs, manifestGeneratedAt);
-    if (gapCutoffMs >= nowMs) {
+    final slotWindow = _resolveGapSlotWindow(
+      primarySlotPath: primarySlotPath,
+      fallbackGeneratedAt: manifestGeneratedAt,
+    );
+    final gapWindowStartMs =
+        slotWindow.startMs + FeedManifestPolicy.gapWindowDelay.inMilliseconds;
+    final gapCacheUntilMs = slotWindow.endMs;
+    if (nowMs <= gapWindowStartMs) {
       return const <FeedManifestEntry>[];
     }
-    final anchorMs = startupSurfaceSessionSeed(sessionNamespace: 'feed');
-    final ownedMinutes = LaunchMotorSelectionService.resolveOwnedMinutes(
-      anchorMs: anchorMs,
-      bandMinutes: feedLaunchMotorContract.bandMinutes,
-      minuteSets: feedLaunchMotorContract.minuteSets,
+    if (nowMs >= gapCacheUntilMs) {
+      return const <FeedManifestEntry>[];
+    }
+    final effectiveNowMs = min(nowMs, gapCacheUntilMs);
+    final gapCutoffMs = cutoffMs;
+    if (gapCutoffMs >= effectiveNowMs) {
+      return const <FeedManifestEntry>[];
+    }
+    final cacheKey = '${slotWindow.cacheKey}:$gapWindowStartMs:$gapCacheUntilMs';
+    if (_state.gapWindowCacheKey == cacheKey &&
+        _state.gapWindowCacheFuture == null &&
+        nowMs < gapCacheUntilMs) {
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] gap_status=cache_hit '
+          'manifest=$manifestId count=${_state.gapWindowCacheEntries.length} '
+          'windowStart=$gapWindowStartMs cacheUntil=$gapCacheUntilMs',
+        );
+      }
+      return _state.gapWindowCacheEntries;
+    }
+    final persisted = await _readPersistedGapEntries(
+      cacheKey: cacheKey,
+      nowMs: nowMs,
     );
-    if (ownedMinutes.isEmpty) return const <FeedManifestEntry>[];
+    if (persisted.isNotEmpty) {
+      _state.gapWindowCacheKey = cacheKey;
+      _state.gapWindowCacheEntries = persisted;
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] gap_status=disk_cache_hit '
+          'manifest=$manifestId count=${persisted.length} '
+          'windowStart=$gapWindowStartMs cacheUntil=$gapCacheUntilMs',
+        );
+      }
+      return persisted;
+    }
+    if (_state.gapWindowCacheKey == cacheKey &&
+        _state.gapWindowCacheFuture != null &&
+        nowMs < gapCacheUntilMs) {
+      return _state.gapWindowCacheFuture!;
+    }
+    final ownedMinutes = List<int>.generate(60, (index) => index);
     final candidateLimit = FeedManifestPolicy.resolveGapCandidateLimit(limit);
+    final loadFuture = () async {
+      try {
+        final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
+          surface: 'feed',
+          ownedMinutes: ownedMinutes,
+          limit: candidateLimit,
+          page: 1,
+          nowMs: effectiveNowMs,
+          cutoffMs: gapCutoffMs,
+        );
+        final visible = _filterFeedManifestDeckPosts(
+          motorPage.items,
+          hiddenPostIds: hiddenPostIds,
+          nowMs: effectiveNowMs,
+          cutoffMs: gapCutoffMs,
+          limit: candidateLimit,
+        );
+        final entries = visible
+            .map(
+              (post) => FeedManifestMixer.entryFromPost(
+                post,
+                slotId: 'typesense_gap',
+                slotPath: 'typesense_gap',
+              ),
+            )
+            .toList(growable: false);
+        _state.gapWindowCacheKey = cacheKey;
+        _state.gapWindowCacheEntries = entries;
+        await _persistGapEntries(
+          cacheKey: cacheKey,
+          cacheUntilMs: gapCacheUntilMs,
+          entries: entries,
+        );
+        if (_shouldLogDiagnostics) {
+          debugPrint(
+            '[FeedManifestPrimary] gap_status=ready '
+            'manifest=$manifestId rawFetched=${motorPage.items.length} '
+            'filteredVisible=${visible.length} count=${entries.length} '
+            'windowStart=$gapWindowStartMs '
+            'cacheUntil=$gapCacheUntilMs',
+          );
+          debugPrint(
+            '[GAP] status=ready '
+            'manifest=$manifestId raw=${motorPage.items.length} '
+            'filtered=${visible.length} cached=${entries.length}',
+          );
+        }
+        return entries;
+      } catch (error) {
+        if (_shouldLogDiagnostics) {
+          debugPrint('[FeedManifestPrimary] gap_status=fail error=$error');
+        }
+        return const <FeedManifestEntry>[];
+      } finally {
+        if (_state.gapWindowCacheKey == cacheKey) {
+          _state.gapWindowCacheFuture = null;
+        }
+      }
+    }();
+    _state.gapWindowCacheKey = cacheKey;
+    _state.gapWindowCacheFuture = loadFuture;
+    return loadFuture;
+  }
+
+  String _resolvePrimarySlotPath(List<FeedManifestEntry> entries) {
+    var best = '';
+    for (final entry in entries) {
+      final slotPath = entry.slotPath.trim();
+      if (slotPath.isEmpty || slotPath == 'typesense_gap') continue;
+      if (best.isEmpty ||
+          FeedManifestMixer.compareSlotKeysNewestFirst(slotPath, best) < 0) {
+        best = slotPath;
+      }
+    }
+    return best;
+  }
+
+  ({int startMs, int endMs, String cacheKey}) _resolveGapSlotWindow({
+    required String primarySlotPath,
+    required int fallbackGeneratedAt,
+  }) {
+    final match = RegExp(r'(\d{4}-\d{2}-\d{2}).*slot_(\d{2})')
+        .firstMatch(primarySlotPath);
+    if (match != null) {
+      final day = DateTime.tryParse('${match.group(1)}T00:00:00');
+      final hour = int.tryParse(match.group(2) ?? '');
+      if (day != null && hour != null) {
+        final start = DateTime(
+          day.year,
+          day.month,
+          day.day,
+          hour,
+        );
+        return (
+          startMs: start.millisecondsSinceEpoch,
+          endMs: start
+              .add(FeedManifestRepository.manifestWindowCadence)
+              .millisecondsSinceEpoch,
+          cacheKey: '${match.group(1)}:slot_$hour',
+        );
+      }
+    }
+    final fallbackStart = DateTime.fromMillisecondsSinceEpoch(
+      fallbackGeneratedAt,
+    );
+    final normalized = DateTime(
+      fallbackStart.year,
+      fallbackStart.month,
+      fallbackStart.day,
+      fallbackStart.hour - (fallbackStart.hour % 3),
+    );
+    return (
+      startMs: normalized.millisecondsSinceEpoch,
+      endMs: normalized
+          .add(FeedManifestRepository.manifestWindowCadence)
+          .millisecondsSinceEpoch,
+      cacheKey:
+          '${normalized.year}-${normalized.month}-${normalized.day}:slot_${normalized.hour}',
+    );
+  }
+
+  Future<SharedPreferences> _ensureGapPrefs() async {
+    final existing = _state.prefs;
+    if (existing != null) return existing;
+    final prefs = await SharedPreferences.getInstance();
+    _state.prefs = prefs;
+    return prefs;
+  }
+
+  Future<List<FeedManifestEntry>> _readPersistedGapEntries({
+    required String cacheKey,
+    required int nowMs,
+  }) async {
     try {
-      final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
-        surface: 'feed',
-        ownedMinutes: ownedMinutes,
-        limit: candidateLimit,
-        page: 1,
-        nowMs: nowMs,
-        cutoffMs: gapCutoffMs,
+      final prefs = await _ensureGapPrefs();
+      final raw = prefs.getString(FeedSnapshotRepository._gapWindowPrefsKey);
+      if (raw == null || raw.isEmpty) return const <FeedManifestEntry>[];
+      final json = jsonDecode(raw);
+      if (json is! Map) return const <FeedManifestEntry>[];
+      final map = Map<String, dynamic>.from(json.cast<dynamic, dynamic>());
+      final savedKey = (map['cacheKey'] ?? '').toString().trim();
+      final cacheUntilMs = int.tryParse('${map['cacheUntilMs'] ?? 0}') ?? 0;
+      if (savedKey != cacheKey || cacheUntilMs <= nowMs) {
+        await prefs.remove(FeedSnapshotRepository._gapWindowPrefsKey);
+        return const <FeedManifestEntry>[];
+      }
+      final payload = Map<String, dynamic>.from(
+        (map['payload'] as Map?)?.cast<dynamic, dynamic>() ??
+            const <dynamic, dynamic>{},
       );
-      final visible = _filterFeedManifestDeckPosts(
-        motorPage.items,
-        hiddenPostIds: hiddenPostIds,
-        nowMs: nowMs,
-        cutoffMs: gapCutoffMs,
-        limit: candidateLimit,
-      );
-      return visible
+      final posts = _decodePosts(payload);
+      return posts
           .map(
             (post) => FeedManifestMixer.entryFromPost(
               post,
@@ -458,12 +676,30 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
             ),
           )
           .toList(growable: false);
-    } catch (error) {
-      if (_shouldLogDiagnostics) {
-        debugPrint('[FeedManifestPrimary] gap_status=fail error=$error');
-      }
+    } catch (_) {
       return const <FeedManifestEntry>[];
     }
+  }
+
+  Future<void> _persistGapEntries({
+    required String cacheKey,
+    required int cacheUntilMs,
+    required List<FeedManifestEntry> entries,
+  }) async {
+    try {
+      final prefs = await _ensureGapPrefs();
+      final payload = _encodePosts(
+        entries.map((entry) => entry.post).toList(growable: false),
+      );
+      await prefs.setString(
+        FeedSnapshotRepository._gapWindowPrefsKey,
+        jsonEncode(<String, dynamic>{
+          'cacheKey': cacheKey,
+          'cacheUntilMs': cacheUntilMs,
+          'payload': payload,
+        }),
+      );
+    } catch (_) {}
   }
 
   List<PostsModel> _filterFeedManifestDeckPosts(
@@ -500,6 +736,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     required Set<String> hiddenPostIds,
     required Set<String> consumedDocIds,
     required Set<String> consumedFloodRootIds,
+    required String newestManifestSlotPath,
     required int nowMs,
     required int cutoffMs,
     required int limit,
@@ -509,25 +746,37 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     final manifestBuckets = <String, List<FeedManifestDeckEntry>>{};
+    final gapBucket = <FeedManifestDeckEntry>[];
     final slotOrder = <String>[];
-    final fallbackEntries = <FeedManifestDeckEntry>[];
     final seenCanonicals = <String>{};
     final seenDocIds = <String>{};
     final skippedConsumedDocIds = <String>[];
     final skippedConsumedFloodRootIds = <String>[];
+    final newestSlotGraceDocIds = <String>[];
+    var rawGapCount = 0;
+    var consumedPrunedGapCount = 0;
 
     void considerEntry(
       FeedManifestEntry entry,
       FeedManifestDeckSource source,
     ) {
       final post = entry.post;
+      if (source == FeedManifestDeckSource.gap) {
+        rawGapCount++;
+      }
       final docId = post.docID.trim();
       final canonicalId = entry.canonicalId.trim();
       if (docId.isEmpty || canonicalId.isEmpty) return;
       if (!seenDocIds.add(docId)) return;
       if (!seenCanonicals.add(canonicalId)) return;
       if (hiddenPostIds.contains(docId)) return;
-      if (consumedDocIds.contains(docId)) {
+      final isNewestManifestSlot = source == FeedManifestDeckSource.manifest &&
+          newestManifestSlotPath.isNotEmpty &&
+          entry.slotPath.trim() == newestManifestSlotPath;
+      if (consumedDocIds.contains(docId) && !isNewestManifestSlot) {
+        if (source == FeedManifestDeckSource.gap) {
+          consumedPrunedGapCount++;
+        }
         if (skippedConsumedDocIds.length < 8) {
           skippedConsumedDocIds.add(docId);
         }
@@ -541,11 +790,23 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
                   : docId.replaceFirst(RegExp(r'_\d+$'), '')))
           : '';
       if (floodRootId.isNotEmpty &&
-          consumedFloodRootIds.contains(floodRootId)) {
+          consumedFloodRootIds.contains(floodRootId) &&
+          !isNewestManifestSlot) {
+        if (source == FeedManifestDeckSource.gap) {
+          consumedPrunedGapCount++;
+        }
         if (skippedConsumedFloodRootIds.length < 8) {
           skippedConsumedFloodRootIds.add(floodRootId);
         }
         return;
+      }
+      if (isNewestManifestSlot &&
+          (consumedDocIds.contains(docId) ||
+              (floodRootId.isNotEmpty &&
+                  consumedFloodRootIds.contains(floodRootId)))) {
+        if (newestSlotGraceDocIds.length < 8) {
+          newestSlotGraceDocIds.add(docId);
+        }
       }
       if (post.userID.trim().isEmpty) return;
       if (post.deletedPost == true || post.gizlendi) return;
@@ -560,8 +821,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         entry: entry,
         source: source,
       );
-      if (source != FeedManifestDeckSource.manifest) {
-        fallbackEntries.add(deckEntry);
+      if (source == FeedManifestDeckSource.gap) {
+        gapBucket.add(deckEntry);
         return;
       }
 
@@ -569,7 +830,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           ? entry.slotPath.trim()
           : entry.slotId.trim();
       if (slotKey.isEmpty) {
-        fallbackEntries.add(deckEntry);
         return;
       }
       final bucket = manifestBuckets.putIfAbsent(slotKey, () {
@@ -579,12 +839,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       bucket.add(deckEntry);
     }
 
-    for (final entry in manifestEntries) {
-      considerEntry(entry, FeedManifestDeckSource.manifest);
-    }
-
     for (final entry in gapEntries) {
       considerEntry(entry, FeedManifestDeckSource.gap);
+    }
+
+    for (final entry in manifestEntries) {
+      considerEntry(entry, FeedManifestDeckSource.manifest);
     }
 
     if (_shouldLogDiagnostics &&
@@ -598,6 +858,14 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'floodPreview=$skippedConsumedFloodRootIds',
       );
     }
+    if (_shouldLogDiagnostics && newestSlotGraceDocIds.isNotEmpty) {
+      debugPrint(
+        '[FeedManifestPrimary] status=newest_slot_grace '
+        'slotPath=$newestManifestSlotPath '
+        'keptDocs=${newestSlotGraceDocIds.length} '
+        'docPreview=$newestSlotGraceDocIds',
+      );
+    }
 
     slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);
     for (final bucket in manifestBuckets.values) {
@@ -608,19 +876,37 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         return right.post.docID.compareTo(left.post.docID);
       });
     }
+    gapBucket.sort((left, right) {
+      final timeCompare =
+          right.post.timeStamp.toInt().compareTo(left.post.timeStamp.toInt());
+      if (timeCompare != 0) return timeCompare;
+      return right.post.docID.compareTo(left.post.docID);
+    });
 
     final selected = <FeedManifestDeckEntry>[];
     var added = true;
     while (selected.length < limit && added) {
       added = false;
+      if (gapBucket.isNotEmpty) {
+        final remaining = limit - selected.length;
+        final takeCount = min(
+          FeedManifestPolicy.gapSlotBatchSize,
+          min(gapBucket.length, remaining),
+        );
+        if (takeCount > 0) {
+          selected.addAll(gapBucket.take(takeCount));
+          gapBucket.removeRange(0, takeCount);
+          added = true;
+        }
+      }
       for (var slotIndex = 0; slotIndex < slotOrder.length; slotIndex++) {
         final slotKey = slotOrder[slotIndex];
         final bucket = manifestBuckets[slotKey];
         final remaining = limit - selected.length;
         if (remaining <= 0) break;
         final hasLaterAvailable = slotOrder.skip(slotIndex + 1).any(
-          (key) => (manifestBuckets[key]?.isNotEmpty ?? false),
-        );
+              (key) => (manifestBuckets[key]?.isNotEmpty ?? false),
+            );
         if (bucket == null || bucket.isEmpty) {
           if (_shouldLogDiagnostics && hasLaterAvailable) {
             debugPrint(
@@ -652,14 +938,22 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         added = true;
       }
     }
-
-    if (selected.length >= limit) {
-      return selected;
-    }
-
-    for (final entry in fallbackEntries) {
-      if (selected.length >= limit) break;
-      selected.add(entry);
+    if (_shouldLogDiagnostics && rawGapCount > 0) {
+      final visibleGapCount = selected
+          .where((entry) => entry.source == FeedManifestDeckSource.gap)
+          .length;
+      debugPrint(
+        '[FeedManifestPrimary] gap_status=selection '
+        'rawGapCount=$rawGapCount '
+        'consumedPrunedGapCount=$consumedPrunedGapCount '
+        'visibleGapCount=$visibleGapCount '
+        'limit=$limit',
+      );
+      debugPrint(
+        '[GAP] status=selection '
+        'raw=$rawGapCount pruned=$consumedPrunedGapCount '
+        'visible=$visibleGapCount limit=$limit',
+      );
     }
     return selected;
   }
