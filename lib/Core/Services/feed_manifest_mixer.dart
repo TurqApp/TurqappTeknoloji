@@ -232,6 +232,26 @@ class FeedManifestMixer {
     return post.docID.trim().replaceFirst(RegExp(r'_\d+$'), '');
   }
 
+  static int compareSlotKeysNewestFirst(String left, String right) {
+    final leftMeta = _parseSlotKey(left);
+    final rightMeta = _parseSlotKey(right);
+    final leftDate = leftMeta.$1;
+    final rightDate = rightMeta.$1;
+    if (leftDate != null && rightDate != null && leftDate != rightDate) {
+      return rightDate.compareTo(leftDate);
+    }
+    final leftHour = leftMeta.$2;
+    final rightHour = rightMeta.$2;
+    if (leftHour != null && rightHour != null && leftHour != rightHour) {
+      return rightHour.compareTo(leftHour);
+    }
+    if (leftDate != null && rightDate == null) return -1;
+    if (leftDate == null && rightDate != null) return 1;
+    if (leftHour != null && rightHour == null) return -1;
+    if (leftHour == null && rightHour != null) return 1;
+    return right.compareTo(left);
+  }
+
   static List<FeedManifestEntry> _interleaveManifestEntriesBySlot(
     List<FeedManifestEntry> entries, {
     required int batchSize,
@@ -259,6 +279,8 @@ class FeedManifestMixer {
       });
       bucket.add(entry);
     }
+
+    slotOrder.sort(compareSlotKeysNewestFirst);
 
     final ordered = <FeedManifestEntry>[];
     var added = true;
@@ -336,6 +358,16 @@ class FeedManifestMixer {
     final scoreCompare = a.score.compareTo(b.score);
     if (scoreCompare != 0) return scoreCompare;
     return a.originalIndex.compareTo(b.originalIndex);
+  }
+
+  static (String?, int?) _parseSlotKey(String slotKey) {
+    final normalized = slotKey.trim();
+    if (normalized.isEmpty) return (null, null);
+    final dateMatch = RegExp(r'(\d{4}-\d{2}-\d{2})').firstMatch(normalized);
+    final hourMatch = RegExp(r'slot_(\d{2})').firstMatch(normalized);
+    final date = dateMatch?.group(1);
+    final hour = int.tryParse(hourMatch?.group(1) ?? '');
+    return (date, hour);
   }
 }
 

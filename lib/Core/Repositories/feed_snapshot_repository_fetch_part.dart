@@ -280,16 +280,20 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         minUserSpacing: FeedManifestPolicy.minUserSpacing,
         maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
       );
-      final visible = _filterFeedManifestDeckPosts(
-        deck.posts,
+      final visibleEntries = _selectVisibleFeedManifestEntries(
+        manifestEntries: pool.entries,
+        gapEntries: gapEntries,
         hiddenPostIds: hiddenPostIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         limit: deckLimit,
       );
-      if (_shouldLogDiagnostics && visible.isNotEmpty) {
+      final visible = visibleEntries
+          .map((entry) => entry.post)
+          .toList(growable: false);
+      if (_shouldLogDiagnostics && visibleEntries.isNotEmpty) {
         final visibleSlotCounts = <String, int>{};
-        for (final entry in deck.entries.take(visible.length)) {
+        for (final entry in visibleEntries) {
           visibleSlotCounts.update(entry.entry.slotId, (count) => count + 1,
               ifAbsent: () => 1);
         }
@@ -483,6 +487,107 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (visible.length >= limit) break;
     }
     return visible;
+  }
+
+  List<FeedManifestDeckEntry> _selectVisibleFeedManifestEntries({
+    required List<FeedManifestEntry> manifestEntries,
+    required List<FeedManifestEntry> gapEntries,
+    required Set<String> hiddenPostIds,
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+  }) {
+    if ((manifestEntries.isEmpty && gapEntries.isEmpty) || limit <= 0) {
+      return const <FeedManifestDeckEntry>[];
+    }
+
+    final manifestBuckets = <String, List<FeedManifestDeckEntry>>{};
+    final slotOrder = <String>[];
+    final fallbackEntries = <FeedManifestDeckEntry>[];
+    final seenCanonicals = <String>{};
+    final seenDocIds = <String>{};
+
+    void considerEntry(
+      FeedManifestEntry entry,
+      FeedManifestDeckSource source,
+    ) {
+      final post = entry.post;
+      final docId = post.docID.trim();
+      final canonicalId = entry.canonicalId.trim();
+      if (docId.isEmpty || canonicalId.isEmpty) return;
+      if (!seenDocIds.add(docId)) return;
+      if (!seenCanonicals.add(canonicalId)) return;
+      if (hiddenPostIds.contains(docId)) return;
+      if (post.userID.trim().isEmpty) return;
+      if (post.deletedPost == true || post.gizlendi) return;
+      if (post.shouldHideWhileUploading) return;
+      if (!_isRenderablePost(post)) return;
+      if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
+        return;
+      }
+      if (post.timeStamp > nowMs) return;
+
+      final deckEntry = FeedManifestDeckEntry(
+        entry: entry,
+        source: source,
+      );
+      if (source != FeedManifestDeckSource.manifest) {
+        fallbackEntries.add(deckEntry);
+        return;
+      }
+
+      final slotKey = entry.slotPath.trim().isNotEmpty
+          ? entry.slotPath.trim()
+          : entry.slotId.trim();
+      if (slotKey.isEmpty) {
+        fallbackEntries.add(deckEntry);
+        return;
+      }
+      final bucket = manifestBuckets.putIfAbsent(slotKey, () {
+        slotOrder.add(slotKey);
+        return <FeedManifestDeckEntry>[];
+      });
+      bucket.add(deckEntry);
+    }
+
+    for (final entry in manifestEntries) {
+      considerEntry(entry, FeedManifestDeckSource.manifest);
+    }
+
+    for (final entry in gapEntries) {
+      considerEntry(entry, FeedManifestDeckSource.gap);
+    }
+
+    slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);
+
+    final selected = <FeedManifestDeckEntry>[];
+    var added = true;
+    while (selected.length < limit && added) {
+      added = false;
+      for (final slotKey in slotOrder) {
+        final bucket = manifestBuckets[slotKey];
+        if (bucket == null || bucket.isEmpty) continue;
+        final remaining = limit - selected.length;
+        if (remaining <= 0) break;
+        final takeCount = min(
+          FeedManifestMixer.defaultSlotBatchSize,
+          min(bucket.length, remaining),
+        );
+        selected.addAll(bucket.take(takeCount));
+        bucket.removeRange(0, takeCount);
+        added = true;
+      }
+    }
+
+    if (selected.length >= limit) {
+      return selected;
+    }
+
+    for (final entry in fallbackEntries) {
+      if (selected.length >= limit) break;
+      selected.add(entry);
+    }
+    return selected;
   }
 
   Future<FeedSourcePage> _loadPersonalFallbackPage({
