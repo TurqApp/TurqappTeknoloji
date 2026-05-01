@@ -1,6 +1,57 @@
 part of 'explore_controller.dart';
 
 extension ExploreControllerFeedPart on ExploreController {
+  static const int _exploreFloodInitialHeadHydrateCount = 10;
+
+  Future<void> _performPrimeExploreFloodSeriesHead() async {
+    if (exploreFloods.isNotEmpty || floodsIsLoading.value || !floodsHasMore.value) {
+      return;
+    }
+    floodsIsLoading.value = true;
+    try {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final storedPage = await _exploreRepository.fetchStoredFloodManifestPage(
+        offset: 0,
+        pageLimit: _exploreFloodInitialHeadHydrateCount,
+        nowMs: nowMs,
+      );
+      if (storedPage.items.isEmpty) {
+        unawaited(fetchFloods());
+        return;
+      }
+      var batch = storedPage.items
+          .where((model) => model.flood == false)
+          .where((model) => model.floodCount > 1)
+          .where((model) => model.deletedPost != true)
+          .where((model) => model.timeStamp <= nowMs)
+          .toList(growable: false);
+      batch = await _filterByPrivacy(batch);
+      if (batch.isEmpty) {
+        _floodManifestStoreOffset = storedPage.items.length;
+        floodsHasMore.value = storedPage.hasMore;
+        unawaited(fetchFloods());
+        return;
+      }
+      exploreFloods.assignAll(batch);
+      _floodManifestStoreOffset = storedPage.items.length;
+      floodsHasMore.value =
+          storedPage.hasMore && exploreFloods.length < _exploreFloodListMaxItems;
+      _performResetFloodChildPrefetchPlan();
+      capturePendingFloodEntry(preferredIndex: 0);
+      _performRestoreFloodSeriesFocus();
+      _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: 0);
+      debugPrint(
+        '[FloodManifestStore] status=hydrate_head added=${batch.length} '
+        'offset=$_floodManifestStoreOffset hasMore=${floodsHasMore.value}',
+      );
+      unawaited(_exploreRepository.ensureFloodManifestStoreFresh());
+    } catch (_) {
+      unawaited(fetchFloods());
+    } finally {
+      floodsIsLoading.value = false;
+    }
+  }
+
   void _performBindShortReadyMirror() {
     final shortController = ensureShortController();
     _shortsMirrorWorker?.dispose();
@@ -974,11 +1025,10 @@ extension ExploreControllerFeedPart on ExploreController {
               .toList(growable: false);
           batch = await _filterByPrivacy(batch);
           if (batch.isNotEmpty) {
-            final prioritized = _prioritizeCachedVideos(batch);
             if (exploreFloods.isEmpty) {
               _performResetFloodChildPrefetchPlan();
             }
-            exploreFloods.addAll(prioritized);
+            exploreFloods.addAll(batch);
             _performRestoreFloodSeriesFocus();
             _performScheduleExploreFloodPrefetchFromVisible();
             _floodsEmptyScans = 0;
@@ -986,7 +1036,7 @@ extension ExploreControllerFeedPart on ExploreController {
             floodsHasMore.value = storedPage.hasMore &&
                 exploreFloods.length < _exploreFloodListMaxItems;
             debugPrint(
-              '[FloodManifestStore] status=apply scope=explore offset=$_floodManifestStoreOffset added=${prioritized.length} hasMore=${floodsHasMore.value}',
+              '[FloodManifestStore] status=apply scope=explore offset=$_floodManifestStoreOffset added=${batch.length} hasMore=${floodsHasMore.value}',
             );
             return;
           }

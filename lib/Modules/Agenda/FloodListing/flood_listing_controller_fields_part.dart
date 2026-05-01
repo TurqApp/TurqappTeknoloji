@@ -13,7 +13,6 @@ class _FloodListingControllerState {
   Timer? visibilityDebounce;
   int? lastCenteredIndex;
   String? pendingCenteredDocId;
-  final PostRepository postRepository = PostRepository.ensure();
 }
 
 extension FloodListingControllerFieldsPart on FloodListingController {
@@ -36,5 +35,4 @@ extension FloodListingControllerFieldsPart on FloodListingController {
   String? get _pendingCenteredDocId => _state.pendingCenteredDocId;
   set _pendingCenteredDocId(String? value) =>
       _state.pendingCenteredDocId = value;
-  PostRepository get _postRepository => _state.postRepository;
 }

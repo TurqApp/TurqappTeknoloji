@@ -2,6 +2,10 @@ part of 'explore_repository.dart';
 
 const String _floodManifestStorePrefsKey = 'explore_flood_manifest_store_v1';
 const int _floodManifestStoreRefreshIntervalMs = 24 * 60 * 60 * 1000;
+const int _floodManifestStoreMaxRoots = 10;
+const int _floodManifestStoreWarmRoots = 10;
+const int _floodManifestStoreWarmImagesPerRoot = 4;
+const int _floodManifestStoreWarmReadySegments = 2;
 
 class _StoredFloodManifest {
   const _StoredFloodManifest({
@@ -123,6 +127,93 @@ extension ExploreRepositoryCachePart on ExploreRepository {
     );
   }
 
+  Iterable<Map<String, dynamic>> _floodManifestChildMaps(
+    Map<String, dynamic> item,
+  ) sync* {
+    final children = item['children'];
+    if (children is! List) return;
+    for (final entry in children) {
+      if (entry is! Map) continue;
+      yield Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
+    }
+  }
+
+  PostsModel? _floodManifestPostModelFromMap(
+    Map<String, dynamic> data,
+    String fallbackDocId,
+  ) {
+    final docId = (data['docId'] ?? data['mainPostId'] ?? data['floodRootId'] ?? fallbackDocId)
+        .toString()
+        .trim();
+    if (docId.isEmpty) return null;
+    try {
+      return PostsModel.fromMap(data, docId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _warmFloodManifestMedia(
+    List<Map<String, dynamic>> items,
+  ) async {
+    if (items.isEmpty) return;
+    final scheduler = maybeFindPrefetchScheduler();
+    final warmedImageUrls = <String>{};
+    final warmedVideoDocIds = <String>{};
+
+    for (final item in items.take(_floodManifestStoreWarmRoots)) {
+      final rootModel = _floodManifestPostModelFromMap(
+        item,
+        (item['_manifestDocId'] ?? '').toString().trim(),
+      );
+      if (rootModel == null) continue;
+
+      final seriesModels = <PostsModel>[rootModel];
+      for (final child in _floodManifestChildMaps(item)) {
+        final model = _floodManifestPostModelFromMap(child, rootModel.docID);
+        if (model != null) {
+          seriesModels.add(model);
+        }
+      }
+
+      final imageUrls = <String>[];
+      for (final model in seriesModels) {
+        for (final url in <String>[
+          ...model.preferredVideoPosterUrls,
+          ...model.cdnImgUrls,
+        ]) {
+          final normalized = url.trim();
+          if (normalized.isEmpty || !warmedImageUrls.add(normalized)) continue;
+          imageUrls.add(normalized);
+          if (imageUrls.length >= _floodManifestStoreWarmImagesPerRoot) {
+            break;
+          }
+        }
+        if (imageUrls.length >= _floodManifestStoreWarmImagesPerRoot) {
+          break;
+        }
+      }
+
+      for (final url in imageUrls) {
+        try {
+          await TurqImageCacheManager.warmUrl(url);
+        } catch (_) {}
+      }
+
+      if (scheduler == null) continue;
+      for (final model in seriesModels) {
+        if (!model.hasPlayableVideo) continue;
+        if (!warmedVideoDocIds.add(model.docID)) continue;
+        try {
+          scheduler.boostDoc(
+            model.docID,
+            readySegments: _floodManifestStoreWarmReadySegments,
+          );
+        } catch (_) {}
+      }
+    }
+  }
+
   Future<ExploreQueryPage> _fetchStoredFloodManifestPage({
     required int offset,
     required int pageLimit,
@@ -206,7 +297,6 @@ extension ExploreRepositoryCachePart on ExploreRepository {
         payload['generatedAt'],
         fallback: _asInt(payload['publishedAt']),
       );
-      final rootCount = _asInt(payload['rootCount']);
       final rawItems = payload['items'];
       if (rawItems is! List || rawItems.isEmpty) {
         debugPrint(
@@ -233,14 +323,17 @@ extension ExploreRepositoryCachePart on ExploreRepository {
             '[FloodManifestStore] status=refresh_fail reason=normalized_empty');
         return;
       }
+      final trimmedItems =
+          items.take(_floodManifestStoreMaxRoots).toList(growable: false);
       await _writeStoredFloodManifest(
         updatedAtMs: updatedAtMs,
         generatedAtMs: generatedAtMs,
-        rootCount: rootCount > 0 ? rootCount : items.length,
-        items: items,
+        rootCount: trimmedItems.length,
+        items: trimmedItems,
       );
+      unawaited(_warmFloodManifestMedia(trimmedItems));
       debugPrint(
-        '[FloodManifestStore] status=refresh_ok roots=${items.length} updatedAtMs=$updatedAtMs',
+        '[FloodManifestStore] status=refresh_ok roots=${trimmedItems.length} updatedAtMs=$updatedAtMs',
       );
     } catch (e) {
       debugPrint('[FloodManifestStore] status=refresh_fail error=$e');

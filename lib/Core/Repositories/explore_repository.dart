@@ -10,6 +10,8 @@ import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/performance_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 

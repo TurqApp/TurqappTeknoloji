@@ -389,6 +389,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       itemCount: floods.length,
       canAutoplayIndex: (index) => _canAutoplayFloodPost(floods[index]),
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable: true,
     );
 
     if (nextIndex < 0 || nextIndex >= floods.length) {
@@ -407,6 +408,9 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     centeredIndex.value = nextIndex;
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
+    debugPrint(
+      '[FloodSeries] status=centered index=$nextIndex doc=${floods[nextIndex].docID} visible=${(_visibleFractions[nextIndex] ?? 0.0).toStringAsFixed(2)}',
+    );
     capturePendingCenteredEntry(preferredIndex: nextIndex);
     _updateFloodPrefetchPriorityContext(nextIndex);
     _updateFloodPlaybackQueue(nextIndex);
@@ -446,6 +450,9 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     centeredIndex.value = target;
     currentVisibleIndex.value = target;
     lastCenteredIndex = target;
+    debugPrint(
+      '[FloodSeries] status=resume_centered index=$target doc=${floods[target].docID}',
+    );
     capturePendingCenteredEntry(preferredIndex: target);
     _updateFloodPrefetchPriorityContext(target);
     _updateFloodPlaybackQueue(target);

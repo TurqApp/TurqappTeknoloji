@@ -131,6 +131,11 @@ class _FloodListingState extends State<FloodListing> {
                         FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
                       isCentered: isCentered,
                     );
+                    if (shouldPlay) {
+                      debugPrint(
+                        '[FloodSeries] status=should_play index=$index doc=${model.docID}',
+                      );
+                    }
                     final isLastItem = index == controller.floods.length - 1;
 
                     final contentWidget = PostViewTracker(

@@ -5,6 +5,7 @@ extension ExploreControllerApiX on ExploreController {
 
   Future<void> onPrimarySurfaceVisible() {
     _performBindShortReadyMirror();
+    unawaited(_performPrimeExploreFloodSeriesHead());
     return prepareStartupSurface(
       allowBackgroundRefresh:
           ContentPolicy.allowBackgroundRefresh(ContentScreenKind.explore),

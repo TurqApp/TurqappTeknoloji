@@ -62,6 +62,18 @@ extension ExploreControllerPublicPart on ExploreController {
   void resetFloodChildPrefetchPlan() =>
       _ExploreControllerSupportX(this).resetFloodChildPrefetchPlan();
 
+  void resetFloodSeriesListState() {
+    exploreFloods.clear();
+    lastFloodsDoc = null;
+    _floodManifestStoreOffset = 0;
+    _floodManifestStoreActive = true;
+    floodsHasMore.value = true;
+    floodsIsLoading.value = false;
+    _floodsEmptyScans = 0;
+    floodsVisibleIndex.value = 0;
+    lastFloodVisibleIndex = 0;
+  }
+
   void preserveTabOnNextReturn(int index) =>
       _preserveTabIndexOnNextReturn = index;
 

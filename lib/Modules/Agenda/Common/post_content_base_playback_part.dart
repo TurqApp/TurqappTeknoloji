@@ -767,6 +767,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'positionMs': adapter.value.position.inMilliseconds,
       },
     );
+    if (_isFloodSurfaceInstance) {
+      debugPrint(
+        '[FloodSeries] status=start_playback doc=${widget.model.docID} source=$source positionMs=${adapter.value.position.inMilliseconds}',
+      );
+    }
     unawaited(adapter.setLooping(shouldLoopVideo));
     if (_controllerOwnsInlinePlayback) {
       final currentOwner =

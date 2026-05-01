@@ -15,73 +15,16 @@ extension FloodListingControllerDataPart on FloodListingController {
 
     final manifestItems = await _loadFloodsFromManifest(anyFloodID);
     if (manifestItems.isNotEmpty) {
+      debugPrint(
+        '[FloodSeries] status=manifest_loaded root=$anyFloodID count=${manifestItems.length} first=${manifestItems.isEmpty ? '' : manifestItems.first.docID}',
+      );
       floods.assignAll(manifestItems);
       resumeCenteredPost();
       _scheduleInitialFloodSegmentPriorityPlan();
       return;
     }
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final baseID = anyFloodID.replaceFirst(RegExp(r'_\d+$'), '');
-    final ids = List<String>.generate(floodCount, (i) => '${baseID}_$i');
-    Map<String, PostsModel> fetched = <String, PostsModel>{};
-    try {
-      fetched = await _postRepository.fetchPostsByIds(
-        ids,
-        preferCache: true,
-        cacheOnly: false,
-      );
-    } catch (_) {
-      try {
-        fetched = await _postRepository.fetchPostsByIds(
-          ids,
-          preferCache: true,
-          cacheOnly: true,
-        );
-      } catch (_) {
-        fetched = <String, PostsModel>{};
-      }
-      if (fetched.length < ids.length) {
-        try {
-          final fallbackCards = await _postRepository.fetchPostCardsByIds(
-            ids,
-            preferCache: true,
-            cacheOnly: false,
-          );
-          if (fallbackCards.isNotEmpty) {
-            fetched = <String, PostsModel>{
-              ...fallbackCards,
-              ...fetched,
-            };
-          }
-        } catch (_) {}
-      }
-    }
-
-    final rootID = '${baseID}_0';
-    try {
-      final rootModel = fetched[rootID];
-      if (rootModel != null) {
-        final m = rootModel;
-        if (m.deletedPost != true && m.timeStamp <= nowMs) floods.add(m);
-      }
-    } catch (e) {
-      print('🔥 Kök flood alınamadı: $e');
-    }
-
-    for (var i = 1; i < floodCount; i++) {
-      final docID = '${baseID}_$i';
-      try {
-        final model = fetched[docID];
-        if (model != null) {
-          final m = model;
-          if (m.deletedPost != true && m.timeStamp <= nowMs) floods.add(m);
-        }
-      } catch (e) {
-        print('🔥 Flood verisi alınamadı: $e');
-      }
-    }
-    resumeCenteredPost();
-    _scheduleInitialFloodSegmentPriorityPlan();
+    debugPrint(
+      '[FloodManifestStore] status=series_empty scope=detail root=$anyFloodID requestedCount=$floodCount',
+    );
   }
 }
