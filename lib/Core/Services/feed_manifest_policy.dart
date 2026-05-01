@@ -8,7 +8,7 @@ class FeedManifestPolicy {
     defaultValue: true,
   );
   static const bool typesenseGapEnabled = true;
-  static const Duration primaryLoadTimeout = Duration(milliseconds: 1200);
+  static const Duration primaryLoadTimeout = Duration(milliseconds: 3000);
   static const int defaultDeckLimit = 60;
   static const int gapEvery = 12;
   static const int minUserSpacing = 0;
@@ -16,8 +16,8 @@ class FeedManifestPolicy {
   static const int startupHeadRememberLimit = 60;
   static const int maxGapCandidateLimit = 180;
   static const int minGapCandidateLimit = 60;
-  static const int startupSlotLoadBudget = 4;
-  static const int maxSlotLoadBudget = 12;
+  static const int startupSlotLoadBudget = 24;
+  static const int maxSlotLoadBudget = 24;
 
   static int resolveDeckSeed({
     required String userId,

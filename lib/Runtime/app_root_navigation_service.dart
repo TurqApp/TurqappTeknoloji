@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
+import 'package:turqappv2/Modules/SignIn/sign_in_entry_warm_service.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
@@ -23,6 +26,11 @@ class AppRootNavigationService {
     String storedAccountUid = '',
   }) async {
     if (!_hasNavigationContext) return;
+    unawaited(
+      SignInEntryWarmService.ensureStarted(
+        source: 'app_root_navigation',
+      ),
+    );
     await Get.offAll(
       () => SignIn(
         initialIdentifier: initialIdentifier,

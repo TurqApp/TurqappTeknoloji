@@ -230,6 +230,19 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         }
         return null;
       }
+      if (_shouldLogDiagnostics) {
+        final poolSlotCounts = <String, int>{};
+        for (final entry in pool.entries) {
+          poolSlotCounts.update(entry.slotId, (count) => count + 1,
+              ifAbsent: () => 1);
+        }
+        debugPrint(
+          '[FeedManifestPrimary] status=pool_slot_distribution '
+          'page=$pageNumber slotBudget=$slotLoadBudget '
+          'slotCount=${pool.slotCount} loadedSlotCount=${pool.loadedSlotCount} '
+          'entryCount=${pool.entries.length} distribution=$poolSlotCounts',
+        );
+      }
 
       await _feedDiversityMemory.ensureReady();
       final gapEntries = await _loadFeedManifestGapEntries(
@@ -269,6 +282,18 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         cutoffMs: cutoffMs,
         limit: deckLimit,
       );
+      if (_shouldLogDiagnostics && visible.isNotEmpty) {
+        final visibleSlotCounts = <String, int>{};
+        for (final entry in deck.entries.take(visible.length)) {
+          visibleSlotCounts.update(entry.entry.slotId, (count) => count + 1,
+              ifAbsent: () => 1);
+        }
+        debugPrint(
+          '[FeedManifestPrimary] status=visible_slot_distribution '
+          'page=$pageNumber pageStart=$pageStart pageEnd=$pageEndExclusive '
+          'visibleCount=${visible.length} distribution=$visibleSlotCounts',
+        );
+      }
       if (visible.isEmpty || pageStart >= visible.length) {
         if (_shouldLogDiagnostics) {
           debugPrint(

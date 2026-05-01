@@ -44,6 +44,7 @@ class FeedManifestMixer {
   const FeedManifestMixer();
 
   static const int defaultLimit = 60;
+  static const int defaultSlotBatchSize = 5;
   static const int defaultGapEvery = 6;
   static const int defaultMinUserSpacing = 3;
   static const int defaultMaxItemsPerUser = 3;
@@ -126,7 +127,10 @@ class FeedManifestMixer {
     }
 
     final manifest = prepare(
-      manifestEntries,
+      _interleaveManifestEntriesBySlot(
+        manifestEntries,
+        batchSize: defaultSlotBatchSize,
+      ),
       FeedManifestDeckSource.manifest,
     );
     final gap = prepare(
@@ -226,6 +230,50 @@ class FeedManifestMixer {
     if (mainFlood.isNotEmpty) return mainFlood;
     if (post.isFloodSeriesRoot) return post.docID.trim();
     return post.docID.trim().replaceFirst(RegExp(r'_\d+$'), '');
+  }
+
+  static List<FeedManifestEntry> _interleaveManifestEntriesBySlot(
+    List<FeedManifestEntry> entries, {
+    required int batchSize,
+  }) {
+    if (entries.length < 2 || batchSize <= 0) {
+      return entries;
+    }
+
+    final grouped = <String, List<FeedManifestEntry>>{};
+    final slotOrder = <String>[];
+    for (final entry in entries) {
+      final slotKey = entry.slotPath.trim().isNotEmpty
+          ? entry.slotPath.trim()
+          : entry.slotId.trim();
+      if (slotKey.isEmpty) {
+        slotOrder.add('__ungrouped_${slotOrder.length}');
+        grouped['__ungrouped_${slotOrder.length - 1}'] = <FeedManifestEntry>[
+          entry,
+        ];
+        continue;
+      }
+      final bucket = grouped.putIfAbsent(slotKey, () {
+        slotOrder.add(slotKey);
+        return <FeedManifestEntry>[];
+      });
+      bucket.add(entry);
+    }
+
+    final ordered = <FeedManifestEntry>[];
+    var added = true;
+    while (added) {
+      added = false;
+      for (final slotKey in slotOrder) {
+        final bucket = grouped[slotKey];
+        if (bucket == null || bucket.isEmpty) continue;
+        final takeCount = min(batchSize, bucket.length);
+        ordered.addAll(bucket.take(takeCount));
+        bucket.removeRange(0, takeCount);
+        added = true;
+      }
+    }
+    return ordered;
   }
 
   static _FeedDeckCandidate? _takeNext(

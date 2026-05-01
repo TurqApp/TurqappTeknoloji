@@ -131,7 +131,7 @@ class ShortManifestRepository extends GetxService {
 
   Future<void> warmStartupWindow() async {
     await _ensureLoaded();
-    await _ensureTwoSlotWindow();
+    await _ensureAllSlotsLoaded();
   }
 
   Future<void> _loadManifest() async {
@@ -299,6 +299,27 @@ class ShortManifestRepository extends GetxService {
       metadata: <String, Object?>{
         'primarySlot': primarySlot,
         'secondarySlot': secondarySlot,
+        'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
+      },
+    );
+  }
+
+  Future<void> _ensureAllSlotsLoaded() async {
+    final index = _index;
+    final slotsRaw = index?['slots'];
+    if (slotsRaw is! List || slotsRaw.isEmpty) {
+      return;
+    }
+    final startedAt = DateTime.now();
+    final futures = <Future<void>>[];
+    for (var slotIndex = 0; slotIndex < slotsRaw.length; slotIndex++) {
+      futures.add(_ensureSlot(slotIndex).then((_) {}));
+    }
+    await Future.wait<void>(futures, eagerError: false);
+    _logTiming(
+      'all_slots_loaded',
+      metadata: <String, Object?>{
+        'slotCount': slotsRaw.length,
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );

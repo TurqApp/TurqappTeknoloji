@@ -23,3 +23,19 @@ String _formatSeconds(int seconds) {
   final s = (safe % 60).toString().padLeft(2, '0');
   return '$m:$s';
 }
+
+extension SignInControllerWarmEntryPart on SignInController {
+  void onAuthEntryScreenVisible() {
+    debugPrint(
+      '[AuthEntryWarm] status=screen_visible selection=${selection.value}',
+    );
+    Future<void>.microtask(() async {
+      debugPrint(
+        '[AuthEntryWarm] status=queued selection=${selection.value}',
+      );
+      await SignInEntryWarmService.ensureStarted(
+        source: 'sign_in_screen_selection_${selection.value}',
+      );
+    });
+  }
+}

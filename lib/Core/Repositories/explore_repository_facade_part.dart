@@ -81,6 +81,15 @@ extension ExploreRepositoryFacadePart on ExploreRepository {
   Future<void> ensureFloodManifestStoreFresh({bool force = false}) =>
       _ensureFloodManifestStoreFresh(force: force);
 
+  Future<int> ensureFloodManifestStoreReady({
+    bool force = false,
+    Duration timeout = const Duration(seconds: 8),
+  }) =>
+      _ensureFloodManifestStoreReady(
+        force: force,
+        timeout: timeout,
+      );
+
   Future<List<PostsModel>> loadFloodManifestSeries(String anyFloodId) =>
       _loadFloodManifestSeries(anyFloodId);
 

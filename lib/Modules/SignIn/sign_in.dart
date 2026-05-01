@@ -43,6 +43,7 @@ class _SignInState extends State<SignIn> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[SignInScreen] status=init');
     _controllerTag = 'sign_in_${identityHashCode(this)}';
     controller = ensureSignInController(tag: _controllerTag);
     controller.prepareSignInPrefill(widget.initialIdentifier);
@@ -56,6 +57,13 @@ class _SignInState extends State<SignIn> {
         initialIdentifier: widget.initialIdentifier,
       ),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      debugPrint(
+        '[SignInScreen] status=post_frame selection=${controller.selection.value}',
+      );
+      controller.onAuthEntryScreenVisible();
+    });
   }
 
   @override
@@ -69,6 +77,9 @@ class _SignInState extends State<SignIn> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      '[SignInScreen] status=build selection=${controller.selection.value}',
+    );
     return Scaffold(
       key: const ValueKey(IntegrationTestKeys.screenSignIn),
       body: SafeArea(

@@ -2,7 +2,6 @@ part of 'explore_repository.dart';
 
 const String _floodManifestStorePrefsKey = 'explore_flood_manifest_store_v1';
 const int _floodManifestStoreRefreshIntervalMs = 24 * 60 * 60 * 1000;
-const int _floodManifestStoreMaxRoots = 10;
 const int _floodManifestStoreWarmRoots = 10;
 const int _floodManifestStoreWarmImagesPerRoot = 4;
 const int _floodManifestStoreWarmReadySegments = 2;
@@ -323,8 +322,7 @@ extension ExploreRepositoryCachePart on ExploreRepository {
             '[FloodManifestStore] status=refresh_fail reason=normalized_empty');
         return;
       }
-      final trimmedItems =
-          items.take(_floodManifestStoreMaxRoots).toList(growable: false);
+      final trimmedItems = items.toList(growable: false);
       await _writeStoredFloodManifest(
         updatedAtMs: updatedAtMs,
         generatedAtMs: generatedAtMs,
@@ -338,6 +336,30 @@ extension ExploreRepositoryCachePart on ExploreRepository {
     } catch (e) {
       debugPrint('[FloodManifestStore] status=refresh_fail error=$e');
     }
+  }
+
+  Future<int> _ensureFloodManifestStoreReady({
+    bool force = false,
+    Duration timeout = const Duration(seconds: 8),
+  }) async {
+    final existing = await _readStoredFloodManifest();
+    final existingCount = existing?.items.length ?? 0;
+    if (!force && existingCount > 0) {
+      debugPrint(
+        '[FloodManifestStore] status=ready_cached roots=$existingCount updatedAtMs=${existing?.updatedAtMs ?? 0}',
+      );
+      unawaited(_ensureFloodManifestStoreFresh());
+      return existingCount;
+    }
+    try {
+      await _ensureFloodManifestStoreFresh(force: force).timeout(timeout);
+    } catch (e) {
+      debugPrint(
+        '[FloodManifestStore] status=ready_timeout force=$force timeoutMs=${timeout.inMilliseconds} error=$e',
+      );
+    }
+    final stored = await _readStoredFloodManifest();
+    return stored?.items.length ?? 0;
   }
 
   Future<List<PostsModel>> _loadStoredFloodManifestSeries(

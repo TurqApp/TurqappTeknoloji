@@ -54,11 +54,11 @@ class FeedManifestRepository extends GetxService {
 
   static const Duration manifestWindowCadence = Duration(hours: 3);
   static const int _maxSlotBytes = 16 * 1024 * 1024;
-  static const int _maxConcurrentSlotLoads = 4;
+  static const int _maxConcurrentSlotLoads = 6;
   static const int _maxCachedManifestWindows = 24;
   static const Duration _activeRetryDelay = Duration(milliseconds: 700);
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
-  static const Duration _slotDownloadTimeout = Duration(milliseconds: 1800);
+  static const Duration _slotDownloadTimeout = Duration(milliseconds: 4000);
   static const String _localWindowsPrefsKey = 'feed_manifest_windows_v1';
   static const String _localSlotPrefsPrefix = 'feed_manifest_slot_v1';
 
@@ -109,9 +109,19 @@ class FeedManifestRepository extends GetxService {
   Future<void> warmStartupWindow({
     int? maxSlotsToLoad,
   }) async {
-    await loadRollingPool(
+    final result = await loadRollingPool(
       maxSlotsToLoad: maxSlotsToLoad,
     );
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=warm_complete '
+        'manifestId=${result.manifestId} '
+        'slotCount=${result.slotCount} '
+        'loadedSlotCount=${result.loadedSlotCount} '
+        'entryCount=${result.entries.length} '
+        'maxSlotsToLoad=${maxSlotsToLoad ?? 0}',
+      );
+    }
   }
 
   Future<FeedManifestPoolResult> _loadRollingPool({
@@ -184,6 +194,27 @@ class FeedManifestRepository extends GetxService {
       if (slotEntries == null) continue;
       loadedSlotCount++;
       entries.addAll(slotEntries);
+    }
+
+    if (kDebugMode) {
+      final preview = entries
+          .take(12)
+          .map(
+            (entry) =>
+                '${entry.post.docID}'
+                '@${entry.slotId}'
+                ' ts=${entry.post.timeStamp}'
+                ' path=${entry.slotPath}',
+          )
+          .join(' | ');
+      debugPrint(
+        '[FeedManifestRepo] stage=pool_loaded '
+        'manifestId=$_manifestId '
+        'slotCount=${effectiveSlotRefs.length} '
+        'loadedSlotCount=$loadedSlotCount '
+        'entryCount=${entries.length} '
+        'preview=$preview',
+      );
     }
 
     return FeedManifestPoolResult(

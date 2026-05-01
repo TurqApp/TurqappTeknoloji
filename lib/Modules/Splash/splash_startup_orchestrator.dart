@@ -122,8 +122,17 @@ class SplashStartupOrchestrator {
         isFirstLaunch: sessionResult.isFirstLaunch,
         effectiveUserId: CurrentUserService.instance.effectiveUserId,
       );
-      shouldScheduleBackgroundInit = true;
-      scheduledBackgroundInitFirstLaunch = sessionResult.isFirstLaunch;
+      if (!sessionResult.loggedIn) {
+        unawaited(
+          _postLoginWarmup.runBackgroundInit(
+            isFirstLaunch: sessionResult.isFirstLaunch,
+          ),
+        );
+        shouldScheduleBackgroundInit = false;
+      } else {
+        shouldScheduleBackgroundInit = true;
+        scheduledBackgroundInitFirstLaunch = sessionResult.isFirstLaunch;
+      }
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.startupOrchestration,

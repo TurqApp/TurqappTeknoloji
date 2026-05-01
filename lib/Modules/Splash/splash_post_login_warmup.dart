@@ -70,6 +70,7 @@ class PostLoginWarmup {
   static Future<void>? _globalCacheProxyInitFuture;
   static bool _globalCacheProxyReady = false;
   static bool _globalCacheProxyUnavailable = false;
+  Future<void>? _backgroundInitFuture;
 
   void startNonBlockingStartupWork({
     required bool isFirstLaunch,
@@ -91,12 +92,37 @@ class PostLoginWarmup {
     if (_skipBackgroundStartupWork()) {
       return;
     }
+    debugPrint(
+      '[StartupWarmGuest] status=schedule isFirstLaunch=$isFirstLaunch',
+    );
     unawaited(runBackgroundInit(isFirstLaunch: isFirstLaunch));
   }
 
   Future<void> initCacheProxy() => _initCacheProxy();
 
   Future<void> runBackgroundInit({required bool isFirstLaunch}) async {
+    final existing = _backgroundInitFuture;
+    if (existing != null) {
+      debugPrint(
+        '[StartupWarmGuest] status=join_existing isFirstLaunch=$isFirstLaunch',
+      );
+      return existing;
+    }
+    final future = _runBackgroundInitInternal(isFirstLaunch: isFirstLaunch);
+    _backgroundInitFuture = future;
+    return future.whenComplete(() {
+      if (identical(_backgroundInitFuture, future)) {
+        _backgroundInitFuture = null;
+      }
+    });
+  }
+
+  Future<void> _runBackgroundInitInternal({
+    required bool isFirstLaunch,
+  }) async {
+    debugPrint(
+      '[StartupWarmGuest] status=begin isFirstLaunch=$isFirstLaunch',
+    );
     try {
       final onWiFi = _isOnWiFiNow();
       final cacheProxyDelay = _cacheProxyInitDelay(
@@ -138,10 +164,7 @@ class PostLoginWarmup {
           },
         );
       } else {
-        final guestManifestDelay = Duration(
-          milliseconds:
-              isFirstLaunch ? (onWiFi ? 250 : 500) : (onWiFi ? 400 : 700),
-        );
+        const guestManifestDelay = Duration.zero;
         Future.delayed(guestManifestDelay, () {
           if (_skipBackgroundStartupWork()) return;
           unawaited(
@@ -168,6 +191,10 @@ class PostLoginWarmup {
         operation: 'PostLoginWarmup.runBackgroundInit',
         error: error,
         stackTrace: stackTrace,
+      );
+    } finally {
+      debugPrint(
+        '[StartupWarmGuest] status=finish isFirstLaunch=$isFirstLaunch',
       );
     }
   }
@@ -385,13 +412,59 @@ class PostLoginWarmup {
     required bool onWiFi,
   }) async {
     try {
-      await Future.wait<void>([
-        ensureShortManifestRepository().warmStartupWindow(),
-        ensureFeedManifestRepository().warmStartupWindow(
-          maxSlotsToLoad: onWiFi ? 2 : 1,
-        ),
-        ExploreRepository.ensure().ensureFloodManifestStoreFresh(),
-      ], eagerError: false);
+      Future<void> runStep(
+        String label,
+        Future<void> Function() action,
+      ) async {
+        final startedAt = DateTime.now();
+        debugPrint('[StartupWarmGuest] status=start label=$label onWiFi=$onWiFi');
+        try {
+          await action();
+          debugPrint(
+            '[StartupWarmGuest] status=refresh_ok label=$label '
+            'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+          );
+        } catch (error) {
+          debugPrint(
+            '[StartupWarmGuest] status=refresh_fail label=$label '
+            'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+            'error=$error',
+          );
+          rethrow;
+        }
+      }
+
+      Future<void> runFloodStep() async {
+        final startedAt = DateTime.now();
+        debugPrint('[StartupWarmGuest] status=start label=flood_manifest onWiFi=$onWiFi');
+        try {
+          final roots = await ExploreRepository.ensure().ensureFloodManifestStoreReady();
+          if (roots <= 0) {
+            throw StateError('flood_manifest_empty');
+          }
+          debugPrint(
+            '[StartupWarmGuest] status=refresh_ok label=flood_manifest '
+            'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} roots=$roots',
+          );
+        } catch (error) {
+          debugPrint(
+            '[StartupWarmGuest] status=refresh_fail label=flood_manifest '
+            'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '
+            'error=$error',
+          );
+          rethrow;
+        }
+      }
+
+      await runStep(
+        'feed_manifest',
+        () => ensureFeedManifestRepository().warmStartupWindow(),
+      );
+      await runStep(
+        'short_manifest',
+        () => ensureShortManifestRepository().warmStartupWindow(),
+      );
+      await runFloodStep();
     } catch (error, stackTrace) {
       _failureReporter.record(
         kind: StartupSessionFailureKind.backgroundWarmup,

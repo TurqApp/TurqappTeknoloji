@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Helpers/UnreadMessagesController/unread_messages_
 import 'package:turqappv2/Core/Repositories/answer_key_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/cikmis_sorular_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
+import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/practice_exam_snapshot_repository.dart';
@@ -342,6 +343,7 @@ class SignInApplicationService {
       _warmStoryRowAfterAuth(),
       _warmPrimaryPasajSurfacesAfterAuth(),
     ], eagerError: false);
+    await _warmCoreManifestsAfterAuth();
     await _warmAgendaAfterAuth(retryUntilFilled: true);
     _startUnreadListenersAfterAuth();
     NotificationService.instance.scheduleInitialize(
@@ -465,9 +467,50 @@ class SignInApplicationService {
       await Future.wait<void>(<Future<void>>[
         _warmStoryRowAfterAuth(timeout: const Duration(seconds: 2)),
         _warmAgendaAfterAuth(timeout: const Duration(seconds: 2)),
-        _warmShortsAfterAuth(timeout: const Duration(seconds: 2)),
-        _warmFloodManifestAfterAuth(timeout: const Duration(seconds: 2)),
       ], eagerError: false);
+      await _warmCoreManifestsAfterAuth();
+    } catch (_) {}
+  }
+
+  Future<void> _warmCoreManifestsAfterAuth() async {
+    Future<void> runStep(
+      String label,
+      Future<void> Function() action,
+    ) async {
+      final startedAt = DateTime.now();
+      if (kDebugMode) {
+        debugPrint('[PostAuthWarm] status=start label=$label');
+      }
+      await action();
+      if (kDebugMode) {
+        debugPrint(
+          '[PostAuthWarm] status=end label=$label '
+          'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+        );
+      }
+    }
+
+    await runStep('feed_manifest', _warmFeedManifestAfterAuth);
+    await runStep('short_manifest', _warmShortsAfterAuth);
+    await runStep('flood_manifest', _warmFloodManifestAfterAuth);
+  }
+
+  Future<void> _warmFeedManifestAfterAuth({
+    Duration? timeout,
+  }) async {
+    try {
+      final userId = _ensureCurrentUserService().effectiveUserId.trim();
+      if (userId.isEmpty) return;
+      final warmFeedManifestFuture =
+          ensureFeedManifestRepository().warmStartupWindow();
+      if (timeout == null) {
+        await warmFeedManifestFuture;
+      } else {
+        await Future.any([
+          warmFeedManifestFuture,
+          Future.delayed(timeout),
+        ]);
+      }
     } catch (_) {}
   }
 

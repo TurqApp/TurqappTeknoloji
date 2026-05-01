@@ -7,6 +7,9 @@ extension SignInControllerLifecyclePart on SignInController {
       if (value == 0 || value == 1) {
         _startBrandTypewriter();
       }
+      if (value == 0 || value == 1 || value == 2 || value == 3 || value == 4) {
+        onAuthEntryScreenVisible();
+      }
     });
 
     emailFocus.value.addListener(() => emailFocus.refresh());
