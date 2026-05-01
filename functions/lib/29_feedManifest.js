@@ -390,7 +390,7 @@ function buildFeedManifestActiveIndex(params) {
         path: asString(slot.path),
         status: asString(slot.status) || "active",
     }))
-        .filter((slot) => slot.status === "active" && slot.path && slot.itemCount > 0)
+        .filter((slot) => slot.status === "active" && slot.path)
         .sort(compareActiveSlots);
     return {
         schemaVersion: SCHEMA_VERSION,
@@ -418,7 +418,7 @@ async function generateFeedManifest(params) {
     const fetchEndMs = Math.min(params.endMs, params.generatedAt);
     const fetched = await fetchCandidatesFromTypesense({
         limit: SLOT_SIZE * 4,
-        startMs: params.startMs - (ROLLING_DAYS - 1) * DAY_MS,
+        startMs: params.startMs,
         endMs: fetchEndMs,
     });
     const items = buildFeedManifestItems(fetched.candidates, {
@@ -436,7 +436,7 @@ async function generateFeedManifest(params) {
         items,
     });
     const path = `${FEED_MANIFEST_COLLECTION}/${params.date}/slots/${slot.slotId}.json`;
-    if (params.publish && slot.itemCount > 0) {
+    if (params.publish) {
         await publishFeedManifestSlot({
             slot,
             path,
@@ -455,7 +455,7 @@ async function generateFeedManifest(params) {
     });
     return {
         ok: true,
-        published: params.publish && slot.itemCount > 0,
+        published: params.publish,
         date: params.date,
         slotId,
         manifestId,

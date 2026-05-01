@@ -142,7 +142,7 @@ class AgendaFeedApplicationService {
   }) {
     final existingIds = currentItems.map((post) => post.docID).toSet();
     final arrangedPageItems = pageItemsPreplanned
-        ? _normalizeFeedDisplayOrder(pageItems)
+        ? List<PostsModel>.from(pageItems)
         : buildPlannerPageItems(
             pageItems,
             currentItemCount: currentItems.length,
@@ -215,6 +215,7 @@ class AgendaFeedApplicationService {
     required List<PostsModel> currentItems,
     required List<PostsModel> fetchedPosts,
     required int nowMs,
+    bool fetchedPostsPreplanned = false,
   }) {
     if (fetchedPosts.isEmpty) {
       return AgendaFeedRefreshPlan(
@@ -224,7 +225,9 @@ class AgendaFeedApplicationService {
     }
 
     final existingIds = currentItems.map((post) => post.docID).toSet();
-    final orderedFetchedPosts = _normalizeFeedDisplayOrder(fetchedPosts);
+    final orderedFetchedPosts = fetchedPostsPreplanned
+        ? List<PostsModel>.from(fetchedPosts)
+        : _normalizeFeedDisplayOrder(fetchedPosts);
     final fetchedById = <String, PostsModel>{
       for (final post in orderedFetchedPosts) post.docID: post,
     };
@@ -301,19 +304,19 @@ class AgendaFeedApplicationService {
   }) {
     if (currentItems.isEmpty) {
       final arrangedLiveItems = liveItemsPreplanned
-          ? _normalizeFeedDisplayOrder(liveItems)
+          ? List<PostsModel>.from(liveItems)
           : buildPlannerPageItems(
               liveItems,
               currentItemCount: 0,
             );
-      return _normalizeFeedDisplayOrder(arrangedLiveItems);
+      return arrangedLiveItems;
     }
     if (liveItems.isEmpty) {
       return currentItems;
     }
 
     final arrangedLiveItems = liveItemsPreplanned
-        ? _normalizeFeedDisplayOrder(liveItems)
+        ? List<PostsModel>.from(liveItems)
         : buildPlannerPageItems(
             liveItems,
             currentItemCount: currentItems.length,
@@ -342,7 +345,7 @@ class AgendaFeedApplicationService {
       merged.add(live);
     }
 
-    return _normalizeFeedDisplayOrder(merged);
+    return merged;
   }
 
   List<PostsModel> buildPlannerPageItems(

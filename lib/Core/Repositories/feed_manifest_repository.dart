@@ -442,6 +442,8 @@ class FeedManifestRepository extends GetxService {
     required int generatedAt,
     required List<_FeedManifestSlotRef> slotRefs,
   }) async {
+    final manifestChanged =
+        manifestId != _manifestId || generatedAt != _generatedAt;
     final next = _FeedManifestWindow(
       manifestId: manifestId,
       generatedAt: generatedAt,
@@ -465,16 +467,20 @@ class FeedManifestRepository extends GetxService {
         .map((slot) => slot.path)
         .where((path) => path.isNotEmpty && !retainedPaths.contains(path))
         .toSet();
+    final invalidatedPaths = <String>{
+      ...removedPaths,
+      if (manifestChanged) ...retainedPaths,
+    };
 
     _windows
       ..clear()
       ..addAll(retained);
     _manifestId = _windows.isEmpty ? '' : _windows.first.manifestId;
     _generatedAt = _windows.isEmpty ? 0 : _windows.first.generatedAt;
-    for (final path in removedPaths) {
+    for (final path in invalidatedPaths) {
       _slotEntries.remove(path);
     }
-    await _persistLocalCache(removedPaths: removedPaths);
+    await _persistLocalCache(removedPaths: invalidatedPaths);
   }
 
   Future<void> _persistLocalCache({

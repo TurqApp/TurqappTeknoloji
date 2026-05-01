@@ -813,10 +813,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (shouldFinalizeStartupHead) {
       final appendedItems = pageApplyPlan.itemsToAdd;
       final replacementAgenda = pageApplyPlan.pageItemsPreplanned
-          ? _agendaFeedApplicationService.buildPlannerPageItems(
-              visibleItems,
-              currentItemCount: 0,
-            )
+          ? List<PostsModel>.from(visibleItems)
           : _agendaFeedApplicationService.buildPlannerPageItems(
               visibleItems,
               currentItemCount: 0,
@@ -2629,6 +2626,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         currentItems: previousAgenda,
         fetchedPosts: page.items,
         nowMs: nowMs,
+        fetchedPostsPreplanned: page.itemsPreplanned,
       );
       final mergedAgenda = forceNewLaunchSession
           ? refreshPlan.replacementItems

@@ -238,7 +238,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (_shouldLogDiagnostics) {
         final poolSlotCounts = <String, int>{};
         for (final entry in pool.entries) {
-          poolSlotCounts.update(entry.slotId, (count) => count + 1,
+          poolSlotCounts.update(entry.slotPath, (count) => count + 1,
               ifAbsent: () => 1);
         }
         debugPrint(
@@ -294,7 +294,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (_shouldLogDiagnostics && visibleEntries.isNotEmpty) {
         final visibleSlotCounts = <String, int>{};
         for (final entry in visibleEntries) {
-          visibleSlotCounts.update(entry.entry.slotId, (count) => count + 1,
+          visibleSlotCounts.update(entry.entry.slotPath, (count) => count + 1,
               ifAbsent: () => 1);
         }
         debugPrint(
@@ -559,6 +559,14 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     }
 
     slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);
+    for (final bucket in manifestBuckets.values) {
+      bucket.sort((left, right) {
+        final timeCompare =
+            right.post.timeStamp.toInt().compareTo(left.post.timeStamp.toInt());
+        if (timeCompare != 0) return timeCompare;
+        return right.post.docID.compareTo(left.post.docID);
+      });
+    }
 
     final selected = <FeedManifestDeckEntry>[];
     var added = true;
