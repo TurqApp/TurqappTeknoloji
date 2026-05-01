@@ -94,9 +94,7 @@ class FeedManifestMixer {
     List<_FeedDeckCandidate> prepare(
       List<FeedManifestEntry> sourceEntries,
       FeedManifestDeckSource source,
-      int sourceSalt,
     ) {
-      final random = Random(Object.hash(seed, sourceSalt, source.name));
       final candidates = <_FeedDeckCandidate>[];
       for (var index = 0; index < sourceEntries.length; index++) {
         final entry = sourceEntries[index];
@@ -118,7 +116,7 @@ class FeedManifestMixer {
             entry: entry,
             source: source,
             originalIndex: index,
-            score: random.nextDouble(),
+            score: index.toDouble(),
             headPenalty: headPenalties.contains(canonicalId),
           ),
         );
@@ -130,12 +128,10 @@ class FeedManifestMixer {
     final manifest = prepare(
       manifestEntries,
       FeedManifestDeckSource.manifest,
-      17,
     );
     final gap = prepare(
       gapEntries,
       FeedManifestDeckSource.gap,
-      43,
     );
 
     final deck = <FeedManifestDeckEntry>[];
