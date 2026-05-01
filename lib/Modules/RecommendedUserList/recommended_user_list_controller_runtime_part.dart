@@ -110,6 +110,11 @@ extension _RecommendedUserListControllerRuntimeX
           : (requiredCount <= usersReadyCount
               ? usersLimitInitial
               : requiredCount);
+      debugPrint(
+        '[RecommendedUsers] status=load_start required=$requiredCount '
+        'fetchLimit=$fetchLimit currentCount=${list.length} '
+        'followingCount=${takipEdilenler.length}',
+      );
 
       var candidates = await ensureRecommendedUsersRepository()
           .fetchCandidates(limit: fetchLimit, preferCache: true)
@@ -119,6 +124,10 @@ extension _RecommendedUserListControllerRuntimeX
           );
 
       var filtered = _filterCandidates(candidates, currentUserId);
+      debugPrint(
+        '[RecommendedUsers] status=filter_pass candidateCount=${candidates.length} '
+        'filteredCount=${filtered.length} required=$requiredCount',
+      );
       if (allowFullRefill &&
           filtered.length < requiredCount &&
           fetchLimit < usersLimitFull) {
@@ -130,11 +139,16 @@ extension _RecommendedUserListControllerRuntimeX
                   throw TimeoutException('Kullanıcılar yüklenemedi'),
             );
         filtered = _filterCandidates(candidates, currentUserId);
+        debugPrint(
+          '[RecommendedUsers] status=full_refill candidateCount=${candidates.length} '
+          'filteredCount=${filtered.length} required=$requiredCount',
+        );
       }
 
       list.assignAll(filtered);
       _lastLoadTime = DateTime.now();
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[RecommendedUsers] status=load_fail error=$error');
       hasError.value = true;
     } finally {
       isLoading.value = false;

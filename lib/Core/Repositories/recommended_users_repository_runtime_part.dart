@@ -78,6 +78,9 @@ extension RecommendedUsersRepositoryFacadePart on RecommendedUsersRepository {
 }
 
 extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
+  CollectionReference<Map<String, dynamic>> get _usersPublicCollection =>
+      AppFirestore.instance.collection('usersPublic');
+
   int _asInt(dynamic value, {int fallback = 0}) {
     if (value is num) return value.toInt();
     if (value is String) {
@@ -120,15 +123,17 @@ extension RecommendedUsersRepositoryRuntimePart on RecommendedUsersRepository {
       return List<RecommendedUserModel>.from(_memory.take(limit));
     }
 
-    final snap = await AppFirestore.instance
-        .collection('users')
-        .where('isPrivate', isEqualTo: false)
+    final snap = await _usersPublicCollection
         .limit(limit)
         .get(const GetOptions(source: Source.serverAndCache));
 
     final fetched = snap.docs
         .map(RecommendedUserModel.fromDocument)
         .toList(growable: false);
+    debugPrint(
+      '[RecommendedUsersRepo] status=fetched source=usersPublic '
+      'requested=$limit fetched=${fetched.length}',
+    );
     _memory = fetched;
     _cachedAt = DateTime.now();
     await _persistToPrefs();
