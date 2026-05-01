@@ -145,6 +145,18 @@ function requireAuth(request) {
     }
     return uid;
 }
+function resolveRateLimitSubject(request) {
+    const authUid = request.auth?.uid?.trim();
+    if (authUid)
+        return `uid:${authUid}`;
+    const rawRequest = request.rawRequest;
+    const ipHeader = rawRequest?.headers?.["cf-connecting-ip"] ?? rawRequest?.headers?.["x-forwarded-for"];
+    const headerValue = Array.isArray(ipHeader) ? String(ipHeader[0] || "").trim() : String(ipHeader || "").trim();
+    const ip = headerValue.length > 0 ? headerValue.split(",")[0].trim() : String(rawRequest?.ip || "").trim();
+    if (ip)
+        return `ip:${ip}`;
+    return "guest:unknown";
+}
 function requireAdminAuth(request) {
     const uid = requireAuth(request);
     const token = request.auth?.token;
@@ -1455,12 +1467,12 @@ exports.f21_ensureEducationTypesenseCollectionCallable = (0, https_1.onCall)({
 });
 exports.f21_searchEducationCallable = (0, https_1.onCall)({
     region: REGION,
+    invoker: "public",
     timeoutSeconds: 30,
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
 }, async (request) => {
-    const uid = requireAuth(request);
-    rateLimiter_1.RateLimits.general(uid);
+    rateLimiter_1.RateLimits.general(resolveRateLimitSubject(request));
     if (!typesenseReady()) {
         throw new https_1.HttpsError("failed-precondition", "typesense_not_configured");
     }

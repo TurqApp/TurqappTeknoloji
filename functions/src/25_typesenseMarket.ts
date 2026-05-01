@@ -127,6 +127,17 @@ function requireAuth(request: CallableRequest<unknown>): string {
   return uid;
 }
 
+function resolveRateLimitSubject(request: CallableRequest<unknown>): string {
+  const authUid = request.auth?.uid?.trim();
+  if (authUid) return `uid:${authUid}`;
+  const rawRequest = (request as { rawRequest?: { ip?: string; headers?: Record<string, string | string[] | undefined> } }).rawRequest;
+  const ipHeader = rawRequest?.headers?.["cf-connecting-ip"] ?? rawRequest?.headers?.["x-forwarded-for"];
+  const headerValue = Array.isArray(ipHeader) ? String(ipHeader[0] || "").trim() : String(ipHeader || "").trim();
+  const ip = headerValue.length > 0 ? headerValue.split(",")[0].trim() : String(rawRequest?.ip || "").trim();
+  if (ip) return `ip:${ip}`;
+  return "guest:unknown";
+}
+
 function requireAdminAuth(request: CallableRequest<unknown>): string {
   const uid = requireAuth(request);
   const token = request.auth?.token as { admin?: unknown } | undefined;
@@ -689,13 +700,13 @@ export const f25_ensureMarketTypesenseCollectionCallable = onCall(
 export const f25_searchMarketCallable = onCall(
   {
     region: REGION,
+    invoker: "public",
     timeoutSeconds: 30,
     memory: "256MiB",
     secrets: ["TYPESENSE_HOST", "TYPESENSE_API_KEY"],
   },
   async (request: CallableRequest<SearchMarketInput>) => {
-    const uid = requireAuth(request);
-    RateLimits.general(uid);
+    RateLimits.general(resolveRateLimitSubject(request));
     if (!typesenseReady()) {
       throw new HttpsError("failed-precondition", "typesense_not_configured");
     }
