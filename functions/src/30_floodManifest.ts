@@ -659,7 +659,7 @@ export const f30_generateFloodManifestScheduled = onSchedule(
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    schedule: getEnv("FLOOD_MANIFEST_SCHEDULE") || "20 0 * * *",
+    schedule: getEnv("FLOOD_MANIFEST_SCHEDULE") || "10 10,19 * * *",
     timeZone: "Europe/Istanbul",
   },
   async () => {
