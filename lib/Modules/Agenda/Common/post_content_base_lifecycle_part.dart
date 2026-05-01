@@ -50,6 +50,15 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         if (!mounted) return;
         if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
           _initVideoController();
+          if (shouldEagerInitAndroidPrimaryFeed) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+              _startPlaybackWhenReady(
+                source: 'init_eager_android_primary_feed',
+              );
+            });
+          }
           if (isStandalonePostInstance) {
             Future.delayed(const Duration(milliseconds: 220), () {
               if (!mounted || _videoAdapter == null || !widget.shouldPlay) {
