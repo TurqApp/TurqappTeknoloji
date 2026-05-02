@@ -7,6 +7,7 @@ const {
   buildFeedManifestActiveIndex,
   buildFeedManifestSlot,
   istanbulSlotRangeForDateHour,
+  resolveLatestCompletedFeedManifestSlotForNow,
   resolveFeedManifestSlotForNow,
   rollingFeedManifestDates,
 } = require("../../lib/29_feedManifest.js");
@@ -70,7 +71,7 @@ test("feed manifest keeps self-contained cards, flood roots, and share short url
 
   assert.deepEqual(
     items.map((item) => item.docId).sort(),
-    ["fallback-short", "flood-root", "ok-1"],
+    ["fallback-short", "flood-root", "hidden", "ok-1"],
   );
   assert.equal(
     items.find((item) => item.docId === "flood-root").canonicalId,
@@ -83,7 +84,7 @@ test("feed manifest keeps self-contained cards, flood roots, and share short url
   assert.equal(new Set(items.map((item) => item.canonicalId)).size, items.length);
 });
 
-test("feed manifest dedupes by canonical flood root", () => {
+test("feed manifest dedupes by canonical flood root and keeps the strongest doc", () => {
   const items = buildFeedManifestItems(
     [
       validCandidate("thread-root", "user-a", { floodCount: 3, likeCount: 100 }),
@@ -102,6 +103,10 @@ test("feed manifest dedupes by canonical flood root", () => {
 
   assert.deepEqual(
     items.map((item) => item.docId).sort(),
+    ["normal", "thread-root_1"],
+  );
+  assert.deepEqual(
+    items.map((item) => item.canonicalId).sort(),
     ["normal", "thread-root"],
   );
 });
@@ -160,12 +165,16 @@ test("feed manifest slot uses 3-hour Istanbul windows", () => {
   const nowMs = Date.parse("2026-04-21T14:10:00.000+03:00");
   assert.deepEqual(resolveFeedManifestSlotForNow(nowMs), {
     date: "2026-04-21",
+    slotHour: 15,
+  });
+  assert.deepEqual(resolveLatestCompletedFeedManifestSlotForNow(nowMs), {
+    date: "2026-04-21",
     slotHour: 12,
   });
 
   const range = istanbulSlotRangeForDateHour("2026-04-21", 13);
-  assert.equal(range.startMs, Date.parse("2026-04-21T12:00:00.000+03:00"));
-  assert.equal(range.endMs, Date.parse("2026-04-21T14:59:59.999+03:00"));
+  assert.equal(range.startMs, Date.parse("2026-04-21T09:00:00.000+03:00"));
+  assert.equal(range.endMs, Date.parse("2026-04-21T11:59:59.999+03:00"));
 
   assert.deepEqual(rollingFeedManifestDates(nowMs), [
     "2026-04-21",
@@ -174,26 +183,49 @@ test("feed manifest slot uses 3-hour Istanbul windows", () => {
   ]);
 });
 
-test("feed manifest rolling targets backfill prior days and only eligible slots for today", () => {
+test("feed manifest rolling targets keep the last 24 completed slots", () => {
   const nowMs = Date.parse("2026-04-21T05:48:00.000+03:00");
   const targets = buildRollingFeedManifestTargets(nowMs);
 
-  assert.equal(targets.length, 18);
+  assert.equal(targets.length, 24);
   assert.deepEqual(
     targets.slice(0, 3),
     [
-      { date: "2026-04-19", slotHour: 0, isCurrent: false },
-      { date: "2026-04-19", slotHour: 3, isCurrent: false },
-      { date: "2026-04-19", slotHour: 6, isCurrent: false },
+      { date: "2026-04-18", slotHour: 6, isCurrent: false },
+      { date: "2026-04-18", slotHour: 9, isCurrent: false },
+      { date: "2026-04-18", slotHour: 12, isCurrent: false },
     ],
   );
   assert.deepEqual(
-    targets.slice(-2),
+    targets.slice(-3),
     [
+      { date: "2026-04-20", slotHour: 21, isCurrent: false },
       { date: "2026-04-21", slotHour: 0, isCurrent: false },
       { date: "2026-04-21", slotHour: 3, isCurrent: true },
     ],
   );
+});
+
+test("feed manifest publish grace keeps 03:00 slot on the completed 00:00-02:59 window", () => {
+  const beforeGraceTargets = buildRollingFeedManifestTargets(
+    Date.parse("2026-05-02T03:04:59.000+03:00"),
+  );
+  assert.deepEqual(beforeGraceTargets.slice(-2), [
+    { date: "2026-05-01", slotHour: 21, isCurrent: false },
+    { date: "2026-05-02", slotHour: 0, isCurrent: true },
+  ]);
+
+  const afterGraceTargets = buildRollingFeedManifestTargets(
+    Date.parse("2026-05-02T03:05:10.000+03:00"),
+  );
+  assert.deepEqual(afterGraceTargets.slice(-2), [
+    { date: "2026-05-02", slotHour: 0, isCurrent: false },
+    { date: "2026-05-02", slotHour: 3, isCurrent: true },
+  ]);
+
+  const slot03Range = istanbulSlotRangeForDateHour("2026-05-02", 3);
+  assert.equal(slot03Range.startMs, Date.parse("2026-05-02T00:00:00.000+03:00"));
+  assert.equal(slot03Range.endMs, Date.parse("2026-05-02T02:59:59.999+03:00"));
 });
 
 test("feed manifest slot payload path identity is stable", () => {
@@ -221,7 +253,7 @@ test("feed manifest slot payload path identity is stable", () => {
   assert.equal(slot.itemCount, 3);
 });
 
-test("feed manifest active index keeps only active non-empty slots and sorts newest first", () => {
+test("feed manifest active index keeps active slots with paths and sorts newest first", () => {
   const active = buildFeedManifestActiveIndex({
     nowMs: Date.parse("2026-04-21T16:00:00.000+03:00"),
     publishedAt: 1776776400000,
@@ -288,6 +320,7 @@ test("feed manifest active index keeps only active non-empty slots and sorts new
     [
       "2026-04-21:slot_12",
       "2026-04-21:slot_09",
+      "2026-04-21:slot_03",
       "2026-04-20:slot_21",
     ],
   );

@@ -793,10 +793,19 @@ export const f29_generateFeedManifestCallable = onCall(
   },
   async (request: CallableRequest) => {
     ensureAdmin();
-    const uid = requireAdminAuth(request);
+    const isAdmin = (request.auth?.token as { admin?: unknown } | undefined)?.admin === true;
+    const providedSecret = asString(request.data?.secret);
+    const configuredSecret = getEnv("FEED_MANIFEST_ACTIVE_REFRESH_SECRET");
+    if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
+      throw new HttpsError("permission-denied", "admin_or_secret_required");
+    }
+    const uid = request.auth?.uid || "secret_generate";
+    if (isAdmin && request.auth?.uid) {
+      RateLimits.admin(request.auth.uid);
+    }
 
     const nowMs = Date.now();
-    const resolved = resolveFeedManifestSlotForNow(
+    const resolved = resolveLatestCompletedFeedManifestSlotForNow(
       resolveFeedManifestReferenceNow(nowMs),
     );
     const date = asString(request.data?.date) || resolved.date;

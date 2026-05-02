@@ -25,6 +25,7 @@ const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
 const SLOT_HOURS = 3;
 const ROLLING_DAYS = 3;
+const MANIFEST_PUBLISH_DELAY_MS = 5 * 60 * 1000;
 const MAX_SCAN_PAGES = 24;
 const TYPESENSE_PAGE_SIZE = 250;
 const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
@@ -130,6 +131,9 @@ function resolveLatestCompletedFeedManifestSlotForNow(nowMs) {
         slotHour: clampSlotHour(hourIstanbul(nowMs)),
     };
 }
+function resolveFeedManifestReferenceNow(nowMs) {
+    return Math.max(0, nowMs - MANIFEST_PUBLISH_DELAY_MS);
+}
 function rollingFeedManifestDates(nowMs, days = ROLLING_DAYS) {
     const out = [];
     for (let index = 0; index < days; index += 1) {
@@ -138,7 +142,8 @@ function rollingFeedManifestDates(nowMs, days = ROLLING_DAYS) {
     return out;
 }
 function buildRollingFeedManifestTargets(nowMs) {
-    const resolved = resolveLatestCompletedFeedManifestSlotForNow(nowMs);
+    const referenceNowMs = resolveFeedManifestReferenceNow(nowMs);
+    const resolved = resolveLatestCompletedFeedManifestSlotForNow(referenceNowMs);
     const targets = [];
     const latestRange = istanbulSlotRangeForDateHour(resolved.date, resolved.slotHour);
     const totalSlots = ROLLING_DAYS * (24 / SLOT_HOURS);
@@ -576,9 +581,18 @@ exports.f29_generateFeedManifestCallable = (0, https_1.onCall)({
     memory: "512MiB",
 }, async (request) => {
     ensureAdmin();
-    const uid = requireAdminAuth(request);
+    const isAdmin = request.auth?.token?.admin === true;
+    const providedSecret = asString(request.data?.secret);
+    const configuredSecret = getEnv("FEED_MANIFEST_ACTIVE_REFRESH_SECRET");
+    if (!isAdmin && (!configuredSecret || providedSecret !== configuredSecret)) {
+        throw new https_1.HttpsError("permission-denied", "admin_or_secret_required");
+    }
+    const uid = request.auth?.uid || "secret_generate";
+    if (isAdmin && request.auth?.uid) {
+        rateLimiter_1.RateLimits.admin(request.auth.uid);
+    }
     const nowMs = Date.now();
-    const resolved = resolveFeedManifestSlotForNow(nowMs);
+    const resolved = resolveLatestCompletedFeedManifestSlotForNow(resolveFeedManifestReferenceNow(nowMs));
     const date = asString(request.data?.date) || resolved.date;
     const slotHour = request.data?.slotHour === undefined
         ? resolved.slotHour
