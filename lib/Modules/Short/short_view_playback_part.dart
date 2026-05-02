@@ -739,14 +739,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final targetMs = target.inMilliseconds;
     final forwardSkewMs = targetMs - currentMs;
     final hasMeaningfulCurrentPosition = currentMs > 50;
+    final value = adapter.value;
+    final shouldForceRestoreOnRouteReturn =
+        _forceResumePosterOnReturn && page == currentPage;
+    final adapterNeedsExplicitSeek = shouldForceRestoreOnRouteReturn ||
+        adapter.isStopped ||
+        !value.isInitialized ||
+        (!value.isPlaying && !value.isBuffering);
+    if (adapterNeedsExplicitSeek) {
+      return target;
+    }
     // Resume should recover lost position, not rewind or micro-adjust an
-    // adapter that is already effectively at/after the saved timestamp.
+    // adapter that is already actively playing at/after the saved timestamp.
     if (hasMeaningfulCurrentPosition && forwardSkewMs <= 250) {
       _playbackRuntimeService.clearSavedPlaybackState(handleKey);
       return null;
-    }
-    if (adapter.isStopped || !adapter.value.isInitialized) {
-      return target;
     }
     _playbackRuntimeService.clearSavedPlaybackState(handleKey);
     return null;

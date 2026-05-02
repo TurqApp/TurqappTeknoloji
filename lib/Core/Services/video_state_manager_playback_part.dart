@@ -387,6 +387,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
+    _playRequestSeq++;
+    final int requestSeq = _playRequestSeq;
     final previous = _allVideoControllers[docID];
     final effectiveHandle =
         previous != null && targetsSamePlaybackResource(previous, handle)
@@ -396,6 +398,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
     _markTargetPlaybackDoc(docID);
+    _schedulePendingPlayResume(docID, requestSeq);
   }
 
   void _requestPlayVideoFromController(
