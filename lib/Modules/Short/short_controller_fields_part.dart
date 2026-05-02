@@ -9,6 +9,7 @@ class _ShortControllerState {
   final cache = <int, HLSVideoAdapter>{};
   final tiers = <int, _CacheTier>{};
   final lastIndex = 0.obs;
+  String lastVisibleDocId = '';
   Future<void>? backgroundPreloadFuture;
   Future<void>? initialLoadFuture;
   Future<void>? startupPrepareFuture;
@@ -54,6 +55,8 @@ extension ShortControllerFieldsPart on ShortController {
   Map<int, HLSVideoAdapter> get cache => _state.cache;
   Map<int, _CacheTier> get _tiers => _state.tiers;
   RxInt get lastIndex => _state.lastIndex;
+  String get lastVisibleDocId => _state.lastVisibleDocId;
+  set lastVisibleDocId(String value) => _state.lastVisibleDocId = value;
   Future<void>? get _backgroundPreloadFuture => _state.backgroundPreloadFuture;
   set _backgroundPreloadFuture(Future<void>? value) =>
       _state.backgroundPreloadFuture = value;
@@ -154,9 +157,50 @@ extension ShortControllerFieldsPart on ShortController {
     return lastIndex.value.clamp(0, itemCount - 1);
   }
 
+  int preferredLaunchIndexForItems(List<PostsModel> items) {
+    if (items.isEmpty) return 0;
+    if (_preferFreshLaunchIndex) return 0;
+    final anchorDocId = lastVisibleDocId.trim();
+    if (anchorDocId.isNotEmpty) {
+      final anchoredIndex = items.indexWhere(
+        (post) => post.docID.trim() == anchorDocId,
+      );
+      if (anchoredIndex >= 0) {
+        return anchoredIndex;
+      }
+    }
+    return lastIndex.value.clamp(0, items.length - 1);
+  }
+
   void commitLaunchIndexSelection(int selectedIndex) {
     lastIndex.value = selectedIndex;
     _preferFreshLaunchIndex = false;
+  }
+
+  void commitLaunchSelectionForItems(
+    int selectedIndex,
+    List<PostsModel> items, {
+    String? selectedDocId,
+  }) {
+    if (items.isEmpty) {
+      lastIndex.value = 0;
+      lastVisibleDocId = selectedDocId?.trim() ?? '';
+      _preferFreshLaunchIndex = false;
+      return;
+    }
+    final safeIndex = selectedIndex.clamp(0, items.length - 1);
+    final resolvedDocId = (selectedDocId ?? '').trim().isNotEmpty
+        ? selectedDocId!.trim()
+        : items[safeIndex].docID.trim();
+    lastIndex.value = safeIndex;
+    lastVisibleDocId = resolvedDocId;
+    _preferFreshLaunchIndex = false;
+  }
+
+  void clearPreferredLaunchAnchor({bool preferFreshIndex = false}) {
+    lastIndex.value = 0;
+    lastVisibleDocId = '';
+    _preferFreshLaunchIndex = preferFreshIndex;
   }
 
   void setShortRouteVisible(bool isVisible) {

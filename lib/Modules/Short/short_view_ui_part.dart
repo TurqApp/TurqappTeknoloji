@@ -273,11 +273,15 @@ extension ShortViewUiPart on _ShortViewState {
                       ignoring: !isActivePage,
                       child: Opacity(
                         opacity: isActivePage ? 1 : 0.001,
-                        child: _buildFullscreenVideoSurface(
+                      child: _buildFullscreenVideoSurface(
                           vp,
                           'vp-${post.docID}',
                           modelAspectRatio: modelAr,
-                          preferResumePoster: false,
+                          preferResumePoster: isActivePage &&
+                              _shouldPreferResumePosterForPage(
+                                organicIndex,
+                                vp,
+                              ),
                         ),
                       ),
                     )

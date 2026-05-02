@@ -241,6 +241,47 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     return rawIndex.clamp(0, list.length - 1);
   }
 
+  bool _alignCurrentPageToDocAnchor({
+    required String reason,
+    bool jumpRenderPage = false,
+  }) {
+    if (_cachedShorts.isEmpty) return false;
+    final anchoredIndex = _initialDisplayIndex(
+      _cachedShorts,
+      controller.preferredLaunchIndexForItems(_cachedShorts),
+    );
+    final currentDocId = currentPage >= 0 && currentPage < _cachedShorts.length
+        ? _cachedShorts[currentPage].docID.trim()
+        : '';
+    final anchoredDocId = anchoredIndex >= 0 &&
+            anchoredIndex < _cachedShorts.length
+        ? _cachedShorts[anchoredIndex].docID.trim()
+        : '';
+    if (anchoredIndex == currentPage && anchoredDocId == currentDocId) {
+      return false;
+    }
+    currentPage = anchoredIndex;
+    controller.commitLaunchSelectionForItems(
+      currentPage,
+      _cachedShorts,
+      selectedDocId: anchoredDocId,
+    );
+    _rebuildShortRenderPlan();
+    debugPrint(
+      '[ShortDocAnchor] reason=$reason currentDoc=$currentDocId '
+      'anchoredDoc=$anchoredDocId page=$currentPage renderPage=$_currentRenderPage',
+    );
+    if (jumpRenderPage && pageController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !pageController.hasClients) return;
+        try {
+          pageController.jumpToPage(_currentRenderPage);
+        } catch (_) {}
+      });
+    }
+    return true;
+  }
+
   void _logShortAdSlots(String message) {
     if (!kDebugMode) return;
     debugPrint('[ShortAdSlots] $message');
@@ -470,9 +511,12 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     );
     if (_cachedShorts.isEmpty) {
       _cachedShorts = nextList;
-      currentPage = _initialDisplayIndex(_cachedShorts, currentPage);
+      currentPage = _initialDisplayIndex(
+        _cachedShorts,
+        controller.preferredLaunchIndexForItems(_cachedShorts),
+      );
       _rebuildShortRenderPlan();
-      controller.lastIndex.value = currentPage;
+      controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
       if (pageController.hasClients) {
         try {
           pageController.jumpToPage(_currentRenderPage);
@@ -482,6 +526,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } else {
       _applyRenderListUpdate(nextList);
     }
+    _alignCurrentPageToDocAnchor(
+      reason: 'surface_sync',
+      jumpRenderPage: true,
+    );
     if (_cachedShorts.isNotEmpty && _isShortRoutePlaybackActive) {
       unawaited(controller.ensureActiveAdapterReady(currentPage));
       _primeInitialPlayback();
@@ -498,6 +546,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _completionWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
+    _pendingPageActivation = false;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
     final vc = controller.cache[currentPage];
@@ -524,7 +573,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         ? 0
         : _initialDisplayIndex(
             controller.shorts,
-            controller.preferredLaunchIndexForCount(controller.shorts.length),
+            controller.preferredLaunchIndexForItems(controller.shorts),
           );
     final initialDocId = controller.shorts.isEmpty
         ? ''
@@ -541,9 +590,14 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } catch (_) {}
     currentPage = initialIndex;
     _shortAdRenderable = AdmobKare.hasRenderableBanner;
-    controller.commitLaunchIndexSelection(currentPage);
+    controller.commitLaunchSelectionForItems(
+      currentPage,
+      controller.shorts,
+      selectedDocId: initialDocId,
+    );
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     _rebuildShortRenderPlan();
+    _alignCurrentPageToDocAnchor(reason: 'view_init');
     controller.logShortOpenTrace(
       stage: 'view_init',
       metadata: <String, dynamic>{
@@ -629,6 +683,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } catch (_) {}
     if (_cachedShorts.isEmpty) return;
     _forceResumePosterOnReturn = true;
+    _alignCurrentPageToDocAnchor(
+      reason: 'did_pop_next',
+      jumpRenderPage: true,
+    );
     _scheduleRouteVisiblePlaybackBootstrap(delay: Duration.zero);
   }
 
@@ -655,7 +713,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       } catch (_) {}
       _routeObserverSubscribed = false;
     }
-    controller.lastIndex.value = currentPage;
+    controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     unawaited(controller.persistVisibleSnapshotNow());
     pageController.dispose();
 

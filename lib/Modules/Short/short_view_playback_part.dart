@@ -196,6 +196,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return true;
   }
 
+  bool _shouldPreferResumePosterForPage(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return false;
+    }
+    if (page == currentPage && _forceResumePosterOnReturn) {
+      return true;
+    }
+    return _savedPlaybackPositionForPage(page, adapter) != null;
+  }
+
   bool _shouldSuppressShortPlaybackAttempt(
     int page,
     String docId, {
@@ -356,7 +369,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     currentPage = remappedPage;
     final previousRenderPage = _currentRenderPage;
     _rebuildShortRenderPlan();
-    controller.lastIndex.value = currentPage;
+    controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
 
     _updateShortViewState(() {});
 
@@ -456,9 +469,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
       _currentRenderPage = renderPage;
       _isAdPageActive = false;
       currentPage = nextOrganicPage;
-      controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
     if (resumedFromAdPage) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -818,6 +831,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int page,
     HLSVideoAdapter adapter,
   ) {
+    if (_forceResumePosterOnReturn) {
+      return false;
+    }
     if (!_pendingPageActivation ||
         page < 0 ||
         page >= _cachedShorts.length ||
@@ -904,6 +920,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _shouldBlockPlaybackForAdPage) {
       return;
     }
+    _alignCurrentPageToDocAnchor(
+      reason: 'autoplay_bootstrap',
+      jumpRenderPage: true,
+    );
     if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;

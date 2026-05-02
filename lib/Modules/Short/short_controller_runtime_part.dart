@@ -497,8 +497,7 @@ extension ShortControllerPublicApiPart on ShortController {
     final deviceSession = DeviceSessionService.instance;
     final deviceSalt = deviceSession.cachedDeviceKey;
     if (shouldRotate) {
-      _preferFreshLaunchIndex = true;
-      lastIndex.value = 0;
+      clearPreferredLaunchAnchor(preferFreshIndex: true);
       beginStartupSurfaceSession(
         sessionNamespace: 'short',
         deviceSalt: deviceSalt,

@@ -72,6 +72,27 @@ extension ShortControllerLoadingPart on ShortController {
     return restored;
   }
 
+  Future<bool> restoreVisibleResumeQueueIntoSurface({
+    String reason = 'manual',
+  }) async {
+    final restored = await _restorePersistedResumeQueue();
+    if (restored.isEmpty) {
+      _log('[ShortResumeQueue] status=route_empty reason=$reason');
+      return false;
+    }
+    _replaceShorts(
+      _applyStartupShortPresentationOrder(restored),
+      remapCache: true,
+    );
+    commitLaunchSelectionForItems(0, shorts);
+    schedulePersistVisibleSnapshot();
+    _log(
+      '[ShortResumeQueue] status=route_apply reason=$reason '
+      'count=${shorts.length} first=${shorts.first.docID}',
+    );
+    return true;
+  }
+
   Future<List<PostsModel>> _loadOfflineReadyShortPosts({
     required int limit,
   }) async {
@@ -438,8 +459,7 @@ extension ShortControllerLoadingPart on ShortController {
           _applyStartupShortPresentationOrder(resumedQueue),
           remapCache: true,
         );
-        lastIndex.value = 0;
-        _preferFreshLaunchIndex = false;
+        commitLaunchSelectionForItems(0, shorts);
         _log(
           '[ShortResumeQueue] status=restored count=${resumedQueue.length} '
           'first=${resumedQueue.first.docID}',
@@ -616,7 +636,7 @@ extension ShortControllerLoadingPart on ShortController {
 
       _lastDoc = result.lastDoc;
       hasMore.value = result.hasMore;
-      lastIndex.value = refreshPlan.remappedIndex;
+      commitLaunchSelectionForItems(refreshPlan.remappedIndex, newList);
       if (newList.isNotEmpty && !cache.containsKey(lastIndex.value)) {
         await _preloadSingleVideoWithCache(
           lastIndex.value,
