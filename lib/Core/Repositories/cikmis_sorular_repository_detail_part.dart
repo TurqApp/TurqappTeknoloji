@@ -1,6 +1,9 @@
 part of 'cikmis_sorular_repository_parts.dart';
 
 extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
+  static const String _assetPastQuestionsManifestPath =
+      'assets/data/past_questions_manifest.json';
+
   int _asInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
@@ -57,6 +60,29 @@ extension CikmisSorularRepositoryDetailPart on CikmisSorularRepository {
   }
 
   Future<List<Map<String, dynamic>>> _fetchRootDocsFromManifest() async {
+    try {
+      final raw = await rootBundle.loadString(_assetPastQuestionsManifestPath);
+      if (raw.trim().isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        final rawItems = switch (decoded) {
+          List<dynamic> list => list,
+          Map<String, dynamic> map =>
+            (map['items'] as List<dynamic>?) ?? const [],
+          _ => const <dynamic>[],
+        };
+        final docs = rawItems
+            .whereType<Map>()
+            .map((item) =>
+                _normalizeManifestRootDoc(Map<String, dynamic>.from(item)))
+            .where(_isActiveRootDoc)
+            .toList(growable: true);
+        docs.sort(_compareRootDocs);
+        if (docs.isNotEmpty) {
+          return docs;
+        }
+      }
+    } catch (_) {}
+
     try {
       final bytes = await _storage
           .ref('questions/questions_manifest.json')

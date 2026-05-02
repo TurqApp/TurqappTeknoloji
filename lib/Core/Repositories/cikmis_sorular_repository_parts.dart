@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -102,6 +102,7 @@ flutter:
     - assets/data/HigherEducation.json
     - assets/data/Dormitory.json
     - assets/data/market_schema.json
+    - assets/data/past_questions_manifest.json
     - assets/bursSablonlar/
     - assets/tutorings/
     - assets/education/
