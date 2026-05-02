@@ -1,6 +1,118 @@
 part of 'scholarships_controller.dart';
 
 extension _ScholarshipsControllerDataPart on ScholarshipsController {
+  void _performHydrateScholarshipsStartupSeedPoolSync() {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = ensureStartupSnapshotSeedPool().load(
+        surface: 'scholarships',
+        userId: userId,
+      );
+      if (shard == null) return;
+      final decoded = _decodeScholarshipStartupItems(shard.payload['items']);
+      if (decoded.isEmpty) return;
+      if (allScholarships.isEmpty) {
+        allScholarships.assignAll(decoded);
+      }
+      if (visibleScholarships.isEmpty) {
+        _setVisibleScholarships(decoded);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _performHydrateScholarshipsStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = await ensureStartupSnapshotShardStore().load(
+        surface: 'scholarships',
+        userId: userId,
+        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
+      );
+      if (shard == null) return;
+      final decoded = _decodeScholarshipStartupItems(shard.payload['items']);
+      if (decoded.isEmpty) return;
+      if (allScholarships.isEmpty) {
+        allScholarships.assignAll(decoded);
+      }
+      if (visibleScholarships.isEmpty) {
+        _setVisibleScholarships(decoded);
+      }
+    } catch (_) {}
+  }
+
+  List<Map<String, dynamic>> _decodeScholarshipStartupItems(dynamic raw) {
+    if (raw is! List) return const <Map<String, dynamic>>[];
+    return raw
+        .whereType<Map>()
+        .map((entry) {
+          final item = Map<String, dynamic>.from(
+            entry.cast<dynamic, dynamic>(),
+          );
+          final modelMap =
+              Map<String, dynamic>.from(item['model'] as Map? ?? const {});
+          final docId = (item['docId'] ?? '').toString().trim();
+          if (docId.isEmpty) return null;
+          return <String, dynamic>{
+            'model': IndividualScholarshipsModel.fromJson(modelMap),
+            'type': (item['type'] ?? kIndividualScholarshipType).toString(),
+            'userData': Map<String, dynamic>.from(
+              item['userData'] as Map? ?? const <String, dynamic>{},
+            ),
+            'docId': docId,
+            'likesCount': item['likesCount'] ?? 0,
+            'bookmarksCount': item['bookmarksCount'] ?? 0,
+            'timeStamp': item['timeStamp'] ?? 0,
+            'isSummary': item['isSummary'] == true,
+          };
+        })
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
+  Future<void> _persistScholarshipsStartupShard() async {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    final startupLimit = ReadBudgetRegistry.startupListingWarmLimit(
+      onWiFi: true,
+    );
+    final startupItems = allScholarships
+        .take(startupLimit)
+        .toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      await store.clear(surface: 'scholarships', userId: userId);
+      return;
+    }
+    await store.save(
+      surface: 'scholarships',
+      userId: userId,
+      itemCount: allScholarships.length,
+      limit: startupLimit,
+      source: 'scholarship_snapshot',
+      payload: <String, dynamic>{
+        'items': startupItems
+            .map((item) {
+              final model = item['model'] as IndividualScholarshipsModel?;
+              return <String, dynamic>{
+                'docId': item['docId'] ?? '',
+                'type': item['type'] ?? kIndividualScholarshipType,
+                'model': model?.toJson() ?? <String, dynamic>{},
+                'userData': Map<String, dynamic>.from(
+                  item['userData'] as Map? ?? const <String, dynamic>{},
+                ),
+                'likesCount': item['likesCount'] ?? 0,
+                'bookmarksCount': item['bookmarksCount'] ?? 0,
+                'timeStamp': item['timeStamp'] ?? 0,
+                'isSummary': item['isSummary'] ?? false,
+              };
+            })
+            .toList(growable: false),
+      },
+    );
+  }
+
   String _listingSelectionKeyFor(String uid) =>
       '${ScholarshipsController._listingSelectionPrefKeyPrefix}_$uid';
 
@@ -219,6 +331,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       await _primeLocalStateForCombined(combined);
 
       _applyScholarshipStateFromCombined(combined);
+      unawaited(_persistScholarshipsStartupShard());
       if (_scholarshipsHasActiveSearch(this)) {
         unawaited(
           _searchFromTypesense(searchQuery.value, ++_searchRequestToken),
@@ -292,6 +405,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
     if (items.isNotEmpty) {
       unawaited(_primeLocalStateForCombined(items));
       _applyScholarshipStateFromCombined(items);
+      unawaited(_persistScholarshipsStartupShard());
       _prefetchShortLinksForList(allScholarships);
       hasMoreData.value = items.length >= _scholarshipsInitialBatchSize &&
           allScholarships.length < totalCount.value;

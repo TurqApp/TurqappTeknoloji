@@ -26,15 +26,23 @@ String _formatSeconds(int seconds) {
 
 extension SignInControllerWarmEntryPart on SignInController {
   void onAuthEntryScreenVisible() {
+    final currentSelection = selection.value;
     debugPrint(
-      '[AuthEntryWarm] status=screen_visible selection=${selection.value}',
+      '[AuthEntryWarm] status=screen_visible selection=$currentSelection',
     );
     Future<void>.microtask(() async {
       debugPrint(
-        '[AuthEntryWarm] status=queued selection=${selection.value}',
+        '[AuthEntryWarm] status=queued selection=$currentSelection',
       );
+      if (currentSelection == 1) {
+        unawaited(
+          SignInEntryWarmService.ensurePasajStarted(
+            source: 'sign_in_screen_selection_${currentSelection}_fastlane',
+          ),
+        );
+      }
       await SignInEntryWarmService.ensureStarted(
-        source: 'sign_in_screen_selection_${selection.value}',
+        source: 'sign_in_screen_selection_$currentSelection',
       );
     });
   }

@@ -116,6 +116,31 @@ extension JobFinderControllerDataPart on JobFinderController {
     } catch (_) {}
   }
 
+  void _performHydrateJobFinderStartupSeedPoolSync() {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = ensureStartupSnapshotSeedPool().load(
+        surface: 'jobs',
+        userId: userId,
+      );
+      if (shard == null) return;
+      final decoded = _decodeJobFinderStartupJobs(shard.payload['jobs']);
+      if (decoded.isEmpty) return;
+      final rawSelection = (shard.payload['listingSelection'] as num?)?.toInt();
+      if (rawSelection != null) {
+        listingSelection.value = rawSelection == 1 ? 1 : 0;
+        listingSelectionReady.value = true;
+      }
+      if (list.isEmpty) {
+        list.assignAll(decoded);
+      }
+      if (allJobs.isEmpty) {
+        allJobs.assignAll(decoded);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _persistJobFinderStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;

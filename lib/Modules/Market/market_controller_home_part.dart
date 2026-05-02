@@ -117,6 +117,26 @@ extension _MarketControllerHomePart on MarketController {
     } catch (_) {}
   }
 
+  void _performHydrateMarketStartupSeedPoolSync() {
+    final userId = CurrentUserService.instance.effectiveUserId.trim();
+    if (userId.isEmpty) return;
+    try {
+      final shard = ensureStartupSnapshotSeedPool().load(
+        surface: 'market',
+        userId: userId,
+      );
+      if (shard == null) return;
+      final decoded = _decodeMarketStartupItems(shard.payload['items']);
+      if (decoded.isEmpty) return;
+      if (items.isEmpty) {
+        items.assignAll(decoded);
+      }
+      if (visibleItems.isEmpty) {
+        visibleItems.assignAll(decoded);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _persistMarketStartupShard() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;

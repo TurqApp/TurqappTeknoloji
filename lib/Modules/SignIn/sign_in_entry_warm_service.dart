@@ -9,11 +9,15 @@ import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/explore_repository.dart';
 import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_seed_pool.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
+import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -42,6 +46,7 @@ class SignInEntryWarmService {
   SignInEntryWarmService._();
 
   static Future<void>? _inFlight;
+  static Future<void>? _pasajInFlight;
 
   static Future<void> _startQuotaFillAfterShortReady() async {
     try {
@@ -124,6 +129,10 @@ class SignInEntryWarmService {
       for (final item in items) ...item.imageUrls.take(1),
       for (final item in items) item.sellerPhotoUrl,
     ]);
+    await _saveMarketStartupShard(
+      userId: userId,
+      items: items,
+    );
     return _PasajWarmResult(
       readyCount: items.length,
       warmedImages: warmedImages,
@@ -157,6 +166,10 @@ class SignInEntryWarmService {
       for (final item in items) item.logo,
       for (final item in items) item.authorAvatarUrl,
     ]);
+    await _saveJobStartupShard(
+      userId: userId,
+      items: items,
+    );
     return _PasajWarmResult(
       readyCount: items.length,
       warmedImages: warmedImages,
@@ -193,6 +206,10 @@ class SignInEntryWarmService {
           (item['avatarUrl'] ?? item['authorAvatarUrl'] ?? '').toString(),
         ],
     ]);
+    await _saveScholarshipStartupShard(
+      userId: userId,
+      items: items,
+    );
     return _PasajWarmResult(
       readyCount: items.length,
       warmedImages: warmedImages,
@@ -224,9 +241,231 @@ class SignInEntryWarmService {
       for (final item in items) ...(item.imgs ?? const <String>[]).take(1),
       for (final item in items) item.avatarUrl,
     ]);
+    await _saveTutoringStartupShard(
+      userId: userId,
+      items: items,
+    );
     return _PasajWarmResult(
       readyCount: items.length,
       warmedImages: warmedImages,
+    );
+  }
+
+  static Future<void> _saveMarketStartupShard({
+    required String userId,
+    required List<MarketItemModel> items,
+  }) async {
+    final actorId = userId.trim();
+    if (actorId.isEmpty) return;
+    final startupItems = items
+        .take(ReadBudgetRegistry.marketStartupShardLimit)
+        .toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      ensureStartupSnapshotSeedPool().clear(surface: 'market', userId: actorId);
+      await store.clear(surface: 'market', userId: actorId);
+      return;
+    }
+    ensureStartupSnapshotSeedPool().save(
+      surface: 'market',
+      userId: actorId,
+      itemCount: items.length,
+      limit: ReadBudgetRegistry.marketStartupShardLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items':
+            startupItems.map((item) => item.toJson()).toList(growable: false),
+      },
+    );
+    await store.save(
+      surface: 'market',
+      userId: actorId,
+      itemCount: items.length,
+      limit: ReadBudgetRegistry.marketStartupShardLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items':
+            startupItems.map((item) => item.toJson()).toList(growable: false),
+      },
+    );
+  }
+
+  static Future<void> _saveJobStartupShard({
+    required String userId,
+    required List<JobModel> items,
+  }) async {
+    final actorId = userId.trim();
+    if (actorId.isEmpty) return;
+    final startupItems = items
+        .take(ReadBudgetRegistry.jobStartupShardLimit)
+        .toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      ensureStartupSnapshotSeedPool().clear(surface: 'jobs', userId: actorId);
+      await store.clear(surface: 'jobs', userId: actorId);
+      return;
+    }
+    ensureStartupSnapshotSeedPool().save(
+      surface: 'jobs',
+      userId: actorId,
+      itemCount: items.length,
+      limit: ReadBudgetRegistry.jobStartupShardLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'jobs': startupItems
+            .map(
+              (job) => <String, dynamic>{
+                'docID': job.docID,
+                'data': job.toMap(),
+              },
+            )
+            .toList(growable: false),
+      },
+    );
+    await store.save(
+      surface: 'jobs',
+      userId: actorId,
+      itemCount: items.length,
+      limit: ReadBudgetRegistry.jobStartupShardLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'jobs': startupItems
+            .map(
+              (job) => <String, dynamic>{
+                'docID': job.docID,
+                'data': job.toMap(),
+              },
+            )
+            .toList(growable: false),
+      },
+    );
+  }
+
+  static Future<void> _saveScholarshipStartupShard({
+    required String userId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final actorId = userId.trim();
+    if (actorId.isEmpty) return;
+    final startupItems =
+        items.take(_authEntryPasajWarmLimit).toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      ensureStartupSnapshotSeedPool().clear(
+        surface: 'scholarships',
+        userId: actorId,
+      );
+      await store.clear(surface: 'scholarships', userId: actorId);
+      return;
+    }
+    ensureStartupSnapshotSeedPool().save(
+      surface: 'scholarships',
+      userId: actorId,
+      itemCount: items.length,
+      limit: _authEntryPasajWarmLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items': startupItems
+            .map((item) {
+              final model = item['model'];
+              return <String, dynamic>{
+                'docId': item['docId'] ?? '',
+                'type': item['type'] ?? '',
+                'model': model is IndividualScholarshipsModel
+                    ? model.toJson()
+                    : <String, dynamic>{},
+                'userData': Map<String, dynamic>.from(
+                  item['userData'] as Map? ?? const <String, dynamic>{},
+                ),
+                'likesCount': item['likesCount'] ?? 0,
+                'bookmarksCount': item['bookmarksCount'] ?? 0,
+                'timeStamp': item['timeStamp'] ?? 0,
+                'isSummary': item['isSummary'] ?? false,
+              };
+            })
+            .toList(growable: false),
+      },
+    );
+    await store.save(
+      surface: 'scholarships',
+      userId: actorId,
+      itemCount: items.length,
+      limit: _authEntryPasajWarmLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items': startupItems
+            .map((item) {
+              final model = item['model'];
+              return <String, dynamic>{
+                'docId': item['docId'] ?? '',
+                'type': item['type'] ?? '',
+                'model': model is IndividualScholarshipsModel
+                    ? model.toJson()
+                    : <String, dynamic>{},
+                'userData': Map<String, dynamic>.from(
+                  item['userData'] as Map? ?? const <String, dynamic>{},
+                ),
+                'likesCount': item['likesCount'] ?? 0,
+                'bookmarksCount': item['bookmarksCount'] ?? 0,
+                'timeStamp': item['timeStamp'] ?? 0,
+                'isSummary': item['isSummary'] ?? false,
+              };
+            })
+            .toList(growable: false),
+      },
+    );
+  }
+
+  static Future<void> _saveTutoringStartupShard({
+    required String userId,
+    required List<TutoringModel> items,
+  }) async {
+    final actorId = userId.trim();
+    if (actorId.isEmpty) return;
+    final startupItems =
+        items.take(_authEntryPasajWarmLimit).toList(growable: false);
+    final store = ensureStartupSnapshotShardStore();
+    if (startupItems.isEmpty) {
+      ensureStartupSnapshotSeedPool().clear(
+        surface: 'tutoring',
+        userId: actorId,
+      );
+      await store.clear(surface: 'tutoring', userId: actorId);
+      return;
+    }
+    ensureStartupSnapshotSeedPool().save(
+      surface: 'tutoring',
+      userId: actorId,
+      itemCount: items.length,
+      limit: _authEntryPasajWarmLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items': startupItems
+            .map(
+              (item) => <String, dynamic>{
+                'docID': item.docID,
+                'data': item.toJson(),
+              },
+            )
+            .toList(growable: false),
+      },
+    );
+    await store.save(
+      surface: 'tutoring',
+      userId: actorId,
+      itemCount: items.length,
+      limit: _authEntryPasajWarmLimit,
+      source: 'auth_entry_warm',
+      payload: <String, dynamic>{
+        'items': startupItems
+            .map(
+              (item) => <String, dynamic>{
+                'docID': item.docID,
+                'data': item.toJson(),
+              },
+            )
+            .toList(growable: false),
+      },
     );
   }
 
@@ -300,7 +539,53 @@ class SignInEntryWarmService {
       }
     }
 
-    Future<void> runPasajStep() async {
+    Future<void> runPasajStep() {
+      return ensurePasajStarted(source: source);
+    }
+
+    final future = () async {
+      debugPrint('[AuthEntryWarm] status=begin source=$source');
+      try {
+        await runStep(
+          'feed_manifest',
+          () async {
+            await ensureFeedManifestRepository().syncActiveWindowIfChanged();
+            await ensureFeedManifestRepository().warmStartupWindow();
+          },
+        );
+        await runStep(
+          'short_manifest',
+          () => ensureShortManifestRepository().warmStartupWindow(),
+        );
+        await _startQuotaFillAfterShortReady();
+        final floodFuture = runFloodStep().catchError((error, stackTrace) {
+          return;
+        });
+        await runPasajStep();
+        await floodFuture;
+      } finally {
+        debugPrint('[AuthEntryWarm] status=finish source=$source');
+      }
+    }();
+
+    _inFlight = future.whenComplete(() {
+      if (identical(_inFlight, future)) {
+        _inFlight = null;
+      }
+    });
+    return _inFlight!;
+  }
+
+  static Future<void> ensurePasajStarted({
+    String source = 'unknown',
+  }) {
+    final existing = _pasajInFlight;
+    if (existing != null) {
+      debugPrint('[AuthEntryWarm] status=join_existing_pasaj source=$source');
+      return existing;
+    }
+
+    Future<void> runPasajStepInternal() async {
       final tabs = await _loadVisiblePasajListingTabs();
       debugPrint(
         '[AuthEntryWarm] status=start label=pasaj_tabs '
@@ -341,35 +626,14 @@ class SignInEntryWarmService {
     }
 
     final future = () async {
-      debugPrint('[AuthEntryWarm] status=begin source=$source');
-      try {
-        await runStep(
-          'feed_manifest',
-          () async {
-            await ensureFeedManifestRepository().syncActiveWindowIfChanged();
-            await ensureFeedManifestRepository().warmStartupWindow();
-          },
-        );
-        await runStep(
-          'short_manifest',
-          () => ensureShortManifestRepository().warmStartupWindow(),
-        );
-        await _startQuotaFillAfterShortReady();
-        final floodFuture = runFloodStep().catchError((error, stackTrace) {
-          return;
-        });
-        await runPasajStep();
-        await floodFuture;
-      } finally {
-        debugPrint('[AuthEntryWarm] status=finish source=$source');
-      }
+      await runPasajStepInternal();
     }();
 
-    _inFlight = future.whenComplete(() {
-      if (identical(_inFlight, future)) {
-        _inFlight = null;
+    _pasajInFlight = future.whenComplete(() {
+      if (identical(_pasajInFlight, future)) {
+        _pasajInFlight = null;
       }
     });
-    return _inFlight!;
+    return _pasajInFlight!;
   }
 }

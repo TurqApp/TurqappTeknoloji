@@ -22,11 +22,13 @@ bool _hasActiveTutoringSearch(TutoringController controller) =>
     controller.searchQuery.value.trim().length >= 2;
 
 void _handleTutoringControllerInit(TutoringController controller) {
+  controller._performHydrateTutoringStartupSeedPoolSync();
   controller.scrollController.addListener(controller._onScroll);
   unawaited(_bootstrapTutoringDataImpl(controller));
 }
 
 Future<void> _bootstrapTutoringDataImpl(TutoringController controller) async {
+  await controller._performHydrateTutoringStartupShard();
   final savedController = ensureSavedTutoringsController(permanent: true);
   await savedController.loadSavedTutorings();
   final userId = CurrentUserService.instance.effectiveUserId;

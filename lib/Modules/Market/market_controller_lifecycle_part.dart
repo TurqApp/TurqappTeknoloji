@@ -2,6 +2,7 @@ part of 'market_controller.dart';
 
 extension _MarketControllerLifecyclePart on MarketController {
   void _handleLifecycleInit() {
+    _performHydrateMarketStartupSeedPoolSync();
     scrollController.addListener(_onScroll);
     unawaited(_loadRecentSearches());
   }

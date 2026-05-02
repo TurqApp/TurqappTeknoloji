@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/cached_resource.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_manifest_store.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
+import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_seed_pool.dart';
 import 'package:turqappv2/Core/Services/city_directory_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/market_offer_service.dart';

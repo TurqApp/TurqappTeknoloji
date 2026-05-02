@@ -13,11 +13,13 @@ extension ScholarshipsControllerRuntimeX on ScholarshipsController {
   bool get hasActiveSearch => _scholarshipsHasActiveSearch(this);
 
   void _handleOnInit() {
+    _performHydrateScholarshipsStartupSeedPoolSync();
     unawaited(_restoreListingSelection());
     unawaited(_bootstrapScholarships());
   }
 
   Future<void> _bootstrapScholarships() async {
+    await _performHydrateScholarshipsStartupShard();
     final userId = CurrentUserService.instance.effectiveUserId;
     _homeSnapshotSub?.cancel();
     _homeSnapshotSub = _scholarshipSnapshotRepository
