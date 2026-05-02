@@ -63,11 +63,24 @@ extension _RecommendedUserListControllerRuntimeX
     return candidates.where((user) {
       if (user.userID == currentUserId) return false;
       if (takipEdilenler.contains(user.userID)) return false;
-      final normalizedRozet = normalizeRozetValue(user.rozet);
-      return normalizedRozet.isNotEmpty &&
-          normalizedRozet != 'kirmizi' &&
-          normalizedRozet != 'gri';
-    }).toList();
+      return RecommendedUserListController.hasAllowedRecommendedUserRozet(
+        user.rozet,
+      );
+    }).map((user) {
+      final sanitizedRozet =
+          RecommendedUserListController.sanitizeRecommendedUserRozet(
+        user.rozet,
+      );
+      return RecommendedUserModel(
+        userID: user.userID,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        nickname: user.nickname,
+        bio: user.bio,
+        rozet: sanitizedRozet,
+      );
+    }).toList(growable: false);
   }
 
   Future<void> getFollowing() async {

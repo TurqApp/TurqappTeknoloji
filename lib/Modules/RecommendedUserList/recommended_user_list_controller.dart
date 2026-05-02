@@ -14,6 +14,22 @@ part 'recommended_user_list_controller_fields_part.dart';
 part 'recommended_user_list_controller_runtime_part.dart';
 
 class RecommendedUserListController extends GetxController {
+  @visibleForTesting
+  static String sanitizeRecommendedUserRozet(String raw) {
+    switch (normalizeRozetValue(raw)) {
+      case 'sari':
+        return 'Sarı';
+      case 'mavi':
+        return 'Mavi';
+      default:
+        return '';
+    }
+  }
+
+  @visibleForTesting
+  static bool hasAllowedRecommendedUserRozet(String raw) =>
+      sanitizeRecommendedUserRozet(raw).isNotEmpty;
+
   final _state = _RecommendedUserListControllerState();
 
   @override

@@ -100,7 +100,11 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                         ),
                       ),
                     ),
-                    RozetContent(size: badgeSize, userID: model.userID)
+                    RozetContent(
+                      size: badgeSize,
+                      userID: model.userID,
+                      rozetValue: model.rozet,
+                    )
                   ],
                 ),
                 SizedBox(height: compact ? 6 : 4),
