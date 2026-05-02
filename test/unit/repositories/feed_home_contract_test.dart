@@ -158,6 +158,10 @@ void main() {
       );
       expect(
         fetchSource,
+        contains('final gapCutoffMs = max(cutoffMs, gapWindowStartMs);'),
+      );
+      expect(
+        fetchSource,
         contains('visible.skip(pageStart).take(limit).toList'),
       );
       expect(

@@ -90,6 +90,7 @@ class _FeedSnapshotRepositoryState {
   String? gapWindowCacheKey;
   List<FeedManifestEntry> gapWindowCacheEntries = const <FeedManifestEntry>[];
   Future<List<FeedManifestEntry>>? gapWindowCacheFuture;
+  Map<String, String> latestVisibleSourceByDocId = const <String, String>{};
 
   late final PostRepository postRepository = PostRepository.ensure();
   late final UserSummaryResolver userSummaryResolver =
@@ -177,6 +178,14 @@ extension FeedSnapshotRepositoryFacadePart on FeedSnapshotRepository {
     final summary = _state.lastGapFinalSummary?.trim();
     if (summary == null || summary.isEmpty) return;
     debugPrint(summary);
+  }
+
+  String debugVisibleSourceLabelForDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return '-';
+    final source = _state.latestVisibleSourceByDocId[normalized]?.trim() ?? '';
+    if (source.isEmpty) return '-';
+    return source == 'typesense_gap' ? 'gap' : source;
   }
 
   Stream<CachedResource<List<PostsModel>>> openHome({

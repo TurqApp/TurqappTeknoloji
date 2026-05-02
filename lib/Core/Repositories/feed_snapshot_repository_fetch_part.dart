@@ -300,6 +300,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         consumedFloodRootIds: consumedFloodRootIds,
         newestManifestSlotPath: _resolvePrimarySlotPath(pool.entries),
       );
+      _state.latestVisibleSourceByDocId = Map<String, String>.unmodifiable({
+        for (final deckEntry in visibleEntries)
+          deckEntry.post.docID.trim(): deckEntry.entry.slotPath.trim(),
+      });
       final visible =
           visibleEntries.map((entry) => entry.post).toList(growable: false);
       if (_shouldLogDiagnostics && visibleEntries.isNotEmpty) {
@@ -480,7 +484,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       return const <FeedManifestEntry>[];
     }
     final effectiveNowMs = min(nowMs, gapCacheUntilMs);
-    final gapCutoffMs = cutoffMs;
+    final gapCutoffMs = max(cutoffMs, gapWindowStartMs);
     if (gapCutoffMs >= effectiveNowMs) {
       return const <FeedManifestEntry>[];
     }

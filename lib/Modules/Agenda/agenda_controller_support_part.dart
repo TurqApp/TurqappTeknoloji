@@ -33,6 +33,10 @@ extension AgendaControllerSupportPart on AgendaController {
     return 'image';
   }
 
+  String _feedDebugSourceForPost(PostsModel post) {
+    return _feedSnapshotRepository.debugVisibleSourceLabelForDoc(post.docID);
+  }
+
   void _debugAgendaKinds(
     String label,
     Iterable<PostsModel> posts,
@@ -46,7 +50,7 @@ extension AgendaControllerSupportPart on AgendaController {
         final slots = list.sublist(start, end).asMap().entries.map((entry) {
           final absoluteIndex = start + entry.key + 1;
           final post = entry.value;
-          return '$absoluteIndex:${_feedDebugKindForPost(post)}:${post.docID}';
+          return '$absoluteIndex:${_feedDebugKindForPost(post)}:${_feedDebugSourceForPost(post)}:${post.docID}';
         }).join(' | ');
         debugPrint(
           '[FeedAgendaKinds] label=$label count=${list.length} range=${start + 1}-$end slots=$slots',
