@@ -212,9 +212,13 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final pageNumber = typesensePage != null && typesensePage > 0
         ? typesensePage
         : (startAfter == null ? 1 : 2);
-    final deckLimit = pageNumber * limit;
-    final pageStart = (pageNumber - 1) * limit;
-    final pageEndExclusive = pageStart + limit;
+    final pageWindow = FeedSnapshotRepository.resolveManifestPageWindow(
+      pageNumber: pageNumber,
+      pageSize: limit,
+    );
+    final deckLimit = pageWindow.deckLimit;
+    final pageStart = pageWindow.pageStart;
+    final pageEndExclusive = pageWindow.pageEndExclusive;
     final slotLoadBudget = FeedManifestPolicy.resolveSlotLoadBudget(
       pageNumber: pageNumber,
     );
@@ -752,7 +756,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     final seenDocIds = <String>{};
     final skippedConsumedDocIds = <String>[];
     final skippedConsumedFloodRootIds = <String>[];
-    final newestSlotGraceDocIds = <String>[];
     var rawGapCount = 0;
     var consumedPrunedGapCount = 0;
 
@@ -770,10 +773,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (!seenDocIds.add(docId)) return;
       if (!seenCanonicals.add(canonicalId)) return;
       if (hiddenPostIds.contains(docId)) return;
-      final isNewestManifestSlot = source == FeedManifestDeckSource.manifest &&
-          newestManifestSlotPath.isNotEmpty &&
-          entry.slotPath.trim() == newestManifestSlotPath;
-      if (consumedDocIds.contains(docId) && !isNewestManifestSlot) {
+      if (consumedDocIds.contains(docId)) {
         if (source == FeedManifestDeckSource.gap) {
           consumedPrunedGapCount++;
         }
@@ -790,8 +790,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
                   : docId.replaceFirst(RegExp(r'_\d+$'), '')))
           : '';
       if (floodRootId.isNotEmpty &&
-          consumedFloodRootIds.contains(floodRootId) &&
-          !isNewestManifestSlot) {
+          consumedFloodRootIds.contains(floodRootId)) {
         if (source == FeedManifestDeckSource.gap) {
           consumedPrunedGapCount++;
         }
@@ -799,14 +798,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           skippedConsumedFloodRootIds.add(floodRootId);
         }
         return;
-      }
-      if (isNewestManifestSlot &&
-          (consumedDocIds.contains(docId) ||
-              (floodRootId.isNotEmpty &&
-                  consumedFloodRootIds.contains(floodRootId)))) {
-        if (newestSlotGraceDocIds.length < 8) {
-          newestSlotGraceDocIds.add(docId);
-        }
       }
       if (post.userID.trim().isEmpty) return;
       if (post.deletedPost == true || post.gizlendi) return;
@@ -858,15 +849,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'floodPreview=$skippedConsumedFloodRootIds',
       );
     }
-    if (_shouldLogDiagnostics && newestSlotGraceDocIds.isNotEmpty) {
-      debugPrint(
-        '[FeedManifestPrimary] status=newest_slot_grace '
-        'slotPath=$newestManifestSlotPath '
-        'keptDocs=${newestSlotGraceDocIds.length} '
-        'docPreview=$newestSlotGraceDocIds',
-      );
-    }
-
     slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);
     for (final bucket in manifestBuckets.values) {
       bucket.sort((left, right) {
@@ -884,58 +866,50 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     });
 
     final selected = <FeedManifestDeckEntry>[];
-    var added = true;
-    while (selected.length < limit && added) {
-      added = false;
-      if (gapBucket.isNotEmpty) {
-        final remaining = limit - selected.length;
-        final takeCount = min(
-          FeedManifestPolicy.gapSlotBatchSize,
-          min(gapBucket.length, remaining),
-        );
-        if (takeCount > 0) {
-          selected.addAll(gapBucket.take(takeCount));
-          gapBucket.removeRange(0, takeCount);
-          added = true;
-        }
+    if (gapBucket.isNotEmpty) {
+      final remaining = limit - selected.length;
+      final takeCount = min(
+        FeedManifestPolicy.gapSlotBatchSize,
+        min(gapBucket.length, remaining),
+      );
+      if (takeCount > 0) {
+        selected.addAll(gapBucket.take(takeCount));
       }
-      for (var slotIndex = 0; slotIndex < slotOrder.length; slotIndex++) {
-        final slotKey = slotOrder[slotIndex];
-        final bucket = manifestBuckets[slotKey];
-        final remaining = limit - selected.length;
-        if (remaining <= 0) break;
-        final hasLaterAvailable = slotOrder.skip(slotIndex + 1).any(
-              (key) => (manifestBuckets[key]?.isNotEmpty ?? false),
-            );
-        if (bucket == null || bucket.isEmpty) {
-          if (_shouldLogDiagnostics && hasLaterAvailable) {
-            debugPrint(
-              '[FeedManifestPrimary] status=slot_exhausted_bypass '
-              'slot=${slotIndex + 1} slotPath=$slotKey '
-              'reason=empty remaining=$remaining',
-            );
-          }
-          continue;
-        }
-        final takeCount = min(
-          FeedManifestMixer.defaultSlotBatchSize,
-          min(bucket.length, remaining),
-        );
-        selected.addAll(bucket.take(takeCount));
-        bucket.removeRange(0, takeCount);
-        if (_shouldLogDiagnostics &&
-            takeCount < FeedManifestMixer.defaultSlotBatchSize &&
-            hasLaterAvailable &&
-            remaining > takeCount) {
+    }
+    for (var slotIndex = 0; slotIndex < slotOrder.length; slotIndex++) {
+      final slotKey = slotOrder[slotIndex];
+      final bucket = manifestBuckets[slotKey];
+      final remaining = limit - selected.length;
+      if (remaining <= 0) break;
+      final hasLaterAvailable = slotOrder.skip(slotIndex + 1).any(
+            (key) => (manifestBuckets[key]?.isNotEmpty ?? false),
+          );
+      if (bucket == null || bucket.isEmpty) {
+        if (_shouldLogDiagnostics && hasLaterAvailable) {
           debugPrint(
             '[FeedManifestPrimary] status=slot_exhausted_bypass '
             'slot=${slotIndex + 1} slotPath=$slotKey '
-            'reason=underfilled takeCount=$takeCount '
-            'batchSize=${FeedManifestMixer.defaultSlotBatchSize} '
-            'remainingBefore=$remaining',
+            'reason=empty remaining=$remaining',
           );
         }
-        added = true;
+        continue;
+      }
+      final takeCount = min(
+        FeedManifestMixer.defaultSlotBatchSize,
+        min(bucket.length, remaining),
+      );
+      selected.addAll(bucket.take(takeCount));
+      if (_shouldLogDiagnostics &&
+          takeCount < FeedManifestMixer.defaultSlotBatchSize &&
+          hasLaterAvailable &&
+          remaining > takeCount) {
+        debugPrint(
+          '[FeedManifestPrimary] status=slot_exhausted_bypass '
+          'slot=${slotIndex + 1} slotPath=$slotKey '
+          'reason=underfilled takeCount=$takeCount '
+          'batchSize=${FeedManifestMixer.defaultSlotBatchSize} '
+          'remainingBefore=$remaining',
+        );
       }
     }
     if (_shouldLogDiagnostics && rawGapCount > 0) {

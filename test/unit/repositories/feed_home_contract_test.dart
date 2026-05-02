@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:turqappv2/Core/Repositories/feed_home_contract.dart';
+import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 
 void main() {
   group('FeedHomeContract', () {
@@ -61,7 +62,7 @@ void main() {
 
       expect(
         fetchSource,
-        contains('if (!usePrimaryFeedPaging || normalizedUserId.isEmpty) {'),
+        contains('if (!usePrimaryFeedPaging) {'),
       );
       expect(
         fetchSource,
@@ -70,6 +71,50 @@ void main() {
         ),
       );
       expect(fetchSource, isNot(contains('_loadLegacyPage(')));
+    });
+
+    test('manifest page windows preserve startup head then continue in blocks',
+        () {
+      final first = FeedSnapshotRepository.resolveManifestPageWindow(
+        pageNumber: 1,
+        pageSize: 15,
+      );
+      final second = FeedSnapshotRepository.resolveManifestPageWindow(
+        pageNumber: 2,
+        pageSize: 24,
+      );
+      final third = FeedSnapshotRepository.resolveManifestPageWindow(
+        pageNumber: 3,
+        pageSize: 24,
+      );
+
+      expect(first.pageStart, 0);
+      expect(first.pageEndExclusive, 15);
+      expect(first.deckLimit, 15);
+
+      expect(second.pageStart, 15);
+      expect(second.pageEndExclusive, 39);
+      expect(second.deckLimit, 39);
+
+      expect(third.pageStart, 39);
+      expect(third.pageEndExclusive, 63);
+      expect(third.deckLimit, 63);
+    });
+
+    test('manifest selection does not bypass consumed newest-slot cards', () {
+      final fetchSource = File(
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+      ).readAsStringSync();
+
+      expect(fetchSource, contains('if (consumedDocIds.contains(docId)) {'));
+      expect(
+        fetchSource,
+        isNot(contains('status=newest_slot_grace')),
+      );
+      expect(
+        fetchSource,
+        isNot(contains('keptDocs=')),
+      );
     });
   });
 }
