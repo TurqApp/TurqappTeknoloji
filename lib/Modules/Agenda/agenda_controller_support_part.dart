@@ -348,6 +348,19 @@ extension AgendaControllerPublicApiPart on AgendaController {
         trigger: 'primary_surface_visible',
       ),
     );
+    final pendingCenteredDocId = _pendingCenteredDocId?.trim() ?? '';
+    if (pendingCenteredDocId.isNotEmpty && agendaList.isNotEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=resume_pending_anchor '
+        'doc=$pendingCenteredDocId agendaCount=${agendaList.length} '
+        'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized',
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed || agendaList.isEmpty) return;
+        resumeFeedPlayback();
+      });
+      return Future<void>.value();
+    }
     if (_lastPrimarySurfaceVisibleMutationEpoch == _feedMutationEpoch) {
       debugPrint(
         '[FeedStartupSurface] status=skip_primary_surface_repeat '

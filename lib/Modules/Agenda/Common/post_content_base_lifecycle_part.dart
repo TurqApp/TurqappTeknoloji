@@ -168,7 +168,19 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             'adapterBound=${_videoAdapter != null}',
           );
         }
-        if (!shouldKeepAndroidSurfaceAlive) {
+        final shouldStopRuntimeHandle =
+            !shouldKeepAndroidSurfaceAlive &&
+            !(defaultTargetPlatform == TargetPlatform.iOS &&
+                _isPrimaryFeedSurfaceInstance);
+        if (shouldStopRuntimeHandle) {
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              _isPrimaryFeedSurfaceInstance) {
+            debugPrint(
+              '[FeedColdStartTrace] stage=request_stop '
+              'doc=${widget.model.docID} shouldPlay=${widget.shouldPlay} '
+              'surfaceAllowed=$_isSurfacePlaybackAllowed',
+            );
+          }
           _playbackRuntimeService.requestStop(playbackHandleKey);
         }
         if (_blockPause) return;

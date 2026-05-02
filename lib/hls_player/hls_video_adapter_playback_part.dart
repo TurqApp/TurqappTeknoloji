@@ -180,6 +180,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     final previousRequestedVolume = _pendingVolume;
     final shouldRecheckIosAudibility =
         defaultTargetPlatform == TargetPlatform.iOS &&
+            !_isPrimaryFeedSurface &&
             requestedVolume > 0.001 &&
             _viewReady &&
             _value.isInitialized &&
@@ -326,6 +327,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   }) {
     if (_disposed) return const SizedBox.shrink();
     _refreshProxyUrlIfNeeded();
+    _isPrimaryFeedSurface = isPrimaryFeedSurface;
     updateWarmPoolPausePreference(
       preferWarmPoolPauseOnAndroid ||
           (defaultTargetPlatform == TargetPlatform.android &&

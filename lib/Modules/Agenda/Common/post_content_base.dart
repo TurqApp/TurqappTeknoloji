@@ -44,8 +44,6 @@ const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
-const int _iosPrimaryFeedWarmPlayerAheadVideoCount = 2;
-
 enum _FeedNativeWarmTier {
   off,
   cacheOnly,
@@ -175,6 +173,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _warmPreloadFetchClaimed = false;
   Duration? _lastQueuedSavedResumePosition;
   DateTime? _lastQueuedSavedResumeAt;
+  DateTime? _savedResumeRecoveryGuardUntil;
   DateTime? _lastIosPrimaryFeedRecoveryAt;
   DateTime? _autoplaySegmentGateStartedAt;
   bool _autoplaySegmentGateTimedOut = false;
@@ -643,6 +642,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (delta == 0) {
       return _FeedNativeWarmTier.strong;
     }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance) {
+      return _FeedNativeWarmTier.off;
+    }
     final previous = previousCenteredIndex ?? centeredIndex;
     final scrollingBackward = centeredIndex < previous;
     final isMotionSide = scrollingBackward ? delta < 0 : delta > 0;
@@ -678,6 +681,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final isIosPrimaryFeed = defaultTargetPlatform == TargetPlatform.iOS &&
         _isPrimaryFeedSurfaceInstance;
     if (!isAndroid && !isIosPrimaryFeed) return false;
+    if (isIosPrimaryFeed) {
+      return false;
+    }
     // Keep native warm controller preload limited to the primary feed.
     // Profile/social surfaces still use segment/cache warming, but should not
     // initialize off-screen players that can render an unexpected first frame.
@@ -702,27 +708,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       );
       if (warmTier != _FeedNativeWarmTier.strong) return false;
       return true;
-    }
-    if (isIosPrimaryFeed) {
-      final modelIndex = _surfaceModelIndex();
-      if (modelIndex < 0) return false;
-      final warmTier = _resolvePrimaryFeedNativeWarmTier(
-        modelIndex: modelIndex,
-      );
-      if (warmTier != _FeedNativeWarmTier.strong) return false;
-      final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
-      final allow = playableDistance != null &&
-          playableDistance > 0 &&
-          playableDistance <= _iosPrimaryFeedWarmPlayerAheadVideoCount;
-      debugPrint(
-        '[FeedSurfaceDecision] stage=warm_preload_gate '
-        'doc=${widget.model.docID} allow=$allow reason=ios_next_playable '
-        'modelIndex=$modelIndex centered=${_surfaceSafeCenteredIndex()} '
-        'previousCentered=${_surfacePreviousCenteredIndex()} '
-        'warmTier=${warmTier.name} playableDistance=${playableDistance ?? -1} '
-        'adapterBound=${_videoAdapter != null}',
-      );
-      return allow;
     }
     if (_isPrimaryFeedSurfaceInstance) {
       final modelIndex = _surfaceModelIndex();
@@ -1090,7 +1075,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     String? source,
   }) {
-    if (defaultTargetPlatform == TargetPlatform.iOS) return true;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return !_isPrimaryFeedSurfaceInstance;
+    }
     if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (!_isPrimaryFeedSurfaceInstance) return false;
     if (_isExplicitResumeRecoveryContext(value, source: source)) return false;

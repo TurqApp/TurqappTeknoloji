@@ -2,6 +2,30 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  Duration _normalizeFeedResumePosition(Duration savedPosition) {
+    if (!(GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance)) {
+      return savedPosition;
+    }
+    const cushion = Duration(milliseconds: 350);
+    if (savedPosition <= cushion) return Duration.zero;
+    return savedPosition - cushion;
+  }
+
+  void _armSavedResumeRecoveryGuard() {
+    _savedResumeRecoveryGuardUntil =
+        DateTime.now().add(const Duration(milliseconds: 4200));
+  }
+
+  bool get _hasActiveSavedResumeRecoveryGuard {
+    final until = _savedResumeRecoveryGuardUntil;
+    if (until == null) return false;
+    if (DateTime.now().isAfter(until)) {
+      _savedResumeRecoveryGuardUntil = null;
+      return false;
+    }
+    return true;
+  }
+
   Duration _resolveSavedResumePosition(HLSVideoAdapter adapter) {
     final savedState =
         _playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
@@ -9,8 +33,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (savedPosition > Duration.zero) {
       return savedPosition;
     }
+    if (GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance) {
+      return Duration.zero;
+    }
     final adapterPosition = adapter.value.position;
-    if (adapterPosition > Duration.zero) {
+    if (adapterPosition >
+        PostContentBaseState._stableFramePositionThreshold) {
       return adapterPosition;
     }
     return Duration.zero;
@@ -20,13 +48,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     HLSVideoAdapter adapter, {
     required String source,
   }) {
-    if (!GetPlatform.isAndroid) return false;
+    final shouldUsePlatformResumeSeek = GetPlatform.isAndroid ||
+        (GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance);
+    if (!shouldUsePlatformResumeSeek) return false;
     if (!_controllerOwnsInlinePlayback) return false;
     if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
       return false;
     }
 
-    final savedPosition = _resolveSavedResumePosition(adapter);
+    final savedPosition =
+        _normalizeFeedResumePosition(_resolveSavedResumePosition(adapter));
     final shouldUseSavedResumeSeek =
         !_shouldBypassSavedResumeHintForPrimaryFeed(
       adapter.value,
@@ -41,6 +72,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     adapter.queueSeekAndPlay(savedPosition);
     _lastQueuedSavedResumePosition = savedPosition;
     _lastQueuedSavedResumeAt = DateTime.now();
+    _armSavedResumeRecoveryGuard();
     _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     _recordPlaybackDispatch(
       'feed_card_restore_saved_seek',
@@ -237,6 +269,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
       _stallWatchdogTimer = null;
       if (!mounted || _videoAdapter != adapter || adapter.isDisposed) return;
+      if (_hasActiveSavedResumeRecoveryGuard) {
+        _armFeedStallWatchdog(adapter);
+        return;
+      }
       final value = adapter.value;
       if (!_shouldMonitorFeedStall(value)) {
         _cancelFeedStallWatchdog();
@@ -255,6 +291,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           value.isBuffering && _stallWatchdogBufferingCycles < 2;
       final healthy = progressed || bufferingHealthy || value.isCompleted;
       _stallWatchdogLastPosition = value.position;
+      final shouldDeferIosInitialFeedRecovery =
+          defaultTargetPlatform == TargetPlatform.iOS &&
+              _isPrimaryFeedSurfaceInstance &&
+              value.hasRenderedFirstFrame &&
+              value.position <= const Duration(milliseconds: 120) &&
+              _stallWatchdogRetries == 0;
+      if (shouldDeferIosInitialFeedRecovery) {
+        _stallWatchdogRetries = 0;
+        _armFeedStallWatchdog(adapter);
+        return;
+      }
       if (healthy) {
         _stallWatchdogRetries = 0;
         _armFeedStallWatchdog(adapter);
@@ -496,7 +543,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool _shouldRestartFromBeginningOnFeedReentry(String source) =>
       _isPrimaryFeedSurfaceInstance &&
-      source == 'widget_should_play_changed';
+      source == 'widget_should_play_changed' &&
+      defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> _restartPlaybackFromBeginningForFeedReentry({
     required HLSVideoAdapter adapter,
@@ -869,6 +917,18 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 !pendingClaim &&
                 runtimeCurrentOwner.isEmpty;
         if (shouldBootstrapInitialFeedClaim) {
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              _isPrimaryFeedSurfaceInstance) {
+            debugPrint(
+              '[FeedColdStartTrace] stage=bootstrap_claim '
+              'doc=${widget.model.docID} '
+              'source=$source currentOwner=$runtimeCurrentOwner '
+              'pendingClaim=$pendingClaim shouldPlay=${widget.shouldPlay} '
+              'surfaceAllowed=$_isSurfacePlaybackAllowed '
+              'adapterInit=${adapter.value.isInitialized} '
+              'adapterPlaying=${adapter.value.isPlaying}',
+            );
+          }
           _recordPlaybackDispatch(
             'feed_card_manager_bootstrap_claim',
             source: source,
@@ -877,6 +937,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _isPrimaryFeedSurfaceInstance) {
             _hasAutoPlayed = true;
+            if (!adapter.value.isPlaying) {
+              debugPrint(
+                '[FeedColdStartTrace] stage=direct_play '
+                'doc=${widget.model.docID} source=$source '
+                'positionMs=${adapter.value.position.inMilliseconds}',
+              );
+              unawaited(_playbackExecutionService.playAdapter(adapter));
+            }
             _playbackRuntimeService.playOnlyThis(playbackHandleKey);
           } else {
             _playbackRuntimeService.requestPlay(
@@ -897,7 +965,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 (!adapter.value.isInitialized &&
                     adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final savedPosition = _resolveSavedResumePosition(adapter);
+          final savedPosition =
+              _normalizeFeedResumePosition(_resolveSavedResumePosition(adapter));
           final shouldUseSavedResumeSeek =
               !_shouldBypassSavedResumeHintForPrimaryFeed(
             adapter.value,
@@ -909,6 +978,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             adapter.queueSeekAndPlay(savedPosition);
             _lastQueuedSavedResumePosition = savedPosition;
             _lastQueuedSavedResumeAt = DateTime.now();
+            _armSavedResumeRecoveryGuard();
             _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
           }
           _recordPlaybackDispatch(

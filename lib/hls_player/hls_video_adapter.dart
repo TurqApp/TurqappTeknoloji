@@ -92,6 +92,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   bool _isStopped = false;
   bool _loggedProxyFallback = false;
   bool _preferWarmPoolPause = false;
+  bool _isPrimaryFeedSurface = false;
   bool get isDisposed => _disposed;
 
   /// Network/decoder durdurulmuş mu? (stopPlayback çağrıldı)
