@@ -11,6 +11,26 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   static const int _floodRouteEntryTailReadyCount = 2;
   static const int _floodRouteEntryQueuePlayableCount = 4;
 
+  int get _floodFocusedQueuePlayableCountForCurrentPlatform {
+    if (!GetPlatform.isIOS) return _floodFocusedQueuePlayableCount;
+    return _floodFocusedQueuePlayableCount + 1;
+  }
+
+  int get _floodPlayableStrongReadyCountForCurrentPlatform {
+    if (!GetPlatform.isIOS) return _floodPlayableStrongReadyCount;
+    return _floodPlayableStrongReadyCount + 1;
+  }
+
+  int get _floodRouteEntryStrongReadyCountForCurrentPlatform {
+    if (!GetPlatform.isIOS) return _floodRouteEntryStrongReadyCount;
+    return _floodRouteEntryStrongReadyCount + 1;
+  }
+
+  int get _floodRouteEntryQueuePlayableCountForCurrentPlatform {
+    if (!GetPlatform.isIOS) return _floodRouteEntryQueuePlayableCount;
+    return _floodRouteEntryQueuePlayableCount + 1;
+  }
+
   void _rebuildPlayableFloodQueueMetadata() {
     _playableRawIndices.clear();
     _playableQueueIndexByRawIndex.clear();
@@ -99,7 +119,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     if (playableQueueIndex < 0) return;
     _queueFloodPlayableSubqueue(
       playableQueueStart: playableQueueIndex,
-      playableCount: _floodFocusedQueuePlayableCount,
+      playableCount: _floodFocusedQueuePlayableCountForCurrentPlatform,
     );
   }
 
@@ -211,7 +231,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     }
     final strongIndices = _collectPlayableFloodIndicesByQueue(
       playableQueueStart: strongQueueStart,
-      playableCount: _floodPlayableStrongReadyCount,
+      playableCount: _floodPlayableStrongReadyCountForCurrentPlatform,
     );
     _scheduleFloodSegmentWarmupForIndices(
       strongIndices,
@@ -235,7 +255,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     }
     final strongIndices = _collectPlayableFloodIndicesByQueue(
       playableQueueStart: strongQueueStart,
-      playableCount: _floodRouteEntryStrongReadyCount,
+      playableCount: _floodRouteEntryStrongReadyCountForCurrentPlatform,
     );
     _scheduleFloodSegmentWarmupForIndices(
       strongIndices,
@@ -257,7 +277,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     if (prefetch == null) return;
 
     var queueStart = 0;
-    var queueCount = _floodRouteEntryQueuePlayableCount;
+    var queueCount = _floodRouteEntryQueuePlayableCountForCurrentPlatform;
     if (_playableRawIndices.isNotEmpty && _playableRawIndices.first == 0) {
       queueCount += 1;
       final rootPost = floods.first;

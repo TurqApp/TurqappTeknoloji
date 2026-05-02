@@ -1,6 +1,13 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
+  bool _performShouldPreferImmediatePlaybackHandoff(int index) {
+    if (!GetPlatform.isIOS) return false;
+    final centered = centeredIndex.value;
+    if (centered < 0) return false;
+    return (index - centered).abs() <= 1;
+  }
+
   static const int _defaultProfileWarmPlayableCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
   static const int _ownProfileWarmPlayableCount = 7;
@@ -390,10 +397,16 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       isReshare: entry['isReshare'] == true,
     );
     final manager = VideoStateManager.instance;
+    final readyForImmediateHandoff =
+        manager.canResumePlaybackFor(playbackKey) ||
+        _performShouldPreferImmediatePlaybackHandoff(index);
     final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
       lastCommandAt: _lastPlaybackCommandAt,
+      minInterval: GetPlatform.isIOS && readyForImmediateHandoff
+          ? Duration.zero
+          : const Duration(milliseconds: 120),
     );
     if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;
