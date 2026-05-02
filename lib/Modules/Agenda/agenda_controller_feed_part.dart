@@ -377,6 +377,12 @@ extension AgendaControllerFeedPart on AgendaController {
       if (issuedAt != null) {
         _lastPlaybackCommandDocId = playbackKey;
         _lastPlaybackCommandAt = issuedAt;
+      } else if (GetPlatform.isIOS && !pendingPlay) {
+        _schedulePlaybackReassert(
+          index: index,
+          docId: post.docID,
+          manager: manager,
+        );
       }
     }
     if (needsCurrentRecovery) {

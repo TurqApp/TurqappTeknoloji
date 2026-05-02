@@ -234,10 +234,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     );
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isPrimaryFeedSurfaceInstance) {
-      try {
-        _playbackRuntimeService.requestStop(playbackHandleKey);
-      } catch (_) {}
-      _stopPlaybackForSurfaceLoss();
+      agendaController.suspendPlaybackForOverlay();
       return;
     }
     _safePauseVideo();
