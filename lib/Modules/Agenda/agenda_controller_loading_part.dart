@@ -2576,6 +2576,13 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     isLoading.value = true;
     try {
+      try {
+        await ensureFeedManifestRepository().syncActiveWindowIfRefreshGraceDue();
+      } catch (error) {
+        debugPrint(
+          '[FeedManifestRepo] stage=refresh_grace_sync_skip error=$error',
+        );
+      }
       final previousAgenda = agendaList.toList(growable: false);
       final nowMs = DateTime.now().millisecondsSinceEpoch;
       final cutoffMs = _agendaCutoffMs(nowMs);

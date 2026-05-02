@@ -62,6 +62,8 @@ class FeedManifestRepository extends GetxService {
   static const Duration _slotDownloadTimeout = Duration(milliseconds: 4000);
   static const String _localWindowsPrefsKey = 'feed_manifest_windows_v1';
   static const String _localSlotPrefsPrefix = 'feed_manifest_slot_v1';
+  static const String _refreshGraceSyncPrefsKey =
+      'feed_manifest_refresh_grace_sync_v1';
 
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
@@ -123,6 +125,28 @@ class FeedManifestRepository extends GetxService {
         'maxSlotsToLoad=${maxSlotsToLoad ?? 0}',
       );
     }
+  }
+
+  Future<bool> syncActiveWindowIfRefreshGraceDue() async {
+    await _hydrateLocalCache();
+    final prefs = await _ensurePrefs();
+    final now = DateTime.now();
+    final reference = now.subtract(_manifestPublishDelay);
+    final dueWindowKey = _slotWindowKeyFor(reference);
+    final lastWindowKey = prefs.getString(_refreshGraceSyncPrefsKey) ?? '';
+    if (dueWindowKey.isEmpty || dueWindowKey == lastWindowKey) {
+      return false;
+    }
+    await prefs.setString(_refreshGraceSyncPrefsKey, dueWindowKey);
+    final changed = await syncActiveWindowIfChanged();
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=refresh_grace_sync '
+        'windowKey=$dueWindowKey changed=$changed '
+        'manifestId=$_manifestId',
+      );
+    }
+    return changed;
   }
 
   Future<FeedManifestPoolResult> _loadRollingPool({
@@ -345,6 +369,15 @@ class FeedManifestRepository extends GetxService {
         batch.map((slot) => _loadSlot(slot, forceRefresh: forceRefresh)),
       );
     }
+  }
+
+  String _slotWindowKeyFor(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    final slotHour = (local.hour ~/ 3) * 3;
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = slotHour.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day:$hour';
   }
 
   Future<void> _loadSlot(
