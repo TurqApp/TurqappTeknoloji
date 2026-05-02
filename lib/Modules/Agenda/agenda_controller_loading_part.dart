@@ -1241,6 +1241,19 @@ extension AgendaControllerLoadingPart on AgendaController {
         'usesPlannedColdPage=$usesPlannedColdPage',
       );
 
+      final shouldDeferPlannedColdConsumption = usesPlannedColdPage &&
+          !initial &&
+          trigger != 'scroll_near_end' &&
+          trigger != 'promo_near_end';
+      if (shouldDeferPlannedColdConsumption) {
+        debugPrint(
+          '[FeedAppendDiagnostics] status=skip_auto_planned_cold_apply '
+          'trigger=$trigger current=${currentAgenda.length} '
+          'candidateCount=${page.items.length}',
+        );
+        return;
+      }
+
       final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
         currentItems: agendaList.toList(growable: false),
         pageItems: visibleItems,
