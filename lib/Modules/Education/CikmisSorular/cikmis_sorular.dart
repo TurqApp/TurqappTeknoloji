@@ -40,6 +40,18 @@ class _CikmisSorularState extends State<CikmisSorular> {
     controller.requestScrollReset();
   }
 
+  Widget _buildSliderHeader() {
+    return EducationSlider(
+      sliderId: 'denemeler',
+      imageList: [
+        AppAssets.previous1,
+        AppAssets.practice2,
+        AppAssets.previous3,
+        AppAssets.previous4,
+      ],
+    );
+  }
+
   Widget _buildSearchResults() {
     if (controller.isSearchLoading.value) {
       return const AppStateView.loading(title: '');
@@ -118,15 +130,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              EducationSlider(
-                sliderId: 'denemeler',
-                imageList: [
-                  AppAssets.previous1,
-                  AppAssets.practice2,
-                  AppAssets.previous3,
-                  AppAssets.previous4,
-                ],
-              ),
+              _buildSliderHeader(),
               15.ph,
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -174,7 +178,16 @@ class _CikmisSorularState extends State<CikmisSorular> {
     final bodyContent = Expanded(
       child: Obx(() {
         if (controller.isLoading.value) {
-          return const AppStateView.loading(title: '');
+          return ListView(
+            controller: _scrollController,
+            children: [
+              _buildSliderHeader(),
+              const SizedBox(
+                height: 280,
+                child: AppStateView.loading(title: ''),
+              ),
+            ],
+          );
         }
         return controller.hasActiveSearch
             ? _buildSearchResults()

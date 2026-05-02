@@ -86,6 +86,7 @@ class _SplashViewState extends State<SplashView> {
       NetworkRuntimeService();
 
   bool _minimumStartupPrepared = false;
+  bool _startupIsFirstLaunch = false;
   bool _feedWarmSnapshotHit = false;
   final bool _shortWarmSnapshotHit = false;
   bool _feedStartupShardHydrated = false;

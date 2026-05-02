@@ -35,14 +35,20 @@ extension SignInControllerWarmEntryPart on SignInController {
         '[AuthEntryWarm] status=queued selection=$currentSelection',
       );
       if (currentSelection == 1) {
+        final context = Get.context;
+        if (authEntryIsFirstLaunch && context != null) {
+          unawaited(SignInEntryWarmService.ensureSliderAssetPrecaching(context));
+        }
         unawaited(
           SignInEntryWarmService.ensurePasajStarted(
             source: 'sign_in_screen_selection_${currentSelection}_fastlane',
+            isFirstLaunch: authEntryIsFirstLaunch,
           ),
         );
       }
       await SignInEntryWarmService.ensureStarted(
         source: 'sign_in_screen_selection_$currentSelection',
+        isFirstLaunch: authEntryIsFirstLaunch,
       );
     });
   }

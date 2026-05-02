@@ -94,7 +94,6 @@ flutter:
     - assets/icons/
     - assets/fonts/
     - assets/images/
-    - assets/dummy/
     - assets/slider/
     - assets/data/Countries.json
     - assets/data/CityDistrict.json

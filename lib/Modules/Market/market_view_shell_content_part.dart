@@ -51,7 +51,20 @@ extension MarketViewShellContentPart on MarketView {
   Widget _buildBody(BuildContext context) {
     return Obx(() {
       if (!controller.listingSelectionReady.value) {
-        return const AppStateView.loading();
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildMarketSlider(),
+              const SizedBox(height: 8),
+              const SizedBox(
+                height: 320,
+                child: AppStateView.loading(),
+              ),
+            ],
+          ),
+        );
       }
       return RefreshIndicator(
         onRefresh: controller.refreshHome,

@@ -1,6 +1,10 @@
 part of 'sign_in_controller.dart';
 
 extension SignInControllerAccountPart on SignInController {
+  void setAuthEntryIsFirstLaunch(bool value) {
+    authEntryIsFirstLaunch = value;
+  }
+
   String _resolvedSignInEmail() {
     final raw = emailcontroller.text.trim();
     if (raw.contains('@')) return normalizeEmailAddress(raw);

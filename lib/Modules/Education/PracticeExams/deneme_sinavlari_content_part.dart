@@ -1,6 +1,22 @@
 part of 'deneme_sinavlari.dart';
 
 extension DenemeSinavlariContentPart on DenemeSinavlari {
+  Widget _buildSliderHeader() {
+    return Column(
+      children: [
+        EducationSlider(
+          sliderId: 'online_sinav',
+          imageList: [
+            AppAssets.practice1,
+            AppAssets.practice2,
+            AppAssets.practice3,
+          ],
+        ),
+        20.ph,
+      ],
+    );
+  }
+
   Widget _buildBodyContent(BuildContext context) {
     return Expanded(
       child: RefreshIndicator(
@@ -9,7 +25,13 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
         onRefresh: controller.getData,
         child: Obx(() {
           if (!controller.listingSelectionReady.value) {
-            return const AppStateView.loading(title: '');
+            return ListView(
+              controller: _scrollController,
+              children: [
+                _buildSliderHeader(),
+                const AppStateView.loading(title: ''),
+              ],
+            );
           }
           final items = controller.hasActiveSearch
               ? controller.searchResults
@@ -17,31 +39,35 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
           if (controller.isLoading.value) {
             return SingleChildScrollView(
               child: Column(
-                children: const [
-                  SizedBox(height: 20),
-                  EducationGridSkeleton(itemCount: 4),
+                children: [
+                  _buildSliderHeader(),
+                  const EducationGridSkeleton(itemCount: 4),
                 ],
               ),
             );
           }
           if (controller.isSearchLoading.value) {
-            return const AppStateView.loading(title: '');
+            return ListView(
+              controller: _scrollController,
+              children: [
+                _buildSliderHeader(),
+                const AppStateView.loading(title: ''),
+              ],
+            );
           }
           if (items.isEmpty) {
-            return _buildEmptyState();
+            return ListView(
+              controller: _scrollController,
+              children: [
+                _buildSliderHeader(),
+                _buildEmptyState(),
+              ],
+            );
           }
           return ListView(
             controller: _scrollController,
             children: [
-              EducationSlider(
-                sliderId: 'online_sinav',
-                imageList: [
-                  AppAssets.practice1,
-                  AppAssets.practice2,
-                  AppAssets.practice3,
-                ],
-              ),
-              20.ph,
+              _buildSliderHeader(),
               _buildExamTypeStrip(),
               if (!embedded) _buildSearchEntry(),
               _buildListing(items),

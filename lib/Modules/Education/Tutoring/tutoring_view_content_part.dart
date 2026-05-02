@@ -1,6 +1,26 @@
 part of 'tutoring_view.dart';
 
 extension TutoringViewContentPart on TutoringView {
+  Widget _buildSliderHeader(BuildContext context) {
+    return Column(
+      children: [
+        EducationSlider(
+          sliderId: 'ozel_ders',
+          imageList: [
+            AppAssets.tutoring1,
+            AppAssets.tutoring2,
+            AppAssets.tutoring3,
+          ],
+        ),
+        if (!embedded) ...[
+          16.ph,
+          _buildSearchAndFilterRow(context),
+        ],
+        16.ph,
+      ],
+    );
+  }
+
   Widget _buildBodyContent(BuildContext context) {
     return Expanded(
       child: RefreshIndicator(
@@ -15,9 +35,14 @@ extension TutoringViewContentPart on TutoringView {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Obx(() {
             if (!viewModeController.isReady.value) {
-              return const SizedBox(
-                height: 280,
-                child: AppStateView.loading(title: ''),
+              return Column(
+                children: [
+                  _buildSliderHeader(context),
+                  const SizedBox(
+                    height: 280,
+                    child: AppStateView.loading(title: ''),
+                  ),
+                ],
               );
             }
 
@@ -25,19 +50,7 @@ extension TutoringViewContentPart on TutoringView {
 
             return Column(
               children: [
-                EducationSlider(
-                  sliderId: 'ozel_ders',
-                  imageList: [
-                    AppAssets.tutoring1,
-                    AppAssets.tutoring2,
-                    AppAssets.tutoring3,
-                  ],
-                ),
-                if (!embedded) ...[
-                  16.ph,
-                  _buildSearchAndFilterRow(context),
-                ],
-                16.ph,
+                _buildSliderHeader(context),
                 TutoringCategoryWidget(categories: kategoriler),
                 16.ph,
                 _buildListingContent(filteredList),

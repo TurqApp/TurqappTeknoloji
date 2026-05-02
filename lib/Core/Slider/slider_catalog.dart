@@ -5,40 +5,41 @@ class SliderCatalog {
     switch (sliderId) {
       case 'denemeler':
         return [
-          AppAssets.previous1,
-          AppAssets.practice2,
-          AppAssets.previous3,
-          AppAssets.previous4,
+          AppAssets.livePrevious1,
+          AppAssets.livePrevious2,
+          AppAssets.livePrevious3,
         ];
       case 'online_sinav':
         return [
-          AppAssets.practice1,
-          AppAssets.practice2,
-          AppAssets.practice3,
+          AppAssets.livePractice1,
+          AppAssets.livePractice2,
+          AppAssets.livePractice3,
         ];
       case 'cevap_anahtari':
         return [
-          AppAssets.optical1,
-          AppAssets.optical2,
-          AppAssets.optical3,
+          AppAssets.liveOptical1,
+          AppAssets.liveOptical2,
+          AppAssets.liveOptical3,
         ];
       case 'ozel_ders':
         return [
-          AppAssets.tutoring1,
-          AppAssets.tutoring2,
-          AppAssets.tutoring3,
+          AppAssets.liveTutoring1,
+          AppAssets.liveTutoring2,
+          AppAssets.liveTutoring3,
+          AppAssets.liveTutoring4,
         ];
       case 'is_bul':
         return [
-          AppAssets.job1,
-          AppAssets.job2,
-          AppAssets.job3,
+          AppAssets.liveJob1,
+          AppAssets.liveJob2,
+          AppAssets.liveJob3,
         ];
       case 'market':
         return [
-          AppAssets.job1,
-          AppAssets.job2,
-          AppAssets.job3,
+          AppAssets.liveMarket1,
+          AppAssets.liveMarket2,
+          AppAssets.liveMarket3,
+          AppAssets.liveMarket4,
         ];
       default:
         return const [];

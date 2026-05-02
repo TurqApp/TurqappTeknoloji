@@ -98,4 +98,36 @@ void main() {
       greaterThan(source.indexOf('await _startQuotaFillAfterShortReady();')),
     );
   });
+
+  test('sign-in route forwards first-launch state into auth-entry warm', () async {
+    final splashSource = await File(
+      'lib/Modules/Splash/splash_view_startup_part.dart',
+    ).readAsString();
+    final navigationSource = await File(
+      'lib/Runtime/app_root_navigation_service.dart',
+    ).readAsString();
+    final signInSource = await File(
+      'lib/Modules/SignIn/sign_in.dart',
+    ).readAsString();
+
+    expect(
+      splashSource.contains('isFirstLaunch: _startupIsFirstLaunch,'),
+      isTrue,
+    );
+    expect(
+      navigationSource.contains('bool isFirstLaunch = false,'),
+      isTrue,
+    );
+    expect(
+      navigationSource.contains("isFirstLaunch: isFirstLaunch,"),
+      isTrue,
+    );
+    expect(signInSource.contains('this.isFirstLaunch = false,'), isTrue);
+    expect(
+      signInSource.contains(
+        'controller.setAuthEntryIsFirstLaunch(widget.isFirstLaunch);',
+      ),
+      isTrue,
+    );
+  });
 }

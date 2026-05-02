@@ -96,6 +96,7 @@ class _SignInStateFields {
   final otpTimerReset = 0.obs;
   final resetCodeRequested = false.obs;
   final resetOtpRequestInFlight = false.obs;
+  bool authEntryIsFirstLaunch = false;
   Timer? timer;
   Timer? emailAvailabilityDebounce;
   Timer? nicknameAvailabilityDebounce;
@@ -219,6 +220,8 @@ extension SignInControllerFieldsPart on SignInController {
   RxString get resetOldPassword => _state.resetOldPassword;
   RxString get resetUserID => _state.resetUserID;
   RxString get signInEmail => _state.signInEmail;
+  bool get authEntryIsFirstLaunch => _state.authEntryIsFirstLaunch;
+  set authEntryIsFirstLaunch(bool value) => _state.authEntryIsFirstLaunch = value;
 }
 
 class SignInController extends GetxController

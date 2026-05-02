@@ -54,6 +54,9 @@ extension _SplashViewStartupPart on _SplashViewState {
         markMinimumStartupPrepared: (value) {
           _minimumStartupPrepared = value;
         },
+        rememberIsFirstLaunch: (value) {
+          _startupIsFirstLaunch = value;
+        },
         isMinimumStartupPrepared: () => _minimumStartupPrepared,
         hydrateStartupManifestContext: ({required loggedIn}) =>
             _hydrateStartupManifestContext(loggedIn: loggedIn),
@@ -651,7 +654,9 @@ extension _SplashViewStartupPart on _SplashViewState {
       return;
     }
     if (startupDecision.shouldOpenSignIn) {
-      await AppRootNavigationService.offAllToSignIn();
+      await AppRootNavigationService.offAllToSignIn(
+        isFirstLaunch: _startupIsFirstLaunch,
+      );
     }
   }
 

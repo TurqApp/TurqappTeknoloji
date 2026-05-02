@@ -24,17 +24,20 @@ class AppRootNavigationService {
   static Future<void> offAllToSignIn({
     String initialIdentifier = '',
     String storedAccountUid = '',
+    bool isFirstLaunch = false,
   }) async {
     if (!_hasNavigationContext) return;
     unawaited(
       SignInEntryWarmService.ensureStarted(
         source: 'app_root_navigation',
+        isFirstLaunch: isFirstLaunch,
       ),
     );
     await Get.offAll(
       () => SignIn(
         initialIdentifier: initialIdentifier,
         storedAccountUid: storedAccountUid,
+        isFirstLaunch: isFirstLaunch,
       ),
     );
   }

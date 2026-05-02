@@ -44,6 +44,35 @@ void main() {
       ),
       isTrue,
     );
+    expect(source.contains("PasajTabIds.market: 'market'"), isTrue);
+    expect(source.contains("PasajTabIds.jobFinder: 'is_bul'"), isTrue);
+    expect(source.contains("PasajTabIds.tutoring: 'ozel_ders'"), isTrue);
+    expect(source.contains("'cevap_anahtari'"), isTrue);
+    expect(source.contains("'online_sinav'"), isTrue);
+    expect(source.contains("'denemeler'"), isTrue);
+    expect(source.contains('await _warmPasajSlider(tabId);'), isTrue);
+    expect(source.contains('_warmStandaloneEducationSliders()'), isTrue);
+    expect(source.contains('if (isFirstLaunch) {'), isTrue);
+  });
+
+  test('first-launch pasaj warm fans out tabs and standalone sliders in parallel',
+      () async {
+    final source = await File(
+      'lib/Modules/SignIn/sign_in_entry_warm_service.dart',
+    ).readAsString();
+
+    expect(
+      source.contains('await Future.wait(<Future<void>>['),
+      isTrue,
+    );
+    expect(
+      source.contains("for (final sliderId in _authEntryStandaloneSliderIds)"),
+      isTrue,
+    );
+    expect(
+      source.contains('for (final tabId in tabs) warmTab(tabId),'),
+      isTrue,
+    );
   });
 
   test('pasaj controllers hydrate in-memory startup seed before async bootstrap',
@@ -172,6 +201,7 @@ void main() {
     expect(selectionGateIndex, greaterThanOrEqualTo(0));
     expect(pasajFastlaneIndex, greaterThan(selectionGateIndex));
     expect(globalWarmIndex, greaterThan(pasajFastlaneIndex));
+    expect(source.contains('isFirstLaunch: authEntryIsFirstLaunch,'), isTrue);
   });
 
   test('tutoring startup hydrates shard before opening snapshot stream',

@@ -21,6 +21,7 @@ typedef SplashNavigationRunner = Future<void> Function();
 typedef StartupManifestHydrator = Future<void> Function({
   required bool loggedIn,
 });
+typedef StartupFirstLaunchRecorder = void Function(bool isFirstLaunch);
 
 class SplashStartupOrchestrator {
   SplashStartupOrchestrator({
@@ -31,6 +32,7 @@ class SplashStartupOrchestrator {
     required this.runCriticalWarmStartLoads,
     required this.runWarmStartLoads,
     required this.markMinimumStartupPrepared,
+    required this.rememberIsFirstLaunch,
     required this.isMinimumStartupPrepared,
     required this.hydrateStartupManifestContext,
     StartupBootstrap? startupBootstrap,
@@ -58,6 +60,7 @@ class SplashStartupOrchestrator {
   final SplashStartupRunner runCriticalWarmStartLoads;
   final SplashStartupRunner runWarmStartLoads;
   final void Function(bool value) markMinimumStartupPrepared;
+  final StartupFirstLaunchRecorder rememberIsFirstLaunch;
   final bool Function() isMinimumStartupPrepared;
   final StartupManifestHydrator hydrateStartupManifestContext;
   final StartupBootstrap _startupBootstrap;
@@ -100,6 +103,7 @@ class SplashStartupOrchestrator {
         'session_bootstrap',
         () => _bootstrapSession(prefs: prefs),
       );
+      rememberIsFirstLaunch(sessionResult.isFirstLaunch);
       await rotateStartupMotorSessionsOnAppLaunch(
         prefs: prefs,
         deviceSalt: DeviceSessionService.instance.cachedDeviceKey,

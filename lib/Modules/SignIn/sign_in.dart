@@ -27,10 +27,12 @@ class SignIn extends StatefulWidget {
     super.key,
     this.initialIdentifier = '',
     this.storedAccountUid = '',
+    this.isFirstLaunch = false,
   });
 
   final String initialIdentifier;
   final String storedAccountUid;
+  final bool isFirstLaunch;
 
   @override
   State<SignIn> createState() => _SignInState();
@@ -46,6 +48,7 @@ class _SignInState extends State<SignIn> {
     debugPrint('[SignInScreen] status=init');
     _controllerTag = 'sign_in_${identityHashCode(this)}';
     controller = ensureSignInController(tag: _controllerTag);
+    controller.setAuthEntryIsFirstLaunch(widget.isFirstLaunch);
     controller.prepareSignInPrefill(widget.initialIdentifier);
     if (widget.storedAccountUid.trim().isNotEmpty &&
         widget.initialIdentifier.trim().isEmpty) {
