@@ -280,6 +280,17 @@ extension AgendaControllerPublicApiPart on AgendaController {
       );
       if (changed) {
         _lastPrimarySurfaceVisibleMutationEpoch = -1;
+        if (!_feedRefreshInFlight && !isLoading.value) {
+          debugPrint(
+            '[FeedManifestWindowSync] status=recompose_feed trigger=$trigger '
+            'manifest=${_feedSnapshotRepository.activeFeedManifestId}',
+          );
+          unawaited(
+            refreshAgenda(
+              forceNewLaunchSession: false,
+            ),
+          );
+        }
       }
     } catch (error) {
       debugPrint(
