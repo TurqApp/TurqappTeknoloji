@@ -22,7 +22,8 @@ function ensureAdmin() {
 }
 
 function normalizeTagRaw(tag: unknown): string {
-  return String(tag || "").trim().toLocaleLowerCase("tr-TR");
+  const raw = String(tag || "").trim().toLocaleLowerCase("tr-TR");
+  return raw.startsWith("#") ? raw.slice(1) : raw;
 }
 
 function normalizeForCompare(s: string): string {

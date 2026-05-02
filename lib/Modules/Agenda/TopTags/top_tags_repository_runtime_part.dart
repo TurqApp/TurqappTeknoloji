@@ -32,6 +32,7 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
     for (final doc in snap.docs) {
       final data = doc.data();
       final rawTag = doc.id.toString().trim();
+      if (rawTag.startsWith("#")) continue;
       final tag = rawTag.replaceFirst("#", "");
       if (tag.isEmpty) continue;
 

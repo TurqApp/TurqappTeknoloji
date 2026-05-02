@@ -453,9 +453,7 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
           .where((e) => e.isNotEmpty)
           .toSet();
 
-      if (index == 0) {
-        allHashtags.addAll(localTags);
-      }
+      allHashtags.addAll(localTags);
 
       // Compute publish time: if scheduled, use selected time; else now
       // Update progress for database save
