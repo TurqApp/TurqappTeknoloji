@@ -267,45 +267,48 @@ extension ShortsContentBodyPart on _ShortsContentState {
                               child: pulldownmenu(context))
                         ],
                       ),
-                      ClickableTextContent(
-                        fontSize: 13,
-                        text: model.metin,
-                        toggleExpandOnTextTap: true,
-                        fontColor: Colors.white,
-                        hashtagColor: Colors.white,
-                        mentionColor: Colors.white,
-                        urlColor: Colors.blue,
-                        expandButtonColor: Colors.white,
-                        expandButtonFontSize: 13,
-                        onHashtagTap: (tag) {
-                          videoPlayerController.pause();
-                          Get.to(() => TagPosts(tag: tag))?.then((_) {
-                            resumeIfActive();
-                          });
-                        },
-                        onUrlTap: (v) async {
-                          volumeOff(false);
-                          final uniqueKey =
-                              DateTime.now().millisecondsSinceEpoch.toString();
-                          await RedirectionLink()
-                              .goToLink(v, uniqueKey: uniqueKey);
-                          volumeOff(true);
-                        },
-                        onMentionTap: (mention) {
-                          (() async {
-                            final targetUid =
-                                await UsernameLookupRepository.ensure()
-                                        .findUidForHandle(mention) ??
-                                    "";
-                            if (targetUid.isNotEmpty &&
-                                targetUid != _currentUserId) {
-                              volumeOff(false);
-                              await const ProfileNavigationService()
-                                  .openSocialProfile(targetUid);
-                              volumeOff(true);
-                            }
-                          })();
-                        },
+                      Transform.translate(
+                        offset: const Offset(0, -3),
+                        child: ClickableTextContent(
+                          fontSize: 13,
+                          text: model.metin,
+                          toggleExpandOnTextTap: true,
+                          fontColor: Colors.white,
+                          hashtagColor: Colors.white,
+                          mentionColor: Colors.white,
+                          urlColor: Colors.blue,
+                          expandButtonColor: Colors.white,
+                          expandButtonFontSize: 13,
+                          onHashtagTap: (tag) {
+                            videoPlayerController.pause();
+                            Get.to(() => TagPosts(tag: tag))?.then((_) {
+                              resumeIfActive();
+                            });
+                          },
+                          onUrlTap: (v) async {
+                            volumeOff(false);
+                            final uniqueKey =
+                                DateTime.now().millisecondsSinceEpoch.toString();
+                            await RedirectionLink()
+                                .goToLink(v, uniqueKey: uniqueKey);
+                            volumeOff(true);
+                          },
+                          onMentionTap: (mention) {
+                            (() async {
+                              final targetUid =
+                                  await UsernameLookupRepository.ensure()
+                                          .findUidForHandle(mention) ??
+                                      "";
+                              if (targetUid.isNotEmpty &&
+                                  targetUid != _currentUserId) {
+                                volumeOff(false);
+                                await const ProfileNavigationService()
+                                    .openSocialProfile(targetUid);
+                                volumeOff(true);
+                              }
+                            })();
+                          },
+                        ),
                       ),
                     ],
                   ),
