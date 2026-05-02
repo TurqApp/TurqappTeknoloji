@@ -116,5 +116,79 @@ void main() {
         isNot(contains('keptDocs=')),
       );
     });
+
+    test(
+        'manifest visible selection stays gap-first then newest-to-oldest in five-card slot batches',
+        () {
+      final fetchSource = File(
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        fetchSource,
+        contains('for (final entry in gapEntries) {'),
+      );
+      expect(
+        fetchSource,
+        contains('for (final entry in manifestEntries) {'),
+      );
+      expect(
+        fetchSource,
+        contains(
+          'slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);',
+        ),
+      );
+      expect(
+        fetchSource,
+        contains(
+          'selected.addAll(gapBucket.take(takeCount));',
+        ),
+      );
+      expect(
+        fetchSource,
+        contains('FeedManifestPolicy.gapSlotBatchSize'),
+      );
+      expect(
+        fetchSource,
+        contains('selected.addAll(bucket.take(takeCount));'),
+      );
+      expect(
+        fetchSource,
+        contains('FeedManifestMixer.defaultSlotBatchSize'),
+      );
+      expect(
+        fetchSource,
+        contains('visible.skip(pageStart).take(limit).toList'),
+      );
+      expect(
+        fetchSource,
+        contains('visibleEntries.skip(pageStart).take(limit).toList'),
+      );
+    });
+
+    test(
+        'startup feed does not auto-append planned cold pages without explicit near-end triggers',
+        () {
+      final loadingSource = File(
+        '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Agenda/agenda_controller_loading_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        loadingSource,
+        contains('final shouldDeferPlannedColdConsumption = usesPlannedColdPage'),
+      );
+      expect(
+        loadingSource,
+        contains("trigger != 'scroll_near_end'"),
+      );
+      expect(
+        loadingSource,
+        contains("trigger != 'promo_near_end'"),
+      );
+      expect(
+        loadingSource,
+        contains('[FeedAppendDiagnostics] status=skip_auto_planned_cold_apply'),
+      );
+    });
   });
 }
