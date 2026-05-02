@@ -541,7 +541,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _ensureActivePageAdapterAfterBuild(nextOrganicPage);
     _prepareUpcomingVideoForSwipe(activePageOverride: nextOrganicPage);
 
+    final useImmediateHandoff =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _canUseImmediatePageHandoff(nextOrganicPage);
     _scrollDebounce?.cancel();
+    if (useImmediateHandoff) {
+      if (!mounted || currentPage != nextOrganicPage) return;
+      _enforceSingleActiveAudio(nextOrganicPage);
+      _schedulePlayForPage(
+        nextOrganicPage,
+        delayOverride: Duration.zero,
+      );
+      _scheduleTierUpdate(nextOrganicPage);
+      controller.loadMoreIfNeeded(nextOrganicPage);
+      return;
+    }
     _scrollDebounce = Timer(
       defaultTargetPlatform == TargetPlatform.android
           ? (isAutoAdvance ? Duration.zero : _shortScrollDebounceAndroid)
@@ -566,6 +580,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
     await controller.prepareNeighborAdapter(activePage, nextPage);
     if (!mounted) return;
     _setStateIfActiveAdapterChanged(nextPage, hadActiveAdapter);
+  }
+
+  bool _canUseImmediatePageHandoff(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return false;
+    final adapter = controller.cache[page];
+    if (adapter == null || adapter.isDisposed) return false;
+    final value = adapter.value;
+    return value.isInitialized ||
+        value.hasRenderedFirstFrame ||
+        !adapter.isStopped;
   }
 
   void _prepareUpcomingVideoForSwipe({
@@ -1080,7 +1104,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     });
   }
 
-  void _schedulePlayForPage(int page) {
+  void _schedulePlayForPage(
+    int page, {
+    Duration? delayOverride,
+  }) {
     if (_shouldBlockPlaybackForAdPage) return;
     final scheduledDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID.trim()
@@ -1094,9 +1121,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _pendingPlayPage = page;
     _pendingPlayDocId = scheduledDocId;
     _playDebounce = Timer(
-      defaultTargetPlatform == TargetPlatform.android
-          ? _shortPlayResumeDelayAndroid
-          : _shortPlayResumeDelay,
+      delayOverride ??
+          (defaultTargetPlatform == TargetPlatform.android
+              ? _shortPlayResumeDelayAndroid
+              : _shortPlayResumeDelay),
       () async {
         if (_pendingPlayPage == page) {
           _pendingPlayPage = null;

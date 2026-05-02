@@ -41,7 +41,7 @@ class ShortPlaybackCoordinator {
     }
     return ShortPlaybackCoordinator(
       hotAhead: 1,
-      hotBehind: 1,
+      hotBehind: 0,
       warmBehind: 3,
       maxAttachedPlayers: 5,
       budgetPolicy: PlayerBudgetPolicy.forSurface(

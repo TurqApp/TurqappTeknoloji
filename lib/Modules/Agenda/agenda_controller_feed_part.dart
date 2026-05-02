@@ -47,6 +47,16 @@ extension AgendaControllerFeedPart on AgendaController {
     );
   }
 
+  int get _feedPlaybackBoostLookAheadForCurrentPlatform {
+    if (!GetPlatform.isIOS) return _feedPlaybackBoostLookAhead;
+    return _feedPlaybackBoostLookAhead + 4;
+  }
+
+  int get _feedPlaybackBoostBehindForCurrentPlatform {
+    if (!GetPlatform.isIOS) return 0;
+    return 1;
+  }
+
   void _resetFeedPageFetchTrigger() {
     _nextPageFetchTriggerCount = _feedInitialPageFetchTriggerCount;
   }
@@ -211,12 +221,19 @@ extension AgendaControllerFeedPart on AgendaController {
   Duration _playbackReassertDelayForAttempt(int attempt) {
     if (!GetPlatform.isAndroid) {
       return attempt == 0
-          ? const Duration(milliseconds: 260)
-          : const Duration(milliseconds: 140);
+          ? const Duration(milliseconds: 180)
+          : const Duration(milliseconds: 90);
     }
     return attempt == 0
         ? const Duration(milliseconds: 180)
         : const Duration(milliseconds: 120);
+  }
+
+  bool _shouldPreferImmediateFeedHandoff(int index) {
+    if (!GetPlatform.isIOS) return false;
+    final centered = centeredIndex.value;
+    if (centered < 0) return false;
+    return (index - centered).abs() <= 1;
   }
 
   bool _hasExternalPlaybackOwner(String? playbackHandleKey) {
@@ -370,7 +387,12 @@ extension AgendaControllerFeedPart on AgendaController {
                     const Duration(milliseconds: 120)));
     if (shouldIssueImmediateCommand) {
       final readyForImmediateHandoff =
-          manager.canResumePlaybackFor(playbackKey);
+          manager.canResumePlaybackFor(playbackKey) ||
+          _shouldPreferImmediateFeedHandoff(index);
+      final immediateClaimInterval =
+          GetPlatform.isIOS && readyForImmediateHandoff
+              ? Duration.zero
+              : const Duration(milliseconds: 120);
       recordQALabPlaybackDispatch(
         surface: 'feed',
         stage: needsCurrentRecovery
@@ -391,6 +413,7 @@ extension AgendaControllerFeedPart on AgendaController {
         playbackKey,
         lastCommandDocId: _lastPlaybackCommandDocId,
         lastCommandAt: _lastPlaybackCommandAt,
+        minInterval: immediateClaimInterval,
       );
       if (issuedAt != null) {
         _lastPlaybackCommandDocId = playbackKey;
@@ -524,13 +547,13 @@ extension AgendaControllerFeedPart on AgendaController {
         prefetch.feedReadyCount < startupReadyThreshold;
     final prioritizedIndices = _resolvePrioritizedPlayableFeedIndices(
       centered: centered,
-      lookAheadPlayableCount: _feedPlaybackBoostLookAhead,
-      behindPlayableCount: 0,
+      lookAheadPlayableCount: _feedPlaybackBoostLookAheadForCurrentPlatform,
+      behindPlayableCount: _feedPlaybackBoostBehindForCurrentPlatform,
     );
     if (prioritizedIndices.isEmpty) return;
     final targetOffsets = _resolveAheadPlayableOffsets(
       centered: centered,
-      maxAheadPlayableCount: _feedPlaybackBoostLookAhead,
+      maxAheadPlayableCount: _feedPlaybackBoostLookAheadForCurrentPlatform,
     );
     final secondSegmentOffsets = targetOffsets
         .where(
@@ -538,7 +561,7 @@ extension AgendaControllerFeedPart on AgendaController {
         )
         .toSet();
     final maxBoosted = startupWindowStabilizing
-        ? _feedPlaybackBoostLookAhead + 1
+        ? _feedPlaybackBoostLookAheadForCurrentPlatform + 1
         : _feedBoostPlayableCount + 1;
     var boosted = 0;
     final boostLogs = <String>[];
@@ -663,7 +686,25 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
       playableOffset++;
       if (candidate != index) continue;
-      return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
+      final baseReadySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(
+        playableOffset,
+      );
+      if (!GetPlatform.isIOS) {
+        return baseReadySegments;
+      }
+      if (playableOffset == 1) {
+        return max(
+          baseReadySegments,
+          StartupPreloadPolicy.neighborReadySegments,
+        );
+      }
+      if (playableOffset == 2) {
+        return max(
+          baseReadySegments,
+          StartupPreloadPolicy.secondSegmentReadySegments,
+        );
+      }
+      return baseReadySegments;
     }
     return 0;
   }
@@ -1019,6 +1060,9 @@ extension AgendaControllerFeedPart on AgendaController {
         final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
         if (manager.isPlaybackTargetActive(playbackKey)) return;
         final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+        final readyForImmediateHandoff = GetPlatform.isIOS &&
+            (manager.canResumePlaybackFor(playbackKey) ||
+                _shouldPreferImmediateFeedHandoff(index));
         if (pendingPlay) {
           if (attempt < 3) {
             _schedulePlaybackReassert(
@@ -1034,9 +1078,11 @@ extension AgendaControllerFeedPart on AgendaController {
           playbackKey,
           lastCommandDocId: _lastPlaybackCommandDocId,
           lastCommandAt: _lastPlaybackCommandAt,
-          minInterval: attempt == 0
-              ? const Duration(milliseconds: 120)
-              : const Duration(milliseconds: 80),
+          minInterval: readyForImmediateHandoff
+              ? Duration.zero
+              : (attempt == 0
+                  ? const Duration(milliseconds: 120)
+                  : const Duration(milliseconds: 80)),
         );
         if (issuedAt != null) {
           _lastPlaybackCommandDocId = playbackKey;
