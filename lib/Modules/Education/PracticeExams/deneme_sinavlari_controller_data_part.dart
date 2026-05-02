@@ -79,10 +79,21 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
 
   void _applyHomeSnapshotResourceImpl(
       CachedResource<List<SinavModel>> resource) {
+    final previousCount = list.length;
     final items = resource.data ?? const <SinavModel>[];
     if (items.isNotEmpty) {
-      if (!_sameExamList(items)) {
+      final changed = !_sameExamList(items);
+      if (changed) {
         list.assignAll(items);
+        final status = resource.source == CachedResourceSource.server
+            ? 'live_listing_applied'
+            : 'seed_listing_applied';
+        log(
+          '[DenemeFirstPaint] status=$status source=${resource.source.name} '
+          'previousCount=$previousCount nextCount=${items.length} '
+          'refreshing=${resource.isRefreshing} '
+          'hasLocalSnapshot=${resource.hasLocalSnapshot}',
+        );
       }
       hasMore.value = items.length >= _practiceExamHomePageSize;
     }

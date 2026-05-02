@@ -200,6 +200,38 @@ extension SignInSignInPart on _SignInState {
                                         autofillHints: const [
                                           AutofillHints.password,
                                         ],
+                                        onSubmitted: (_) async {
+                                          FocusManager.instance.primaryFocus
+                                              ?.unfocus();
+                                          controller.emailFocus.value.unfocus();
+                                          controller.passwordFocus.value
+                                              .unfocus();
+                                          final mailOrNick = controller
+                                              .emailcontroller.text
+                                              .trim();
+                                          final pass = controller
+                                              .passwordcontroller.text;
+                                          if (controller.wait.value) return;
+                                          if (mailOrNick.isEmpty ||
+                                              pass.isEmpty) {
+                                            AppSnackbar(
+                                              'common.warning'.tr,
+                                              'sign_in.enter_credentials'.tr,
+                                            );
+                                            return;
+                                          }
+                                          if (pass.length < 6) {
+                                            AppSnackbar(
+                                              'sign_in.invalid_password_title'
+                                                  .tr,
+                                              'sign_in.invalid_password_body'
+                                                  .tr,
+                                            );
+                                            return;
+                                          }
+                                          controller.wait.value = true;
+                                          await controller.signIn();
+                                        },
                                         onTap: () {
                                           controller.passwordFocus.value
                                               .requestFocus();
@@ -315,6 +347,10 @@ extension SignInSignInPart on _SignInState {
                           onTap: controller.wait.value
                               ? null
                               : () async {
+                                  FocusManager.instance.primaryFocus
+                                      ?.unfocus();
+                                  controller.emailFocus.value.unfocus();
+                                  controller.passwordFocus.value.unfocus();
                                   final mailOrNick =
                                       controller.emailcontroller.text.trim();
                                   final pass =

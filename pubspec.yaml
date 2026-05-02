@@ -95,6 +95,7 @@ flutter:
     - assets/fonts/
     - assets/images/
     - assets/slider/
+    - assets/slider/live/
     - assets/data/Countries.json
     - assets/data/CityDistrict.json
     - assets/data/MiddleSchool.json

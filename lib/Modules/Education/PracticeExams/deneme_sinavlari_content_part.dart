@@ -24,7 +24,11 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
         backgroundColor: Colors.black,
         onRefresh: controller.getData,
         child: Obx(() {
+          final fallbackItems = controller.list;
           if (!controller.listingSelectionReady.value) {
+            if (fallbackItems.isNotEmpty) {
+              return _buildSeededListingState(fallbackItems);
+            }
             return ListView(
               controller: _scrollController,
               children: [
@@ -36,6 +40,12 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
           final items = controller.hasActiveSearch
               ? controller.searchResults
               : controller.list;
+          if (controller.isLoading.value && items.isNotEmpty) {
+            return _buildSeededListingState(
+              items,
+              showBottomLoader: !controller.hasActiveSearch,
+            );
+          }
           if (controller.isLoading.value) {
             return SingleChildScrollView(
               child: Column(
@@ -84,6 +94,26 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
           );
         }),
       ),
+    );
+  }
+
+  Widget _buildSeededListingState(
+    List<dynamic> items, {
+    bool showBottomLoader = false,
+  }) {
+    return ListView(
+      controller: _scrollController,
+      children: [
+        _buildSliderHeader(),
+        _buildExamTypeStrip(),
+        if (!embedded) _buildSearchEntry(),
+        _buildListing(items),
+        if (showBottomLoader)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Center(child: CupertinoActivityIndicator()),
+          ),
+      ],
     );
   }
 
