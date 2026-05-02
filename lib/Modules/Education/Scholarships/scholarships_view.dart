@@ -82,6 +82,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
 
   @override
   Widget build(BuildContext context) {
+    controller.primePrimarySurfaceOnce();
     if (widget.embedded) {
       return Stack(
         children: [

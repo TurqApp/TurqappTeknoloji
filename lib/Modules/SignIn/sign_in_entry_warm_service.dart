@@ -21,7 +21,11 @@ import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
 import 'package:turqappv2/Models/job_model.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
+import 'package:turqappv2/Modules/Education/Scholarships/scholarships_controller.dart';
+import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
+import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
+import 'package:turqappv2/Modules/Market/market_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 const int _authEntryPasajWarmLimit = 6;
@@ -113,6 +117,13 @@ class SignInEntryWarmService {
         .where((item) => item.status == 'active')
         .take(_authEntryPasajWarmLimit)
         .toList(growable: false);
+    if (items.isNotEmpty) {
+      await _saveMarketStartupShard(
+        userId: userId,
+        items: items,
+      );
+      unawaited(_primePasajListingController(PasajTabIds.market));
+    }
     if (items.length < _authEntryPasajWarmLimit || resource.isStale) {
       resource = await MarketSnapshotRepository.ensure().loadHome(
         userId: userId,
@@ -151,6 +162,13 @@ class SignInEntryWarmService {
         .where((item) => !item.ended)
         .take(_authEntryPasajWarmLimit)
         .toList(growable: false);
+    if (items.isNotEmpty) {
+      await _saveJobStartupShard(
+        userId: userId,
+        items: items,
+      );
+      unawaited(_primePasajListingController(PasajTabIds.jobFinder));
+    }
     if (items.length < _authEntryPasajWarmLimit || resource.isStale) {
       resource = await ensureJobHomeSnapshotRepository().loadHome(
         userId: userId,
@@ -187,6 +205,13 @@ class SignInEntryWarmService {
     var items = (resource.data?.items ?? const <Map<String, dynamic>>[])
         .take(_authEntryPasajWarmLimit)
         .toList(growable: false);
+    if (items.isNotEmpty) {
+      await _saveScholarshipStartupShard(
+        userId: userId,
+        items: items,
+      );
+      unawaited(_primePasajListingController(PasajTabIds.scholarships));
+    }
     if (items.length < _authEntryPasajWarmLimit || resource.isStale) {
       resource = await ensureScholarshipSnapshotRepository().loadHome(
         userId: userId,
@@ -227,6 +252,13 @@ class SignInEntryWarmService {
     var items = (resource.data ?? const <TutoringModel>[])
         .take(_authEntryPasajWarmLimit)
         .toList(growable: false);
+    if (items.isNotEmpty) {
+      await _saveTutoringStartupShard(
+        userId: userId,
+        items: items,
+      );
+      unawaited(_primePasajListingController(PasajTabIds.tutoring));
+    }
     if (items.length < _authEntryPasajWarmLimit || resource.isStale) {
       resource = await ensureTutoringSnapshotRepository().loadHome(
         userId: userId,
@@ -486,6 +518,33 @@ class SignInEntryWarmService {
     }
   }
 
+  static Future<void> _primePasajListingController(String tabId) async {
+    debugPrint(
+      '[AuthEntryWarm] status=controller_prime_start label=pasaj_$tabId',
+    );
+    switch (tabId) {
+      case PasajTabIds.market:
+        final controller = ensureMarketController(permanent: true);
+        await controller.prepareStartupSurface(allowBackgroundRefresh: false);
+        break;
+      case PasajTabIds.jobFinder:
+        final controller = ensureJobFinderController(permanent: true);
+        await controller.prepareStartupSurface(allowBackgroundRefresh: false);
+        break;
+      case PasajTabIds.scholarships:
+        final controller = ensureScholarshipsController(permanent: true);
+        await controller.prepareStartupSurface(allowBackgroundRefresh: false);
+        break;
+      case PasajTabIds.tutoring:
+        final controller = ensureTutoringController(permanent: true);
+        await controller.prepareStartupSurface(allowBackgroundRefresh: false);
+        break;
+    }
+    debugPrint(
+      '[AuthEntryWarm] status=controller_prime_ok label=pasaj_$tabId',
+    );
+  }
+
   static Future<void> ensureStarted({
     String source = 'unknown',
   }) {
@@ -605,6 +664,7 @@ class SignInEntryWarmService {
         );
         try {
           final result = await _warmPasajListingTab(tabId);
+          await _primePasajListingController(tabId);
           debugPrint(
             '[AuthEntryWarm] status=refresh_ok label=pasaj_$tabId '
             'source=$source elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds} '

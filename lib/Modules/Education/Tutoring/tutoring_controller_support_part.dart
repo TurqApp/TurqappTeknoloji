@@ -53,3 +53,32 @@ bool _sameTutoringList(
 ) {
   return _sameTutoringEntries(controller.tutoringList, next);
 }
+
+extension TutoringControllerSupportPart on TutoringController {
+  void primePrimarySurfaceOnce() {
+    if (_primarySurfacePrimedOnce) return;
+    _primarySurfacePrimedOnce = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (isClosed) return;
+      unawaited(onPrimarySurfaceVisible());
+    });
+  }
+
+  Future<void> onPrimarySurfaceVisible() => prepareStartupSurface();
+
+  Future<void> prepareStartupSurface({bool? allowBackgroundRefresh}) {
+    final existing = _startupPrepareFuture;
+    if (existing != null) return existing;
+    final shouldRefresh = allowBackgroundRefresh ?? tutoringList.isEmpty;
+    final future = Future<void>(() async {
+      if (!shouldRefresh) return;
+      await listenToTutoringData(forceRefresh: false);
+    });
+    _startupPrepareFuture = future.whenComplete(() {
+      if (identical(_startupPrepareFuture, future)) {
+        _startupPrepareFuture = null;
+      }
+    });
+    return _startupPrepareFuture!;
+  }
+}

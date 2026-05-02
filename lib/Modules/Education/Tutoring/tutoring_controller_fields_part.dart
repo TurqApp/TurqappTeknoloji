@@ -15,6 +15,8 @@ class _TutoringControllerState {
   final RxString searchQuery = ''.obs;
   final ScrollController scrollController = ScrollController();
   final RxDouble scrollOffset = 0.0.obs;
+  Future<void>? startupPrepareFuture;
+  bool primarySurfacePrimedOnce = false;
   StreamSubscription<CachedResource<List<TutoringModel>>>? homeSnapshotSub;
   Timer? searchDebounce;
   int searchToken = 0;
@@ -37,6 +39,12 @@ extension TutoringControllerFieldsPart on TutoringController {
   RxString get searchQuery => _state.searchQuery;
   ScrollController get scrollController => _state.scrollController;
   RxDouble get scrollOffset => _state.scrollOffset;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
+  bool get _primarySurfacePrimedOnce => _state.primarySurfacePrimedOnce;
+  set _primarySurfacePrimedOnce(bool value) =>
+      _state.primarySurfacePrimedOnce = value;
   StreamSubscription<CachedResource<List<TutoringModel>>>?
       get _homeSnapshotSub => _state.homeSnapshotSub;
   set _homeSnapshotSub(

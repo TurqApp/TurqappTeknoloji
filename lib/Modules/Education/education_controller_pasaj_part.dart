@@ -104,6 +104,7 @@ extension EducationControllerPasajPart on EducationController {
 
     visibleTabIndexes.assignAll(nextVisible);
     if (nextVisible.isEmpty) return;
+    _ensurePasajListingControllersReady(nextVisible);
 
     final preferredActual = _resolveStartupPreferredActualIndex(nextVisible);
 
@@ -385,8 +386,38 @@ extension EducationControllerPasajPart on EducationController {
         case PasajTabIds.jobFinder:
           unawaited(maybeFindJobFinderController()?.onPrimarySurfaceVisible());
           break;
+        case PasajTabIds.scholarships:
+          unawaited(
+            maybeFindScholarshipsController()?.onPrimarySurfaceVisible(),
+          );
+          break;
+        case PasajTabIds.tutoring:
+          unawaited(maybeFindTutoringController()?.onPrimarySurfaceVisible());
+          break;
       }
     });
+  }
+
+  void _ensurePasajListingControllersReady(List<int> visibleActualIndexes) {
+    for (final actualIndex in visibleActualIndexes) {
+      if (actualIndex < 0 || actualIndex >= titles.length) continue;
+      switch (titles[actualIndex]) {
+        case PasajTabIds.market:
+          ensureMarketController(permanent: true).primePrimarySurfaceOnce();
+          break;
+        case PasajTabIds.jobFinder:
+          ensureJobFinderController(permanent: true).primePrimarySurfaceOnce();
+          break;
+        case PasajTabIds.scholarships:
+          ensureScholarshipsController(
+            permanent: true,
+          ).primePrimarySurfaceOnce();
+          break;
+        case PasajTabIds.tutoring:
+          ensureTutoringController(permanent: true).primePrimarySurfaceOnce();
+          break;
+      }
+    }
   }
 
   void _suppressBackgroundFeedMedia() {

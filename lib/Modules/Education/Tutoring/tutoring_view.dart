@@ -49,5 +49,8 @@ class TutoringView extends StatelessWidget {
   ScrollController get _scrollController => tutoringController.scrollController;
 
   @override
-  Widget build(BuildContext context) => _buildPage(context);
+  Widget build(BuildContext context) {
+    tutoringController.primePrimarySurfaceOnce();
+    return _buildPage(context);
+  }
 }

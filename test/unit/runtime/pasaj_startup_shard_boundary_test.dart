@@ -19,10 +19,38 @@ void main() {
     expect(source.contains("surface: 'scholarships'"), isTrue);
     expect(source.contains("surface: 'tutoring'"), isTrue);
     expect(source.contains('ensureStartupSnapshotSeedPool().save('), isTrue);
+    expect(source.contains('await _primePasajListingController(tabId);'), isTrue);
+    expect(
+      source.contains(
+        'unawaited(_primePasajListingController(PasajTabIds.market));',
+      ),
+      isTrue,
+    );
+    expect(
+      source.contains(
+        'unawaited(_primePasajListingController(PasajTabIds.jobFinder));',
+      ),
+      isTrue,
+    );
+    expect(
+      source.contains(
+        'unawaited(_primePasajListingController(PasajTabIds.scholarships));',
+      ),
+      isTrue,
+    );
+    expect(
+      source.contains(
+        'unawaited(_primePasajListingController(PasajTabIds.tutoring));',
+      ),
+      isTrue,
+    );
   });
 
   test('pasaj controllers hydrate in-memory startup seed before async bootstrap',
       () async {
+    final educationPasaj = await File(
+      'lib/Modules/Education/education_controller_pasaj_part.dart',
+    ).readAsString();
     final marketLifecycle = await File(
       'lib/Modules/Market/market_controller_lifecycle_part.dart',
     ).readAsString();
@@ -66,6 +94,65 @@ void main() {
     );
     expect(scholarshipsSeedIndex, greaterThanOrEqualTo(0));
     expect(scholarshipsBootstrapIndex, greaterThan(scholarshipsSeedIndex));
+    expect(
+      educationPasaj.contains('_ensurePasajListingControllersReady(nextVisible);'),
+      isTrue,
+    );
+  });
+
+  test('embedded pasaj surfaces prime all four listing controllers', () async {
+    final educationPasaj = await File(
+      'lib/Modules/Education/education_controller_pasaj_part.dart',
+    ).readAsString();
+    final marketView = await File(
+      'lib/Modules/Market/market_view.dart',
+    ).readAsString();
+    final scholarshipsView = await File(
+      'lib/Modules/Education/Scholarships/scholarships_view.dart',
+    ).readAsString();
+    final tutoringView = await File(
+      'lib/Modules/Education/Tutoring/tutoring_view.dart',
+    ).readAsString();
+    final scholarshipsSupport = await File(
+      'lib/Modules/Education/Scholarships/scholarships_controller_support_part.dart',
+    ).readAsString();
+    final tutoringSupport = await File(
+      'lib/Modules/Education/Tutoring/tutoring_controller_support_part.dart',
+    ).readAsString();
+
+    expect(
+      educationPasaj.contains(
+        "maybeFindScholarshipsController()?.onPrimarySurfaceVisible()",
+      ),
+      isTrue,
+    );
+    expect(
+      educationPasaj.contains(
+        "maybeFindTutoringController()?.onPrimarySurfaceVisible()",
+      ),
+      isTrue,
+    );
+    expect(marketView.contains('controller.primePrimarySurfaceOnce();'), isTrue);
+    expect(
+      scholarshipsView.contains('controller.primePrimarySurfaceOnce();'),
+      isTrue,
+    );
+    expect(
+      tutoringView.contains('tutoringController.primePrimarySurfaceOnce();'),
+      isTrue,
+    );
+    expect(
+      scholarshipsSupport.contains(
+        'Future<void> onPrimarySurfaceVisible() => prepareStartupSurface();',
+      ),
+      isTrue,
+    );
+    expect(
+      tutoringSupport.contains(
+        'Future<void> onPrimarySurfaceVisible() => prepareStartupSurface();',
+      ),
+      isTrue,
+    );
   });
 
   test('sign-in selection 1 starts pasaj fastlane before global warm finishes',

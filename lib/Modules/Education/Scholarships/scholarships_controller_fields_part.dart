@@ -28,6 +28,8 @@ class _ScholarshipsControllerState {
   final listingSelection = 0.obs;
   final hasMoreData = true.obs;
   final totalCount = 0.obs;
+  Future<void>? startupPrepareFuture;
+  bool primarySurfacePrimedOnce = false;
   Timer? searchDebounce;
   int searchRequestToken = 0;
   int typesensePage = 0;
@@ -69,6 +71,12 @@ extension ScholarshipsControllerFieldsPart on ScholarshipsController {
   RxInt get listingSelection => _state.listingSelection;
   RxBool get hasMoreData => _state.hasMoreData;
   RxInt get totalCount => _state.totalCount;
+  Future<void>? get _startupPrepareFuture => _state.startupPrepareFuture;
+  set _startupPrepareFuture(Future<void>? value) =>
+      _state.startupPrepareFuture = value;
+  bool get _primarySurfacePrimedOnce => _state.primarySurfacePrimedOnce;
+  set _primarySurfacePrimedOnce(bool value) =>
+      _state.primarySurfacePrimedOnce = value;
   Timer? get _searchDebounce => _state.searchDebounce;
   set _searchDebounce(Timer? value) => _state.searchDebounce = value;
   int get _searchRequestToken => _state.searchRequestToken;
