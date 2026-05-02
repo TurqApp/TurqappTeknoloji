@@ -14,6 +14,7 @@ const SCHEMA_VERSION = 1;
 const SLOT_SIZE = 240;
 const SLOT_HOURS = 3;
 const ROLLING_DAYS = 3;
+const MANIFEST_PUBLISH_DELAY_MS = 5 * 60 * 1000;
 const MAX_SCAN_PAGES = 24;
 const TYPESENSE_PAGE_SIZE = 250;
 const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
@@ -286,6 +287,10 @@ export function resolveFeedManifestSlotForNow(nowMs: number): { date: string; sl
   };
 }
 
+function resolveFeedManifestReferenceNow(nowMs: number): number {
+  return Math.max(0, nowMs - MANIFEST_PUBLISH_DELAY_MS);
+}
+
 export function rollingFeedManifestDates(nowMs: number, days = ROLLING_DAYS): string[] {
   const out: string[] = [];
   for (let index = 0; index < days; index += 1) {
@@ -295,8 +300,9 @@ export function rollingFeedManifestDates(nowMs: number, days = ROLLING_DAYS): st
 }
 
 export function buildRollingFeedManifestTargets(nowMs: number): FeedManifestGenerationTarget[] {
-  const resolved = resolveFeedManifestSlotForNow(nowMs);
-  const dates = rollingFeedManifestDates(nowMs).slice().reverse();
+  const referenceNowMs = resolveFeedManifestReferenceNow(nowMs);
+  const resolved = resolveFeedManifestSlotForNow(referenceNowMs);
+  const dates = rollingFeedManifestDates(referenceNowMs).slice().reverse();
   const slotHours = Array.from({ length: 24 / SLOT_HOURS }, (_, index) => index * SLOT_HOURS);
   const targets: FeedManifestGenerationTarget[] = [];
 
@@ -812,7 +818,9 @@ export const f29_generateFeedManifestCallable = onCall(
     }
 
     const nowMs = Date.now();
-    const resolved = resolveFeedManifestSlotForNow(nowMs);
+    const resolved = resolveFeedManifestSlotForNow(
+      resolveFeedManifestReferenceNow(nowMs),
+    );
     const date = asString(request.data?.date) || resolved.date;
     const slotHour = request.data?.slotHour === undefined
       ? resolved.slotHour

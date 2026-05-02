@@ -53,6 +53,7 @@ class FeedManifestRepository extends GetxService {
         _storage = storage ?? AppFirebaseStorage.instance;
 
   static const Duration manifestWindowCadence = Duration(hours: 3);
+  static const Duration _manifestPublishDelay = Duration(minutes: 5);
   static const int _maxSlotBytes = 16 * 1024 * 1024;
   static const int _maxConcurrentSlotLoads = 6;
   static const int _maxCachedManifestWindows = 24;
@@ -82,7 +83,7 @@ class FeedManifestRepository extends GetxService {
   DateTime? get nextExpectedRefreshAt {
     if (_generatedAt <= 0) return null;
     return DateTime.fromMillisecondsSinceEpoch(_generatedAt).add(
-      manifestWindowCadence,
+      manifestWindowCadence + _manifestPublishDelay,
     );
   }
 
@@ -253,8 +254,8 @@ class FeedManifestRepository extends GetxService {
     if (_backgroundActiveSyncFuture != null) return;
     final nextRefreshAt = nextExpectedRefreshAt;
     final now = DateTime.now();
-    final shouldSync = nextRefreshAt == null ||
-        !now.isBefore(nextRefreshAt.subtract(const Duration(minutes: 5)));
+    final shouldSync =
+        nextRefreshAt == null || !now.isBefore(nextRefreshAt);
     if (!shouldSync) return;
 
     final future = () async {
