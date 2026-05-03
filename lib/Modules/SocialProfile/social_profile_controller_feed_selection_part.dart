@@ -12,6 +12,12 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       StartupPreloadPolicy.aheadFirstSegmentCount;
   static const int _ownProfileWarmPlayableCount = 7;
 
+  bool get _performUsesTightCellularWarmProfile =>
+      StartupPreloadPolicy.useTightCellularWarmProfile(
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+      );
+
   void _performBootstrapFeedPlaybackAfterDataChange() {
     if (postSelection.value != 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -199,6 +205,26 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
       _visibleFractions.remove(modelIndex);
     } else {
       _visibleFractions[modelIndex] = visibleFraction;
+    }
+
+    if (_performUsesTightCellularWarmProfile &&
+        visibleFraction >= FeedPlaybackSelectionPolicy.secondaryThreshold) {
+      final previewTarget = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+        visibleFractions: _visibleFractions,
+        currentIndex: centeredIndex.value,
+        lastCenteredIndex: lastCenteredIndex,
+        itemCount: activeEntries.length,
+        canAutoplayIndex: (index) =>
+            _performCanAutoplayCombinedEntry(activeEntries[index]),
+        stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+        preferDominantVisibleIndexWhenNonPlayable: true,
+      );
+      if (previewTarget >= 0 && previewTarget < activeEntries.length) {
+        _performWarmProfilePlaybackWindow(
+          centered: previewTarget,
+          phase: 'preview',
+        );
+      }
     }
 
     _performScheduleVisibilityEvaluation();
@@ -411,6 +437,12 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = issuedAt;
+    if (_performUsesTightCellularWarmProfile) {
+      _performWarmProfilePlaybackWindow(
+        centered: index,
+        phase: 'target_playback',
+      );
+    }
   }
 
   void _performWarmProfilePlaybackWindow({
@@ -425,9 +457,14 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     if (prefetch == null) return;
     final warmPosts = _resolveProfileWarmPosts(
       centered: centered,
-      maxCount: isOwnProfile
-          ? _ownProfileWarmPlayableCount
-          : _defaultProfileWarmPlayableCount,
+      maxCount: StartupPreloadPolicy.warmPlayableCount(
+        isOwnProfile
+            ? _ownProfileWarmPlayableCount
+            : _defaultProfileWarmPlayableCount,
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular:
+            NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+      ),
     );
     if (warmPosts.isEmpty) return;
     final signature =
@@ -520,6 +557,13 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
   }
 
   int _profileReadySegmentsForPlayableOffset(int playableOffset) {
+    if (_performUsesTightCellularWarmProfile) {
+      return StartupPreloadPolicy.warmReadySegmentsForOffset(
+        playableOffset,
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular: true,
+      );
+    }
     if (!isOwnProfile) {
       return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
     }

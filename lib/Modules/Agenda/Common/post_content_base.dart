@@ -260,8 +260,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _usesAggressiveAndroidCellularFeedBufferProfile =>
       defaultTargetPlatform == TargetPlatform.android &&
-      _usesFeedPlaybackPolicy &&
-      _isPrimaryFeedSurfaceInstance &&
+      _isFeedStyleInlineSurfaceInstance &&
       CacheNetworkPolicy.isOnCellular;
 
   double? get _preferredBufferDurationSecondsForCurrentSurface {
@@ -1176,8 +1175,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
-    if (!isPrimaryFeedSurfaceInstance) return false;
-    if (!_usesFeedPlaybackPolicy) return false;
+    if (!_isFeedStyleInlineSurfaceInstance) return false;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
     return !shouldHidePlaybackPoster(
       value,

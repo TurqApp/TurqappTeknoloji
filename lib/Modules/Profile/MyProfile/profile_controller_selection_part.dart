@@ -1,6 +1,14 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
+  static const int _ownProfileWarmPlayableCount = 7;
+
+  bool get _performUsesTightCellularWarmProfile =>
+      StartupPreloadPolicy.useTightCellularWarmProfile(
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+      );
+
   bool _performShouldPreferImmediatePlaybackHandoff(int index) {
     if (!GetPlatform.isIOS) return false;
     final centered = centeredIndex.value;
@@ -242,6 +250,26 @@ extension ProfileControllerSelectionPart on ProfileController {
       _visibleFractions[modelIndex] = visibleFraction;
     }
 
+    if (_performUsesTightCellularWarmProfile &&
+        visibleFraction >= FeedPlaybackSelectionPolicy.secondaryThreshold) {
+      final previewTarget = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+        visibleFractions: _visibleFractions,
+        currentIndex: centeredIndex.value,
+        lastCenteredIndex: lastCenteredIndex,
+        itemCount: mergedPosts.length,
+        canAutoplayIndex: (index) =>
+            _performCanAutoplayMergedEntry(mergedPosts[index]),
+        stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+        preferDominantVisibleIndexWhenNonPlayable: true,
+      );
+      if (previewTarget >= 0 && previewTarget < mergedPosts.length) {
+        _performWarmProfilePlaybackWindow(
+          centered: previewTarget,
+          phase: 'preview',
+        );
+      }
+    }
+
     _performScheduleVisibilityEvaluation();
   }
 
@@ -373,6 +401,10 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (postSelection.value != 0) return;
     if (pausetheall.value || showPfImage.value) return;
     if (index < 0 || index >= mergedPosts.length) return;
+    _performWarmProfilePlaybackWindow(
+      centered: index,
+      phase: 'playback_horizon',
+    );
     final entry = mergedPosts[index];
     if (!_performCanAutoplayMergedEntry(entry)) return;
     final docId = ((entry['docID'] as String?) ?? '').trim();
@@ -396,6 +428,119 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = issuedAt;
+    if (_performUsesTightCellularWarmProfile) {
+      _performWarmProfilePlaybackWindow(
+        centered: index,
+        phase: 'target_playback',
+      );
+    }
+  }
+
+  void _performWarmProfilePlaybackWindow({
+    required int centered,
+    required String phase,
+  }) {
+    if (postSelection.value != 0) return;
+    if (mergedPosts.isEmpty) return;
+    if (centered < 0 || centered >= mergedPosts.length) return;
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    final warmPosts = _resolveProfileWarmPosts(
+      centered: centered,
+      maxCount: StartupPreloadPolicy.warmPlayableCount(
+        _ownProfileWarmPlayableCount,
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular:
+            NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+      ),
+    );
+    if (warmPosts.isEmpty) return;
+    final signature =
+        '$phase:$centered:${warmPosts.map((post) => post.docID).join(',')}';
+    if (phase == 'startup') {
+      if (_lastStartupWarmSignature == signature) return;
+      _lastStartupWarmSignature = signature;
+    } else {
+      if (_lastPlaybackWarmSignature == signature) return;
+      _lastPlaybackWarmSignature = signature;
+    }
+    final cacheManager = maybeFindSegmentCacheManager();
+    if (cacheManager != null && cacheManager.isReady) {
+      cacheManager.cachePostCards(warmPosts);
+      for (final post in warmPosts) {
+        final docId = post.docID.trim();
+        final playbackUrl = post.playbackUrl.trim();
+        if (docId.isEmpty || playbackUrl.isEmpty) continue;
+        cacheManager.cacheHlsEntry(docId, playbackUrl);
+      }
+    }
+    var currentIndex = warmPosts.indexWhere((post) {
+      return post.docID.trim() ==
+          (((mergedPosts[centered]['docID'] as String?) ?? '').trim());
+    });
+    if (currentIndex < 0) currentIndex = 0;
+    unawaited(
+      prefetch.updateFeedQueueForPosts(
+        warmPosts,
+        currentIndex,
+        maxDocs: warmPosts.length,
+      ),
+    );
+    for (var i = 0; i < warmPosts.length; i++) {
+      final readySegments = _profileReadySegmentsForPlayableOffset(i);
+      if (readySegments <= 0) continue;
+      prefetch.boostDoc(
+        warmPosts[i].docID,
+        readySegments: readySegments,
+      );
+    }
+  }
+
+  List<PostsModel> _resolveProfileWarmPosts({
+    required int centered,
+    required int maxCount,
+  }) {
+    if (mergedPosts.isEmpty || maxCount <= 0) {
+      return const <PostsModel>[];
+    }
+    final collected = <PostsModel>[];
+    final seenDocIds = <String>{};
+
+    void addEntryAt(int index) {
+      if (index < 0 || index >= mergedPosts.length) return;
+      final entry = mergedPosts[index];
+      if (!_performCanAutoplayMergedEntry(entry)) return;
+      final post = entry['post'];
+      if (post is! PostsModel) return;
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seenDocIds.add(docId)) return;
+      if (post.playbackUrl.trim().isEmpty) return;
+      collected.add(post);
+    }
+
+    addEntryAt(centered);
+    for (var index = centered + 1;
+        index < mergedPosts.length && collected.length < maxCount;
+        index++) {
+      addEntryAt(index);
+    }
+    for (var index = centered - 1;
+        index >= 0 && collected.length < maxCount;
+        index--) {
+      addEntryAt(index);
+    }
+    return collected;
+  }
+
+  int _profileReadySegmentsForPlayableOffset(int playableOffset) {
+    if (_performUsesTightCellularWarmProfile) {
+      return StartupPreloadPolicy.warmReadySegmentsForOffset(
+        playableOffset,
+        isAndroid: GetPlatform.isAndroid,
+        isOnCellular: true,
+      );
+    }
+    return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
 
   GlobalKey _performGetPostKey({

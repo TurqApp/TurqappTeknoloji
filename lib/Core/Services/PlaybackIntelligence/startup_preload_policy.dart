@@ -32,4 +32,56 @@ class StartupPreloadPolicy {
     }
     return 0;
   }
+
+  static bool useTightCellularWarmProfile({
+    required bool isAndroid,
+    required bool isOnCellular,
+  }) {
+    return isAndroid && isOnCellular;
+  }
+
+  static int warmReadySegmentsForOffset(
+    int playableOffset, {
+    required bool isAndroid,
+    required bool isOnCellular,
+  }) {
+    if (useTightCellularWarmProfile(
+      isAndroid: isAndroid,
+      isOnCellular: isOnCellular,
+    )) {
+      if (playableOffset <= 0) {
+        return activeReadySegments;
+      }
+      return playableOffset <= 3 ? 1 : 0;
+    }
+    return readySegmentsForAheadOffset(playableOffset);
+  }
+
+  static int startupWarmReadySegmentsForRank(
+    int playableRank, {
+    required bool isAndroid,
+    required bool isOnCellular,
+  }) {
+    if (useTightCellularWarmProfile(
+      isAndroid: isAndroid,
+      isOnCellular: isOnCellular,
+    )) {
+      return playableRank < 4 ? 1 : 0;
+    }
+    return startupReadySegmentsForRank(playableRank);
+  }
+
+  static int warmPlayableCount(
+    int defaultCount, {
+    required bool isAndroid,
+    required bool isOnCellular,
+  }) {
+    if (useTightCellularWarmProfile(
+      isAndroid: isAndroid,
+      isOnCellular: isOnCellular,
+    )) {
+      return 4;
+    }
+    return defaultCount;
+  }
 }

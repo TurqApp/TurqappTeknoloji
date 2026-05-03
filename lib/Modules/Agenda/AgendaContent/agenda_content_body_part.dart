@@ -237,11 +237,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               instanceTag
                                                   .startsWith('liked_post_') ||
                                               instanceTag.startsWith('social_');
-                                      final showInlinePlayer =
-                                          videoController != null &&
-                                              !(GetPlatform.isAndroid &&
-                                                  preferWarmPoolPauseOnAndroid &&
-                                                  !widget.shouldPlay);
                                       final isProfileFamilySurface =
                                           (widget.instanceTag ?? '')
                                                   .startsWith('profile_') ||
@@ -251,6 +246,18 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   .startsWith('liked_post_') ||
                                               (widget.instanceTag ?? '')
                                                   .startsWith('social_');
+                                      final isFeedStyleInlineSurface =
+                                          isPrimaryFeedSurfaceInstance ||
+                                              isProfileFamilySurface ||
+                                              instanceTag.startsWith('flood_') ||
+                                              instanceTag.startsWith(
+                                                'explore_series_',
+                                              );
+                                      final showInlinePlayer =
+                                          videoController != null &&
+                                              !(GetPlatform.isAndroid &&
+                                                  preferWarmPoolPauseOnAndroid &&
+                                                  !widget.shouldPlay);
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
@@ -268,14 +275,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   preferWarmPoolPauseOnAndroid:
                                                       preferWarmPoolPauseOnAndroid,
                                                   preferResumePoster:
-                                                      (!isPrimaryFeedSurfaceInstance &&
+                                                      (!isFeedStyleInlineSurface &&
                                                               shouldSuppressGenericResumeThumbnail) ||
                                                           isProfileFamilySurface,
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:
                                                       GetPlatform.isIOS &&
-                                                          isPrimaryFeedSurfaceInstance,
+                                                          isFeedStyleInlineSurface,
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -287,7 +294,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   shouldShowStartupPlaybackPlaceholder(
                                                 v,
                                               );
-                                              if (isPrimaryFeedSurfaceInstance &&
+                                              if (isFeedStyleInlineSurface &&
                                                   !showStartupPlaceholder) {
                                                 return const SizedBox.shrink();
                                               }

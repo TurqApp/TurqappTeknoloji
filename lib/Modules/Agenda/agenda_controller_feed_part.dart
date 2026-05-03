@@ -718,7 +718,11 @@ extension AgendaControllerFeedPart on AgendaController {
       playableOffset++;
       if (candidate != index) continue;
       if (_shouldUseTightCellularFeedWarmProfile) {
-        return playableOffset <= 3 ? 1 : 0;
+        return StartupPreloadPolicy.warmReadySegmentsForOffset(
+          playableOffset,
+          isAndroid: GetPlatform.isAndroid,
+          isOnCellular: _isOnCellularFeedWarmProfile,
+        );
       }
       final baseReadySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(
         playableOffset,
@@ -764,16 +768,22 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
-    if (_shouldUseTightCellularFeedWarmProfile) {
-      return playableRank < 4 ? 1 : 0;
-    }
-    return StartupPreloadPolicy.startupReadySegmentsForRank(playableRank);
+    return StartupPreloadPolicy.startupWarmReadySegmentsForRank(
+      playableRank,
+      isAndroid: GetPlatform.isAndroid,
+      isOnCellular: _isOnCellularFeedWarmProfile,
+    );
   }
 
   bool get _shouldUseTightCellularFeedWarmProfile {
-    return GetPlatform.isAndroid &&
-        (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+    return StartupPreloadPolicy.useTightCellularWarmProfile(
+      isAndroid: GetPlatform.isAndroid,
+      isOnCellular: _isOnCellularFeedWarmProfile,
+    );
   }
+
+  bool get _isOnCellularFeedWarmProfile =>
+      NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
 
   void _prefetchCurrentPoster() {
     if (agendaList.isEmpty) return;

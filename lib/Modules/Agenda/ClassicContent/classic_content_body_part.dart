@@ -553,6 +553,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     (widget.instanceTag ?? '').startsWith('archives_') ||
                     (widget.instanceTag ?? '').startsWith('liked_post_') ||
                     (widget.instanceTag ?? '').startsWith('social_');
+                final isFeedStyleInlineSurface =
+                    isPrimaryFeedSurfaceInstance ||
+                    isProfileFamilySurface ||
+                    (widget.instanceTag ?? '').startsWith('flood_') ||
+                    (widget.instanceTag ?? '').startsWith('explore_series_');
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -578,13 +583,13 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             preferWarmPoolPauseOnAndroid:
                                 preferWarmPoolPauseOnAndroid,
                             preferResumePoster:
-                                (!isPrimaryFeedSurfaceInstance &&
+                                (!isFeedStyleInlineSurface &&
                                         shouldSuppressGenericResumeThumbnail) ||
                                     isProfileFamilySurface,
                             startupRecoveryWatchdogEnabled:
                                 shouldEnableStartupRecoveryWatchdog,
                             preferStableStartupBuffer: GetPlatform.isIOS &&
-                                isPrimaryFeedSurfaceInstance,
+                                isFeedStyleInlineSurface,
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster
@@ -596,7 +601,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       }
                       final showStartupPlaceholder =
                           shouldShowStartupPlaybackPlaceholder(v);
-                      if (isPrimaryFeedSurfaceInstance &&
+                      if (isFeedStyleInlineSurface &&
                           !showStartupPlaceholder) {
                         return const SizedBox.shrink();
                       }
