@@ -213,6 +213,8 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
     final followerCount = raw['counterOfFollowers'] ?? 0;
     final followingCount = raw['counterOfFollowings'] ?? 0;
     final postCount = raw['counterOfPosts'] ?? 0;
+    final likesCount = raw['counterOfLikes'] ?? 0;
+    final listingsCount = raw['counterOfListings'] ?? 0;
 
     return <String, dynamic>{
       'userID': (raw['userID'] ?? '').toString(),
@@ -237,6 +239,8 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
       'counterOfFollowers': followerCount,
       'counterOfFollowings': followingCount,
       'counterOfPosts': postCount,
+      'counterOfLikes': likesCount,
+      'counterOfListings': listingsCount,
       'isApproved': _asBool(raw['isApproved'] ?? scoped['isApproved']),
       'isPrivate': _asBool(raw['isPrivate'] ?? scoped['isPrivate']),
       'isDeleted': _asBool(raw['isDeleted'] ?? scoped['isDeleted']),

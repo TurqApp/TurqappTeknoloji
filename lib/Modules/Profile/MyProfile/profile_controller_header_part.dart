@@ -78,11 +78,16 @@ extension ProfileControllerHeaderPart on ProfileController {
         (data['counterOfFollowers'] as num?)?.toInt();
     final nextFollowingCount =
         (data['counterOfFollowings'] as num?)?.toInt();
+    final nextListingCount =
+        (data['counterOfListings'] as num?)?.toInt();
     if (nextFollowerCount != null) {
       followerCount.value = nextFollowerCount;
     }
     if (nextFollowingCount != null) {
       followingCount.value = nextFollowingCount;
+    }
+    if (nextListingCount != null) {
+      listingCount.value = nextListingCount;
     }
     headerNickname.value =
         _preserveNonEmpty(headerNickname, data['nickname'] ?? data['username']);
@@ -254,6 +259,7 @@ extension ProfileControllerHeaderPart on ProfileController {
     final payload = <String, dynamic>{
       'counterOfFollowers': followerCount.value,
       'counterOfFollowings': followingCount.value,
+      'counterOfListings': listingCount.value,
       'headerNickname': headerNickname.value.trim(),
       'headerRozet': headerRozet.value.trim(),
       'headerDisplayName': headerDisplayName.value.trim(),
@@ -323,6 +329,11 @@ extension ProfileControllerHeaderPart on ProfileController {
         (header['counterOfFollowings'] as num?)?.toInt();
     if (nextFollowingCount != null && nextFollowingCount > 0) {
       followingCount.value = nextFollowingCount;
+    }
+    final nextListingCount =
+        (header['counterOfListings'] as num?)?.toInt();
+    if (nextListingCount != null && nextListingCount > 0) {
+      listingCount.value = nextListingCount;
     }
   }
 

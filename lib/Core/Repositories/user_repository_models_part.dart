@@ -12,6 +12,8 @@ class UserSummary {
   final int followerCount;
   final int followingCount;
   final int postCount;
+  final int likesCount;
+  final int listingsCount;
   final bool isPrivate;
   final bool isDeleted;
   final bool isApproved;
@@ -28,6 +30,8 @@ class UserSummary {
     required this.followerCount,
     required this.followingCount,
     required this.postCount,
+    required this.likesCount,
+    required this.listingsCount,
     required this.isPrivate,
     required this.isDeleted,
     required this.isApproved,
@@ -63,6 +67,8 @@ class UserSummary {
       followerCount: _toInt(raw['counterOfFollowers']),
       followingCount: _toInt(raw['counterOfFollowings']),
       postCount: _toInt(raw['counterOfPosts']),
+      likesCount: _toInt(raw['counterOfLikes']),
+      listingsCount: _toInt(raw['counterOfListings']),
       isPrivate: _toBool(raw['isPrivate'] ?? scoped['isPrivate']),
       isDeleted: _toBool(raw['isDeleted'] ?? scoped['isDeleted']),
       isApproved: _toBool(raw['isApproved'] ?? scoped['isApproved']),
@@ -85,6 +91,8 @@ class UserSummary {
       followerCount: user.counterOfFollowers,
       followingCount: user.counterOfFollowings,
       postCount: user.counterOfPosts,
+      likesCount: user.counterOfLikes,
+      listingsCount: 0,
       isPrivate: user.gizliHesap,
       isDeleted: user.deletedAccount,
       isApproved: user.hesapOnayi,
@@ -110,6 +118,8 @@ class UserSummary {
       'counterOfFollowers': followerCount,
       'counterOfFollowings': followingCount,
       'counterOfPosts': postCount,
+      'counterOfLikes': likesCount,
+      'counterOfListings': listingsCount,
       'isPrivate': isPrivate,
       'isDeleted': isDeleted,
       'isApproved': isApproved,

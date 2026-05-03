@@ -61,6 +61,7 @@ Map<String, dynamic> buildInitialUserDocument({
     'counterOfFollowers': 0,
     'counterOfFollowings': 0,
     'counterOfPosts': 0,
+    'counterOfListings': 0,
   };
 }
 

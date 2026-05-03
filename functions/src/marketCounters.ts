@@ -217,6 +217,72 @@ function marketItemRef(itemId: string) {
   return db().collection("marketStore").doc(itemId);
 }
 
+function extractMarketOwnerId(
+  data: Record<string, unknown> | undefined,
+): string {
+  return asString(data?.userId || data?.sellerUserId || data?.ownerId);
+}
+
+function isCountedListing(
+  data: Record<string, unknown> | undefined,
+): boolean {
+  if (!data) return false;
+  const ownerId = extractMarketOwnerId(data);
+  if (!ownerId) return false;
+  const status = asString(data.status).toLowerCase();
+  return status != "archived";
+}
+
+export const onMarketItemCounterWrite = onDocumentWritten(
+  {
+    document: "marketStore/{itemId}",
+    region: REGION,
+  },
+  async (event) => {
+    const beforeData = event.data?.before.exists
+      ? (event.data?.before.data() as Record<string, unknown> | undefined)
+      : undefined;
+    const afterData = event.data?.after.exists
+      ? (event.data?.after.data() as Record<string, unknown> | undefined)
+      : undefined;
+
+    const beforeOwnerId = extractMarketOwnerId(beforeData);
+    const afterOwnerId = extractMarketOwnerId(afterData);
+    const beforeCounted = isCountedListing(beforeData);
+    const afterCounted = isCountedListing(afterData);
+
+    const patches = new Map<string, number>();
+
+    function addDelta(stringUserId: string, delta: number) {
+      const uid = stringUserId.trim();
+      if (!uid || delta == 0) return;
+      patches.set(uid, (patches.get(uid) ?? 0) + delta);
+    }
+
+    if (beforeOwnerId == afterOwnerId) {
+      if (beforeCounted != afterCounted) {
+        addDelta(afterOwnerId, afterCounted ? 1 : -1);
+      }
+    } else {
+      if (beforeCounted) addDelta(beforeOwnerId, -1);
+      if (afterCounted) addDelta(afterOwnerId, 1);
+    }
+
+    if (patches.size === 0) return;
+
+    const firestore = db();
+    const batch = firestore.batch();
+    for (const [uid, delta] of patches.entries()) {
+      batch.set(
+        firestore.collection("users").doc(uid),
+        { counterOfListings: FieldValue.increment(delta) },
+        { merge: true },
+      );
+    }
+    await batch.commit();
+  },
+);
+
 export const onMarketFavoriteCreate = onDocumentCreated(
   {
     document: "marketStore/{itemId}/favorites/{favoriteId}",

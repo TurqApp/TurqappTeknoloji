@@ -1,6 +1,14 @@
 part of 'social_profile_controller.dart';
 
 extension SocialProfileControllerProfilePart on SocialProfileController {
+  bool _hasCanonicalProfileCounters(Map<String, dynamic> raw) {
+    return _hasCounterKey(raw, 'counterOfFollowers') &&
+        _hasCounterKey(raw, 'counterOfFollowings') &&
+        _hasCounterKey(raw, 'counterOfPosts') &&
+        _hasCounterKey(raw, 'counterOfLikes') &&
+        _hasCounterKey(raw, 'counterOfListings');
+  }
+
   int? _extractCounterValue(
     Map<String, dynamic> raw,
     List<String> keys,
@@ -97,6 +105,29 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
           raw.isEmpty ||
           !_hasCounterKey(rawMap, 'counterOfFollowers') ||
           !_hasCounterKey(rawMap, 'counterOfFollowings')) {
+        final freshRaw = await _userRepository.getPublicUserRaw(
+          userID,
+          preferCache: false,
+          forceServer: true,
+        );
+        final freshMap = freshRaw ?? const <String, dynamic>{};
+        final freshFollowers = _extractCounterValue(freshMap, <String>[
+          'counterOfFollowers',
+        ]);
+        final freshFollowings = _extractCounterValue(freshMap, <String>[
+          'counterOfFollowings',
+        ]);
+        if (freshFollowers != null) {
+          totalFollower.value = freshFollowers;
+        }
+        if (freshFollowings != null) {
+          totalFollowing.value = freshFollowings;
+        }
+      }
+
+      if (raw == null ||
+          raw.isEmpty ||
+          (totalFollower.value <= 0 && totalFollowing.value <= 0)) {
         final followers = await _followRepository.getFollowerIds(
           userID,
           preferCache: true,
@@ -210,13 +241,19 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         _applyUserData(cachedRaw);
       }
 
+      final shouldForceFreshAfterCache = cachedRaw == null ||
+          cachedRaw.isEmpty ||
+          !_hasCanonicalProfileCounters(cachedRaw);
+
       final raw = await _userRepository.getPublicUserRaw(
         userID,
-        preferCache: true,
+        preferCache: !shouldForceFreshAfterCache,
+        forceServer: shouldForceFreshAfterCache,
       );
       if (raw != null && raw.isNotEmpty) {
         _applyUserData(raw);
-        if (_needsHeaderSupplementalData(raw)) {
+        if (_needsHeaderSupplementalData(raw) ||
+            !_hasCanonicalProfileCounters(raw)) {
           final freshRaw = await _userRepository.getPublicUserRaw(
             userID,
             preferCache: false,
@@ -241,7 +278,8 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
         if (bootstrapData.isNotEmpty) {
           _applyUserData(bootstrapData);
         }
-        if (_needsHeaderSupplementalData(bootstrapData)) {
+        if (_needsHeaderSupplementalData(bootstrapData) ||
+            !_hasCanonicalProfileCounters(bootstrapData)) {
           final freshRaw = await _userRepository.getPublicUserRaw(
             userID,
             preferCache: false,
@@ -330,11 +368,15 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     totalMarket.value = 0;
     final postsCount = _extractExactNumericCounter(raw, 'counterOfPosts');
     final likesCount = _extractExactNumericCounter(raw, 'counterOfLikes');
+    final listingsCount = _extractExactNumericCounter(raw, 'counterOfListings');
     if (postsCount != null) {
       totalPosts.value = postsCount;
     }
     if (likesCount != null) {
       totalLikes.value = likesCount;
+    }
+    if (listingsCount != null) {
+      totalMarket.value = listingsCount;
     }
     _applySupplementalUserData(raw);
   }
@@ -352,11 +394,15 @@ extension SocialProfileControllerProfilePart on SocialProfileController {
     blockedUsers.clear();
     final postsCount = _extractExactNumericCounter(raw, 'counterOfPosts');
     final likesCount = _extractExactNumericCounter(raw, 'counterOfLikes');
+    final listingsCount = _extractExactNumericCounter(raw, 'counterOfListings');
     if (postsCount != null) {
       totalPosts.value = postsCount;
     }
     if (likesCount != null) {
       totalLikes.value = likesCount;
+    }
+    if (listingsCount != null) {
+      totalMarket.value = listingsCount;
     }
     final followerCount = _extractCounterValue(raw, <String>[
       'counterOfFollowers',

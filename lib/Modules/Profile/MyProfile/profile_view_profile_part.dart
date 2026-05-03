@@ -85,7 +85,9 @@ extension _ProfileViewProfilePart on _ProfileViewState {
       _reactiveCurrentUser?.counterOfLikes ?? userService.counterOfLikes;
 
   int get _myTotalMarket =>
-      _marketItems.where((item) => item.status != 'archived').length;
+      controller.listingCount.value > 0
+          ? controller.listingCount.value
+          : _marketItems.where((item) => item.status != 'archived').length;
 
   bool get _hasMyStories =>
       _myUserId.isNotEmpty &&

@@ -16,11 +16,16 @@ extension ProfileControllerRuntimePart on ProfileController {
             (data['counterOfFollowers'] as num?)?.toInt();
         final nextFollowings =
             (data['counterOfFollowings'] as num?)?.toInt();
+        final nextListings =
+            (data['counterOfListings'] as num?)?.toInt();
         if (nextFollowers != null) {
           followerCount.value = nextFollowers;
         }
         if (nextFollowings != null) {
           followingCount.value = nextFollowings;
+        }
+        if (nextListings != null) {
+          listingCount.value = nextListings;
         }
       }
     });
@@ -70,6 +75,7 @@ extension ProfileControllerRuntimePart on ProfileController {
 
       followerCount.value = 0;
       followingCount.value = 0;
+      listingCount.value = 0;
       lastPostDoc = null;
       lastPostDocPhotos = null;
       lastPostDocVideos = null;
@@ -101,12 +107,16 @@ extension ProfileControllerRuntimePart on ProfileController {
       );
       final nextFollowers = (data?['counterOfFollowers'] as num?)?.toInt();
       final nextFollowings = (data?['counterOfFollowings'] as num?)?.toInt();
+      final nextListings = (data?['counterOfListings'] as num?)?.toInt();
 
       if (nextFollowers != null) {
         followerCount.value = nextFollowers;
       }
       if (nextFollowings != null) {
         followingCount.value = nextFollowings;
+      }
+      if (nextListings != null) {
+        listingCount.value = nextListings;
       }
 
       if (data == null ||

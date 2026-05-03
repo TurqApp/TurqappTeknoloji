@@ -138,6 +138,8 @@ extension UserSummaryResolverDataPart on UserSummaryResolver {
       followerCount: _summaryInt(merged['counterOfFollowers']),
       followingCount: _summaryInt(merged['counterOfFollowings']),
       postCount: _summaryInt(merged['counterOfPosts']),
+      likesCount: _summaryInt(merged['counterOfLikes']),
+      listingsCount: _summaryInt(merged['counterOfListings']),
       isPrivate: _summaryBool(merged['isPrivate']),
       isDeleted: _summaryBool(merged['isDeleted']),
       isApproved: _summaryBool(merged['isApproved']),

@@ -66,6 +66,8 @@ function _buildUsersPublicDoc(
   const counterOfFollowers = toNonNegativeInt(data?.counterOfFollowers);
   const counterOfFollowings = toNonNegativeInt(data?.counterOfFollowings);
   const counterOfPosts = toNonNegativeInt(data?.counterOfPosts);
+  const counterOfLikes = toNonNegativeInt(data?.counterOfLikes);
+  const counterOfListings = toNonNegativeInt(data?.counterOfListings);
 
   return {
     userID: uid,
@@ -83,6 +85,8 @@ function _buildUsersPublicDoc(
     counterOfFollowers,
     counterOfFollowings,
     counterOfPosts,
+    counterOfLikes,
+    counterOfListings,
     accountStatus: String(data?.accountStatus || "").trim(),
     isPrivate: Boolean(data?.isPrivate ?? false),
     isDeleted: Boolean(data?.isDeleted ?? false),

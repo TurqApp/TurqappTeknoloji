@@ -41,6 +41,7 @@ class _ProfileScrollState {
 class _ProfileHeaderState {
   final followerCount = 0.obs;
   final followingCount = 0.obs;
+  final listingCount = 0.obs;
   final headerNickname = ''.obs;
   final headerRozet = ''.obs;
   final headerDisplayName = ''.obs;
@@ -159,6 +160,7 @@ extension ProfileControllerFieldsPart on ProfileController {
 
   RxInt get followerCount => _headerState.followerCount;
   RxInt get followingCount => _headerState.followingCount;
+  RxInt get listingCount => _headerState.listingCount;
   RxString get headerNickname => _headerState.headerNickname;
   RxString get headerRozet => _headerState.headerRozet;
   RxString get headerDisplayName => _headerState.headerDisplayName;
