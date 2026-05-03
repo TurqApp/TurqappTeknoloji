@@ -37,6 +37,10 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     final activeOwnerDocID =
         HlsSegmentPolicy.normalizeDocId(_currentPlayingDocID);
     if (requestedDocID == activeOwnerDocID) return true;
+    if (CacheNetworkPolicy.isOnCellular) {
+      return _externalOnDemandFetchClaims.containsKey(requestedDocID) &&
+          requestedDocID == activeOwnerDocID;
+    }
     final targetOwnerDocID =
         HlsSegmentPolicy.normalizeDocId(_targetPlaybackDocID);
     if (requestedDocID == targetOwnerDocID) return true;

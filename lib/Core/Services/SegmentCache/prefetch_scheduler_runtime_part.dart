@@ -78,7 +78,8 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         target.startsWith('short:');
   }
 
-  bool get _shouldAllowBackgroundQuotaFill => true;
+  bool get _shouldAllowBackgroundQuotaFill =>
+      _isOnWiFi && CacheNetworkPolicy.canPrefetch;
 
   bool get _useMinimalQuotaFillMode => !_hasActiveShortPlaybackWindow;
 
