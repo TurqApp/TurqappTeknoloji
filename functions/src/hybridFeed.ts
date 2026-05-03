@@ -237,8 +237,6 @@ export async function upsertPostIntoHybridFeed(args: {
 
   const authorDoc = await db().collection("users").doc(authorId).get();
   const followerCount: number =
-    Number(authorDoc.data()?.followerCount) ||
-    Number(authorDoc.data()?.takipciSayisi) ||
     Number(authorDoc.data()?.counterOfFollowers) ||
     0;
 

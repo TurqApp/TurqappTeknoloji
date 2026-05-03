@@ -63,15 +63,9 @@ function _buildUsersPublicDoc(
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const displayName = String(data?.displayName || fullName || nickname).trim();
   const avatarUrl = normalizeAvatarUrl(data?.avatarUrl);
-  const followerCount = toNonNegativeInt(
-    data?.followerCount ?? data?.counterOfFollowers ?? data?.takipciSayisi,
-  );
-  const followingCount = toNonNegativeInt(
-    data?.followingCount ?? data?.counterOfFollowings ?? data?.takipEdilenSayisi,
-  );
-  const postCount = toNonNegativeInt(
-    data?.postCount ?? data?.counterOfPosts ?? data?.gonderSayisi,
-  );
+  const followerCount = toNonNegativeInt(data?.counterOfFollowers);
+  const followingCount = toNonNegativeInt(data?.counterOfFollowings);
+  const postCount = toNonNegativeInt(data?.counterOfPosts);
 
   return {
     userID: uid,
@@ -86,9 +80,6 @@ function _buildUsersPublicDoc(
     bio: String(data?.bio || "").trim(),
     meslekKategori: String(data?.meslekKategori || "").trim(),
     rozet: String(data?.rozet || data?.badge || "").trim(),
-    followerCount,
-    followersCount: followerCount,
-    followingCount,
     postCount,
     accountStatus: String(data?.accountStatus || "").trim(),
     isPrivate: Boolean(data?.isPrivate ?? false),
@@ -952,7 +943,6 @@ export const publishScheduledIzBirakPosts = functions.pubsub
         const subscribersSnap = await postDoc.ref
           .collection("izBirakSubscribers")
           .get();
-
         const imageUrl = String(
           data.thumbnail ||
             ((Array.isArray(data.img) && data.img.length > 0

@@ -60,9 +60,9 @@ class UserSummary {
           .toString()
           .trim(),
       token: (raw['token'] ?? scoped['token'] ?? '').toString().trim(),
-      followerCount: _toInt(raw['followerCount'] ?? raw['followersCount']),
-      followingCount: _toInt(raw['followingCount']),
-      postCount: _toInt(raw['postCount']),
+      followerCount: _toInt(raw['counterOfFollowers']),
+      followingCount: _toInt(raw['counterOfFollowings']),
+      postCount: _toInt(raw['counterOfPosts']),
       isPrivate: _toBool(raw['isPrivate'] ?? scoped['isPrivate']),
       isDeleted: _toBool(raw['isDeleted'] ?? scoped['isDeleted']),
       isApproved: _toBool(raw['isApproved'] ?? scoped['isApproved']),

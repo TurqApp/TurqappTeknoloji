@@ -174,9 +174,7 @@ async function upsertPostIntoHybridFeed(args) {
     if (!postId || !authorId)
         return;
     const authorDoc = await db().collection("users").doc(authorId).get();
-    const followerCount = Number(authorDoc.data()?.followerCount) ||
-        Number(authorDoc.data()?.takipciSayisi) ||
-        Number(authorDoc.data()?.counterOfFollowers) ||
+    const followerCount = Number(authorDoc.data()?.counterOfFollowers) ||
         0;
     if (followerCount > FAN_OUT_THRESHOLD) {
         await db().collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });

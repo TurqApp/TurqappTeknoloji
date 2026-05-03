@@ -12,16 +12,16 @@ extension ProfileControllerRuntimePart on ProfileController {
     _counterSub = _userRepository.watchUserRaw(uid).listen((snapshot) {
       final data = snapshot;
       if (data != null) {
-        followerCount.value = (data['counterOfFollowers'] as num?)?.toInt() ??
-            (data['followersCount'] as num?)?.toInt() ??
-            (data['takipci'] as num?)?.toInt() ??
-            (data['followerCount'] as num?)?.toInt() ??
-            0;
-        followingCount.value = (data['counterOfFollowings'] as num?)?.toInt() ??
-            (data['followingCount'] as num?)?.toInt() ??
-            (data['takip'] as num?)?.toInt() ??
-            (data['followCount'] as num?)?.toInt() ??
-            0;
+        final nextFollowers =
+            (data['counterOfFollowers'] as num?)?.toInt();
+        final nextFollowings =
+            (data['counterOfFollowings'] as num?)?.toInt();
+        if (nextFollowers != null) {
+          followerCount.value = nextFollowers;
+        }
+        if (nextFollowings != null) {
+          followingCount.value = nextFollowings;
+        }
       }
     });
   }
@@ -99,18 +99,19 @@ extension ProfileControllerRuntimePart on ProfileController {
         uid,
         preferCache: true,
       );
-      followerCount.value = (data?['counterOfFollowers'] as num?)?.toInt() ??
-          (data?['followersCount'] as num?)?.toInt() ??
-          (data?['takipci'] as num?)?.toInt() ??
-          (data?['followerCount'] as num?)?.toInt() ??
-          0;
-      followingCount.value = (data?['counterOfFollowings'] as num?)?.toInt() ??
-          (data?['followingCount'] as num?)?.toInt() ??
-          (data?['takip'] as num?)?.toInt() ??
-          (data?['followCount'] as num?)?.toInt() ??
-          0;
+      final nextFollowers = (data?['counterOfFollowers'] as num?)?.toInt();
+      final nextFollowings = (data?['counterOfFollowings'] as num?)?.toInt();
 
-      if (followerCount.value == 0 || followingCount.value == 0) {
+      if (nextFollowers != null) {
+        followerCount.value = nextFollowers;
+      }
+      if (nextFollowings != null) {
+        followingCount.value = nextFollowings;
+      }
+
+      if (data == null ||
+          (!data.containsKey('counterOfFollowers') &&
+              !data.containsKey('counterOfFollowings'))) {
         final followers = await _followRepository.getFollowerIds(
           uid,
           preferCache: true,
