@@ -436,6 +436,9 @@ extension AgendaControllerFeedPart on AgendaController {
       if (issuedAt != null) {
         _lastPlaybackCommandDocId = playbackKey;
         _lastPlaybackCommandAt = issuedAt;
+        if (_shouldUseTightCellularFeedWarmProfile) {
+          _refreshFeedPrefetchForPlaybackTarget();
+        }
       } else if (GetPlatform.isIOS && !pendingPlay) {
         _schedulePlaybackReassert(
           index: index,
@@ -451,6 +454,12 @@ extension AgendaControllerFeedPart on AgendaController {
         manager: manager,
       );
     }
+  }
+
+  void _refreshFeedPrefetchForPlaybackTarget() {
+    _feedPrefetchDebounce?.cancel();
+    if (agendaList.isEmpty) return;
+    _updateFeedPrefetchQueue();
   }
 
   void _bindCenteredIndexListener() {
@@ -550,7 +559,11 @@ extension AgendaControllerFeedPart on AgendaController {
     if (centered >= 0 && centered < agendaList.length) {
       _boostFeedPlaybackHorizon(centered);
     }
-    _feedPrefetchDebounce = Timer(const Duration(milliseconds: 240), () {
+    final prefetchRefreshDelay =
+        _shouldUseTightCellularFeedWarmProfile
+            ? const Duration(milliseconds: 30)
+            : const Duration(milliseconds: 240);
+    _feedPrefetchDebounce = Timer(prefetchRefreshDelay, () {
       _updateFeedPrefetchQueue();
     });
   }
@@ -704,6 +717,9 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
       playableOffset++;
       if (candidate != index) continue;
+      if (_shouldUseTightCellularFeedWarmProfile) {
+        return playableOffset <= 3 ? 1 : 0;
+      }
       final baseReadySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(
         playableOffset,
       );
@@ -748,7 +764,15 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
+    if (_shouldUseTightCellularFeedWarmProfile) {
+      return playableRank < 4 ? 1 : 0;
+    }
     return StartupPreloadPolicy.startupReadySegmentsForRank(playableRank);
+  }
+
+  bool get _shouldUseTightCellularFeedWarmProfile {
+    return GetPlatform.isAndroid &&
+        (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
   }
 
   void _prefetchCurrentPoster() {
@@ -763,13 +787,17 @@ extension AgendaControllerFeedPart on AgendaController {
     }
   }
 
-  void _updateFeedPrefetchQueue() {
+  void _updateFeedPrefetchQueue({int? anchorIndex}) {
     if (agendaList.isEmpty) return;
 
     _prefetchThumbnailBatches();
     _prefetchUpcomingImages();
 
-    final centered = _resolveFeedPlaybackAnchorIndex();
+    final centered = anchorIndex != null &&
+            anchorIndex >= 0 &&
+            anchorIndex < agendaList.length
+        ? anchorIndex
+        : _resolveFeedPlaybackAnchorIndex();
     final hotWindowPosts = _resolveFeedHotWindowPosts(
       centeredIndex: centered,
       hotGroupCount: _feedHotPrefetchGroupCount,
@@ -813,6 +841,14 @@ extension AgendaControllerFeedPart on AgendaController {
 
   int _resolveFeedWarmGroupIndex(int centered) {
     return _resolveFeedWarmIdentity(centered).activeGroupIndex;
+  }
+
+  void _refreshFeedPrefetchForVisibleTarget(int targetIndex) {
+    if (!_shouldUseTightCellularFeedWarmProfile) return;
+    if (targetIndex < 0 || targetIndex >= agendaList.length) return;
+    _feedPrefetchDebounce?.cancel();
+    _boostFeedPlaybackHorizon(targetIndex);
+    _updateFeedPrefetchQueue(anchorIndex: targetIndex);
   }
 
   int _resolveFeedWarmBlockIndex(int centered) {

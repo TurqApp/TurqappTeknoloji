@@ -77,6 +77,14 @@ class PrefetchScoringEngine {
 
     score -= distance * 25;
 
+    if (!context.isOnWiFi && context.targetIndex > context.currentIndex) {
+      if (distance <= 3) {
+        score += 42;
+      } else if (distance <= 5) {
+        score += 10;
+      }
+    }
+
     if (context.isOnWiFi) {
       score += 15;
     }

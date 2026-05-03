@@ -83,6 +83,22 @@ extension AgendaControllerPlaybackPart on AgendaController {
       _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
 
+    if (_shouldUseTightCellularFeedWarmProfile &&
+        visibleFraction >= FeedPlaybackSelectionPolicy.secondaryThreshold) {
+      final previewTarget = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+        visibleFractions: _visibleFractions,
+        currentIndex: centeredIndex.value,
+        lastCenteredIndex: lastCenteredIndex,
+        itemCount: agendaList.length,
+        canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
+        stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+        preferDominantVisibleIndexWhenNonPlayable: true,
+      );
+      if (previewTarget >= 0 && previewTarget < agendaList.length) {
+        _refreshFeedPrefetchForVisibleTarget(previewTarget);
+      }
+    }
+
     _scheduleVisibilityEvaluation(
       playThreshold: FeedPlaybackSelectionPolicy.playThreshold,
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
