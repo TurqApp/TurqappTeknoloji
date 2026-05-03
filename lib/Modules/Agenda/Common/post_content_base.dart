@@ -1171,6 +1171,20 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     ).shouldHidePoster;
   }
 
+  bool shouldShowStartupPlaybackPlaceholder(
+    HLSVideoValue value, {
+    Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    if (!isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    return !shouldHidePlaybackPoster(
+      value,
+      visualReadyPositionThreshold: visualReadyPositionThreshold,
+    );
+  }
+
   bool get shouldSuppressGenericResumeThumbnail {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (!_usesFeedPlaybackPolicy) return false;

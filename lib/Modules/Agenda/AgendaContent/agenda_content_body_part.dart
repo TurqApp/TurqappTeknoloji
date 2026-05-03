@@ -280,16 +280,24 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
                                             builder: (_, v, child) {
-                                              if (widget.hideVideoPoster ||
-                                                  isPrimaryFeedSurfaceInstance) {
+                                              if (widget.hideVideoPoster) {
+                                                return const SizedBox.shrink();
+                                              }
+                                              final showStartupPlaceholder =
+                                                  shouldShowStartupPlaybackPlaceholder(
+                                                v,
+                                              );
+                                              if (isPrimaryFeedSurfaceInstance &&
+                                                  !showStartupPlaceholder) {
                                                 return const SizedBox.shrink();
                                               }
                                               final shouldHidePoster =
                                                   shouldHidePlaybackPoster(v);
                                               final posterFadeDuration =
-                                                  GetPlatform.isAndroid &&
-                                                          isPrimaryFeedSurfaceInstance
-                                                      ? Duration.zero
+                                                  showStartupPlaceholder
+                                                      ? const Duration(
+                                                          milliseconds: 90,
+                                                        )
                                                       : AppDuration
                                                           .thumbnailFadeOut;
                                               return IgnorePointer(
