@@ -65,9 +65,34 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return handle.adapter.preferWarmPoolPause;
   }
 
+  void _pruneExternalOnDemandFetchClaims(String? activeDocID) {
+    final normalizedActiveDocID = HlsSegmentPolicy.normalizeDocId(activeDocID);
+    if (normalizedActiveDocID == null || normalizedActiveDocID.isEmpty) {
+      if (_externalOnDemandFetchClaims.isEmpty) return;
+      _externalOnDemandFetchClaims.clear();
+      debugPrint(
+        '[PlaybackStopTrace] source=target_change_claim_prune active=- cleared=all',
+      );
+      return;
+    }
+    final removed = <String>[];
+    _externalOnDemandFetchClaims.removeWhere((docID, _) {
+      final shouldRemove = docID != normalizedActiveDocID;
+      if (shouldRemove) removed.add(docID);
+      return shouldRemove;
+    });
+    if (removed.isNotEmpty) {
+      debugPrint(
+        '[PlaybackStopTrace] source=target_change_claim_prune '
+        'active=$normalizedActiveDocID removed=${removed.join(",")}',
+      );
+    }
+  }
+
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
+    _pruneExternalOnDemandFetchClaims(docID);
   }
 
   void _silenceSupersededHandle(

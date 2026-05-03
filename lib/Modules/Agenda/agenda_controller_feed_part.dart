@@ -236,6 +236,24 @@ extension AgendaControllerFeedPart on AgendaController {
     return (index - centered).abs() <= 1;
   }
 
+  int _resolveFeedPlaybackAnchorIndex() {
+    if (agendaList.isEmpty) return -1;
+    final manager = maybeFindVideoStateManager();
+    final candidateKeys = <String>[
+      manager?.currentPlayingDocID?.trim() ?? '',
+      manager?.targetPlaybackDocID?.trim() ?? '',
+    ];
+    for (final key in candidateKeys) {
+      if (!key.startsWith('feed:')) continue;
+      final docId = key.substring(5).trim();
+      if (docId.isEmpty) continue;
+      final index = agendaList.indexWhere((post) => post.docID == docId);
+      if (index >= 0) return index;
+    }
+    final centered = centeredIndex.value;
+    return centered >= 0 && centered < agendaList.length ? centered : 0;
+  }
+
   bool _hasExternalPlaybackOwner(String? playbackHandleKey) {
     final key = playbackHandleKey?.trim() ?? '';
     if (key.isEmpty) return false;
@@ -528,7 +546,7 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchCurrentPoster();
     _prefetchUpcomingImages();
     _prefetchThumbnailBatches();
-    final centered = centeredIndex.value;
+    final centered = _resolveFeedPlaybackAnchorIndex();
     if (centered >= 0 && centered < agendaList.length) {
       _boostFeedPlaybackHorizon(centered);
     }
@@ -701,7 +719,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (playableOffset == 2) {
         return max(
           baseReadySegments,
-          StartupPreloadPolicy.secondSegmentReadySegments,
+          StartupPreloadPolicy.neighborReadySegments,
         );
       }
       return baseReadySegments;
@@ -751,7 +769,7 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchThumbnailBatches();
     _prefetchUpcomingImages();
 
-    final centered = centeredIndex.value;
+    final centered = _resolveFeedPlaybackAnchorIndex();
     final hotWindowPosts = _resolveFeedHotWindowPosts(
       centeredIndex: centered,
       hotGroupCount: _feedHotPrefetchGroupCount,

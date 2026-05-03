@@ -463,7 +463,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (v != null) {
       debugPrint(
         '[PlaybackStopTrace] source=surface_loss doc=${widget.model.docID} '
-        'modelIndex=${_surfaceModelIndex()}',
+        'modelIndex=${_surfaceModelIndex()} '
+        'offset=${_feedPlaybackOffsetLabel()}',
       );
       _playbackRecoveryTimer?.cancel();
       _playbackRecoveryTimer = null;
@@ -496,7 +497,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (shouldKeepWarmForSurfaceLoss) {
       debugPrint(
         '[PlaybackStopTrace] source=surface_loss_keepalive '
-        'doc=${widget.model.docID} modelIndex=${_surfaceModelIndex()}',
+        'doc=${widget.model.docID} modelIndex=${_surfaceModelIndex()} '
+        'offset=${_feedPlaybackOffsetLabel()}',
       );
       _safePauseVideo();
       if (mounted) {
@@ -864,6 +866,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'positionMs': adapter.value.position.inMilliseconds,
       },
     );
+    if (_isPrimaryFeedSurfaceInstance) {
+      debugPrint(
+        '[FeedPlayWindow] event=play doc=${widget.model.docID} '
+        'offset=${_feedPlaybackOffsetLabel()} modelIndex=${_surfaceModelIndex()} '
+        'centered=${_surfaceSafeCenteredIndex()} source=$source '
+        'positionMs=${adapter.value.position.inMilliseconds}',
+      );
+    }
     if (_isFloodSurfaceInstance) {
       debugPrint(
         '[FloodSeries] status=start_playback doc=${widget.model.docID} source=$source positionMs=${adapter.value.position.inMilliseconds}',

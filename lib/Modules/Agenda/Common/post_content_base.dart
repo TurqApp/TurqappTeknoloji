@@ -620,6 +620,23 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return playableDistance;
   }
 
+  String _feedPlaybackOffsetLabel() {
+    if (!_isPrimaryFeedSurfaceInstance) return 'non_feed';
+    final modelIndex = _surfaceModelIndex();
+    final centered = _surfaceSafeCenteredIndex();
+    if (modelIndex < 0 || centered < 0) return 'unknown';
+    if (modelIndex == centered) return '0';
+    final distance = _surfaceDirectionalAheadPlayableVideoDistance();
+    if (distance == null) {
+      final rawDelta = modelIndex - centered;
+      return rawDelta > 0 ? '+$rawDelta(raw)' : '$rawDelta(raw)';
+    }
+    final previousCentered = _surfacePreviousCenteredIndex() ?? centered;
+    final scrollingBackward = centered < previousCentered;
+    final sign = scrollingBackward ? '-' : '+';
+    return '$sign$distance';
+  }
+
   _FeedNativeWarmTier _resolvePrimaryFeedNativeWarmTier({
     required int modelIndex,
   }) {
