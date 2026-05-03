@@ -1,6 +1,20 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  bool get _usesTightCellularShortProfile =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+
+  Duration get _shortTierDebounceDelayForCurrentNetwork =>
+      _usesTightCellularShortProfile
+          ? const Duration(milliseconds: 20)
+          : _shortTierDebounceDelay;
+
+  Duration get _shortTierReconcileDelayForCurrentNetwork =>
+      _usesTightCellularShortProfile
+          ? const Duration(milliseconds: 90)
+          : _shortTierReconcileDelay;
+
   Future<void> _reassertActiveShortAudibility(
     int page,
     HLSVideoAdapter adapter,
@@ -908,7 +922,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (_shouldBlockPlaybackForAdPage) return;
     _tierDebounce?.cancel();
     _tierReconcileDebounce?.cancel();
-    _tierDebounce = Timer(_shortTierDebounceDelay, () async {
+    _tierDebounce = Timer(_shortTierDebounceDelayForCurrentNetwork, () async {
       if (!_isShortRoutePlaybackActive) return;
       final hadActiveAdapter = controller.cache[page] != null;
       await controller.ensureActiveAdapterReady(page);
@@ -927,7 +941,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }) {
     if (_shouldBlockPlaybackForAdPage) return;
     _tierReconcileDebounce?.cancel();
-    _tierReconcileDebounce = Timer(_shortTierReconcileDelay, () async {
+    _tierReconcileDebounce = Timer(
+      _shortTierReconcileDelayForCurrentNetwork,
+      () async {
       if (!_isShortRoutePlaybackActive) return;
       final hadActiveAdapter = controller.cache[page] != null;
       await controller.updateCacheTiers(
@@ -939,10 +955,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
         return;
       }
       _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
-      if (!isManuallyPaused && controller.cache[page] != null) {
-        _schedulePlayForPage(page);
-      }
-    });
+        if (!isManuallyPaused && controller.cache[page] != null) {
+          _schedulePlayForPage(page);
+        }
+      },
+    );
   }
 
   Future<void> _startAutoPlayCurrentVideo() async {

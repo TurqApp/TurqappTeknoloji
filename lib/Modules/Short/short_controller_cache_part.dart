@@ -18,6 +18,16 @@ extension ShortControllerCachePart on ShortController {
   static const int _onYuklemeActiveReadySegments =
       StartupPreloadPolicy.activeReadySegments;
 
+  bool get _usesTightCellularShortProfile =>
+      StartupPreloadPolicy.useTightCellularWarmProfile(
+        isAndroid: defaultTargetPlatform == TargetPlatform.android,
+        isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+      );
+
+  bool get _shouldPreferDirectCdnOnCellularShorts =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+
   void _seedCacheEntryForIndex(int index) {
     if (index < 0 || index >= shorts.length) return;
     final post = shorts[index];
@@ -31,6 +41,12 @@ extension ShortControllerCachePart on ShortController {
   }
 
   int _onYuklemeReadySegmentsForOffset(int playableOffset) {
+    if (_usesTightCellularShortProfile) {
+      if (playableOffset <= 0) {
+        return StartupPreloadPolicy.activeReadySegments;
+      }
+      return playableOffset <= 2 ? 1 : 0;
+    }
     return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
 
@@ -147,7 +163,7 @@ extension ShortControllerCachePart on ShortController {
 
   int _neighborReadySegmentsForCurrentPlatform() {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return _androidNeighborReadySegments;
+      return _usesTightCellularShortProfile ? 1 : _androidNeighborReadySegments;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return _iosNeighborReadySegments;
@@ -180,6 +196,7 @@ extension ShortControllerCachePart on ShortController {
         url: videoUrl,
         autoPlay: false,
         loop: false,
+        useLocalProxy: !_shouldPreferDirectCdnOnCellularShorts,
         preferWarmPoolPauseOnAndroid: true,
       );
       adapter.hlsController.setTelemetryVideoId(short.docID);
@@ -559,6 +576,7 @@ extension ShortControllerCachePart on ShortController {
         url: post.playbackUrl,
         autoPlay: false,
         loop: false,
+        useLocalProxy: !_shouldPreferDirectCdnOnCellularShorts,
         preferWarmPoolPauseOnAndroid: true,
       );
       cache[idx] = adapter;
