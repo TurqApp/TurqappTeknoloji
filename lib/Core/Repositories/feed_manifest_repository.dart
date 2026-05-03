@@ -564,6 +564,7 @@ class FeedManifestRepository extends GetxService {
       final map = Map<String, dynamic>.from(raw);
       final docId = (map['docId'] ?? '').toString().trim();
       if (docId.isEmpty) continue;
+      if (_isNonRootFloodChildManifestItem(map, docId)) continue;
       final canonicalId = _canonicalIdForManifestItem(map, docId);
       if (canonicalId.isEmpty || !seenCanonicalIds.add(canonicalId)) {
         continue;
@@ -578,6 +579,21 @@ class FeedManifestRepository extends GetxService {
       );
     }
     return entries;
+  }
+
+  static bool _isNonRootFloodChildManifestItem(
+    Map<String, dynamic> item,
+    String docId,
+  ) {
+    final flags = item['flags'] is Map
+        ? Map<String, dynamic>.from(item['flags'] as Map)
+        : const <String, dynamic>{};
+    final floodCount =
+        num.tryParse('${flags['floodCount'] ?? item['floodCount'] ?? 1}') ?? 1;
+    if (floodCount <= 1) return false;
+    final suffixMatch = RegExp(r'_(\d+)$').firstMatch(docId);
+    if (suffixMatch == null) return false;
+    return suffixMatch.group(1) != '0';
   }
 
   static List<_FeedManifestSlotRef> _parseSlotRefs(dynamic raw) {

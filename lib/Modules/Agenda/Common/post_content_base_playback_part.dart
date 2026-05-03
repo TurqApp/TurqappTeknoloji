@@ -242,22 +242,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   Duration get _resolvedAutoplaySegmentGateTimeout {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _usesFeedPlaybackPolicy &&
-        CacheNetworkPolicy.isOnCellular) {
+        _usesFeedPlaybackPolicy) {
       return const Duration(milliseconds: 250);
-    }
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        _usesFeedPlaybackPolicy &&
-        _requiredAutoplaySegmentCount > 1) {
-      return const Duration(milliseconds: 900);
     }
     return PostContentBaseState._autoplaySegmentGateTimeout;
   }
 
   Duration get _resolvedAutoplaySegmentGatePollInterval {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _usesFeedPlaybackPolicy &&
-        CacheNetworkPolicy.isOnCellular) {
+        _usesFeedPlaybackPolicy) {
       return const Duration(milliseconds: 40);
     }
     return PostContentBaseState._autoplaySegmentGatePollInterval;
@@ -384,13 +377,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   int get _requiredAutoplaySegmentCount {
     if (defaultTargetPlatform == TargetPlatform.android &&
         _usesFeedPlaybackPolicy) {
-      if (CacheNetworkPolicy.isOnCellular) {
-        return 1;
-      }
-      if (shouldEnableStartupRecoveryWatchdog) {
-        return 1;
-      }
-      return SegmentCacheRuntimeService.globalReadySegmentCount;
+      return 1;
     }
     return 1;
   }
@@ -405,7 +392,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final value = adapter.value;
     if (defaultTargetPlatform == TargetPlatform.android &&
         _usesFeedPlaybackPolicy &&
-        CacheNetworkPolicy.isOnCellular &&
         value.isInitialized) {
       return false;
     }

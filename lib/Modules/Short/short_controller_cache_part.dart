@@ -24,9 +24,8 @@ extension ShortControllerCachePart on ShortController {
         isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
       );
 
-  bool get _shouldPreferDirectCdnOnCellularShorts =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+  bool get _shouldPreferDirectCdnOnShorts =>
+      defaultTargetPlatform == TargetPlatform.android;
 
   void _seedCacheEntryForIndex(int index) {
     if (index < 0 || index >= shorts.length) return;
@@ -45,7 +44,9 @@ extension ShortControllerCachePart on ShortController {
       if (playableOffset <= 0) {
         return StartupPreloadPolicy.activeReadySegments;
       }
-      return playableOffset <= 2 ? 1 : 0;
+      final isOnCellular =
+          NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
+      return playableOffset <= (isOnCellular ? 2 : 5) ? 1 : 0;
     }
     return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
@@ -196,7 +197,7 @@ extension ShortControllerCachePart on ShortController {
         url: videoUrl,
         autoPlay: false,
         loop: false,
-        useLocalProxy: !_shouldPreferDirectCdnOnCellularShorts,
+        useLocalProxy: !_shouldPreferDirectCdnOnShorts,
         preferWarmPoolPauseOnAndroid: true,
       );
       adapter.hlsController.setTelemetryVideoId(short.docID);
@@ -576,7 +577,7 @@ extension ShortControllerCachePart on ShortController {
         url: post.playbackUrl,
         autoPlay: false,
         loop: false,
-        useLocalProxy: !_shouldPreferDirectCdnOnCellularShorts,
+        useLocalProxy: !_shouldPreferDirectCdnOnShorts,
         preferWarmPoolPauseOnAndroid: true,
       );
       cache[idx] = adapter;

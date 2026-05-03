@@ -78,10 +78,24 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         target.startsWith('short:');
   }
 
+  bool _shouldAllowQuotaFillForDoc(String docID) {
+    if (!_shouldAllowBackgroundQuotaFill) return false;
+    if (!_hasAnyActivePlaybackFocus) return true;
+
+    final shortTier = classifyShortTransferDoc(docID);
+    final feedTier = classifyFeedTransferDoc(docID);
+    final inShortWindow = shortTier?['allowedSegmentWarm'] == true ||
+        shortTier?['allowedCacheOnly'] == true;
+    final inFeedWindow = feedTier?['allowedSegmentWarm'] == true ||
+        feedTier?['allowedCacheOnly'] == true;
+    final inFeedBank = _lastFeedBankDocIDs.contains(docID);
+    return inShortWindow || inFeedWindow || inFeedBank;
+  }
+
   bool get _shouldAllowBackgroundQuotaFill =>
       _isOnWiFi && CacheNetworkPolicy.canPrefetch;
 
-  bool get _useMinimalQuotaFillMode => !_hasActiveShortPlaybackWindow;
+  bool get _useMinimalQuotaFillMode => _hasAnyActivePlaybackFocus;
 
   bool get _isOnWiFi {
     try {

@@ -2,8 +2,7 @@ part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
   bool get _usesTightCellularShortProfile =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+      defaultTargetPlatform == TargetPlatform.android;
 
   Duration get _shortTierDebounceDelayForCurrentNetwork =>
       _usesTightCellularShortProfile

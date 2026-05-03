@@ -282,7 +282,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         widget.shouldPlay &&
         _isSurfacePlaybackAllowed &&
         (v.hasRenderedFirstFrame ||
-            (CacheNetworkPolicy.isOnCellular && v.isInitialized))) {
+            v.isInitialized)) {
       agendaController.markFeedWarmPreloadAnchorReady(playbackHandleKey);
     }
     _applyPlaybackVolume();

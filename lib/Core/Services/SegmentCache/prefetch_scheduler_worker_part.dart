@@ -461,6 +461,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         );
         return;
       }
+      if (job.source == 'quota' && !_shouldAllowQuotaFillForDoc(job.docID)) {
+        _clearFollowUpJob(job.docID);
+        _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+        debugPrint(
+          '[ShortQuotaFill] status=skip_job reason=outside_active_window doc=${job.docID}',
+        );
+        return;
+      }
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;

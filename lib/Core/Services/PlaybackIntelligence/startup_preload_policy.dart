@@ -37,7 +37,7 @@ class StartupPreloadPolicy {
     required bool isAndroid,
     required bool isOnCellular,
   }) {
-    return isAndroid && isOnCellular;
+    return isAndroid;
   }
 
   static int warmReadySegmentsForOffset(
@@ -52,7 +52,7 @@ class StartupPreloadPolicy {
       if (playableOffset <= 0) {
         return activeReadySegments;
       }
-      return playableOffset <= 3 ? 1 : 0;
+      return playableOffset <= (isOnCellular ? 3 : 5) ? 1 : 0;
     }
     return readySegmentsForAheadOffset(playableOffset);
   }
@@ -66,7 +66,7 @@ class StartupPreloadPolicy {
       isAndroid: isAndroid,
       isOnCellular: isOnCellular,
     )) {
-      return playableRank < 4 ? 1 : 0;
+      return playableRank < (isOnCellular ? 4 : 6) ? 1 : 0;
     }
     return startupReadySegmentsForRank(playableRank);
   }
@@ -80,7 +80,7 @@ class StartupPreloadPolicy {
       isAndroid: isAndroid,
       isOnCellular: isOnCellular,
     )) {
-      return 4;
+      return isOnCellular ? 4 : 6;
     }
     return defaultCount;
   }

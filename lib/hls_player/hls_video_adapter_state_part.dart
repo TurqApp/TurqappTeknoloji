@@ -1,13 +1,12 @@
 part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
-  bool get _shouldPreferDirectCdnOnCellularPrimaryFeed =>
+  bool get _shouldPreferDirectCdnOnPrimaryFeed =>
       defaultTargetPlatform == TargetPlatform.android &&
-      _isPrimaryFeedSurface &&
-      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+      _isPrimaryFeedSurface;
 
   void _performRefreshProxyUrlIfNeeded() {
-    final next = _shouldPreferDirectCdnOnCellularPrimaryFeed
+    final next = _shouldPreferDirectCdnOnPrimaryFeed
         ? _originalUrl
         : HLSVideoAdapter._resolvePlaybackUrl(
             _originalUrl,
@@ -24,7 +23,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         '$_originalUrl proxyRegistered=${proxy != null} '
         'proxyStarted=${proxy?.isStarted ?? false} '
         'cacheReady=${cache?.isReady ?? false} '
-        'preferDirectCdn=$_shouldPreferDirectCdnOnCellularPrimaryFeed',
+        'preferDirectCdn=$_shouldPreferDirectCdnOnPrimaryFeed',
       );
       _loggedProxyFallback = true;
     }

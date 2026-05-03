@@ -204,9 +204,11 @@ extension AgendaControllerPlaybackPart on AgendaController {
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;
-        if (GetPlatform.isIOS) {
+        if (GetPlatform.isIOS || !_isPlaybackTargetCurrent(targetIndex)) {
           _ensureFeedPlaybackForIndex(targetIndex);
         }
+      } else if (!_isPlaybackTargetCurrent(targetIndex)) {
+        _ensureFeedPlaybackForIndex(targetIndex);
       }
       lastCenteredIndex = targetIndex;
     } else {

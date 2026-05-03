@@ -4,6 +4,15 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   int _feedHomeCutoffMs(int nowMs) =>
       nowMs - const Duration(days: 7).inMilliseconds;
 
+  bool _isNonRootFloodChildPost(PostsModel post) {
+    if (post.floodCount.toInt() <= 1) return false;
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return false;
+    final suffixMatch = RegExp(r'_(\d+)$').firstMatch(docId);
+    if (suffixMatch == null) return false;
+    return suffixMatch.group(1) != '0';
+  }
+
   Future<Map<String, PostsModel>> _rehydrateHomeFeedVideoCards(
     Map<String, PostsModel> postsById, {
     required bool cacheOnly,
@@ -776,6 +785,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       if (docId.isEmpty || canonicalId.isEmpty) return;
       if (!seenDocIds.add(docId)) return;
       if (!seenCanonicals.add(canonicalId)) return;
+      if (_isNonRootFloodChildPost(post)) return;
       if (hiddenPostIds.contains(docId)) return;
       if (consumedDocIds.contains(docId)) {
         if (source == FeedManifestDeckSource.gap) {

@@ -40,10 +40,8 @@ const int _feedWarmWindowBehindCount = 2;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedNativeStrongAheadCount = 1;
 const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedWarmPlayerAheadVideoCount = 1;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
 enum _FeedNativeWarmTier {
   off,
@@ -258,13 +256,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// 🎯 INSTAGRAM STYLE: Buffer BEKLEMEDEN direkt oynat
   bool get enableBufferedAutoplay => false;
 
-  bool get _usesAggressiveAndroidCellularFeedBufferProfile =>
+  bool get _usesAggressiveAndroidFeedBufferProfile =>
       defaultTargetPlatform == TargetPlatform.android &&
-      _isFeedStyleInlineSurfaceInstance &&
-      CacheNetworkPolicy.isOnCellular;
+      _isFeedStyleInlineSurfaceInstance;
 
   double? get _preferredBufferDurationSecondsForCurrentSurface {
-    if (!_usesAggressiveAndroidCellularFeedBufferProfile) return null;
+    if (!_usesAggressiveAndroidFeedBufferProfile) return null;
     return widget.shouldPlay ? 0.75 : 0.45;
   }
 
@@ -665,9 +662,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         defaultTargetPlatform == TargetPlatform.android &&
             _usesFeedPlaybackPolicy;
     final strongAheadCount = isAndroidPrimaryFeed
-        ? (CacheNetworkPolicy.isOnCellular
-            ? 2
-            : _androidPrimaryFeedNativeStrongAheadCount)
+        ? (CacheNetworkPolicy.isOnCellular ? 2 : 5)
         : _feedStrongAheadCount;
     final strongOppositeCount = isAndroidPrimaryFeed
         ? _androidPrimaryFeedNativeStrongOppositeCount
@@ -728,9 +723,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
     if (playableDistance == null || playableDistance <= 0) return false;
     final maxAheadPlayableCount = _usesFeedPlaybackPolicy
-        ? (CacheNetworkPolicy.isOnCellular
-            ? 2
-            : _androidPrimaryFeedWarmPlayerAheadVideoCount)
+        ? (CacheNetworkPolicy.isOnCellular ? 2 : 5)
         : _androidProfileWarmPlayerAheadVideoCount;
     return playableDistance <= maxAheadPlayableCount;
   }
