@@ -458,22 +458,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!_isProfileSurfaceInstance && !_isSocialProfileSurfaceInstance) {
       return false;
     }
-    if (!widget.model.hasPlayableVideo) return false;
-    final value = _videoAdapter?.value ?? const HLSVideoValue();
-    if (!value.hasRenderedFirstFrame) return false;
-    final hasResumeHint = _hasResumePositionHint(
-      value,
-      threshold: _stableFramePositionThreshold,
-    );
-    if (!hasResumeHint) return false;
-    final modelIndex = _surfaceModelIndex();
-    if (modelIndex < 0) return false;
-    final warmTier = _resolveDirectionalNativeWarmTier(
-      modelIndex: modelIndex,
-      centeredIndex: _surfaceSafeCenteredIndex(),
-      previousCenteredIndex: _surfacePreviousCenteredIndex(),
-    );
-    return warmTier == _FeedNativeWarmTier.strong;
+    return _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
   }
 
   int _surfaceListLength() {

@@ -230,13 +230,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       }
                                       final instanceTag =
                                           widget.instanceTag?.trim() ?? '';
-                                      final preferWarmPoolPauseOnAndroid =
-                                          instanceTag.startsWith('profile_') ||
-                                              instanceTag
-                                                  .startsWith('archives_') ||
-                                              instanceTag
-                                                  .startsWith('liked_post_') ||
-                                              instanceTag.startsWith('social_');
+                                      const preferWarmPoolPauseOnAndroid =
+                                          false;
                                       final isProfileFamilySurface =
                                           (widget.instanceTag ?? '')
                                                   .startsWith('profile_') ||
@@ -254,10 +249,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 'explore_series_',
                                               );
                                       final showInlinePlayer =
-                                          videoController != null &&
-                                              !(GetPlatform.isAndroid &&
-                                                  preferWarmPoolPauseOnAndroid &&
-                                                  !widget.shouldPlay);
+                                          videoController != null;
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [

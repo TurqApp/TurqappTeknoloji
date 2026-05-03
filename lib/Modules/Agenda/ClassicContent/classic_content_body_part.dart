@@ -527,15 +527,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
   Widget videoBody(BuildContext context) {
     final frameAspectRatio =
         _isIzBirakPost ? 0.92 : _resolvedClassicFrameAspectRatio;
-    final instanceTag = widget.instanceTag?.trim() ?? '';
-    final preferWarmPoolPauseOnAndroid = instanceTag.startsWith('profile_') ||
-        instanceTag.startsWith('archives_') ||
-        instanceTag.startsWith('liked_post_') ||
-        instanceTag.startsWith('social_');
-    final showInlinePlayer = videoController != null &&
-        !(GetPlatform.isAndroid &&
-            preferWarmPoolPauseOnAndroid &&
-            !widget.shouldPlay);
+    const preferWarmPoolPauseOnAndroid = false;
+    final showInlinePlayer = videoController != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
