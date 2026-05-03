@@ -63,9 +63,9 @@ function _buildUsersPublicDoc(
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const displayName = String(data?.displayName || fullName || nickname).trim();
   const avatarUrl = normalizeAvatarUrl(data?.avatarUrl);
-  const followerCount = toNonNegativeInt(data?.counterOfFollowers);
-  const followingCount = toNonNegativeInt(data?.counterOfFollowings);
-  const postCount = toNonNegativeInt(data?.counterOfPosts);
+  const counterOfFollowers = toNonNegativeInt(data?.counterOfFollowers);
+  const counterOfFollowings = toNonNegativeInt(data?.counterOfFollowings);
+  const counterOfPosts = toNonNegativeInt(data?.counterOfPosts);
 
   return {
     userID: uid,
@@ -80,7 +80,9 @@ function _buildUsersPublicDoc(
     bio: String(data?.bio || "").trim(),
     meslekKategori: String(data?.meslekKategori || "").trim(),
     rozet: String(data?.rozet || data?.badge || "").trim(),
-    postCount,
+    counterOfFollowers,
+    counterOfFollowings,
+    counterOfPosts,
     accountStatus: String(data?.accountStatus || "").trim(),
     isPrivate: Boolean(data?.isPrivate ?? false),
     isDeleted: Boolean(data?.isDeleted ?? false),
