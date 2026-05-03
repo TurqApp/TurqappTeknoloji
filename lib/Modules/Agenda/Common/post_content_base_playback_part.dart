@@ -2,6 +2,25 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  void _applyPreferredBufferDurationProfile({
+    required String source,
+  }) {
+    final adapter = _videoAdapter;
+    if (adapter == null) return;
+    final preferredSeconds = _preferredBufferDurationSecondsForCurrentSurface;
+    if (preferredSeconds == null) return;
+    _recordPlaybackDispatch(
+      'feed_card_buffer_profile_apply',
+      source: source,
+      dispatchIssued: false,
+      metadata: <String, dynamic>{
+        'preferredBufferSeconds': preferredSeconds,
+        'shouldPlay': widget.shouldPlay,
+      },
+    );
+    unawaited(adapter.setPreferredBufferDuration(preferredSeconds));
+  }
+
   Duration _normalizeFeedResumePosition(Duration savedPosition) {
     if (!(GetPlatform.isIOS && _usesFeedPlaybackPolicy)) {
       return savedPosition;
@@ -763,6 +782,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
 
     _applyPlaybackVolume();
+    _applyPreferredBufferDurationProfile(source: source);
     final shouldRestartStoppedInlineOwner = _controllerOwnsInlinePlayback &&
         adapter.isStopped &&
         (GetPlatform.isAndroid ||
@@ -931,6 +951,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         _hasAutoPlayed = true;
         unawaited(_playbackExecutionService.playAdapter(adapter));
         _applyPlaybackVolume();
+        _applyPreferredBufferDurationProfile(source: source);
         _syncRuntimeHints(
           isAudible: _resolvedPlaybackVolume() > 0.0,
           hasStableFocus: true,
@@ -986,6 +1007,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             );
           }
           _applyPlaybackVolume();
+          _applyPreferredBufferDurationProfile(source: source);
           _syncRuntimeHints(
             isAudible: _resolvedPlaybackVolume() > 0.0,
             hasStableFocus: false,
@@ -1027,6 +1049,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           _hasAutoPlayed = true;
           unawaited(_playbackExecutionService.playAdapter(adapter));
           _applyPlaybackVolume();
+          _applyPreferredBufferDurationProfile(source: source);
           _syncRuntimeHints(
             isAudible: _resolvedPlaybackVolume() > 0.0,
             hasStableFocus: false,
@@ -1053,6 +1076,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           },
         );
         _applyPlaybackVolume();
+        _applyPreferredBufferDurationProfile(source: source);
         _syncRuntimeHints(
           isAudible: _resolvedPlaybackVolume() > 0.0,
           hasStableFocus: false,
@@ -1066,6 +1090,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         );
       }
       _applyPlaybackVolume();
+      _applyPreferredBufferDurationProfile(source: source);
       _hasAutoPlayed = true;
       _syncRuntimeHints(
         isAudible: _resolvedPlaybackVolume() > 0.0,
@@ -1135,6 +1160,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
     }
     _applyPlaybackVolume();
+    _applyPreferredBufferDurationProfile(source: source);
     _syncRuntimeHints(
       isAudible: _resolvedPlaybackVolume() > 0.0,
       hasStableFocus: true,

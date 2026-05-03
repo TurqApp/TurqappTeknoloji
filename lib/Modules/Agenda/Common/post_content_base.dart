@@ -258,6 +258,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// 🎯 INSTAGRAM STYLE: Buffer BEKLEMEDEN direkt oynat
   bool get enableBufferedAutoplay => false;
 
+  bool get _usesAggressiveAndroidCellularFeedBufferProfile =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _usesFeedPlaybackPolicy &&
+      _isPrimaryFeedSurfaceInstance &&
+      CacheNetworkPolicy.isOnCellular;
+
+  double? get _preferredBufferDurationSecondsForCurrentSurface {
+    if (!_usesAggressiveAndroidCellularFeedBufferProfile) return null;
+    return widget.shouldPlay ? 0.75 : 0.45;
+  }
+
   double get bufferedAutoplayThreshold => 0.10;
 
   /// Unique tag for GetX controller retrieval.
@@ -949,6 +960,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
 
     _videoAdapter!.addListener(_onVideoUpdate);
+    final preferredBufferSeconds =
+        _preferredBufferDurationSecondsForCurrentSurface;
+    if (preferredBufferSeconds != null) {
+      unawaited(_videoAdapter!.setPreferredBufferDuration(
+        preferredBufferSeconds,
+      ));
+    }
     _keepAliveUpdateCallback?.call();
     _markPostContentDirty();
 
