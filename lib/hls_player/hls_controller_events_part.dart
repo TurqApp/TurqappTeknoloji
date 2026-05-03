@@ -249,8 +249,27 @@ extension HLSControllerEventsPart on HLSController {
           case 'error':
             final message = event['message'] as String? ??
                 'error_handling.category_unknown'.tr;
+            final errorCodeName =
+                (event['errorCodeName'] as String? ?? '').toUpperCase();
+            final shouldFastFallbackToCdn =
+                _fallbackUrl != null &&
+                    !_fallbackAttempted &&
+                    (_currentUrl?.startsWith('http://127.0.0.1:') ?? false) &&
+                    errorCodeName.contains('BAD_HTTP_STATUS');
             if (_telemetryVideoId != null) {
               _telemetry.onError(_telemetryVideoId!, message);
+            }
+            if (shouldFastFallbackToCdn) {
+              _fallbackAttempted = true;
+              unawaited(
+                loadVideo(
+                  _fallbackUrl!,
+                  autoPlay: true,
+                  loop: _isLooping,
+                  preferResumePoster: _preferResumePoster,
+                ),
+              );
+              break;
             }
             _handleError(message);
             break;

@@ -113,6 +113,7 @@ class ExoPlayerView(
     private var lastWatchdogPositionMs = 0L
     private var stallRecoveries = 0
     private var startupRecoveryAttempts = 0
+    private var sourceErrorRecoveryAttempts = 0
     private var droppedVideoFrames = 0
     private var bufferingEvents = 0
     private var stallWatchdogRunnable: Runnable? = null
@@ -551,6 +552,7 @@ class ExoPlayerView(
         startupRecoveryAttempts = 0
         droppedVideoFrames = 0
         bufferingEvents = 0
+        sourceErrorRecoveryAttempts = 0
         lastBandwidthEstimateKbps = 0L
         selectedVideoBitrateKbps = 0L
         selectedVideoHeight = 0
@@ -635,13 +637,45 @@ class ExoPlayerView(
                 if (shouldRevealOnError) {
                     revealSurface()
                 }
+                val errorCodeName = try {
+                    error.errorCodeName
+                } catch (_: Throwable) {
+                    "unknown"
+                }
+                val currentPositionMs = try {
+                    activePlayer.currentPosition
+                } catch (_: Throwable) {
+                    0L
+                }
+                val isRetriableHttpStatusError =
+                    errorCodeName.contains("BAD_HTTP_STATUS", ignoreCase = true)
+                val isRetriableSourceIoError =
+                    errorCodeName.contains("IO", ignoreCase = true) ||
+                        isRetriableHttpStatusError ||
+                        (error.message?.contains("Source error", ignoreCase = true) == true)
+                val shouldAttemptSourceRetry =
+                    sourceErrorRecoveryAttempts < 1 &&
+                        !didRenderFirstFrame &&
+                        currentPositionMs <= startupRecoveryMaxResumePositionMs &&
+                        isRetriableSourceIoError &&
+                        (
+                            isRetriableHttpStatusError ||
+                                activePlayer.playWhenReady
+                            )
                 sendEvent(mapOf(
                     "event" to "error",
-                    "message" to (error.message ?: "Unknown playback error")
+                    "message" to (error.message ?: "Unknown playback error"),
+                    "errorCodeName" to errorCodeName,
+                    "position" to (currentPositionMs / 1000.0),
+                    "willRetrySource" to shouldAttemptSourceRetry,
+                    "sourceRecoveryAttempt" to (sourceErrorRecoveryAttempts + if (shouldAttemptSourceRetry) 1 else 0)
                 ))
                 stopPositionUpdates()
                 stopStallWatchdog()
                 stopStartupRecoveryWatchdog()
+                if (shouldAttemptSourceRetry) {
+                    recoverFromSourceError()
+                }
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
@@ -1247,6 +1281,39 @@ class ExoPlayerView(
             } catch (_: Throwable) {
             } finally {
                 stopStartupRecoveryWatchdog()
+            }
+        }
+    }
+
+    private fun recoverFromSourceError() {
+        val url = currentUrl ?: return
+        val p = player ?: return
+        if (sourceErrorRecoveryAttempts >= 1) return
+        sourceErrorRecoveryAttempts += 1
+        val currentPosition = p.currentPosition
+        handler.post {
+            try {
+                Log.w(
+                    "ExoPlayerView#$viewId",
+                    "sourceErrorRetry position=${currentPosition / 1000.0} recoveryAttempt=$sourceErrorRecoveryAttempts url=$url"
+                )
+                sendEvent(
+                    mapOf(
+                        "event" to "sourceRetry",
+                        "position" to (currentPosition / 1000.0),
+                        "recoveryAttempt" to sourceErrorRecoveryAttempts,
+                    )
+                )
+                loadVideo(
+                    url = url,
+                    autoPlay = true,
+                    loop = isLooping,
+                    preferResumePosterOverride = preferResumePoster,
+                )
+                if (currentPosition > 0L) {
+                    player?.seekTo(currentPosition)
+                }
+            } catch (_: Throwable) {
             }
         }
     }
