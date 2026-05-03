@@ -445,6 +445,13 @@ extension AgendaControllerLoadingPart on AgendaController {
     required String reason,
   }) {
     _cancelStartupWarmPlayerPreload();
+    if (GetPlatform.isIOS) {
+      debugPrint(
+        '[FeedStartupWarmPreload] status=skip_ios_hidden_preload reason=$reason',
+      );
+      _applyStartupRenderStagesNow();
+      return;
+    }
     final preloadPosts = _startupWarmPlayerPreloadWindow(posts);
     final effectivePreloadPosts = GetPlatform.isAndroid
         ? preloadPosts.take(1).toList(growable: false)
@@ -541,15 +548,67 @@ extension AgendaControllerLoadingPart on AgendaController {
     required int expectedEpoch,
   }) {
     if (agendaList.isEmpty) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isClosed ||
-          pauseAll.value ||
-          agendaList.isEmpty ||
-          _feedMutationEpoch != expectedEpoch) {
+    void attemptRefreshPlaybackKick(String source) {
+      if (isClosed || agendaList.isEmpty || _feedMutationEpoch != expectedEpoch) {
+        return;
+      }
+      if (pauseAll.value) {
+        pauseAll.value = false;
+      }
+      if (!canClaimPlaybackNow) {
+        debugPrint(
+          '[FeedRefreshResume] status=skip_claim_blocked '
+          'source=$source '
+          'targetDocId=${_pendingCenteredDocId ?? ''} '
+          'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''} '
+          'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
+          'routeVisible=$isPrimaryFeedRouteVisible refreshInFlight=$_feedRefreshInFlight',
+        );
         return;
       }
       resumeFeedPlayback();
+      final targetIndex = centeredIndex.value;
+      if (targetIndex < 0 || targetIndex >= agendaList.length) {
+        debugPrint(
+          '[FeedRefreshResume] status=skip_no_target '
+          'source=$source centered=$targetIndex agendaCount=${agendaList.length}',
+        );
+        return;
+      }
+      final targetPost = agendaList[targetIndex];
+      if (!_canAutoplayVideoPost(targetPost)) {
+        debugPrint(
+          '[FeedRefreshResume] status=skip_non_playable '
+          'source=$source targetIndex=$targetIndex targetDocId=${targetPost.docID}',
+        );
+        return;
+      }
+      debugPrint(
+        '[FeedRefreshResume] status=kick_playback '
+        'source=$source targetIndex=$targetIndex targetDocId=${targetPost.docID} '
+        'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
+      );
+      _ensureFeedPlaybackForIndex(targetIndex);
+      if (GetPlatform.isIOS) {
+        _schedulePlaybackReassert(
+          index: targetIndex,
+          docId: targetPost.docID,
+          manager: VideoStateManager.instance,
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      attemptRefreshPlaybackKick('post_frame');
     });
+    Future<void>.delayed(const Duration(milliseconds: 16), () {
+      attemptRefreshPlaybackKick('delayed_16ms');
+    });
+    if (GetPlatform.isIOS) {
+      Future<void>.delayed(const Duration(milliseconds: 120), () {
+        attemptRefreshPlaybackKick('delayed_120ms');
+      });
+    }
   }
 
   void _prepareFeedSurfaceAfterDataReady({
@@ -663,11 +722,16 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   void _performResetSurfaceForTabTransition() {
+    final preservedPendingDocId = _pendingCenteredDocId?.trim() ?? '';
+    final shouldPreserveIosResumeAnchor =
+        GetPlatform.isIOS && preservedPendingDocId.isNotEmpty;
     _feedMutationEpoch++;
     _cancelStartupWarmPlayerPreload();
     _cancelDeferredInitialNetworkBootstrap();
     _cancelPendingPlaybackReassert();
-    _pendingCenteredDocId = null;
+    if (!shouldPreserveIosResumeAnchor) {
+      _pendingCenteredDocId = null;
+    }
     _startupLockedFeedDocId = null;
     _startupPlaybackLockedAt = null;
     _lastPlaybackCommandDocId = null;
@@ -682,6 +746,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     } catch (_) {}
 
     void resetNow() {
+      if (shouldPreserveIosResumeAnchor) return;
       if (!scrollController.hasClients) return;
       try {
         scrollController.jumpTo(0);
@@ -973,23 +1038,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     String trigger = 'manual',
     int? expectedMutationEpoch,
   }) async {
-    if (_renderWindowFrozenOnCellular && !initial) {
-      recordQALabFeedFetchEvent(
-        stage: 'skipped',
-        trigger: trigger,
-        metadata: <String, dynamic>{
-          'initial': initial,
-          'pageLimit': pageLimit ?? 0,
-          'reason': 'cellular_render_freeze',
-          'currentCount': agendaList.length,
-        },
-      );
-      debugPrint(
-        '[FeedBootstrapRequest] status=skip_cellular_render_freeze '
-        'trigger=$trigger agendaCount=${agendaList.length}',
-      );
-      return;
-    }
     if (initial && agendaList.isNotEmpty && _startupHeadFinalized) {
       recordQALabFeedFetchEvent(
         stage: 'skipped',
@@ -1285,14 +1333,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
         return;
       }
-      if (_renderWindowFrozenOnCellular && !initial) {
-        debugPrint(
-          '[FeedBootstrapRequest] status=skip_cellular_render_freeze_after_fetch '
-          'trigger=$trigger agendaCount=${agendaList.length}',
-        );
-        return;
-      }
-
       if (usesPlannedColdPage) {
         final consumedDocIds = <String>{
           for (final post in currentAgenda)
@@ -2545,6 +2585,11 @@ extension AgendaControllerLoadingPart on AgendaController {
       _pendingCenteredDocId = null;
       _startupLockedFeedDocId = null;
       _startupPlaybackLockedAt = null;
+      _feedRefreshPlaybackLockedAt = null;
+      _qaScrollStartedAt = null;
+      _qaScrollStartOffset = 0.0;
+      _qaActiveScrollToken = '';
+      _qaLatestScrollToken = '';
       _lastPlaybackCommandDocId = null;
       _lastPlaybackCommandAt = null;
 
@@ -2553,6 +2598,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
       }
+      lastOffset = 0.0;
 
       // Following/reshare verilerini yenile (SWR)
       final uid = CurrentUserService.instance.effectiveUserId;
@@ -2657,11 +2703,35 @@ extension AgendaControllerLoadingPart on AgendaController {
               liveItemsPreplanned: page.itemsPreplanned,
             );
       final filteredMergedAgenda = _filterConsumedAgendaPosts(mergedAgenda);
-      final refreshTargetIndex = filteredMergedAgenda.indexWhere(
+      final currentCenteredDocId = (() {
+        final currentCentered = centeredIndex.value;
+        if (currentCentered >= 0 && currentCentered < previousAgenda.length) {
+          final docId = previousAgenda[currentCentered].docID.trim();
+          if (docId.isNotEmpty) return docId;
+        }
+        final lastCentered = lastCenteredIndex;
+        if (lastCentered != null &&
+            lastCentered >= 0 &&
+            lastCentered < previousAgenda.length) {
+          final docId = previousAgenda[lastCentered].docID.trim();
+          if (docId.isNotEmpty) return docId;
+        }
+        final pendingDocId = _pendingCenteredDocId?.trim() ?? '';
+        return pendingDocId.isEmpty ? null : pendingDocId;
+      })();
+      final preservedRefreshTargetIndex = currentCenteredDocId == null
+          ? -1
+          : filteredMergedAgenda.indexWhere(
+              (post) => post.docID.trim() == currentCenteredDocId,
+            );
+      final fallbackRefreshTargetIndex = filteredMergedAgenda.indexWhere(
         (post) => _canAutoplayVideoPost(post),
       );
-      final refreshTargetDocId = refreshTargetIndex >= 0 &&
-              refreshTargetIndex < filteredMergedAgenda.length
+      final refreshTargetIndex = preservedRefreshTargetIndex >= 0
+          ? preservedRefreshTargetIndex
+          : fallbackRefreshTargetIndex;
+      final refreshTargetDocId =
+          refreshTargetIndex >= 0 && refreshTargetIndex < filteredMergedAgenda.length
           ? filteredMergedAgenda[refreshTargetIndex].docID
           : (filteredMergedAgenda.isNotEmpty
               ? filteredMergedAgenda.first.docID
@@ -2688,9 +2758,18 @@ extension AgendaControllerLoadingPart on AgendaController {
         mergedAgenda: filteredMergedAgenda,
       );
       if (refreshEpoch == _feedMutationEpoch) {
+        debugPrint(
+          '[FeedRefreshResume] currentCenteredDocId=${currentCenteredDocId ?? ''} '
+          'preservedIndex=$preservedRefreshTargetIndex '
+          'fallbackIndex=$fallbackRefreshTargetIndex '
+          'targetIndex=$refreshTargetIndex '
+          'targetDocId=${refreshTargetDocId ?? ''}',
+        );
         _pendingCenteredDocId = refreshTargetDocId;
         _startupLockedFeedDocId = refreshTargetDocId;
         _startupPlaybackLockedAt =
+            refreshTargetDocId == null ? null : DateTime.now();
+        _feedRefreshPlaybackLockedAt =
             refreshTargetDocId == null ? null : DateTime.now();
         _lastPlaybackCommandDocId = null;
         _lastPlaybackCommandAt = null;

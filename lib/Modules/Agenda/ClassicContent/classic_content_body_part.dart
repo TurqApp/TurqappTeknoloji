@@ -546,9 +546,16 @@ extension ClassicContentBodyPart on _ClassicContentState {
           },
           child: AspectRatio(
             aspectRatio: frameAspectRatio,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
+            child: Builder(
+              builder: (_) {
+                final isProfileFamilySurface =
+                    (widget.instanceTag ?? '').startsWith('profile_') ||
+                    (widget.instanceTag ?? '').startsWith('archives_') ||
+                    (widget.instanceTag ?? '').startsWith('liked_post_') ||
+                    (widget.instanceTag ?? '').startsWith('social_');
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
                 if (_shouldBlurIzBirakPost) ...[
                   _buildVideoThumbnail(aspectRatio: frameAspectRatio),
                   Positioned(
@@ -571,7 +578,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             preferWarmPoolPauseOnAndroid:
                                 preferWarmPoolPauseOnAndroid,
                             preferResumePoster:
-                                shouldSuppressGenericResumeThumbnail,
+                                shouldSuppressGenericResumeThumbnail ||
+                                    isProfileFamilySurface,
                             startupRecoveryWatchdogEnabled:
                                 shouldEnableStartupRecoveryWatchdog,
                             preferStableStartupBuffer: GetPlatform.isIOS &&
@@ -766,7 +774,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                       );
                     },
                   ),
-              ],
+                  ],
+                );
+              },
             ),
           ),
         ),

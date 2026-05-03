@@ -242,6 +242,15 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               !(GetPlatform.isAndroid &&
                                                   preferWarmPoolPauseOnAndroid &&
                                                   !widget.shouldPlay);
+                                      final isProfileFamilySurface =
+                                          (widget.instanceTag ?? '')
+                                                  .startsWith('profile_') ||
+                                              (widget.instanceTag ?? '')
+                                                  .startsWith('archives_') ||
+                                              (widget.instanceTag ?? '')
+                                                  .startsWith('liked_post_') ||
+                                              (widget.instanceTag ?? '')
+                                                  .startsWith('social_');
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
@@ -259,7 +268,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   preferWarmPoolPauseOnAndroid:
                                                       preferWarmPoolPauseOnAndroid,
                                                   preferResumePoster:
-                                                      shouldSuppressGenericResumeThumbnail,
+                                                      shouldSuppressGenericResumeThumbnail ||
+                                                          isProfileFamilySurface,
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:

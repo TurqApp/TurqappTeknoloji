@@ -111,7 +111,7 @@ extension _MyStatisticControllerRuntimeX on MyStatisticController {
       'totalPostViews': totalPostViews.value,
       'totalStoryViews': totalStoryViews.value,
       'totalPosts': totalPosts.value,
-      'followerCount': followerCount.value,
+      'counterOfFollowers': followerCount.value,
       'postViews30d': postViews30d.value,
       'posts30d': posts30d.value,
       'stories30d': stories30d.value,
@@ -130,7 +130,7 @@ extension _MyStatisticControllerRuntimeX on MyStatisticController {
     totalPostViews.value = asInt('totalPostViews');
     totalStoryViews.value = asInt('totalStoryViews');
     totalPosts.value = asInt('totalPosts');
-    followerCount.value = asInt('followerCount');
+    followerCount.value = asInt('counterOfFollowers');
     postViews30d.value = asInt('postViews30d');
     posts30d.value = asInt('posts30d');
     stories30d.value = asInt('stories30d');

@@ -92,12 +92,9 @@ extension _ChatControllerConversationX on ChatController {
           : (data["fullName"] ?? nickname.value).toString();
       bio.value = (data["bio"] ?? "").toString();
 
-      followersCount.value = _asInt(
-          data["followersCount"] ?? data["takipci"] ?? data["followerCount"]);
-      followingCount.value = _asInt(
-          data["followingCount"] ?? data["takip"] ?? data["followCount"]);
-      postCount.value =
-          _asInt(data["postCount"] ?? data["gonderi"] ?? data["postsCount"]);
+      followersCount.value = _asInt(data["counterOfFollowers"]);
+      followingCount.value = _asInt(data["counterOfFollowings"]);
+      postCount.value = _asInt(data["counterOfPosts"]);
     } catch (_) {}
   }
 

@@ -102,6 +102,10 @@ class _AudioFocusCoordinatorRuntimePart {
     final others =
         controller._players.where((p) => !identical(p, except)).toList();
     for (final p in others) {
+      final samePlaybackResource = except != null && p.url == except.url;
+      if (samePlaybackResource) {
+        continue;
+      }
       try {
         if (defaultTargetPlatform == TargetPlatform.iOS &&
             p.preferWarmPoolPause &&

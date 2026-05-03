@@ -54,18 +54,12 @@ CurrentUserModel _currentUserModelFromFirestore(DocumentSnapshot doc) {
     calismaDurumu: data['calismaDurumu'] ?? '',
     medeniHal: data['medeniHal'] ?? '',
     counterOfFollowers: _parseToInt(
-      data['followerCount'] ??
-          data['counterOfFollowers'] ??
-          data['takipciSayisi'],
+      data['counterOfFollowers'],
     ),
     counterOfFollowings: _parseToInt(
-      data['followingCount'] ??
-          data['counterOfFollowings'] ??
-          data['takipEdilenSayisi'],
+      data['counterOfFollowings'],
     ),
-    counterOfPosts: _parseToInt(
-      data['postCount'] ?? data['counterOfPosts'] ?? data['gonderSayisi'],
-    ),
+    counterOfPosts: _parseToInt(data['counterOfPosts']),
     counterOfLikes: _parseToInt(data['counterOfLikes']),
     antPoint: _parseToInt(data['antPoint']).clamp(0, 1 << 30),
     dailyDurations: _parseToInt(data['dailyDurations']).clamp(0, 1 << 30),
@@ -207,9 +201,6 @@ Map<String, dynamic> _currentUserModelToJson(CurrentUserModel user) {
     'counterOfFollowers': user.counterOfFollowers,
     'counterOfFollowings': user.counterOfFollowings,
     'counterOfPosts': user.counterOfPosts,
-    'followerCount': user.counterOfFollowers,
-    'followingCount': user.counterOfFollowings,
-    'postCount': user.counterOfPosts,
     'counterOfLikes': user.counterOfLikes,
     'antPoint': user.antPoint,
     'dailyDurations': user.dailyDurations,
@@ -356,17 +347,13 @@ CurrentUserModel _currentUserModelFromJson(Map<String, dynamic> json) {
     calismaDurumu: json['calismaDurumu'] ?? '',
     medeniHal: json['medeniHal'] ?? '',
     counterOfFollowers: _parseToInt(
-      json['followerCount'] ??
-          json['counterOfFollowers'] ??
-          json['takipciSayisi'],
+      json['counterOfFollowers'],
     ),
     counterOfFollowings: _parseToInt(
-      json['followingCount'] ??
-          json['counterOfFollowings'] ??
-          json['takipEdilenSayisi'],
+      json['counterOfFollowings'],
     ),
     counterOfPosts: _parseToInt(
-      json['postCount'] ?? json['counterOfPosts'] ?? json['gonderSayisi'],
+      json['counterOfPosts'],
     ),
     counterOfLikes: _parseToInt(json['counterOfLikes']),
     antPoint: _parseToInt(json['antPoint']).clamp(0, 1 << 30),

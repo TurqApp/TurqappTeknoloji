@@ -21,8 +21,6 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       agendaController.onPostVisibilityChanged(modelIndex, visibleFraction);
     }
 
-    if (visibleFraction < 0.55) return;
-
     final profileController = ProfileController.maybeFind();
     if (surfaceTag.startsWith('profile_') && profileController != null) {
       final profileIndex = profileController.indexOfMergedEntry(
@@ -50,6 +48,8 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         );
       }
     }
+
+    if (visibleFraction < 0.55) return;
 
     if (surfaceTag.startsWith('archives_')) {
       final archiveController = maybeFindArchiveController();

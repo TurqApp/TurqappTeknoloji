@@ -116,7 +116,8 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
           pos <= const Duration(milliseconds: 180) &&
           _pendingVolume > 0.001) {
         unawaited(_hls.setVolume(_pendingVolume));
-        if (_value.hasRenderedFirstFrame &&
+        if (!_isPrimaryFeedSurface &&
+            _value.hasRenderedFirstFrame &&
             !_value.isCompleted &&
             !_value.isPlaying &&
             !_value.isBuffering &&
@@ -167,6 +168,7 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
       );
       _notifyAdapterListeners();
       if (defaultTargetPlatform == TargetPlatform.iOS &&
+          !_isPrimaryFeedSurface &&
           hasRenderedFirstFrame &&
           _hasPendingVolume &&
           _pendingVolume > 0.001) {

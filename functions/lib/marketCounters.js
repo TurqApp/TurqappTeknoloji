@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.backfillMarketCounters = exports.aggregateMarketViewShards = exports.recordMarketViewBatch = exports.onMarketReviewWrite = exports.onMarketOfferCreate = exports.onMarketFavoriteDelete = exports.onMarketFavoriteCreate = void 0;
+exports.backfillMarketCounters = exports.aggregateMarketViewShards = exports.recordMarketViewBatch = exports.onMarketReviewWrite = exports.onMarketOfferCreate = exports.onMarketFavoriteDelete = exports.onMarketFavoriteCreate = exports.onMarketItemCounterWrite = void 0;
 exports.parseRecordMarketViewBatchRequest = parseRecordMarketViewBatchRequest;
 exports.computeMarketReviewAggregatePatch = computeMarketReviewAggregatePatch;
 exports.computeMarketBackfillSnapshot = computeMarketBackfillSnapshot;
@@ -126,6 +126,59 @@ async function setExistingMarketItem(itemRef, patch) {
 function marketItemRef(itemId) {
     return db().collection("marketStore").doc(itemId);
 }
+function extractMarketOwnerId(data) {
+    return asString(data?.userId || data?.sellerUserId || data?.ownerId);
+}
+function isCountedListing(data) {
+    if (!data)
+        return false;
+    const ownerId = extractMarketOwnerId(data);
+    if (!ownerId)
+        return false;
+    const status = asString(data.status).toLowerCase();
+    return status != "archived";
+}
+exports.onMarketItemCounterWrite = (0, firestore_1.onDocumentWritten)({
+    document: "marketStore/{itemId}",
+    region: REGION,
+}, async (event) => {
+    const beforeData = event.data?.before.exists
+        ? event.data?.before.data()
+        : undefined;
+    const afterData = event.data?.after.exists
+        ? event.data?.after.data()
+        : undefined;
+    const beforeOwnerId = extractMarketOwnerId(beforeData);
+    const afterOwnerId = extractMarketOwnerId(afterData);
+    const beforeCounted = isCountedListing(beforeData);
+    const afterCounted = isCountedListing(afterData);
+    const patches = new Map();
+    function addDelta(stringUserId, delta) {
+        const uid = stringUserId.trim();
+        if (!uid || delta == 0)
+            return;
+        patches.set(uid, (patches.get(uid) ?? 0) + delta);
+    }
+    if (beforeOwnerId == afterOwnerId) {
+        if (beforeCounted != afterCounted) {
+            addDelta(afterOwnerId, afterCounted ? 1 : -1);
+        }
+    }
+    else {
+        if (beforeCounted)
+            addDelta(beforeOwnerId, -1);
+        if (afterCounted)
+            addDelta(afterOwnerId, 1);
+    }
+    if (patches.size === 0)
+        return;
+    const firestore = db();
+    const batch = firestore.batch();
+    for (const [uid, delta] of patches.entries()) {
+        batch.set(firestore.collection("users").doc(uid), { counterOfListings: firestore_2.FieldValue.increment(delta) }, { merge: true });
+    }
+    await batch.commit();
+});
 exports.onMarketFavoriteCreate = (0, firestore_1.onDocumentCreated)({
     document: "marketStore/{itemId}/favorites/{favoriteId}",
     region: REGION,

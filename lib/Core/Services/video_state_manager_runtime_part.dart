@@ -129,7 +129,7 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
     if (!handle.isPlaying) {
-      if (GetPlatform.isAndroid &&
+      if ((GetPlatform.isAndroid || GetPlatform.isIOS) &&
           docID.startsWith('feed:') &&
           handle is HLSAdapterPlaybackHandle) {
         final resumePosition = handle.position;

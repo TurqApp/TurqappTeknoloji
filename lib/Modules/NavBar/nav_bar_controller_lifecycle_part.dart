@@ -107,7 +107,16 @@ extension _NavBarControllerLifecyclePart on NavBarController {
           return;
         }
         final initialIndex =
-            controller.preferredLaunchIndexForCount(controller.shorts.length);
+            controller.preferredLaunchIndexForItems(controller.shorts);
+        final initialDocId = controller.shorts.isNotEmpty
+            ? controller.shorts[initialIndex].docID.trim()
+            : '';
+        debugPrint(
+          '[ShortAdjacentPrime] status=anchor '
+          'anchorDoc=${controller.lastVisibleDocId} '
+          'resolvedIndex=$initialIndex resolvedDoc=$initialDocId '
+          'count=${controller.shorts.length}',
+        );
         await controller.ensureActiveAdapterReady(initialIndex);
         final nextIndex = initialIndex + 1;
         if (nextIndex < controller.shorts.length) {

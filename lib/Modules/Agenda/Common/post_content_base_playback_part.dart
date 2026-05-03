@@ -2,6 +2,30 @@ part of 'post_content_base.dart';
 
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
+  Duration _normalizeFeedResumePosition(Duration savedPosition) {
+    if (!(GetPlatform.isIOS && _usesFeedPlaybackPolicy)) {
+      return savedPosition;
+    }
+    const cushion = Duration(milliseconds: 350);
+    if (savedPosition <= cushion) return Duration.zero;
+    return savedPosition - cushion;
+  }
+
+  void _armSavedResumeRecoveryGuard() {
+    _savedResumeRecoveryGuardUntil =
+        DateTime.now().add(const Duration(milliseconds: 4200));
+  }
+
+  bool get _hasActiveSavedResumeRecoveryGuard {
+    final until = _savedResumeRecoveryGuardUntil;
+    if (until == null) return false;
+    if (DateTime.now().isAfter(until)) {
+      _savedResumeRecoveryGuardUntil = null;
+      return false;
+    }
+    return true;
+  }
+
   Duration _resolveSavedResumePosition(HLSVideoAdapter adapter) {
     final savedState =
         _playbackRuntimeService.getSavedPlaybackState(playbackHandleKey);
@@ -9,8 +33,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (savedPosition > Duration.zero) {
       return savedPosition;
     }
+    if (GetPlatform.isIOS && _usesFeedPlaybackPolicy) {
+      return Duration.zero;
+    }
     final adapterPosition = adapter.value.position;
-    if (adapterPosition > Duration.zero) {
+    if (adapterPosition >
+        PostContentBaseState._stableFramePositionThreshold) {
       return adapterPosition;
     }
     return Duration.zero;
@@ -20,13 +48,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     HLSVideoAdapter adapter, {
     required String source,
   }) {
-    if (!GetPlatform.isAndroid) return false;
+    final shouldUsePlatformResumeSeek = GetPlatform.isAndroid ||
+        (GetPlatform.isIOS && _usesFeedPlaybackPolicy);
+    if (!shouldUsePlatformResumeSeek) return false;
     if (!_controllerOwnsInlinePlayback) return false;
     if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
       return false;
     }
 
-    final savedPosition = _resolveSavedResumePosition(adapter);
+    final savedPosition =
+        _normalizeFeedResumePosition(_resolveSavedResumePosition(adapter));
     final shouldUseSavedResumeSeek =
         !_shouldBypassSavedResumeHintForPrimaryFeed(
       adapter.value,
@@ -41,6 +72,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     adapter.queueSeekAndPlay(savedPosition);
     _lastQueuedSavedResumePosition = savedPosition;
     _lastQueuedSavedResumeAt = DateTime.now();
+    _armSavedResumeRecoveryGuard();
     _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     _recordPlaybackDispatch(
       'feed_card_restore_saved_seek',
@@ -71,14 +103,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool get _useNativeIosPrimaryFeedRecoveryAuthority =>
       defaultTargetPlatform == TargetPlatform.iOS &&
-      _isPrimaryFeedSurfaceInstance &&
+      _usesFeedPlaybackPolicy &&
       !_useLegacyIosFeedBehavior;
 
   bool _shouldThrottleIosPrimaryFeedRecovery({
     required String source,
   }) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     final lastRecoveryAt = _lastIosPrimaryFeedRecoveryAt;
     if (lastRecoveryAt == null) return false;
     final elapsed = DateTime.now().difference(lastRecoveryAt);
@@ -101,12 +133,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void _markIosPrimaryFeedRecoveryAttempt() {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
-    if (!_isPrimaryFeedSurfaceInstance) return;
+    if (!_usesFeedPlaybackPolicy) return;
     _lastIosPrimaryFeedRecoveryAt = DateTime.now();
   }
 
   bool get _canBootstrapPrimaryFeedOwnershipClaim {
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
     final modelIndex = _surfaceModelIndex();
@@ -118,7 +150,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool _shouldRecoverFrozenFeedPlayback(HLSVideoValue value) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
     if (_manualPauseRequested) return false;
@@ -164,7 +196,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _isPrimaryFeedSurfaceInstance) {
+        _usesFeedPlaybackPolicy) {
       _markIosPrimaryFeedRecoveryAttempt();
       _startPlaybackWhenReady(source: '$source:ios_reassert');
       return;
@@ -191,7 +223,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   Duration get _resolvedAutoplaySegmentGateTimeout {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance &&
+        _usesFeedPlaybackPolicy &&
         _requiredAutoplaySegmentCount > 1) {
       return const Duration(milliseconds: 900);
     }
@@ -214,8 +246,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   bool _shouldMonitorFeedStall(HLSVideoValue value) {
-    if (!_isPrimaryFeedSurfaceInstance) return false;
-    if (defaultTargetPlatform == TargetPlatform.iOS) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (defaultTargetPlatform == TargetPlatform.android) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
@@ -238,6 +269,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
       _stallWatchdogTimer = null;
       if (!mounted || _videoAdapter != adapter || adapter.isDisposed) return;
+      if (_hasActiveSavedResumeRecoveryGuard) {
+        _armFeedStallWatchdog(adapter);
+        return;
+      }
       final value = adapter.value;
       if (!_shouldMonitorFeedStall(value)) {
         _cancelFeedStallWatchdog();
@@ -256,6 +291,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           value.isBuffering && _stallWatchdogBufferingCycles < 2;
       final healthy = progressed || bufferingHealthy || value.isCompleted;
       _stallWatchdogLastPosition = value.position;
+      final shouldDeferIosInitialFeedRecovery =
+          defaultTargetPlatform == TargetPlatform.iOS &&
+              _usesFeedPlaybackPolicy &&
+              value.hasRenderedFirstFrame &&
+              value.position <= const Duration(milliseconds: 120) &&
+              _stallWatchdogRetries == 0;
+      if (shouldDeferIosInitialFeedRecovery) {
+        _stallWatchdogRetries = 0;
+        _armFeedStallWatchdog(adapter);
+        return;
+      }
       if (healthy) {
         _stallWatchdogRetries = 0;
         _armFeedStallWatchdog(adapter);
@@ -304,7 +350,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   int get _requiredAutoplaySegmentCount {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance) {
+        _usesFeedPlaybackPolicy) {
       if (shouldEnableStartupRecoveryWatchdog) {
         return 1;
       }
@@ -417,7 +463,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (v != null) {
       debugPrint(
         '[PlaybackStopTrace] source=surface_loss doc=${widget.model.docID} '
-        'modelIndex=${_surfaceModelIndex()}',
+        'modelIndex=${_surfaceModelIndex()} '
+        'offset=${_feedPlaybackOffsetLabel()}',
       );
       _playbackRecoveryTimer?.cancel();
       _playbackRecoveryTimer = null;
@@ -439,10 +486,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (adapter == null) return;
     final shouldKeepWarmForSurfaceLoss =
         defaultTargetPlatform == TargetPlatform.android &&
-            _isPrimaryFeedSurfaceInstance &&
+            _usesFeedPlaybackPolicy &&
             !clearSavedState;
-    debugPrint(
-      '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
+      debugPrint(
+        '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
       'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
       'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
@@ -450,7 +497,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (shouldKeepWarmForSurfaceLoss) {
       debugPrint(
         '[PlaybackStopTrace] source=surface_loss_keepalive '
-        'doc=${widget.model.docID} modelIndex=${_surfaceModelIndex()}',
+        'doc=${widget.model.docID} modelIndex=${_surfaceModelIndex()} '
+        'offset=${_feedPlaybackOffsetLabel()}',
       );
       _safePauseVideo();
       if (mounted) {
@@ -496,8 +544,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void pauseVideo() => _safePauseVideo();
 
   bool _shouldRestartFromBeginningOnFeedReentry(String source) =>
-      _isPrimaryFeedSurfaceInstance &&
-      source == 'widget_should_play_changed';
+      _usesFeedPlaybackPolicy &&
+      source == 'widget_should_play_changed' &&
+      defaultTargetPlatform == TargetPlatform.android;
 
   Future<void> _restartPlaybackFromBeginningForFeedReentry({
     required HLSVideoAdapter adapter,
@@ -575,7 +624,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final shouldHoldIosPrimaryFeedAudibility =
         defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance &&
+            _usesFeedPlaybackPolicy &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed &&
             decision.isOwnerCandidate &&
@@ -695,7 +744,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         adapter.isStopped &&
         (GetPlatform.isAndroid ||
             (defaultTargetPlatform == TargetPlatform.iOS &&
-                _isPrimaryFeedSurfaceInstance));
+                _usesFeedPlaybackPolicy));
     if (shouldRestartStoppedInlineOwner) {
       _recordPlaybackDispatch(
         'feed_card_resume_stopped_restart',
@@ -817,6 +866,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'positionMs': adapter.value.position.inMilliseconds,
       },
     );
+    if (_usesFeedPlaybackPolicy) {
+      debugPrint(
+        '[FeedPlayWindow] event=play doc=${widget.model.docID} '
+        'offset=${_feedPlaybackOffsetLabel()} modelIndex=${_surfaceModelIndex()} '
+        'centered=${_surfaceSafeCenteredIndex()} source=$source '
+        'positionMs=${adapter.value.position.inMilliseconds}',
+      );
+    }
     if (_isFloodSurfaceInstance) {
       debugPrint(
         '[FloodSeries] status=start_playback doc=${widget.model.docID} source=$source positionMs=${adapter.value.position.inMilliseconds}',
@@ -832,7 +889,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         playbackHandleKey,
       );
       final shouldForceAndroidFeedResumeReassert = GetPlatform.isAndroid &&
-          _isPrimaryFeedSurfaceInstance &&
+          _usesFeedPlaybackPolicy &&
           currentOwner &&
           adapter.value.position >=
               PostContentBaseState._stableFramePositionThreshold &&
@@ -870,14 +927,34 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 !pendingClaim &&
                 runtimeCurrentOwner.isEmpty;
         if (shouldBootstrapInitialFeedClaim) {
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              _usesFeedPlaybackPolicy) {
+            debugPrint(
+              '[FeedColdStartTrace] stage=bootstrap_claim '
+              'doc=${widget.model.docID} '
+              'source=$source currentOwner=$runtimeCurrentOwner '
+              'pendingClaim=$pendingClaim shouldPlay=${widget.shouldPlay} '
+              'surfaceAllowed=$_isSurfacePlaybackAllowed '
+              'adapterInit=${adapter.value.isInitialized} '
+              'adapterPlaying=${adapter.value.isPlaying}',
+            );
+          }
           _recordPlaybackDispatch(
             'feed_card_manager_bootstrap_claim',
             source: source,
             dispatchIssued: false,
           );
           if (defaultTargetPlatform == TargetPlatform.iOS &&
-              _isPrimaryFeedSurfaceInstance) {
+              _usesFeedPlaybackPolicy) {
             _hasAutoPlayed = true;
+            if (!adapter.value.isPlaying) {
+              debugPrint(
+                '[FeedColdStartTrace] stage=direct_play '
+                'doc=${widget.model.docID} source=$source '
+                'positionMs=${adapter.value.position.inMilliseconds}',
+              );
+              unawaited(_playbackExecutionService.playAdapter(adapter));
+            }
             _playbackRuntimeService.playOnlyThis(playbackHandleKey);
           } else {
             _playbackRuntimeService.requestPlay(
@@ -898,7 +975,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 (!adapter.value.isInitialized &&
                     adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final savedPosition = _resolveSavedResumePosition(adapter);
+          final savedPosition =
+              _normalizeFeedResumePosition(_resolveSavedResumePosition(adapter));
           final shouldUseSavedResumeSeek =
               !_shouldBypassSavedResumeHintForPrimaryFeed(
             adapter.value,
@@ -910,6 +988,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             adapter.queueSeekAndPlay(savedPosition);
             _lastQueuedSavedResumePosition = savedPosition;
             _lastQueuedSavedResumeAt = DateTime.now();
+            _armSavedResumeRecoveryGuard();
             _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
           }
           _recordPlaybackDispatch(

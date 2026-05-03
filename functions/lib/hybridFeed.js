@@ -13,7 +13,7 @@
  *
  * Koleksiyon yapısı:
  *   userFeeds/{uid}/items/{postId}  → { postId, authorId, timeStamp, isCelebrity }
- *   celebAccounts/{uid}             → { uid, followerCount } (fan-in listesi)
+ *   celebAccounts/{uid}             → { uid, counterOfFollowers } (fan-in listesi)
  *
  * Client tarafı değişikliği:
  *   agenda_controller.dart'ta fetchAgendaBigData() metodunda
@@ -174,12 +174,10 @@ async function upsertPostIntoHybridFeed(args) {
     if (!postId || !authorId)
         return;
     const authorDoc = await db().collection("users").doc(authorId).get();
-    const followerCount = Number(authorDoc.data()?.followerCount) ||
-        Number(authorDoc.data()?.takipciSayisi) ||
-        Number(authorDoc.data()?.counterOfFollowers) ||
+    const counterOfFollowers = Number(authorDoc.data()?.counterOfFollowers) ||
         0;
-    if (followerCount > FAN_OUT_THRESHOLD) {
-        await db().collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set({ uid: authorId, followerCount, updatedAt: Date.now() }, { merge: true });
+    if (counterOfFollowers > FAN_OUT_THRESHOLD) {
+        await db().collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.celebrityCollection).doc(authorId).set({ uid: authorId, counterOfFollowers, updatedAt: Date.now() }, { merge: true });
         await db()
             .collection(hybridFeedContract_1.HYBRID_FEED_CONTRACT.primaryCollection)
             .doc(authorId)

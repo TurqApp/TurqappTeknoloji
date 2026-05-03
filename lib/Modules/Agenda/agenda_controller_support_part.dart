@@ -318,7 +318,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
       '[FeedNetworkPolicy] status=live_network network=${networkType.name} '
       'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
     );
-    final shouldRefreshStartupSurface = networkType == NetworkType.wifi &&
+    final shouldRefreshStartupSurface =
         (_lastStartupSurfacePreparedNetwork != networkType ||
             _lastStartupSurfacePreparedMutationEpoch != _feedMutationEpoch ||
             agendaList.isEmpty ||
@@ -332,7 +332,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
           source: 'network_transition',
         ),
       );
-    } else if (networkType == NetworkType.wifi) {
+    } else {
       ensureFeedSnapshotRepository().debugPrintLastGapSummary();
       debugPrint(
         '[FeedStartupSurface] status=skip_network_repeat '
@@ -348,6 +348,19 @@ extension AgendaControllerPublicApiPart on AgendaController {
         trigger: 'primary_surface_visible',
       ),
     );
+    final pendingCenteredDocId = _pendingCenteredDocId?.trim() ?? '';
+    if (pendingCenteredDocId.isNotEmpty && agendaList.isNotEmpty) {
+      debugPrint(
+        '[FeedStartupSurface] status=resume_pending_anchor '
+        'doc=$pendingCenteredDocId agendaCount=${agendaList.length} '
+        'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized',
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (isClosed || agendaList.isEmpty) return;
+        resumeFeedPlayback();
+      });
+      return Future<void>.value();
+    }
     if (_lastPrimarySurfaceVisibleMutationEpoch == _feedMutationEpoch) {
       debugPrint(
         '[FeedStartupSurface] status=skip_primary_surface_repeat '

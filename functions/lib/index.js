@@ -55,9 +55,11 @@ function _buildUsersPublicDoc(uid, data) {
     const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
     const displayName = String(data?.displayName || fullName || nickname).trim();
     const avatarUrl = (0, userSchemaUtils_1.normalizeAvatarUrl)(data?.avatarUrl);
-    const followerCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.followerCount ?? data?.counterOfFollowers ?? data?.takipciSayisi);
-    const followingCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.followingCount ?? data?.counterOfFollowings ?? data?.takipEdilenSayisi);
-    const postCount = (0, userSchemaUtils_1.toNonNegativeInt)(data?.postCount ?? data?.counterOfPosts ?? data?.gonderSayisi);
+    const counterOfFollowers = (0, userSchemaUtils_1.toNonNegativeInt)(data?.counterOfFollowers);
+    const counterOfFollowings = (0, userSchemaUtils_1.toNonNegativeInt)(data?.counterOfFollowings);
+    const counterOfPosts = (0, userSchemaUtils_1.toNonNegativeInt)(data?.counterOfPosts);
+    const counterOfLikes = (0, userSchemaUtils_1.toNonNegativeInt)(data?.counterOfLikes);
+    const counterOfListings = (0, userSchemaUtils_1.toNonNegativeInt)(data?.counterOfListings);
     return {
         userID: uid,
         username,
@@ -71,10 +73,11 @@ function _buildUsersPublicDoc(uid, data) {
         bio: String(data?.bio || "").trim(),
         meslekKategori: String(data?.meslekKategori || "").trim(),
         rozet: String(data?.rozet || data?.badge || "").trim(),
-        followerCount,
-        followersCount: followerCount,
-        followingCount,
-        postCount,
+        counterOfFollowers,
+        counterOfFollowings,
+        counterOfPosts,
+        counterOfLikes,
+        counterOfListings,
         accountStatus: String(data?.accountStatus || "").trim(),
         isPrivate: Boolean(data?.isPrivate ?? false),
         isDeleted: Boolean(data?.isDeleted ?? false),

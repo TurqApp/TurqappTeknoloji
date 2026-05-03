@@ -1,6 +1,13 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
+  bool _performShouldPreferImmediatePlaybackHandoff(int index) {
+    if (!GetPlatform.isIOS) return false;
+    final centered = centeredIndex.value;
+    if (centered < 0) return false;
+    return (index - centered).abs() <= 1;
+  }
+
   void _performSetPrimarySurfaceActive(bool value) {
     if (_primarySurfaceActive == value) return;
     _primarySurfaceActive = value;
@@ -375,10 +382,16 @@ extension ProfileControllerSelectionPart on ProfileController {
       isReshare: entry['isReshare'] == true,
     );
     final manager = VideoStateManager.instance;
+    final readyForImmediateHandoff =
+        manager.canResumePlaybackFor(playbackKey) ||
+        _performShouldPreferImmediatePlaybackHandoff(index);
     final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
       lastCommandAt: _lastPlaybackCommandAt,
+      minInterval: GetPlatform.isIOS && readyForImmediateHandoff
+          ? Duration.zero
+          : const Duration(milliseconds: 120),
     );
     if (issuedAt == null) return;
     _lastPlaybackCommandDocId = playbackKey;

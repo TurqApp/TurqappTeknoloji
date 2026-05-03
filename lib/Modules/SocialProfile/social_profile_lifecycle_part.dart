@@ -205,12 +205,16 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
         _marketItems = items
             .where((item) => item.status != 'archived')
             .toList(growable: false);
-        controller.totalMarket.value = _marketItems.length;
+        if (controller.totalMarket.value <= 0) {
+          controller.totalMarket.value = _marketItems.length;
+        }
       });
     } catch (_) {
       _updateSocialProfileState(() {
         _marketItems = const <MarketItemModel>[];
-        controller.totalMarket.value = 0;
+        if (controller.totalMarket.value < 0) {
+          controller.totalMarket.value = 0;
+        }
       });
     } finally {
       _updateSocialProfileState(() {

@@ -181,6 +181,9 @@ extension _NavBarViewShellContentPart on NavBarView {
       ),
     );
     final shortController = ensureShortController();
+    await shortController.restoreVisibleResumeQueueIntoSurface(
+      reason: 'nav_route_open',
+    );
     const shortReadyTarget = StartupRouteGatePolicy.shortReadyTarget;
     shortController.beginShortOpenTrace(
       source: 'nav_tab',
@@ -207,8 +210,17 @@ extension _NavBarViewShellContentPart on NavBarView {
           allowBackgroundRefresh: false,
         ),
       );
-      final initialIndex = shortController.preferredLaunchIndexForCount(
-        shortController.shorts.length,
+      final initialIndex = shortController.preferredLaunchIndexForItems(
+        shortController.shorts,
+      );
+      final initialDocId = shortController.shorts.isNotEmpty
+          ? shortController.shorts[initialIndex].docID.trim()
+          : '';
+      debugPrint(
+        '[ShortRouteAnchor] source=nav_open '
+        'anchorDoc=${shortController.lastVisibleDocId} '
+        'resolvedIndex=$initialIndex resolvedDoc=$initialDocId '
+        'count=${shortController.shorts.length}',
       );
       unawaited(shortController.ensureActiveAdapterReady(initialIndex));
     } else {

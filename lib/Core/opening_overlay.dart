@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Core/connectivity_helper.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 
@@ -83,8 +82,6 @@ class _OpeningOverlayState extends State<OpeningOverlay>
 
   Future<void> _precacheTop(List<PostsModel> list) async {
     try {
-      final wifi = await ConnectivityHelper.isWifi();
-      if (!wifi) return; // mobil veride pre-cache yapma
       final ctx = context;
       final top = list.take(_precacheCount);
       for (final p in top) {
@@ -124,19 +121,12 @@ class _OpeningOverlayState extends State<OpeningOverlay>
     _precacheCount = widget.precacheCount;
 
     // Heuristik: bağlantı ve ekran genişliği
-    final wifi = await ConnectivityHelper.isWifi();
     final width = MediaQuery.of(context).size.width;
     final isLarge = width >= 400;
 
-    if (wifi) {
-      _minDelay = const Duration(milliseconds: 120);
-      _maxDelay = const Duration(milliseconds: 1200);
-      _precacheCount = isLarge ? 8 : 6;
-    } else {
-      _minDelay = const Duration(milliseconds: 150);
-      _maxDelay = const Duration(milliseconds: 900);
-      _precacheCount = 4;
-    }
+    _minDelay = const Duration(milliseconds: 120);
+    _maxDelay = const Duration(milliseconds: 1200);
+    _precacheCount = isLarge ? 8 : 6;
 
     _configured = true;
   }

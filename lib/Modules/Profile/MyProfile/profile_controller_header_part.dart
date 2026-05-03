@@ -74,19 +74,20 @@ extension ProfileControllerHeaderPart on ProfileController {
     final profile = (data['profile'] is Map)
         ? Map<String, dynamic>.from(data['profile'] as Map)
         : const <String, dynamic>{};
-    final nextFollowerCount = (data['counterOfFollowers'] as num?)?.toInt() ??
-        (data['followersCount'] as num?)?.toInt() ??
-        (data['takipci'] as num?)?.toInt() ??
-        (data['followerCount'] as num?)?.toInt();
-    final nextFollowingCount = (data['counterOfFollowings'] as num?)?.toInt() ??
-        (data['followingCount'] as num?)?.toInt() ??
-        (data['takip'] as num?)?.toInt() ??
-        (data['followCount'] as num?)?.toInt();
+    final nextFollowerCount =
+        (data['counterOfFollowers'] as num?)?.toInt();
+    final nextFollowingCount =
+        (data['counterOfFollowings'] as num?)?.toInt();
+    final nextListingCount =
+        (data['counterOfListings'] as num?)?.toInt();
     if (nextFollowerCount != null) {
       followerCount.value = nextFollowerCount;
     }
     if (nextFollowingCount != null) {
       followingCount.value = nextFollowingCount;
+    }
+    if (nextListingCount != null) {
+      listingCount.value = nextListingCount;
     }
     headerNickname.value =
         _preserveNonEmpty(headerNickname, data['nickname'] ?? data['username']);
@@ -256,8 +257,9 @@ extension ProfileControllerHeaderPart on ProfileController {
 
   Map<String, dynamic> _encodeProfileStartupHeader() {
     final payload = <String, dynamic>{
-      'followerCount': followerCount.value,
-      'followingCount': followingCount.value,
+      'counterOfFollowers': followerCount.value,
+      'counterOfFollowings': followingCount.value,
+      'counterOfListings': listingCount.value,
       'headerNickname': headerNickname.value.trim(),
       'headerRozet': headerRozet.value.trim(),
       'headerDisplayName': headerDisplayName.value.trim(),
@@ -318,13 +320,20 @@ extension ProfileControllerHeaderPart on ProfileController {
     if (adres.isNotEmpty) {
       headerAdres.value = adres;
     }
-    final nextFollowerCount = (header['followerCount'] as num?)?.toInt();
+    final nextFollowerCount =
+        (header['counterOfFollowers'] as num?)?.toInt();
     if (nextFollowerCount != null && nextFollowerCount > 0) {
       followerCount.value = nextFollowerCount;
     }
-    final nextFollowingCount = (header['followingCount'] as num?)?.toInt();
+    final nextFollowingCount =
+        (header['counterOfFollowings'] as num?)?.toInt();
     if (nextFollowingCount != null && nextFollowingCount > 0) {
       followingCount.value = nextFollowingCount;
+    }
+    final nextListingCount =
+        (header['counterOfListings'] as num?)?.toInt();
+    if (nextListingCount != null && nextListingCount > 0) {
+      listingCount.value = nextListingCount;
     }
   }
 

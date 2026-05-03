@@ -196,6 +196,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return true;
   }
 
+  bool _shouldPreferResumePosterForPage(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return false;
+    }
+    if (page == currentPage && _forceResumePosterOnReturn) {
+      return true;
+    }
+    return _savedPlaybackPositionForPage(page, adapter) != null;
+  }
+
   bool _shouldSuppressShortPlaybackAttempt(
     int page,
     String docId, {
@@ -356,7 +369,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     currentPage = remappedPage;
     final previousRenderPage = _currentRenderPage;
     _rebuildShortRenderPlan();
-    controller.lastIndex.value = currentPage;
+    controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
 
     _updateShortViewState(() {});
 
@@ -456,9 +469,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
       _currentRenderPage = renderPage;
       _isAdPageActive = false;
       currentPage = nextOrganicPage;
-      controller.lastIndex.value = currentPage;
       _showOverlayControls = true;
     });
+    controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
     if (resumedFromAdPage) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -528,7 +541,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _ensureActivePageAdapterAfterBuild(nextOrganicPage);
     _prepareUpcomingVideoForSwipe(activePageOverride: nextOrganicPage);
 
+    final useImmediateHandoff =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _canUseImmediatePageHandoff(nextOrganicPage);
     _scrollDebounce?.cancel();
+    if (useImmediateHandoff) {
+      if (!mounted || currentPage != nextOrganicPage) return;
+      _enforceSingleActiveAudio(nextOrganicPage);
+      _schedulePlayForPage(
+        nextOrganicPage,
+        delayOverride: Duration.zero,
+      );
+      _scheduleTierUpdate(nextOrganicPage);
+      controller.loadMoreIfNeeded(nextOrganicPage);
+      return;
+    }
     _scrollDebounce = Timer(
       defaultTargetPlatform == TargetPlatform.android
           ? (isAutoAdvance ? Duration.zero : _shortScrollDebounceAndroid)
@@ -553,6 +580,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
     await controller.prepareNeighborAdapter(activePage, nextPage);
     if (!mounted) return;
     _setStateIfActiveAdapterChanged(nextPage, hadActiveAdapter);
+  }
+
+  bool _canUseImmediatePageHandoff(int page) {
+    if (page < 0 || page >= _cachedShorts.length) return false;
+    final adapter = controller.cache[page];
+    if (adapter == null || adapter.isDisposed) return false;
+    final value = adapter.value;
+    return value.isInitialized ||
+        value.hasRenderedFirstFrame ||
+        !adapter.isStopped;
   }
 
   void _prepareUpcomingVideoForSwipe({
@@ -726,14 +763,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final targetMs = target.inMilliseconds;
     final forwardSkewMs = targetMs - currentMs;
     final hasMeaningfulCurrentPosition = currentMs > 50;
+    final value = adapter.value;
+    final shouldForceRestoreOnRouteReturn =
+        _forceResumePosterOnReturn && page == currentPage;
+    final adapterNeedsExplicitSeek = shouldForceRestoreOnRouteReturn ||
+        adapter.isStopped ||
+        !value.isInitialized ||
+        (!value.isPlaying && !value.isBuffering);
+    if (adapterNeedsExplicitSeek) {
+      return target;
+    }
     // Resume should recover lost position, not rewind or micro-adjust an
-    // adapter that is already effectively at/after the saved timestamp.
+    // adapter that is already actively playing at/after the saved timestamp.
     if (hasMeaningfulCurrentPosition && forwardSkewMs <= 250) {
       _playbackRuntimeService.clearSavedPlaybackState(handleKey);
       return null;
-    }
-    if (adapter.isStopped || !adapter.value.isInitialized) {
-      return target;
     }
     _playbackRuntimeService.clearSavedPlaybackState(handleKey);
     return null;
@@ -818,6 +862,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int page,
     HLSVideoAdapter adapter,
   ) {
+    if (_forceResumePosterOnReturn) {
+      return false;
+    }
     if (!_pendingPageActivation ||
         page < 0 ||
         page >= _cachedShorts.length ||
@@ -904,6 +951,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _shouldBlockPlaybackForAdPage) {
       return;
     }
+    _alignCurrentPageToDocAnchor(
+      reason: 'autoplay_bootstrap',
+      jumpRenderPage: true,
+    );
     if (_shouldSuppressDuplicateAutoplayBootstrap(currentPage)) return;
 
     isManuallyPaused = false;
@@ -1053,7 +1104,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     });
   }
 
-  void _schedulePlayForPage(int page) {
+  void _schedulePlayForPage(
+    int page, {
+    Duration? delayOverride,
+  }) {
     if (_shouldBlockPlaybackForAdPage) return;
     final scheduledDocId = page >= 0 && page < _cachedShorts.length
         ? _cachedShorts[page].docID.trim()
@@ -1067,9 +1121,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _pendingPlayPage = page;
     _pendingPlayDocId = scheduledDocId;
     _playDebounce = Timer(
-      defaultTargetPlatform == TargetPlatform.android
-          ? _shortPlayResumeDelayAndroid
-          : _shortPlayResumeDelay,
+      delayOverride ??
+          (defaultTargetPlatform == TargetPlatform.android
+              ? _shortPlayResumeDelayAndroid
+              : _shortPlayResumeDelay),
       () async {
         if (_pendingPlayPage == page) {
           _pendingPlayPage = null;

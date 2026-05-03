@@ -146,13 +146,9 @@ class ProfileManifestSyncService extends GetxService {
       (rawUser?['meslekKategori'] ?? '').toString(),
     ]);
     final followerCount = currentUser?.counterOfFollowers ??
-        ((rawUser?['counterOfFollowers'] as num?)?.toInt() ??
-            (rawUser?['followersCount'] as num?)?.toInt() ??
-            0);
+        ((rawUser?['counterOfFollowers'] as num?)?.toInt() ?? 0);
     final followingCount = currentUser?.counterOfFollowings ??
-        ((rawUser?['counterOfFollowings'] as num?)?.toInt() ??
-            (rawUser?['followingCount'] as num?)?.toInt() ??
-            0);
+        ((rawUser?['counterOfFollowings'] as num?)?.toInt() ?? 0);
 
     Map<String, dynamic> encodePost(
       PostsModel post, {
@@ -279,8 +275,8 @@ class ProfileManifestSyncService extends GetxService {
         'bio': bio,
         'adres': adres,
         'meslekKategori': meslekKategori,
-        'followerCount': followerCount,
-        'followingCount': followingCount,
+        'counterOfFollowers': followerCount,
+        'counterOfFollowings': followingCount,
       },
       'all': encodeBucket(
         profilePage.all,

@@ -65,9 +65,34 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return handle.adapter.preferWarmPoolPause;
   }
 
+  void _pruneExternalOnDemandFetchClaims(String? activeDocID) {
+    final normalizedActiveDocID = HlsSegmentPolicy.normalizeDocId(activeDocID);
+    if (normalizedActiveDocID == null || normalizedActiveDocID.isEmpty) {
+      if (_externalOnDemandFetchClaims.isEmpty) return;
+      _externalOnDemandFetchClaims.clear();
+      debugPrint(
+        '[PlaybackStopTrace] source=target_change_claim_prune active=- cleared=all',
+      );
+      return;
+    }
+    final removed = <String>[];
+    _externalOnDemandFetchClaims.removeWhere((docID, _) {
+      final shouldRemove = docID != normalizedActiveDocID;
+      if (shouldRemove) removed.add(docID);
+      return shouldRemove;
+    });
+    if (removed.isNotEmpty) {
+      debugPrint(
+        '[PlaybackStopTrace] source=target_change_claim_prune '
+        'active=$normalizedActiveDocID removed=${removed.join(",")}',
+      );
+    }
+  }
+
   void _markTargetPlaybackDoc(String? docID) {
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = docID == null ? null : DateTime.now();
+    _pruneExternalOnDemandFetchClaims(docID);
   }
 
   void _silenceSupersededHandle(
@@ -387,6 +412,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
+    _playRequestSeq++;
+    final int requestSeq = _playRequestSeq;
     final previous = _allVideoControllers[docID];
     final effectiveHandle =
         previous != null && targetsSamePlaybackResource(previous, handle)
@@ -396,6 +423,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
     _markTargetPlaybackDoc(docID);
+    _schedulePendingPlayResume(docID, requestSeq);
   }
 
   void _requestPlayVideoFromController(
