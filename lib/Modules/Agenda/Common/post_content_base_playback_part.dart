@@ -3,7 +3,7 @@ part of 'post_content_base.dart';
 extension PostContentBasePlaybackPart<T extends PostContentBase>
     on PostContentBaseState<T> {
   Duration _normalizeFeedResumePosition(Duration savedPosition) {
-    if (!(GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance)) {
+    if (!(GetPlatform.isIOS && _usesFeedPlaybackPolicy)) {
       return savedPosition;
     }
     const cushion = Duration(milliseconds: 350);
@@ -33,7 +33,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (savedPosition > Duration.zero) {
       return savedPosition;
     }
-    if (GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance) {
+    if (GetPlatform.isIOS && _usesFeedPlaybackPolicy) {
       return Duration.zero;
     }
     final adapterPosition = adapter.value.position;
@@ -49,7 +49,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     required String source,
   }) {
     final shouldUsePlatformResumeSeek = GetPlatform.isAndroid ||
-        (GetPlatform.isIOS && _isPrimaryFeedSurfaceInstance);
+        (GetPlatform.isIOS && _usesFeedPlaybackPolicy);
     if (!shouldUsePlatformResumeSeek) return false;
     if (!_controllerOwnsInlinePlayback) return false;
     if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
@@ -103,14 +103,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool get _useNativeIosPrimaryFeedRecoveryAuthority =>
       defaultTargetPlatform == TargetPlatform.iOS &&
-      _isPrimaryFeedSurfaceInstance &&
+      _usesFeedPlaybackPolicy &&
       !_useLegacyIosFeedBehavior;
 
   bool _shouldThrottleIosPrimaryFeedRecovery({
     required String source,
   }) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     final lastRecoveryAt = _lastIosPrimaryFeedRecoveryAt;
     if (lastRecoveryAt == null) return false;
     final elapsed = DateTime.now().difference(lastRecoveryAt);
@@ -133,12 +133,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void _markIosPrimaryFeedRecoveryAttempt() {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
-    if (!_isPrimaryFeedSurfaceInstance) return;
+    if (!_usesFeedPlaybackPolicy) return;
     _lastIosPrimaryFeedRecoveryAt = DateTime.now();
   }
 
   bool get _canBootstrapPrimaryFeedOwnershipClaim {
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
     final modelIndex = _surfaceModelIndex();
@@ -150,7 +150,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   bool _shouldRecoverFrozenFeedPlayback(HLSVideoValue value) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
     if (_manualPauseRequested) return false;
@@ -196,7 +196,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _isPrimaryFeedSurfaceInstance) {
+        _usesFeedPlaybackPolicy) {
       _markIosPrimaryFeedRecoveryAttempt();
       _startPlaybackWhenReady(source: '$source:ios_reassert');
       return;
@@ -223,7 +223,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   Duration get _resolvedAutoplaySegmentGateTimeout {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance &&
+        _usesFeedPlaybackPolicy &&
         _requiredAutoplaySegmentCount > 1) {
       return const Duration(milliseconds: 900);
     }
@@ -246,7 +246,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   bool _shouldMonitorFeedStall(HLSVideoValue value) {
-    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
     if (defaultTargetPlatform == TargetPlatform.android) return false;
     if (!widget.shouldPlay) return false;
     if (!_isSurfacePlaybackAllowed) return false;
@@ -293,7 +293,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _stallWatchdogLastPosition = value.position;
       final shouldDeferIosInitialFeedRecovery =
           defaultTargetPlatform == TargetPlatform.iOS &&
-              _isPrimaryFeedSurfaceInstance &&
+              _usesFeedPlaybackPolicy &&
               value.hasRenderedFirstFrame &&
               value.position <= const Duration(milliseconds: 120) &&
               _stallWatchdogRetries == 0;
@@ -350,7 +350,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   int get _requiredAutoplaySegmentCount {
     if (defaultTargetPlatform == TargetPlatform.android &&
-        _isPrimaryFeedSurfaceInstance) {
+        _usesFeedPlaybackPolicy) {
       if (shouldEnableStartupRecoveryWatchdog) {
         return 1;
       }
@@ -486,10 +486,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (adapter == null) return;
     final shouldKeepWarmForSurfaceLoss =
         defaultTargetPlatform == TargetPlatform.android &&
-            _isPrimaryFeedSurfaceInstance &&
+            _usesFeedPlaybackPolicy &&
             !clearSavedState;
-    debugPrint(
-      '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
+      debugPrint(
+        '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
       'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
       'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
@@ -544,7 +544,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void pauseVideo() => _safePauseVideo();
 
   bool _shouldRestartFromBeginningOnFeedReentry(String source) =>
-      _isPrimaryFeedSurfaceInstance &&
+      _usesFeedPlaybackPolicy &&
       source == 'widget_should_play_changed' &&
       defaultTargetPlatform == TargetPlatform.android;
 
@@ -624,7 +624,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final shouldHoldIosPrimaryFeedAudibility =
         defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance &&
+            _usesFeedPlaybackPolicy &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed &&
             decision.isOwnerCandidate &&
@@ -744,7 +744,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         adapter.isStopped &&
         (GetPlatform.isAndroid ||
             (defaultTargetPlatform == TargetPlatform.iOS &&
-                _isPrimaryFeedSurfaceInstance));
+                _usesFeedPlaybackPolicy));
     if (shouldRestartStoppedInlineOwner) {
       _recordPlaybackDispatch(
         'feed_card_resume_stopped_restart',
@@ -866,7 +866,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'positionMs': adapter.value.position.inMilliseconds,
       },
     );
-    if (_isPrimaryFeedSurfaceInstance) {
+    if (_usesFeedPlaybackPolicy) {
       debugPrint(
         '[FeedPlayWindow] event=play doc=${widget.model.docID} '
         'offset=${_feedPlaybackOffsetLabel()} modelIndex=${_surfaceModelIndex()} '
@@ -889,7 +889,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         playbackHandleKey,
       );
       final shouldForceAndroidFeedResumeReassert = GetPlatform.isAndroid &&
-          _isPrimaryFeedSurfaceInstance &&
+          _usesFeedPlaybackPolicy &&
           currentOwner &&
           adapter.value.position >=
               PostContentBaseState._stableFramePositionThreshold &&
@@ -928,7 +928,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 runtimeCurrentOwner.isEmpty;
         if (shouldBootstrapInitialFeedClaim) {
           if (defaultTargetPlatform == TargetPlatform.iOS &&
-              _isPrimaryFeedSurfaceInstance) {
+              _usesFeedPlaybackPolicy) {
             debugPrint(
               '[FeedColdStartTrace] stage=bootstrap_claim '
               'doc=${widget.model.docID} '
@@ -945,7 +945,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             dispatchIssued: false,
           );
           if (defaultTargetPlatform == TargetPlatform.iOS &&
-              _isPrimaryFeedSurfaceInstance) {
+              _usesFeedPlaybackPolicy) {
             _hasAutoPlayed = true;
             if (!adapter.value.isPlaying) {
               debugPrint(
