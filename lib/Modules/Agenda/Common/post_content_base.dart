@@ -335,8 +335,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get isPrimaryFeedSurfaceInstance => _isPrimaryFeedSurfaceInstance;
 
-  bool get _usesFeedPlaybackPolicy =>
-      _isPrimaryFeedSurfaceInstance || _isProfileFamilySurfaceInstance;
+  bool get _usesFeedPlaybackPolicy => _isFeedStyleInlineSurfaceInstance;
 
   bool get _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
@@ -357,7 +356,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   bool get _shouldBypassLocalProxyForAndroidPrimaryFeed =>
-      _isFloodSurfaceInstance;
+      _isFeedStyleInlineSurfaceInstance;
 
   bool get shouldKeepVideoSurfaceAlive {
     if (defaultTargetPlatform == TargetPlatform.android &&
@@ -713,11 +712,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (isIosPrimaryFeed) {
       return false;
     }
-    // Keep native warm controller preload limited to the primary feed.
-    // Profile/social surfaces still use segment/cache warming, but should not
-    // initialize off-screen players that can render an unexpected first frame.
-    final isSupportedSurface =
-        _usesFeedPlaybackPolicy || _isFloodSurfaceInstance;
+    final isSupportedSurface = _usesFeedPlaybackPolicy;
     if (!isSupportedSurface) return false;
     if (!widget.model.hasPlayableVideo) return false;
     if (widget.shouldPlay) return false;
@@ -726,17 +721,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         _isPrimaryFeedSurfaceInstance &&
         !_isCenteredFeedWarmPreloadAnchorReady) {
       return false;
-    }
-    if (isAndroid && _isFloodSurfaceInstance) {
-      final modelIndex = _surfaceModelIndex();
-      if (modelIndex < 0) return false;
-      final warmTier = _resolveDirectionalNativeWarmTier(
-        modelIndex: modelIndex,
-        centeredIndex: _surfaceSafeCenteredIndex(),
-        previousCenteredIndex: _surfacePreviousCenteredIndex(),
-      );
-      if (warmTier != _FeedNativeWarmTier.strong) return false;
-      return true;
     }
     if (_usesFeedPlaybackPolicy) {
       final modelIndex = _surfaceModelIndex();

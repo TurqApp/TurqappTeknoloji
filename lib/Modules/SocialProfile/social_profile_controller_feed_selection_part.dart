@@ -10,7 +10,6 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
 
   static const int _defaultProfileWarmPlayableCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
-  static const int _ownProfileWarmPlayableCount = 7;
 
   bool get _performUsesTightCellularWarmProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
@@ -458,9 +457,7 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     final warmPosts = _resolveProfileWarmPosts(
       centered: centered,
       maxCount: StartupPreloadPolicy.warmPlayableCount(
-        isOwnProfile
-            ? _ownProfileWarmPlayableCount
-            : _defaultProfileWarmPlayableCount,
+        _defaultProfileWarmPlayableCount,
         isAndroid: GetPlatform.isAndroid,
         isOnCellular:
             NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,

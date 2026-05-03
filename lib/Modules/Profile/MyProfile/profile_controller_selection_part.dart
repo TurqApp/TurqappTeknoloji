@@ -1,7 +1,8 @@
 part of 'profile_controller.dart';
 
 extension ProfileControllerSelectionPart on ProfileController {
-  static const int _ownProfileWarmPlayableCount = 7;
+  static const int _profileWarmPlayableCount =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
 
   bool get _performUsesTightCellularWarmProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
@@ -65,6 +66,10 @@ extension ProfileControllerSelectionPart on ProfileController {
       lastCenteredIndex = target;
       capturePendingCenteredEntry(preferredIndex: target);
       _lockStartupPlaybackIdentityForIndex(target);
+      _performWarmProfilePlaybackWindow(
+        centered: target,
+        phase: 'startup',
+      );
       if (_performCanAutoplayMergedEntry(activeEntries[target])) {
         _performEnsureCenteredPlaybackForIndex(target);
       } else {
@@ -448,7 +453,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     final warmPosts = _resolveProfileWarmPosts(
       centered: centered,
       maxCount: StartupPreloadPolicy.warmPlayableCount(
-        _ownProfileWarmPlayableCount,
+        _profileWarmPlayableCount,
         isAndroid: GetPlatform.isAndroid,
         isOnCellular:
             NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,

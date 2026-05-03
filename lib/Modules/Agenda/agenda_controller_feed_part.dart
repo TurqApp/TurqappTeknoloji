@@ -561,7 +561,7 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     final prefetchRefreshDelay =
         _shouldUseTightCellularFeedWarmProfile
-            ? const Duration(milliseconds: 30)
+            ? const Duration(milliseconds: 10)
             : const Duration(milliseconds: 240);
     _feedPrefetchDebounce = Timer(prefetchRefreshDelay, () {
       _updateFeedPrefetchQueue();
