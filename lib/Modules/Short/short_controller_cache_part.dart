@@ -25,7 +25,9 @@ extension ShortControllerCachePart on ShortController {
       );
 
   bool get _shouldPreferDirectCdnOnShorts =>
-      defaultTargetPlatform == TargetPlatform.android;
+      PlaybackSurfacePolicy.preferDirectCdnForShort(
+        platform: defaultTargetPlatform,
+      );
 
   void _seedCacheEntryForIndex(int index) {
     if (index < 0 || index >= shorts.length) return;
@@ -46,7 +48,12 @@ extension ShortControllerCachePart on ShortController {
       }
       final isOnCellular =
           NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
-      return playableOffset <= (isOnCellular ? 2 : 5) ? 1 : 0;
+      final limit = PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
+        platform: defaultTargetPlatform,
+        isOnCellular: isOnCellular,
+        defaultCount: StartupPreloadPolicy.aheadFirstSegmentCount,
+      );
+      return playableOffset <= limit ? 1 : 0;
     }
     return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
   }
@@ -153,28 +160,34 @@ extension ShortControllerCachePart on ShortController {
   }
 
   int _activeReadySegmentsForCurrentPlatform() {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return _androidActiveReadySegments;
-    }
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return _iosActiveReadySegments;
-    }
-    return SegmentCacheRuntimeService.globalReadySegmentCount;
+    final defaultCount = defaultTargetPlatform == TargetPlatform.android
+        ? _androidActiveReadySegments
+        : defaultTargetPlatform == TargetPlatform.iOS
+            ? _iosActiveReadySegments
+            : SegmentCacheRuntimeService.globalReadySegmentCount;
+    return PlaybackSurfacePolicy.shortActiveReadySegments(
+      platform: defaultTargetPlatform,
+      defaultCount: defaultCount,
+    );
   }
 
   int _neighborReadySegmentsForCurrentPlatform() {
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return _usesTightCellularShortProfile ? 1 : _androidNeighborReadySegments;
-    }
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return _iosNeighborReadySegments;
-    }
-    return SegmentCacheRuntimeService.globalReadySegmentCount;
+    final defaultCount = defaultTargetPlatform == TargetPlatform.android
+        ? _androidNeighborReadySegments
+        : defaultTargetPlatform == TargetPlatform.iOS
+            ? _iosNeighborReadySegments
+            : SegmentCacheRuntimeService.globalReadySegmentCount;
+    return PlaybackSurfacePolicy.shortNeighborReadySegments(
+      platform: defaultTargetPlatform,
+      useTightWarmProfile: _usesTightCellularShortProfile,
+      defaultCount: defaultCount,
+    );
   }
 
   bool _shouldKeepTrimmedShortAdapterWarm() {
-    return defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS;
+    return PlaybackSurfacePolicy.shouldKeepTrimmedShortAdapterWarm(
+      platform: defaultTargetPlatform,
+    );
   }
 
   Future<HLSVideoAdapter?> _preloadSingleVideoWithCache(

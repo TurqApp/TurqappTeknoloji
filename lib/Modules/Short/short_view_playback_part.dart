@@ -2,16 +2,24 @@ part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
   bool get _usesTightCellularShortProfile =>
-      defaultTargetPlatform == TargetPlatform.android;
+      PlaybackSurfacePolicy.useTightAndroidWarmProfile(
+        platform: defaultTargetPlatform,
+      );
 
   Duration get _shortTierDebounceDelayForCurrentNetwork =>
       _usesTightCellularShortProfile
-          ? const Duration(milliseconds: 20)
+          ? PlaybackSurfacePolicy.shortTierDebounceDelay(
+              platform: defaultTargetPlatform,
+              defaultDelay: _shortTierDebounceDelay,
+            )
           : _shortTierDebounceDelay;
 
   Duration get _shortTierReconcileDelayForCurrentNetwork =>
       _usesTightCellularShortProfile
-          ? const Duration(milliseconds: 90)
+          ? PlaybackSurfacePolicy.shortTierReconcileDelay(
+              platform: defaultTargetPlatform,
+              defaultDelay: _shortTierReconcileDelay,
+            )
           : _shortTierReconcileDelay;
 
   Future<void> _reassertActiveShortAudibility(
@@ -274,11 +282,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayAt = now;
     try {
       final shouldUseDirectOwnershipRequest =
-          defaultTargetPlatform == TargetPlatform.iOS &&
-              (adapter.value.isPlaying ||
-                  adapter.value.isBuffering ||
-                  adapter.value.hasRenderedFirstFrame ||
-                  adapter.value.position > Duration.zero);
+          PlaybackSurfacePolicy.shouldUseDirectShortOwnershipRequest(
+        platform: defaultTargetPlatform,
+        isPlaying: adapter.value.isPlaying,
+        isBuffering: adapter.value.isBuffering,
+        hasRenderedFirstFrame: adapter.value.hasRenderedFirstFrame,
+        position: adapter.value.position,
+      );
       if (shouldUseDirectOwnershipRequest) {
         _playbackRuntimeService.requestPlay(
           playbackHandleKey,
@@ -555,8 +565,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _prepareUpcomingVideoForSwipe(activePageOverride: nextOrganicPage);
 
     final useImmediateHandoff =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            _canUseImmediatePageHandoff(nextOrganicPage);
+        PlaybackSurfacePolicy.supportsImmediateShortHandoff(
+          platform: defaultTargetPlatform,
+        ) &&
+        _canUseImmediatePageHandoff(nextOrganicPage);
     _scrollDebounce?.cancel();
     if (useImmediateHandoff) {
       if (!mounted || currentPage != nextOrganicPage) return;
@@ -569,10 +581,14 @@ extension ShortViewPlaybackPart on _ShortViewState {
       controller.loadMoreIfNeeded(nextOrganicPage);
       return;
     }
+    final scrollDebounceDelay = isAutoAdvance
+        ? Duration.zero
+        : PlaybackSurfacePolicy.shortScrollDebounceDelay(
+            platform: defaultTargetPlatform,
+            androidDelay: _shortScrollDebounceAndroid,
+          );
     _scrollDebounce = Timer(
-      defaultTargetPlatform == TargetPlatform.android
-          ? (isAutoAdvance ? Duration.zero : _shortScrollDebounceAndroid)
-          : const Duration(milliseconds: 60),
+      scrollDebounceDelay,
       () {
         if (!mounted || currentPage != nextOrganicPage) return;
 
@@ -866,9 +882,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return false;
     }
     final value = adapter.value;
-    return value.hasRenderedFirstFrame &&
-        value.position >= const Duration(milliseconds: 800) &&
-        !value.isCompleted;
+    return PlaybackSurfacePolicy.shouldRecoverShortPlaybackOnRevisit(
+      platform: defaultTargetPlatform,
+      hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+      position: value.position,
+      isCompleted: value.isCompleted,
+    );
   }
 
   bool _shouldResetArrivingShortToStart(
@@ -905,7 +924,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
       final isWarmNeighbor = (idx - activePage).abs() <= 1;
       try {
         _applyShortPlaybackPresentation(idx, vc);
-        if (defaultTargetPlatform == TargetPlatform.iOS && isWarmNeighbor) {
+        if (PlaybackSurfacePolicy.shouldKeepWarmShortNeighborAudible(
+          platform: defaultTargetPlatform,
+          isWarmNeighbor: isWarmNeighbor,
+        )) {
           continue;
         }
         if (defaultTargetPlatform == TargetPlatform.android) {
@@ -988,9 +1010,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     }
     final hadActiveAdapter = controller.cache[currentPage] != null;
     final shouldPreserveCurrentAdapterOnRouteReturn =
-        defaultTargetPlatform != TargetPlatform.android &&
-            _forceResumePosterOnReturn &&
-            hadActiveAdapter;
+        PlaybackSurfacePolicy.shouldPreserveShortAdapterOnRouteReturn(
+      platform: defaultTargetPlatform,
+      forceResumePosterOnReturn: _forceResumePosterOnReturn,
+      hadActiveAdapter: hadActiveAdapter,
+    );
     if (defaultTargetPlatform != TargetPlatform.android &&
         !shouldPreserveCurrentAdapterOnRouteReturn) {
       await controller.keepOnlyIndex(currentPage);
@@ -1076,7 +1100,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int neighborPage,
   ) {
     if (!mounted || !_isShortRoutePlaybackActive) return;
-    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    if (!PlaybackSurfacePolicy.shouldEnsureWarmNeighborAdapter(
+      platform: defaultTargetPlatform,
+    )) {
+      return;
+    }
     if (neighborPage == activePage) return;
     if (activePage != currentPage) return;
     if (neighborPage < 0 || neighborPage >= _cachedShorts.length) return;
@@ -1261,7 +1289,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (isManuallyPaused) return;
         _lastPrimaryPlayDocId = docId.trim().isEmpty ? null : docId.trim();
         _lastPrimaryPlayAt = DateTime.now();
-        if (defaultTargetPlatform == TargetPlatform.iOS &&
+        if (PlaybackSurfacePolicy.shouldRecordShortVisibleView(
+              platform: defaultTargetPlatform,
+            ) &&
             docId.trim().isNotEmpty &&
             _recordedVisibleShortDocIds.add(docId.trim())) {
           unawaited(ensurePostInteractionService().recordView(docId.trim()));
@@ -1356,17 +1386,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     int attempt = 0,
   }) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
-    const attemptDelays = <Duration>[
-      Duration.zero,
-      Duration(milliseconds: 110),
-      Duration(milliseconds: 260),
-      Duration(milliseconds: 520),
-      Duration(milliseconds: 900),
-      Duration(milliseconds: 1400),
-      Duration(milliseconds: 2000),
-    ];
-    final safeAttempt = attempt.clamp(0, attemptDelays.length - 1);
-    final delay = attemptDelays[safeAttempt];
+    const maxAudibilityAttempts = 6;
+    final safeAttempt = attempt.clamp(0, maxAudibilityAttempts);
+    final delay = PlaybackSurfacePolicy.shortIosAudibilityReassertDelay(
+      attempt: safeAttempt,
+    );
     Future<void>.delayed(delay, () async {
       if (!mounted ||
           page != currentPage ||
@@ -1386,7 +1410,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           vc.value.position > Duration.zero &&
           !vc.value.isPlaying &&
           !vc.value.isBuffering;
-      final shouldRetrySoon = attempt < attemptDelays.length - 1 &&
+      final shouldRetrySoon = attempt < maxAudibilityAttempts &&
           (!vc.value.hasRenderedFirstFrame ||
               stillMuted ||
               (vc.value.position > Duration.zero &&
@@ -1434,7 +1458,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       if (docId.isNotEmpty) {
         _requestExclusivePlayback(docId, vc);
       }
-      if (attempt < attemptDelays.length - 1) {
+      if (attempt < maxAudibilityAttempts) {
         _scheduleIosShortAudibilityReassert(
           page,
           vc,
@@ -1474,10 +1498,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }) {
     _iosNativePlaybackGuardTimer?.cancel();
     if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    final guardDelay = PlaybackSurfacePolicy.shortIosNativePlaybackGuardDelay(
+      attempt: attempt,
+    );
     _iosNativePlaybackGuardTimer = Timer(
-      attempt == 0
-          ? const Duration(milliseconds: 1400)
-          : const Duration(milliseconds: 900),
+      guardDelay,
       () async {
         if (!mounted ||
             page != currentPage ||
@@ -1622,11 +1647,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
           ? value.duration - value.position
           : Duration.zero;
       final shouldNudgeNearEndCompletion =
-          defaultTargetPlatform == TargetPlatform.iOS &&
-              value.duration > Duration.zero &&
-              remaining > Duration.zero &&
-              remaining <= const Duration(milliseconds: 700) &&
-              value.position >= const Duration(milliseconds: 800);
+          PlaybackSurfacePolicy.shouldNudgeShortNearEndCompletion(
+        platform: defaultTargetPlatform,
+        duration: value.duration,
+        remaining: remaining,
+        position: value.position,
+      );
       if (shouldNudgeNearEndCompletion) {
         try {
           await vc.seekTo(value.duration);
@@ -1634,7 +1660,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _armStallWatchdog(page, vc);
         return;
       }
-      final maxRetries = defaultTargetPlatform == TargetPlatform.iOS ? 4 : 2;
+      final maxRetries = PlaybackSurfacePolicy.shortStallMaxRetries(
+        platform: defaultTargetPlatform,
+      );
       if (_stallWatchdogRetries >= maxRetries) return;
       _stallWatchdogRetries++;
       try {
@@ -1642,11 +1670,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
             ? _cachedShorts[page].docID
             : '';
         final shouldRecoverFrozenPlayback =
-            defaultTargetPlatform == TargetPlatform.iOS &&
-                value.hasRenderedFirstFrame &&
-                !value.isCompleted &&
-                (_stallWatchdogRetries > 1 ||
-                    value.position >= const Duration(milliseconds: 2500));
+            PlaybackSurfacePolicy.shouldRecoverFrozenShortOnStall(
+          platform: defaultTargetPlatform,
+          hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+          isCompleted: value.isCompleted,
+          stallRetryCount: _stallWatchdogRetries,
+          position: value.position,
+        );
         _recordShortPlaybackDispatch(
           'short_stall_recovery_play',
           docId: docId,
@@ -1660,10 +1690,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
         );
         _applyShortPlaybackPresentation(page, vc);
         final shouldHardRestartShort =
-            defaultTargetPlatform == TargetPlatform.iOS &&
-                _stallWatchdogRetries > 1 &&
-                value.position > Duration.zero &&
-                value.position < const Duration(milliseconds: 2000);
+            PlaybackSurfacePolicy.shouldHardRestartShortAfterStall(
+          platform: defaultTargetPlatform,
+          stallRetryCount: _stallWatchdogRetries,
+          position: value.position,
+        );
         if (shouldHardRestartShort) {
           try {
             await vc.seekTo(Duration.zero);

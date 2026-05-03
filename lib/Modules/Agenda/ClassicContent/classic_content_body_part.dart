@@ -581,8 +581,11 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                     isProfileFamilySurface,
                             startupRecoveryWatchdogEnabled:
                                 shouldEnableStartupRecoveryWatchdog,
-                            preferStableStartupBuffer: GetPlatform.isIOS &&
-                                isFeedStyleInlineSurface,
+                            preferStableStartupBuffer: PlaybackSurfacePolicy
+                                .preferStableFeedStartupBuffer(
+                              platform: defaultTargetPlatform,
+                              isFeedStyleSurface: isFeedStyleInlineSurface,
+                            ),
                           ),
                   ),
                   // Thumbnail overlay - video hazır olana kadar göster

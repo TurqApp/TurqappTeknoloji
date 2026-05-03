@@ -8,6 +8,7 @@ import '../../../Models/posts_model.dart';
 import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../../Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import '../../../Core/Services/feed_diversity_memory_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
@@ -188,10 +189,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       ValueNotifier(const HLSVideoValue());
   static const Duration _stableFramePositionThreshold =
       Duration(milliseconds: 180);
-  static const Duration _autoplaySegmentGateTimeout =
-      Duration(milliseconds: 950);
-  static const Duration _autoplaySegmentGatePollInterval =
-      Duration(milliseconds: 80);
   static const Duration _surfaceKeepAliveDebounce = Duration(milliseconds: 320);
   static const Duration _resumeSurfaceKeepAliveDebounce =
       Duration(milliseconds: 720);
@@ -256,13 +253,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// 🎯 INSTAGRAM STYLE: Buffer BEKLEMEDEN direkt oynat
   bool get enableBufferedAutoplay => false;
 
-  bool get _usesAggressiveAndroidFeedBufferProfile =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      _isFeedStyleInlineSurfaceInstance;
-
   double? get _preferredBufferDurationSecondsForCurrentSurface {
-    if (!_usesAggressiveAndroidFeedBufferProfile) return null;
-    return widget.shouldPlay ? 0.75 : 0.45;
+    return PlaybackSurfacePolicy.feedPreferredBufferDurationSeconds(
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _isFeedStyleInlineSurfaceInstance,
+      shouldPlay: widget.shouldPlay,
+    );
   }
 
   double get bufferedAutoplayThreshold => 0.10;
@@ -335,13 +331,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _usesFeedPlaybackPolicy => _isFeedStyleInlineSurfaceInstance;
 
   bool get _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition {
-    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!_usesFeedPlaybackPolicy) return false;
-    if (agendaController.playbackSuspended.value) return true;
-    if (agendaController.centeredIndex.value != -1) return false;
-    final modelIndex = _surfaceModelIndex();
-    if (modelIndex < 0) return false;
-    return agendaController.lastCenteredIndex == modelIndex;
+    return PlaybackSurfacePolicy.shouldPreserveIosFeedPlaybackForResumeTransition(
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _usesFeedPlaybackPolicy,
+      playbackSuspended: agendaController.playbackSuspended.value,
+      centeredIndex: agendaController.centeredIndex.value,
+      modelIndex: _surfaceModelIndex(),
+      lastCenteredIndex: agendaController.lastCenteredIndex,
+    );
   }
 
   void _recordVisibleViewIfNeeded() {
@@ -393,10 +390,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final modelIndex = _surfaceModelIndex();
     if (modelIndex < 0) return false;
     final warmTier = _resolvePrimaryFeedNativeWarmTier(modelIndex: modelIndex);
+    final value = _videoAdapter?.value ?? const HLSVideoValue();
+    final hasResumeHint = _hasResumePositionHint(
+      value,
+      threshold: _stableFramePositionThreshold,
+    );
+    final keepAlive = PlaybackSurfacePolicy.shouldKeepFeedSurfaceAliveInWarmWindow(
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _usesFeedPlaybackPolicy,
+      adapterBound: _videoAdapter != null,
+      hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+      hasResumeHint: hasResumeHint,
+      isStrongWarmTier: warmTier == _FeedNativeWarmTier.strong,
+      isCacheOnlyWarmTier: warmTier == _FeedNativeWarmTier.cacheOnly,
+    );
     if (defaultTargetPlatform == TargetPlatform.android) {
-      final keepAlive = _videoAdapter != null &&
-          (warmTier == _FeedNativeWarmTier.strong ||
-              warmTier == _FeedNativeWarmTier.cacheOnly);
       debugPrint(
         '[FeedSurfaceDecision] stage=warm_window '
         'doc=${widget.model.docID} keepAlive=$keepAlive '
@@ -404,21 +412,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         'previousCentered=${_surfacePreviousCenteredIndex()} '
         'warmTier=${warmTier.name} adapterBound=${_videoAdapter != null}',
       );
-      return keepAlive;
     }
-    final value = _videoAdapter?.value ?? const HLSVideoValue();
-    if (!value.hasRenderedFirstFrame) return false;
-    final hasResumeHint = _hasResumePositionHint(
-      value,
-      threshold: _stableFramePositionThreshold,
-    );
-    if (!hasResumeHint) return false;
-    return warmTier == _FeedNativeWarmTier.strong;
+    return keepAlive;
   }
 
   bool get _shouldKeepIosPrimaryFeedSurfaceAliveForBackScroll =>
-      defaultTargetPlatform == TargetPlatform.iOS &&
-      _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
+      PlaybackSurfacePolicy.shouldKeepIosFeedSurfaceAliveForBackScroll(
+        platform: defaultTargetPlatform,
+        keepPrimaryFeedSurfaceAliveInWarmWindow:
+            _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow,
+      );
 
   bool get _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind =>
       defaultTargetPlatform == TargetPlatform.android &&
@@ -650,8 +653,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (delta == 0) {
       return _FeedNativeWarmTier.strong;
     }
-    if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _usesFeedPlaybackPolicy) {
+    if (PlaybackSurfacePolicy.shouldDisableDirectionalFeedNativeWarmTier(
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _usesFeedPlaybackPolicy,
+    )) {
       return _FeedNativeWarmTier.off;
     }
     final previous = previousCenteredIndex ?? centeredIndex;
@@ -662,7 +667,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         defaultTargetPlatform == TargetPlatform.android &&
             _usesFeedPlaybackPolicy;
     final strongAheadCount = isAndroidPrimaryFeed
-        ? (CacheNetworkPolicy.isOnCellular ? 2 : 5)
+        ? PlaybackSurfacePolicy.feedNativeStrongAheadCount(
+            platform: defaultTargetPlatform,
+            isFeedStyleSurface: _usesFeedPlaybackPolicy,
+            isOnCellular: CacheNetworkPolicy.isOnCellular,
+            defaultCount: _feedStrongAheadCount,
+          )
         : _feedStrongAheadCount;
     final strongOppositeCount = isAndroidPrimaryFeed
         ? _androidPrimaryFeedNativeStrongOppositeCount
@@ -685,21 +695,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   bool get _shouldPreloadWarmController {
-    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-    final isIosPrimaryFeed = defaultTargetPlatform == TargetPlatform.iOS &&
-        _usesFeedPlaybackPolicy;
-    if (!isAndroid && !isIosPrimaryFeed) return false;
-    if (isIosPrimaryFeed) {
-      return false;
-    }
-    final isSupportedSurface = _usesFeedPlaybackPolicy;
-    if (!isSupportedSurface) return false;
-    if (!widget.model.hasPlayableVideo) return false;
-    if (widget.shouldPlay) return false;
-    if (!_isSurfacePlaybackAllowed) return false;
-    if (isAndroid &&
-        _isPrimaryFeedSurfaceInstance &&
-        !_isCenteredFeedWarmPreloadAnchorReady) {
+    final isAllowedByPolicy =
+        PlaybackSurfacePolicy.shouldAllowFeedWarmControllerPreload(
+          platform: defaultTargetPlatform,
+          isFeedStyleSurface: _usesFeedPlaybackPolicy,
+          shouldPlay: widget.shouldPlay,
+          surfacePlaybackAllowed: _isSurfacePlaybackAllowed,
+          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+          centeredWarmAnchorReady: _isCenteredFeedWarmPreloadAnchorReady,
+          hasPlayableVideo: widget.model.hasPlayableVideo,
+        );
+    if (!isAllowedByPolicy) {
       return false;
     }
     if (_usesFeedPlaybackPolicy) {
@@ -723,7 +729,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
     if (playableDistance == null || playableDistance <= 0) return false;
     final maxAheadPlayableCount = _usesFeedPlaybackPolicy
-        ? (CacheNetworkPolicy.isOnCellular ? 2 : 5)
+        ? PlaybackSurfacePolicy.feedNativeWarmAheadPlayableCount(
+            platform: defaultTargetPlatform,
+            isFeedStyleSurface: _usesFeedPlaybackPolicy,
+            isOnCellular: CacheNetworkPolicy.isOnCellular,
+            defaultCount: _androidProfileWarmPlayerAheadVideoCount,
+          )
         : _androidProfileWarmPlayerAheadVideoCount;
     return playableDistance <= maxAheadPlayableCount;
   }
@@ -774,9 +785,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   bool get _useLegacyIosFeedBehavior =>
-      defaultTargetPlatform == TargetPlatform.iOS &&
-      !isStandalonePostInstance &&
-      !_isFeedStyleInlineSurfaceInstance;
+      PlaybackSurfacePolicy.useLegacyIosFeedBehavior(
+        platform: defaultTargetPlatform,
+        isStandalonePostInstance: isStandalonePostInstance,
+        isFeedStyleSurface: _isFeedStyleInlineSurfaceInstance,
+      );
 
   bool get _isReplayOverlayEnabled =>
       !isStandalonePostInstance && !_useLegacyIosFeedBehavior;
@@ -1075,17 +1088,19 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     String? source,
   }) {
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return !_usesFeedPlaybackPolicy;
-    }
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
-    if (!_usesFeedPlaybackPolicy) return false;
-    if (_isExplicitResumeRecoveryContext(value, source: source)) return false;
-    if (!isStartupCacheOriginVideo) return false;
     final modelIndex = agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
-    return modelIndex == 0;
+    return PlaybackSurfacePolicy.shouldBypassSavedResumeHintForPrimaryFeed(
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _usesFeedPlaybackPolicy,
+      isExplicitResumeRecoveryContext: _isExplicitResumeRecoveryContext(
+        value,
+        source: source,
+      ),
+      isStartupCacheOriginVideo: isStartupCacheOriginVideo,
+      modelIndex: modelIndex,
+    );
   }
 
   bool _isExplicitResumeRecoveryContext(

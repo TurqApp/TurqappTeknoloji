@@ -273,8 +273,13 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:
-                                                      GetPlatform.isIOS &&
-                                                          isFeedStyleInlineSurface,
+                                                      PlaybackSurfacePolicy
+                                                          .preferStableFeedStartupBuffer(
+                                                        platform:
+                                                            defaultTargetPlatform,
+                                                        isFeedStyleSurface:
+                                                            isFeedStyleInlineSurface,
+                                                      ),
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
-import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'hls_controller.dart';
 import 'hls_player.dart';

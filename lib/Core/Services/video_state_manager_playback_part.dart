@@ -363,12 +363,21 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           handle is HLSAdapterPlaybackHandle ? handle.adapter : null;
       final adapterValue = hlsAdapterHandle?.value;
       final hlsHandleAlreadyActivating = adapterValue != null &&
-          (adapterValue.isPlaying ||
-              adapterValue.isBuffering ||
-              adapterValue.hasRenderedFirstFrame ||
-              adapterValue.position > Duration.zero);
+          (adapterValue.isPlaying || adapterValue.isBuffering);
+      final hlsActivationStalledAfterVisualReady = adapterValue != null &&
+          adapterValue.hasRenderedFirstFrame &&
+          !adapterValue.isPlaying &&
+          !adapterValue.isBuffering &&
+          !adapterValue.isCompleted;
+      final shouldForceResumeAfterVisualReady =
+          hlsActivationStalledAfterVisualReady ||
+          (adapterValue != null &&
+              adapterValue.position > Duration.zero &&
+              !adapterValue.isPlaying &&
+              !adapterValue.isBuffering &&
+              !adapterValue.isCompleted);
       if (!handle.isPlaying &&
-          !hasMeaningfulProgress &&
+          (!hasMeaningfulProgress || shouldForceResumeAfterVisualReady) &&
           !hlsHandleAlreadyActivating) {
         _playbackExecutionService.resumeHandle(handle);
       }

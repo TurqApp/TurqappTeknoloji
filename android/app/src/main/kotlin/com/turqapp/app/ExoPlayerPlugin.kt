@@ -130,6 +130,11 @@ class ExoPlayerPlugin private constructor(
                 view!!.setLoop(loop)
                 result.success(null)
             }
+            "setAutoplayIntent" -> {
+                val autoPlay = args?.get("autoPlay") as? Boolean ?: false
+                view!!.setAutoplayIntent(autoPlay)
+                result.success(null)
+            }
             "getCurrentTime" -> {
                 result.success(view!!.getCurrentTime())
             }

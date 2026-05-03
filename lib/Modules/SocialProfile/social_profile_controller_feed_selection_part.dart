@@ -554,30 +554,10 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
   }
 
   int _profileReadySegmentsForPlayableOffset(int playableOffset) {
-    if (_performUsesTightCellularWarmProfile) {
-      return StartupPreloadPolicy.warmReadySegmentsForOffset(
-        playableOffset,
-        isAndroid: GetPlatform.isAndroid,
-        isOnCellular: true,
-      );
-    }
-    if (!isOwnProfile) {
-      return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
-    }
-    switch (playableOffset) {
-      case 0:
-        return 3;
-      case 1:
-        return 3;
-      case 2:
-      case 3:
-        return 2;
-      case 4:
-      case 5:
-      case 6:
-        return 1;
-      default:
-        return 0;
-    }
+    return StartupPreloadPolicy.warmReadySegmentsForOffset(
+      playableOffset,
+      isAndroid: GetPlatform.isAndroid,
+      isOnCellular: _performUsesTightCellularWarmProfile,
+    );
   }
 }

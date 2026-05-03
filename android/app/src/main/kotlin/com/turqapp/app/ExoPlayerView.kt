@@ -884,6 +884,19 @@ class ExoPlayerView(
         player?.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
+    fun setAutoplayIntent(autoPlay: Boolean) {
+        val p = player ?: return
+        if (autoPlay) {
+            startupRecoveryAttempts = 0
+            p.playWhenReady = true
+            if (p.playbackState == Player.STATE_READY) {
+                p.play()
+            }
+        } else {
+            p.playWhenReady = false
+        }
+    }
+
     fun getCurrentTime(): Double {
         return (player?.currentPosition ?: 0L) / 1000.0
     }

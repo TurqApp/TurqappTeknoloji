@@ -74,7 +74,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
         _buildFullscreenVideoSurface(
           injected,
           'injected-${shorts[idx].docID}-${injected.hashCode}',
-          overrideAutoPlay: false,
+          overrideAutoPlay: idx == currentPage,
           modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
           preferResumePosterOverride: preferResumePoster,
         ),

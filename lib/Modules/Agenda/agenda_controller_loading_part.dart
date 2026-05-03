@@ -222,7 +222,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     List<PostsModel> posts, {
     int limit = _startupWarmPreloadVideoCount,
   }) {
-    if (!GetPlatform.isAndroid || posts.isEmpty || limit <= 0) {
+    if (!PlaybackSurfacePolicy.shouldUseFeedStartupWarmPreload(
+          platform: defaultTargetPlatform,
+        ) ||
+        posts.isEmpty ||
+        limit <= 0) {
       return const <PostsModel>[];
     }
     return posts
@@ -445,7 +449,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     required String reason,
   }) {
     _cancelStartupWarmPlayerPreload();
-    if (GetPlatform.isIOS) {
+    if (!PlaybackSurfacePolicy.shouldUseFeedStartupWarmPreload(
+      platform: defaultTargetPlatform,
+    )) {
       debugPrint(
         '[FeedStartupWarmPreload] status=skip_ios_hidden_preload reason=$reason',
       );
@@ -589,7 +595,9 @@ extension AgendaControllerLoadingPart on AgendaController {
         'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
       );
       _ensureFeedPlaybackForIndex(targetIndex);
-      if (GetPlatform.isIOS) {
+      if (PlaybackSurfacePolicy.shouldScheduleFeedRefreshPlaybackReassert(
+        platform: defaultTargetPlatform,
+      )) {
         _schedulePlaybackReassert(
           index: targetIndex,
           docId: targetPost.docID,
@@ -604,8 +612,11 @@ extension AgendaControllerLoadingPart on AgendaController {
     Future<void>.delayed(const Duration(milliseconds: 16), () {
       attemptRefreshPlaybackKick('delayed_16ms');
     });
-    if (GetPlatform.isIOS) {
-      Future<void>.delayed(const Duration(milliseconds: 120), () {
+    final extraKickDelay = PlaybackSurfacePolicy.feedRefreshPlaybackExtraKickDelay(
+      platform: defaultTargetPlatform,
+    );
+    if (extraKickDelay != null) {
+      Future<void>.delayed(extraKickDelay, () {
         attemptRefreshPlaybackKick('delayed_120ms');
       });
     }
@@ -724,7 +735,10 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _performResetSurfaceForTabTransition() {
     final preservedPendingDocId = _pendingCenteredDocId?.trim() ?? '';
     final shouldPreserveIosResumeAnchor =
-        GetPlatform.isIOS && preservedPendingDocId.isNotEmpty;
+        PlaybackSurfacePolicy.shouldPreserveFeedPendingResumeAnchorOnTabReset(
+      platform: defaultTargetPlatform,
+      hasPendingDocId: preservedPendingDocId.isNotEmpty,
+    );
     _feedMutationEpoch++;
     _cancelStartupWarmPlayerPreload();
     _cancelDeferredInitialNetworkBootstrap();

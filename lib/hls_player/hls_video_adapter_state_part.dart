@@ -2,8 +2,10 @@ part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
   bool get _shouldPreferDirectCdnOnPrimaryFeed =>
-      defaultTargetPlatform == TargetPlatform.android &&
-      _isPrimaryFeedSurface;
+      PlaybackSurfacePolicy.preferDirectCdnForFeed(
+        platform: defaultTargetPlatform,
+        isPrimaryFeedSurface: _isPrimaryFeedSurface,
+      );
 
   void _performRefreshProxyUrlIfNeeded() {
     final next = _shouldPreferDirectCdnOnPrimaryFeed

@@ -4,7 +4,11 @@ extension AgendaControllerPlaybackPart on AgendaController {
   bool _retainVisibleCurrentFeedOwner({
     required double stopThreshold,
   }) {
-    if (!GetPlatform.isIOS) return false;
+    if (!PlaybackSurfacePolicy.supportsFeedVisibleOwnerRetention(
+      platform: defaultTargetPlatform,
+    )) {
+      return false;
+    }
     if (_qaScrollStartedAt != null) {
       return false;
     }
@@ -38,7 +42,11 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required int current,
     required double stopThreshold,
   }) {
-    if (!GetPlatform.isIOS) return false;
+    if (!PlaybackSurfacePolicy.supportsFeedStartupTargetRetention(
+      platform: defaultTargetPlatform,
+    )) {
+      return false;
+    }
     if (_qaScrollStartedAt != null) {
       return false;
     }
@@ -183,7 +191,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
 
     if (targetIndex >= 0 && targetIndex < agendaList.length) {
       final now = DateTime.now();
-      if (GetPlatform.isIOS &&
+      if (PlaybackSurfacePolicy.supportsFeedSwitchRetention(
+            platform: defaultTargetPlatform,
+          ) &&
           current >= 0 &&
           current < agendaList.length &&
           current != targetIndex &&

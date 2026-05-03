@@ -299,6 +299,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         isLooping = loop
     }
 
+    func setAutoplayIntent(_ autoPlay: Bool) {
+        isAutoPlay = autoPlay
+        if !autoPlay {
+            autoplayRequestWorkItem?.cancel()
+            return
+        }
+        didRequestInitialPlay = false
+        requestAutoplayIfNeeded(force: true)
+    }
+
     func getCurrentTime() -> Double {
         return player?.currentTime().seconds ?? 0.0
     }

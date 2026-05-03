@@ -169,9 +169,11 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           );
         }
         final shouldStopRuntimeHandle =
-            !shouldKeepAndroidSurfaceAlive &&
-            !(defaultTargetPlatform == TargetPlatform.iOS &&
-                _isPrimaryFeedSurfaceInstance);
+            !PlaybackSurfacePolicy.shouldKeepFeedRuntimeHandleOnPause(
+              platform: defaultTargetPlatform,
+              isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+              keepAndroidSurfaceAlive: shouldKeepAndroidSurfaceAlive,
+            );
         if (shouldStopRuntimeHandle) {
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _isPrimaryFeedSurfaceInstance) {
@@ -200,24 +202,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _safePauseVideo();
           return;
         }
-        if (defaultTargetPlatform == TargetPlatform.android &&
-            (_isPrimaryFeedSurfaceInstance || _isFloodSurfaceInstance)) {
+        if (PlaybackSurfacePolicy.shouldDisposeFeedPlaybackForSurfaceLoss(
+          platform: defaultTargetPlatform,
+          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+          isFloodSurface: _isFloodSurfaceInstance,
+        )) {
           unawaited(
             _disposePlaybackForSurfaceLoss(
               clearSavedState: _isFloodSurfaceInstance,
-            ),
-          );
-          return;
-        }
-        if (defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance) {
-          unawaited(_disposePlaybackForSurfaceLoss());
-          return;
-        }
-        if (_isFloodSurfaceInstance) {
-          unawaited(
-            _disposePlaybackForSurfaceLoss(
-              clearSavedState: true,
             ),
           );
           return;
@@ -244,8 +236,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_push_next',
     );
-    if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _isPrimaryFeedSurfaceInstance) {
+    if (PlaybackSurfacePolicy.shouldSuspendFeedPlaybackForOverlay(
+      platform: defaultTargetPlatform,
+      isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+    )) {
       agendaController.suspendPlaybackForOverlay();
       return;
     }
@@ -289,8 +283,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;
     const replayAdWarmupLead = Duration(seconds: 2);
-    final replayAdWarmupTarget =
-        defaultTargetPlatform == TargetPlatform.iOS ? 4 : 3;
+    final replayAdWarmupTarget = PlaybackSurfacePolicy.replayAdWarmupTarget(
+      platform: defaultTargetPlatform,
+      defaultTarget: 3,
+    );
 
     if (_isReplayOverlayEnabled &&
         !_replayAdPrewarmed &&
@@ -385,9 +381,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
 
     final disableDartRecoveryForPlatformPrimaryFeed =
-        _isPrimaryFeedSurfaceInstance &&
-            (defaultTargetPlatform == TargetPlatform.iOS ||
-                defaultTargetPlatform == TargetPlatform.android);
+        PlaybackSurfacePolicy.shouldDisableDartRecoveryForPrimaryFeed(
+      platform: defaultTargetPlatform,
+      isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+    );
     final shouldRecoverPlayback = !disableDartRecoveryForPlatformPrimaryFeed &&
         !_useLegacyIosFeedBehavior &&
         widget.shouldPlay &&

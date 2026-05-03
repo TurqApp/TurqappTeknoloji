@@ -74,9 +74,13 @@ class _HLSPlayerState extends State<HLSPlayer> {
     }
 
     if (oldWidget.autoPlay != widget.autoPlay &&
-        _isInitialized &&
-        !widget.autoPlay) {
-      widget.controller.cancelPendingResume();
+        _isInitialized) {
+      if (Platform.isIOS) {
+        unawaited(widget.controller.updateAutoplayIntent(widget.autoPlay));
+      }
+      if (!widget.autoPlay) {
+        widget.controller.cancelPendingResume();
+      }
     }
 
     if (oldWidget.preferResumePoster != widget.preferResumePoster) {

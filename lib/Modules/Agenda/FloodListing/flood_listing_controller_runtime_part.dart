@@ -12,23 +12,31 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   static const int _floodRouteEntryQueuePlayableCount = 4;
 
   int get _floodFocusedQueuePlayableCountForCurrentPlatform {
-    if (!GetPlatform.isIOS) return _floodFocusedQueuePlayableCount;
-    return _floodFocusedQueuePlayableCount + 1;
+    return PlaybackSurfacePolicy.floodFocusedQueuePlayableCount(
+      platform: defaultTargetPlatform,
+      defaultCount: _floodFocusedQueuePlayableCount,
+    );
   }
 
   int get _floodPlayableStrongReadyCountForCurrentPlatform {
-    if (!GetPlatform.isIOS) return _floodPlayableStrongReadyCount;
-    return _floodPlayableStrongReadyCount + 1;
+    return PlaybackSurfacePolicy.floodStrongReadyCount(
+      platform: defaultTargetPlatform,
+      defaultCount: _floodPlayableStrongReadyCount,
+    );
   }
 
   int get _floodRouteEntryStrongReadyCountForCurrentPlatform {
-    if (!GetPlatform.isIOS) return _floodRouteEntryStrongReadyCount;
-    return _floodRouteEntryStrongReadyCount + 1;
+    return PlaybackSurfacePolicy.floodRouteEntryStrongReadyCount(
+      platform: defaultTargetPlatform,
+      defaultCount: _floodRouteEntryStrongReadyCount,
+    );
   }
 
   int get _floodRouteEntryQueuePlayableCountForCurrentPlatform {
-    if (!GetPlatform.isIOS) return _floodRouteEntryQueuePlayableCount;
-    return _floodRouteEntryQueuePlayableCount + 1;
+    return PlaybackSurfacePolicy.floodRouteEntryQueuePlayableCount(
+      platform: defaultTargetPlatform,
+      defaultCount: _floodRouteEntryQueuePlayableCount,
+    );
   }
 
   void _rebuildPlayableFloodQueueMetadata() {

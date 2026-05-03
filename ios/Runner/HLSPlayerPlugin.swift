@@ -77,6 +77,9 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         case "setLoop":
             handleSetLoop(args: args, viewId: viewId, result: result)
 
+        case "setAutoplayIntent":
+            handleSetAutoplayIntent(args: args, viewId: viewId, result: result)
+
         case "getCurrentTime":
             handleGetCurrentTime(viewId: viewId, result: result)
 
@@ -222,6 +225,21 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         }
 
         playerView.setLoop(loop)
+        result(nil)
+    }
+
+    private func handleSetAutoplayIntent(args: [String: Any], viewId: Int64, result: FlutterResult) {
+        guard let playerView = playerViews[viewId],
+              let autoPlay = args["autoPlay"] as? Bool else {
+            result(FlutterError(
+                code: "INVALID_ARGUMENTS",
+                message: "AutoPlay parameter is required",
+                details: nil
+            ))
+            return
+        }
+
+        playerView.setAutoplayIntent(autoPlay)
         result(nil)
     }
 

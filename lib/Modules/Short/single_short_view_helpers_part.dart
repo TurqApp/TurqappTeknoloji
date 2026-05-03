@@ -580,8 +580,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
-      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android,
+      preferStableStartupBuffer:
+          PlaybackSurfacePolicy.preferStableShortStartupBuffer(
+        platform: defaultTargetPlatform,
+      ),
     );
 
     if (ar > 1.2) {

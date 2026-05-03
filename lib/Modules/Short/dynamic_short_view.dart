@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
@@ -236,8 +237,10 @@ class DynamicShortViewState extends State<DynamicShortView> {
               SizedBox.expand(
                 child: ctrl.buildPlayer(
                   preferWarmPoolPauseOnAndroid: true,
-                  preferStableStartupBuffer:
-                      defaultTargetPlatform == TargetPlatform.android,
+                  preferStableStartupBuffer: PlaybackSurfacePolicy
+                      .preferStableDynamicShortStartupBuffer(
+                    platform: defaultTargetPlatform,
+                  ),
                 ),
               ),
               AnimatedBuilder(

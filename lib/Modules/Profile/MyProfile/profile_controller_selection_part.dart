@@ -538,14 +538,11 @@ extension ProfileControllerSelectionPart on ProfileController {
   }
 
   int _profileReadySegmentsForPlayableOffset(int playableOffset) {
-    if (_performUsesTightCellularWarmProfile) {
-      return StartupPreloadPolicy.warmReadySegmentsForOffset(
-        playableOffset,
-        isAndroid: GetPlatform.isAndroid,
-        isOnCellular: true,
-      );
-    }
-    return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
+    return StartupPreloadPolicy.warmReadySegmentsForOffset(
+      playableOffset,
+      isAndroid: GetPlatform.isAndroid,
+      isOnCellular: _performUsesTightCellularWarmProfile,
+    );
   }
 
   GlobalKey _performGetPostKey({

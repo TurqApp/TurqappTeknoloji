@@ -133,6 +133,7 @@ extension ShortViewUiPart on _ShortViewState {
     HLSVideoAdapter adapter,
     String keyId, {
     double? modelAspectRatio,
+    bool overrideAutoPlay = false,
     bool preferResumePoster = false,
   }) {
     final ar = (modelAspectRatio != null && modelAspectRatio > 0)
@@ -142,12 +143,15 @@ extension ShortViewUiPart on _ShortViewState {
     final player = adapter.buildPlayer(
       key: ValueKey(keyId),
       useAspectRatio: false,
+      overrideAutoPlay: overrideAutoPlay,
       forceFullscreenOnAndroid: true,
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
       preferResumePoster: preferResumePoster,
-      preferStableStartupBuffer: defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android,
+      preferStableStartupBuffer:
+          PlaybackSurfacePolicy.preferStableShortStartupBuffer(
+        platform: defaultTargetPlatform,
+      ),
     );
 
     if (ar > 1.2) {
@@ -277,6 +281,10 @@ extension ShortViewUiPart on _ShortViewState {
                           vp,
                           'vp-${post.docID}',
                           modelAspectRatio: modelAr,
+                          overrideAutoPlay:
+                              isActivePage &&
+                              _isShortRoutePlaybackActive &&
+                              !isManuallyPaused,
                           preferResumePoster: isActivePage &&
                               _shouldPreferResumePosterForPage(
                                 organicIndex,

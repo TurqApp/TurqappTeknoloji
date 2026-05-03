@@ -150,6 +150,18 @@ class HLSController {
     _pendingReattachShouldPlay = false;
   }
 
+  Future<void> updateAutoplayIntent(bool autoPlay) async {
+    if (_isInactive || _viewId == null) return;
+    try {
+      await _methodChannel.invokeMethod('setAutoplayIntent', {
+        'viewId': _viewId,
+        'autoPlay': autoPlay,
+      });
+    } on PlatformException {
+      return;
+    }
+  }
+
   void _emitState(PlayerState state) {
     if (_isInactive || _stateController.isClosed) return;
     _stateController.add(state);

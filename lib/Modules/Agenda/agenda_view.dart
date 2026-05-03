@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:turqappv2/Core/Services/chat_navigation_service.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
@@ -315,7 +317,10 @@ class _FeedStartupWarmPreloadSlotState
           overrideAutoPlay: true,
           isPrimaryFeedSurface: true,
           suppressLoadingOverlay: true,
-          preferStableStartupBuffer: GetPlatform.isIOS,
+          preferStableStartupBuffer:
+              PlaybackSurfacePolicy.preferStableFeedStartupWarmBuffer(
+            platform: defaultTargetPlatform,
+          ),
         ),
       ),
     );

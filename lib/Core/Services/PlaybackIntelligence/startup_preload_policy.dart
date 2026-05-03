@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart' show TargetPlatform;
+
+import 'playback_surface_policy.dart';
+
 class StartupPreloadPolicy {
   const StartupPreloadPolicy._();
 
@@ -37,7 +41,9 @@ class StartupPreloadPolicy {
     required bool isAndroid,
     required bool isOnCellular,
   }) {
-    return isAndroid;
+    return PlaybackSurfacePolicy.useTightAndroidWarmProfile(
+      platform: isAndroid ? TargetPlatform.android : TargetPlatform.iOS,
+    );
   }
 
   static int warmReadySegmentsForOffset(
@@ -45,6 +51,7 @@ class StartupPreloadPolicy {
     required bool isAndroid,
     required bool isOnCellular,
   }) {
+    final platform = isAndroid ? TargetPlatform.android : TargetPlatform.iOS;
     if (useTightCellularWarmProfile(
       isAndroid: isAndroid,
       isOnCellular: isOnCellular,
@@ -52,9 +59,21 @@ class StartupPreloadPolicy {
       if (playableOffset <= 0) {
         return activeReadySegments;
       }
-      return playableOffset <= (isOnCellular ? 3 : 5) ? 1 : 0;
+      final limit = PlaybackSurfacePolicy.feedWarmFirstSegmentAheadCount(
+        platform: platform,
+        isFeedStyleSurface: true,
+        isOnCellular: isOnCellular,
+        defaultCount: aheadFirstSegmentCount,
+      );
+      return playableOffset <= limit ? 1 : 0;
     }
-    return readySegmentsForAheadOffset(playableOffset);
+    final baseReadySegments = readySegmentsForAheadOffset(playableOffset);
+    if (platform == TargetPlatform.iOS && playableOffset <= 2) {
+      return baseReadySegments > neighborReadySegments
+          ? baseReadySegments
+          : neighborReadySegments;
+    }
+    return baseReadySegments;
   }
 
   static int startupWarmReadySegmentsForRank(
@@ -66,7 +85,12 @@ class StartupPreloadPolicy {
       isAndroid: isAndroid,
       isOnCellular: isOnCellular,
     )) {
-      return playableRank < (isOnCellular ? 4 : 6) ? 1 : 0;
+      final limit = PlaybackSurfacePolicy.feedStartupWarmPlayableCount(
+        platform: isAndroid ? TargetPlatform.android : TargetPlatform.iOS,
+        isOnCellular: isOnCellular,
+        defaultCount: startupWarmCount,
+      );
+      return playableRank < limit ? 1 : 0;
     }
     return startupReadySegmentsForRank(playableRank);
   }
@@ -80,7 +104,11 @@ class StartupPreloadPolicy {
       isAndroid: isAndroid,
       isOnCellular: isOnCellular,
     )) {
-      return isOnCellular ? 4 : 6;
+      return PlaybackSurfacePolicy.feedStartupWarmPlayableCount(
+        platform: isAndroid ? TargetPlatform.android : TargetPlatform.iOS,
+        isOnCellular: isOnCellular,
+        defaultCount: defaultCount,
+      );
     }
     return defaultCount;
   }
