@@ -252,8 +252,8 @@ extension ProfileControllerHeaderPart on ProfileController {
 
   Map<String, dynamic> _encodeProfileStartupHeader() {
     final payload = <String, dynamic>{
-      'followerCount': followerCount.value,
-      'followingCount': followingCount.value,
+      'counterOfFollowers': followerCount.value,
+      'counterOfFollowings': followingCount.value,
       'headerNickname': headerNickname.value.trim(),
       'headerRozet': headerRozet.value.trim(),
       'headerDisplayName': headerDisplayName.value.trim(),
@@ -314,11 +314,13 @@ extension ProfileControllerHeaderPart on ProfileController {
     if (adres.isNotEmpty) {
       headerAdres.value = adres;
     }
-    final nextFollowerCount = (header['followerCount'] as num?)?.toInt();
+    final nextFollowerCount =
+        (header['counterOfFollowers'] as num?)?.toInt();
     if (nextFollowerCount != null && nextFollowerCount > 0) {
       followerCount.value = nextFollowerCount;
     }
-    final nextFollowingCount = (header['followingCount'] as num?)?.toInt();
+    final nextFollowingCount =
+        (header['counterOfFollowings'] as num?)?.toInt();
     if (nextFollowingCount != null && nextFollowingCount > 0) {
       followingCount.value = nextFollowingCount;
     }

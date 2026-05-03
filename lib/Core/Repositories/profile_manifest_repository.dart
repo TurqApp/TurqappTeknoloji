@@ -456,8 +456,8 @@ class ProfileManifestRepository extends GetxService {
       'bio': asTrimmedString(header['bio']),
       'adres': asTrimmedString(header['adres']),
       'meslekKategori': asTrimmedString(header['meslekKategori']),
-      'counterOfFollowers': header['followerCount'] ?? 0,
-      'counterOfFollowings': header['followingCount'] ?? 0,
+      'counterOfFollowers': header['counterOfFollowers'] ?? 0,
+      'counterOfFollowings': header['counterOfFollowings'] ?? 0,
     };
   }
 

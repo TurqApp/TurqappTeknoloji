@@ -94,8 +94,7 @@ extension _ChatControllerConversationX on ChatController {
 
       followersCount.value = _asInt(data["counterOfFollowers"]);
       followingCount.value = _asInt(data["counterOfFollowings"]);
-      postCount.value =
-          _asInt(data["postCount"] ?? data["gonderi"] ?? data["postsCount"]);
+      postCount.value = _asInt(data["counterOfPosts"]);
     } catch (_) {}
   }
 

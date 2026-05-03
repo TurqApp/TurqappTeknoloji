@@ -210,17 +210,9 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
         ? (raw['displayName'] ?? scoped['displayName'] ?? '').toString().trim()
         : (fullNameParts.isNotEmpty ? fullNameParts : nickname);
     final avatarUrl = resolveAvatarUrl(raw, profile: scoped);
-    final followerCount = raw['followerCount'] ??
-        raw['counterOfFollowers'] ??
-        raw['followersCount'] ??
-        raw['takipci'] ??
-        0;
-    final followingCount = raw['followingCount'] ??
-        raw['counterOfFollowings'] ??
-        raw['takip'] ??
-        0;
-    final postCount =
-        raw['postCount'] ?? raw['counterOfPosts'] ?? raw['gonderi'] ?? 0;
+    final followerCount = raw['counterOfFollowers'] ?? 0;
+    final followingCount = raw['counterOfFollowings'] ?? 0;
+    final postCount = raw['counterOfPosts'] ?? 0;
 
     return <String, dynamic>{
       'userID': (raw['userID'] ?? '').toString(),
@@ -242,10 +234,9 @@ extension UserProfileCacheServiceStoragePart on UserProfileCacheService {
               scoped['badge'] ??
               '')
           .toString(),
-      'followerCount': followerCount,
-      'followersCount': followerCount,
-      'followingCount': followingCount,
-      'postCount': postCount,
+      'counterOfFollowers': followerCount,
+      'counterOfFollowings': followingCount,
+      'counterOfPosts': postCount,
       'isApproved': _asBool(raw['isApproved'] ?? scoped['isApproved']),
       'isPrivate': _asBool(raw['isPrivate'] ?? scoped['isPrivate']),
       'isDeleted': _asBool(raw['isDeleted'] ?? scoped['isDeleted']),

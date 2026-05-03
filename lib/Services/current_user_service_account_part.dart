@@ -323,27 +323,6 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
   Map<String, dynamic> _normalizeUserWriteFields(Map<String, dynamic> input) {
     final out = <String, dynamic>{...input};
 
-    void promoteAlias({
-      required String canonical,
-      required List<String> aliases,
-    }) {
-      if (out.containsKey(canonical)) {
-        for (final alias in aliases) {
-          if (out.containsKey(alias)) {
-            out[alias] = FieldValue.delete();
-          }
-        }
-        return;
-      }
-      for (final alias in aliases) {
-        if (out.containsKey(alias)) {
-          out[canonical] = out[alias];
-          out[alias] = FieldValue.delete();
-          break;
-        }
-      }
-    }
-
     void mapRootFields({
       required String scope,
       required List<String> keys,
@@ -378,20 +357,6 @@ extension CurrentUserServiceAccountPart on CurrentUserService {
       }
       out['account.fcmToken'] = FieldValue.delete();
     }
-
-    // Counter canonicalization (single source of truth: counterOf*)
-    promoteAlias(
-      canonical: 'counterOfFollowers',
-      aliases: const ['followerCount', 'takipciSayisi'],
-    );
-    promoteAlias(
-      canonical: 'counterOfFollowings',
-      aliases: const ['followingCount', 'takipEdilenSayisi'],
-    );
-    promoteAlias(
-      canonical: 'counterOfPosts',
-      aliases: const ['postCount', 'gonderSayisi'],
-    );
 
     // Move legacy root fields into scoped maps and remove root duplicates.
     mapRootFields(
