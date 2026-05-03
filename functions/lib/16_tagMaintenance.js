@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f16_pruneTagsCollection = exports.f16_reconcilePostTags = exports.f15_pruneTagsCollection = exports.f15_reconcilePostTags = exports.f16_syncPostTagsOnWrite = void 0;
+exports.f16_runTagReconcileTrigger = exports.f16_pruneTagsCollection = exports.f16_reconcilePostTags = exports.f15_pruneTagsCollection = exports.f15_reconcilePostTags = exports.f16_syncPostTagsOnWrite = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const firestore_2 = require("firebase-functions/v2/firestore");
@@ -16,7 +16,8 @@ function ensureAdmin() {
         (0, app_1.initializeApp)();
 }
 function normalizeTagRaw(tag) {
-    return String(tag || "").trim().toLocaleLowerCase("tr-TR");
+    const raw = String(tag || "").trim().toLocaleLowerCase("tr-TR");
+    return raw.startsWith("#") ? raw.slice(1) : raw;
 }
 function normalizeForCompare(s) {
     return (s || "")
@@ -215,20 +216,7 @@ async function fetchPosts(limit, cursor) {
     }
     return q.get();
 }
-exports.f15_reconcilePostTags = (0, https_1.onCall)({
-    region: REGION,
-    timeoutSeconds: 540,
-    memory: "1GiB",
-    enforceAppCheck: true,
-}, async (request) => {
-    ensureAdmin();
-    validateAuth(request);
-    const limit = Math.max(1, Math.min(300, Number(request.data?.limit || 100)));
-    const cursor = request.data?.cursor || undefined;
-    const dryRun = request.data?.dryRun === true;
-    const tagCfg = await (0, _04_tagSettings_1.getTagSettings)();
-    const snap = await fetchPosts(limit, cursor);
-    const posts = snap.docs;
+async function reconcilePostsBatch(posts, tagCfg, dryRun) {
     let scanned = 0;
     let updated = 0;
     let addedLinks = 0;
@@ -237,7 +225,9 @@ exports.f15_reconcilePostTags = (0, https_1.onCall)({
         scanned += 1;
         const data = doc.data();
         const postId = doc.id;
-        const desired = await desiredTagsFromPostData(data, tagCfg);
+        const desired = shouldKeepPostInTagIndex(data)
+            ? await desiredTagsFromPostData(data, tagCfg)
+            : [];
         const existing = await existingTagsForPost(postId);
         const desiredSet = new Set(desired);
         const existingSet = new Set(existing);
@@ -263,14 +253,80 @@ exports.f15_reconcilePostTags = (0, https_1.onCall)({
             await removeTagLinks(postId, toRemove);
         }
     }
-    const last = posts[posts.length - 1];
-    const nextCursor = last ? last.id : null;
-    const done = posts.length < limit;
     return {
         scanned,
         updated,
         addedLinks,
         removedLinks,
+    };
+}
+async function reconcilePostTagsRange(input) {
+    const db = (0, firestore_1.getFirestore)();
+    const limit = Math.max(1, Math.min(300, Number(input.limit || 100)));
+    const dryRun = input.dryRun === true;
+    const startTs = Math.max(0, Number(input.startTs || 0));
+    const endTs = Math.max(0, Number(input.endTs || 0));
+    const tagCfg = await (0, _04_tagSettings_1.getTagSettings)();
+    let lastDoc = null;
+    let scanned = 0;
+    let updated = 0;
+    let addedLinks = 0;
+    let removedLinks = 0;
+    while (true) {
+        let q = db.collection("Posts").orderBy("timeStamp").limit(limit);
+        if (startTs > 0) {
+            q = q.where("timeStamp", ">=", startTs);
+        }
+        if (endTs > 0) {
+            q = q.where("timeStamp", "<", endTs);
+        }
+        if (lastDoc) {
+            q = q.startAfter(lastDoc);
+        }
+        const snap = await q.get();
+        const posts = snap.docs;
+        if (!posts.length)
+            break;
+        const result = await reconcilePostsBatch(posts, tagCfg, dryRun);
+        scanned += result.scanned;
+        updated += result.updated;
+        addedLinks += result.addedLinks;
+        removedLinks += result.removedLinks;
+        lastDoc = posts[posts.length - 1];
+        if (posts.length < limit)
+            break;
+    }
+    return {
+        scanned,
+        updated,
+        addedLinks,
+        removedLinks,
+        done: true,
+    };
+}
+exports.f15_reconcilePostTags = (0, https_1.onCall)({
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+    enforceAppCheck: true,
+}, async (request) => {
+    ensureAdmin();
+    validateAuth(request);
+    const limit = Math.max(1, Math.min(300, Number(request.data?.limit || 100)));
+    const cursor = request.data?.cursor || undefined;
+    const dryRun = request.data?.dryRun === true;
+    const tagCfg = await (0, _04_tagSettings_1.getTagSettings)();
+    const snap = await fetchPosts(limit, cursor);
+    const posts = snap.docs;
+    const result = await reconcilePostsBatch(posts, tagCfg, dryRun);
+    const last = posts[posts.length - 1];
+    const nextCursor = last ? last.id : null;
+    const done = posts.length < limit;
+    return {
+        scanned: result.scanned,
+        updated: result.updated,
+        addedLinks: result.addedLinks,
+        removedLinks: result.removedLinks,
         nextCursor,
         done,
     };
@@ -353,4 +409,50 @@ exports.f15_pruneTagsCollection = (0, https_1.onCall)({
 // New numbered names (16_*) while keeping backward-compatible aliases (15_*).
 exports.f16_reconcilePostTags = exports.f15_reconcilePostTags;
 exports.f16_pruneTagsCollection = exports.f15_pruneTagsCollection;
+exports.f16_runTagReconcileTrigger = (0, firestore_2.onDocumentWritten)({
+    document: "adminConfig/tagReconcileTrigger",
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+}, async (event) => {
+    ensureAdmin();
+    const afterData = event.data?.after?.data();
+    const beforeData = event.data?.before?.data();
+    if (!afterData || afterData.run !== true)
+        return;
+    const requestId = String(afterData.requestId || "");
+    if (beforeData?.run === true &&
+        String(beforeData?.requestId || "") === requestId) {
+        return;
+    }
+    const ref = (0, firestore_1.getFirestore)().doc("adminConfig/tagReconcileTrigger");
+    await ref.set({
+        run: false,
+        status: "running",
+        startedAt: firestore_1.FieldValue.serverTimestamp(),
+        finishedAt: firestore_1.FieldValue.delete(),
+        error: firestore_1.FieldValue.delete(),
+    }, { merge: true });
+    try {
+        const result = await reconcilePostTagsRange({
+            limit: Number(afterData.limit || 100),
+            dryRun: afterData.dryRun === true,
+            startTs: Number(afterData.startTs || 0),
+            endTs: Number(afterData.endTs || 0),
+        });
+        await ref.set({
+            status: "done",
+            finishedAt: firestore_1.FieldValue.serverTimestamp(),
+            result,
+        }, { merge: true });
+    }
+    catch (error) {
+        await ref.set({
+            status: "error",
+            finishedAt: firestore_1.FieldValue.serverTimestamp(),
+            error: String(error?.message || error || "unknown_error"),
+        }, { merge: true });
+        throw error;
+    }
+});
 //# sourceMappingURL=16_tagMaintenance.js.map

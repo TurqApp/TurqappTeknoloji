@@ -22,7 +22,8 @@ function ensureAdmin() {
 }
 
 function normalizeTagRaw(tag: unknown): string {
-  return String(tag || "").trim().toLocaleLowerCase("tr-TR");
+  const raw = String(tag || "").trim().toLocaleLowerCase("tr-TR");
+  return raw.startsWith("#") ? raw.slice(1) : raw;
 }
 
 function normalizeForCompare(s: string): string {
@@ -163,6 +164,21 @@ type PruneOutput = {
   done: boolean;
 };
 
+type ReconcileRangeInput = {
+  limit?: number;
+  dryRun?: boolean;
+  startTs?: number;
+  endTs?: number;
+};
+
+type ReconcileRangeOutput = {
+  scanned: number;
+  updated: number;
+  addedLinks: number;
+  removedLinks: number;
+  done: boolean;
+};
+
 function buildMeta(data: Record<string, any>) {
   const hlsMaster = String(data.hlsMasterUrl || data.hlsUrl || "");
   const videoUrl = String(data.video || data.rawVideoUrl || "");
@@ -285,6 +301,113 @@ async function fetchPosts(limit: number, cursor?: string) {
   return q.get();
 }
 
+async function reconcilePostsBatch(
+  posts: QueryDocumentSnapshot[],
+  tagCfg: Awaited<ReturnType<typeof getTagSettings>>,
+  dryRun: boolean
+) {
+  let scanned = 0;
+  let updated = 0;
+  let addedLinks = 0;
+  let removedLinks = 0;
+
+  for (const doc of posts) {
+    scanned += 1;
+    const data = doc.data() as Record<string, any>;
+    const postId = doc.id;
+
+    const desired = shouldKeepPostInTagIndex(data)
+      ? await desiredTagsFromPostData(data, tagCfg)
+      : [];
+    const existing = await existingTagsForPost(postId);
+
+    const desiredSet = new Set(desired);
+    const existingSet = new Set(existing);
+
+    const toAdd = desired.filter((t) => !existingSet.has(t));
+    const toRemove = existing.filter((t) => !desiredSet.has(t));
+
+    if (!toAdd.length && !toRemove.length) continue;
+
+    updated += 1;
+    addedLinks += toAdd.length;
+    removedLinks += toRemove.length;
+
+    if (dryRun) continue;
+
+    if (toAdd.length) {
+      const meta = buildMeta(data);
+      await writeTagIndex(postId, toAdd, {
+        ...meta,
+        trendThreshold: tagCfg.trendThreshold,
+        trendWindowHours: tagCfg.trendWindowHours,
+        hashtagTags: await hashtagTagsFromPostData(data, tagCfg),
+      });
+    }
+    if (toRemove.length) {
+      await removeTagLinks(postId, toRemove);
+    }
+  }
+
+  return {
+    scanned,
+    updated,
+    addedLinks,
+    removedLinks,
+  };
+}
+
+async function reconcilePostTagsRange(
+  input: ReconcileRangeInput
+): Promise<ReconcileRangeOutput> {
+  const db = getFirestore();
+  const limit = Math.max(1, Math.min(300, Number(input.limit || 100)));
+  const dryRun = input.dryRun === true;
+  const startTs = Math.max(0, Number(input.startTs || 0));
+  const endTs = Math.max(0, Number(input.endTs || 0));
+  const tagCfg = await getTagSettings();
+
+  let lastDoc: QueryDocumentSnapshot | null = null;
+  let scanned = 0;
+  let updated = 0;
+  let addedLinks = 0;
+  let removedLinks = 0;
+
+  while (true) {
+    let q = db.collection("Posts").orderBy("timeStamp").limit(limit);
+    if (startTs > 0) {
+      q = q.where("timeStamp", ">=", startTs);
+    }
+    if (endTs > 0) {
+      q = q.where("timeStamp", "<", endTs);
+    }
+    if (lastDoc) {
+      q = q.startAfter(lastDoc);
+    }
+
+    const snap = await q.get();
+    const posts = snap.docs as QueryDocumentSnapshot[];
+    if (!posts.length) break;
+
+    const result = await reconcilePostsBatch(posts, tagCfg, dryRun);
+    scanned += result.scanned;
+    updated += result.updated;
+    addedLinks += result.addedLinks;
+    removedLinks += result.removedLinks;
+
+    lastDoc = posts[posts.length - 1];
+    if (posts.length < limit) break;
+  }
+
+  return {
+    scanned,
+    updated,
+    addedLinks,
+    removedLinks,
+    done: true,
+  };
+}
+
 export const f15_reconcilePostTags = onCall(
   {
     region: REGION,
@@ -303,57 +426,17 @@ export const f15_reconcilePostTags = onCall(
 
     const snap = await fetchPosts(limit, cursor);
     const posts = snap.docs as QueryDocumentSnapshot[];
-
-    let scanned = 0;
-    let updated = 0;
-    let addedLinks = 0;
-    let removedLinks = 0;
-
-    for (const doc of posts) {
-      scanned += 1;
-      const data = doc.data() as Record<string, any>;
-      const postId = doc.id;
-
-      const desired = await desiredTagsFromPostData(data, tagCfg);
-      const existing = await existingTagsForPost(postId);
-
-      const desiredSet = new Set(desired);
-      const existingSet = new Set(existing);
-
-      const toAdd = desired.filter((t) => !existingSet.has(t));
-      const toRemove = existing.filter((t) => !desiredSet.has(t));
-
-      if (!toAdd.length && !toRemove.length) continue;
-
-      updated += 1;
-      addedLinks += toAdd.length;
-      removedLinks += toRemove.length;
-
-      if (dryRun) continue;
-
-      if (toAdd.length) {
-        const meta = buildMeta(data);
-        await writeTagIndex(postId, toAdd, {
-          ...meta,
-          trendThreshold: tagCfg.trendThreshold,
-          trendWindowHours: tagCfg.trendWindowHours,
-          hashtagTags: await hashtagTagsFromPostData(data, tagCfg),
-        });
-      }
-      if (toRemove.length) {
-        await removeTagLinks(postId, toRemove);
-      }
-    }
+    const result = await reconcilePostsBatch(posts, tagCfg, dryRun);
 
     const last = posts[posts.length - 1];
     const nextCursor = last ? last.id : null;
     const done = posts.length < limit;
 
     return {
-      scanned,
-      updated,
-      addedLinks,
-      removedLinks,
+      scanned: result.scanned,
+      updated: result.updated,
+      addedLinks: result.addedLinks,
+      removedLinks: result.removedLinks,
       nextCursor,
       done,
     };
@@ -455,3 +538,67 @@ export const f15_pruneTagsCollection = onCall(
 // New numbered names (16_*) while keeping backward-compatible aliases (15_*).
 export const f16_reconcilePostTags = f15_reconcilePostTags;
 export const f16_pruneTagsCollection = f15_pruneTagsCollection;
+
+export const f16_runTagReconcileTrigger = onDocumentWritten(
+  {
+    document: "adminConfig/tagReconcileTrigger",
+    region: REGION,
+    timeoutSeconds: 540,
+    memory: "1GiB",
+  },
+  async (event) => {
+    ensureAdmin();
+
+    const afterData = event.data?.after?.data() as Record<string, any> | undefined;
+    const beforeData = event.data?.before?.data() as Record<string, any> | undefined;
+    if (!afterData || afterData.run !== true) return;
+
+    const requestId = String(afterData.requestId || "");
+    if (
+      beforeData?.run === true &&
+      String(beforeData?.requestId || "") === requestId
+    ) {
+      return;
+    }
+
+    const ref = getFirestore().doc("adminConfig/tagReconcileTrigger");
+    await ref.set(
+      {
+        run: false,
+        status: "running",
+        startedAt: FieldValue.serverTimestamp(),
+        finishedAt: FieldValue.delete(),
+        error: FieldValue.delete(),
+      },
+      { merge: true }
+    );
+
+    try {
+      const result = await reconcilePostTagsRange({
+        limit: Number(afterData.limit || 100),
+        dryRun: afterData.dryRun === true,
+        startTs: Number(afterData.startTs || 0),
+        endTs: Number(afterData.endTs || 0),
+      });
+
+      await ref.set(
+        {
+          status: "done",
+          finishedAt: FieldValue.serverTimestamp(),
+          result,
+        },
+        { merge: true }
+      );
+    } catch (error: any) {
+      await ref.set(
+        {
+          status: "error",
+          finishedAt: FieldValue.serverTimestamp(),
+          error: String(error?.message || error || "unknown_error"),
+        },
+        { merge: true }
+      );
+      throw error;
+    }
+  }
+);

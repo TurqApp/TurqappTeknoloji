@@ -408,6 +408,14 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             });
           }
 
+          final RegExp tagExp = RegExp(r"#([\p{L}\p{N}_]+)", unicode: true);
+          final matches = tagExp.allMatches(post.text);
+          final localTags = matches
+              .map((e) => e.group(1)!.trim())
+              .where((e) => e.isNotEmpty)
+              .toSet();
+          allHashtags.addAll(localTags);
+
           // Upload to Firestore with error handling
           try {
             final isFreshVideoUpload = post.video != null;
