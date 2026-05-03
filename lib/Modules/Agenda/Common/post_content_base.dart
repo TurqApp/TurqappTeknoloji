@@ -14,6 +14,7 @@ import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/playback_execution_service.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
+import '../../../Core/Services/SegmentCache/network_policy.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
@@ -670,7 +671,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         defaultTargetPlatform == TargetPlatform.android &&
             _usesFeedPlaybackPolicy;
     final strongAheadCount = isAndroidPrimaryFeed
-        ? _androidPrimaryFeedNativeStrongAheadCount
+        ? (CacheNetworkPolicy.isOnCellular
+            ? 2
+            : _androidPrimaryFeedNativeStrongAheadCount)
         : _feedStrongAheadCount;
     final strongOppositeCount = isAndroidPrimaryFeed
         ? _androidPrimaryFeedNativeStrongOppositeCount
@@ -746,7 +749,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final playableDistance = _surfaceDirectionalAheadPlayableVideoDistance();
     if (playableDistance == null || playableDistance <= 0) return false;
     final maxAheadPlayableCount = _usesFeedPlaybackPolicy
-        ? _androidPrimaryFeedWarmPlayerAheadVideoCount
+        ? (CacheNetworkPolicy.isOnCellular
+            ? 2
+            : _androidPrimaryFeedWarmPlayerAheadVideoCount)
         : _androidProfileWarmPlayerAheadVideoCount;
     return playableDistance <= maxAheadPlayableCount;
   }

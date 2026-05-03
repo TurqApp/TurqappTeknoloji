@@ -224,10 +224,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   Duration get _resolvedAutoplaySegmentGateTimeout {
     if (defaultTargetPlatform == TargetPlatform.android &&
         _usesFeedPlaybackPolicy &&
+        CacheNetworkPolicy.isOnCellular) {
+      return const Duration(milliseconds: 250);
+    }
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _usesFeedPlaybackPolicy &&
         _requiredAutoplaySegmentCount > 1) {
       return const Duration(milliseconds: 900);
     }
     return PostContentBaseState._autoplaySegmentGateTimeout;
+  }
+
+  Duration get _resolvedAutoplaySegmentGatePollInterval {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _usesFeedPlaybackPolicy &&
+        CacheNetworkPolicy.isOnCellular) {
+      return const Duration(milliseconds: 40);
+    }
+    return PostContentBaseState._autoplaySegmentGatePollInterval;
   }
 
   void _resetAutoplaySegmentGate() {
@@ -351,6 +365,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   int get _requiredAutoplaySegmentCount {
     if (defaultTargetPlatform == TargetPlatform.android &&
         _usesFeedPlaybackPolicy) {
+      if (CacheNetworkPolicy.isOnCellular) {
+        return 1;
+      }
       if (shouldEnableStartupRecoveryWatchdog) {
         return 1;
       }
@@ -367,6 +384,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (!widget.shouldPlay) return false;
     if (_autoplaySegmentGateTimedOut) return false;
     final value = adapter.value;
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        _usesFeedPlaybackPolicy &&
+        CacheNetworkPolicy.isOnCellular &&
+        value.isInitialized) {
+      return false;
+    }
     if (value.position > Duration.zero) return false;
     if (value.isPlaying) return false;
     return !_hasReadyAutoplaySegment;
@@ -431,7 +454,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       },
     );
     _autoplaySegmentGateTimer = Timer(
-      PostContentBaseState._autoplaySegmentGatePollInterval,
+      _resolvedAutoplaySegmentGatePollInterval,
       () {
         _autoplaySegmentGateTimer = null;
         if (!mounted || !widget.shouldPlay || _videoAdapter != adapter) return;
