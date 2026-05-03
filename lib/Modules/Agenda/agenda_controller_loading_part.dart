@@ -1038,23 +1038,6 @@ extension AgendaControllerLoadingPart on AgendaController {
     String trigger = 'manual',
     int? expectedMutationEpoch,
   }) async {
-    if (_renderWindowFrozenOnCellular && !initial) {
-      recordQALabFeedFetchEvent(
-        stage: 'skipped',
-        trigger: trigger,
-        metadata: <String, dynamic>{
-          'initial': initial,
-          'pageLimit': pageLimit ?? 0,
-          'reason': 'cellular_render_freeze',
-          'currentCount': agendaList.length,
-        },
-      );
-      debugPrint(
-        '[FeedBootstrapRequest] status=skip_cellular_render_freeze '
-        'trigger=$trigger agendaCount=${agendaList.length}',
-      );
-      return;
-    }
     if (initial && agendaList.isNotEmpty && _startupHeadFinalized) {
       recordQALabFeedFetchEvent(
         stage: 'skipped',
@@ -1350,14 +1333,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
         return;
       }
-      if (_renderWindowFrozenOnCellular && !initial) {
-        debugPrint(
-          '[FeedBootstrapRequest] status=skip_cellular_render_freeze_after_fetch '
-          'trigger=$trigger agendaCount=${agendaList.length}',
-        );
-        return;
-      }
-
       if (usesPlannedColdPage) {
         final consumedDocIds = <String>{
           for (final post in currentAgenda)

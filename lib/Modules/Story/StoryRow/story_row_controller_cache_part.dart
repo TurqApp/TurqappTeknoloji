@@ -42,7 +42,7 @@ extension StoryRowControllerCachePart on StoryRowController {
       } catch (_) {}
     }
 
-    final allowNetwork = ContentPolicy.isOnWiFi;
+    final allowNetwork = ContentPolicy.isConnected;
     await Future.wait(
       critical.take(allowNetwork ? take : min(take, 2)).map(
             (url) => warmCriticalUrl(

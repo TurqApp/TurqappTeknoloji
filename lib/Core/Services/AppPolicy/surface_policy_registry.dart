@@ -162,19 +162,19 @@ class SurfacePolicyRegistry {
   static const int startupFeedPrefetchDocLimit = 30;
 
   static const int startupUserMetaFeedTakeOnWiFi = 24;
-  static const int startupUserMetaFeedTakeOnCellular = 12;
+  static const int startupUserMetaFeedTakeOnCellular = 24;
   static const int startupUserMetaStoryTakeOnWiFi = 16;
-  static const int startupUserMetaStoryTakeOnCellular = 8;
+  static const int startupUserMetaStoryTakeOnCellular = 16;
   static const int startupUserMetaRecommendedTakeOnWiFi = 16;
-  static const int startupUserMetaRecommendedTakeOnCellular = 8;
+  static const int startupUserMetaRecommendedTakeOnCellular = 16;
   static const int startupAvatarWarmCountOnWiFi = 24;
-  static const int startupAvatarWarmCountOnCellular = 10;
+  static const int startupAvatarWarmCountOnCellular = 24;
   static const int startupProfileBucketTakeOnWiFi = 14;
-  static const int startupProfileBucketTakeOnCellular = 8;
+  static const int startupProfileBucketTakeOnCellular = 14;
   static const int startupProfileUrlWarmCountOnWiFi = 28;
-  static const int startupProfileUrlWarmCountOnCellular = 14;
+  static const int startupProfileUrlWarmCountOnCellular = 28;
   static const int startupSliderWarmRemoteLimitOnWiFi = 6;
-  static const int startupSliderWarmRemoteLimitOnCellular = 3;
+  static const int startupSliderWarmRemoteLimitOnCellular = 6;
 
   static const SurfacePolicy defaultSurface = SurfacePolicy();
 
@@ -185,6 +185,7 @@ class SurfacePolicyRegistry {
     readyForNavCount: feedReadyForNavCount,
     initialPoolLimit: AdaptiveIntPolicy.uniform(feedHomeInitialLimit),
     startupPrefetchDocLimit: startupFeedPrefetchDocLimit,
+    allowBackgroundRefreshOnCellular: true,
     bootstrapOnCellularWhenHasLocalContent: true,
   );
 
@@ -212,9 +213,10 @@ class SurfacePolicyRegistry {
   static const SurfacePolicy exploreSurface = SurfacePolicy(
     initialPoolLimit: AdaptiveIntPolicy(
       onWiFi: 30,
-      onCellular: 20,
+      onCellular: 30,
     ),
     startupShardLimit: AdaptiveIntPolicy.uniform(exploreStartupShardLimit),
+    allowBackgroundRefreshOnCellular: true,
   );
 
   static const SurfacePolicy storySurface = SurfacePolicy(
@@ -229,6 +231,7 @@ class SurfacePolicyRegistry {
       cellularWarmLaunch: storyInitialLimit,
     ),
     warmReadyTarget: AdaptiveIntPolicy.uniform(storyInitialLimit),
+    allowBackgroundRefreshOnCellular: true,
   );
 
   static const SurfacePolicy profilePostsSurface = SurfacePolicy(
@@ -237,8 +240,9 @@ class SurfacePolicyRegistry {
     startupShardLimit: AdaptiveIntPolicy.uniform(profileStartupShardLimit),
     initialPoolLimit: AdaptiveIntPolicy(
       onWiFi: 30,
-      onCellular: 20,
+      onCellular: 30,
     ),
+    allowBackgroundRefreshOnCellular: true,
   );
 
   static const SurfacePolicy notificationsInboxSurface = SurfacePolicy(

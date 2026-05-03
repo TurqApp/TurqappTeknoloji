@@ -318,7 +318,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
       '[FeedNetworkPolicy] status=live_network network=${networkType.name} '
       'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
     );
-    final shouldRefreshStartupSurface = networkType == NetworkType.wifi &&
+    final shouldRefreshStartupSurface =
         (_lastStartupSurfacePreparedNetwork != networkType ||
             _lastStartupSurfacePreparedMutationEpoch != _feedMutationEpoch ||
             agendaList.isEmpty ||
@@ -332,7 +332,7 @@ extension AgendaControllerPublicApiPart on AgendaController {
           source: 'network_transition',
         ),
       );
-    } else if (networkType == NetworkType.wifi) {
+    } else {
       ensureFeedSnapshotRepository().debugPrintLastGapSummary();
       debugPrint(
         '[FeedStartupSurface] status=skip_network_repeat '

@@ -94,11 +94,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   bool get _isOnCellular => CacheNetworkPolicy.isOnCellular;
 
-  bool get _allowMobileQuotaFill =>
-      !_isOnWiFi &&
-      _isOnCellular &&
-      !_mobileSeedMode &&
-      CacheNetworkPolicy.canFetchOnDemand;
+  bool get _allowMobileQuotaFill => false;
 
   int get _breadthCount {
     final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;

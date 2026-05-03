@@ -324,14 +324,6 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   _PrefetchJob _takeNextQueuedJob() {
-    if (!_isOnWiFi) {
-      final quotaIndex = _queue.indexWhere((job) => job.source == 'quota');
-      if (quotaIndex >= 0) {
-        return _queue.removeAt(quotaIndex);
-      }
-      return _queue.removeAt(0);
-    }
-
     if (_activeBankDownloads > 0 || _queue.length <= 1) {
       return _queue.removeAt(0);
     }
