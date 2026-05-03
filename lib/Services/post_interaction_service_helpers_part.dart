@@ -1,6 +1,9 @@
 part of 'post_interaction_service.dart';
 
 extension PostInteractionServiceHelpersPart on PostInteractionService {
+  String _normalizeStorageBackedPreviewUrl(String raw) =>
+      CdnUrlBuilder.toCdnUrl(raw.trim());
+
   bool _isValidDocId(String value) {
     final normalized = value.trim();
     return normalized.isNotEmpty && !normalized.contains('/');
@@ -61,17 +64,17 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
 
   String _resolveNotificationPreviewImage(Map<String, dynamic> data) {
     final thumbnail = (data['thumbnail'] ?? '').toString().trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
+    if (thumbnail.isNotEmpty) return _normalizeStorageBackedPreviewUrl(thumbnail);
 
     final imageUrl =
         (data['imageUrl'] ?? data['imageURL'] ?? '').toString().trim();
-    if (imageUrl.isNotEmpty) return imageUrl;
+    if (imageUrl.isNotEmpty) return _normalizeStorageBackedPreviewUrl(imageUrl);
 
     final img = data['img'];
     if (img is Iterable) {
       for (final entry in img) {
         final next = entry.toString().trim();
-        if (next.isNotEmpty) return next;
+        if (next.isNotEmpty) return _normalizeStorageBackedPreviewUrl(next);
       }
     }
 

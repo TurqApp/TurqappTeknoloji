@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Utils/email_utils.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Models/current_user_model.dart';
@@ -137,7 +138,8 @@ class StoredAccount {
       username: (json['username'] ?? '').toString(),
       displayName: (json['displayName'] ?? '').toString(),
       rozet: (json['rozet'] ?? json['badge'] ?? '').toString(),
-      avatarUrl: (json['avatarUrl'] ?? '').toString(),
+      avatarUrl:
+          CdnUrlBuilder.toCdnUrl((json['avatarUrl'] ?? '').toString().trim()),
       providers: (json['providers'] as List?)
               ?.map((e) => e.toString())
               .where((e) => e.trim().isNotEmpty)
@@ -237,7 +239,7 @@ class StoredAccount {
       username: derivedUsername,
       displayName: displayName,
       rozet: '',
-      avatarUrl: firebaseUser.photoURL?.trim() ?? '',
+      avatarUrl: CdnUrlBuilder.toCdnUrl(firebaseUser.photoURL?.trim() ?? ''),
       providers: providers,
       lastUsedAt: DateTime.now().millisecondsSinceEpoch,
       isSessionValid: true,

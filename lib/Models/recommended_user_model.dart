@@ -1,5 +1,6 @@
 // 📁 lib/Models/ogrenci_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 
 class RecommendedUserModel {
   final String userID;
@@ -26,7 +27,8 @@ class RecommendedUserModel {
       userID: id,
       firstName: (data['firstName'] ?? '').toString(),
       lastName: (data['lastName'] ?? '').toString(),
-      avatarUrl: (data['avatarUrl'] ?? '').toString(),
+      avatarUrl:
+          CdnUrlBuilder.toCdnUrl((data['avatarUrl'] ?? '').toString().trim()),
       nickname: (data['nickname'] ?? '').toString(),
       bio: (data['bio'] ?? '').toString(), // ✱ Buradan al
       rozet: (data['rozet'] ?? '').toString(),

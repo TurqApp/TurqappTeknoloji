@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 
 class MessageModel {
   final String docID;
@@ -184,7 +185,9 @@ class MessageModel {
       ts = createdAt;
     }
 
-    final mediaUrls = _cloneStringList(data['mediaUrls'] ?? const []);
+    final mediaUrls = _cloneStringList(data['mediaUrls'] ?? const [])
+        .map(CdnUrlBuilder.toCdnUrl)
+        .toList(growable: false);
     final location = data['location'] as Map<String, dynamic>?;
     final contact = data['contact'] as Map<String, dynamic>?;
     final postRef = data['postRef'] as Map<String, dynamic>?;
@@ -203,12 +206,12 @@ class MessageModel {
       postType: _asString(postRef?['postType']),
       postID: _asString(postRef?['postId']),
       imgs: mediaUrls,
-      video: _asString(data['videoUrl']),
+      video: CdnUrlBuilder.toCdnUrl(_asString(data['videoUrl']).trim()),
       isRead: seenBy.length > 1,
       kullanicilar: [],
       begeniler: likes,
       metin: _asString(data['text']),
-      sesliMesaj: _asString(data['audioUrl']),
+      sesliMesaj: CdnUrlBuilder.toCdnUrl(_asString(data['audioUrl']).trim()),
       kisiAdSoyad: _asString(contact?['name']),
       kisiTelefon: _asString(contact?['phone']),
       isEdited: _asBool(data['isEdited']),
@@ -220,7 +223,8 @@ class MessageModel {
       replyType: _asString(replyTo?['type']),
       reactions: _normalizeReactions(data['reactions']),
       status: _asString(data['status']),
-      videoThumbnail: _asString(data['videoThumbnail']),
+      videoThumbnail:
+          CdnUrlBuilder.toCdnUrl(_asString(data['videoThumbnail']).trim()),
       audioDurationMs: _asInt(data['audioDurationMs']),
       isStarred: _asBool(data['isStarred']),
     );

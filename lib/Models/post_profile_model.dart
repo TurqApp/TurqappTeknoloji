@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+
 class PostProfileModel {
   String docID;
   List<String> img;
@@ -14,7 +16,7 @@ class PostProfileModel {
   static List<String> _cloneStringList(List<String> source) {
     if (source.isEmpty) return const <String>[];
     return source
-        .map((value) => value.trim())
+        .map((value) => CdnUrlBuilder.toCdnUrl(value.trim()))
         .where((value) => value.isNotEmpty)
         .toList(growable: false);
   }
@@ -27,8 +29,8 @@ class PostProfileModel {
   PostProfileModel({
     required this.docID,
     required List<String> img,
-    required this.video,
-    required this.thumbnasilOfVideo,
+    required String video,
+    required String thumbnasilOfVideo,
     required this.metin,
     required this.sikayetEdildi,
     required this.gonderiGizlendi,
@@ -37,5 +39,7 @@ class PostProfileModel {
     required this.timeStamp,
     List<String>? goruntuleme,
   })  : img = _cloneStringList(img),
+        video = CdnUrlBuilder.toCdnUrl(video.trim()),
+        thumbnasilOfVideo = CdnUrlBuilder.toCdnUrl(thumbnasilOfVideo.trim()),
         goruntuleme = _cloneNullableStringList(goruntuleme);
 }
