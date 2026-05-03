@@ -1,11 +1,18 @@
 part of 'hls_video_adapter.dart';
 
 extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
+  bool get _shouldPreferDirectCdnOnCellularPrimaryFeed =>
+      defaultTargetPlatform == TargetPlatform.android &&
+      _isPrimaryFeedSurface &&
+      (NetworkAwarenessService.maybeFind()?.isOnCellular ?? false);
+
   void _performRefreshProxyUrlIfNeeded() {
-    final next = HLSVideoAdapter._resolvePlaybackUrl(
-      _originalUrl,
-      useLocalProxy: _useLocalProxy,
-    );
+    final next = _shouldPreferDirectCdnOnCellularPrimaryFeed
+        ? _originalUrl
+        : HLSVideoAdapter._resolvePlaybackUrl(
+            _originalUrl,
+            useLocalProxy: _useLocalProxy,
+          );
     if (_useLocalProxy &&
         _originalUrl.contains('cdn.turqapp.com') &&
         next == _originalUrl &&
@@ -16,7 +23,8 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
         '[HLSAdapter] Proxy fallback kept original url='
         '$_originalUrl proxyRegistered=${proxy != null} '
         'proxyStarted=${proxy?.isStarted ?? false} '
-        'cacheReady=${cache?.isReady ?? false}',
+        'cacheReady=${cache?.isReady ?? false} '
+        'preferDirectCdn=$_shouldPreferDirectCdnOnCellularPrimaryFeed',
       );
       _loggedProxyFallback = true;
     }

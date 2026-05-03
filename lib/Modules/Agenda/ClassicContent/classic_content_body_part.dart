@@ -578,7 +578,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             preferWarmPoolPauseOnAndroid:
                                 preferWarmPoolPauseOnAndroid,
                             preferResumePoster:
-                                shouldSuppressGenericResumeThumbnail ||
+                                (!isPrimaryFeedSurfaceInstance &&
+                                        shouldSuppressGenericResumeThumbnail) ||
                                     isProfileFamilySurface,
                             startupRecoveryWatchdogEnabled:
                                 shouldEnableStartupRecoveryWatchdog,
@@ -590,7 +591,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      if (widget.hideVideoPoster) {
+                      if (widget.hideVideoPoster ||
+                          isPrimaryFeedSurfaceInstance) {
                         return const SizedBox.shrink();
                       }
                       final shouldHidePoster = shouldHidePlaybackPoster(v);

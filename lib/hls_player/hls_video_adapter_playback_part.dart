@@ -326,8 +326,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     bool suppressLoadingOverlay = false,
   }) {
     if (_disposed) return const SizedBox.shrink();
-    _refreshProxyUrlIfNeeded();
     _isPrimaryFeedSurface = isPrimaryFeedSurface;
+    _refreshProxyUrlIfNeeded();
     updateWarmPoolPausePreference(
       preferWarmPoolPauseOnAndroid ||
           (defaultTargetPlatform == TargetPlatform.android &&
