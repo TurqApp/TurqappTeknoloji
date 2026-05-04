@@ -268,9 +268,11 @@ extension ShortControllerCachePart on ShortController {
       safeActiveIndex,
       minimumSegmentCount: _activeReadySegmentsForCurrentPlatform(),
     );
+    final isImmediateForwardNeighbor = neighborIndex == safeActiveIndex + 1;
     _ensureReadySegmentsForIndex(
       neighborIndex,
-      minimumSegmentCount: _neighborReadySegmentsForCurrentPlatform(),
+      minimumSegmentCount:
+          isImmediateForwardNeighbor ? 3 : _neighborReadySegmentsForCurrentPlatform(),
     );
 
     final activeAdapter = cache[safeActiveIndex];
@@ -287,13 +289,21 @@ extension ShortControllerCachePart on ShortController {
       );
       if (adapter == null) return;
       _tiers[neighborIndex] = _CacheTier.warm;
-      await adapter.setPreferredBufferDuration(_neighborBufferSeconds);
+      await adapter.setPreferredBufferDuration(
+        isImmediateForwardNeighbor ? _activeBufferSeconds : _neighborBufferSeconds,
+      );
     } else {
-      if (existingNeighbor.isStopped) {
+      if (existingNeighbor.isStopped ||
+          (!existingNeighbor.value.isInitialized &&
+              !existingNeighbor.value.hasRenderedFirstFrame)) {
         await existingNeighbor.reloadVideo();
       }
       _tiers[neighborIndex] = _CacheTier.warm;
-      await existingNeighbor.setPreferredBufferDuration(_neighborBufferSeconds);
+      await existingNeighbor.setPreferredBufferDuration(
+        isImmediateForwardNeighbor
+            ? _activeBufferSeconds
+            : _neighborBufferSeconds,
+      );
     }
 
     final window = _playbackCoordinator.buildWindow(shorts, safeActiveIndex);
@@ -479,8 +489,27 @@ extension ShortControllerCachePart on ShortController {
     int minimumSegmentCount = 1,
   }) {
     if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    _ensureReadySegmentsForIndex(
+      safeAnchor,
+      minimumSegmentCount: math.max(
+        minimumSegmentCount,
+        _activeReadySegmentsForCurrentPlatform(),
+      ),
+    );
+    for (int offset = 1; offset <= aheadCount; offset++) {
+      final targetIndex = safeAnchor + offset;
+      if (targetIndex < 0 || targetIndex >= shorts.length) break;
+      final minimumReadySegments = offset == 1
+          ? math.max(minimumSegmentCount, 3)
+          : minimumSegmentCount;
+      _ensureReadySegmentsForIndex(
+        targetIndex,
+        minimumSegmentCount: minimumReadySegments,
+      );
+    }
     primeOnYuklemeWindow(
-      anchorIndex.clamp(0, shorts.length - 1),
+      safeAnchor,
       maxAheadPlayableCount: aheadCount,
     );
   }
@@ -493,6 +522,25 @@ extension ShortControllerCachePart on ShortController {
     int hotBehindCount = 3,
     int warmBehindCount = 5,
   }) {
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    _ensureReadySegmentsForIndex(
+      safeAnchor,
+      minimumSegmentCount: math.max(
+        minimumSegmentCount,
+        _activeReadySegmentsForCurrentPlatform(),
+      ),
+    );
+    for (int offset = 1; offset <= aheadCount; offset++) {
+      final targetIndex = safeAnchor + offset;
+      if (targetIndex < 0 || targetIndex >= shorts.length) break;
+      final minimumReadySegments = offset == 1
+          ? math.max(minimumSegmentCount, 3)
+          : minimumSegmentCount;
+      _ensureReadySegmentsForIndex(
+        targetIndex,
+        minimumSegmentCount: minimumReadySegments,
+      );
+    }
     primeOnYuklemeWindow(
       anchorIndex,
       maxAheadPlayableCount: aheadCount,

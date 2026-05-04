@@ -22,6 +22,7 @@ class HLSPlayer extends StatefulWidget {
   final bool forceFullscreenOnAndroid;
   final bool isPrimaryFeedSurface;
   final bool preferResumePoster;
+  final bool suppressPauseSnapshot;
   final bool startupRecoveryWatchdogEnabled;
   final bool preferStableStartupBuffer;
 
@@ -42,6 +43,7 @@ class HLSPlayer extends StatefulWidget {
     this.forceFullscreenOnAndroid = false,
     this.isPrimaryFeedSurface = false,
     this.preferResumePoster = false,
+    this.suppressPauseSnapshot = false,
     this.startupRecoveryWatchdogEnabled = true,
     this.preferStableStartupBuffer = false,
   });
@@ -105,6 +107,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
       autoPlay: widget.autoPlay,
       loop: widget.loop,
       preferResumePoster: widget.preferResumePoster,
+      suppressPauseSnapshot: widget.suppressPauseSnapshot,
     );
   }
 

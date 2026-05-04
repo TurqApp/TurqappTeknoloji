@@ -65,7 +65,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return isOnCellular ? 2 : 5;
+      return isOnCellular ? 5 : 6;
     }
     return defaultCount;
   }
@@ -276,7 +276,7 @@ class PlaybackSurfacePolicy {
     required int defaultCount,
   }) {
     if (platform == TargetPlatform.iOS) {
-      return defaultCount;
+      return defaultCount < 2 ? 2 : defaultCount;
     }
     return defaultCount;
   }
@@ -705,7 +705,7 @@ class PlaybackSurfacePolicy {
       return const Duration(milliseconds: 40);
     }
     if (platform == TargetPlatform.iOS) {
-      return const Duration(milliseconds: 40);
+      return Duration.zero;
     }
     return const Duration(milliseconds: 40);
   }
@@ -716,7 +716,7 @@ class PlaybackSurfacePolicy {
     required int defaultCount,
   }) {
     if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return isOnCellular ? 2 : 5;
+      return isOnCellular ? 5 : 6;
     }
     return defaultCount;
   }
@@ -740,7 +740,7 @@ class PlaybackSurfacePolicy {
       return useTightWarmProfile ? 1 : defaultCount;
     }
     if (platform == TargetPlatform.iOS) {
-      return defaultCount;
+      return defaultCount < 2 ? 2 : defaultCount;
     }
     return defaultCount;
   }

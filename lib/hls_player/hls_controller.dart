@@ -301,6 +301,7 @@ class HLSController {
     bool autoPlay = true,
     bool loop = false,
     bool? preferResumePoster,
+    bool? suppressPauseSnapshot,
   }) {
     return HLSControllerPlaybackPart(
       this,
@@ -309,6 +310,7 @@ class HLSController {
       autoPlay: autoPlay,
       loop: loop,
       preferResumePoster: preferResumePoster,
+      suppressPauseSnapshot: suppressPauseSnapshot,
     );
   }
 

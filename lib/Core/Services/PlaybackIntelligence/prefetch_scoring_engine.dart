@@ -73,6 +73,13 @@ class PrefetchScoringEngine {
 
     if (context.targetIndex > context.currentIndex) {
       score += 20;
+      if (distance == 1) {
+        score += 55;
+      } else if (distance <= 3) {
+        score += 34;
+      } else if (distance <= 5) {
+        score += 10;
+      }
     }
 
     score -= distance * 25;
@@ -145,6 +152,9 @@ class PrefetchScoringEngine {
 
     if (!usefulness.startupReady) {
       score += 18;
+      if (context.targetIndex > context.currentIndex && distance <= 3) {
+        score += 16;
+      }
     } else if (usefulness.deepCached) {
       score -= 6;
     }

@@ -134,7 +134,6 @@ extension ShortViewUiPart on _ShortViewState {
     String keyId, {
     double? modelAspectRatio,
     bool overrideAutoPlay = false,
-    bool preferResumePoster = false,
   }) {
     final ar = (modelAspectRatio != null && modelAspectRatio > 0)
         ? modelAspectRatio
@@ -147,7 +146,8 @@ extension ShortViewUiPart on _ShortViewState {
       forceFullscreenOnAndroid: true,
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
-      preferResumePoster: preferResumePoster,
+      preferResumePoster: false,
+      suppressPauseSnapshot: true,
       preferStableStartupBuffer:
           PlaybackSurfacePolicy.preferStableShortStartupBuffer(
         platform: defaultTargetPlatform,
@@ -285,17 +285,10 @@ extension ShortViewUiPart on _ShortViewState {
                               isActivePage &&
                               _isShortRoutePlaybackActive &&
                               !isManuallyPaused,
-                          preferResumePoster: isActivePage &&
-                              _shouldPreferResumePosterForPage(
-                                organicIndex,
-                                vp,
-                              ),
                         ),
                       ),
                     )
                   : const SizedBox.shrink();
-
-              final pendingSurface = _buildPendingShortSurface(post);
 
               return KeyedSubtree(
                 key: ValueKey('short-page-${post.docID}'),
@@ -303,43 +296,6 @@ extension ShortViewUiPart on _ShortViewState {
                   fit: StackFit.expand,
                   children: [
                     if (isActivePage || isWarmNeighbor) videoWidget,
-                    if (isActivePage)
-                      AnimatedBuilder(
-                        animation: vp,
-                        builder: (_, __) {
-                          final value = vp.value;
-                          final decision =
-                              _shortPlaybackDecisionFor(organicIndex, value);
-                          final hasVisibleVideoFrame =
-                              defaultTargetPlatform != TargetPlatform.android
-                                  ? value.hasRenderedFirstFrame
-                                  : value.hasVisibleVideoFrame;
-                          final holdAndroidPosterAtStart =
-                              defaultTargetPlatform == TargetPlatform.android &&
-                                  decision.shouldHidePoster &&
-                                  hasVisibleVideoFrame &&
-                                  value.position <
-                                      const Duration(milliseconds: 180);
-                          final shouldHidePoster = decision.shouldHidePoster &&
-                              !holdAndroidPosterAtStart;
-                          _reportStableShortFrameIfNeeded(
-                            organicIndex,
-                            vp,
-                            decision.hasStableVisualFrame,
-                          );
-                          return IgnorePointer(
-                            ignoring: true,
-                            child: AnimatedOpacity(
-                              opacity: shouldHidePoster ? 0.0 : 1.0,
-                              duration: shouldHidePoster && hasVisibleVideoFrame
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 90),
-                              curve: Curves.easeOut,
-                              child: pendingSurface,
-                            ),
-                          );
-                        },
-                      ),
                     if (isActivePage)
                       ShortsContent(
                         model: post,
