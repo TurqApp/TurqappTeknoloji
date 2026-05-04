@@ -72,6 +72,45 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         print("[HLSPlayerView] \(message)")
     }
 
+    private func logVisualCheckpoint(_ label: String) {
+        let timeControl: String
+        if #available(iOS 10.0, *) {
+            switch player?.timeControlStatus {
+            case .playing:
+                timeControl = "playing"
+            case .paused:
+                timeControl = "paused"
+            case .waitingToPlayAtSpecifiedRate:
+                timeControl = "waiting"
+            default:
+                timeControl = "unknown"
+            }
+        } else {
+            timeControl = ((player?.rate ?? 0) > 0) ? "playing" : "paused"
+        }
+
+        let currentSeconds = player?.currentTime().seconds ?? -1
+        let snapshotVisible = !_view.snapshotView.isHidden
+        let snapshotHasImage = _view.snapshotView.image != nil
+        let layerAttached = playerLayer?.superlayer === _view.layer
+        let layerReady = playerLayer?.isReadyForDisplay == true
+        let layerHidden = playerLayer?.isHidden ?? true
+
+        log(
+            "visualCheckpoint label=\(label) " +
+            "url=\(currentUrl ?? "-") " +
+            "snapshotVisible=\(snapshotVisible) " +
+            "snapshotHasImage=\(snapshotHasImage) " +
+            "layerAttached=\(layerAttached) " +
+            "layerReady=\(layerReady) " +
+            "layerHidden=\(layerHidden) " +
+            "didRenderFirstFrame=\(didRenderFirstFrame) " +
+            "didStabilizeVisualLayer=\(didStabilizeVisualLayer) " +
+            "timeControl=\(timeControl) " +
+            "position=\(currentSeconds)"
+        )
+    }
+
     // MARK: - Observers
     private var statusObserver: NSKeyValueObservation?
     private var playbackBufferEmptyObserver: NSKeyValueObservation?
@@ -156,17 +195,40 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             self.preferResumePoster = preferResumePoster
         }
         log("loadVideo url=\(url)")
+        logVisualCheckpoint("loadVideo:entry")
         guard let videoURL = URL(string: url) else {
             log("invalidUrl url=\(url)")
             sendEvent(["event": "error", "message": "Invalid URL"])
             return
         }
 
-        let shouldPreserveSnapshot = currentUrl == url && currentUrl != nil
-        if !shouldPreserveSnapshot {
-            clearFrameSnapshot()
+        let canSoftResumeSameUrl =
+            currentUrl == url &&
+            currentUrl != nil &&
+            player != nil &&
+            playerItem != nil
+        if canSoftResumeSameUrl {
+            player?.actionAtItemEnd = isLooping ? .none : .pause
+            logVisualCheckpoint("loadVideo:same_url_soft_resume")
+            if isAutoPlay {
+                didRequestInitialPlay = false
+                requestAutoplayIfNeeded(force: true)
+            }
+            return
         }
-        cleanup(preserveFrameSnapshot: shouldPreserveSnapshot)
+
+        let shouldPreserveSnapshot = currentUrl == url && currentUrl != nil
+        let shouldHoldLastRenderedFrameDuringReload =
+            !shouldPreserveSnapshot &&
+            currentUrl != nil &&
+            player != nil &&
+            playerItem != nil &&
+            didRenderFirstFrame
+        cleanup(
+            preserveFrameSnapshot:
+                shouldPreserveSnapshot || shouldHoldLastRenderedFrameDuringReload
+        )
+        logVisualCheckpoint("loadVideo:after_cleanup")
         if shouldPreserveSnapshot && !_view.snapshotView.isHidden {
             recordNativeVisualPhase(
                 phase: shouldUseResumePosterPhase() ? "resume_poster" : "poster",
@@ -216,13 +278,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playerLayer?.frame = _view.bounds
 
         if let playerLayer = playerLayer {
-            _view.layer.addSublayer(playerLayer)
+            _view.layer.insertSublayer(playerLayer, at: 0)
             _view.linkedPlayerLayer = playerLayer
         }
+        logVisualCheckpoint("loadVideo:layer_created")
 
         setupPlayerLayerObservers()
 
         refreshPlayerLayer()
+        logVisualCheckpoint("loadVideo:after_refresh")
 
         // Setup observers
         setupPlayerObservers()
@@ -233,6 +297,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     // MARK: - Player Controls
     func play() {
         log("play url=\(currentUrl ?? "-")")
+        logVisualCheckpoint("play:entry")
         let now = CACurrentMediaTime()
         let normalizedUrl = currentUrl ?? ""
         if !normalizedUrl.isEmpty,
@@ -255,6 +320,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: false)
+        logVisualCheckpoint("play:after_native_play")
     }
 
     func pause() {
@@ -269,7 +335,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastExplicitPauseAt = now
         lastExplicitPauseUrl = normalizedUrl
         log("pause url=\(currentUrl ?? "-")")
-        captureCurrentFrameSnapshot(showOverlay: shouldShowResumePosterOnPause())
+        captureCurrentFrameSnapshot(showOverlay: true)
         playbackWatchdog?.stop()
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
@@ -487,15 +553,19 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     switch status {
                 case .playing:
                         self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
+                        self?.logVisualCheckpoint("timeControlStatus:playing")
                         if self?.didRenderFirstFrame == false {
                             self?.scheduleVisualLayerStabilization(forceReattach: false)
                         }
+                        self?.maybeReleaseFrameSnapshot(source: "time_control_playing")
                         self?.emitPlayEventIfNeeded()
                     case .paused:
                         self?.log("timeControlStatus=paused url=\(self?.currentUrl ?? "-")")
+                        self?.logVisualCheckpoint("timeControlStatus:paused")
                         self?.sendEvent(["event": "pause"])
                     case .waitingToPlayAtSpecifiedRate:
                         self?.log("timeControlStatus=waiting url=\(self?.currentUrl ?? "-")")
+                        self?.logVisualCheckpoint("timeControlStatus:waiting")
                         self?.sendEvent(["event": "buffering", "isBuffering": true])
                     @unknown default:
                         break
@@ -520,6 +590,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             }
 
             if currentTime.isFinite && totalDuration.isFinite {
+                self.logVisualCheckpoint("time_update")
+                self.maybeReleaseFrameSnapshot(source: "time_update")
                 self.sendEvent([
                     "event": "timeUpdate",
                     "position": currentTime,
@@ -576,10 +648,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         let workItem = DispatchWorkItem { [weak self] in
             guard let self = self, let player = self.player else { return }
             self.autoplayRequestWorkItem = nil
+            let layerNeedsAttach = self.playerLayer?.superlayer == nil || self.playerLayer?.superlayer !== self._view.layer
+            self.logVisualCheckpoint("autoplay:work_item_start")
             if #available(iOS 10.0, *) {
                 switch player.timeControlStatus {
                 case .playing, .waitingToPlayAtSpecifiedRate:
-                    self.refreshPlayerLayer()
+                    if layerNeedsAttach {
+                        self.refreshPlayerLayer()
+                    }
+                    self.logVisualCheckpoint("autoplay:already_playing_or_waiting")
                     return
                 case .paused:
                     break
@@ -587,16 +664,22 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     break
                 }
             } else if player.rate > 0 {
-                self.refreshPlayerLayer()
+                if layerNeedsAttach {
+                    self.refreshPlayerLayer()
+                }
                 return
             }
             self.playbackHealthMonitor.onPlaybackRequested()
-            self.refreshPlayerLayer()
+            if layerNeedsAttach {
+                self.refreshPlayerLayer()
+            }
+            self.logVisualCheckpoint("autoplay:before_native_play")
             if #available(iOS 10.0, *) {
                 player.playImmediately(atRate: 1.0)
             } else {
                 player.play()
             }
+            self.logVisualCheckpoint("autoplay:after_native_play")
         }
         autoplayRequestWorkItem = workItem
         DispatchQueue.main.asyncAfter(
@@ -645,6 +728,44 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastEmittedPlayAt = now
         lastEmittedPlayUrl = normalizedUrl
         sendEvent(["event": "play"])
+    }
+
+    private func maybeReleaseFrameSnapshot(source: String) {
+        guard !_view.snapshotView.isHidden else { return }
+        let hasReadyLayer = (playerLayer?.isReadyForDisplay == true) || didRenderFirstFrame
+        guard hasReadyLayer else { return }
+
+        let currentSeconds = player?.currentTime().seconds ?? 0.0
+        let hasVisibleProgress = currentSeconds.isFinite && currentSeconds >= 0.05
+
+        let isActivelyPlaying: Bool
+        if #available(iOS 10.0, *) {
+            isActivelyPlaying = player?.timeControlStatus == .playing
+        } else {
+            isActivelyPlaying = (player?.rate ?? 0) > 0
+        }
+
+        guard isActivelyPlaying || hasVisibleProgress else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            guard let self = self else { return }
+            guard !self._view.snapshotView.isHidden else { return }
+            let currentSeconds = self.player?.currentTime().seconds ?? 0.0
+            let hasVisibleProgress = currentSeconds.isFinite && currentSeconds >= 0.05
+            let isActivelyPlaying: Bool
+            if #available(iOS 10.0, *) {
+                isActivelyPlaying = self.player?.timeControlStatus == .playing
+            } else {
+                isActivelyPlaying = (self.player?.rate ?? 0) > 0
+            }
+            guard (self.playerLayer?.isReadyForDisplay == true || self.didRenderFirstFrame) &&
+                (isActivelyPlaying || hasVisibleProgress) else { return }
+            self.hideFrameSnapshot()
+            self.recordNativeVisualPhase(
+                phase: "video_play",
+                source: source
+            )
+        }
     }
 
     private func handlePlaybackEnded() {
@@ -740,7 +861,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     if playerLayer.superlayer != nil {
                         playerLayer.removeFromSuperlayer()
                     }
-                    self._view.layer.addSublayer(playerLayer)
+                    self._view.layer.insertSublayer(playerLayer, at: 0)
                 }
                 self._view.linkedPlayerLayer = playerLayer
                 self.playbackHealthProbe?.attachPlayerLayer(playerLayer, didAttach: needsAttach)
@@ -763,13 +884,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
                 self.didRenderFirstFrame = true
                 self.log("firstFrame url=\(self.currentUrl ?? "-")")
+                self.logVisualCheckpoint("firstFrame")
                 self.playbackHealthMonitor.onFirstFrameRendered()
                 self.playbackHealthMonitor.onFrameRendered()
-                self.hideFrameSnapshot()
-                self.recordNativeVisualPhase(
-                    phase: "video_play",
-                    source: "first_frame"
-                )
+                self.maybeReleaseFrameSnapshot(source: "first_frame")
                 self.sendEvent(["event": "firstFrame"])
             }
         }
@@ -811,10 +929,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         _view.snapshotView.image = image
         if showOverlay {
             _view.snapshotView.isHidden = false
+            logVisualCheckpoint("snapshot:capture_show")
             recordNativeVisualPhase(
                 phase: shouldUseResumePosterPhase() ? "resume_poster" : "poster",
                 source: "snapshot_capture"
             )
+        } else {
+            logVisualCheckpoint("snapshot:capture_hidden")
         }
     }
 
@@ -836,17 +957,31 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             }
         }
 
-        return nil
+        return fallbackViewSnapshot()
+    }
+
+    private func fallbackViewSnapshot() -> UIImage? {
+        let bounds = _view.bounds
+        guard bounds.width > 1, bounds.height > 1 else { return nil }
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = UIScreen.main.scale
+        let renderer = UIGraphicsImageRenderer(bounds: bounds, format: format)
+        return renderer.image { context in
+            _view.layer.render(in: context.cgContext)
+        }
     }
 
     private func clearFrameSnapshot() {
         _view.snapshotView.image = nil
         _view.snapshotView.isHidden = true
+        logVisualCheckpoint("snapshot:clear")
         clearNativeVisualPhase()
     }
 
     private func hideFrameSnapshot() {
         _view.snapshotView.isHidden = true
+        logVisualCheckpoint("snapshot:hide")
         clearNativeVisualPhase()
     }
 
@@ -856,7 +991,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     private func shouldShowResumePosterOnPause() -> Bool {
-        shouldUseResumePosterPhase()
+        true
     }
 
     private func clearNativeVisualPhase() {
