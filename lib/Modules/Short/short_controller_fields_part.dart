@@ -56,7 +56,7 @@ extension ShortControllerFieldsPart on ShortController {
   Map<int, _CacheTier> get _tiers => _state.tiers;
   RxInt get lastIndex => _state.lastIndex;
   String get lastVisibleDocId => _state.lastVisibleDocId;
-  set lastVisibleDocId(String value) => _state.lastVisibleDocId = value;
+  set lastVisibleDocId(String value) => _state.lastVisibleDocId = value.trim();
   Future<void>? get _backgroundPreloadFuture => _state.backgroundPreloadFuture;
   set _backgroundPreloadFuture(Future<void>? value) =>
       _state.backgroundPreloadFuture = value;
