@@ -227,6 +227,7 @@ void main() {
       runCriticalWarmStartLoads: ({required isFirstLaunch}) async {},
       runWarmStartLoads: ({required isFirstLaunch}) async {},
       markMinimumStartupPrepared: (_) {},
+      rememberIsFirstLaunch: (_) {},
       isMinimumStartupPrepared: () => false,
       hydrateStartupManifestContext: ({required loggedIn}) async {},
       startupBootstrap: StartupBootstrap(

@@ -170,10 +170,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         final shouldStopRuntimeHandle =
             !PlaybackSurfacePolicy.shouldKeepFeedRuntimeHandleOnPause(
-              platform: defaultTargetPlatform,
-              isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
-              keepAndroidSurfaceAlive: shouldKeepAndroidSurfaceAlive,
-            );
+          platform: defaultTargetPlatform,
+          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+          keepAndroidSurfaceAlive: shouldKeepAndroidSurfaceAlive,
+        );
         if (shouldStopRuntimeHandle) {
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _isPrimaryFeedSurfaceInstance) {
@@ -275,8 +275,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _isPrimaryFeedSurfaceInstance &&
         widget.shouldPlay &&
         _isSurfacePlaybackAllowed &&
-        (v.hasRenderedFirstFrame ||
-            v.isInitialized)) {
+        (v.hasRenderedFirstFrame || v.isInitialized)) {
       agendaController.markFeedWarmPreloadAnchorReady(playbackHandleKey);
     }
     _applyPlaybackVolume();
@@ -378,6 +377,17 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       } else {
         _applyPlaybackVolume();
       }
+    }
+
+    final shouldFinalizeIosFeedOwnerOnPlay =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance &&
+            widget.shouldPlay &&
+            _isSurfacePlaybackAllowed &&
+            (v.isPlaying || v.hasVisibleVideoFrame);
+    if (shouldFinalizeIosFeedOwnerOnPlay &&
+        _playbackRuntimeService.currentPlayingDocId != playbackHandleKey) {
+      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
     }
 
     final disableDartRecoveryForPlatformPrimaryFeed =

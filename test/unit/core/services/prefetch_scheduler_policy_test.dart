@@ -71,6 +71,7 @@ void main() {
     test('uses quota fill mode for unwatched wifi jobs', () {
       final result = shouldUsePrefetchQuotaFillMode(
         isOnWiFi: true,
+        allowCellularQuotaFill: false,
         mobileSeedMode: false,
         watchProgress: 0.0,
       );
@@ -81,6 +82,7 @@ void main() {
     test('keeps watched wifi jobs on watched-priority path', () {
       final result = shouldUsePrefetchQuotaFillMode(
         isOnWiFi: true,
+        allowCellularQuotaFill: false,
         mobileSeedMode: false,
         watchProgress: 0.42,
       );

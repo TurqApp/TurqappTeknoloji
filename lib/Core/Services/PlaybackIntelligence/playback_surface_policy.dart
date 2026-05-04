@@ -16,7 +16,7 @@ class PlaybackSurfacePolicy {
     milliseconds: 2200,
   );
   static const Duration iosFeedCenteredGapGrace = Duration(
-    milliseconds: 480,
+    milliseconds: 220,
   );
   static const Duration iosPrimaryFeedRecoveryCooldown = Duration(
     milliseconds: 2500,
@@ -28,8 +28,7 @@ class PlaybackSurfacePolicy {
   static bool useTightAndroidWarmProfile({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.android ||
-        platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   static int feedWarmFirstSegmentAheadCount({
@@ -90,7 +89,8 @@ class PlaybackSurfacePolicy {
     required bool isFeedStyleSurface,
     required bool shouldPlay,
   }) {
-    if ((platform != TargetPlatform.android && platform != TargetPlatform.iOS) ||
+    if ((platform != TargetPlatform.android &&
+            platform != TargetPlatform.iOS) ||
         !isFeedStyleSurface) {
       return null;
     }
@@ -104,7 +104,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return const Duration(milliseconds: 250);
+      return const Duration(milliseconds: 180);
     }
     return defaultFeedAutoplayGateTimeout;
   }
@@ -116,7 +116,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return const Duration(milliseconds: 40);
+      return const Duration(milliseconds: 20);
     }
     return defaultFeedAutoplayGatePollInterval;
   }
@@ -411,19 +411,19 @@ class PlaybackSurfacePolicy {
   static bool supportsFeedVisibleOwnerRetention({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool supportsFeedStartupTargetRetention({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool supportsFeedSwitchRetention({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool shouldUseFeedRefreshPlaybackLockWindow({
@@ -532,7 +532,8 @@ class PlaybackSurfacePolicy {
     if (!isInitialized || isPlaying || isBuffering || isCompleted) {
       return false;
     }
-    return hasRenderedFirstFrame || position >= const Duration(milliseconds: 800);
+    return hasRenderedFirstFrame ||
+        position >= const Duration(milliseconds: 800);
   }
 
   static bool shouldMonitorFeedStall({
@@ -633,8 +634,7 @@ class PlaybackSurfacePolicy {
   static bool preferDirectCdnForShort({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.android ||
-        platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   static bool preferStableShortStartupBuffer({
@@ -702,12 +702,12 @@ class PlaybackSurfacePolicy {
     required Duration androidDelay,
   }) {
     if (platform == TargetPlatform.android) {
-      return androidDelay;
+      return const Duration(milliseconds: 40);
     }
     if (platform == TargetPlatform.iOS) {
-      return const Duration(milliseconds: 60);
+      return const Duration(milliseconds: 40);
     }
-    return const Duration(milliseconds: 60);
+    return const Duration(milliseconds: 40);
   }
 
   static int shortForwardWarmFirstSegmentAheadCount({
@@ -815,8 +815,7 @@ class PlaybackSurfacePolicy {
     return platform == TargetPlatform.iOS &&
         hasRenderedFirstFrame &&
         !isCompleted &&
-        (stallRetryCount > 1 ||
-            position >= const Duration(milliseconds: 2500));
+        (stallRetryCount > 1 || position >= const Duration(milliseconds: 2500));
   }
 
   static bool shouldHardRestartShortAfterStall({
@@ -835,7 +834,7 @@ class PlaybackSurfacePolicy {
     required Duration defaultDelay,
   }) {
     if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return const Duration(milliseconds: 20);
+      return const Duration(milliseconds: 10);
     }
     return defaultDelay;
   }
@@ -845,7 +844,7 @@ class PlaybackSurfacePolicy {
     required Duration defaultDelay,
   }) {
     if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return const Duration(milliseconds: 90);
+      return const Duration(milliseconds: 60);
     }
     return defaultDelay;
   }

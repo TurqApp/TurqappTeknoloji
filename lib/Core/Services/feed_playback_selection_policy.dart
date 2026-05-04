@@ -18,24 +18,24 @@ class FeedPlaybackSelectionPolicy {
 
   static Duration get evaluationDebounceDuration => _isAndroidPlatform
       ? const Duration(milliseconds: 48)
-      : const Duration(milliseconds: 24);
+      : const Duration(milliseconds: 16);
 
-  static double get playThreshold => _isAndroidPlatform ? 0.72 : 0.76;
+  static double get playThreshold => _isAndroidPlatform ? 0.72 : 0.72;
 
-  static double get stopThreshold => _isAndroidPlatform ? 0.25 : 0.40;
+  static double get stopThreshold => _isAndroidPlatform ? 0.25 : 0.25;
 
-  static double get secondaryThreshold => _isAndroidPlatform ? 0.50 : 0.58;
+  static double get secondaryThreshold => _isAndroidPlatform ? 0.50 : 0.50;
 
-  static double get hysteresis => _isAndroidPlatform ? 0.08 : 0.06;
+  static double get hysteresis => _isAndroidPlatform ? 0.08 : 0.08;
 
   static double get switchRetentionThreshold =>
-      _isAndroidPlatform ? 0.52 : 0.56;
+      _isAndroidPlatform ? 0.52 : 0.52;
 
-  static double get switchDominanceMargin => _isAndroidPlatform ? 0.12 : 0.10;
+  static double get switchDominanceMargin => _isAndroidPlatform ? 0.12 : 0.12;
 
   static Duration get scrollSettleReassertDuration => _isAndroidPlatform
       ? const Duration(milliseconds: 140)
-      : const Duration(milliseconds: 140);
+      : const Duration(milliseconds: 100);
 
   static Duration get playbackTargetStickinessDuration => _isAndroidPlatform
       ? const Duration(milliseconds: 220)

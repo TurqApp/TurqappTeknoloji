@@ -62,6 +62,19 @@ void main() {
     expect(target, 0);
   });
 
+  test('iOS selection thresholds stay aligned with early handoff tuning', () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    expect(FeedPlaybackSelectionPolicy.playThreshold, 0.72);
+    expect(FeedPlaybackSelectionPolicy.stopThreshold, 0.25);
+    expect(FeedPlaybackSelectionPolicy.secondaryThreshold, 0.50);
+    expect(FeedPlaybackSelectionPolicy.switchRetentionThreshold, 0.52);
+    expect(
+      FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+      const Duration(milliseconds: 100),
+    );
+  });
+
   test('retains recently activated Android target while it is still visible',
       () {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
