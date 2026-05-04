@@ -198,6 +198,11 @@ extension ShortControllerFieldsPart on ShortController {
   }
 
   void clearPreferredLaunchAnchor({bool preferFreshIndex = false}) {
+    _log(
+      '[ShortAnchorProbe] event=clear_preferred_anchor '
+      'lastIndex=${lastIndex.value} lastVisibleDocId=${lastVisibleDocId.trim()} '
+      'preferFreshIndex=$preferFreshIndex count=${shorts.length}',
+    );
     lastIndex.value = 0;
     lastVisibleDocId = '';
     _preferFreshLaunchIndex = preferFreshIndex;
