@@ -38,7 +38,7 @@ import '../../Services/post_interaction_service.dart';
 part 'short_view_playback_part.dart';
 part 'short_view_ui_part.dart';
 
-const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
+const Duration _shortPlayResumeDelay = Duration.zero;
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
 const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);

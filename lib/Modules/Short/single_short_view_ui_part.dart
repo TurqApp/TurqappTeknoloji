@@ -60,14 +60,11 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildInjectedShortPage(int idx) {
     final injected = widget.injectedController!;
-    final preferResumePoster = idx == currentPage &&
-        _shouldPreferResumePosterForSingleShort(idx, injected);
     if (!_videoControllers.containsKey(idx)) {
       _videoControllers[idx] = injected;
       _externallyOwned.add(idx);
       _applySingleShortPlaybackPresentation(idx, injected);
     }
-    final injThumb = shorts[idx].thumbnail;
     final injectedWidget = Stack(
       fit: StackFit.expand,
       children: [
@@ -76,54 +73,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
           'injected-${shorts[idx].docID}-${injected.hashCode}',
           overrideAutoPlay: idx == currentPage,
           modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
-          preferResumePosterOverride: preferResumePoster,
-        ),
-        AnimatedBuilder(
-          animation: injected,
-          builder: (_, __) {
-            final v = injected.value;
-            final decision = _singleShortPlaybackDecisionFor(idx, v);
-            if (!_hasThumbCandidate(shorts[idx], overrideUrl: injThumb)) {
-              return const SizedBox.shrink();
-            }
-            final hasVisibleVideoFrame =
-                defaultTargetPlatform != TargetPlatform.android
-                    ? injected.value.hasRenderedFirstFrame
-                    : injected.value.hasVisibleVideoFrame;
-            final holdAndroidPosterAtStart =
-                defaultTargetPlatform == TargetPlatform.android &&
-                    decision.shouldHidePoster &&
-                    idx == currentPage &&
-                    hasVisibleVideoFrame &&
-                    injected.value.position < const Duration(milliseconds: 180);
-            final shouldHidePoster =
-                decision.shouldHidePoster && !holdAndroidPosterAtStart;
-            final thumb = shorts[idx].aspectRatio >= 0.8
-                ? Align(
-                    alignment: Alignment.center,
-                    child: AspectRatio(
-                      aspectRatio: shorts[idx].aspectRatio > 1.2
-                          ? shorts[idx].aspectRatio.toDouble()
-                          : 1.0,
-                      child: _cachedThumb(shorts[idx], overrideUrl: injThumb),
-                    ),
-                  )
-                : SizedBox.expand(
-                    child: _cachedThumb(shorts[idx], overrideUrl: injThumb));
-            return IgnorePointer(
-              ignoring: true,
-              child: AnimatedOpacity(
-                opacity: shouldHidePoster ? 0 : 1,
-                duration: shouldHidePoster &&
-                        idx == currentPage &&
-                        hasVisibleVideoFrame
-                    ? Duration.zero
-                    : AppDuration.thumbnailFadeOut,
-                curve: Curves.easeOut,
-                child: thumb,
-              ),
-            );
-          },
         ),
         AnimatedBuilder(
           animation: injected,
@@ -159,8 +108,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildManagedShortPage(int idx, String thumb, HLSVideoAdapter vp) {
     final isNear = (idx - currentPage).abs() <= 2;
-    final preferResumePoster =
-        idx == currentPage && _shouldPreferResumePosterForSingleShort(idx, vp);
     final thumbAr = shorts[idx].aspectRatio.toDouble();
     final videoWidget = !isNear
         ? Stack(
@@ -185,55 +132,6 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 vp,
                 'vp-${shorts[idx].docID}-${vp.hashCode}',
                 modelAspectRatio: shorts[idx].aspectRatio.toDouble(),
-                preferResumePosterOverride: preferResumePoster,
-              ),
-              AnimatedBuilder(
-                animation: vp,
-                builder: (_, __) {
-                  final v = vp.value;
-                  final decision = _singleShortPlaybackDecisionFor(idx, v);
-                  if (!_hasThumbCandidate(shorts[idx], overrideUrl: thumb)) {
-                    return const SizedBox.shrink();
-                  }
-                  final hasVisibleVideoFrame =
-                      defaultTargetPlatform != TargetPlatform.android
-                          ? vp.value.hasRenderedFirstFrame
-                          : vp.value.hasVisibleVideoFrame;
-                  final holdAndroidPosterAtStart =
-                      defaultTargetPlatform == TargetPlatform.android &&
-                          decision.shouldHidePoster &&
-                          idx == currentPage &&
-                          hasVisibleVideoFrame &&
-                          vp.value.position < const Duration(milliseconds: 180);
-                  final shouldHidePoster =
-                      decision.shouldHidePoster && !holdAndroidPosterAtStart;
-                  final overlay = shorts[idx].aspectRatio >= 0.8
-                      ? Align(
-                          alignment: Alignment.center,
-                          child: AspectRatio(
-                            aspectRatio: shorts[idx].aspectRatio > 1.2
-                                ? shorts[idx].aspectRatio.toDouble()
-                                : 1.0,
-                            child:
-                                _cachedThumb(shorts[idx], overrideUrl: thumb),
-                          ),
-                        )
-                      : SizedBox.expand(
-                          child: _cachedThumb(shorts[idx], overrideUrl: thumb));
-                  return IgnorePointer(
-                    ignoring: true,
-                    child: AnimatedOpacity(
-                      opacity: shouldHidePoster ? 0 : 1,
-                      duration: shouldHidePoster &&
-                              idx == currentPage &&
-                              hasVisibleVideoFrame
-                          ? Duration.zero
-                          : AppDuration.thumbnailFadeOut,
-                      curve: Curves.easeOut,
-                      child: overlay,
-                    ),
-                  );
-                },
               ),
               AnimatedBuilder(
                 animation: vp,

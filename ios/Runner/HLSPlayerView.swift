@@ -64,6 +64,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var wasMutedBeforeBackground: Bool = false
     private var volumeBeforeBackground: Float = 1.0
     private var preferResumePoster: Bool = false
+    private var suppressPauseSnapshot: Bool = false
     private var preferStableStartupBuffer: Bool = false
     private var lastNativeVisualPhase: String?
     private var lastNativeVisualPhaseAtEpochMs: Int64 = 0
@@ -159,6 +160,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 isAutoPlay = params["autoPlay"] as? Bool ?? true
                 isLooping = params["loop"] as? Bool ?? false
                 preferResumePoster = params["preferResumePoster"] as? Bool ?? false
+                suppressPauseSnapshot = params["suppressPauseSnapshot"] as? Bool ?? false
                 preferStableStartupBuffer = params["preferStableStartupBuffer"] as? Bool ?? false
             }
         }
@@ -183,7 +185,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         url: String,
         autoPlay: Bool? = nil,
         loop: Bool? = nil,
-        preferResumePoster: Bool? = nil
+        preferResumePoster: Bool? = nil,
+        suppressPauseSnapshot: Bool? = nil
     ) {
         if let autoPlay = autoPlay {
             isAutoPlay = autoPlay
@@ -193,6 +196,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         }
         if let preferResumePoster = preferResumePoster {
             self.preferResumePoster = preferResumePoster
+        }
+        if let suppressPauseSnapshot = suppressPauseSnapshot {
+            self.suppressPauseSnapshot = suppressPauseSnapshot
         }
         log("loadVideo url=\(url)")
         logVisualCheckpoint("loadVideo:entry")
@@ -335,7 +341,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastExplicitPauseAt = now
         lastExplicitPauseUrl = normalizedUrl
         log("pause url=\(currentUrl ?? "-")")
-        captureCurrentFrameSnapshot(showOverlay: true)
+        if !suppressPauseSnapshot {
+            captureCurrentFrameSnapshot(showOverlay: true)
+        }
         playbackWatchdog?.stop()
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()

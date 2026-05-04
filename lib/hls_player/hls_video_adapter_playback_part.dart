@@ -321,6 +321,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool isPrimaryFeedSurface,
     required bool preferWarmPoolPauseOnAndroid,
     required bool preferResumePoster,
+    bool suppressPauseSnapshot = false,
     bool startupRecoveryWatchdogEnabled = true,
     bool preferStableStartupBuffer = false,
     bool suppressLoadingOverlay = false,
@@ -346,6 +347,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       forceFullscreenOnAndroid: forceFullscreenOnAndroid,
       isPrimaryFeedSurface: isPrimaryFeedSurface,
       preferResumePoster: preferResumePoster,
+      suppressPauseSnapshot: suppressPauseSnapshot,
       startupRecoveryWatchdogEnabled: startupRecoveryWatchdogEnabled,
       preferStableStartupBuffer: preferStableStartupBuffer,
     );

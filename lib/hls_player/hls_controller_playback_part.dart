@@ -25,6 +25,7 @@ extension HLSControllerPlaybackPart on HLSController {
     bool autoPlay = true,
     bool loop = false,
     bool? preferResumePoster,
+    bool? suppressPauseSnapshot,
   }) async {
     if (_isInactive) return;
     if (_viewId == null) {
@@ -67,6 +68,7 @@ extension HLSControllerPlaybackPart on HLSController {
         'autoPlay': shouldDeferAutoplayForReattach ? false : autoPlay,
         'loop': loop,
         'preferResumePoster': _preferResumePoster,
+        'suppressPauseSnapshot': suppressPauseSnapshot ?? false,
       });
     } on PlatformException catch (e) {
       _handleError('Failed to load video: ${e.message}');
