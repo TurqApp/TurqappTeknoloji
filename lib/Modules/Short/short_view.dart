@@ -261,6 +261,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (anchoredIndex == currentPage && anchoredDocId == currentDocId) {
       return false;
     }
+    final previousPage = currentPage;
     currentPage = anchoredIndex;
     controller.commitLaunchSelectionForItems(
       currentPage,
@@ -271,6 +272,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     debugPrint(
       '[ShortDocAnchor] reason=$reason currentDoc=$currentDocId '
       'anchoredDoc=$anchoredDocId page=$currentPage renderPage=$_currentRenderPage',
+    );
+    debugPrint(
+      '[ShortAnchorProbe] event=align_doc_anchor reason=$reason '
+      'fromPage=$previousPage toPage=$currentPage '
+      'currentDoc=$currentDocId anchoredDoc=$anchoredDocId '
+      'lastIndex=${controller.lastIndex.value} '
+      'lastVisibleDocId=${controller.lastVisibleDocId.trim()}',
     );
     if (jumpRenderPage && pageController.hasClients) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -512,9 +520,16 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     );
     if (_cachedShorts.isEmpty) {
       _cachedShorts = nextList;
+      final previousPage = currentPage;
       currentPage = _initialDisplayIndex(
         _cachedShorts,
         controller.preferredLaunchIndexForItems(_cachedShorts),
+      );
+      debugPrint(
+        '[ShortAnchorProbe] event=surface_sync_bootstrap '
+        'fromPage=$previousPage toPage=$currentPage '
+        'count=${_cachedShorts.length} '
+        'preferredDoc=${controller.lastVisibleDocId.trim()}',
       );
       _rebuildShortRenderPlan();
       controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);

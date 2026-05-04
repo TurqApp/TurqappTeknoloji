@@ -376,10 +376,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
 
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
+    final previousCurrentPage = currentPage;
     currentPage = remappedPage;
     final previousRenderPage = _currentRenderPage;
     _rebuildShortRenderPlan();
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
+    debugPrint(
+      '[ShortAnchorProbe] event=render_list_update '
+      'fromPage=$previousCurrentPage toPage=$currentPage '
+      'previousDoc=$previousActiveDocId nextDoc=$nextActiveDocId '
+      'remappedIndex=${update.remappedIndex} renderFrom=$previousRenderPage '
+      'renderTo=$_currentRenderPage nextCount=${nextList.length}',
+    );
 
     _updateShortViewState(() {});
 
