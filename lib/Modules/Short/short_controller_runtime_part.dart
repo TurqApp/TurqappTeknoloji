@@ -328,6 +328,12 @@ extension ShortControllerPublicApiPart on ShortController {
       'mode=${mode.name} frozen=$_renderWindowFrozenOnCellular '
       'count=${shorts.length}',
     );
+    _log(
+      '[ShortAnchorProbe] event=network_transition '
+      'network=${networkType.name} mode=${mode.name} '
+      'lastIndex=${lastIndex.value} lastVisibleDocId=${lastVisibleDocId.trim()} '
+      'count=${shorts.length}',
+    );
     if (mode == _ShortSessionSourceMode.unresolved) {
       debugPrint(
         '[ShortNetworkPolicy] status=deferred_until_session_resolution '
@@ -405,6 +411,7 @@ extension ShortControllerPublicApiPart on ShortController {
     final seededFreshSession = _ensureShortLaunchSessionFresh(
       reason: startedEmpty ? 'startup' : 'surface_visible',
       forceNew: startedEmpty,
+      preserveAnchor: !startedEmpty && shorts.isNotEmpty,
     );
     final allowRefresh = allowBackgroundRefresh ??
         ContentPolicy.allowBackgroundRefresh(ContentScreenKind.shorts);
@@ -487,6 +494,7 @@ extension ShortControllerPublicApiPart on ShortController {
   bool _ensureShortLaunchSessionFresh({
     required String reason,
     bool forceNew = false,
+    bool preserveAnchor = false,
   }) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final currentSeed = startupSurfaceSessionSeed(sessionNamespace: 'short');
@@ -496,8 +504,19 @@ extension ShortControllerPublicApiPart on ShortController {
         ageMs >= _shortLaunchSessionMaxAge.inMilliseconds;
     final deviceSession = DeviceSessionService.instance;
     final deviceSalt = deviceSession.cachedDeviceKey;
+    final shouldPreserveAnchor = preserveAnchor && shorts.isNotEmpty;
+    _log(
+      '[ShortAnchorProbe] event=ensure_launch_session '
+      'reason=$reason forceNew=$forceNew preserveAnchor=$shouldPreserveAnchor '
+      'shouldRotate=$shouldRotate lastIndex=${lastIndex.value} '
+      'lastVisibleDocId=${lastVisibleDocId.trim()} count=${shorts.length}',
+    );
     if (shouldRotate) {
-      clearPreferredLaunchAnchor(preferFreshIndex: true);
+      if (shouldPreserveAnchor) {
+        _preferFreshLaunchIndex = false;
+      } else {
+        clearPreferredLaunchAnchor(preferFreshIndex: true);
+      }
       beginStartupSurfaceSession(
         sessionNamespace: 'short',
         deviceSalt: deviceSalt,
@@ -505,6 +524,7 @@ extension ShortControllerPublicApiPart on ShortController {
       );
       _log(
         '[ShortLaunchMotorSession] reason=$reason forceNew=true '
+        'preserveAnchor=$shouldPreserveAnchor '
         'ageMs=$ageMs seed=${startupSurfaceSessionSeed(sessionNamespace: 'short')}',
       );
     }

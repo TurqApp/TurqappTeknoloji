@@ -571,12 +571,18 @@ extension ShortControllerLoadingPart on ShortController {
     }
 
     _log('[Shorts] 🔄 Refresh başlatıldı');
+    _log(
+      '[ShortAnchorProbe] event=refresh_start '
+      'routeVisible=$_isShortRouteVisible lastIndex=${lastIndex.value} '
+      'lastVisibleDocId=${lastVisibleDocId.trim()} count=${shorts.length}',
+    );
     isRefreshing.value = true;
 
     try {
       _ensureShortLaunchSessionFresh(
         reason: 'refresh',
         forceNew: true,
+        preserveAnchor: _isShortRouteVisible && shorts.isNotEmpty,
       );
       isLoading.value = false;
       hasMore.value = true;
@@ -626,10 +632,27 @@ extension ShortControllerLoadingPart on ShortController {
         fetchedPostsPreplanned: result.postsPreplanned,
       );
       final newList = refreshPlan.replacementItems;
+      final safePreviousIndex = previousShorts.isEmpty
+          ? 0
+          : lastIndex.value.clamp(0, previousShorts.length - 1);
+      final previousDocId = previousShorts.isEmpty
+          ? ''
+          : previousShorts[safePreviousIndex].docID.trim();
+      final remappedDocId = newList.isEmpty ||
+              refreshPlan.remappedIndex < 0 ||
+              refreshPlan.remappedIndex >= newList.length
+          ? ''
+          : newList[refreshPlan.remappedIndex].docID.trim();
       _log(
         '[ShortLaunchMotorApply] mode=refresh '
         'prefilled=${result.postsPreplanned} fetched=${result.posts.length} '
         'replacement=${newList.length} remappedIndex=${refreshPlan.remappedIndex}',
+      );
+      _log(
+        '[ShortAnchorProbe] event=refresh_plan '
+        'previousIndex=$safePreviousIndex previousDoc=$previousDocId '
+        'remappedIndex=${refreshPlan.remappedIndex} remappedDoc=$remappedDocId '
+        'replacementCount=${newList.length}',
       );
 
       _replaceShorts(newList, remapCache: true);

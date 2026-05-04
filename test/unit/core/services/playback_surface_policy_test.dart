@@ -137,14 +137,14 @@ void main() {
   });
 
   group('short playback surface policy', () {
-    test('keeps mobile short horizon tighter than wifi', () {
+    test('keeps short forward warm horizon hot on mobile and wifi', () {
       expect(
         PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
           platform: TargetPlatform.android,
           isOnCellular: true,
           defaultCount: 99,
         ),
-        2,
+        5,
       );
       expect(
         PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
@@ -152,7 +152,7 @@ void main() {
           isOnCellular: false,
           defaultCount: 99,
         ),
-        5,
+        6,
       );
     });
 
@@ -173,7 +173,7 @@ void main() {
       );
     });
 
-    test('keeps short scroll debounce equally snappy on Android and iOS', () {
+    test('keeps short scroll debounce immediate on iOS', () {
       expect(
         PlaybackSurfacePolicy.shortScrollDebounceDelay(
           platform: TargetPlatform.android,
@@ -186,7 +186,26 @@ void main() {
           platform: TargetPlatform.iOS,
           androidDelay: const Duration(milliseconds: 70),
         ),
-        const Duration(milliseconds: 40),
+        Duration.zero,
+      );
+    });
+
+    test('keeps iOS short neighbors at least two ready segments warm', () {
+      expect(
+        PlaybackSurfacePolicy.shortNeighborReadySegments(
+          platform: TargetPlatform.iOS,
+          useTightWarmProfile: true,
+          defaultCount: 1,
+        ),
+        2,
+      );
+      expect(
+        PlaybackSurfacePolicy.shortNeighborReadySegments(
+          platform: TargetPlatform.iOS,
+          useTightWarmProfile: false,
+          defaultCount: 3,
+        ),
+        3,
       );
     });
 
