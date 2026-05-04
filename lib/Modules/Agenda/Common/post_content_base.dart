@@ -1131,6 +1131,19 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         return true;
       }
     }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isFeedStyleInlineSurfaceInstance) {
+      const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 220);
+      final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
+          widget.shouldPlay &&
+          _isSurfacePlaybackAllowed &&
+          value.isPlaying &&
+          value.position > iosFeedVisiblePlaybackThreshold;
+      if (!hasStableIosFeedFrame) {
+        return false;
+      }
+      return true;
+    }
     if (_isProfileFamilySurfaceInstance) {
       final hasStableProfileFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
@@ -1151,9 +1164,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
-    if (defaultTargetPlatform != TargetPlatform.android) return false;
     if (!_isFeedStyleInlineSurfaceInstance) return false;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return !shouldHidePlaybackPoster(
+        value,
+        visualReadyPositionThreshold: const Duration(milliseconds: 220),
+      );
+    }
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
     return !shouldHidePlaybackPoster(
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
