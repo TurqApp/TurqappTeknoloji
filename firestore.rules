@@ -1734,6 +1734,76 @@ service cloud.firestore {
         && request.resource.data.ders is string
         && (request.resource.data.net is int || request.resource.data.net is float);
     }
+    function legacyTestClientCreatableKeys() {
+      return [
+        'aciklama',
+        'dersler',
+        'favoriler',
+        'paylasilabilir',
+        'timeStamp',
+        'userID',
+        'taslak',
+        'testTuru',
+        'img',
+        'katilimciSayisi',
+        'goruntulenmeSayisi'
+      ];
+    }
+    function isValidLegacyTestPayload(data) {
+      return data.keys().hasOnly(legacyTestClientCreatableKeys())
+        && data.aciklama is string
+        && data.dersler is list
+        && data.favoriler is list
+        && data.paylasilabilir is bool
+        && (data.timeStamp is int || data.timeStamp is string)
+        && data.userID is string
+        && data.userID == request.auth.uid
+        && data.taslak is bool
+        && data.testTuru is string
+        && (!data.keys().hasAny(['img']) || data.img is string)
+        && (!data.keys().hasAny(['katilimciSayisi'])
+          || (data.katilimciSayisi is int && data.katilimciSayisi >= 0))
+        && (!data.keys().hasAny(['goruntulenmeSayisi'])
+          || (data.goruntulenmeSayisi is int && data.goruntulenmeSayisi >= 0));
+    }
+    function canOwnerUpdateLegacyTestDocument() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.userID == resource.data.userID
+        && isValidLegacyTestPayload(request.resource.data);
+    }
+    function canUpdateLegacyTestDerivedCounters() {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'katilimciSayisi', 'goruntulenmeSayisi'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['katilimciSayisi'])
+          || (request.resource.data.katilimciSayisi is int
+            && request.resource.data.katilimciSayisi >= 0))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['goruntulenmeSayisi'])
+          || (request.resource.data.goruntulenmeSayisi is int
+            && request.resource.data.goruntulenmeSayisi >= 0));
+    }
+    function isValidLegacyTestQuestionPayload() {
+      return request.resource.data.keys().hasOnly([
+          'img', 'id', 'dogruCevap', 'yanitlayanlar', 'max'
+        ])
+        && (!request.resource.data.keys().hasAny(['img']) || request.resource.data.img is string)
+        && request.resource.data.id is int
+        && request.resource.data.dogruCevap is string
+        && request.resource.data.yanitlayanlar is list
+        && request.resource.data.max is int
+        && request.resource.data.max >= 0;
+    }
+    function isValidLegacyTestAnswerPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['cevaplar', 'timeStamp', 'userID'])
+        && request.resource.data.cevaplar is list
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid;
+    }
     function isValidQuestionBankCommentPayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly([
@@ -1976,6 +2046,12 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
       match /saved_practice_exams/{examId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /answered_practice_exams/{examId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /answered_tests/{testId} {
         allow read, write: if isOwner(uid);
       }
       match /books/{bookId} {
@@ -2703,11 +2779,11 @@ service cloud.firestore {
     // Online Testler
     match /Testler/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
+      allow create: if isValidLegacyTestPayload(request.resource.data);
       allow update: if isAuth() && (
-        resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['katilimciSayisi', 'goruntulenmeSayisi'])
+        canOwnerUpdateLegacyTestDocument()
+        || canTogglePostArrayMembership('favoriler')
+        || canUpdateLegacyTestDerivedCounters()
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
       // Alt koleksiyonlar: yalnızca test sahibi ya da katılımcı kendi kaydını yönetir
@@ -2719,8 +2795,16 @@ service cloud.firestore {
       }
       match /Sorular/{soruId} {
         allow read: if isAuth();
-        allow write: if isAuth()
+        allow create, update: if isAuth()
+          && get(/databases/$(database)/documents/Testler/$(docId)).data.userID == request.auth.uid
+          && isValidLegacyTestQuestionPayload();
+        allow delete: if isAuth()
           && get(/databases/$(database)/documents/Testler/$(docId)).data.userID == request.auth.uid;
+      }
+      match /Yanitlar/{answerId} {
+        allow read: if isAuth();
+        allow create, update: if isValidLegacyTestAnswerPayload();
+        allow delete: if false;
       }
     }
 
