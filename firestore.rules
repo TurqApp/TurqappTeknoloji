@@ -612,6 +612,15 @@ service cloud.firestore {
         'market_offer', 'market_offer_status'
       ];
     }
+    function isClientCreatableNotificationType(v) {
+      return v in [
+        'Posts', 'posts', 'Comment', 'comment',
+        'like', 'reshared_posts', 'shared_as_posts',
+        'job_application', 'tutoring_application',
+        'chat', 'message', 'follow', 'user', 'User', 'Chat',
+        'market_offer', 'market_offer_status'
+      ];
+    }
     function isActiveSender(uid) {
       return exists(/databases/$(database)/documents/users/$(uid))
         && get(/databases/$(database)/documents/users/$(uid)).data.isBanned != true
@@ -622,6 +631,7 @@ service cloud.firestore {
         || (isAuth()
           && request.auth.uid != uid
           && request.resource.data.fromUserID == request.auth.uid
+          && isClientCreatableNotificationType(request.resource.data.type)
           && isActiveSender(request.auth.uid)
           && (!request.resource.data.keys().hasAny(['hideInAppInbox'])
             || request.resource.data.hideInAppInbox != true)
@@ -643,13 +653,17 @@ service cloud.firestore {
         && request.resource.data.fromUserID is string
         && request.resource.data.fromUserID.size() > 0
         && request.resource.data.fromUserID.size() <= 128
+        && request.resource.data.postID is string
+        && request.resource.data.postID.size() > 0
+        && request.resource.data.postID.size() <= 256
         && request.resource.data.timeStamp is int
         && request.resource.data.fromUserID != uid
         && request.resource.data.timeStamp > 0
         && request.resource.data.timeStamp <= request.time.toMillis() + 900000
-        && (!request.resource.data.keys().hasAny(['postID'])
-          || (request.resource.data.postID is string
-            && request.resource.data.postID.size() <= 256))
+        && (
+          !(request.resource.data.type in ['follow', 'user', 'User'])
+          || request.resource.data.postID == uid
+        )
         && (!request.resource.data.keys().hasAny(['read']) || request.resource.data.read is bool)
         && (!request.resource.data.keys().hasAny(['title'])
           || (request.resource.data.title is string
