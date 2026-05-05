@@ -31,6 +31,7 @@ export type ShortManifestCandidate = {
   metin?: unknown;
   thumbnail?: unknown;
   img?: unknown;
+  imgMap?: unknown;
   video?: unknown;
   hlsMasterUrl?: unknown;
   hlsStatus?: unknown;
@@ -209,6 +210,22 @@ function asStringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function asImageEntries(value: unknown): Array<{ url: string; aspectRatio: number }> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const record = entry as Record<string, unknown>;
+      const url = asString(record.url);
+      if (!url) return null;
+      return {
+        url,
+        aspectRatio: asNumber(record.aspectRatio, 0),
+      };
+    })
+    .filter((entry): entry is { url: string; aspectRatio: number } => Boolean(entry));
+}
+
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   const raw = Math.floor(asNumber(value, fallback));
   if (!Number.isFinite(raw)) return fallback;
@@ -290,7 +307,10 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
   const authorAvatarUrl = asString(candidate.authorAvatarUrl);
   const rozet = asString(candidate.rozet);
   const thumbnail = asString(candidate.thumbnail);
-  const img = asStringArray(candidate.img);
+  const imgEntries = asImageEntries(candidate.imgMap);
+  const img = imgEntries.length > 0
+    ? imgEntries.map((entry) => entry.url)
+    : asStringArray(candidate.img);
   const hlsMasterUrl = asString(candidate.hlsMasterUrl);
   const hlsStatus = asString(candidate.hlsStatus).toLowerCase();
   const floodCount = asInt(candidate.floodCount, 1);
@@ -301,7 +321,11 @@ function normalizeManifestItem(candidate: ShortManifestCandidate): ShortManifest
   const posterCandidates = Array.from(new Set([thumbnail, ...img].filter(Boolean)));
   const timeStamp = Math.floor(asNumber(candidate.timeStamp));
   const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
-  const aspectRatio = asNumber(candidate.aspectRatio);
+  const firstImageAspectRatio =
+    imgEntries.length > 0 && Number.isFinite(imgEntries[0].aspectRatio) && imgEntries[0].aspectRatio > 0
+      ? imgEntries[0].aspectRatio
+      : 0;
+  const aspectRatio = asNumber(candidate.aspectRatio, firstImageAspectRatio);
 
   if (!docId || !canonicalId || !userID) return null;
   if (!authorNickname || !authorDisplayName || !authorAvatarUrl || !rozet) return null;

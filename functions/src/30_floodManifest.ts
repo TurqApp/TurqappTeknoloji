@@ -21,6 +21,7 @@ type FloodManifestSourcePost = {
   metin?: unknown;
   thumbnail?: unknown;
   img?: unknown;
+  imgMap?: unknown;
   video?: unknown;
   hlsMasterUrl?: unknown;
   hlsStatus?: unknown;
@@ -241,6 +242,22 @@ function asStringArray(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function asImageEntries(value: unknown): Array<{ url: string; aspectRatio: number }> {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const record = entry as Record<string, unknown>;
+      const url = asString(record.url);
+      if (!url) return null;
+      return {
+        url,
+        aspectRatio: asNumber(record.aspectRatio, 0),
+      };
+    })
+    .filter((entry): entry is { url: string; aspectRatio: number } => Boolean(entry));
+}
+
 function asJsonMap(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
@@ -285,6 +302,14 @@ function isVisibleFloodChild(post: FloodManifestSourcePost, nowMs: number): bool
 
 function buildChildEntry(post: FloodManifestSourcePost, rootId: string): FloodManifestChild {
   const statsMap = asJsonMap(post.stats);
+  const imgEntries = asImageEntries(post.imgMap);
+  const img = imgEntries.length > 0
+    ? imgEntries.map((entry) => entry.url)
+    : asStringArray(post.img);
+  const firstImageAspectRatio =
+    imgEntries.length > 0 && Number.isFinite(imgEntries[0].aspectRatio) && imgEntries[0].aspectRatio > 0
+      ? imgEntries[0].aspectRatio
+      : 0;
   return {
     docId: post.id.trim(),
     userID: asString(post.userID),
@@ -298,12 +323,12 @@ function buildChildEntry(post: FloodManifestSourcePost, rootId: string): FloodMa
     shortId: asString(post.shortId),
     shortUrl: asString(post.shortUrl),
     thumbnail: asString(post.thumbnail),
-    img: asStringArray(post.img),
+    img,
     video: asString(post.video),
     hlsMasterUrl: asString(post.hlsMasterUrl),
     hlsStatus: asString(post.hlsStatus) || "none",
     hlsUpdatedAt: asInt(post.hlsUpdatedAt, 0),
-    aspectRatio: asNumber(post.aspectRatio, 1),
+    aspectRatio: asNumber(post.aspectRatio, firstImageAspectRatio > 0 ? firstImageAspectRatio : 1),
     metin: asString(post.metin),
     paylasGizliligi: asInt(post.paylasGizliligi, 0),
     flood: post.id.trim() !== rootId,
@@ -338,6 +363,14 @@ function buildFloodManifestDoc(params: {
 }): FloodManifestDoc {
   const root = params.root;
   const rootId = resolveFloodRootId(root);
+  const rootImgEntries = asImageEntries(root.imgMap);
+  const rootImg = rootImgEntries.length > 0
+    ? rootImgEntries.map((entry) => entry.url)
+    : asStringArray(root.img);
+  const rootFirstImageAspectRatio =
+    rootImgEntries.length > 0 && Number.isFinite(rootImgEntries[0].aspectRatio) && rootImgEntries[0].aspectRatio > 0
+      ? rootImgEntries[0].aspectRatio
+      : 0;
   const visibleChildren = params.children
     .filter((child) => child.id.trim() !== rootId)
     .map((child) => buildChildEntry(child, rootId));
@@ -364,12 +397,12 @@ function buildFloodManifestDoc(params: {
     rozet: asString(root.rozet),
     metin: asString(root.metin),
     thumbnail: asString(root.thumbnail),
-    img: asStringArray(root.img),
+    img: rootImg,
     video: asString(root.video),
     hlsMasterUrl: asString(root.hlsMasterUrl),
     hlsStatus: asString(root.hlsStatus) || "none",
     hlsUpdatedAt: asInt(root.hlsUpdatedAt, 0),
-    aspectRatio: asNumber(root.aspectRatio, 1),
+    aspectRatio: asNumber(root.aspectRatio, rootFirstImageAspectRatio > 0 ? rootFirstImageAspectRatio : 1),
     timeStamp: asInt(root.timeStamp, 0),
     izBirakYayinTarihi: asInt(root.izBirakYayinTarihi, asInt(root.timeStamp, 0)),
     scheduledAt: asInt(root.scheduledAt, 0),

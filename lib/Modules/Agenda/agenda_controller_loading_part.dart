@@ -2271,7 +2271,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (post.hasPlayableVideo) {
       return FeedPlannerPostBucket.live;
     }
-    final hasImage = post.hasImageContent || post.thumbnail.trim().isNotEmpty;
+    final hasImage = post.primaryVisualUrl.trim().isNotEmpty;
     final hasText = post.hasTextContent;
     if (hasImage) {
       return FeedPlannerPostBucket.image;

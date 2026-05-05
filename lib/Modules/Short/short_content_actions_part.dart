@@ -4,11 +4,8 @@ extension ShortsContentActionsPart on _ShortsContentState {
   static const String _shortLinkFallbackDomain = 'https://turqapp.com';
 
   String? _shortPreviewImage() {
-    final thumbnail = model.thumbnail.trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
-    if (model.img.isEmpty) return null;
-    final image = model.img.first.trim();
-    return image.isNotEmpty ? image : null;
+    final preview = model.primaryVisualUrl.trim();
+    return preview.isNotEmpty ? preview : null;
   }
 
   Future<String> _resolveShortPublicUrl() async {
