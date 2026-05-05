@@ -167,6 +167,9 @@ service cloud.firestore {
         && v > 0
         && v <= request.time.toMillis() + 900000;
     }
+    function isPositiveInt(v) {
+      return v is int && v > 0;
+    }
     function isValidUidDocInteractionPayload(docId) {
       return isAuth()
         && docId == request.auth.uid
@@ -515,6 +518,187 @@ service cloud.firestore {
           !request.resource.data.keys().hasAny(['quotedPost'])
           || request.resource.data.quotedPost is bool
         );
+    }
+    function isValidUserPostReferencePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['post_docID', 'timeStamp'])
+        && request.resource.data.post_docID is string
+        && request.resource.data.post_docID.size() > 0
+        && request.resource.data.post_docID.size() <= 256
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidUserResharedPostReferencePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'post_docID', 'timeStamp', 'originalUserID', 'originalPostID'
+        ])
+        && request.resource.data.post_docID is string
+        && request.resource.data.post_docID.size() > 0
+        && request.resource.data.post_docID.size() <= 256
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['originalUserID'])
+          || (
+            request.resource.data.originalUserID is string
+            && request.resource.data.originalUserID.size() <= 128
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['originalPostID'])
+          || (
+            request.resource.data.originalPostID is string
+            && request.resource.data.originalPostID.size() <= 256
+          )
+        );
+    }
+    function isValidBlockedUserPayload(blockedUid) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'updatedDate'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == blockedUid
+        && request.resource.data.updatedDate is int
+        && isValidFutureSafeTimestamp(request.resource.data.updatedDate);
+    }
+    function isValidReadStoryMarkerPayload(targetUserId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'storyId', 'readDate', 'lastSeenAt', 'updatedDate'
+        ])
+        && request.resource.data.storyId is string
+        && request.resource.data.storyId == targetUserId
+        && request.resource.data.readDate is int
+        && isPositiveInt(request.resource.data.readDate)
+        && request.resource.data.lastSeenAt is int
+        && isPositiveInt(request.resource.data.lastSeenAt)
+        && request.resource.data.updatedDate is int
+        && isValidFutureSafeTimestamp(request.resource.data.updatedDate);
+    }
+    function isValidRecentSearchPayload(targetUid) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'updatedDate', 'timeStamp'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == targetUid
+        && request.resource.data.updatedDate is int
+        && isValidFutureSafeTimestamp(request.resource.data.updatedDate)
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidChatArchivePayload(otherUid) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'chatID', 'archived', 'updatedDate'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == otherUid
+        && request.resource.data.chatID is string
+        && request.resource.data.chatID.size() > 0
+        && request.resource.data.chatID.size() <= 256
+        && request.resource.data.archived is bool
+        && request.resource.data.updatedDate is int
+        && isValidFutureSafeTimestamp(request.resource.data.updatedDate);
+    }
+    function isValidChatDeletionPayload(otherUid) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'chatID', 'deletedAt', 'updatedDate'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == otherUid
+        && request.resource.data.chatID is string
+        && request.resource.data.chatID.size() > 0
+        && request.resource.data.chatID.size() <= 256
+        && request.resource.data.deletedAt is int
+        && isPositiveInt(request.resource.data.deletedAt)
+        && request.resource.data.updatedDate is int
+        && isValidFutureSafeTimestamp(request.resource.data.updatedDate);
+    }
+    function isValidUserSavedPracticeExamPayload(examId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'practiceExamId', 'answerDocId', 'updatedDate', 'timeStamp'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['practiceExamId'])
+          || (
+            request.resource.data.practiceExamId is string
+            && request.resource.data.practiceExamId == examId
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['answerDocId'])
+          || request.resource.data.answerDocId is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['updatedDate'])
+          || (
+            request.resource.data.updatedDate is int
+            && isValidFutureSafeTimestamp(request.resource.data.updatedDate)
+          )
+        );
+    }
+    function isValidUserAnsweredPracticeExamPayload(examId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'practiceExamId', 'answerDocId', 'updatedDate', 'timeStamp'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['practiceExamId'])
+          || (
+            request.resource.data.practiceExamId is string
+            && request.resource.data.practiceExamId == examId
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['answerDocId'])
+          || request.resource.data.answerDocId is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['updatedDate'])
+          || (
+            request.resource.data.updatedDate is int
+            && isValidFutureSafeTimestamp(request.resource.data.updatedDate)
+          )
+        );
+    }
+    function isValidUserAnsweredTestPayload(testId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'testId', 'answerDocId', 'updatedDate', 'timeStamp'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['testId'])
+          || (
+            request.resource.data.testId is string
+            && request.resource.data.testId == testId
+          )
+        )
+        && (
+          !request.resource.data.keys().hasAny(['answerDocId'])
+          || request.resource.data.answerDocId is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['updatedDate'])
+          || (
+            request.resource.data.updatedDate is int
+            && isValidFutureSafeTimestamp(request.resource.data.updatedDate)
+          )
+        );
+    }
+    function isValidUserBookBookmarkPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.createdAt is int
+        && isValidFutureSafeTimestamp(request.resource.data.createdAt);
     }
     function postCounterTopLevelKeys() {
       return [
@@ -2023,19 +2207,34 @@ service cloud.firestore {
 
       // Canonical growing sets as subcollections
       match /blockedUsers/{otherUid} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidBlockedUserPayload(otherUid);
+        allow delete: if isOwner(uid);
       }
       match /readStories/{storyId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidReadStoryMarkerPayload(storyId);
+        allow delete: if isOwner(uid);
       }
       match /lastSearches/{searchId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidRecentSearchPayload(searchId);
+        allow delete: if isOwner(uid);
       }
       match /chatArchives/{chatId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidChatArchivePayload(chatId);
+        allow delete: if isOwner(uid);
       }
       match /chatDeletions/{chatId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidChatDeletionPayload(chatId);
+        allow delete: if isOwner(uid);
       }
       match /highlights/{highlightId} {
         allow read: if isAuth();
@@ -2058,7 +2257,9 @@ service cloud.firestore {
       // User interaction subcollections
       match /liked_posts/{postId} {
         allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserPostReferencePayload();
+        allow delete: if isOwner(uid);
       }
       // Social media links (profile)
       match /SosyalMedyaLinkleri/{docId} {
@@ -2069,7 +2270,9 @@ service cloud.firestore {
       }
       match /saved_posts/{postId} {
         allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserPostReferencePayload();
+        allow delete: if isOwner(uid);
       }
       match /savedMarket/{itemId} {
         allow read: if isOwner(uid);
@@ -2088,27 +2291,43 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
       match /saved_practice_exams/{examId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserSavedPracticeExamPayload(examId);
+        allow delete: if isOwner(uid);
       }
       match /answered_practice_exams/{examId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserAnsweredPracticeExamPayload(examId);
+        allow delete: if isOwner(uid);
       }
       match /answered_tests/{testId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserAnsweredTestPayload(testId);
+        allow delete: if isOwner(uid);
       }
       match /books/{bookId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserBookBookmarkPayload();
+        allow delete: if isOwner(uid);
       }
       match /educators/{educatorId} {
         allow read, write: if isOwner(uid);
       }
       match /commented_posts/{postId} {
         allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserPostReferencePayload();
+        allow delete: if isOwner(uid);
       }
       match /reshared_posts/{postId} {
         allow read: if isOwner(uid);
-        allow write: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidUserResharedPostReferencePayload();
+        allow delete: if isOwner(uid);
       }
       match /giphyGif/{gifId} {
         allow read: if isOwner(uid);
