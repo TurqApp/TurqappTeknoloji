@@ -150,6 +150,19 @@ test("post media allows matching uploader metadata without existing post", async
   );
 });
 
+test("post thumbnail root file allows matching uploader metadata without existing post", async () => {
+  const uid = "post-thumb-uploader";
+  const ctx = testEnv.authenticatedContext(uid);
+  const objectPath = "Posts/new-post/thumbnail.webp";
+
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "image/webp",
+    }),
+  );
+});
+
 test("post media allows owner write when post document already belongs to user", async () => {
   const uid = "post-owner";
   const objectPath = "Posts/existing-post/video.mp4";

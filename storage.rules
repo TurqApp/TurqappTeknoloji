@@ -137,8 +137,7 @@ service firebase.storage {
     // Post media root files
     match /Posts/{postId}/{fileName} {
       allow read: if isPostThumbnailFile(fileName) || isAuth();
-      allow write: if !isPostThumbnailFile(fileName)
-                   && fileName != "hls"
+      allow write: if fileName != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
                    && fitsSizeLimit(35 * 1024 * 1024); // 35MB video limit
