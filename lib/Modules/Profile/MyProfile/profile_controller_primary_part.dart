@@ -130,7 +130,10 @@ extension ProfileControllerPrimaryPart on ProfileController {
     if (lastPost.deletedPost == true) {
       return;
     }
-    if (lastPost.video.trim().isNotEmpty && !lastPost.hasPlayableVideo) {
+    if (lastPost.shouldHideWhileUploading) {
+      return;
+    }
+    if (lastPost.hasVideoSignal && !lastPost.hasRenderableVideoCard) {
       return;
     }
 
@@ -154,7 +157,7 @@ extension ProfileControllerPrimaryPart on ProfileController {
 
     if (lastPost.timeStamp <= nowMs) {
       upsertBucket(allPosts);
-      if (lastPost.video.trim().isEmpty) {
+      if (!lastPost.hasVideoSignal) {
         upsertBucket(photos);
       }
       if (lastPost.hasPlayableVideo) {
