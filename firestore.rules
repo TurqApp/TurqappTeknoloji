@@ -598,10 +598,23 @@ service cloud.firestore {
           || canIncrementPostStatOnce('reportedCount')
         );
     }
+    function postServerManagedUpdateKeys() {
+      return [
+        'moderation',
+        'shortId',
+        'shortUrl',
+        'shortLinkUpdatedAt',
+        'shortLinkStatus',
+        'shortLinkExpiresAt',
+        'reportStatus',
+        'updatedAt'
+      ];
+    }
     function canOwnerUpdatePostContent() {
       return isAuth()
         && resource.data.userID == request.auth.uid
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postCounterTopLevelKeys());
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postCounterTopLevelKeys())
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postServerManagedUpdateKeys());
     }
     function isAllowedNotificationType(v) {
       return v in [
