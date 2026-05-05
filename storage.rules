@@ -8,6 +8,30 @@ service firebase.storage {
     function isOwner(uid) {
       return isAuth() && request.auth.uid == uid;
     }
+    function isAdmin() {
+      return isAuth()
+        && request.auth.token is map
+        && request.auth.token.keys().hasAny(['admin'])
+        && request.auth.token.admin == true;
+    }
+    function isAllowlistedAdmin() {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/adminConfig/admin)
+        && firestore.get(/databases/(default)/documents/adminConfig/admin).data.allowedUserIds is list
+        && request.auth.uid in firestore.get(/databases/(default)/documents/adminConfig/admin).data.allowedUserIds;
+    }
+    function hasAssignedAdminTask(taskId) {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/adminTaskAssignments/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds is list
+        && taskId in firestore.get(/databases/(default)/documents/adminTaskAssignments/$(request.auth.uid)).data.taskIds;
+    }
+    function canManageAdminPanels() {
+      return isAdmin() || isAllowlistedAdmin();
+    }
+    function canAccessAdsCenterPanel() {
+      return canManageAdminPanels() || hasAssignedAdminTask('ads_center');
+    }
     function canWritePostMedia(postId) {
       return isAuth()
         && firestore.exists(/databases/(default)/documents/Posts/$(postId))
@@ -20,12 +44,35 @@ service firebase.storage {
         && request.resource.metadata.keys().hasAll(['uploaderUid'])
         && request.resource.metadata.uploaderUid == request.auth.uid;
     }
+    function fitsSizeLimit(bytes) {
+      return request.resource == null || request.resource.size < bytes;
+    }
     function canWriteJobMedia(jobId) {
       return isAuth()
         && (
           (
             firestore.exists(/databases/(default)/documents/isBul/$(jobId))
             && firestore.get(/databases/(default)/documents/isBul/$(jobId)).data.userID == request.auth.uid
+          )
+          || hasMatchingUploaderMetadata()
+        );
+    }
+    function canWritePracticeExamMedia(examId) {
+      return isAuth()
+        && (
+          (
+            firestore.exists(/databases/(default)/documents/practiceExams/$(examId))
+            && firestore.get(/databases/(default)/documents/practiceExams/$(examId)).data.userID == request.auth.uid
+          )
+          || hasMatchingUploaderMetadata()
+        );
+    }
+    function canWriteBookMedia(bookId) {
+      return isAuth()
+        && (
+          (
+            firestore.exists(/databases/(default)/documents/books/$(bookId))
+            && firestore.get(/databases/(default)/documents/books/$(bookId)).data.userID == request.auth.uid
           )
           || hasMatchingUploaderMetadata()
         );
@@ -72,7 +119,13 @@ service firebase.storage {
     match /users/{uid}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isOwner(uid)
-                   && request.resource.size < 10 * 1024 * 1024; // 10MB limit
+                   && fitsSizeLimit(10 * 1024 * 1024); // 10MB limit
+    }
+
+    match /highlights/{uid}/{highlightId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isOwner(uid)
+                   && fitsSizeLimit(10 * 1024 * 1024);
     }
 
     // Post HLS playback assets - public read for CDN caching
@@ -88,7 +141,7 @@ service firebase.storage {
                    && fileName != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
-                   && request.resource.size < 35 * 1024 * 1024; // 35MB video limit
+                   && fitsSizeLimit(35 * 1024 * 1024); // 35MB video limit
     }
     // Post nested media folders (images/, videos/, thumbnails/, ...)
     match /Posts/{postId}/{folder}/{allPaths=**} {
@@ -96,14 +149,14 @@ service firebase.storage {
       allow write: if folder != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
-                   && request.resource.size < 35 * 1024 * 1024;
+                   && fitsSizeLimit(35 * 1024 * 1024);
     }
 
     // Story media (legacy uppercase + current lowercase)
     match /Stories/{uid}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isOwner(uid)
-                   && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+                   && fitsSizeLimit(50 * 1024 * 1024); // 50MB limit
     }
     // Story HLS segments - public read for CDN
     match /stories/{uid}/{storyId}/hls/{allPaths=**} {
@@ -113,56 +166,56 @@ service firebase.storage {
     match /stories/{uid}/{storyId} {
       allow read: if isAuth();
       allow write: if isOwner(uid)
-                   && request.resource.size < 50 * 1024 * 1024; // 50MB limit
+                   && fitsSizeLimit(50 * 1024 * 1024); // 50MB limit
     }
     match /stories/{uid}/{storyId}/{fileName} {
       allow read: if isAuth();
       allow write: if fileName != "hls"
                    && isOwner(uid)
-                   && request.resource.size < 50 * 1024 * 1024;
+                   && fitsSizeLimit(50 * 1024 * 1024);
     }
     match /stories/{uid}/{storyId}/{folder}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if folder != "hls"
                    && isOwner(uid)
-                   && request.resource.size < 50 * 1024 * 1024;
+                   && fitsSizeLimit(50 * 1024 * 1024);
     }
 
     // Chat media
     match /Chat/{chatId}/{allPaths=**} {
       allow read: if isConversationParticipant(chatId);
       allow write: if isConversationParticipant(chatId)
-                   && request.resource.size < 25 * 1024 * 1024; // 25MB limit
+                   && fitsSizeLimit(25 * 1024 * 1024); // 25MB limit
     }
     match /Mesajlar/{chatId}/{allPaths=**} {
       allow read: if isConversationParticipant(chatId);
       allow write: if isConversationParticipant(chatId)
-                   && request.resource.size < 25 * 1024 * 1024;
+                   && fitsSizeLimit(25 * 1024 * 1024);
     }
 
     // ChatAssets medya (fotoğraf, video, ses)
     match /ChatAssets/{chatId}/{fileName} {
       allow read: if isConversationParticipant(chatId);
       allow write: if isConversationParticipant(chatId)
-                   && request.resource.size < 50 * 1024 * 1024; // 50MB
+                   && fitsSizeLimit(50 * 1024 * 1024); // 50MB
     }
     match /ChatAssets/{chatId}/{folder}/{allPaths=**} {
       allow read: if isConversationParticipant(chatId);
       allow write: if folder != "messages"
                    && isConversationParticipant(chatId)
-                   && request.resource.size < 50 * 1024 * 1024; // 50MB
+                   && fitsSizeLimit(50 * 1024 * 1024); // 50MB
     }
     match /ChatAssets/{chatId}/messages/{msgId}/{fileName} {
       allow read: if isConversationParticipant(chatId);
       allow write: if fileName != "hls"
                    && isConversationParticipant(chatId)
-                   && request.resource.size < 50 * 1024 * 1024;
+                   && fitsSizeLimit(50 * 1024 * 1024);
     }
     match /ChatAssets/{chatId}/messages/{msgId}/{folder}/{allPaths=**} {
       allow read: if isConversationParticipant(chatId);
       allow write: if folder != "hls"
                    && isConversationParticipant(chatId)
-                   && request.resource.size < 50 * 1024 * 1024;
+                   && fitsSizeLimit(50 * 1024 * 1024);
     }
 
     // Chat HLS segments - public read for CDN
@@ -174,36 +227,54 @@ service firebase.storage {
     // Practice exam media (new standard path)
     match /practiceExams/{examId}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if false;
+      allow write: if canWritePracticeExamMedia(examId)
+                   && fitsSizeLimit(15 * 1024 * 1024);
     }
 
     // Answer key / book covers
     match /books/{bookId}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if false;
+      allow write: if canWriteBookMedia(bookId)
+                   && fitsSizeLimit(15 * 1024 * 1024);
     }
 
     match /slider/{moduleId}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if false;
+      allow write: if canAccessAdsCenterPanel()
+                   && fitsSizeLimit(15 * 1024 * 1024);
     }
 
     match /marketStore/{uid}/{itemId}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if isAuth()
                    && request.auth.uid == uid
-                   && request.resource.size < 15 * 1024 * 1024;
+                   && fitsSizeLimit(15 * 1024 * 1024);
     }
 
     match /scholarships/{folder}/{allPaths=**} {
       allow read: if isAuth();
-      allow write: if false;
+      allow write: if isAuth()
+                   && hasMatchingUploaderMetadata()
+                   && fitsSizeLimit(15 * 1024 * 1024);
     }
 
     match /isBul/{jobId}/{allPaths=**} {
       allow read: if isAuth();
       allow write: if canWriteJobMedia(jobId)
-                   && request.resource.size < 15 * 1024 * 1024;
+                   && fitsSizeLimit(15 * 1024 * 1024);
+    }
+
+    match /storyMusic/{itemId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if canManageAdminPanels()
+                   && fitsSizeLimit(15 * 1024 * 1024);
+    }
+
+    match /comments/{questionId}/{allPaths=**} {
+      allow read: if isAuth();
+      allow write: if isAuth()
+                   && hasMatchingUploaderMetadata()
+                   && fitsSizeLimit(10 * 1024 * 1024);
     }
 
     // Public assets (logo, default avatar, etc.)
