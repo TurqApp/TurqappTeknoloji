@@ -337,10 +337,11 @@ async function processPost({ bucket, db, doc, options, progress, files }) {
   }
 }
 
-async function runBatch(items, workerCount, worker) {
+async function runBatch(items, workerCount, worker, shouldStop) {
   let cursor = 0;
   const runners = Array.from({ length: workerCount }, async () => {
     while (cursor < items.length) {
+      if (shouldStop?.() === true) break;
       const index = cursor;
       cursor += 1;
       await worker(items[index], index);
@@ -393,6 +394,7 @@ async function run() {
     if (snap.empty) break;
 
     await runBatch(snap.docs, options.concurrency, async (doc) => {
+      if (options.limit > 0 && processed >= options.limit) return;
       progress.scanned += 1;
       progress.lastDocId = doc.id;
       await processPost({ bucket, db, doc, options, progress, files });
@@ -407,7 +409,7 @@ async function run() {
           lastDocId: progress.lastDocId,
         }));
       }
-    });
+    }, () => options.limit > 0 && processed >= options.limit);
 
     if (options.docId) break;
     if (options.limit > 0 && processed >= options.limit) break;
