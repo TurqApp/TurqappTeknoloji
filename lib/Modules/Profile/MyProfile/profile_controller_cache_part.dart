@@ -64,13 +64,14 @@ extension ProfileControllerCachePart on ProfileController {
 
     void collectFrom(Iterable<PostsModel> posts) {
       for (final post in posts.take(18)) {
-        if (post.thumbnail.trim().isNotEmpty) {
-          urls.add(post.thumbnail.trim());
+        final preview = post.primaryVisualUrl.trim();
+        if (preview.isNotEmpty) {
+          urls.add(preview);
         }
         if (post.authorAvatarUrl.trim().isNotEmpty) {
           urls.add(post.authorAvatarUrl.trim());
         }
-        for (final img in post.img.take(2)) {
+        for (final img in post.canonicalImageUrls.take(2)) {
           final normalized = img.trim();
           if (normalized.isNotEmpty) {
             urls.add(normalized);

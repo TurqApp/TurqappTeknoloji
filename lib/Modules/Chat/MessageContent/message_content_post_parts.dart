@@ -7,11 +7,8 @@ extension MessageContentPostParts on MessageContent {
       return const SizedBox.shrink();
     }
     final isMine = model.userID == _currentUserId;
-    final hasImage = post.img.isNotEmpty;
-    final hasVideo = post.hasPlayableVideo || post.thumbnail.isNotEmpty;
-    final previewUrl = hasImage
-        ? post.img.first
-        : (post.thumbnail.isNotEmpty ? post.thumbnail : "");
+    final hasVideo = post.hasPlayableVideo || post.preferredVideoPosterUrl.isNotEmpty;
+    final previewUrl = post.primaryVisualUrl;
     final hasMedia = previewUrl.isNotEmpty || hasVideo;
     final senderNick = controller.nickname.value;
     final cardWidth = _sharedPostCardWidth();

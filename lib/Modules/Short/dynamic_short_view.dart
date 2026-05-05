@@ -124,11 +124,9 @@ class DynamicShortViewState extends State<DynamicShortView> {
   }
 
   Widget _buildThumb(PostsModel post) {
-    final thumb = post.thumbnail.trim();
-    final fallbackImage = post.img.isNotEmpty ? post.img.first.trim() : '';
+    final thumb = post.primaryVisualUrl.trim();
     final candidateUrls = <String>[
       if (thumb.isNotEmpty) thumb,
-      if (fallbackImage.isNotEmpty) fallbackImage,
       ...CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID.trim()),
     ];
     final primaryUrl = candidateUrls.isEmpty ? '' : candidateUrls.first.trim();

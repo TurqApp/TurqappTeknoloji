@@ -85,13 +85,8 @@ class _OpeningOverlayState extends State<OpeningOverlay>
       final ctx = context;
       final top = list.take(_precacheCount);
       for (final p in top) {
-        String? url;
-        if (p.thumbnail.isNotEmpty) {
-          url = p.thumbnail;
-        } else if (p.img.isNotEmpty) {
-          url = p.img.first;
-        }
-        if (url != null && url.isNotEmpty) {
+        final url = p.primaryVisualUrl.trim();
+        if (url.isNotEmpty) {
           await precacheImage(CachedNetworkImageProvider(url), ctx)
               .catchError((_) {});
         }

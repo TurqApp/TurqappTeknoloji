@@ -124,7 +124,7 @@ class _NotificationContentState extends State<NotificationContent> {
     for (final url in controller.model.value.preferredVideoPosterUrls) {
       addUrl(url);
     }
-    for (final url in controller.model.value.img) {
+    for (final url in controller.model.value.canonicalImageUrls) {
       addUrl(url);
     }
 

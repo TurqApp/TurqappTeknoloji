@@ -217,15 +217,11 @@ extension ClassicContentHeaderInteractionsPart on _ClassicContentState {
 
   Future<void> _shareExternally() async {
     await ShareActionGuard.run(() async {
-      final previewImage = widget.model.thumbnail.trim().isNotEmpty
-          ? widget.model.thumbnail.trim()
-          : (widget.model.img.isNotEmpty
-              ? widget.model.img.first.trim()
-              : null);
+      final previewImage = widget.model.primaryVisualUrl.trim();
       final url = await ShortLinkService().getPostPublicUrl(
         postId: widget.model.docID,
         desc: widget.model.metin,
-        imageUrl: previewImage,
+        imageUrl: previewImage.isEmpty ? null : previewImage,
         existingShortUrl: widget.model.shortUrl,
       );
       await ShareLinkService.shareUrl(

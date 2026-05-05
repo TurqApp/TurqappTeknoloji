@@ -59,6 +59,24 @@ function firstNonEmptyString(...values: unknown[]): string {
   return "";
 }
 
+function firstImageUrl(value: unknown): string {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim().length > 0) {
+        return entry.trim();
+      }
+      if (entry && typeof entry === "object") {
+        const url = String((entry as Record<string, unknown>).url || "").trim();
+        if (url) return url;
+      }
+    }
+  }
+  return "";
+}
+
 function resolveAuthorTitle(data: admin.firestore.DocumentData | undefined): string {
   return firstNonEmptyString(
     data?.authorDisplayName,
@@ -88,6 +106,7 @@ function resolvePostPreviewImage(
     data?.imageUrl,
     data?.imageURL,
     data?.coverImageUrl,
+    firstImageUrl(data?.imgMap),
     data?.images,
     data?.img,
   );

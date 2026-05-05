@@ -439,15 +439,11 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           child: TextButton(
             onPressed: () async {
               await ShareActionGuard.run(() async {
-                final previewImage = widget.model.thumbnail.trim().isNotEmpty
-                    ? widget.model.thumbnail.trim()
-                    : (widget.model.img.isNotEmpty
-                        ? widget.model.img.first.trim()
-                        : null);
+                final previewImage = widget.model.primaryVisualUrl.trim();
                 final url = await ShortLinkService().getPostPublicUrl(
                   postId: widget.model.docID,
                   desc: widget.model.metin,
-                  imageUrl: previewImage,
+                  imageUrl: previewImage.isEmpty ? null : previewImage,
                   existingShortUrl: widget.model.shortUrl,
                 );
                 await ShareLinkService.shareUrl(
@@ -540,15 +536,11 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
           ),
         PullDownMenuItem(
           onTap: () async {
-            final previewImage = widget.model.thumbnail.trim().isNotEmpty
-                ? widget.model.thumbnail.trim()
-                : (widget.model.img.isNotEmpty
-                    ? widget.model.img.first.trim()
-                    : null);
+            final previewImage = widget.model.primaryVisualUrl.trim();
             final url = await ShortLinkService().getPostPublicUrl(
               postId: widget.model.docID,
               desc: widget.model.metin,
-              imageUrl: previewImage,
+              imageUrl: previewImage.isEmpty ? null : previewImage,
               existingShortUrl: widget.model.shortUrl,
             );
             await Clipboard.setData(ClipboardData(text: url));
@@ -561,15 +553,11 @@ extension PhotoShortContentBodyPart on _PhotoShortContentState {
         PullDownMenuItem(
           onTap: () async {
             await ShareActionGuard.run(() async {
-              final previewImage = widget.model.thumbnail.trim().isNotEmpty
-                  ? widget.model.thumbnail.trim()
-                  : (widget.model.img.isNotEmpty
-                      ? widget.model.img.first.trim()
-                      : null);
+              final previewImage = widget.model.primaryVisualUrl.trim();
               final url = await ShortLinkService().getPostPublicUrl(
                 postId: widget.model.docID,
                 desc: widget.model.metin,
-                imageUrl: previewImage,
+                imageUrl: previewImage.isEmpty ? null : previewImage,
                 existingShortUrl: widget.model.shortUrl,
               );
               await ShareLinkService.shareUrl(

@@ -1197,10 +1197,11 @@ extension _SplashViewWarmPart on _SplashViewState {
         for (final post in bucket.take(
           ReadBudgetRegistry.startupProfileBucketTake(onWiFi: onWiFi),
         )) {
-          if (post.thumbnail.trim().isNotEmpty) {
-            urls.add(post.thumbnail.trim());
+          final preview = post.primaryVisualUrl.trim();
+          if (preview.isNotEmpty) {
+            urls.add(preview);
           }
-          for (final img in post.img.take(2)) {
+          for (final img in post.canonicalImageUrls.take(2)) {
             final normalized = img.trim();
             if (normalized.isNotEmpty) {
               urls.add(normalized);

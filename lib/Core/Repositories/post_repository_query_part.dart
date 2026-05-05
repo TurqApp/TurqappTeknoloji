@@ -898,7 +898,32 @@ extension PostRepositoryQueryPart on PostRepository {
       return const <String, dynamic>{};
     }
 
+    List<Map<String, dynamic>> parseImageMap(dynamic value) {
+      if (value is String) {
+        final raw = value.trim();
+        if (raw.isEmpty) return const <Map<String, dynamic>>[];
+        try {
+          return parseImageMap(jsonDecode(raw));
+        } catch (_) {
+          return const <Map<String, dynamic>>[];
+        }
+      }
+      if (value is! List) return const <Map<String, dynamic>>[];
+      final out = <Map<String, dynamic>>[];
+      for (final item in value) {
+        final map = asMap(item);
+        final url = (map['url'] ?? '').toString().trim();
+        if (url.isEmpty) continue;
+        out.add(<String, dynamic>{
+          'url': url,
+          'aspectRatio': asNum(map['aspectRatio'], 1),
+        });
+      }
+      return out;
+    }
+
     final imageUrls = asStringList(doc['img']);
+    final imgMap = parseImageMap(doc['imgMapJson']);
     final thumbnail = (doc['thumbnail'] ?? '').toString();
     final video = (doc['video'] ?? '').toString();
     final hlsMasterUrl = (doc['hlsMasterUrl'] ?? '').toString();
@@ -914,6 +939,7 @@ extension PostRepositoryQueryPart on PostRepository {
     return <String, dynamic>{
       'metin': (doc['metin'] ?? '').toString(),
       'img': imageUrls,
+      'imgMap': imgMap,
       'thumbnail': thumbnail,
       'video': video,
       'hlsMasterUrl': hlsMasterUrl,

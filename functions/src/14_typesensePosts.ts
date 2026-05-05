@@ -185,6 +185,7 @@ async function ensurePostsCollection() {
         { name: "hashtags", type: "string[]", optional: true },
         { name: "mentions", type: "string[]", optional: true },
         { name: "img", type: "string[]", optional: true },
+        { name: "imgMapJson", type: "string", optional: true },
         { name: "thumbnail", type: "string", optional: true },
         { name: "video", type: "string", optional: true },
         { name: "hlsMasterUrl", type: "string", optional: true },
@@ -250,6 +251,7 @@ async function ensurePostsCollection() {
           { name: "hashtags", type: "string[]", optional: true },
           { name: "mentions", type: "string[]", optional: true },
           { name: "img", type: "string[]", optional: true },
+          { name: "imgMapJson", type: "string", optional: true },
           { name: "thumbnail", type: "string", optional: true },
           { name: "video", type: "string", optional: true },
           { name: "hlsMasterUrl", type: "string", optional: true },
@@ -446,6 +448,7 @@ type PostSearchDoc = {
   hashtags: string[];
   mentions: string[];
   img: string[];
+  imgMapJson: string;
   thumbnail: string;
   video: string;
   hlsMasterUrl: string;
@@ -624,6 +627,33 @@ function resolveSurfaceTargets(doc: {
 }
 
 function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSearchDoc {
+  const asImageEntries = (
+    value: unknown,
+    fallbackAspectRatio: number,
+  ): Array<{ url: string; aspectRatio: number }> => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => {
+        if (typeof item === "string") {
+          const url = item.trim();
+          return url
+            ? { url, aspectRatio: fallbackAspectRatio > 0 ? fallbackAspectRatio : 1 }
+            : null;
+        }
+        if (!item || typeof item !== "object") return null;
+        const record = item as Record<string, unknown>;
+        const url = asString(record.url);
+        if (!url) return null;
+        return {
+          url,
+          aspectRatio: asNumber(record.aspectRatio) || fallbackAspectRatio || 1,
+        };
+      })
+      .filter(
+        (entry): entry is { url: string; aspectRatio: number } =>
+          entry != null && entry.url.length > 0,
+      );
+  };
   const analysis = (data.analysis as Record<string, unknown> | undefined) || {};
   const reshareMap =
     ((data as any).reshareMap as Record<string, unknown> | undefined) || {};
@@ -635,7 +665,6 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
   const gizlendi = asBool((data as any).gizlendi) || asBool((data as any).isHidden);
   const isUploading = asBool((data as any).isUploading);
   const metin = asString((data as any).metin);
-  const imgList = asStringArray((data as any).img);
   const hlsMasterUrl = asString((data as any).hlsMasterUrl);
   const thumbnailUrl = asString((data as any).thumbnail);
   const videoUrl = asString((data as any).video);
@@ -650,6 +679,14 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
     asNumber((data as any).aspectRatio) ||
     asNumber((data as any).imgAspectRatio) ||
     1.77;
+  const imgEntries = asImageEntries((data as any).imgMap, aspectRatio);
+  const fallbackImgEntries =
+    imgEntries.length > 0 ? imgEntries : asImageEntries((data as any).img, aspectRatio);
+  const imgList =
+    fallbackImgEntries.length > 0
+      ? fallbackImgEntries.map((entry) => entry.url)
+      : asStringArray((data as any).img);
+  const imgMapJson = fallbackImgEntries.length > 0 ? JSON.stringify(fallbackImgEntries) : "";
   const flood = asBool((data as any).flood);
   const floodCount = Math.max(0, Math.floor(asNumber((data as any).floodCount)));
   const likeCount = Math.max(0, Math.floor(asNumber(stats.likeCount ?? (data as any).likeCount ?? (data as any).begeniSayisi)));
@@ -697,6 +734,7 @@ function buildSearchDoc(postId: string, data: Record<string, unknown>): PostSear
     hashtags: extractPostTags(data).map((x) => x.tag),
     mentions: asStringArray(analysis.mentions),
     img: imgList,
+    imgMapJson,
     thumbnail: thumbnailUrl,
     video: videoUrl,
     hlsMasterUrl,

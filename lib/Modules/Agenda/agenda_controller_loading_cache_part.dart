@@ -176,7 +176,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         : (liveDocIds.contains(docId) ? 'live' : 'mixed');
     if (post.isFloodSeriesContent) return 'flood@$origin';
     final text = post.metin.trim().isNotEmpty;
-    final hasMedia = post.img.any((entry) => entry.trim().isNotEmpty) ||
+    final hasMedia = post.canonicalImageUrls.any((entry) => entry.trim().isNotEmpty) ||
         post.video.trim().isNotEmpty ||
         post.thumbnail.trim().isNotEmpty;
     if (text && !hasMedia) return 'text@$origin';
@@ -214,8 +214,7 @@ extension AgendaControllerLoadingCachePart on AgendaController {
     if (post.isFloodSeriesContent) return 'flood';
     if (post.hasPlayableVideo) return null;
     final hasText = post.metin.trim().isNotEmpty;
-    final hasImage = post.img.any((entry) => entry.trim().isNotEmpty) ||
-        post.thumbnail.trim().isNotEmpty;
+    final hasImage = post.primaryVisualUrl.trim().isNotEmpty;
     if (hasText && !hasImage) return 'text';
     if (hasImage) return 'image';
     return null;

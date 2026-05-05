@@ -46,9 +46,7 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
                   children: [
                     SizedBox.expand(
                       child: CachedNetworkImage(
-                        imageUrl: model.thumbnail != ''
-                            ? model.thumbnail
-                            : model.img.first,
+                        imageUrl: model.primaryVisualUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
                           child: CupertinoActivityIndicator(
@@ -358,9 +356,7 @@ extension _SocialProfileContentGridPart on _SocialProfileState {
                 children: [
                   SizedBox.expand(
                     child: CachedNetworkImage(
-                      imageUrl: model.thumbnail.isNotEmpty
-                          ? model.thumbnail
-                          : (model.img.isNotEmpty ? model.img.first : ''),
+                      imageUrl: model.primaryVisualUrl,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => const Center(
                         child: CupertinoActivityIndicator(color: Colors.grey),
