@@ -52,8 +52,8 @@ class TutoringWidgetBuilder extends StatelessWidget {
         shareId: shareId,
         title: tutoring.baslik,
         desc: tutoring.brans.isNotEmpty ? tutoring.brans : 'Özel ders ilanı',
-        imageUrl: tutoring.imgs != null && tutoring.imgs!.isNotEmpty
-            ? tutoring.imgs!.first
+        imageUrl: tutoring.primaryImageUrl.isNotEmpty
+            ? tutoring.primaryImageUrl
             : null,
         existingShortUrl: tutoring.shortUrl,
       );
@@ -148,8 +148,7 @@ class TutoringWidgetBuilder extends StatelessWidget {
   }
 
   String _imageUrl(TutoringModel tutoring) {
-    if (tutoring.imgs == null || tutoring.imgs!.isEmpty) return '';
-    return tutoring.imgs!.first;
+    return tutoring.primaryImageUrl;
   }
 
   Widget _fallbackImage() {

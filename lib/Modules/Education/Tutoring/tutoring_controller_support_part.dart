@@ -1,9 +1,7 @@
 part of 'tutoring_controller.dart';
 
 String _tutoringFirstImage(TutoringModel item) {
-  final imgs = item.imgs;
-  if (imgs == null || imgs.isEmpty) return '';
-  return imgs.first;
+  return item.primaryImageUrl;
 }
 
 bool _sameTutoringEntries(

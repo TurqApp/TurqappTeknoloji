@@ -44,10 +44,7 @@ extension TutoringDetailSectionsPart on TutoringDetail {
                             height: (Get.height * 0.135).clamp(96.0, 112.0),
                             width: double.infinity,
                             child: CacheFirstNetworkImage(
-                              imageUrl:
-                                  item.imgs != null && item.imgs!.isNotEmpty
-                                      ? item.imgs!.first
-                                      : '',
+                              imageUrl: item.primaryImageUrl,
                               cacheManager: TurqImageCacheManager.instance,
                               fit: BoxFit.cover,
                               memCacheWidth: 360,

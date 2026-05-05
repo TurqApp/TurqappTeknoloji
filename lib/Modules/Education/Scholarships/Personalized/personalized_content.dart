@@ -39,7 +39,7 @@ class PersonalizedContent extends StatelessWidget {
 
   Widget _buildNetworkImage() {
     return CachedNetworkImage(
-      imageUrl: model.img,
+      imageUrl: model.primaryImageUrl,
       memCacheHeight: 500,
       fit: BoxFit.contain,
       placeholder: (context, url) => _buildLoadingWidget(),

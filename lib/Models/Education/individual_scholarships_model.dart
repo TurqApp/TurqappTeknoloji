@@ -46,6 +46,25 @@ class IndividualScholarshipsModel {
   static List<String> _cloneStringList(List<String> source) =>
       List<String>.from(source, growable: false);
 
+  List<String> get galleryImageUrls {
+    final images = <String>[];
+    for (final image in <String>[img, img2]) {
+      final clean = image.trim();
+      if (clean.isEmpty || images.contains(clean)) continue;
+      images.add(clean);
+    }
+    return List<String>.from(images, growable: false);
+  }
+
+  String get providerLogoUrl => logo.trim();
+
+  String get primaryImageUrl {
+    if (galleryImageUrls.isNotEmpty) return galleryImageUrls.first;
+    return providerLogoUrl;
+  }
+
+  bool get hasMultipleGalleryImages => galleryImageUrls.length > 1;
+
   IndividualScholarshipsModel({
     required this.aciklama,
     required this.shortDescription,

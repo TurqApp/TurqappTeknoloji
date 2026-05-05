@@ -237,7 +237,9 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
     required double width,
     required double height,
   }) {
-    if (burs.img.isNotEmpty) {
+    final imageUrl =
+        burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '';
+    if (imageUrl.isNotEmpty) {
       return SizedBox(
         width: width,
         height: height,
@@ -245,7 +247,7 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
           borderRadius: BorderRadius.circular(4),
           child: CachedNetworkImage(
             memCacheHeight: 1000,
-            imageUrl: burs.img,
+            imageUrl: imageUrl,
             fit: BoxFit.cover,
             placeholder: (context, url) =>
                 const Center(child: CupertinoActivityIndicator()),

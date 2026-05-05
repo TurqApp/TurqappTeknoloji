@@ -83,15 +83,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   }
 
   List<String> get _galleryImages {
-    final images = <String>[];
-    final cover = item.coverImageUrl.trim();
-    if (cover.isNotEmpty) images.add(cover);
-    for (final image in item.imageUrls) {
-      final clean = image.trim();
-      if (clean.isEmpty || images.contains(clean)) continue;
-      images.add(clean);
-    }
-    return images;
+    return item.galleryImageUrls;
   }
 
   @override

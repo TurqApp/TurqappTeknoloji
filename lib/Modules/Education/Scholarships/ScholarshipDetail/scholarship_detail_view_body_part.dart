@@ -47,10 +47,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
             universityCount > 10 ? universityCount - 10 : 0;
       }
 
-      final List<String> galleryImages = <String>[
-        model.img.trim(),
-        model.img2.trim(),
-      ].where((image) => image.isNotEmpty).toList(growable: false);
+      final List<String> galleryImages = model.galleryImageUrls;
       final String providerName =
           model.bursVeren.trim().isNotEmpty ? model.bursVeren.trim() : userNick;
       final List<String> metaParts = <String>[

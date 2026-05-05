@@ -209,9 +209,9 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
               borderRadius: BorderRadius.circular(14),
               child: AspectRatio(
                 aspectRatio: 1,
-                child: related.coverImageUrl.isNotEmpty
+                child: related.primaryImageUrl.isNotEmpty
                     ? CacheFirstNetworkImage(
-                        imageUrl: related.coverImageUrl,
+                        imageUrl: related.primaryImageUrl,
                         cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: 320,
