@@ -81,7 +81,7 @@ test("users collection blocks owner from writing moderation fields", async () =>
   );
 });
 
-test("users collection allows authenticated limited list queries", async () => {
+test("users collection blocks authenticated list queries for non-admin clients", async () => {
   const owner1Ctx = testEnv.authenticatedContext("list-user-1");
   const owner2Ctx = testEnv.authenticatedContext("list-user-2");
   await assertSucceeds(
@@ -98,12 +98,12 @@ test("users collection allows authenticated limited list queries", async () => {
   );
 
   const actorCtx = testEnv.authenticatedContext("list-actor");
-  await assertSucceeds(
+  await assertFails(
     actorCtx.firestore().collection("users").limit(10).get(),
   );
 });
 
-test("users collection allows authenticated direct get for another user's document", async () => {
+test("users collection blocks authenticated direct get for another user's document", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await setDoc(doc(context.firestore(), "users/public-user"), {
       nickname: "public",
@@ -112,7 +112,23 @@ test("users collection allows authenticated direct get for another user's docume
   });
 
   const actorCtx = testEnv.authenticatedContext("other-actor");
-  await assertSucceeds(getDoc(doc(actorCtx.firestore(), "users/public-user")));
+  await assertFails(getDoc(doc(actorCtx.firestore(), "users/public-user")));
+});
+
+test("usersPublic allows public profile reads and listing", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "usersPublic/public-user"), {
+      nickname: "public",
+      usernameLower: "public",
+    });
+  });
+
+  const unauthCtx = testEnv.unauthenticatedContext();
+  const unauthDb = unauthCtx.firestore();
+  await assertSucceeds(getDoc(doc(unauthDb, "usersPublic/public-user")));
+  await assertSucceeds(
+    getDocs(query(collection(unauthDb, "usersPublic"), where("usernameLower", "==", "public"))),
+  );
 });
 
 test("users collection blocks oversized list queries", async () => {
@@ -137,7 +153,7 @@ test("shortManifest allows authenticated reads and blocks client writes", async 
   const unauthDb = unauthCtx.firestore();
 
   await assertSucceeds(getDoc(doc(authDb, "shortManifest/active")));
-  await assertFails(getDoc(doc(unauthDb, "shortManifest/active")));
+  await assertSucceeds(getDoc(doc(unauthDb, "shortManifest/active")));
   await assertFails(
     setDoc(doc(authDb, "shortManifest/2026-04-21"), {
       status: "published",
@@ -153,7 +169,7 @@ test("feedManifest allows authenticated reads and blocks client writes", async (
 
   await assertSucceeds(getDoc(doc(authDb, "feedManifest/active")));
   await assertSucceeds(getDocs(collection(authDb, "feedManifest")));
-  await assertFails(getDoc(doc(unauthDb, "feedManifest/active")));
+  await assertSucceeds(getDoc(doc(unauthDb, "feedManifest/active")));
   await assertFails(
     setDoc(doc(authDb, "feedManifest/2026-04-21_slot_00"), {
       status: "published",
