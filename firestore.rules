@@ -598,6 +598,47 @@ service cloud.firestore {
           || canIncrementPostStatOnce('reportedCount')
         );
     }
+    function canTogglePostArrayMembership(field) {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+        && request.resource.data[field] is list
+        && resource.data[field] is list
+        && (
+          (
+            request.resource.data[field].size() == resource.data[field].size() + 1
+            && request.resource.data[field].hasAll(resource.data[field])
+            && request.resource.data[field].hasAll([request.auth.uid])
+            && !resource.data[field].hasAny([request.auth.uid])
+          )
+          || (
+            request.resource.data[field].size() + 1 == resource.data[field].size()
+            && resource.data[field].hasAll(request.resource.data[field])
+            && resource.data[field].hasAll([request.auth.uid])
+            && !request.resource.data[field].hasAny([request.auth.uid])
+          )
+        );
+    }
+    function canClientVoteOnPostPoll() {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll'])
+        && resource.data.poll is map
+        && request.resource.data.poll is map
+        && resource.data.poll.totalVotes is int
+        && request.resource.data.poll.totalVotes is int
+        && request.resource.data.poll.totalVotes == resource.data.poll.totalVotes + 1
+        && resource.data.poll.userVotes is map
+        && request.resource.data.poll.userVotes is map
+        && !(request.auth.uid in resource.data.poll.userVotes.keys())
+        && request.auth.uid in request.resource.data.poll.userVotes.keys()
+        && request.resource.data.poll.userVotes.keys().size()
+             == resource.data.poll.userVotes.keys().size() + 1
+        && request.resource.data.poll.userVotes.keys()
+             .hasAll(resource.data.poll.userVotes.keys())
+        && request.resource.data.poll.userVotes[request.auth.uid] is int
+        && resource.data.poll.options is list
+        && request.resource.data.poll.options is list
+        && request.resource.data.poll.options.size() == resource.data.poll.options.size();
+    }
     function postServerManagedUpdateKeys() {
       return [
         'moderation',
@@ -1418,6 +1459,10 @@ service cloud.firestore {
       // Sahip: içerik alanlarını güncelleyebilir.
       // Sayaç güncellemeleri istemciden değil, sunucu taraflı akışlardan gelmelidir.
       allow update: if isAuth() && canOwnerUpdatePostContent();
+      allow update: if isAuth() && canUpdatePostStatsCounters();
+      allow update: if canTogglePostArrayMembership('begenmeme');
+      allow update: if canTogglePostArrayMembership('begeniler');
+      allow update: if canClientVoteOnPostPoll();
       allow update: if isAuth() && canFlagPostModerationUpdate();
       allow update: if isAdmin();
       allow update: if isAllowlistedAdmin();
