@@ -11,6 +11,7 @@ let initializeTestEnvironment;
 let doc;
 let getBytes;
 let ref;
+let deleteObject;
 let setDoc;
 let uploadString;
 
@@ -19,7 +20,7 @@ test.before(async () => {
     "@firebase/rules-unit-testing"
   ));
   ({ doc, setDoc } = await import("firebase/firestore"));
-  ({ getBytes, ref, uploadString } = await import("firebase/storage"));
+  ({ deleteObject, getBytes, ref, uploadString } = await import("firebase/storage"));
 
   testEnv = await initializeTestEnvironment({
     projectId: "demo-turqapp",
@@ -55,6 +56,18 @@ test("users path allows owner write and blocks other users", async () => {
   await assertFails(uploadString(ref(otherCtx.storage(), objectPath), "nope"));
 });
 
+test("users path allows owner delete", async () => {
+  const uid = "owner-delete";
+  const objectPath = `users/${uid}/avatar.webp`;
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadString(ref(context.storage(), objectPath), "seed");
+  });
+
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(deleteObject(ref(ownerCtx.storage(), objectPath)));
+});
+
 test("HLS path is publicly readable but not writable by clients", async () => {
   const objectPath = "Posts/post123/hls/master.m3u8";
 
@@ -84,7 +97,7 @@ test("story HLS path is publicly readable but not writable by story owner", asyn
   await assertFails(uploadString(ref(ownerCtx.storage(), objectPath), "blocked"));
 });
 
-test("shortManifest slot payloads are auth readable and client write blocked", async () => {
+test("shortManifest slot payloads are publicly readable and client write blocked", async () => {
   const objectPath = "shortManifest/2026-04-21/slots/slot_001.json";
 
   await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -95,11 +108,11 @@ test("shortManifest slot payloads are auth readable and client write blocked", a
   const unauthCtx = testEnv.unauthenticatedContext();
 
   await assertSucceeds(getBytes(ref(authCtx.storage(), objectPath)));
-  await assertFails(getBytes(ref(unauthCtx.storage(), objectPath)));
+  await assertSucceeds(getBytes(ref(unauthCtx.storage(), objectPath)));
   await assertFails(uploadString(ref(authCtx.storage(), objectPath), "{}"));
 });
 
-test("feedManifest slot payloads are auth readable and client write blocked", async () => {
+test("feedManifest slot payloads are publicly readable and client write blocked", async () => {
   const objectPath = "feedManifest/2026-04-21/slots/slot_00.json";
 
   await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -110,7 +123,7 @@ test("feedManifest slot payloads are auth readable and client write blocked", as
   const unauthCtx = testEnv.unauthenticatedContext();
 
   await assertSucceeds(getBytes(ref(authCtx.storage(), objectPath)));
-  await assertFails(getBytes(ref(unauthCtx.storage(), objectPath)));
+  await assertSucceeds(getBytes(ref(unauthCtx.storage(), objectPath)));
   await assertFails(uploadString(ref(authCtx.storage(), objectPath), "{}"));
 });
 
@@ -205,6 +218,139 @@ test("job media blocks former bypass uid without matching metadata", async () =>
 
   await assertFails(
     uploadString(ref(ctx.storage(), objectPath), "blocked", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("practice exam media allows owner write when exam document belongs to user", async () => {
+  const uid = "practice-owner";
+  const objectPath = "practiceExams/exam-owned/cover.webp";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "practiceExams/exam-owned"), {
+      userID: uid,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("book cover media allows owner write when book document belongs to user", async () => {
+  const uid = "book-owner";
+  const objectPath = "books/book-owned/cover.webp";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "books/book-owned"), {
+      userID: uid,
+    });
+  });
+
+  const ctx = testEnv.authenticatedContext(uid);
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("scholarship media allows matching uploader metadata", async () => {
+  const uid = "scholarship-uploader";
+  const ctx = testEnv.authenticatedContext(uid);
+  const objectPath = "scholarships/images/seed.webp";
+
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("highlight cover allows owner write and blocks other users", async () => {
+  const uid = "highlight-owner";
+  const ownerCtx = testEnv.authenticatedContext(uid);
+  const otherCtx = testEnv.authenticatedContext("other-highlight-user");
+  const objectPath = `highlights/${uid}/highlight-1/cover.webp`;
+
+  await assertSucceeds(
+    uploadString(ref(ownerCtx.storage(), objectPath), "ok", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+  await assertFails(
+    uploadString(ref(otherCtx.storage(), objectPath), "nope", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("slider media allows admin write and blocks regular users", async () => {
+  const adminCtx = testEnv.authenticatedContext("slider-admin", {
+    admin: true,
+  });
+  const userCtx = testEnv.authenticatedContext("regular-user");
+  const objectPath = "slider/home/slide-1.webp";
+
+  await assertSucceeds(
+    uploadString(ref(adminCtx.storage(), objectPath), "ok", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+  await assertFails(
+    uploadString(ref(userCtx.storage(), objectPath), "nope", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("slider media allows admin delete", async () => {
+  const objectPath = "slider/home/slide-delete.webp";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadString(ref(context.storage(), objectPath), "seed");
+  });
+
+  const adminCtx = testEnv.authenticatedContext("slider-admin-delete", {
+    admin: true,
+  });
+  await assertSucceeds(deleteObject(ref(adminCtx.storage(), objectPath)));
+});
+
+test("story music cover allows admin write and blocks regular users", async () => {
+  const adminCtx = testEnv.authenticatedContext("music-admin", {
+    admin: true,
+  });
+  const userCtx = testEnv.authenticatedContext("regular-user");
+  const objectPath = "storyMusic/track-1/cover.webp";
+
+  await assertSucceeds(
+    uploadString(ref(adminCtx.storage(), objectPath), "ok", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+  await assertFails(
+    uploadString(ref(userCtx.storage(), objectPath), "nope", "raw", {
+      contentType: "image/webp",
+    }),
+  );
+});
+
+test("comment media allows matching uploader metadata", async () => {
+  const uid = "comment-uploader";
+  const ctx = testEnv.authenticatedContext(uid);
+  const objectPath = "comments/question-1/seed.webp";
+
+  await assertSucceeds(
+    uploadString(ref(ctx.storage(), objectPath), "ok", "raw", {
+      customMetadata: { uploaderUid: uid },
       contentType: "image/webp",
     }),
   );
