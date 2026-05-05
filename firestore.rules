@@ -2341,16 +2341,20 @@ service cloud.firestore {
         allow delete: if isOwner(uid);
       }
       match /qProgress/{categoryKey} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
       match /qAnswers/{questionId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
       match /qSaved/{questionId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
       match /qViews/{questionId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow write: if false;
       }
 
       // DeletedStories archive
