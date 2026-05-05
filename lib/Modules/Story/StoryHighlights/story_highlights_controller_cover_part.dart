@@ -1,5 +1,15 @@
 part of 'story_highlights_controller_library.dart';
 
+class _GeneratedHighlightCoverResult {
+  const _GeneratedHighlightCoverResult({
+    required this.bytes,
+    required this.frameMs,
+  });
+
+  final Uint8List bytes;
+  final int frameMs;
+}
+
 extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
   Future<void> _hydrateMissingCoverUrls() async {
     if (highlights.isEmpty) return;
@@ -72,14 +82,10 @@ extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
     final videoUrl = _extractVideoUrlFromStoryData(data);
     if (videoUrl.isEmpty) return '';
     try {
-      final thumbData = await VideoThumbnail.thumbnailData(
-        video: videoUrl,
-        imageFormat: ImageFormat.JPEG,
-        quality: 75,
-      );
-      if (thumbData == null || thumbData.isEmpty) return '';
+      final generated = await _generateStandardHighlightCover(videoUrl);
+      if (generated == null || generated.bytes.isEmpty) return '';
       final uploadUrl = await WebpUploadService.uploadBytesAsWebp(
-        bytes: thumbData,
+        bytes: generated.bytes,
         storagePathWithoutExt: 'highlights/$uid/$highlightId/cover',
       );
       return CdnUrlBuilder.toCdnUrl(uploadUrl);
@@ -88,6 +94,69 @@ extension _StoryHighlightsControllerCoverPartX on StoryHighlightsController {
       debugPrintStack(stackTrace: st);
       return '';
     }
+  }
+
+  Future<_GeneratedHighlightCoverResult?> _generateStandardHighlightCover(
+    String videoUrl,
+  ) async {
+    const candidateTimes = <int>[0, 33, 67, 100];
+    _GeneratedHighlightCoverResult? bestResult;
+    double bestScore = double.negativeInfinity;
+
+    for (final timeMs in candidateTimes) {
+      final data = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.JPEG,
+        timeMs: timeMs,
+        quality: 75,
+      );
+      if (data == null || data.isEmpty) continue;
+      final score = await _thumbnailQualityScore(data);
+      if (score == null) continue;
+      final result = _GeneratedHighlightCoverResult(
+        bytes: data,
+        frameMs: timeMs,
+      );
+      if (score >= 0.12) return result;
+      if (score > bestScore) {
+        bestScore = score;
+        bestResult = result;
+      }
+    }
+    return bestResult;
+  }
+
+  Future<double?> _thumbnailQualityScore(Uint8List data) async {
+    final codec = await ui.instantiateImageCodec(data);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    image.dispose();
+    if (bytes == null) return null;
+
+    final buffer = bytes.buffer.asUint8List();
+    if (buffer.length < 4) return null;
+    final pixelCount = buffer.length ~/ 4;
+    if (pixelCount <= 0) return null;
+
+    double luminanceSum = 0;
+    for (var i = 0; i < buffer.length; i += 4) {
+      luminanceSum +=
+          0.2126 * buffer[i] + 0.7152 * buffer[i + 1] + 0.0722 * buffer[i + 2];
+    }
+    final mean = luminanceSum / pixelCount;
+
+    double varianceSum = 0;
+    for (var i = 0; i < buffer.length; i += 4) {
+      final luminance =
+          0.2126 * buffer[i] + 0.7152 * buffer[i + 1] + 0.0722 * buffer[i + 2];
+      final diff = luminance - mean;
+      varianceSum += diff * diff;
+    }
+    final stdDev = math.sqrt(varianceSum / pixelCount);
+    final normalizedBrightness = (mean / 255).clamp(0.0, 1.0);
+    final normalizedContrast = (stdDev / 128).clamp(0.0, 1.0);
+    return normalizedBrightness * 0.45 + normalizedContrast * 0.55;
   }
 
   String _extractPreviewUrlFromStoryData(Map<String, dynamic> data) {

@@ -318,6 +318,10 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         imageUrls.add(post.gif);
       }
 
+      String thumbnailStrategy = 'none';
+      int? thumbnailFrameMs;
+      int thumbnailVersion = 0;
+
       if (post.video != null) {
         final nsfwVideo = await OptimizedNSFWService.checkVideo(post.video!);
         if (nsfwVideo.errorMessage != null) {
@@ -351,12 +355,14 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         Uint8List? thumbnailData;
         if (post.customThumbnail != null) {
           thumbnailData = post.customThumbnail;
+          thumbnailStrategy = 'manual_custom';
+          thumbnailVersion = 2;
         } else {
-          thumbnailData = await VideoThumbnail.thumbnailData(
-            video: post.video!.path,
-            imageFormat: ImageFormat.JPEG,
-            quality: 75,
-          );
+          final generated = await generateStandardThumbnail(post.video!);
+          thumbnailData = generated.bytes;
+          thumbnailStrategy = generated.strategy;
+          thumbnailFrameMs = generated.frameMs;
+          thumbnailVersion = generated.version;
         }
 
         if (thumbnailData != null) {
@@ -395,6 +401,8 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         videoUrl = post.reusedVideoUrl.trim();
         if (post.reusedVideoThumbnail.trim().isNotEmpty) {
           thumbnailUrl = post.reusedVideoThumbnail.trim();
+          thumbnailStrategy = 'reused';
+          thumbnailVersion = 1;
         }
       }
 
@@ -509,6 +517,12 @@ extension PostCreatorControllerPublishPart on PostCreatorController {
         "stabilized": false,
         "tags": index == 0 ? allHashtags.toList() : [],
         "thumbnail": thumbnailUrl,
+        "thumbnailGeneration": {
+          "strategy": thumbnailStrategy,
+          "frameMs": thumbnailFrameMs,
+          "version": thumbnailVersion,
+          "generatedAt": nowMs,
+        },
         "timeStamp": batchTimeStamp,
         "userID": uid,
         "video": isPendingVideoProcessing ? "" : videoUrl,
