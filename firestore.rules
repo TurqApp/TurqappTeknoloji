@@ -3135,8 +3135,7 @@ service cloud.firestore {
     }
     match /Basvurular/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
 
     // ──────────────────────────────────────────────
@@ -3310,13 +3309,11 @@ service cloud.firestore {
     }
     match /SosyalMedyaLinkleri/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
     match /Applications/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
     match /CV/{docId} {
       allow read: if isAuth();
@@ -3324,13 +3321,11 @@ service cloud.firestore {
     }
     match /HiddenPosts/{docId} {
       allow read: if false;
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
     match /ProfileVisits/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
     match /giphyGif/{gifId} {
       allow read: if isAuth();
@@ -3340,13 +3335,11 @@ service cloud.firestore {
     }
     match /Yanitlar/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
     match /Yorumlar/{docId} {
       allow read: if isAuth();
-      allow create: if isOwner(docId) || isDocOwnerFromRequest() || isAdmin();
-      allow update, delete: if isOwner(docId) || isDocOwnerFromResource() || isAdmin();
+      allow create, update, delete: if false;
     }
   }
 }
