@@ -22,6 +22,24 @@ function firstNonEmptyString(...values: unknown[]): string {
   return "";
 }
 
+function firstImageUrl(value: unknown): string {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      if (typeof entry === "string" && entry.trim().length > 0) {
+        return entry.trim();
+      }
+      if (entry && typeof entry === "object") {
+        const url = String((entry as Record<string, unknown>).url || "").trim();
+        if (url) return url;
+      }
+    }
+  }
+  return "";
+}
+
 function resolveInboxImageUrl(payload: InboxPayload): string {
   return firstNonEmptyString(
     payload.imageUrl,
@@ -33,6 +51,7 @@ function resolveInboxImageUrl(payload: InboxPayload): string {
     payload.companyLogo,
     payload.logo,
     payload.coverImageUrl,
+    firstImageUrl(payload.imgMap),
     payload.img,
     payload.images,
   );

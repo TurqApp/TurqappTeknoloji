@@ -79,13 +79,11 @@ extension PostControllerActionsPart on PostController {
   Future<void> openShareSheet(BuildContext context) async {
     await ShareActionGuard.run(() async {
       try {
-        final previewImage = model.thumbnail.trim().isNotEmpty
-            ? model.thumbnail.trim()
-            : (model.img.isNotEmpty ? model.img.first.trim() : null);
+        final previewImage = model.primaryVisualUrl.trim();
         final shortUrl = await ShortLinkService().getPostPublicUrl(
           postId: model.docID,
           desc: model.metin,
-          imageUrl: previewImage,
+          imageUrl: previewImage.isEmpty ? null : previewImage,
           existingShortUrl: model.shortUrl,
         );
         await ShareLinkService.shareUrl(

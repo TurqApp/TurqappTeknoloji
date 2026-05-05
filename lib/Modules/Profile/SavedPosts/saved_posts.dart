@@ -155,9 +155,7 @@ class _SavedPostsState extends State<SavedPosts> {
             itemCount: posts.length,
             itemBuilder: (context, index) {
               final model = posts[index];
-              final previewUrl = model.hasPlayableVideo
-                  ? model.thumbnail
-                  : (model.img.isNotEmpty ? model.img.first : '');
+              final previewUrl = model.primaryVisualUrl;
               return GestureDetector(
                 onTap: () => _openSavedPost(posts, model),
                 child: Stack(

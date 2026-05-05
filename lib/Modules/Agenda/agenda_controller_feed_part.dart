@@ -759,8 +759,9 @@ extension AgendaControllerFeedPart on AgendaController {
     for (final posterUrl in post.preferredVideoPosterUrls) {
       TurqImageCacheManager.warmUrl(posterUrl).ignore();
     }
-    if (post.img.isNotEmpty) {
-      TurqImageCacheManager.warmUrl(post.img.first).ignore();
+    final preview = post.primaryImageUrl.trim();
+    if (preview.isNotEmpty) {
+      TurqImageCacheManager.warmUrl(preview).ignore();
     }
   }
 
@@ -1016,8 +1017,9 @@ extension AgendaControllerFeedPart on AgendaController {
     final end = (current + 4).clamp(0, agendaList.length);
     for (int i = start; i < end; i++) {
       final post = agendaList[i];
-      if (post.img.isNotEmpty) {
-        TurqImageCacheManager.warmUrl(post.img.first).ignore();
+      final preview = post.primaryImageUrl.trim();
+      if (preview.isNotEmpty) {
+        TurqImageCacheManager.warmUrl(preview).ignore();
       }
       for (final posterUrl in post.preferredVideoPosterUrls) {
         TurqImageCacheManager.warmUrl(posterUrl).ignore();
@@ -1041,8 +1043,9 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_prefetchedThumbnailDocIds.add(post.docID)) {
         continue;
       }
-      if (post.img.isNotEmpty) {
-        TurqImageCacheManager.warmUrl(post.img.first).ignore();
+      final preview = post.primaryImageUrl.trim();
+      if (preview.isNotEmpty) {
+        TurqImageCacheManager.warmUrl(preview).ignore();
       }
       for (final previewUrl in post.preferredVideoPosterUrls) {
         TurqImageCacheManager.warmUrl(previewUrl).ignore();

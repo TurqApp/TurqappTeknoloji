@@ -338,7 +338,10 @@ async function buildPostMeta(
     normalizeText(data.video, 16).length > 0 ||
     normalizeText(data.hlsMasterUrl, 16).length > 0;
   const thumbnail = normalizeText(data.thumbnail, 1024);
-  const firstImage = normalizeText(pickFirstUrl(data.img), 1024);
+  const firstImage = normalizeText(
+    pickFirstUrl(Array.isArray(data.imgMap) && data.imgMap.length > 0 ? data.imgMap : data.img),
+    1024,
+  );
   const imageUrl = hasVideo ? thumbnail : firstImage;
 
   const title = authorNickname

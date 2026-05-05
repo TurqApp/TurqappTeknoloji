@@ -25,13 +25,8 @@ extension PhotoShortContentControllerRuntimePart
   }
 
   String? _pushPreviewImageUrl() {
-    if (model.img.isNotEmpty) {
-      final firstImage = model.img.first.trim();
-      if (firstImage.isNotEmpty) return firstImage;
-    }
-    final thumbnail = model.thumbnail.trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
-    return null;
+    final preview = model.primaryVisualUrl.trim();
+    return preview.isEmpty ? null : preview;
   }
 
   void _initializeRuntime() {

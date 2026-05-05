@@ -60,9 +60,7 @@ extension _ProfileViewResharePart on _ProfileViewState {
                   children: [
                     SizedBox.expand(
                       child: CachedNetworkImage(
-                        imageUrl: model.thumbnail != ""
-                            ? model.thumbnail
-                            : model.img.first,
+                        imageUrl: model.primaryVisualUrl,
                         cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         memCacheWidth: 200,

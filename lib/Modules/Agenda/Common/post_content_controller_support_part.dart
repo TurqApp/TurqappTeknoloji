@@ -105,13 +105,8 @@ class _PostContentControllerSupportPart {
   }
 
   String? pushPreviewImageUrl() {
-    if (_controller.model.img.isNotEmpty) {
-      final firstImage = _controller.model.img.first.trim();
-      if (firstImage.isNotEmpty) return firstImage;
-    }
-    final thumbnail = _controller.model.thumbnail.trim();
-    if (thumbnail.isNotEmpty) return thumbnail;
-    return null;
+    final preview = _controller.model.primaryVisualUrl.trim();
+    return preview.isEmpty ? null : preview;
   }
 
   String get reshareTargetPostId {

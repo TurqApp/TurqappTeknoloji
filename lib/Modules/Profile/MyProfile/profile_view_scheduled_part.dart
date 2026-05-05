@@ -95,9 +95,7 @@ extension _ProfileViewScheduledPart on _ProfileViewState {
                   children: [
                     SizedBox.expand(
                       child: CachedNetworkImage(
-                        imageUrl: model.thumbnail.isNotEmpty
-                            ? model.thumbnail
-                            : (model.img.isNotEmpty ? model.img.first : ''),
+                        imageUrl: model.primaryVisualUrl,
                         cacheManager: TurqImageCacheManager.instance,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => const Center(
