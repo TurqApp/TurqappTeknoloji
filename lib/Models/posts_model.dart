@@ -111,6 +111,7 @@ class PostsModel {
   num floodCount;
   bool gizlendi;
   List<String> img;
+  List<Map<String, dynamic>> imgMap;
   bool isAd;
   bool isUploading;
   num izBirakYayinTarihi;
@@ -166,6 +167,7 @@ class PostsModel {
     required this.floodCount,
     required this.gizlendi,
     required this.img,
+    this.imgMap = const <Map<String, dynamic>>[],
     required this.isAd,
     this.isUploading = false,
     required this.izBirakYayinTarihi,
@@ -211,6 +213,9 @@ class PostsModel {
     this.poll = const {},
   }) {
     img = _clonePostsStringList(img);
+    imgMap = imgMap
+        .map((entry) => _clonePostsDynamicMap(entry))
+        .toList(growable: false);
     tags = _clonePostsStringList(tags);
     videoLook = _clonePostsDynamicMap(videoLook);
     yorumMap = _clonePostsDynamicMap(yorumMap);
@@ -234,6 +239,44 @@ class PostsModel {
 
   bool get hasImageContent =>
       img.isNotEmpty || thumbnail.trim().isNotEmpty;
+
+  List<String> get canonicalImageUrls {
+    final urls = <String>[];
+    void addUrl(String url) {
+      final normalized = CdnUrlBuilder.toCdnUrl(url).trim();
+      if (normalized.isEmpty || urls.contains(normalized)) return;
+      urls.add(normalized);
+    }
+
+    if (imgMap.isNotEmpty) {
+      for (final entry in imgMap) {
+        addUrl((entry['url'] ?? '').toString());
+      }
+    }
+    if (urls.isEmpty) {
+      for (final url in img) {
+        addUrl(url);
+      }
+    }
+    return urls;
+  }
+
+  String get primaryImageUrl =>
+      canonicalImageUrls.isEmpty ? '' : canonicalImageUrls.first;
+
+  double get primaryImageAspectRatio {
+    if (imgMap.isNotEmpty) {
+      final value = imgMap.first['aspectRatio'];
+      if (value is num && value > 0) return value.toDouble();
+      if (value is String) {
+        final parsed = double.tryParse(value.trim());
+        if (parsed != null && parsed > 0) return parsed;
+      }
+    }
+    final parsedAspect = aspectRatio.toDouble();
+    if (parsedAspect > 0) return parsedAspect;
+    return 1.0;
+  }
 
   bool get hasQuoteContent =>
       quotedPost || quotedOriginalText.trim().isNotEmpty;
@@ -286,8 +329,7 @@ class PostsModel {
   }
 
   String get cdnThumbnailUrl => CdnUrlBuilder.toCdnUrl(thumbnail);
-
-  List<String> get cdnImgUrls => img.map(CdnUrlBuilder.toCdnUrl).toList();
+  List<String> get cdnImgUrls => canonicalImageUrls;
 
   List<String> get preferredVideoPosterUrls {
     final urls = <String>[];
@@ -315,6 +357,28 @@ class PostsModel {
     return urls.isEmpty ? '' : urls.first;
   }
 
+  List<String> get visualPreviewUrls {
+    final urls = <String>[];
+
+    void addAll(Iterable<String> values) {
+      for (final value in values) {
+        final normalized = CdnUrlBuilder.toCdnUrl(value).trim();
+        if (normalized.isEmpty || urls.contains(normalized)) continue;
+        urls.add(normalized);
+      }
+    }
+
+    if (hasVideoSignal) {
+      addAll(preferredVideoPosterUrls);
+    } else {
+      addAll(<String>[thumbnail, ...canonicalImageUrls]);
+    }
+    return urls;
+  }
+
+  String get primaryVisualUrl =>
+      visualPreviewUrls.isEmpty ? '' : visualPreviewUrls.first;
+
   bool get isFloodMember => flood || mainFlood.trim().isNotEmpty;
 
   bool get isFloodSeriesRoot => !isFloodMember && floodCount.toInt() > 1;
@@ -327,7 +391,37 @@ class PostsModel {
       return <String>[];
     }
 
-    List<String> parseImageUrls(dynamic field) {
+    List<Map<String, dynamic>> parseImageMap(dynamic field) {
+      if (field is! List) return const <Map<String, dynamic>>[];
+      final out = <Map<String, dynamic>>[];
+      for (final item in field) {
+        if (item is! Map) continue;
+        final url = (item['url'] ?? '').toString().trim();
+        if (url.isEmpty) continue;
+        final normalized = <String, dynamic>{
+          'url': CdnUrlBuilder.toCdnUrl(url),
+        };
+        final aspect = item['aspectRatio'];
+        if (aspect is num) {
+          normalized['aspectRatio'] = aspect;
+        } else if (aspect is String) {
+          final parsed = num.tryParse(aspect.trim());
+          if (parsed != null) {
+            normalized['aspectRatio'] = parsed;
+          }
+        }
+        out.add(normalized);
+      }
+      return out;
+    }
+
+    List<String> parseImageUrls(dynamic field, List<Map<String, dynamic>> map) {
+      if (map.isNotEmpty) {
+        return map
+            .map((entry) => (entry['url'] ?? '').toString().trim())
+            .where((url) => url.isNotEmpty)
+            .toList(growable: false);
+      }
       if (field is! List) return <String>[];
       final out = <String>[];
       for (final item in field) {
@@ -360,8 +454,10 @@ class PostsModel {
       return fallback;
     }
 
-    final parsedImgUrls = parseImageUrls(data['img']);
-    final firstImgAspect = parseFirstImageAspect(data['imgMap']) ??
+    final parsedImgMap = parseImageMap(data['imgMap'] ?? data['img']);
+    final parsedImgUrls = parseImageUrls(data['img'], parsedImgMap);
+    final firstImgAspect = parseFirstImageAspect(parsedImgMap) ??
+        parseFirstImageAspect(data['imgMap']) ??
         parseFirstImageAspect(data['img']);
     final authorMap = data['author'] is Map<String, dynamic>
         ? data['author'] as Map<String, dynamic>
@@ -406,6 +502,7 @@ class PostsModel {
       floodCount: parseNum(data['floodCount']),
       gizlendi: data['gizlendi'] ?? false,
       img: parsedImgUrls,
+      imgMap: parsedImgMap,
       isAd: data['isAd'] ?? false,
       isUploading: data['isUploading'] == true,
       izBirakYayinTarihi: parseNum(data['izBirakYayinTarihi']),
@@ -484,6 +581,9 @@ class PostsModel {
       'floodCount': floodCount,
       'gizlendi': gizlendi,
       'img': _clonePostsStringList(img),
+      'imgMap': imgMap
+          .map((entry) => _clonePostsDynamicMap(entry))
+          .toList(growable: false),
       'isAd': isAd,
       'isUploading': isUploading,
       'izBirakYayinTarihi': izBirakYayinTarihi,
@@ -540,6 +640,7 @@ class PostsModel {
       floodCount: 0,
       gizlendi: false,
       img: const [],
+      imgMap: const <Map<String, dynamic>>[],
       isAd: false,
       isUploading: false,
       izBirakYayinTarihi: 0,
@@ -596,6 +697,7 @@ class PostsModel {
     num? floodCount,
     bool? gizlendi,
     List<String>? img,
+    List<Map<String, dynamic>>? imgMap,
     bool? isAd,
     bool? isUploading,
     num? izBirakYayinTarihi,
@@ -649,6 +751,7 @@ class PostsModel {
       floodCount: floodCount ?? this.floodCount,
       gizlendi: gizlendi ?? this.gizlendi,
       img: img ?? this.img,
+      imgMap: imgMap ?? this.imgMap,
       isAd: isAd ?? this.isAd,
       isUploading: isUploading ?? this.isUploading,
       izBirakYayinTarihi: izBirakYayinTarihi ?? this.izBirakYayinTarihi,

@@ -795,7 +795,7 @@ extension PostRepositoryQueryPart on PostRepository {
     if (model.deletedPost || model.gizlendi || model.shouldHideWhileUploading) {
       return false;
     }
-    final hasVisual = model.thumbnail.trim().isNotEmpty || model.img.isNotEmpty;
+    final hasVisual = model.primaryVisualUrl.trim().isNotEmpty;
     if (model.hasVideoSignal) {
       return model.hasRenderableVideoCard && hasVisual;
     }
