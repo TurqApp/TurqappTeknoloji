@@ -258,6 +258,10 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             imageUrls.add(post.gif);
           }
 
+          String thumbnailStrategy = 'none';
+          int? thumbnailFrameMs;
+          int thumbnailVersion = 0;
+
           // Upload video with error handling
           if (post.video != null) {
             try {
@@ -294,12 +298,14 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               Uint8List? thumbnailData;
               if (post.customThumbnail != null) {
                 thumbnailData = post.customThumbnail;
+                thumbnailStrategy = 'manual_custom';
+                thumbnailVersion = 2;
               } else {
-                thumbnailData = await VideoThumbnail.thumbnailData(
-                  video: post.video!.path,
-                  imageFormat: ImageFormat.JPEG,
-                  quality: 75,
-                );
+                final generated = await generateStandardThumbnail(post.video!);
+                thumbnailData = generated.bytes;
+                thumbnailStrategy = generated.strategy;
+                thumbnailFrameMs = generated.frameMs;
+                thumbnailVersion = generated.version;
               }
 
               if (thumbnailData != null) {
@@ -341,6 +347,8 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
             videoUrl = post.reusedVideoUrl.trim();
             if (post.reusedVideoThumbnail.trim().isNotEmpty) {
               thumbnailUrl = post.reusedVideoThumbnail.trim();
+              thumbnailStrategy = 'reused';
+              thumbnailVersion = 1;
             }
           }
 
@@ -458,6 +466,12 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
               "stabilized": false,
               "tags": index == 0 ? allHashtags.toList() : [],
               "thumbnail": thumbnailUrl,
+              "thumbnailGeneration": {
+                "strategy": thumbnailStrategy,
+                "frameMs": thumbnailFrameMs,
+                "version": thumbnailVersion,
+                "generatedAt": nowMs,
+              },
               "timeStamp": batchTimeStamp,
               "userID": uid,
               "authorNickname": authorNickname,

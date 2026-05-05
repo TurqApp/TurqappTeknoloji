@@ -172,19 +172,16 @@ extension EditPostControllerActionsPart on EditPostController {
         finalImageUrls = List<String>.from(imageUrls);
       }
 
+      _EditPostGeneratedThumbnailResult? generatedThumb;
       if (_newVideoSelected && videoUrl.value.isNotEmpty) {
         final videoFile = File(videoUrl.value);
 
         final tempDir = await getTemporaryDirectory();
-        final localThumbPath = p.join(
-          tempDir.path,
-          '${DateTime.now().millisecondsSinceEpoch}_thumb.jpg',
+        generatedThumb = await generateStandardEditPostThumbnail(
+          videoPath: videoFile.path,
+          tempDirPath: tempDir.path,
         );
-        await VideoEditorBuilder(videoPath: videoFile.path).generateThumbnail(
-          positionMs: 0,
-          quality: 80,
-          outputPath: localThumbPath,
-        );
+        final localThumbPath = generatedThumb.path;
 
         final thumbDownloadUrl = await WebpUploadService.uploadFileAsWebp(
           file: File(localThumbPath),
@@ -239,6 +236,12 @@ extension EditPostControllerActionsPart on EditPostController {
         if (_newVideoSelected) {
           data['video'] = newVideoDownloadUrl ?? '';
           data['thumbnail'] = newThumbnailDownloadUrl ?? '';
+          data['thumbnailGeneration'] = {
+            'strategy': 'auto_early_frame',
+            'frameMs': generatedThumb?.frameMs,
+            'version': 2,
+            'generatedAt': DateTime.now().millisecondsSinceEpoch,
+          };
         }
         data['img'] = [];
       } else {

@@ -564,10 +564,13 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     String keyId, {
     bool? overrideAutoPlay,
     double? modelAspectRatio,
+    bool? preferResumePosterOverride,
   }) {
     final ar = (modelAspectRatio != null && modelAspectRatio > 0)
         ? modelAspectRatio
         : (9 / 16);
+
+    final preferResumePoster = preferResumePosterOverride ?? false;
 
     final player = adapter.buildPlayer(
       key: ValueKey(keyId),
@@ -576,8 +579,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       forceFullscreenOnAndroid: true,
       preferWarmPoolPauseOnAndroid: true,
       suppressLoadingOverlay: true,
-      preferResumePoster: false,
-      suppressPauseSnapshot: true,
+      preferResumePoster: preferResumePoster,
       preferStableStartupBuffer:
           PlaybackSurfacePolicy.preferStableShortStartupBuffer(
         platform: defaultTargetPlatform,
@@ -603,6 +605,21 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     }
   }
 
+  bool _shouldPreferResumePosterForSingleShort(
+    int index,
+    HLSVideoAdapter adapter,
+  ) {
+    if (index < 0 || index >= shorts.length) return false;
+    if (_forceResumePosterOnReturn && index == currentPage) {
+      return true;
+    }
+    if (widget.initialPosition != null &&
+        widget.initialPosition! > Duration.zero &&
+        index == currentPage) {
+      return true;
+    }
+    return false;
+  }
 
   Future<void> _fetchAndShuffle() async {
     final merged = <PostsModel>[];

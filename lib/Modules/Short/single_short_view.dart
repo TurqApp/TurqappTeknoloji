@@ -22,6 +22,7 @@ import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_telemetry_service.dart';
 import '../../Core/Widgets/app_header_action_button.dart';
+import '../../Themes/app_tokens.dart';
 import 'short_content.dart';
 import '../NavBar/nav_bar_controller.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
@@ -202,6 +203,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   HLSVideoAdapter? _fullscreenReturnPreservedController;
+  bool _forceResumePosterOnReturn = false;
   bool _routeObserverSubscribed = false;
   bool _routePlaybackActive = true;
   String? _suspendedFeedPlaybackHandleKey;

@@ -217,6 +217,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return true;
   }
 
+  bool _shouldPreferResumePosterForPage(
+    int page,
+    HLSVideoAdapter adapter,
+  ) {
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return false;
+    }
+    if (page == currentPage && _forceResumePosterOnReturn) {
+      return true;
+    }
+    return _savedPlaybackPositionForPage(page, adapter) != null;
+  }
+
   bool _shouldSuppressShortPlaybackAttempt(
     int page,
     String docId, {
@@ -376,18 +389,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
 
     _shortRenderCoordinator.applyPatch(_cachedShorts, update.patch);
-    final previousCurrentPage = currentPage;
     currentPage = remappedPage;
     final previousRenderPage = _currentRenderPage;
     _rebuildShortRenderPlan();
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
-    debugPrint(
-      '[ShortAnchorProbe] event=render_list_update '
-      'fromPage=$previousCurrentPage toPage=$currentPage '
-      'previousDoc=$previousActiveDocId nextDoc=$nextActiveDocId '
-      'remappedIndex=${update.remappedIndex} renderFrom=$previousRenderPage '
-      'renderTo=$_currentRenderPage nextCount=${nextList.length}',
-    );
 
     _updateShortViewState(() {});
 
@@ -524,18 +529,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.primeForwardReadyMagazine(
       currentPage,
-      aheadCount: 6,
+      aheadCount: 5,
       minimumSegmentCount: 1,
     );
     controller.warmPosterWindowAround(
       currentPage,
       behindCount: 1,
-      aheadCount: 6,
+      aheadCount: 5,
     );
     controller.primePlaybackWindowReadySegments(
       currentPage,
       minimumSegmentCount: 2,
-      aheadCount: 6,
+      aheadCount: 5,
     );
     unawaited(
       controller.ensureShortMotorStageForViewedIndex(
@@ -608,8 +613,12 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   bool _canUseImmediatePageHandoff(int page) {
     if (page < 0 || page >= _cachedShorts.length) return false;
-    if (!_isShortRoutePlaybackActive || _shouldBlockPlaybackForAdPage) return false;
-    return true;
+    final adapter = controller.cache[page];
+    if (adapter == null || adapter.isDisposed) return false;
+    final value = adapter.value;
+    return value.isInitialized ||
+        value.hasRenderedFirstFrame ||
+        !adapter.isStopped;
   }
 
   void _prepareUpcomingVideoForSwipe({
@@ -618,14 +627,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final activePage = activePageOverride ?? currentPage;
     final nextPage = activePage + 1;
     if (nextPage >= _cachedShorts.length) return;
-    if (nextPage >= 0 && nextPage < _cachedShorts.length) {
-      try {
-        _segmentCacheRuntimeService.ensureMinimumReadySegments(
-          _cachedShorts[nextPage].docID,
-          minimumSegmentCount: 3,
-        );
-      } catch (_) {}
-    }
     if (_preparedAutoAdvancePage == nextPage) return;
     _preparedAutoAdvancePage = nextPage;
     unawaited(() async {
@@ -734,16 +735,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
-    controller.primeForwardReadyMagazine(
-      currentPage,
-      aheadCount: 6,
-      minimumSegmentCount: 2,
-    );
-    controller.primePlaybackWindowReadySegments(
-      currentPage,
-      minimumSegmentCount: 2,
-      aheadCount: 6,
-    );
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      controller.primeForwardReadyMagazine(
+        currentPage,
+        aheadCount: 5,
+        minimumSegmentCount: 1,
+      );
+      controller.primePlaybackWindowReadySegments(
+        currentPage,
+        minimumSegmentCount: 2,
+        aheadCount: 5,
+      );
+    }
     _prepareUpcomingVideoForSwipe();
   }
 
@@ -1303,9 +1306,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'isInitialized': vc.value.isInitialized,
           },
         );
-        if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId, vc);
-        }
         await _restoreShortPlaybackStateIfNeeded(page, vc);
         if (_shouldResetArrivingShortToStart(page, vc)) {
           try {

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
@@ -150,12 +153,7 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
       }
       final videoUrl = _extractVideoUrl(raw);
       if (videoUrl.isEmpty) return;
-      final thumb = await VideoThumbnail.thumbnailData(
-        video: videoUrl,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 240,
-        quality: 70,
-      );
+      final thumb = await _generateEarlyFrameThumbnail(videoUrl);
       if (!mounted ||
           thumb == null ||
           thumb.isEmpty ||
@@ -172,6 +170,65 @@ class _HighlightCoverImageState extends State<_HighlightCoverImage> {
         await _resolveFallbackThumbnail();
       }
     }
+  }
+
+  Future<Uint8List?> _generateEarlyFrameThumbnail(String videoUrl) async {
+    const candidateTimes = <int>[0, 33, 67, 100];
+    Uint8List? bestData;
+    double bestScore = double.negativeInfinity;
+
+    for (final timeMs in candidateTimes) {
+      final data = await VideoThumbnail.thumbnailData(
+        video: videoUrl,
+        imageFormat: ImageFormat.JPEG,
+        timeMs: timeMs,
+        maxWidth: 240,
+        quality: 70,
+      );
+      if (data == null || data.isEmpty) continue;
+      final score = await _thumbnailQualityScore(data);
+      if (score == null) continue;
+      if (score >= 0.12) return data;
+      if (score > bestScore) {
+        bestScore = score;
+        bestData = data;
+      }
+    }
+    return bestData;
+  }
+
+  Future<double?> _thumbnailQualityScore(Uint8List data) async {
+    final codec = await ui.instantiateImageCodec(data);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    image.dispose();
+    if (bytes == null) return null;
+    final buffer = bytes.buffer.asUint8List();
+    if (buffer.length < 4) return null;
+
+    final pixelCount = buffer.length ~/ 4;
+    if (pixelCount <= 0) return null;
+
+    double luminanceSum = 0;
+    for (var i = 0; i < buffer.length; i += 4) {
+      luminanceSum +=
+          0.2126 * buffer[i] + 0.7152 * buffer[i + 1] + 0.0722 * buffer[i + 2];
+    }
+    final mean = luminanceSum / pixelCount;
+
+    double varianceSum = 0;
+    for (var i = 0; i < buffer.length; i += 4) {
+      final luminance =
+          0.2126 * buffer[i] + 0.7152 * buffer[i + 1] + 0.0722 * buffer[i + 2];
+      final diff = luminance - mean;
+      varianceSum += diff * diff;
+    }
+    final stdDev = math.sqrt(varianceSum / pixelCount);
+    final normalizedBrightness = (mean / 255).clamp(0.0, 1.0);
+    final normalizedContrast = (stdDev / 128).clamp(0.0, 1.0);
+
+    return normalizedBrightness * 0.45 + normalizedContrast * 0.55;
   }
 
   String _extractPreviewUrl(Map<String, dynamic> data) {

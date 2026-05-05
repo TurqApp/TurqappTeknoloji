@@ -54,17 +54,12 @@ extension EditPostControllerMediaPart on EditPostController {
     );
 
     final tempDir = await getTemporaryDirectory();
-    final thumbPath = p.join(
-      tempDir.path,
-      '${DateTime.now().millisecondsSinceEpoch}_thumb.jpg',
+    final generated = await generateStandardEditPostThumbnail(
+      videoPath: compressed.path,
+      tempDirPath: tempDir.path,
     );
-    await VideoEditorBuilder(videoPath: compressed.path).generateThumbnail(
-      positionMs: 0,
-      quality: 80,
-      outputPath: thumbPath,
-    );
-    thumbnail.value = thumbPath;
-    model.thumbnail = thumbPath;
+    thumbnail.value = generated.path;
+    model.thumbnail = generated.path;
 
     waitingVideo.value = true;
     videoUrl.value = compressed.path;
