@@ -1,6 +1,71 @@
 part of 'chat_controller.dart';
 
 extension ChatControllerMediaPart on ChatController {
+  static const List<int> _chatThumbnailCandidateMs = <int>[0, 33, 67, 100];
+
+  Future<double?> _chatThumbnailQualityScore(Uint8List data) async {
+    try {
+      final codec = await ui.instantiateImageCodec(
+        data,
+        targetWidth: 24,
+        targetHeight: 24,
+      );
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      image.dispose();
+      if (byteData == null) return null;
+      final bytes = byteData.buffer.asUint8List();
+      if (bytes.isEmpty) return null;
+
+      double sum = 0;
+      double sumSquares = 0;
+      int count = 0;
+      for (int i = 0; i + 3 < bytes.length; i += 4) {
+        final r = bytes[i].toDouble();
+        final g = bytes[i + 1].toDouble();
+        final b = bytes[i + 2].toDouble();
+        final luma = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+        sum += luma;
+        sumSquares += luma * luma;
+        count++;
+      }
+      if (count == 0) return null;
+      final mean = sum / count;
+      final variance = (sumSquares / count) - (mean * mean);
+      if (mean < 14) return mean - 1000;
+      return variance + (mean * 0.15);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Uint8List?> _generateChatThumbnail(String videoPath) async {
+    Uint8List? bestData;
+    double bestScore = double.negativeInfinity;
+
+    for (final ms in _chatThumbnailCandidateMs) {
+      final data = await vt.VideoThumbnail.thumbnailData(
+        video: videoPath,
+        imageFormat: vt.ImageFormat.JPEG,
+        timeMs: ms,
+        maxWidth: 300,
+        quality: 75,
+      );
+      if (data == null || data.isEmpty) continue;
+      final score = await _chatThumbnailQualityScore(data);
+      if (score != null && score >= 18) return data;
+      if (score != null && score > bestScore) {
+        bestScore = score;
+        bestData = data;
+      } else {
+        bestData ??= data;
+      }
+    }
+
+    return bestData;
+  }
+
   Future<void> pickImage() async {
     final ctx = Get.context;
     if (ctx == null) return;
@@ -359,12 +424,7 @@ extension ChatControllerMediaPart on ChatController {
 
       Uint8List? thumbBytes;
       try {
-        thumbBytes = await vt.VideoThumbnail.thumbnailData(
-          video: videoFile.path,
-          imageFormat: vt.ImageFormat.JPEG,
-          maxWidth: 300,
-          quality: 75,
-        );
+        thumbBytes = await _generateChatThumbnail(videoFile.path);
       } catch (_) {}
 
       final videoFileName = uuid.v4();
