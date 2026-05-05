@@ -1278,6 +1278,197 @@ service cloud.firestore {
         && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['reviewCount'])
           || (request.resource.data.reviewCount is int && request.resource.data.reviewCount >= 0));
     }
+    function isAllowedApplicationStatus(v) {
+      return v in ['pending', 'reviewing', 'accepted', 'rejected'];
+    }
+    function isValidJobApplicationPayloadForUser(applicantUid) {
+      return request.resource.data.keys().hasOnly([
+          'timeStamp',
+          'status',
+          'statusUpdatedAt',
+          'note',
+          'jobTitle',
+          'companyName',
+          'companyLogo',
+          'applicantName',
+          'applicantNickname',
+          'applicantPfImage',
+          'userID'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == applicantUid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.status is string
+        && isAllowedApplicationStatus(request.resource.data.status)
+        && (!request.resource.data.keys().hasAny(['statusUpdatedAt'])
+          || request.resource.data.statusUpdatedAt is int)
+        && request.resource.data.note is string
+        && request.resource.data.jobTitle is string
+        && request.resource.data.companyName is string
+        && request.resource.data.companyLogo is string
+        && request.resource.data.applicantName is string
+        && request.resource.data.applicantNickname is string
+        && request.resource.data.applicantPfImage is string;
+    }
+    function canReviewerUpdateJobApplication() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'statusUpdatedAt'
+        ])
+        && request.resource.data.status is string
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.statusUpdatedAt is int;
+    }
+    function isValidTutoringApplicationPayloadForUser(applicantUid) {
+      return request.resource.data.keys().hasOnly([
+          'timeStamp',
+          'status',
+          'statusUpdatedAt',
+          'note',
+          'tutoringTitle',
+          'tutorName',
+          'tutorImage',
+          'userID'
+        ])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.status is string
+        && isAllowedApplicationStatus(request.resource.data.status)
+        && (!request.resource.data.keys().hasAny(['statusUpdatedAt'])
+          || request.resource.data.statusUpdatedAt is int)
+        && (!request.resource.data.keys().hasAny(['note'])
+          || request.resource.data.note is string)
+        && (!request.resource.data.keys().hasAny(['tutoringTitle'])
+          || request.resource.data.tutoringTitle is string)
+        && (!request.resource.data.keys().hasAny(['tutorName'])
+          || request.resource.data.tutorName is string)
+        && (!request.resource.data.keys().hasAny(['tutorImage'])
+          || request.resource.data.tutorImage is string)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == applicantUid
+          )
+        );
+    }
+    function canReviewerUpdateTutoringApplication() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'statusUpdatedAt'
+        ])
+        && request.resource.data.status is string
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.statusUpdatedAt is int;
+    }
+    function canUpdateTutoringApplicationMirrorStatus() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'statusUpdatedAt'
+        ])
+        && request.resource.data.status is string
+        && request.resource.data.status in ['accepted', 'rejected']
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['statusUpdatedAt'])
+          || request.resource.data.statusUpdatedAt is int
+        );
+    }
+    function isValidUserSavedJobPayload(uid, jobId) {
+      return request.resource.data.keys().hasOnly(['userID', 'jobID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == uid
+        && request.resource.data.jobID is string
+        && request.resource.data.jobID == jobId
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidLegacySavedJobPayload(docId) {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['userID', 'jobID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.jobID is string
+        && request.resource.data.jobID.size() > 0
+        && docId == request.auth.uid + '_' + request.resource.data.jobID
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isLegacySavedJobDocOwner(docId) {
+      return isAuth()
+        && (
+          (resource.data.userID is string && resource.data.userID == request.auth.uid)
+          || docId.matches('^' + request.auth.uid + '_.*$')
+        );
+    }
+    function isValidMarketOfferMirrorPayload(uid, isBuyerMirror) {
+      return request.resource.data.keys().hasOnly([
+          'id',
+          'itemId',
+          'itemTitle',
+          'coverImageUrl',
+          'locationText',
+          'buyerId',
+          'sellerId',
+          'offerPrice',
+          'currency',
+          'message',
+          'status',
+          'createdAt',
+          'updatedAt',
+          'respondedAt'
+        ])
+        && request.resource.data.id is string
+        && request.resource.data.itemId is string
+        && request.resource.data.itemTitle is string
+        && request.resource.data.coverImageUrl is string
+        && request.resource.data.locationText is string
+        && request.resource.data.buyerId is string
+        && request.resource.data.sellerId is string
+        && request.resource.data.offerPrice is number
+        && request.resource.data.offerPrice > 0
+        && request.resource.data.currency is string
+        && request.resource.data.message is string
+        && request.resource.data.status is string
+        && request.resource.data.status in ['pending', 'accepted', 'rejected']
+        && request.resource.data.createdAt is int
+        && request.resource.data.updatedAt is int
+        && (
+          !request.resource.data.keys().hasAny(['respondedAt'])
+          || request.resource.data.respondedAt is int
+        )
+        && (
+          (isBuyerMirror && request.resource.data.buyerId == uid)
+          || (!isBuyerMirror && request.resource.data.sellerId == uid)
+        );
+    }
+    function isValidJobReviewPayload(jobId, reviewerId) {
+      return request.resource.data.keys().hasOnly([
+          'userID', 'jobDocID', 'rating', 'comment', 'timeStamp'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == reviewerId
+        && request.resource.data.jobDocID is string
+        && request.resource.data.jobDocID == jobId
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidTutoringReviewPayload(tutoringId, reviewerId) {
+      return request.resource.data.keys().hasOnly([
+          'userID', 'tutoringDocID', 'rating', 'comment', 'timeStamp'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == reviewerId
+        && request.resource.data.tutoringDocID is string
+        && request.resource.data.tutoringDocID == tutoringId
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.comment is string
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
     function canSellerRespondToMarketOffer(itemId) {
       return isAuth()
         && exists(/databases/$(database)/documents/marketStore/$(itemId))
@@ -1392,9 +1583,7 @@ service cloud.firestore {
       match /marketOffersSent/{offerId} {
         allow read: if isOwner(uid);
         allow create, update: if isAuth()
-          && request.resource.data.buyerId is string
-          && request.resource.data.buyerId == uid
-          && request.resource.data.sellerId is string
+          && isValidMarketOfferMirrorPayload(uid, true)
           && request.auth.uid in [
             request.resource.data.buyerId,
             request.resource.data.sellerId
@@ -1405,9 +1594,7 @@ service cloud.firestore {
       match /marketOffersReceived/{offerId} {
         allow read: if isOwner(uid);
         allow create, update: if isAuth()
-          && request.resource.data.sellerId is string
-          && request.resource.data.sellerId == uid
-          && request.resource.data.buyerId is string
+          && isValidMarketOfferMirrorPayload(uid, false)
           && request.auth.uid in [
             request.resource.data.buyerId,
             request.resource.data.sellerId
@@ -1494,11 +1681,7 @@ service cloud.firestore {
       match /savedJobs/{jobId} {
         allow read: if isOwner(uid);
         allow create, update: if isOwner(uid)
-          && request.resource.data.userID is string
-          && request.resource.data.userID == uid
-          && request.resource.data.jobID is string
-          && request.resource.data.jobID == jobId
-          && request.resource.data.timeStamp is int;
+          && isValidUserSavedJobPayload(uid, jobId);
         allow delete: if isOwner(uid);
       }
       match /saved_practice_exams/{examId} {
@@ -1542,19 +1725,48 @@ service cloud.firestore {
 
       // Tutoring applications
       match /myTutoringApplications/{docId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create: if (
+          isOwner(uid)
+          && isValidTutoringApplicationPayloadForUser(uid)
+        ) || (
+          isAuth()
+          && exists(/databases/$(database)/documents/educators/$(docId))
+          && (
+            isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+            || canManageAdminPanels()
+          )
+          && isValidTutoringApplicationPayloadForUser(uid)
+        );
+        allow update: if (
+          isOwner(uid)
+          && isValidTutoringApplicationPayloadForUser(uid)
+        ) || (
+          isAuth()
+          && exists(/databases/$(database)/documents/educators/$(docId))
+          && (
+            isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+            || canManageAdminPanels()
+          )
+          && canUpdateTutoringApplicationMirrorStatus()
+        );
+        allow delete: if isOwner(uid);
       }
 
       // Job applications
       match /myApplications/{docId} {
         allow read: if isOwner(uid);
-        allow create, update: if isOwner(uid) || (
+        allow create, update: if (
+          isOwner(uid)
+          && isValidJobApplicationPayloadForUser(uid)
+        ) || (
           isAuth()
           && exists(/databases/$(database)/documents/isBul/$(docId))
           && (
             isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
             || canManageAdminPanels()
           )
+          && isValidJobApplicationPayloadForUser(uid)
         );
         allow delete: if isOwner(uid);
       }
@@ -2359,11 +2571,18 @@ service cloud.firestore {
 
       match /Applications/{applicantId} {
         allow read: if isAuth();
-        allow create: if isOwner(applicantId);
+        allow create: if isOwner(applicantId)
+          && isValidJobApplicationPayloadForUser(applicantId);
         allow update: if isAuth() && (
-          request.auth.uid == applicantId
-          || isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
-          || canManageAdminPanels()
+          (request.auth.uid == applicantId
+            && isValidJobApplicationPayloadForUser(applicantId))
+          || (
+            canReviewerUpdateJobApplication()
+            && (
+              isOwnerData(get(/databases/$(database)/documents/isBul/$(docId)).data)
+              || canManageAdminPanels()
+            )
+          )
         );
         allow delete: if isAuth() && (
           request.auth.uid == applicantId
@@ -2374,11 +2593,15 @@ service cloud.firestore {
 
       match /Reviews/{reviewerId} {
         allow read: if isAuth();
-        allow create, update, delete: if isOwner(reviewerId);
+        allow create, update: if isOwner(reviewerId)
+          && isValidJobReviewPayload(docId, reviewerId);
+        allow delete: if isOwner(reviewerId);
       }
     }
     match /SavedIsBul/{docId} {
-      allow read, write: if isAuth();
+      allow read: if isLegacySavedJobDocOwner(docId);
+      allow create, update: if isValidLegacySavedJobPayload(docId);
+      allow delete: if isLegacySavedJobDocOwner(docId);
     }
     match /educators/{docId} {
       allow read: if isAuth();
@@ -2389,11 +2612,18 @@ service cloud.firestore {
 
       match /Applications/{applicantId} {
         allow read: if isAuth();
-        allow create: if isOwner(applicantId);
+        allow create: if isOwner(applicantId)
+          && isValidTutoringApplicationPayloadForUser(applicantId);
         allow update: if isAuth() && (
-          request.auth.uid == applicantId
-          || isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
-          || canManageAdminPanels()
+          (request.auth.uid == applicantId
+            && isValidTutoringApplicationPayloadForUser(applicantId))
+          || (
+            canReviewerUpdateTutoringApplication()
+            && (
+              isOwnerData(get(/databases/$(database)/documents/educators/$(docId)).data)
+              || canManageAdminPanels()
+            )
+          )
         );
         allow delete: if isAuth() && (
           request.auth.uid == applicantId
@@ -2404,7 +2634,9 @@ service cloud.firestore {
 
       match /Reviews/{reviewerId} {
         allow read: if isAuth();
-        allow create, update, delete: if isOwner(reviewerId);
+        allow create, update: if isOwner(reviewerId)
+          && isValidTutoringReviewPayload(docId, reviewerId);
+        allow delete: if isOwner(reviewerId);
       }
     }
 
