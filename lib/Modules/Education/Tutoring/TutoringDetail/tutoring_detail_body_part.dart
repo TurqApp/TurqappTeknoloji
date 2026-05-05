@@ -228,8 +228,7 @@ extension TutoringDetailBodyPart on TutoringDetail {
   }
 
   Widget _heroImage(TutoringModel model) {
-    final imageUrl =
-        model.imgs != null && model.imgs!.isNotEmpty ? model.imgs!.first : '';
+    final imageUrl = model.primaryImageUrl;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: AspectRatio(

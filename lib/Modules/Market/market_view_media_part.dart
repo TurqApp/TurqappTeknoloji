@@ -35,14 +35,7 @@ class _MarketGridMediaState extends State<_MarketGridMedia> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrls = widget.item.imageUrls
-        .where((url) => url.trim().isNotEmpty)
-        .toList(growable: false);
-    final allImages = imageUrls.isNotEmpty
-        ? imageUrls
-        : (widget.item.coverImageUrl.trim().isNotEmpty
-            ? <String>[widget.item.coverImageUrl]
-            : const <String>[]);
+    final allImages = widget.item.galleryImageUrls;
 
     if (allImages.length <= 1) {
       return ClipRRect(

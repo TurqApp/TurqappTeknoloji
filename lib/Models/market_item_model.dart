@@ -139,6 +139,23 @@ class MarketItemModel {
     return '';
   }
 
+  List<String> get galleryImageUrls {
+    final images = <String>[];
+    final cover = coverImageUrl.trim();
+    if (cover.isNotEmpty) {
+      images.add(cover);
+    }
+    for (final image in imageUrls) {
+      final clean = image.trim();
+      if (clean.isEmpty || images.contains(clean)) continue;
+      images.add(clean);
+    }
+    return List<String>.from(images, growable: false);
+  }
+
+  String get primaryImageUrl =>
+      galleryImageUrls.isNotEmpty ? galleryImageUrls.first : '';
+
   bool get canShowPhone =>
       sellerPhoneNumber.trim().isNotEmpty ||
       showPhone ||

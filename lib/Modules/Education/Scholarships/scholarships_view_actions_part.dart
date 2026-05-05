@@ -30,6 +30,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   bool _hasMultipleImages(String type, dynamic burs) {
+    if (burs is IndividualScholarshipsModel) {
+      return burs.hasMultipleGalleryImages;
+    }
     return false;
   }
 
@@ -43,9 +46,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
         AspectRatio(
           aspectRatio: 4 / 3,
           child: PageView.builder(
-            itemCount: 2,
+            itemCount: burs.galleryImageUrls.length,
             itemBuilder: (context, pageIndex) {
-              final imageUrl = pageIndex == 0 ? burs.img : burs.img2;
+              final imageUrl = burs.galleryImageUrls[pageIndex];
               return _buildInteractiveScholarshipImage(
                 burs: burs,
                 scholarshipData: scholarshipData,
@@ -57,7 +60,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
           ),
         ),
         8.ph,
-        _buildPageIndicators(index),
+        _buildPageIndicators(index, burs.galleryImageUrls.length),
       ],
     );
   }
@@ -71,7 +74,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       child: _buildInteractiveScholarshipImage(
         burs: burs,
         scholarshipData: scholarshipData,
-        imageUrl: burs.img,
+        imageUrl: burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '',
       ),
     );
   }
@@ -135,10 +138,10 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     );
   }
 
-  Widget _buildPageIndicators(int index) {
+  Widget _buildPageIndicators(int index, int count) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(2, (dotIndex) {
+      children: List.generate(count, (dotIndex) {
         return Obx(
           () => Container(
             margin: EdgeInsets.symmetric(horizontal: 4),

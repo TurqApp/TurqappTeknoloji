@@ -229,7 +229,7 @@ extension _MarketSearchViewContentPart on _MarketSearchViewState {
     required double height,
     required double radius,
   }) {
-    final imageUrl = item.coverImageUrl.trim();
+    final imageUrl = item.primaryImageUrl;
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Container(

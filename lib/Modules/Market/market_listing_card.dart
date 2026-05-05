@@ -246,9 +246,10 @@ class MarketListingCard extends StatelessWidget {
     double? height,
     required double radius,
   }) {
-    final child = item.coverImageUrl.isNotEmpty
+    final imageUrl = item.primaryImageUrl;
+    final child = imageUrl.isNotEmpty
         ? CacheFirstNetworkImage(
-            imageUrl: item.coverImageUrl,
+            imageUrl: imageUrl,
             cacheManager: TurqImageCacheManager.instance,
             fit: BoxFit.cover,
             memCacheWidth: 240,

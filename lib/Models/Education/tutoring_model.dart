@@ -62,6 +62,21 @@ class TutoringModel {
     );
   }
 
+  List<String> get galleryImageUrls {
+    final source = imgs;
+    if (source == null || source.isEmpty) return const <String>[];
+    final images = <String>[];
+    for (final image in source) {
+      final clean = image.trim();
+      if (clean.isEmpty || images.contains(clean)) continue;
+      images.add(clean);
+    }
+    return List<String>.from(images, growable: false);
+  }
+
+  String get primaryImageUrl =>
+      galleryImageUrls.isNotEmpty ? galleryImageUrls.first : '';
+
   TutoringModel({
     required this.docID,
     required this.aciklama,

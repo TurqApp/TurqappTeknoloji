@@ -255,7 +255,7 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
 
     final children = <Widget>[];
 
-    if (burs.img.isNotEmpty) {
+    if (burs is IndividualScholarshipsModel && burs.primaryImageUrl.isNotEmpty) {
       children.add(
         Row(
           children: [

@@ -113,9 +113,11 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
                                         child: ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(12),
-                                          child: burs.img.isNotEmpty
+                                          child:
+                                              burs.primaryImageUrl.isNotEmpty
                                               ? CachedNetworkImage(
-                                                  imageUrl: burs.img,
+                                                  imageUrl:
+                                                      burs.primaryImageUrl,
                                                   fit: BoxFit.cover,
                                                   placeholder: (context, url) =>
                                                       Center(

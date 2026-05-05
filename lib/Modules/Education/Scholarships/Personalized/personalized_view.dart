@@ -140,7 +140,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
   }
 
   Widget _buildCarouselItem(IndividualScholarshipsModel item) {
-    if (item.img.trim().isEmpty) {
+    if (item.primaryImageUrl.isEmpty) {
       return AspectRatio(
         aspectRatio: 4 / 3,
         child: Container(
@@ -156,7 +156,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
       child: AspectRatio(
         aspectRatio: 4 / 3,
         child: CachedNetworkImage(
-          imageUrl: item.img,
+          imageUrl: item.primaryImageUrl,
           fit: BoxFit.cover,
           width: double.infinity,
           placeholder: (context, url) => _buildImagePlaceholder(),
@@ -228,7 +228,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
         final IndividualScholarshipsModel item = controller.list[index];
         return GestureDetector(
           onTap: () => _navigateToIndividualDetail(item),
-          child: item.img.trim().isEmpty
+          child: item.primaryImageUrl.isEmpty
               ? Container(
                   color: Colors.grey.shade200,
                   alignment: Alignment.center,
@@ -236,7 +236,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
                       size: 24, color: Colors.grey),
                 )
               : CachedNetworkImage(
-                  imageUrl: item.img,
+                  imageUrl: item.primaryImageUrl,
                   fit: BoxFit.cover,
                   placeholder: (c, u) =>
                       const Center(child: CupertinoActivityIndicator()),

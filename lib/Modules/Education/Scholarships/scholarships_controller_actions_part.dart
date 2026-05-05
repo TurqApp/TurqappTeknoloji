@@ -266,12 +266,8 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
   }
 
   String? _pickScholarshipShareImage(IndividualScholarshipsModel model) {
-    final img = model.img.trim();
-    if (img.isNotEmpty) return img;
-    final img2 = model.img2.trim();
-    if (img2.isNotEmpty) return img2;
-    final logo = model.logo.trim();
-    if (logo.isNotEmpty) return logo;
+    final imageUrl = model.primaryImageUrl;
+    if (imageUrl.isNotEmpty) return imageUrl;
     return _scholarshipDefaultOgImage;
   }
 
