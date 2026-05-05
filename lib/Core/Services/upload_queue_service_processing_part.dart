@@ -1,6 +1,8 @@
 part of 'upload_queue_service.dart';
 
 extension UploadQueueServiceProcessingPart on UploadQueueService {
+  static const List<int> _thumbnailCandidateMs = <int>[0, 33, 67, 100];
+
   bool _uploadQueueProcessingAsBool(
     Object? value, {
     required bool fallback,
@@ -26,6 +28,57 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
     return int.tryParse(normalized) ??
         num.tryParse(normalized)?.toInt() ??
         fallback;
+  }
+
+  double? _uploadQueueThumbnailQualityScore(Uint8List data) {
+    final decoded = img.decodeImage(data);
+    if (decoded == null) return null;
+    double sum = 0;
+    double sumSquares = 0;
+    var count = 0;
+    for (var y = 0; y < decoded.height; y += 1) {
+      for (var x = 0; x < decoded.width; x += 1) {
+        final pixel = decoded.getPixel(x, y);
+        final r = pixel.r.toDouble();
+        final g = pixel.g.toDouble();
+        final b = pixel.b.toDouble();
+        final luma = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+        sum += luma;
+        sumSquares += luma * luma;
+        count += 1;
+      }
+    }
+    if (count == 0) return null;
+    final mean = sum / count;
+    final variance = (sumSquares / count) - (mean * mean);
+    if (mean < 14) return mean - 1000;
+    return variance + (mean * 0.15);
+  }
+
+  ({Uint8List bytes, int? frameMs})? _pickBestThumbnailCandidate(
+    List<({Uint8List bytes, int ms})> candidates,
+  ) {
+    Uint8List? bestBytes;
+    int? bestMs;
+    double bestScore = double.negativeInfinity;
+
+    for (final candidate in candidates) {
+      final score = _uploadQueueThumbnailQualityScore(candidate.bytes);
+      if (score != null && score >= 18) {
+        return (bytes: candidate.bytes, frameMs: candidate.ms);
+      }
+      if (score != null && score > bestScore) {
+        bestScore = score;
+        bestBytes = candidate.bytes;
+        bestMs = candidate.ms;
+      } else {
+        bestBytes ??= candidate.bytes;
+        bestMs ??= candidate.ms;
+      }
+    }
+
+    if (bestBytes == null) return null;
+    return (bytes: bestBytes, frameMs: bestMs);
   }
 
   Future<void> _performRefreshAuthTokenIfNeeded() async {
@@ -404,6 +457,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
 
       String videoUrl = '';
       String thumbnailUrl = '';
+      int? thumbnailFrameMs;
       int thumbWidth = 0;
       int thumbHeight = 0;
       if (upload.videoPath != null) {
@@ -440,22 +494,31 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
                 'size=${(len / 1e6).toStringAsFixed(2)} MB');
           }
 
-          final tData = await VideoThumbnail.thumbnailData(
-            video: videoFile.path,
-            imageFormat: ImageFormat.JPEG,
-            quality: 75,
-          );
-          if (tData != null) {
+          final candidates = <({Uint8List bytes, int ms})>[];
+          for (final ms in _thumbnailCandidateMs) {
+            final tData = await VideoThumbnail.thumbnailData(
+              video: videoFile.path,
+              imageFormat: ImageFormat.JPEG,
+              timeMs: ms,
+              quality: 75,
+            );
+            if (tData != null && tData.isNotEmpty) {
+              candidates.add((bytes: tData, ms: ms));
+            }
+          }
+          final selected = _pickBestThumbnailCandidate(candidates);
+          if (selected != null) {
+            thumbnailFrameMs = selected.frameMs;
             Uint8List thumbData;
             try {
               thumbData = await FlutterImageCompress.compressWithList(
-                tData,
+                selected.bytes,
                 quality: 80,
                 format: CompressFormat.webp,
                 minWidth: UploadConstants.thumbnailMaxWidth,
               );
             } catch (_) {
-              thumbData = tData;
+              thumbData = selected.bytes;
             }
             final tUrl = await WebpUploadService.uploadBytesAsWebp(
               bytes: thumbData,
@@ -464,12 +527,12 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
             thumbnailUrl = CdnUrlBuilder.toCdnUrl(tUrl);
             if (kDebugMode) {
               debugPrint('[Queue] Thumbnail uploaded: '
-                  'orig=${(tData.length / 1e6).toStringAsFixed(2)} MB '
+                  'orig=${(selected.bytes.length / 1e6).toStringAsFixed(2)} MB '
                   'webp=${(thumbData.length / 1e6).toStringAsFixed(2)} MB '
                   'minWidth=${UploadConstants.thumbnailMaxWidth}');
             }
 
-            final im = img.decodeImage(tData);
+            final im = img.decodeImage(selected.bytes);
             if (im != null) {
               thumbWidth = im.width;
               thumbHeight = im.height;
@@ -564,6 +627,12 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         },
         "tags": flood ? [] : allTags,
         "thumbnail": thumbnailUrl,
+        "thumbnailGeneration": {
+          "strategy": thumbnailUrl.isNotEmpty ? "auto_early_frame" : "none",
+          "frameMs": thumbnailFrameMs,
+          "version": thumbnailUrl.isNotEmpty ? 2 : 0,
+          "generatedAt": publishTime,
+        },
         "timeStamp": postTimeStamp != 0 ? postTimeStamp : publishTime,
         "userID": userID,
         "video": isPendingVideoProcessing ? "" : videoUrl,
