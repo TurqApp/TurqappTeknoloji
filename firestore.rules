@@ -610,6 +610,108 @@ service cloud.firestore {
         'updatedAt'
       ];
     }
+    function postClientCreatableKeys() {
+      return [
+        'arsiv', 'aspectRatio', 'debugMode',
+        'deletedPost', 'deletedPostTime',
+        'flood', 'floodCount', 'gizlendi',
+        'img', 'imgMap',
+        'isUploading',
+        'isAd', 'ad',
+        'izBirakYayinTarihi',
+        'stats',
+        'konum', 'locationCity', 'mainFlood', 'metin',
+        'reshareMap', 'scheduledAt',
+        'sikayetEdildi', 'stabilized',
+        'tags',
+        'thumbnail', 'thumbnailGeneration',
+        'timeStamp', 'userID',
+        'video', 'videoLook',
+        'hlsStatus', 'hlsMasterUrl', 'hlsUpdatedAt',
+        'yorum', 'yorumMap', 'paylasGizliligi',
+        'poll',
+        'authorNickname', 'authorDisplayName', 'authorAvatarUrl',
+        'nickname', 'username', 'fullName', 'displayName', 'avatarUrl', 'rozet',
+        'originalUserID', 'originalPostID', 'sourcePostID',
+        'sharedAsPost',
+        'quotedPost', 'quotedOriginalText', 'quotedSourceUserID',
+        'quotedSourceDisplayName', 'quotedSourceUsername',
+        'quotedSourceAvatarUrl'
+      ];
+    }
+    function isAllowedPostCreateHlsStatus(v) {
+      return v in ['none', 'processing', 'ready'];
+    }
+    function isValidPostCreatePayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(postClientCreatableKeys())
+        && request.resource.data.keys().hasAll(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && request.resource.data.timeStamp > 0
+        && (!request.resource.data.keys().hasAny(['arsiv']) || request.resource.data.arsiv is bool)
+        && (!request.resource.data.keys().hasAny(['aspectRatio'])
+          || request.resource.data.aspectRatio is int
+          || request.resource.data.aspectRatio is float)
+        && (!request.resource.data.keys().hasAny(['debugMode']) || request.resource.data.debugMode is bool)
+        && (!request.resource.data.keys().hasAny(['deletedPost']) || request.resource.data.deletedPost is bool)
+        && (!request.resource.data.keys().hasAny(['deletedPostTime']) || request.resource.data.deletedPostTime is int)
+        && (!request.resource.data.keys().hasAny(['flood']) || request.resource.data.flood is bool)
+        && (!request.resource.data.keys().hasAny(['floodCount']) || request.resource.data.floodCount is int)
+        && (!request.resource.data.keys().hasAny(['gizlendi']) || request.resource.data.gizlendi is bool)
+        && (!request.resource.data.keys().hasAny(['img']) || request.resource.data.img is list)
+        && (!request.resource.data.keys().hasAny(['imgMap']) || request.resource.data.imgMap is list)
+        && (!request.resource.data.keys().hasAny(['isUploading']) || request.resource.data.isUploading is bool)
+        && (!request.resource.data.keys().hasAny(['isAd']) || request.resource.data.isAd is bool)
+        && (!request.resource.data.keys().hasAny(['ad']) || request.resource.data.ad is bool)
+        && (!request.resource.data.keys().hasAny(['izBirakYayinTarihi']) || request.resource.data.izBirakYayinTarihi is int)
+        && (!request.resource.data.keys().hasAny(['stats']) || (
+          request.resource.data.stats is map
+          && hasValidPostStatsShape(request.resource.data)
+        ))
+        && (!request.resource.data.keys().hasAny(['konum']) || request.resource.data.konum is string)
+        && (!request.resource.data.keys().hasAny(['locationCity']) || request.resource.data.locationCity is string)
+        && (!request.resource.data.keys().hasAny(['mainFlood']) || request.resource.data.mainFlood is string)
+        && (!request.resource.data.keys().hasAny(['metin']) || request.resource.data.metin is string)
+        && (!request.resource.data.keys().hasAny(['reshareMap']) || request.resource.data.reshareMap is map)
+        && (!request.resource.data.keys().hasAny(['scheduledAt']) || request.resource.data.scheduledAt is int)
+        && (!request.resource.data.keys().hasAny(['sikayetEdildi']) || request.resource.data.sikayetEdildi is bool)
+        && (!request.resource.data.keys().hasAny(['stabilized']) || request.resource.data.stabilized is bool)
+        && (!request.resource.data.keys().hasAny(['tags']) || request.resource.data.tags is list)
+        && (!request.resource.data.keys().hasAny(['thumbnail']) || request.resource.data.thumbnail is string)
+        && (!request.resource.data.keys().hasAny(['thumbnailGeneration']) || request.resource.data.thumbnailGeneration is map)
+        && (!request.resource.data.keys().hasAny(['video']) || request.resource.data.video is string)
+        && (!request.resource.data.keys().hasAny(['videoLook']) || request.resource.data.videoLook is map)
+        && (!request.resource.data.keys().hasAny(['hlsStatus'])
+          || (request.resource.data.hlsStatus is string
+            && isAllowedPostCreateHlsStatus(request.resource.data.hlsStatus)))
+        && (!request.resource.data.keys().hasAny(['hlsMasterUrl']) || request.resource.data.hlsMasterUrl is string)
+        && (!request.resource.data.keys().hasAny(['hlsUpdatedAt']) || request.resource.data.hlsUpdatedAt is int)
+        && (!request.resource.data.keys().hasAny(['yorum']) || request.resource.data.yorum is bool)
+        && (!request.resource.data.keys().hasAny(['yorumMap']) || request.resource.data.yorumMap is map)
+        && (!request.resource.data.keys().hasAny(['paylasGizliligi']) || request.resource.data.paylasGizliligi is int)
+        && (!request.resource.data.keys().hasAny(['poll']) || request.resource.data.poll is map)
+        && (!request.resource.data.keys().hasAny(['authorNickname']) || request.resource.data.authorNickname is string)
+        && (!request.resource.data.keys().hasAny(['authorDisplayName']) || request.resource.data.authorDisplayName is string)
+        && (!request.resource.data.keys().hasAny(['authorAvatarUrl']) || request.resource.data.authorAvatarUrl is string)
+        && (!request.resource.data.keys().hasAny(['nickname']) || request.resource.data.nickname is string)
+        && (!request.resource.data.keys().hasAny(['username']) || request.resource.data.username is string)
+        && (!request.resource.data.keys().hasAny(['fullName']) || request.resource.data.fullName is string)
+        && (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName is string)
+        && (!request.resource.data.keys().hasAny(['avatarUrl']) || request.resource.data.avatarUrl is string)
+        && (!request.resource.data.keys().hasAny(['rozet']) || request.resource.data.rozet is string)
+        && (!request.resource.data.keys().hasAny(['originalUserID']) || request.resource.data.originalUserID is string)
+        && (!request.resource.data.keys().hasAny(['originalPostID']) || request.resource.data.originalPostID is string)
+        && (!request.resource.data.keys().hasAny(['sourcePostID']) || request.resource.data.sourcePostID is string)
+        && (!request.resource.data.keys().hasAny(['sharedAsPost']) || request.resource.data.sharedAsPost is bool)
+        && (!request.resource.data.keys().hasAny(['quotedPost']) || request.resource.data.quotedPost is bool)
+        && (!request.resource.data.keys().hasAny(['quotedOriginalText']) || request.resource.data.quotedOriginalText is string)
+        && (!request.resource.data.keys().hasAny(['quotedSourceUserID']) || request.resource.data.quotedSourceUserID is string)
+        && (!request.resource.data.keys().hasAny(['quotedSourceDisplayName']) || request.resource.data.quotedSourceDisplayName is string)
+        && (!request.resource.data.keys().hasAny(['quotedSourceUsername']) || request.resource.data.quotedSourceUsername is string)
+        && (!request.resource.data.keys().hasAny(['quotedSourceAvatarUrl']) || request.resource.data.quotedSourceAvatarUrl is string);
+    }
     function canOwnerUpdatePostContent() {
       return isAuth()
         && resource.data.userID == request.auth.uid
@@ -1312,7 +1414,7 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Posts/{postId} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow create: if isValidPostCreatePayload();
       // Sahip: içerik alanlarını güncelleyebilir.
       // Sayaç güncellemeleri istemciden değil, sunucu taraflı akışlardan gelmelidir.
       allow update: if isAuth() && canOwnerUpdatePostContent();
