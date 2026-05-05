@@ -2257,12 +2257,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /adImpressions/{docId} {
-      allow create: if isAuth();
+      allow create: if false;
       allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
       allow update, delete: if false;
     }
     match /adClicks/{docId} {
-      allow create: if isAuth();
+      allow create: if false;
       allow read: if isAuth() && (isAdmin() || resource.data.ownerId == request.auth.uid);
       allow update, delete: if false;
     }
@@ -2735,14 +2735,11 @@ service cloud.firestore {
     // Legacy soru bankası (eski koleksiyon)
     match /SoruBankasi/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth();
-      allow update: if isAuth() && resource.data.userID == request.auth.uid;
-      allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+      allow create, update, delete: if canManageAdminPanels();
       // Alt koleksiyonlar: yalnızca belge sahibi yazabilir
       match /{sub}/{subDocId} {
         allow read: if isAuth();
-        allow write: if isAuth()
-          && get(/databases/$(database)/documents/SoruBankasi/$(docId)).data.userID == request.auth.uid;
+        allow write: if canManageAdminPanels();
       }
     }
 
