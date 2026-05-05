@@ -821,6 +821,13 @@ extension PostRepositoryQueryPart on PostRepository {
     final currentUid = currentUser == null ? '' : currentUser.uid.trim();
     if (currentUid.isEmpty || model.userID.trim() != currentUid) return false;
     if (model.deletedPost || model.arsiv || model.gizlendi) return false;
+    final hasPendingVideoProcessing =
+        model.hlsStatus == 'processing' &&
+        model.video.trim().isEmpty &&
+        model.hlsMasterUrl.trim().isEmpty;
+    if (hasPendingVideoProcessing) {
+      return false;
+    }
     final ageMs =
         DateTime.now().millisecondsSinceEpoch - model.timeStamp.toInt();
     if (ageMs < _postRepositoryStuckUploadingRepairAge.inMilliseconds) {
