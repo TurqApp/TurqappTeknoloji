@@ -790,6 +790,36 @@ service cloud.firestore {
         && request.query.limit <= 500
         && (request.query.offset == null || request.query.offset == 0);
     }
+    function userRootServerManagedKeys() {
+      return [
+        'role', 'admin',
+        'isBanned', 'isDeleted', 'isApproved', 'isBot', 'isAdvertiser',
+        'accountStatus',
+        'deletedAt', 'createdDate', 'version',
+        'nickname', 'username', 'usernameLower',
+        'nicknameChangedAt', 'nicknameLastChangedAt',
+        'nicknameGraceWindowStartAt', 'nicknameGraceChangeCount',
+        'oldNicknames', 'nicknameHistory',
+        'moderationStrikeCount', 'moderationLevel',
+        'moderationRestrictedUntil', 'moderationPermanentBan',
+        'moderationBanReason', 'moderationUpdatedAt',
+        'rozet', 'rozetGrantedAt', 'rozetExpiresAt',
+        'rozetRenewalOpensAt', 'rozetRenewalWarnedAt',
+        'rozetExpiredAt',
+        'emailVerified',
+        'profileManifest', 'profileSlug', 'profileUrl',
+        'shortLinkUpdatedAt',
+        'takipciSayisi', 'takipEdilenSayisi', 'gonderSayisi',
+        'followerCount', 'followingCount', 'postCount',
+        'counterOfFollowers', 'counterOfFollowings',
+        'counterOfPosts', 'counterOfListings'
+      ];
+    }
+    function canOwnerUpdateUserRoot(uid) {
+      return isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(userRootServerManagedKeys());
+    }
     function canReadUsersRootPrivate() {
       return isAuth()
         && (
@@ -807,19 +837,7 @@ service cloud.firestore {
       allow create: if isOwner(uid);
       // Kullanıcı kendi profilini güncelleyebilir; ancak moderasyon, rol ve
       // sayaç alanlarını client değiştiremez.
-      allow update: if isOwner(uid)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'role', 'admin',
-          'isBanned', 'isDeleted', 'isApproved', 'isBot', 'isAdvertiser',
-          'accountStatus', 'deletedAt',
-          'nickname', 'username', 'usernameLower',
-          'nicknameChangedAt', 'nicknameLastChangedAt',
-          'nicknameGraceWindowStartAt', 'nicknameGraceChangeCount',
-          'oldNicknames', 'nicknameHistory',
-          'takipciSayisi', 'takipEdilenSayisi', 'gonderSayisi',
-          'followerCount', 'followingCount', 'postCount',
-          'counterOfFollowers', 'counterOfFollowings', 'counterOfPosts'
-        ]);
+      allow update: if canOwnerUpdateUserRoot(uid);
       allow delete: if false;
 
       // followers (followers)
