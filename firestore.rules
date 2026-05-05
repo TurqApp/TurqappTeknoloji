@@ -1804,6 +1804,46 @@ service cloud.firestore {
         && request.resource.data.userID is string
         && request.resource.data.userID == request.auth.uid;
     }
+    function isValidSocialMediaLinkPayload() {
+      return request.resource.data.keys().hasOnly(['title', 'url', 'sira', 'logo'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.url is string
+        && request.resource.data.url.size() > 0
+        && request.resource.data.url.size() <= 4096
+        && (request.resource.data.sira is int || request.resource.data.sira is float)
+        && request.resource.data.logo is string
+        && request.resource.data.logo.size() <= 4096;
+    }
+    function isValidProfileVisitPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(['visitorId', 'timeStamp'])
+        && request.resource.data.visitorId is string
+        && request.resource.data.visitorId == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function gifUsageKeys() {
+      return ['url', 'source', 'category', 'lastUsedAt', 'createdAt', 'useCount', 'lastUsedBy'];
+    }
+    function isValidGifUsagePayloadForUser(uid) {
+      return request.resource.data.keys().hasOnly(gifUsageKeys())
+        && request.resource.data.url is string
+        && request.resource.data.url.size() > 0
+        && request.resource.data.url.size() <= 4096
+        && request.resource.data.source is string
+        && request.resource.data.source.size() > 0
+        && request.resource.data.category is string
+        && request.resource.data.lastUsedAt is int
+        && isValidFutureSafeTimestamp(request.resource.data.lastUsedAt)
+        && request.resource.data.createdAt is int
+        && isValidFutureSafeTimestamp(request.resource.data.createdAt)
+        && request.resource.data.useCount is int
+        && request.resource.data.useCount >= 0
+        && request.resource.data.lastUsedBy is string
+        && request.resource.data.lastUsedBy == uid;
+    }
     function isValidQuestionBankCommentPayload() {
       return isAuth()
         && request.resource.data.keys().hasOnly([
@@ -2023,7 +2063,9 @@ service cloud.firestore {
       // Social media links (profile)
       match /SosyalMedyaLinkleri/{docId} {
         allow read: if isAuth();
-        allow write: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidSocialMediaLinkPayload();
+        allow delete: if isOwner(uid);
       }
       match /saved_posts/{postId} {
         allow read: if isOwner(uid);
@@ -2069,7 +2111,15 @@ service cloud.firestore {
         allow write: if isOwner(uid);
       }
       match /giphyGif/{gifId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidGifUsagePayloadForUser(uid);
+        allow delete: if isOwner(uid);
+      }
+      match /ProfileVisits/{visitId} {
+        allow read: if isOwner(uid);
+        allow create, update: if isValidProfileVisitPayload();
+        allow delete: if isOwner(uid);
       }
       match /qProgress/{categoryKey} {
         allow read, write: if isOwner(uid);
@@ -3124,11 +3174,11 @@ service cloud.firestore {
     }
     match /Analytics/{docId} {
       allow read: if false;
-      allow write: if isAuth();
+      allow write: if false;
 
       match /{subcol}/{subDocId} {
         allow read: if false;
-        allow create: if isAuth();
+        allow create: if false;
         allow update, delete: if false;
       }
     }
@@ -3284,7 +3334,8 @@ service cloud.firestore {
     }
     match /giphyGif/{gifId} {
       allow read: if isAuth();
-      allow create, update: if isAuth();
+      allow create, update: if isAuth()
+        && isValidGifUsagePayloadForUser(request.auth.uid);
       allow delete: if canManageAdminPanels();
     }
     match /Yanitlar/{docId} {
