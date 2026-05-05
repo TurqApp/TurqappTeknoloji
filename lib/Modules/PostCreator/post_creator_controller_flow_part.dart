@@ -512,10 +512,23 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
           createdAt: batchCreatedAt,
         );
 
+        if (kDebugMode) {
+          debugPrint(
+            '[PostCreator][Queue] add_attempt id=$docID '
+            'images=${imagePaths.length} '
+            'hasVideo=${(queuedUpload.videoPath ?? '').trim().isNotEmpty} '
+            'scheduledAt=$normalizedScheduledAt',
+          );
+        }
         final added = await _uploadQueueRuntimeService.addToQueue(
           queuedUpload,
           startProcessing: false,
         );
+        if (kDebugMode) {
+          debugPrint(
+            '[PostCreator][Queue] add_result id=$docID added=$added',
+          );
+        }
         if (added) {
           addedCount++;
         }
@@ -534,13 +547,19 @@ extension PostCreatorControllerFlowPart on PostCreatorController {
         'post_creator.queue_added_body'.tr,
         backgroundColor: Colors.green.withValues(alpha: 0.7),
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[PostCreator][Queue] add_failed error=$e stack=$stackTrace',
+        );
+      }
       await _errorService.handleError(
         e,
         category: ErrorCategory.upload,
         severity: ErrorSeverity.high,
         userMessage: 'post_creator.queue_add_failed'.tr,
         isRetryable: true,
+        stackTrace: stackTrace,
       );
     }
   }

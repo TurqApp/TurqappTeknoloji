@@ -81,6 +81,14 @@ extension UploadQueueServiceQueuePart on UploadQueueService {
     QueuedUpload upload, {
     bool startProcessing = true,
   }) async {
+    if (kDebugMode) {
+      debugPrint(
+        '[UploadQueue][Add] start id=${upload.id} '
+        'images=${upload.imagePaths.length} '
+        'hasVideo=${(upload.videoPath ?? '').trim().isNotEmpty} '
+        'startProcessing=$startProcessing',
+      );
+    }
     final fingerprint = _queueFingerprint(upload);
     final baseId = _seriesBaseId(upload.id);
     final duplicateActive = fingerprint.isNotEmpty &&
@@ -107,14 +115,36 @@ extension UploadQueueServiceQueuePart on UploadQueueService {
       );
       return false;
     }
-    _queue.add(upload);
-    _notifyQueueUpdated();
-    await _saveQueueToStorage();
-    await _createPendingPostShell(upload);
-    if (startProcessing) {
-      _processQueue();
+    try {
+      _queue.add(upload);
+      _notifyQueueUpdated();
+      if (kDebugMode) {
+        debugPrint('[UploadQueue][Add] queue_appended id=${upload.id}');
+      }
+      await _saveQueueToStorage();
+      if (kDebugMode) {
+        debugPrint('[UploadQueue][Add] queue_saved id=${upload.id}');
+      }
+      await _createPendingPostShell(upload);
+      if (kDebugMode) {
+        debugPrint('[UploadQueue][Add] shell_created id=${upload.id}');
+      }
+      if (startProcessing) {
+        if (kDebugMode) {
+          debugPrint('[UploadQueue][Add] process_queue id=${upload.id}');
+        }
+        _processQueue();
+      }
+      return true;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[UploadQueue][Add] failed id=${upload.id} '
+          'error=$e stack=$stackTrace',
+        );
+      }
+      rethrow;
     }
-    return true;
   }
 
   void processPendingQueue() {
