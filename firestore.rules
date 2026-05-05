@@ -618,6 +618,16 @@ service cloud.firestore {
           )
         );
     }
+    function canAddOwnArrayMembership(field) {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+        && request.resource.data[field] is list
+        && resource.data[field] is list
+        && request.resource.data[field].size() == resource.data[field].size() + 1
+        && request.resource.data[field].hasAll(resource.data[field])
+        && request.resource.data[field].hasAll([request.auth.uid])
+        && !resource.data[field].hasAny([request.auth.uid]);
+    }
     function canClientVoteOnPostPoll() {
       return isAuth()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['poll'])
@@ -1468,6 +1478,287 @@ service cloud.firestore {
         && request.resource.data.comment is string
         && request.resource.data.timeStamp is int
         && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function scholarshipClientCreatableKeys() {
+      return [
+        'aciklama',
+        'shortDescription',
+        'altEgitimKitlesi',
+        'aylar',
+        'basvurular',
+        'baslangicTarihi',
+        'baslik',
+        'basvuruKosullari',
+        'basvuruURL',
+        'basvuruYapilacakYer',
+        'begeniler',
+        'belgeler',
+        'bitisTarihi',
+        'bursVeren',
+        'egitimKitlesi',
+        'geriOdemeli',
+        'goruntuleme',
+        'hedefKitle',
+        'ilceler',
+        'img',
+        'img2',
+        'kaydedenler',
+        'kaydedilenler',
+        'liseOrtaOkulIlceler',
+        'liseOrtaOkulSehirler',
+        'logo',
+        'mukerrerDurumu',
+        'ogrenciSayisi',
+        'sehirler',
+        'timeStamp',
+        'tutar',
+        'universiteler',
+        'userID',
+        'website',
+        'lisansTuru',
+        'template',
+        'ulke',
+        'nickname',
+        'displayName',
+        'avatarUrl',
+        'authorNickname',
+        'authorDisplayName',
+        'authorAvatarUrl',
+        'rozet',
+        'likesCount',
+        'bookmarksCount',
+        'applicationCount'
+      ];
+    }
+    function isValidScholarshipPayload(data) {
+      return data.keys().hasOnly(scholarshipClientCreatableKeys())
+        && data.userID is string
+        && data.userID == request.auth.uid
+        && data.aciklama is string
+        && (!data.keys().hasAny(['shortDescription']) || data.shortDescription is string)
+        && data.altEgitimKitlesi is list
+        && data.aylar is list
+        && data.basvurular is list
+        && data.baslangicTarihi is string
+        && data.baslik is string
+        && data.basvuruKosullari is string
+        && data.basvuruURL is string
+        && data.basvuruYapilacakYer is string
+        && data.begeniler is list
+        && data.belgeler is list
+        && data.bitisTarihi is string
+        && data.bursVeren is string
+        && data.egitimKitlesi is string
+        && data.geriOdemeli is string
+        && data.goruntuleme is list
+        && data.hedefKitle is string
+        && data.ilceler is list
+        && data.img is string
+        && data.img2 is string
+        && data.kaydedenler is list
+        && data.kaydedilenler is list
+        && data.liseOrtaOkulIlceler is list
+        && data.liseOrtaOkulSehirler is list
+        && data.logo is string
+        && data.mukerrerDurumu is string
+        && data.ogrenciSayisi is string
+        && data.sehirler is list
+        && data.timeStamp is int
+        && isValidFutureSafeTimestamp(data.timeStamp)
+        && data.tutar is string
+        && data.universiteler is list
+        && data.website is string
+        && data.lisansTuru is string
+        && data.template is string
+        && data.ulke is string
+        && (!data.keys().hasAny(['nickname']) || data.nickname is string)
+        && (!data.keys().hasAny(['displayName']) || data.displayName is string)
+        && (!data.keys().hasAny(['avatarUrl']) || data.avatarUrl is string)
+        && (!data.keys().hasAny(['authorNickname']) || data.authorNickname is string)
+        && (!data.keys().hasAny(['authorDisplayName']) || data.authorDisplayName is string)
+        && (!data.keys().hasAny(['authorAvatarUrl']) || data.authorAvatarUrl is string)
+        && (!data.keys().hasAny(['rozet']) || data.rozet is string)
+        && (!data.keys().hasAny(['likesCount']) || (data.likesCount is int && data.likesCount >= 0))
+        && (!data.keys().hasAny(['bookmarksCount']) || (data.bookmarksCount is int && data.bookmarksCount >= 0))
+        && (!data.keys().hasAny(['applicationCount']) || (data.applicationCount is int && data.applicationCount >= 0));
+    }
+    function canOwnerUpdateScholarshipDocument() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.userID == resource.data.userID
+        && isValidScholarshipPayload(request.resource.data);
+    }
+    function canUpdateScholarshipDerivedCounters() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'applicationCount', 'likesCount', 'bookmarksCount'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['applicationCount'])
+          || (request.resource.data.applicationCount is int
+            && request.resource.data.applicationCount >= 0))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['likesCount'])
+          || (request.resource.data.likesCount is int
+            && request.resource.data.likesCount >= 0))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['bookmarksCount'])
+          || (request.resource.data.bookmarksCount is int
+            && request.resource.data.bookmarksCount >= 0));
+    }
+    function isValidScholarshipApplicationPayloadForUser(applicantUid) {
+      return request.resource.data.keys().hasOnly(['timeStamp', 'userID'])
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && (
+          !request.resource.data.keys().hasAny(['userID'])
+          || (
+            request.resource.data.userID is string
+            && request.resource.data.userID == applicantUid
+          )
+        );
+    }
+    function practiceExamClientCreatableKeys() {
+      return [
+        'sinavAdi',
+        'sinavAciklama',
+        'timeStamp',
+        'dersler',
+        'sinavTuru',
+        'kpssSecilenLisans',
+        'soruSayilari',
+        'taslak',
+        'public',
+        'userID',
+        'bitisDk',
+        'bitis',
+        'cover',
+        'participantCount',
+        'viewCount',
+        'gecersizSayilanlar',
+        'shortId',
+        'shortUrl'
+      ];
+    }
+    function practiceExamServerManagedOwnerKeys() {
+      return ['userID', 'participantCount', 'viewCount', 'shortId', 'shortUrl'];
+    }
+    function practiceExamCounterValue(docData, key) {
+      return docData is map
+        && docData.keys().hasAny([key])
+        && docData[key] is int
+        ? docData[key]
+        : 0;
+    }
+    function isValidPracticeExamPayload(data) {
+      return data.keys().hasOnly(practiceExamClientCreatableKeys())
+        && data.sinavAdi is string
+        && data.sinavAciklama is string
+        && data.timeStamp is int
+        && isValidFutureSafeTimestamp(data.timeStamp)
+        && data.dersler is list
+        && data.sinavTuru is string
+        && data.kpssSecilenLisans is string
+        && data.soruSayilari is list
+        && data.taslak is bool
+        && data.public is bool
+        && data.userID is string
+        && data.userID == request.auth.uid
+        && (data.bitisDk is int || data.bitisDk is float)
+        && (data.bitis is int || data.bitis is float)
+        && (!data.keys().hasAny(['cover']) || data.cover is string)
+        && (!data.keys().hasAny(['participantCount']) || (data.participantCount is int && data.participantCount >= 0))
+        && (!data.keys().hasAny(['viewCount']) || (data.viewCount is int && data.viewCount >= 0))
+        && (!data.keys().hasAny(['gecersizSayilanlar']) || data.gecersizSayilanlar is list)
+        && (!data.keys().hasAny(['shortId']) || data.shortId is string)
+        && (!data.keys().hasAny(['shortUrl']) || data.shortUrl is string);
+    }
+    function canOwnerUpdatePracticeExamDocument() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.userID == resource.data.userID
+        && isValidPracticeExamPayload(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(practiceExamServerManagedOwnerKeys());
+    }
+    function canUpdatePracticeExamDerivedCounters() {
+      return isAuth()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'participantCount', 'viewCount'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['participantCount'])
+          || (request.resource.data.participantCount is int
+            && request.resource.data.participantCount >= practiceExamCounterValue(resource.data, 'participantCount')
+            && request.resource.data.participantCount <= practiceExamCounterValue(resource.data, 'participantCount') + 1))
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['viewCount'])
+          || (request.resource.data.viewCount is int
+            && request.resource.data.viewCount >= practiceExamCounterValue(resource.data, 'viewCount')
+            && request.resource.data.viewCount <= practiceExamCounterValue(resource.data, 'viewCount') + 1));
+    }
+    function isValidPracticeExamApplicationPayloadForUser(applicantUid) {
+      return request.resource.data.keys().hasOnly(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == applicantUid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidPracticeExamQuestionPayload() {
+      return request.resource.data.keys().hasOnly([
+          'id', 'soru', 'ders', 'konu', 'dogruCevap', 'yanitlayanlar'
+        ])
+        && request.resource.data.id is int
+        && (!request.resource.data.keys().hasAny(['soru']) || request.resource.data.soru is string)
+        && request.resource.data.ders is string
+        && request.resource.data.konu is string
+        && request.resource.data.dogruCevap is string
+        && request.resource.data.yanitlayanlar is list;
+    }
+    function isValidPracticeExamAnswerPayload(answerDocId) {
+      return isAuth()
+        && answerDocId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['yanitlar', 'userID', 'timeStamp'])
+        && request.resource.data.yanitlar is list
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp);
+    }
+    function isValidPracticeExamLessonResultPayload() {
+      return request.resource.data.keys().hasOnly([
+          'bos', 'yanlis', 'dogru', 'ders', 'net'
+        ])
+        && request.resource.data.bos is int
+        && request.resource.data.bos >= 0
+        && request.resource.data.yanlis is int
+        && request.resource.data.yanlis >= 0
+        && request.resource.data.dogru is int
+        && request.resource.data.dogru >= 0
+        && request.resource.data.ders is string
+        && (request.resource.data.net is int || request.resource.data.net is float);
+    }
+    function isValidQuestionBankCommentPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'userID', 'metin', 'timeStamp', 'begeniler', 'photoUrl'
+        ])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.metin is string
+        && request.resource.data.metin.size() <= 5000
+        && request.resource.data.timeStamp is int
+        && isValidFutureSafeTimestamp(request.resource.data.timeStamp)
+        && request.resource.data.begeniler is list
+        && request.resource.data.begeniler.size() == 0
+        && (
+          !request.resource.data.keys().hasAny(['photoUrl'])
+          || request.resource.data.photoUrl == null
+          || request.resource.data.photoUrl is string
+        );
+    }
+    function canOwnerEditQuestionBankCommentText() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['metin'])
+        && request.resource.data.metin is string
+        && request.resource.data.metin.size() <= 5000;
     }
     function canSellerRespondToMarketOffer(itemId) {
       return isAuth()
@@ -2338,16 +2629,26 @@ service cloud.firestore {
           resource.data.userID == request.auth.uid
           && request.resource.data.userID == resource.data.userID
         )
-        || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['begeniler', 'paylasanlar'])
+        || canTogglePostArrayMembership('begeniler')
+        || canAddOwnArrayMembership('paylasanlar')
       );
       allow delete: if canManageAdminPanels()
         || (isAuth() && resource.data.userID == request.auth.uid);
 
       match /Yorumlar/{commentId} {
         allow read: if isAuth();
-        allow create: if isAuth();
-        allow update, delete: if isAuth() && resource.data.userID == request.auth.uid;
+        allow create: if isValidQuestionBankCommentPayload();
+        allow update: if canOwnerEditQuestionBankCommentText();
+        allow update: if canTogglePostArrayMembership('begeniler');
+        allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+
+        match /Yanitlar/{replyId} {
+          allow read: if isAuth();
+          allow create: if isValidQuestionBankCommentPayload();
+          allow update: if canOwnerEditQuestionBankCommentText();
+          allow update: if canTogglePostArrayMembership('begeniler');
+          allow delete: if isAuth() && resource.data.userID == request.auth.uid;
+        }
       }
     }
 
@@ -2369,27 +2670,31 @@ service cloud.firestore {
       allow read: if isAuth() && catalogId == "education";
       allow create: if isAuth()
         && catalogId == "education"
-        && request.resource.data.userID == request.auth.uid;
+        && isValidScholarshipPayload(request.resource.data);
       allow update: if isAuth() && catalogId == "education" && (
-        resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly([
-             'begeniler',
-             'kaydedenler',
-             'goruntuleme',
-             'applicationCount',
-             'likesCount',
-             'bookmarksCount'
-           ])
+        canOwnerUpdateScholarshipDocument()
+        || canTogglePostArrayMembership('begeniler')
+        || canTogglePostArrayMembership('kaydedenler')
+        || canTogglePostArrayMembership('basvurular')
+        || canAddOwnArrayMembership('goruntuleme')
+        || canUpdateScholarshipDerivedCounters()
       );
       allow delete: if isAuth() && catalogId == "education" && resource.data.userID == request.auth.uid;
 
       match /Basvurular/{applicantId} {
         allow read: if isAuth() && catalogId == "education";
-        allow create: if isOwner(applicantId) && catalogId == "education";
+        allow create: if isOwner(applicantId)
+          && catalogId == "education"
+          && isValidScholarshipApplicationPayloadForUser(applicantId);
         allow update: if isAuth() && catalogId == "education" && (
-          request.auth.uid == applicantId
-          || get(/databases/$(database)/documents/catalog/$(catalogId)/scholarships/$(docId)).data.userID == request.auth.uid
+          (
+            request.auth.uid == applicantId
+            && isValidScholarshipApplicationPayloadForUser(applicantId)
+          )
+          || (
+            get(/databases/$(database)/documents/catalog/$(catalogId)/scholarships/$(docId)).data.userID == request.auth.uid
+            && isValidScholarshipApplicationPayloadForUser(applicantId)
+          )
         );
         allow delete: if isOwner(applicantId) && catalogId == "education";
       }
@@ -2422,19 +2727,26 @@ service cloud.firestore {
     // Deneme Sınavları
     match /practiceExams/{docId} {
       allow read: if isAuth();
-      allow create: if isAuth() && request.resource.data.userID == request.auth.uid;
+      allow create: if isValidPracticeExamPayload(request.resource.data);
       allow update: if isAuth() && (
-        resource.data.userID == request.auth.uid
-        || request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['participantCount', 'viewCount'])
+        canOwnerUpdatePracticeExamDocument()
+        || canUpdatePracticeExamDerivedCounters()
+        || canAddOwnArrayMembership('gecersizSayilanlar')
       );
       allow delete: if isAuth() && resource.data.userID == request.auth.uid;
 
       match /Basvurular/{applicantId} {
         allow read: if isAuth();
-        allow create: if isOwner(applicantId);
-        allow update: if isOwner(applicantId)
-          || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+        allow create: if isOwner(applicantId)
+          && isValidPracticeExamApplicationPayloadForUser(applicantId);
+        allow update: if (
+            isOwner(applicantId)
+            && isValidPracticeExamApplicationPayloadForUser(applicantId)
+          )
+          || (
+            get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid
+            && isValidPracticeExamApplicationPayloadForUser(applicantId)
+          );
         allow delete: if isOwner(applicantId)
           || get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
       }
@@ -2442,20 +2754,23 @@ service cloud.firestore {
       // Sınav soruları - sadece sınav sahibi yazabilir
       match /Sorular/{soruId} {
         allow read: if isAuth();
-        allow write: if isAuth() &&
-          get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
+        allow create, update: if isAuth()
+          && get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid
+          && isValidPracticeExamQuestionPayload();
+        allow delete: if isAuth()
+          && get(/databases/$(database)/documents/practiceExams/$(docId)).data.userID == request.auth.uid;
       }
 
       // Sınav yanıtları - kullanıcı kendi yanıtını yazar
       match /Yanitlar/{userId} {
         allow read: if isAuth();
-        allow create, update: if isOwner(userId)
-          && request.resource.data.userID == request.auth.uid;
+        allow create, update: if isValidPracticeExamAnswerPayload(userId);
         allow delete: if false;
 
         match /{lesson}/{resultId} {
           allow read: if isAuth();
-          allow create, update: if isOwner(userId);
+          allow create, update: if isOwner(userId)
+            && isValidPracticeExamLessonResultPayload();
           allow delete: if false;
         }
       }
