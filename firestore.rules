@@ -845,6 +845,43 @@ service cloud.firestore {
         'updatedAt'
       ];
     }
+    function postPromotableShellRequestKeys() {
+      return [
+        'arsiv', 'aspectRatio', 'debugMode',
+        'deletedPost', 'deletedPostTime',
+        'flood', 'floodCount', 'gizlendi',
+        'img', 'imgMap',
+        'isUploading',
+        'isAd', 'ad',
+        'izBirakYayinTarihi',
+        'stats',
+        'konum', 'locationCity', 'mainFlood', 'metin',
+        'reshareMap', 'scheduledAt',
+        'sikayetEdildi', 'stabilized',
+        'tags',
+        'thumbnail', 'thumbnailGeneration',
+        'timeStamp', 'userID',
+        'video', 'videoLook',
+        'hlsStatus', 'hlsMasterUrl', 'hlsUpdatedAt',
+        'yorum', 'yorumMap', 'paylasGizliligi',
+        'poll',
+        'authorNickname', 'authorDisplayName', 'authorAvatarUrl',
+        'nickname', 'username', 'fullName', 'displayName', 'avatarUrl', 'rozet',
+        'originalUserID', 'originalPostID', 'sourcePostID',
+        'sharedAsPost',
+        'quotedPost', 'quotedOriginalText', 'quotedSourceUserID',
+        'quotedSourceDisplayName', 'quotedSourceUsername',
+        'quotedSourceAvatarUrl',
+        'moderation',
+        'shortId',
+        'shortUrl',
+        'shortLinkUpdatedAt',
+        'shortLinkStatus',
+        'shortLinkExpiresAt',
+        'reportStatus',
+        'updatedAt'
+      ];
+    }
     function postClientCreatableKeys() {
       return [
         'arsiv', 'aspectRatio', 'debugMode',
@@ -876,6 +913,29 @@ service cloud.firestore {
     }
     function isAllowedPostCreateHlsStatus(v) {
       return v in ['none', 'processing', 'ready'];
+    }
+    function postMinimalShellCreatableKeys() {
+      return [
+        'isUploading',
+        'hlsStatus',
+        'scheduledAt',
+        'timeStamp',
+        'userID'
+      ];
+    }
+    function isValidPostMinimalShellPayload() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly(postMinimalShellCreatableKeys())
+        && request.resource.data.keys().hasAll(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && request.resource.data.timeStamp > 0
+        && (!request.resource.data.keys().hasAny(['isUploading']) || request.resource.data.isUploading is bool)
+        && (!request.resource.data.keys().hasAny(['scheduledAt']) || request.resource.data.scheduledAt is int)
+        && (!request.resource.data.keys().hasAny(['hlsStatus'])
+          || (request.resource.data.hlsStatus is string
+            && isAllowedPostCreateHlsStatus(request.resource.data.hlsStatus)));
     }
     function isValidPostCreatePayload() {
       return isAuth()
@@ -952,6 +1012,25 @@ service cloud.firestore {
         && resource.data.userID == request.auth.uid
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postCounterTopLevelKeys())
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(postServerManagedUpdateKeys());
+    }
+    function canOwnerPromoteMinimalShellToPost() {
+      return isAuth()
+        && resource.data.userID == request.auth.uid
+        && resource.data.isUploading == true
+        && request.resource.data.keys().hasOnly(postPromotableShellRequestKeys())
+        && request.resource.data.keys().hasAll(['userID', 'timeStamp'])
+        && request.resource.data.userID is string
+        && request.resource.data.userID == request.auth.uid
+        && request.resource.data.timeStamp is int
+        && request.resource.data.timeStamp > 0
+        && (!request.resource.data.keys().hasAny(['stats'])
+          || (
+            request.resource.data.stats is map
+            && hasValidPostStatsShape(request.resource.data)
+          ))
+        && (!request.resource.data.keys().hasAny(['hlsStatus'])
+          || (request.resource.data.hlsStatus is string
+            && isAllowedPostCreateHlsStatus(request.resource.data.hlsStatus)));
     }
     function isAllowedNotificationType(v) {
       return v in [
@@ -2675,9 +2754,11 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /Posts/{postId} {
       allow read: if isAuth();
-      allow create: if isValidPostCreatePayload();
+      allow write: if isValidPostMinimalShellPayload();
+      allow create: if isValidPostMinimalShellPayload() || isValidPostCreatePayload();
       // Sahip: içerik alanlarını güncelleyebilir.
       // Sayaç güncellemeleri istemciden değil, sunucu taraflı akışlardan gelmelidir.
+      allow update: if canOwnerPromoteMinimalShellToPost();
       allow update: if isAuth() && canOwnerUpdatePostContent();
       allow update: if isAuth() && canUpdatePostStatsCounters();
       allow update: if canTogglePostArrayMembership('begenmeme');

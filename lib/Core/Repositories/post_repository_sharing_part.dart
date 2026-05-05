@@ -7,7 +7,27 @@ extension PostRepositorySharingPart on PostRepository {
   }) async {
     final normalizedPostId = postId.trim();
     if (normalizedPostId.isEmpty || data.isEmpty) return;
-    await _firestore.collection('Posts').doc(normalizedPostId).set(data);
+    if (kDebugMode) {
+      debugPrint(
+        '[PostRepository][savePostData] start postId=$normalizedPostId '
+        'keys=${data.keys.toList()} hlsStatus=${data["hlsStatus"]} '
+        'isUploading=${data["isUploading"]} sharedAsPost=${data["sharedAsPost"]}',
+      );
+    }
+    try {
+      await _firestore.collection('Posts').doc(normalizedPostId).set(data);
+      if (kDebugMode) {
+        debugPrint('[PostRepository][savePostData] ok postId=$normalizedPostId');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[PostRepository][savePostData] failed postId=$normalizedPostId '
+          'error=$e stack=$stackTrace',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> updatePostData({
@@ -44,13 +64,33 @@ extension PostRepositorySharingPart on PostRepository {
     final normalizedUserId = userId.trim();
     if (normalizedPostId.isEmpty || normalizedUserId.isEmpty) return;
     final ref = _firestore.collection('Posts').doc(normalizedPostId);
-    await ref.set({
+    final shellData = {
       'userID': normalizedUserId,
       'timeStamp': timeStamp,
       'isUploading': true,
       'hlsStatus': 'none',
-    }, SetOptions(merge: true));
-    await _firestore.waitForPendingWrites();
+    };
+    if (kDebugMode) {
+      debugPrint(
+        '[PostRepository][prepareShell] start postId=$normalizedPostId '
+        'keys=${shellData.keys.toList()}',
+      );
+    }
+    try {
+      await ref.set(shellData, SetOptions(merge: true));
+      await _firestore.waitForPendingWrites();
+      if (kDebugMode) {
+        debugPrint('[PostRepository][prepareShell] ok postId=$normalizedPostId');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[PostRepository][prepareShell] failed postId=$normalizedPostId '
+          'error=$e stack=$stackTrace',
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<bool> isPostShellVisibleOnServer({

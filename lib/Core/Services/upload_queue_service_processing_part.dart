@@ -351,7 +351,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
         }
       }
 
-      await AppFirestore.instance.collection('Posts').doc(upload.id).set({
+      final initialPostData = {
         "arsiv": true,
         "debugMode": false,
         "deletedPost": false,
@@ -414,7 +414,50 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
             (sharedAsPost && quotedPost) ? quotedSourceUsername : "",
         "quotedSourceAvatarUrl":
             (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
-      }, SetOptions(merge: true));
+      };
+      if (kDebugMode) {
+        final promoteProbe = <String, dynamic>{
+          'scheduledAt': scheduledAt,
+          'timeStamp': initialPostData['timeStamp'],
+          'publishTime': publishTime,
+          'location': location,
+          'locationType': location.runtimeType.toString(),
+          'mainFlood': mainFlood,
+          'mainFloodType': mainFlood.runtimeType.toString(),
+          'flood': flood,
+          'floodCount': floodCount,
+          'yorumMap': yorumMap,
+          'yorumMapType': yorumMap.runtimeType.toString(),
+          'reshareMap': reshareMap,
+          'reshareMapType': reshareMap.runtimeType.toString(),
+          'stats': initialPostData['stats'],
+          'statsType': initialPostData['stats'].runtimeType.toString(),
+          'authorNickname': authorNickname,
+          'authorDisplayName': authorDisplayName,
+          'authorAvatarUrl': authorAvatarUrl,
+          'username': username,
+          'fullName': fullName,
+          'rozet': authorRozet,
+          'sharedAsPost': sharedAsPost,
+          'quotedPost': quotedPost,
+          'hlsStatus': initialPostData['hlsStatus'],
+        };
+        debugPrint(
+          '[UploadQueue][Process] shell_promote_start id=${upload.id} '
+          'keys=${initialPostData.keys.toList()} '
+          'yorumMapType=${yorumMap.runtimeType} '
+          'reshareMapType=${reshareMap.runtimeType} '
+          'pollKeys=${poll.keys.toList()} '
+          'probe=${jsonEncode(promoteProbe)}',
+        );
+      }
+      await AppFirestore.instance
+          .collection('Posts')
+          .doc(upload.id)
+          .set(initialPostData, SetOptions(merge: true));
+      if (kDebugMode) {
+        debugPrint('[UploadQueue][Process] shell_promote_ok id=${upload.id}');
+      }
 
       final imageUrls = <String>[];
       for (int i = 0; i < upload.imagePaths.length; i++) {
@@ -660,10 +703,20 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
             (sharedAsPost && quotedPost) ? quotedSourceAvatarUrl : "",
       };
 
+      if (kDebugMode) {
+        debugPrint(
+          '[UploadQueue][Process] post_write_start id=${upload.id} '
+          'keys=${data.keys.toList()} hlsStatus=${data["hlsStatus"]} '
+          'isUploading=${data["isUploading"]} sharedAsPost=${data["sharedAsPost"]}',
+        );
+      }
       await AppFirestore.instance
           .collection('Posts')
           .doc(upload.id)
           .set(data, SetOptions(merge: true));
+      if (kDebugMode) {
+        debugPrint('[UploadQueue][Process] post_write_ok id=${upload.id}');
+      }
       PostRepository.ensure().mergeCachedPostData(upload.id, data);
       if (!flood && scheduledAt == 0) {
         try {
@@ -718,7 +771,13 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
       _notifyQueueUpdated();
 
       await _saveQueueToStorage();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint(
+          '[UploadQueue][Process] failed id=${upload.id} '
+          'retry=${upload.retryCount} error=$e stack=$stackTrace',
+        );
+      }
       upload.retryCount++;
 
       if (upload.retryCount >= _maxRetries) {
