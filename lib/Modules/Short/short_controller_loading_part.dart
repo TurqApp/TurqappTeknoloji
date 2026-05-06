@@ -6,6 +6,8 @@ int _currentVisibleShortIndex(ShortController controller) {
 }
 
 extension ShortControllerLoadingPart on ShortController {
+  static const Duration _exhaustedManifestCheckCooldown = Duration(seconds: 30);
+
   bool _isConsumedShortPostForResume(PostsModel post) {
     final docId = post.docID.trim();
     if (docId.isEmpty) return false;
@@ -693,13 +695,44 @@ extension ShortControllerLoadingPart on ShortController {
       await (_loadNextPageFuture ?? Future<void>.value());
       return;
     }
+    final remainingAfterCurrent = shorts.length - currentIndex - 1;
     if (!hasMore.value) {
+      if (remainingAfterCurrent <= ShortGrowthPolicy.growthRunwayCount) {
+        final now = DateTime.now();
+        final lastCheckAt = _exhaustedManifestLastCheckAt;
+        final checkedSameTerminalCount =
+            _exhaustedManifestLastCheckCount == shorts.length;
+        if (checkedSameTerminalCount &&
+            lastCheckAt != null &&
+            now.difference(lastCheckAt) < _exhaustedManifestCheckCooldown) {
+          return;
+        }
+        _exhaustedManifestLastCheckAt = now;
+        _exhaustedManifestLastCheckCount = shorts.length;
+        final manifestChanged =
+            await _shortManifestRepository.refreshIfActiveManifestChanged();
+        _recordShortFetchEvent(
+          stage: 'exhausted_manifest_check',
+          trigger: 'scroll_near_end',
+          metadata: <String, dynamic>{
+            'currentIndex': currentIndex,
+            'currentCount': shorts.length,
+            'manifestChanged': manifestChanged,
+          },
+        );
+        if (manifestChanged) {
+          _exhaustedManifestLastCheckAt = null;
+          _exhaustedManifestLastCheckCount = -1;
+          hasMore.value = true;
+          await _loadNextPage(trigger: 'manifest_rotated_after_exhaustion');
+          return;
+        }
+      }
       _log(
         '[Shorts] loadMoreIfNeeded BLOCKED - isLoading: ${isLoading.value}, hasMore: ${hasMore.value}',
       );
       return;
     }
-    final remainingAfterCurrent = shorts.length - currentIndex - 1;
     if (remainingAfterCurrent <= ShortGrowthPolicy.growthRunwayCount) {
       _log('[Shorts] loadMoreIfNeeded TRIGGERED - Loading next page...');
       await _loadNextPage(trigger: 'scroll_near_end');
@@ -835,6 +868,10 @@ extension ShortControllerLoadingPart on ShortController {
 
       if (result.posts.isEmpty) {
         hasMore.value = result.hasMore;
+        if (result.hasMore) {
+          _exhaustedManifestLastCheckAt = null;
+          _exhaustedManifestLastCheckCount = -1;
+        }
         _recordShortFetchEvent(
           stage: 'completed',
           trigger: trigger,
@@ -886,6 +923,10 @@ extension ShortControllerLoadingPart on ShortController {
           schedulePersistVisibleSnapshot();
         }
         hasMore.value = result.hasMore;
+        if (result.hasMore) {
+          _exhaustedManifestLastCheckAt = null;
+          _exhaustedManifestLastCheckCount = -1;
+        }
         _recordShortFetchEvent(
           stage: 'completed',
           trigger: trigger,
@@ -932,6 +973,10 @@ extension ShortControllerLoadingPart on ShortController {
       }
 
       hasMore.value = result.hasMore;
+      if (result.hasMore) {
+        _exhaustedManifestLastCheckAt = null;
+        _exhaustedManifestLastCheckCount = -1;
+      }
       _recordShortFetchEvent(
         stage: 'completed',
         trigger: trigger,

@@ -113,8 +113,26 @@ class ShortManifestRepository extends GetxService {
       manifestId: _manifestId,
       slotIndex: _cursorSlotIndex,
       itemIndex: _cursorItemIndex,
-      hasMore: _slotPath(_cursorSlotIndex).isNotEmpty || _slots.isNotEmpty,
+      hasMore: _slotPath(_cursorSlotIndex).isNotEmpty,
     );
+  }
+
+  Future<bool> refreshIfActiveManifestChanged() async {
+    await _ensureManifestAccessReady();
+    final active = await _loadActiveManifestDoc();
+    final activeData = active.data() ?? const <String, dynamic>{};
+    final nextManifestId = (activeData['manifestId'] ?? '').toString();
+    final indexPath = (activeData['indexPath'] ?? '').toString();
+    final date = (activeData['date'] ?? '').toString();
+    if (nextManifestId.isEmpty || indexPath.isEmpty || date.isEmpty) {
+      return false;
+    }
+    if (nextManifestId == _manifestId) {
+      return false;
+    }
+    _reset();
+    await _loadManifest();
+    return _manifestId == nextManifestId && _index != null;
   }
 
   Future<void> _ensureLoaded() {

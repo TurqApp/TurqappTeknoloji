@@ -606,6 +606,11 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } catch (_) {}
     currentPage = initialIndex;
     _shortAdRenderable = AdmobKare.hasRenderableBanner;
+    _markShortSequencePassed(
+      initialDocId,
+      page: initialIndex,
+      source: 'view_init',
+    );
     controller.commitLaunchSelectionForItems(
       currentPage,
       controller.shorts,

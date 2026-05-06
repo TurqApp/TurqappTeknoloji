@@ -202,7 +202,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           .map((e) => e.key)
           .firstOrNull;
       if (toRemove != null) {
-        _allVideoControllers.remove(toRemove);
+        final removedHandle = _allVideoControllers.remove(toRemove);
+        if (removedHandle != null) {
+          debugPrint(
+            '[PlaybackStopTrace] source=tracked_handle_evict '
+            'doc=$toRemove max=$_videoStateManagerMaxTrackedControllers',
+          );
+          _silenceSupersededHandle(toRemove, removedHandle);
+        }
       }
     }
   }

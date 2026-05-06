@@ -1,6 +1,20 @@
 part of 'short_view.dart';
 
 extension ShortViewPlaybackPart on _ShortViewState {
+  void _markShortSequencePassed(
+    String docId, {
+    required int page,
+    required String source,
+  }) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    _segmentCacheRuntimeService.markShortConsumed(normalizedDocId);
+    controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
+    debugPrint(
+      '[ShortSequencePassed] source=$source page=$page doc=$normalizedDocId',
+    );
+  }
+
   bool get _usesTightCellularShortProfile =>
       PlaybackSurfacePolicy.useTightAndroidWarmProfile(
         platform: defaultTargetPlatform,
@@ -607,6 +621,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage = nextOrganicPage;
       _showOverlayControls = true;
     });
+    _markShortSequencePassed(
+      nextDocId,
+      page: nextOrganicPage,
+      source: 'page_changed',
+    );
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
     _recordShortPlaybackDispatch(
@@ -622,11 +641,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
         'renderPage': renderPage,
         'count': _cachedShorts.length,
       },
-    );
-    controller.primeForwardReadyMagazine(
-      currentPage,
-      aheadCount: 5,
-      minimumSegmentCount: 1,
     );
     controller.warmPosterWindowAround(
       currentPage,
@@ -835,11 +849,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   void _prepareUpcomingVideoAfterFirstFrame() {
     if (defaultTargetPlatform == TargetPlatform.android) {
-      controller.primeForwardReadyMagazine(
-        currentPage,
-        aheadCount: 5,
-        minimumSegmentCount: 1,
-      );
       controller.primePlaybackWindowReadySegments(
         currentPage,
         minimumSegmentCount: 2,

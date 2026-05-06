@@ -15,6 +15,8 @@ class _ShortControllerState {
   Future<void>? startupPrepareFuture;
   Future<void>? loadNextPageFuture;
   Timer? persistVisibleSnapshotTimer;
+  DateTime? exhaustedManifestLastCheckAt;
+  int exhaustedManifestLastCheckCount = -1;
   final isLoading = false.obs;
   final hasMore = true.obs;
   final isRefreshing = false.obs;
@@ -72,6 +74,14 @@ extension ShortControllerFieldsPart on ShortController {
   Timer? get _persistVisibleSnapshotTimer => _state.persistVisibleSnapshotTimer;
   set _persistVisibleSnapshotTimer(Timer? value) =>
       _state.persistVisibleSnapshotTimer = value;
+  DateTime? get _exhaustedManifestLastCheckAt =>
+      _state.exhaustedManifestLastCheckAt;
+  set _exhaustedManifestLastCheckAt(DateTime? value) =>
+      _state.exhaustedManifestLastCheckAt = value;
+  int get _exhaustedManifestLastCheckCount =>
+      _state.exhaustedManifestLastCheckCount;
+  set _exhaustedManifestLastCheckCount(int value) =>
+      _state.exhaustedManifestLastCheckCount = value;
   int get pageSize => ReadBudgetRegistry.shortHomeInitialLimitValue;
   int get bufferedPageSize => ReadBudgetRegistry.shortBufferedFetchLimit;
   RxBool get isLoading => _state.isLoading;

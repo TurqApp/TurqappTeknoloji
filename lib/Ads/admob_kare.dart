@@ -598,6 +598,43 @@ class _AdmobKareState extends State<AdmobKare> {
     });
   }
 
+  void _disposeBannerAd(
+    BannerAd ad, {
+    required String reason,
+    Duration delay = _disposeDelay,
+  }) {
+    _log(
+      'disposing banner reason=$reason visible=$_isVisible '
+      'loaded=$_isAdLoaded pool=${_readyPool.length}',
+    );
+    Future<void> disposeAd() async {
+      try {
+        ad.dispose();
+      } catch (_) {}
+    }
+
+    if (delay <= Duration.zero) {
+      unawaited(disposeAd());
+      return;
+    }
+    unawaited(Future<void>.delayed(delay, disposeAd));
+  }
+
+  void _releaseBannerForHiddenPage() {
+    final ad = _bannerAd;
+    if (ad == null) return;
+    _bannerAd = null;
+    _isAdLoaded = false;
+    _loadFailed = false;
+    _allowFallbackSurface = false;
+    _impressionReported = false;
+    _disposeBannerAd(ad, reason: 'hidden_page');
+    _notifySharedAdAvailabilityChanged();
+    if (mounted && !_isDisposed) {
+      setState(() {});
+    }
+  }
+
   void _handleVisibilityChanged(VisibilityInfo info) {
     final threshold = _requiresStableFeedVisibilityForLoad
         ? _feedVisibilityLoadThreshold
@@ -611,6 +648,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _retryTimer?.cancel();
       _fallbackGateTimer?.cancel();
       _visibilityLoadDebounceTimer?.cancel();
+      _releaseBannerForHiddenPage();
       return;
     }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
@@ -665,11 +703,7 @@ class _AdmobKareState extends State<AdmobKare> {
     final previousAd = _bannerAd;
     _bannerAd = null;
     if (previousAd != null) {
-      unawaited(Future<void>.delayed(_disposeDelay, () {
-        try {
-          previousAd.dispose();
-        } catch (_) {}
-      }));
+      _disposeBannerAd(previousAd, reason: 'replace_before_load');
     }
     if (mounted && !_isDisposed) {
       setState(() {
@@ -842,11 +876,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _isAdLoaded = false;
     _bannerAd = null;
     if (ad != null) {
-      unawaited(Future<void>.delayed(_disposeDelay, () {
-        try {
-          ad.dispose();
-        } catch (_) {}
-      }));
+      _disposeBannerAd(ad, reason: 'widget_dispose');
     }
     super.dispose();
   }
