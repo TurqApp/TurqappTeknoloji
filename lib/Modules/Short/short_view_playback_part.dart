@@ -1296,7 +1296,26 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         _enforceSingleActiveAudio(page);
-        final hadActiveAdapter = controller.cache[page] != null;
+        final earlyAdapter = controller.cache[page];
+        final hadActiveAdapter = earlyAdapter != null;
+        if (earlyAdapter != null &&
+            !earlyAdapter.isDisposed &&
+            !earlyAdapter.value.isPlaying) {
+          _applyShortPlaybackPresentation(page, earlyAdapter);
+          _recordShortPlaybackDispatch(
+            'short_page_play_warm_request',
+            docId: scheduledDocId,
+            page: page,
+            source: 'active_adapter_before_ensure_ready',
+            metadata: <String, dynamic>{
+              'isBuffering': earlyAdapter.value.isBuffering,
+              'isInitialized': earlyAdapter.value.isInitialized,
+              'hasRenderedFirstFrame': earlyAdapter.value.hasRenderedFirstFrame,
+              'positionMs': earlyAdapter.value.position.inMilliseconds,
+            },
+          );
+          unawaited(_playbackExecutionService.playAdapter(earlyAdapter));
+        }
         await controller.ensureActiveAdapterReady(page);
         if (!mounted ||
             page != currentPage ||
@@ -1439,9 +1458,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
             recoveredRevisitPlayback = true;
           } catch (_) {}
         }
-        if (!recoveredRevisitPlayback &&
-            !vc.value.isPlaying &&
-            !vc.value.isBuffering) {
+        if (!recoveredRevisitPlayback && !vc.value.isPlaying) {
           _markShortPlaybackAttempt(page, docId);
           await _playbackExecutionService.playAdapter(vc);
         }

@@ -173,7 +173,19 @@ void main() {
       );
     });
 
-    test('keeps short scroll debounce immediate on iOS', () {
+    test('keeps short scroll handoff immediate on mobile when prepared', () {
+      expect(
+        PlaybackSurfacePolicy.supportsImmediateShortHandoff(
+          platform: TargetPlatform.android,
+        ),
+        isTrue,
+      );
+      expect(
+        PlaybackSurfacePolicy.supportsImmediateShortHandoff(
+          platform: TargetPlatform.iOS,
+        ),
+        isTrue,
+      );
       expect(
         PlaybackSurfacePolicy.shortScrollDebounceDelay(
           platform: TargetPlatform.android,

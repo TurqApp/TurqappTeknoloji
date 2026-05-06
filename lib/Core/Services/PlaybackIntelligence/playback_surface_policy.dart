@@ -694,7 +694,7 @@ class PlaybackSurfacePolicy {
   static bool supportsImmediateShortHandoff({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.iOS || platform == TargetPlatform.android;
   }
 
   static Duration shortScrollDebounceDelay({
