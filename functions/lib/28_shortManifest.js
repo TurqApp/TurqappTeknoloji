@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.f28_generateShortManifestScheduled = exports.f28_generateShortManifestCallable = void 0;
 exports.resolveShortManifestDateForNow = resolveShortManifestDateForNow;
+exports.resolveRollingShortManifestDatesForNow = resolveRollingShortManifestDatesForNow;
+exports.resolvePreparedRollingShortManifestDatesForNow = resolvePreparedRollingShortManifestDatesForNow;
 exports.istanbulDayRangeForDate = istanbulDayRangeForDate;
 exports.buildShortManifestItems = buildShortManifestItems;
 exports.buildIndexAndSlots = buildIndexAndSlots;
@@ -26,6 +28,8 @@ const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
 const ISTANBUL_UTC_OFFSET = "+03:00";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const SHORT_SOURCE_DAY_OFFSET = 4;
+const SHORT_ROLLING_SOURCE_DAY_OFFSETS = [6, 5, 4];
+const SHORT_ROLLING_PREPARE_DAY_OFFSETS = [6, 5, 4, 3];
 function ensureAdmin() {
     if ((0, app_1.getApps)().length === 0)
         (0, app_1.initializeApp)();
@@ -126,6 +130,12 @@ function formatDateIstanbul(nowMs) {
 function resolveShortManifestDateForNow(nowMs) {
     return formatDateIstanbul(nowMs - SHORT_SOURCE_DAY_OFFSET * DAY_MS);
 }
+function resolveRollingShortManifestDatesForNow(nowMs) {
+    return SHORT_ROLLING_SOURCE_DAY_OFFSETS.map((offsetDays) => formatDateIstanbul(nowMs - offsetDays * DAY_MS));
+}
+function resolvePreparedRollingShortManifestDatesForNow(nowMs) {
+    return SHORT_ROLLING_PREPARE_DAY_OFFSETS.map((offsetDays) => formatDateIstanbul(nowMs - offsetDays * DAY_MS));
+}
 function istanbulDayRangeForDate(date) {
     const normalized = date.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
@@ -199,6 +209,10 @@ function normalizeManifestItem(candidate) {
     if (!docId || !canonicalId || !userID)
         return null;
     if (!authorNickname || !authorDisplayName || !authorAvatarUrl || !rozet)
+        return null;
+    if (asBool(candidate.deletedPost) || asBool(candidate.gizlendi) || asBool(candidate.arsiv))
+        return null;
+    if (asBool(candidate.isUploading))
         return null;
     if (asBool(candidate.flood) || mainFlood || isFloodRoot)
         return null;
@@ -345,6 +359,7 @@ async function generateShortManifest(params) {
         await publishManifest({
             index,
             slots,
+            publishActive: params.publishActive !== false,
             publishedAt: Date.now(),
         });
     }
@@ -440,8 +455,101 @@ async function publishManifest(params) {
     const db = (0, firestore_1.getFirestore)();
     const batch = db.batch();
     batch.set(db.collection(SHORT_MANIFEST_COLLECTION).doc(params.index.date), firestorePayload, { merge: true });
+    if (params.publishActive !== false) {
+        batch.set(db.collection(SHORT_MANIFEST_COLLECTION).doc("active"), firestorePayload, { merge: true });
+    }
+    await batch.commit();
+}
+async function publishRollingActiveManifest(params) {
+    const usableResults = params.results
+        .filter((result) => result.published && result.slotCount > 0);
+    const startupResults = usableResults.slice(0, SHORT_ROLLING_SOURCE_DAY_OFFSETS.length);
+    const tailResult = usableResults[SHORT_ROLLING_SOURCE_DAY_OFFSETS.length] || null;
+    const manifestId = `short_rolling_${startupResults.map((result) => result.date).join("_")}_v${params.generatedAt}`;
+    const slots = startupResults.map((result, index) => ({
+        slotId: `${result.date}_slot_001`,
+        slotIndex: index,
+        itemCount: SLOT_SIZE,
+        path: `${SHORT_MANIFEST_COLLECTION}/${result.date}/slots/slot_001.json`,
+        date: result.date,
+    }));
+    const tailSlot = tailResult
+        ? {
+            slotId: `${tailResult.date}_slot_001`,
+            slotIndex: slots.length,
+            itemCount: SLOT_SIZE,
+            path: `${SHORT_MANIFEST_COLLECTION}/${tailResult.date}/slots/slot_001.json`,
+            date: tailResult.date,
+        }
+        : null;
+    const rollingDate = startupResults.map((result) => result.date).join("_");
+    const indexPath = `${SHORT_MANIFEST_COLLECTION}/rolling/index.json`;
+    const index = {
+        schemaVersion: SCHEMA_VERSION,
+        date: rollingDate,
+        manifestId,
+        itemsPerSlot: SLOT_SIZE,
+        slotCount: slots.length,
+        itemCount: slots.length * SLOT_SIZE,
+        generatedAt: params.generatedAt,
+        slots,
+    };
+    if (slots.length === 0) {
+        return {
+            ok: true,
+            published: false,
+            manifestId,
+            slotCount: 0,
+            itemCount: 0,
+            dates: [],
+            indexPath,
+        };
+    }
+    const bucket = (0, storage_1.getStorage)().bucket();
+    const cacheControl = "public, max-age=300";
+    await bucket.file(indexPath).save(JSON.stringify(index), {
+        resumable: false,
+        contentType: "application/json; charset=utf-8",
+        metadata: { cacheControl },
+    });
+    const firestorePayload = {
+        schemaVersion: index.schemaVersion,
+        date: index.date,
+        manifestId: index.manifestId,
+        status: "active",
+        indexPath,
+        slotCount: index.slotCount,
+        itemCount: index.itemCount,
+        itemsPerSlot: index.itemsPerSlot,
+        generatedAt: index.generatedAt,
+        publishedAt: params.publishedAt,
+        slots,
+        tailSlot,
+        tailSourceDate: tailResult?.date || "",
+        rollingSourceDates: usableResults.map((result) => result.date),
+    };
+    const db = (0, firestore_1.getFirestore)();
+    const batch = db.batch();
+    batch.set(db.collection(SHORT_MANIFEST_COLLECTION).doc("rolling"), firestorePayload, { merge: true });
     batch.set(db.collection(SHORT_MANIFEST_COLLECTION).doc("active"), firestorePayload, { merge: true });
     await batch.commit();
+    console.log("short_manifest_rolling_active_publish", {
+        manifestId,
+        slotCount: index.slotCount,
+        itemCount: index.itemCount,
+        dates: usableResults.map((result) => result.date),
+        startupDates: startupResults.map((result) => result.date),
+        tailDate: tailResult?.date || "",
+    });
+    return {
+        ok: true,
+        published: true,
+        manifestId,
+        slotCount: index.slotCount,
+        itemCount: index.itemCount,
+        dates: usableResults.map((result) => result.date),
+        indexPath,
+    };
 }
 exports.f28_generateShortManifestCallable = (0, https_1.onCall)({
     region: REGION,
@@ -458,6 +566,7 @@ exports.f28_generateShortManifestCallable = (0, https_1.onCall)({
     const startMs = Math.floor(asNumber(request.data?.startMs, defaultRange.startMs));
     const endMs = Math.floor(asNumber(request.data?.endMs, defaultRange.endMs));
     const publish = request.data?.publish === true;
+    const publishActive = request.data?.publishActive === true;
     try {
         return await generateShortManifest({
             actor: uid,
@@ -466,6 +575,7 @@ exports.f28_generateShortManifestCallable = (0, https_1.onCall)({
             startMs,
             endMs,
             publish,
+            publishActive,
             generatedAt: nowMs,
         });
     }
@@ -484,19 +594,31 @@ exports.f28_generateShortManifestScheduled = (0, scheduler_1.onSchedule)({
 }, async () => {
     ensureAdmin();
     const nowMs = Date.now();
-    const date = resolveShortManifestDateForNow(nowMs);
-    const defaultRange = istanbulDayRangeForDate(date);
+    const dates = resolvePreparedRollingShortManifestDatesForNow(nowMs);
     try {
-        const result = await generateShortManifest({
-            actor: "scheduled",
-            date,
-            maxSlots: envInt("SHORT_MANIFEST_MAX_SLOTS", 1, MAX_SLOTS, DEFAULT_MAX_SLOTS),
-            startMs: defaultRange.startMs,
-            endMs: defaultRange.endMs,
-            publish: true,
+        const results = [];
+        for (const date of dates) {
+            const defaultRange = istanbulDayRangeForDate(date);
+            results.push(await generateShortManifest({
+                actor: "scheduled",
+                date,
+                maxSlots: 1,
+                startMs: defaultRange.startMs,
+                endMs: defaultRange.endMs,
+                publish: true,
+                publishActive: false,
+                generatedAt: nowMs,
+            }));
+        }
+        const result = await publishRollingActiveManifest({
             generatedAt: nowMs,
+            publishedAt: Date.now(),
+            results,
         });
-        console.log("short_manifest_scheduled_done", result);
+        console.log("short_manifest_scheduled_done", {
+            ...result,
+            preparedDates: dates,
+        });
     }
     catch (err) {
         const detail = err?.message || "unknown_error";

@@ -5,6 +5,8 @@ const {
   buildShortManifestItems,
   buildIndexAndSlots,
   resolveShortManifestDateForNow,
+  resolvePreparedRollingShortManifestDatesForNow,
+  resolveRollingShortManifestDatesForNow,
   istanbulDayRangeForDate,
 } = require("../../lib/28_shortManifest.js");
 
@@ -121,6 +123,17 @@ test("short manifest slot builder keeps only full 240-item slots", () => {
 test("short manifest defaults to previous Istanbul day and exact day bounds", () => {
   const nowMs = Date.parse("2026-04-21T01:10:54.036+03:00");
   assert.equal(resolveShortManifestDateForNow(nowMs), "2026-04-17");
+  assert.deepEqual(resolveRollingShortManifestDatesForNow(nowMs), [
+    "2026-04-15",
+    "2026-04-16",
+    "2026-04-17",
+  ]);
+  assert.deepEqual(resolvePreparedRollingShortManifestDatesForNow(nowMs), [
+    "2026-04-15",
+    "2026-04-16",
+    "2026-04-17",
+    "2026-04-18",
+  ]);
 
   const range = istanbulDayRangeForDate("2026-04-17");
   assert.equal(range.startMs, Date.parse("2026-04-17T00:00:00.000+03:00"));

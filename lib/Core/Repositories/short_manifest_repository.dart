@@ -58,7 +58,9 @@ class ShortManifestRepository extends GetxService {
   int _cursorSlotIndex = 0;
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
+  Future<void>? _tailSlotFuture;
   static const int _retainedConsumedSlotCount = 1;
+  static const int _rollingWindowSlotCount = 3;
 
   void _logTiming(
     String stage, {
@@ -78,7 +80,11 @@ class ShortManifestRepository extends GetxService {
 
     final output = <PostsModel>[];
     while (output.length < normalizedPageSize) {
-      final currentPath = _slotPath(_cursorSlotIndex);
+      var currentPath = _slotPath(_cursorSlotIndex);
+      if (currentPath.isEmpty) {
+        await _ensureActiveTailSlot();
+        currentPath = _slotPath(_cursorSlotIndex);
+      }
       if (currentPath.isEmpty) {
         break;
       }
@@ -86,7 +92,7 @@ class ShortManifestRepository extends GetxService {
       if (slot.isEmpty) {
         _cursorSlotIndex++;
         _cursorItemIndex = 0;
-        unawaited(_ensureTwoSlotWindow());
+        unawaited(_ensureRollingWindow());
         continue;
       }
       while (_cursorItemIndex < slot.length &&
@@ -98,8 +104,9 @@ class ShortManifestRepository extends GetxService {
         final completedSlotIndex = _cursorSlotIndex;
         _cursorSlotIndex++;
         _cursorItemIndex = 0;
+        await _ensureActiveTailSlot();
         _trimConsumedSlots(completedSlotIndex: completedSlotIndex);
-        unawaited(_ensureTwoSlotWindow());
+        unawaited(_ensureRollingWindow());
       }
     }
 
@@ -152,7 +159,7 @@ class ShortManifestRepository extends GetxService {
 
   Future<void> warmStartupWindow() async {
     await _ensureLoaded();
-    await _ensureAllSlotsLoaded();
+    await _ensureStartupSlotsLoaded();
   }
 
   Future<void> _loadManifest() async {
@@ -183,7 +190,7 @@ class ShortManifestRepository extends GetxService {
     }
 
     if (_manifestId == nextManifestId && _index != null) {
-      await _ensureTwoSlotWindow();
+      await _ensureRollingWindow();
       _logTiming(
         'load_manifest_reuse',
         metadata: <String, Object?>{
@@ -210,7 +217,7 @@ class ShortManifestRepository extends GetxService {
     _cursorItemIndex = 0;
     await _restorePersistedCursorIfNeeded();
     await _ensureSlot(_cursorSlotIndex);
-    unawaited(_primeUpcomingSlots());
+    unawaited(_primeRollingWindow());
     _logTiming(
       'load_manifest_complete',
       metadata: <String, Object?>{
@@ -370,25 +377,26 @@ class ShortManifestRepository extends GetxService {
     }
   }
 
-  Future<void> _ensureTwoSlotWindow() async {
+  Future<void> _ensureRollingWindow() async {
     final startedAt = DateTime.now();
-    final primarySlot = _cursorSlotIndex;
-    final secondarySlot = _cursorSlotIndex + 1;
-    await Future.wait<void>(<Future<void>>[
-      _ensureSlot(primarySlot).then((_) {}),
-      _ensureSlot(secondarySlot).then((_) {}),
-    ]);
+    final firstSlot = _cursorSlotIndex;
+    final lastSlot = _cursorSlotIndex + _rollingWindowSlotCount - 1;
+    final futures = <Future<void>>[];
+    for (var slotIndex = firstSlot; slotIndex <= lastSlot; slotIndex++) {
+      futures.add(_ensureSlot(slotIndex).then((_) {}));
+    }
+    await Future.wait<void>(futures, eagerError: false);
     _logTiming(
-      'two_slot_window_ready',
+      'rolling_window_ready',
       metadata: <String, Object?>{
-        'primarySlot': primarySlot,
-        'secondarySlot': secondarySlot,
+        'firstSlot': firstSlot,
+        'lastSlot': lastSlot,
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );
   }
 
-  Future<void> _ensureAllSlotsLoaded() async {
+  Future<void> _ensureStartupSlotsLoaded() async {
     final index = _index;
     final slotsRaw = index?['slots'];
     if (slotsRaw is! List || slotsRaw.isEmpty) {
@@ -396,14 +404,18 @@ class ShortManifestRepository extends GetxService {
     }
     final startedAt = DateTime.now();
     final futures = <Future<void>>[];
-    for (var slotIndex = 0; slotIndex < slotsRaw.length; slotIndex++) {
+    final slotCount = slotsRaw.length < _rollingWindowSlotCount
+        ? slotsRaw.length
+        : _rollingWindowSlotCount;
+    for (var slotIndex = 0; slotIndex < slotCount; slotIndex++) {
       futures.add(_ensureSlot(slotIndex).then((_) {}));
     }
     await Future.wait<void>(futures, eagerError: false);
     _logTiming(
-      'all_slots_loaded',
+      'startup_slots_loaded',
       metadata: <String, Object?>{
-        'slotCount': slotsRaw.length,
+        'slotCount': slotCount,
+        'availableSlotCount': slotsRaw.length,
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );
@@ -435,20 +447,98 @@ class ShortManifestRepository extends GetxService {
     });
   }
 
-  Future<void> _primeUpcomingSlots() async {
-    final primarySlot = _cursorSlotIndex;
-    final secondarySlot = _cursorSlotIndex + 1;
-    await Future.wait<void>(<Future<void>>[
-      _ensureSlot(primarySlot).then((_) {}),
-      _ensureSlot(secondarySlot).then((_) {}),
-    ]);
+  Future<void> _primeRollingWindow() async {
+    final firstSlot = _cursorSlotIndex;
+    final lastSlot = _cursorSlotIndex + _rollingWindowSlotCount - 1;
+    final futures = <Future<void>>[];
+    for (var slotIndex = firstSlot; slotIndex <= lastSlot; slotIndex++) {
+      futures.add(_ensureSlot(slotIndex).then((_) {}));
+    }
+    await Future.wait<void>(futures, eagerError: false);
     _logTiming(
-      'upcoming_slots_primed',
+      'rolling_window_primed',
       metadata: <String, Object?>{
-        'primarySlot': primarySlot,
-        'secondarySlot': secondarySlot,
+        'firstSlot': firstSlot,
+        'lastSlot': lastSlot,
       },
     );
+  }
+
+  Future<void> _ensureActiveTailSlot() {
+    final existing = _tailSlotFuture;
+    if (existing != null) return existing;
+    final future = _appendActiveTailSlotIfNeeded();
+    _tailSlotFuture = future;
+    return future.whenComplete(() {
+      if (identical(_tailSlotFuture, future)) {
+        _tailSlotFuture = null;
+      }
+    });
+  }
+
+  Future<void> _appendActiveTailSlotIfNeeded() async {
+    final index = _index;
+    final slotsRaw = index?['slots'];
+    if (index == null || slotsRaw is! List) return;
+    final neededSlotIndex = _cursorSlotIndex + _rollingWindowSlotCount - 1;
+    if (neededSlotIndex < slotsRaw.length) return;
+
+    await _ensureManifestAccessReady();
+    final active = await _loadActiveManifestDoc();
+    final activeData = active.data() ?? const <String, dynamic>{};
+    final rawTailSlot = activeData['tailSlot'];
+    if (rawTailSlot is! Map) {
+      _logTiming(
+        'tail_slot_skip',
+        metadata: <String, Object?>{
+          'reason': 'missing_tail_slot',
+          'cursorSlotIndex': _cursorSlotIndex,
+          'slotCount': slotsRaw.length,
+        },
+      );
+      return;
+    }
+    final tailSlot = Map<String, dynamic>.from(rawTailSlot);
+    final path = (tailSlot['path'] ?? '').toString().trim();
+    if (path.isEmpty) return;
+
+    final existingPaths = slotsRaw
+        .whereType<Map>()
+        .map((slot) => (slot['path'] ?? '').toString())
+        .toSet();
+    if (existingPaths.contains(path)) {
+      _logTiming(
+        'tail_slot_skip',
+        metadata: <String, Object?>{
+          'reason': 'duplicate_path',
+          'path': path,
+          'cursorSlotIndex': _cursorSlotIndex,
+          'slotCount': slotsRaw.length,
+        },
+      );
+      return;
+    }
+
+    final nextSlotIndex = slotsRaw.length;
+    slotsRaw.add(<String, Object?>{
+      'slotId': (tailSlot['slotId'] ?? 'tail_slot_$nextSlotIndex').toString(),
+      'slotIndex': nextSlotIndex,
+      'itemCount': _parseSlotItemCount(tailSlot['itemCount']),
+      'path': path,
+      'date': (tailSlot['date'] ?? '').toString(),
+    });
+    index['slotCount'] = slotsRaw.length;
+    index['itemCount'] = _sumSlotItemCount(slotsRaw);
+    _logTiming(
+      'tail_slot_appended',
+      metadata: <String, Object?>{
+        'slotIndex': nextSlotIndex,
+        'path': path,
+        'date': (tailSlot['date'] ?? '').toString(),
+        'slotCount': slotsRaw.length,
+      },
+    );
+    unawaited(_ensureSlot(nextSlotIndex));
   }
 
   Future<List<PostsModel>> _loadSlot(int slotIndex) async {
@@ -500,6 +590,21 @@ class ShortManifestRepository extends GetxService {
     final slot = slotsRaw[slotIndex];
     if (slot is! Map) return '';
     return (slot['path'] ?? '').toString();
+  }
+
+  int _parseSlotItemCount(Object? raw) {
+    if (raw is int && raw > 0) return raw;
+    final parsed = int.tryParse('$raw') ?? 0;
+    return parsed > 0 ? parsed : 240;
+  }
+
+  int _sumSlotItemCount(List<dynamic> slotsRaw) {
+    var total = 0;
+    for (final slot in slotsRaw) {
+      if (slot is! Map) continue;
+      total += _parseSlotItemCount(slot['itemCount']);
+    }
+    return total;
   }
 
   Map<String, dynamic> _manifestItemToPostMap(Map<String, dynamic> item) {
