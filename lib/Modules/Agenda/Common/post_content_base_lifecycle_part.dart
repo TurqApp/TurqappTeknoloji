@@ -136,6 +136,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidUpdateWidget(T oldWidget) {
+    if (oldWidget.model.docID != widget.model.docID) {
+      _lastImmediateFeedNextWarmDocId = null;
+    }
     _recordPlaybackVisualWarning(
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_update_widget_pre',
@@ -271,6 +274,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (!mounted) return;
     final v = _videoAdapter!.value;
     _recordPlaybackVisualWarning(v);
+    _primeImmediateFeedNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&
         widget.shouldPlay &&
@@ -487,6 +491,17 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_shouldSyncVideoNotifier(v)) {
       videoValueNotifier.value = v;
     }
+  }
+
+  void _primeImmediateFeedNextAfterPlaybackStart(HLSVideoValue value) {
+    if (!_isPrimaryFeedSurfaceInstance) return;
+    if (!widget.model.hasPlayableVideo) return;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    if (!value.hasRenderedFirstFrame) return;
+    final docId = widget.model.docID.trim();
+    if (docId.isEmpty || _lastImmediateFeedNextWarmDocId == docId) return;
+    _lastImmediateFeedNextWarmDocId = docId;
+    agendaController.primeImmediateNextFeedAfterPlaybackStart(docId);
   }
 
   void _maybePreloadWarmVideoController({

@@ -419,12 +419,12 @@ extension AgendaControllerFeedPart on AgendaController {
     if (shouldIssueImmediateCommand) {
       final readyForImmediateHandoff =
           manager.canResumePlaybackFor(playbackKey) ||
-          _shouldPreferImmediateFeedHandoff(index);
+              _shouldPreferImmediateFeedHandoff(index);
       final immediateClaimInterval =
           PlaybackSurfacePolicy.shouldUseZeroFeedImmediateClaimInterval(
-                platform: defaultTargetPlatform,
-                readyForImmediateHandoff: readyForImmediateHandoff,
-              )
+        platform: defaultTargetPlatform,
+        readyForImmediateHandoff: readyForImmediateHandoff,
+      )
               ? Duration.zero
               : const Duration(milliseconds: 120);
       recordQALabPlaybackDispatch(
@@ -487,12 +487,10 @@ extension AgendaControllerFeedPart on AgendaController {
       final preserveExternalPlayback = _hasExternalPlaybackOwner(
         videoManager.currentPlayingDocID,
       );
-      final startupLockedIndex = _canRetainStartupPlaybackLock
-          ? _resolveStartupLockedFeedIndex()
-          : -1;
-      final effectivePlaybackIndex = startupLockedIndex >= 0
-          ? startupLockedIndex
-          : newIndex;
+      final startupLockedIndex =
+          _canRetainStartupPlaybackLock ? _resolveStartupLockedFeedIndex() : -1;
+      final effectivePlaybackIndex =
+          startupLockedIndex >= 0 ? startupLockedIndex : newIndex;
       if (startupLockedIndex >= 0 && startupLockedIndex != newIndex) {
         debugPrint(
           '[FeedStartupPlaybackLock] centered=$newIndex locked=$startupLockedIndex '
@@ -578,10 +576,9 @@ extension AgendaControllerFeedPart on AgendaController {
     if (centered >= 0 && centered < agendaList.length) {
       _boostFeedPlaybackHorizon(centered);
     }
-    final prefetchRefreshDelay =
-        _shouldUseTightCellularFeedWarmProfile
-            ? const Duration(milliseconds: 10)
-            : const Duration(milliseconds: 240);
+    final prefetchRefreshDelay = _shouldUseTightCellularFeedWarmProfile
+        ? const Duration(milliseconds: 10)
+        : const Duration(milliseconds: 240);
     _feedPrefetchDebounce = Timer(prefetchRefreshDelay, () {
       _updateFeedPrefetchQueue();
     });
@@ -640,6 +637,49 @@ extension AgendaControllerFeedPart on AgendaController {
         'stabilizing=$startupWindowStabilizing entries=${boostLogs.join(' | ')}',
       );
     }
+  }
+
+  void primeImmediateNextFeedAfterPlaybackStart(String anchorDocId) {
+    final normalizedAnchorDocId = anchorDocId.trim();
+    if (normalizedAnchorDocId.isEmpty || agendaList.isEmpty) return;
+    final anchorIndex =
+        agendaList.indexWhere((post) => post.docID == normalizedAnchorDocId);
+    if (anchorIndex < 0 || anchorIndex >= agendaList.length) return;
+
+    var nextPlayableIndex = -1;
+    for (int index = anchorIndex + 1; index < agendaList.length; index++) {
+      if (!_canAutoplayVideoPost(agendaList[index])) continue;
+      nextPlayableIndex = index;
+      break;
+    }
+    if (nextPlayableIndex < 0) return;
+
+    final nextPost = agendaList[nextPlayableIndex];
+    final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(1);
+    maybeFindPrefetchScheduler()?.boostDoc(
+      nextPost.docID,
+      readySegments: readySegments,
+    );
+    for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+      TurqImageCacheManager.warmUrl(posterUrl).ignore();
+    }
+    final preview = nextPost.primaryImageUrl.trim();
+    if (preview.isNotEmpty) {
+      TurqImageCacheManager.warmUrl(preview).ignore();
+    }
+    debugPrint(
+      '[FeedNextWarm] status=boost source=first_frame '
+      'anchor=$anchorIndex next=$nextPlayableIndex '
+      'doc=${nextPost.docID} segments=$readySegments',
+    );
+    scheduleMicrotask(() {
+      if (isClosed || agendaList.isEmpty) return;
+      if (anchorIndex >= agendaList.length ||
+          agendaList[anchorIndex].docID != normalizedAnchorDocId) {
+        return;
+      }
+      _updateFeedPrefetchQueue(anchorIndex: anchorIndex);
+    });
   }
 
   List<int> _resolvePrioritizedPlayableFeedIndices({

@@ -44,6 +44,7 @@ const int _feedCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
+
 enum _FeedNativeWarmTier {
   off,
   cacheOnly,
@@ -171,6 +172,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _feedRecoverInFlight = false;
   bool _warmPreloadInitQueued = false;
   bool _warmPreloadFetchClaimed = false;
+  String? _lastImmediateFeedNextWarmDocId;
   Duration? _lastQueuedSavedResumePosition;
   DateTime? _lastQueuedSavedResumeAt;
   DateTime? _savedResumeRecoveryGuardUntil;
@@ -331,7 +333,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _usesFeedPlaybackPolicy => _isFeedStyleInlineSurfaceInstance;
 
   bool get _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition {
-    return PlaybackSurfacePolicy.shouldPreserveIosFeedPlaybackForResumeTransition(
+    return PlaybackSurfacePolicy
+        .shouldPreserveIosFeedPlaybackForResumeTransition(
       platform: defaultTargetPlatform,
       isFeedStyleSurface: _usesFeedPlaybackPolicy,
       playbackSuspended: agendaController.playbackSuspended.value,
@@ -395,7 +398,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       value,
       threshold: _stableFramePositionThreshold,
     );
-    final keepAlive = PlaybackSurfacePolicy.shouldKeepFeedSurfaceAliveInWarmWindow(
+    final keepAlive =
+        PlaybackSurfacePolicy.shouldKeepFeedSurfaceAliveInWarmWindow(
       platform: defaultTargetPlatform,
       isFeedStyleSurface: _usesFeedPlaybackPolicy,
       adapterBound: _videoAdapter != null,
@@ -697,14 +701,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _shouldPreloadWarmController {
     final isAllowedByPolicy =
         PlaybackSurfacePolicy.shouldAllowFeedWarmControllerPreload(
-          platform: defaultTargetPlatform,
-          isFeedStyleSurface: _usesFeedPlaybackPolicy,
-          shouldPlay: widget.shouldPlay,
-          surfacePlaybackAllowed: _isSurfacePlaybackAllowed,
-          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
-          centeredWarmAnchorReady: _isCenteredFeedWarmPreloadAnchorReady,
-          hasPlayableVideo: widget.model.hasPlayableVideo,
-        );
+      platform: defaultTargetPlatform,
+      isFeedStyleSurface: _usesFeedPlaybackPolicy,
+      shouldPlay: widget.shouldPlay,
+      surfacePlaybackAllowed: _isSurfacePlaybackAllowed,
+      isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+      centeredWarmAnchorReady: _isCenteredFeedWarmPreloadAnchorReady,
+      hasPlayableVideo: widget.model.hasPlayableVideo,
+    );
     if (!isAllowedByPolicy) {
       return false;
     }
