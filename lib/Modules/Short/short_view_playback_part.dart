@@ -38,6 +38,119 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _applyShortPlaybackPresentation(page, adapter);
   }
 
+  void _clearShortPlaybackAttemptSuppression() {
+    _lastShortPlaybackAttemptToken = null;
+    _lastShortPlaybackAttemptAt = null;
+    _lastPrimaryPlayDocId = null;
+    _lastPrimaryPlayAt = null;
+  }
+
+  void _resumeShortPlaybackAfterAdPage(int page) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted ||
+          page != currentPage ||
+          !_isShortRoutePlaybackActive ||
+          _isAdPageActive ||
+          page < 0 ||
+          page >= _cachedShorts.length) {
+        return;
+      }
+      _clearShortPlaybackAttemptSuppression();
+      _resetShortAutoplaySegmentGate();
+      isManuallyPaused = false;
+      _syncShortExclusivePlaybackOwner(page);
+      final hadActiveAdapter = controller.cache[page] != null;
+      await controller.ensureActiveAdapterReady(page);
+      if (!mounted ||
+          page != currentPage ||
+          !_isShortRoutePlaybackActive ||
+          _isAdPageActive) {
+        return;
+      }
+      _setStateIfActiveAdapterChanged(page, hadActiveAdapter, force: true);
+      final activeAdapter = controller.cache[page];
+      if (activeAdapter == null || activeAdapter.isDisposed) return;
+      await _reassertActiveShortAudibility(page, activeAdapter);
+      _schedulePlayForPage(page, delayOverride: Duration.zero);
+      _schedulePostAdPlaybackResumeProbe(page, activeAdapter);
+      _scheduleDelayedShortAudibilityReassert(
+        page,
+        activeAdapter,
+        delay: const Duration(milliseconds: 120),
+      );
+      if (kDebugMode) {
+        debugPrint(
+          '[ShortAdSlots] playback_resume_after_ad page=$page '
+          'doc=${_cachedShorts[page].docID}',
+        );
+      }
+    });
+  }
+
+  void _schedulePostAdPlaybackResumeProbe(
+    int page,
+    HLSVideoAdapter expectedAdapter, {
+    int attempt = 0,
+  }) {
+    final delay = attempt == 0
+        ? const Duration(milliseconds: 700)
+        : const Duration(milliseconds: 1400);
+    Future<void>.delayed(delay, () async {
+      if (!mounted ||
+          page != currentPage ||
+          expectedAdapter.isDisposed ||
+          isManuallyPaused ||
+          !_isShortRoutePlaybackActive ||
+          _isAdPageActive) {
+        return;
+      }
+      final activeAdapter = controller.cache[page];
+      if (activeAdapter == null ||
+          activeAdapter.isDisposed ||
+          !identical(activeAdapter, expectedAdapter)) {
+        return;
+      }
+      final value = activeAdapter.value;
+      final hasStarted = value.isPlaying || value.position > Duration.zero;
+      if (hasStarted) return;
+      final docId = page >= 0 && page < _cachedShorts.length
+          ? _cachedShorts[page].docID.trim()
+          : '';
+      _clearShortPlaybackAttemptSuppression();
+      _applyShortPlaybackPresentation(page, activeAdapter);
+      _recordShortPlaybackDispatch(
+        'short_post_ad_play_retry',
+        docId: docId,
+        page: page,
+        source: 'post_ad_resume_probe',
+        metadata: <String, dynamic>{
+          'attempt': attempt + 1,
+          'isInitialized': value.isInitialized,
+          'isBuffering': value.isBuffering,
+          'hasRenderedFirstFrame': value.hasRenderedFirstFrame,
+          'isStopped': activeAdapter.isStopped,
+        },
+      );
+      try {
+        await _playbackExecutionService.playAdapter(activeAdapter);
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId, activeAdapter);
+          await _reassertActiveShortAudibility(page, activeAdapter);
+          _scheduleDelayedShortAudibilityReassert(page, activeAdapter);
+          _applyShortPlaybackPresentation(page, activeAdapter);
+        }
+      } catch (_) {}
+      _schedulePlaybackWatchdog(page, activeAdapter);
+      if (attempt < 1) {
+        _schedulePostAdPlaybackResumeProbe(
+          page,
+          activeAdapter,
+          attempt: attempt + 1,
+        );
+      }
+    });
+  }
+
   void _scheduleDelayedShortAudibilityReassert(
     int page,
     HLSVideoAdapter adapter, {
@@ -496,23 +609,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
     });
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
-    if (resumedFromAdPage) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted || !_isShortRoutePlaybackActive || _isAdPageActive) {
-          return;
-        }
-        final activeAdapter = controller.cache[currentPage];
-        if (activeAdapter == null || activeAdapter.isDisposed) {
-          return;
-        }
-        await _reassertActiveShortAudibility(currentPage, activeAdapter);
-        _scheduleDelayedShortAudibilityReassert(
-          currentPage,
-          activeAdapter,
-          delay: const Duration(milliseconds: 120),
-        );
-      });
-    }
     _recordShortPlaybackDispatch(
       'short_page_targeted',
       docId: nextDocId,
@@ -554,6 +650,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastPrimaryPlayAt = null;
     _resetShortAutoplaySegmentGate();
     isManuallyPaused = false;
+    if (resumedFromAdPage) {
+      _resumeShortPlaybackAfterAdPage(nextOrganicPage);
+    }
     _isTransitioning = false;
     _telemetryFirstFrame = false;
     _telemetryAdapter = null;
@@ -1276,6 +1375,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           final elapsed =
               DateTime.now().difference(_autoplaySegmentGateStartedAt!);
           if (elapsed < _ShortViewState._shortAutoplaySegmentGateTimeout) {
+            _clearShortPlaybackAttemptSuppression();
             _playDebounce = Timer(
               _ShortViewState._shortAutoplaySegmentGatePollInterval,
               () {
