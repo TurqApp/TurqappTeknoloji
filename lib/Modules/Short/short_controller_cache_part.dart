@@ -109,6 +109,21 @@ extension ShortControllerCachePart on ShortController {
     );
   }
 
+  void primeImmediateNextAfterPlaybackStart(int anchorIndex) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final nextIndex = safeAnchor + 1;
+    if (nextIndex < 0 || nextIndex >= shorts.length) return;
+    _ensureReadySegmentsForIndex(
+      nextIndex,
+      minimumSegmentCount: StartupPreloadPolicy.readySegmentsForAheadOffset(1),
+    );
+    debugPrint(
+      '[ShortNextWarm] status=boost source=first_frame '
+      'anchor=$safeAnchor next=$nextIndex doc=${shorts[nextIndex].docID}',
+    );
+  }
+
   void _ensureReadySegmentsForIndex(
     int index, {
     int minimumSegmentCount =

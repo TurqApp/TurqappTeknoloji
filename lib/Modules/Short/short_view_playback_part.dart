@@ -848,14 +848,19 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }
 
   void _prepareUpcomingVideoAfterFirstFrame() {
+    final activePage = currentPage;
+    controller.primeImmediateNextAfterPlaybackStart(activePage);
+    _prepareUpcomingVideoForSwipe(activePageOverride: activePage);
     if (defaultTargetPlatform == TargetPlatform.android) {
-      controller.primePlaybackWindowReadySegments(
-        currentPage,
-        minimumSegmentCount: 2,
-        aheadCount: 5,
-      );
+      scheduleMicrotask(() {
+        if (!mounted || currentPage != activePage) return;
+        controller.primePlaybackWindowReadySegments(
+          activePage,
+          minimumSegmentCount: 2,
+          aheadCount: 5,
+        );
+      });
     }
-    _prepareUpcomingVideoForSwipe();
   }
 
   void _persistShortPlaybackState(int page, HLSVideoAdapter adapter) {
