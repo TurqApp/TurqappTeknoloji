@@ -91,6 +91,24 @@ function asStringArray(value) {
     })
         .filter(Boolean);
 }
+function asImageEntries(value) {
+    if (!Array.isArray(value))
+        return [];
+    return value
+        .map((entry) => {
+        if (!entry || typeof entry !== "object")
+            return null;
+        const record = entry;
+        const url = asString(record.url);
+        if (!url)
+            return null;
+        return {
+            url,
+            aspectRatio: asNumber(record.aspectRatio, 0),
+        };
+    })
+        .filter((entry) => Boolean(entry));
+}
 function clampSlotHour(value) {
     const raw = Math.floor(asNumber(value, 0));
     if (!Number.isFinite(raw))
@@ -224,7 +242,10 @@ function normalizeManifestItem(candidate) {
     const rozet = asString(candidate.rozet);
     const metin = asString(candidate.metin);
     const thumbnail = asString(candidate.thumbnail);
-    const img = asStringArray(candidate.img);
+    const imgEntries = asImageEntries(candidate.imgMap);
+    const img = imgEntries.length > 0
+        ? imgEntries.map((entry) => entry.url)
+        : asStringArray(candidate.img);
     const posterCandidates = Array.from(new Set([thumbnail, ...img].filter(Boolean)));
     const video = asString(candidate.video);
     const hlsMasterUrl = asString(candidate.hlsMasterUrl);
@@ -236,7 +257,10 @@ function normalizeManifestItem(candidate) {
     const isFloodRoot = !flood && !mainFlood && floodCount > 1;
     const timeStamp = Math.floor(asNumber(candidate.timeStamp));
     const createdAtTs = Math.floor(asNumber(candidate.createdAtTs, timeStamp));
-    const aspectRatio = asNumber(candidate.aspectRatio, hasPlayableVideo ? 0.5625 : 1);
+    const firstImageAspectRatio = imgEntries.length > 0 && Number.isFinite(imgEntries[0].aspectRatio) && imgEntries[0].aspectRatio > 0
+        ? imgEntries[0].aspectRatio
+        : 0;
+    const aspectRatio = asNumber(candidate.aspectRatio, firstImageAspectRatio > 0 ? firstImageAspectRatio : (hasPlayableVideo ? 0.5625 : 1));
     const shortId = asString(candidate.shortId);
     const shortUrl = asString(candidate.shortUrl) || buildShortUrl(shortId, docId);
     if (!docId || !canonicalId || !userID)

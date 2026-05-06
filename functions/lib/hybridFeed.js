@@ -57,6 +57,24 @@ function firstNonEmptyString(...values) {
     }
     return "";
 }
+function firstImageUrl(value) {
+    if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+    }
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            if (typeof entry === "string" && entry.trim().length > 0) {
+                return entry.trim();
+            }
+            if (entry && typeof entry === "object") {
+                const url = String(entry.url || "").trim();
+                if (url)
+                    return url;
+            }
+        }
+    }
+    return "";
+}
 function resolveAuthorTitle(data) {
     return firstNonEmptyString(data?.authorDisplayName, data?.authorNickname, data?.nickname, data?.username, data?.fullName, "TurqApp");
 }
@@ -64,7 +82,7 @@ function resolveAuthorAvatarUrl(data) {
     return firstNonEmptyString(data?.authorAvatarUrl, data?.avatarUrl, data?.profileImage);
 }
 function resolvePostPreviewImage(data) {
-    return firstNonEmptyString(data?.thumbnail, data?.imageUrl, data?.imageURL, data?.coverImageUrl, data?.images, data?.img);
+    return firstNonEmptyString(data?.thumbnail, data?.imageUrl, data?.imageURL, data?.coverImageUrl, firstImageUrl(data?.imgMap), data?.images, data?.img);
 }
 async function claimFollowedPostNotification(postRef) {
     return db().runTransaction(async (tx) => {

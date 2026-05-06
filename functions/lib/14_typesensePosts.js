@@ -179,6 +179,7 @@ async function ensurePostsCollection() {
                 { name: "hashtags", type: "string[]", optional: true },
                 { name: "mentions", type: "string[]", optional: true },
                 { name: "img", type: "string[]", optional: true },
+                { name: "imgMapJson", type: "string", optional: true },
                 { name: "thumbnail", type: "string", optional: true },
                 { name: "video", type: "string", optional: true },
                 { name: "hlsMasterUrl", type: "string", optional: true },
@@ -239,6 +240,7 @@ async function ensurePostsCollection() {
                 { name: "hashtags", type: "string[]", optional: true },
                 { name: "mentions", type: "string[]", optional: true },
                 { name: "img", type: "string[]", optional: true },
+                { name: "imgMapJson", type: "string", optional: true },
                 { name: "thumbnail", type: "string", optional: true },
                 { name: "video", type: "string", optional: true },
                 { name: "hlsMasterUrl", type: "string", optional: true },
@@ -497,6 +499,30 @@ function resolveSurfaceTargets(doc) {
     return targets;
 }
 function buildSearchDoc(postId, data) {
+    const asImageEntries = (value, fallbackAspectRatio) => {
+        if (!Array.isArray(value))
+            return [];
+        return value
+            .map((item) => {
+            if (typeof item === "string") {
+                const url = item.trim();
+                return url
+                    ? { url, aspectRatio: fallbackAspectRatio > 0 ? fallbackAspectRatio : 1 }
+                    : null;
+            }
+            if (!item || typeof item !== "object")
+                return null;
+            const record = item;
+            const url = asString(record.url);
+            if (!url)
+                return null;
+            return {
+                url,
+                aspectRatio: asNumber(record.aspectRatio) || fallbackAspectRatio || 1,
+            };
+        })
+            .filter((entry) => entry != null && entry.url.length > 0);
+    };
     const analysis = data.analysis || {};
     const reshareMap = data.reshareMap || {};
     const stats = data.stats || {};
@@ -507,7 +533,6 @@ function buildSearchDoc(postId, data) {
     const gizlendi = asBool(data.gizlendi) || asBool(data.isHidden);
     const isUploading = asBool(data.isUploading);
     const metin = asString(data.metin);
-    const imgList = asStringArray(data.img);
     const hlsMasterUrl = asString(data.hlsMasterUrl);
     const thumbnailUrl = asString(data.thumbnail);
     const videoUrl = asString(data.video);
@@ -520,6 +545,12 @@ function buildSearchDoc(postId, data) {
     const aspectRatio = asNumber(data.aspectRatio) ||
         asNumber(data.imgAspectRatio) ||
         1.77;
+    const imgEntries = asImageEntries(data.imgMap, aspectRatio);
+    const fallbackImgEntries = imgEntries.length > 0 ? imgEntries : asImageEntries(data.img, aspectRatio);
+    const imgList = fallbackImgEntries.length > 0
+        ? fallbackImgEntries.map((entry) => entry.url)
+        : asStringArray(data.img);
+    const imgMapJson = fallbackImgEntries.length > 0 ? JSON.stringify(fallbackImgEntries) : "";
     const flood = asBool(data.flood);
     const floodCount = Math.max(0, Math.floor(asNumber(data.floodCount)));
     const likeCount = Math.max(0, Math.floor(asNumber(stats.likeCount ?? data.likeCount ?? data.begeniSayisi)));
@@ -569,6 +600,7 @@ function buildSearchDoc(postId, data) {
         hashtags: extractPostTags(data).map((x) => x.tag),
         mentions: asStringArray(analysis.mentions),
         img: imgList,
+        imgMapJson,
         thumbnail: thumbnailUrl,
         video: videoUrl,
         hlsMasterUrl,
