@@ -291,10 +291,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   shouldShowStartupPlaybackPlaceholder(
                                                 v,
                                               );
-                                              if (isFeedStyleInlineSurface &&
-                                                  !showStartupPlaceholder) {
-                                                return const SizedBox.shrink();
-                                              }
                                               final shouldHidePoster =
                                                   shouldHidePlaybackPoster(v);
                                               final posterFadeDuration =

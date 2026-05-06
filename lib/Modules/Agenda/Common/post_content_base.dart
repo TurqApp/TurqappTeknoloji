@@ -1125,11 +1125,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.android &&
         _usesFeedPlaybackPolicy) {
-      if (value.hasRenderedFirstFrame &&
+      final hasStableAndroidFeedFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
-          _isSurfacePlaybackAllowed) {
+          _isSurfacePlaybackAllowed &&
+          !value.isBuffering &&
+          (value.isPlaying || value.position > visualReadyPositionThreshold);
+      if (hasStableAndroidFeedFrame) {
         return true;
       }
+      return false;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
