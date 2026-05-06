@@ -51,6 +51,7 @@ class ShortManifestRepository extends GetxService {
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
 
   String _manifestId = '';
+  String _indexPath = '';
   Map<String, dynamic>? _index;
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
   final Map<int, Future<List<PostsModel>>> _slotLoads =
@@ -131,7 +132,38 @@ class ShortManifestRepository extends GetxService {
       return false;
     }
     if (nextManifestId == _manifestId) {
-      return false;
+      final previousSlotCount = _slotCount(_index);
+      final previousCursorPath = _slotPath(_cursorSlotIndex);
+      final refreshedIndex = await _downloadIndex(
+        indexPath,
+        stage: 'index_refresh_download_ready',
+      );
+      if (refreshedIndex == null) {
+        return false;
+      }
+      _index = refreshedIndex;
+      _indexPath = indexPath;
+      final nextSlotCount = _slotCount(_index);
+      final cursorPath = _slotPath(_cursorSlotIndex);
+      final hasNewCursorPath =
+          previousCursorPath.isEmpty && cursorPath.isNotEmpty;
+      final slotCountGrew = nextSlotCount > previousSlotCount;
+      _logTiming(
+        'active_index_refresh_ready',
+        metadata: <String, Object?>{
+          'manifestId': _manifestId,
+          'indexPath': _indexPath,
+          'previousSlotCount': previousSlotCount,
+          'nextSlotCount': nextSlotCount,
+          'cursorSlotIndex': _cursorSlotIndex,
+          'hasNewCursorPath': hasNewCursorPath,
+        },
+      );
+      if (!slotCountGrew && !hasNewCursorPath) {
+        return false;
+      }
+      unawaited(_ensureTwoSlotWindow());
+      return true;
     }
     _reset();
     await _loadManifest();
@@ -194,27 +226,17 @@ class ShortManifestRepository extends GetxService {
       return;
     }
 
-    final indexStartedAt = DateTime.now();
-    final bytes = await _storage.ref(indexPath).getData(1024 * 1024);
-    _logTiming(
-      'index_download_ready',
-      metadata: <String, Object?>{
-        'path': indexPath,
-        'elapsedMs': DateTime.now().difference(indexStartedAt).inMilliseconds,
-        'bytes': bytes?.length ?? 0,
-      },
+    final decodedIndex = await _downloadIndex(
+      indexPath,
+      stage: 'index_download_ready',
     );
-    if (bytes == null || bytes.isEmpty) {
-      _reset();
-      return;
-    }
-    final decoded = jsonDecode(utf8.decode(bytes));
-    if (decoded is! Map) {
+    if (decodedIndex == null) {
       _reset();
       return;
     }
     _manifestId = nextManifestId;
-    _index = Map<String, dynamic>.from(decoded);
+    _indexPath = indexPath;
+    _index = decodedIndex;
     _slots.clear();
     _slotLoads.clear();
     _cursorSlotIndex = 0;
@@ -226,10 +248,30 @@ class ShortManifestRepository extends GetxService {
       'load_manifest_complete',
       metadata: <String, Object?>{
         'manifestId': _manifestId,
-        'slotCount': (_index?['slots'] as List?)?.length ?? 0,
+        'slotCount': _slotCount(_index),
         'elapsedMs': DateTime.now().difference(totalStartedAt).inMilliseconds,
       },
     );
+  }
+
+  Future<Map<String, dynamic>?> _downloadIndex(
+    String indexPath, {
+    required String stage,
+  }) async {
+    final indexStartedAt = DateTime.now();
+    final bytes = await _storage.ref(indexPath).getData(1024 * 1024);
+    _logTiming(
+      stage,
+      metadata: <String, Object?>{
+        'path': indexPath,
+        'elapsedMs': DateTime.now().difference(indexStartedAt).inMilliseconds,
+        'bytes': bytes?.length ?? 0,
+      },
+    );
+    if (bytes == null || bytes.isEmpty) return null;
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) return null;
+    return Map<String, dynamic>.from(decoded);
   }
 
   Future<void> _ensureManifestAccessReady({
@@ -269,10 +311,37 @@ class ShortManifestRepository extends GetxService {
     );
     if (persisted == null) return;
     if (persisted.manifestId != _manifestId) return;
-    _cursorSlotIndex =
+    var restoredSlotIndex =
         persisted.cursorSlotIndex < 0 ? 0 : persisted.cursorSlotIndex;
-    _cursorItemIndex =
+    var restoredItemIndex =
         persisted.cursorItemIndex < 0 ? 0 : persisted.cursorItemIndex;
+    while (true) {
+      final path = _slotPath(restoredSlotIndex);
+      if (path.isEmpty) {
+        await ensureShortResumeStateStore().clear(userId: userId);
+        _cursorSlotIndex = 0;
+        _cursorItemIndex = 0;
+        _logTiming(
+          'cursor_restore_ignored',
+          metadata: <String, Object?>{
+            'reason': 'slot_out_of_range',
+            'manifestId': _manifestId,
+            'persistedSlotIndex': persisted.cursorSlotIndex,
+            'persistedItemIndex': persisted.cursorItemIndex,
+            'slotCount': (_index?['slots'] as List?)?.length ?? 0,
+          },
+        );
+        return;
+      }
+      final slot = await _ensureSlot(restoredSlotIndex);
+      if (restoredItemIndex < slot.length) {
+        break;
+      }
+      restoredSlotIndex++;
+      restoredItemIndex = 0;
+    }
+    _cursorSlotIndex = restoredSlotIndex;
+    _cursorItemIndex = restoredItemIndex;
     _logTiming(
       'cursor_restore_ready',
       metadata: <String, Object?>{
@@ -285,11 +354,17 @@ class ShortManifestRepository extends GetxService {
 
   void _reset() {
     _manifestId = '';
+    _indexPath = '';
     _index = null;
     _slots.clear();
     _slotLoads.clear();
     _cursorSlotIndex = 0;
     _cursorItemIndex = 0;
+  }
+
+  int _slotCount(Map<String, dynamic>? index) {
+    final slotsRaw = index?['slots'];
+    return slotsRaw is List ? slotsRaw.length : 0;
   }
 
   void _trimConsumedSlots({required int completedSlotIndex}) {
