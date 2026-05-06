@@ -88,9 +88,10 @@ android {
         }
 
         getByName("release") {
-            // APK boyutunu küçült
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Bu sürümde Play Core/deferred-components çatışmasını aşmak için
+            // release shrinker kapalı tutulur.
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -122,14 +123,10 @@ kotlin {
     }
 }
 
-configurations.all {
-    exclude(group = "com.google.android.play", module = "core-common")
-}
-
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    // Required by Flutter deferred component manager references during R8 minify.
-    implementation("com.google.android.play:core:1.10.3")
+    implementation("com.google.android.play:core-common:2.0.3")
+    implementation("com.google.android.play:feature-delivery:2.1.0")
     implementation(project(":integration_test"))
     implementation("androidx.concurrent:concurrent-futures:1.2.0")
 
