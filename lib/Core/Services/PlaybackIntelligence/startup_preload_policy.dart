@@ -9,7 +9,7 @@ class StartupPreloadPolicy {
   static const int startupWarmCount = 5;
 
   // Active playback
-  static const int activeReadySegments = 3;
+  static const int activeReadySegments = 1;
   static const int neighborReadySegments = 3;
 
   // Forward preload horizon

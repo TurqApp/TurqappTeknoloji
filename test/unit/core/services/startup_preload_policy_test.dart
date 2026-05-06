@@ -3,8 +3,8 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/startup_preload_pol
 
 void main() {
   group('readySegmentsForAheadOffset', () {
-    test('keeps active deep and forward neighbors first-segment only', () {
-      expect(StartupPreloadPolicy.readySegmentsForAheadOffset(0), 3);
+    test('keeps active and forward neighbors first-segment only', () {
+      expect(StartupPreloadPolicy.readySegmentsForAheadOffset(0), 1);
       for (var offset = 1; offset <= 5; offset++) {
         expect(
           StartupPreloadPolicy.readySegmentsForAheadOffset(offset),
@@ -26,7 +26,7 @@ void main() {
           isAndroid: true,
           isOnCellular: true,
         ),
-        3,
+        1,
       );
       expect(
         StartupPreloadPolicy.warmReadySegmentsForOffset(
