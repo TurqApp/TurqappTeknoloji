@@ -11,10 +11,7 @@ extension _NavBarViewShellContentPart on NavBarView {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final shouldPop = await _handleBackNavigation();
-        if (shouldPop) {
-          SystemNavigator.pop();
-        }
+        await _handleBackNavigation();
       },
       child: Scaffold(
         resizeToAvoidBottomInset: false,
@@ -144,7 +141,12 @@ extension _NavBarViewShellContentPart on NavBarView {
       return false;
     }
 
-    return true;
+    if (kDebugMode) {
+      debugPrint(
+        '[RootBackGuard] status=blocked selected=${controller.selectedIndex.value}',
+      );
+    }
+    return false;
   }
 
   void _handleRootHorizontalSwipe(DragEndDetails details) async {
