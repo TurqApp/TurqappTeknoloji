@@ -1,8 +1,9 @@
 part of 'cache_manager.dart';
 
-const Duration _userInteractionEvictionGracePeriod = Duration(hours: 6);
-const int _shortOfflineReserveFloor = 24;
-const int _feedOfflineReserveFloor = 18;
+const bool _offlineHlsArchiveEnabled = false;
+const Duration _userInteractionEvictionGracePeriod = Duration(minutes: 5);
+const int _shortOfflineReserveFloor = 0;
+const int _feedOfflineReserveFloor = 0;
 
 extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   bool _isEmptyEntry(VideoCacheEntry entry) =>
@@ -21,6 +22,7 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     required int reservedShortCount,
     required int reservedFeedCount,
   }) {
+    if (!_offlineHlsArchiveEnabled) return false;
     final protectsShort = entry.reservedForShortAt != null &&
         reservedShortCount <= _shortOfflineReserveFloor;
     final protectsFeed = entry.reservedForFeedAt != null &&
@@ -159,6 +161,9 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     if (now.difference(userInteractionAt) <
         _userInteractionEvictionGracePeriod) {
       return false;
+    }
+    if (!_offlineHlsArchiveEnabled) {
+      return true;
     }
     if (entry.state == VideoCacheState.watched) {
       return true;

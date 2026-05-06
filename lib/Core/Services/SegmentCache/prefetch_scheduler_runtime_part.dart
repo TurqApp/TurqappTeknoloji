@@ -93,7 +93,10 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   bool get _shouldAllowBackgroundQuotaFill =>
-      _isOnWiFi && CacheNetworkPolicy.canPrefetch;
+      _prefetchSchedulerOfflineQuotaFillEnabled &&
+      _automaticQuotaFillEnabled &&
+      _isOnWiFi &&
+      CacheNetworkPolicy.canPrefetch;
 
   bool get _useMinimalQuotaFillMode => _hasAnyActivePlaybackFocus;
 

@@ -1,6 +1,7 @@
 part of 'prefetch_scheduler.dart';
 
 const String _prefetchSchedulerCdnOrigin = 'https://cdn.turqapp.com';
+const bool _prefetchSchedulerOfflineQuotaFillEnabled = false;
 const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'X-Turq-App': 'turqapp-mobile',
   'Referer': '$_prefetchSchedulerCdnOrigin/',

@@ -18,6 +18,7 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
     bool forShort = false,
     bool forFeed = false,
   }) {
+    if (!_offlineHlsArchiveEnabled) return const <VideoCacheEntry>[];
     final entries = _index.entries.values
         .where((entry) => entry.isFullyCached)
         .where((entry) => entry.cachedPostModel != null)
@@ -138,6 +139,7 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   }
 
   List<PostsModel> getQuotaFillCandidatePosts({int limit = 0}) {
+    if (!_offlineHlsArchiveEnabled) return const <PostsModel>[];
     final entries = _index.entries.values
         .where((entry) => !entry.isFullyCached)
         .where((entry) => entry.cachedPostModel != null)
@@ -205,8 +207,10 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
 
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? softLimitBytes;
+    final minCachedVideoCount =
+        _offlineHlsArchiveEnabled ? ContentPolicy.minGlobalCachedVideos : 0;
     while (_index.totalSizeBytes > target) {
-      if (cachedVideoCount <= ContentPolicy.minGlobalCachedVideos) {
+      if (cachedVideoCount <= minCachedVideoCount) {
         break;
       }
       final candidate = _findEvictionCandidate(preferLowQuality: true);

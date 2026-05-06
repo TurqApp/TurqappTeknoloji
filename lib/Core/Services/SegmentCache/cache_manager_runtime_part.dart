@@ -11,7 +11,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     await clearConsumedCache(source: 'session_init');
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
-    _reconcileTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+    _reconcileTimer = Timer.periodic(const Duration(minutes: 3), (_) {
       unawaited(_runPeriodicMaintenance());
     });
     _isReady = true;
@@ -341,6 +341,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   void markReservedForShort(String docID) {
+    if (!_offlineHlsArchiveEnabled) return;
     final entry = _index.entries[docID];
     if (entry == null) return;
     final now = DateTime.now();
@@ -350,6 +351,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   }
 
   void markReservedForFeed(String docID) {
+    if (!_offlineHlsArchiveEnabled) return;
     final entry = _index.entries[docID];
     if (entry == null) return;
     final now = DateTime.now();

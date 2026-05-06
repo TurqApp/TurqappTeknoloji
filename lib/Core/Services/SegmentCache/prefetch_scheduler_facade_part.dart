@@ -243,13 +243,15 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     bool enabled, {
     String reason = 'manual',
   }) {
-    if (_automaticQuotaFillEnabled == enabled) return;
-    _state.automaticQuotaFillEnabled = enabled;
-    if (!enabled) {
+    final resolvedEnabled =
+        _prefetchSchedulerOfflineQuotaFillEnabled && enabled;
+    if (_automaticQuotaFillEnabled == resolvedEnabled) return;
+    _state.automaticQuotaFillEnabled = resolvedEnabled;
+    if (!resolvedEnabled) {
       _resetWifiQuotaFillPlanState();
     }
     debugPrint(
-      '[Prefetch] automaticQuotaFillEnabled=$enabled reason=$reason',
+      '[Prefetch] automaticQuotaFillEnabled=$resolvedEnabled reason=$reason',
     );
     _publishPrefetchHealthIfNeeded(force: true);
   }

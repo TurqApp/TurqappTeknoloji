@@ -117,6 +117,7 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
         lastUserInteractionAt: entry.lastUserInteractionAt,
         servedInShortAt: entry.servedInShortAt,
         servedInFeedAt: entry.servedInFeedAt,
+        feedConsumedAt: entry.feedConsumedAt,
         shortConsumedAt: entry.shortConsumedAt,
         reservedForShortAt: entry.reservedForShortAt,
         reservedForFeedAt: entry.reservedForFeedAt,
