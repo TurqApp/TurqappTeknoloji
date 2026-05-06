@@ -148,25 +148,30 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
       _indexMetadataBytes = 0;
       return;
     }
-    await for (final entity in root.list(recursive: true, followLinks: false)) {
-      if (entity is! File) continue;
-      final path = entity.path;
-      if (path.endsWith('.tmp')) {
-        continue;
+    try {
+      await for (final entity
+          in root.list(recursive: true, followLinks: false)) {
+        if (entity is! File) continue;
+        final path = entity.path;
+        if (path.endsWith('.tmp')) {
+          continue;
+        }
+        int length;
+        try {
+          length = await entity.length();
+        } on FileSystemException {
+          continue;
+        }
+        if (path.endsWith('/index.json')) {
+          indexBytes += length;
+          continue;
+        }
+        if (path.endsWith('.m3u8')) {
+          playlistBytes += length;
+        }
       }
-      int length;
-      try {
-        length = await entity.length();
-      } on FileSystemException {
-        continue;
-      }
-      if (path.endsWith('/index.json')) {
-        indexBytes += length;
-        continue;
-      }
-      if (path.endsWith('.m3u8')) {
-        playlistBytes += length;
-      }
+    } on FileSystemException catch (error) {
+      debugPrint('[CacheManager] Metadata usage refresh skipped: $error');
     }
     _playlistMetadataBytes = playlistBytes;
     _indexMetadataBytes = indexBytes;
@@ -195,12 +200,16 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
 
   Future<void> _cleanTempFiles(Directory dir) async {
     if (!await dir.exists()) return;
-    await for (final entity in dir.list(recursive: true)) {
-      if (entity is File && entity.path.endsWith('.tmp')) {
-        try {
-          await entity.delete();
-        } catch (_) {}
+    try {
+      await for (final entity in dir.list(recursive: true)) {
+        if (entity is File && entity.path.endsWith('.tmp')) {
+          try {
+            await entity.delete();
+          } catch (_) {}
+        }
       }
+    } on FileSystemException catch (error) {
+      debugPrint('[CacheManager] Temp cleanup skipped: $error');
     }
   }
 

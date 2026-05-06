@@ -17,6 +17,11 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       .where((entry) => entry.reservedForFeedAt != null)
       .length;
 
+  bool _hasInFlightWrite(String docID) {
+    final prefix = '$docID/';
+    return _writeInFlight.keys.any((key) => key.startsWith(prefix));
+  }
+
   bool _isReserveProtected(
     VideoCacheEntry entry, {
     required int reservedShortCount,
@@ -42,6 +47,7 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
             reservedFeedCount: reservedFeedCount,
           ),
         )
+        .where((entry) => !_hasInFlightWrite(entry.docID))
         .where((entry) => _shouldPurgeExpiredEntry(entry, now: now))
         .toList(growable: false);
     if (expired.isEmpty) return;
@@ -68,6 +74,9 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     Iterable<VideoCacheEntry> candidates = _index.entries.values.where(
       (entry) {
         final userInteractionAt = entry.lastUserInteractionAt;
+        if (_hasInFlightWrite(entry.docID)) {
+          return false;
+        }
         if (userInteractionAt == null) {
           return true;
         }
@@ -179,27 +188,35 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   }
 
   Future<void> _evictEntry(VideoCacheEntry entry) async {
-    final dir = Directory('$_cacheDir/Posts/${entry.docID}');
+    final current = _index.entries[entry.docID];
+    if (current == null) return;
+    if (_hasInFlightWrite(entry.docID)) return;
+
+    final dir = Directory('$_cacheDir/Posts/${current.docID}');
     if (await dir.exists()) {
-      await dir.delete(recursive: true);
+      try {
+        await dir.delete(recursive: true);
+      } on FileSystemException {
+        if (await dir.exists()) rethrow;
+      }
     }
 
-    _index.totalSizeBytes -= entry.totalSizeBytes;
-    _index.entries.remove(entry.docID);
+    _index.totalSizeBytes -= current.totalSizeBytes;
+    _index.entries.remove(current.docID);
     await _refreshMetadataUsage();
     _markDirty();
     if (_index.totalSizeBytes < 0) {
       _index.totalSizeBytes = 0;
     }
 
-    if (_isEmptyEntry(entry)) {
-      debugPrint('[CacheManager] Pruned empty entry ${entry.docID}');
+    if (_isEmptyEntry(current)) {
+      debugPrint('[CacheManager] Pruned empty entry ${current.docID}');
       return;
     }
 
     metrics.recordEviction();
     debugPrint(
-      '[CacheManager] Evicted ${entry.docID} (${entry.totalSizeBytes} bytes)',
+      '[CacheManager] Evicted ${current.docID} (${current.totalSizeBytes} bytes)',
     );
   }
 }
