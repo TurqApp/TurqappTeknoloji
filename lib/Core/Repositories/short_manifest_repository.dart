@@ -51,7 +51,6 @@ class ShortManifestRepository extends GetxService {
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
 
   String _manifestId = '';
-  String _indexPath = '';
   Map<String, dynamic>? _index;
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
   final Map<int, Future<List<PostsModel>>> _slotLoads =
@@ -132,38 +131,7 @@ class ShortManifestRepository extends GetxService {
       return false;
     }
     if (nextManifestId == _manifestId) {
-      final previousSlotCount = _slotCount(_index);
-      final previousCursorPath = _slotPath(_cursorSlotIndex);
-      final refreshedIndex = await _downloadIndex(
-        indexPath,
-        stage: 'index_refresh_download_ready',
-      );
-      if (refreshedIndex == null) {
-        return false;
-      }
-      _index = refreshedIndex;
-      _indexPath = indexPath;
-      final nextSlotCount = _slotCount(_index);
-      final cursorPath = _slotPath(_cursorSlotIndex);
-      final hasNewCursorPath =
-          previousCursorPath.isEmpty && cursorPath.isNotEmpty;
-      final slotCountGrew = nextSlotCount > previousSlotCount;
-      _logTiming(
-        'active_index_refresh_ready',
-        metadata: <String, Object?>{
-          'manifestId': _manifestId,
-          'indexPath': _indexPath,
-          'previousSlotCount': previousSlotCount,
-          'nextSlotCount': nextSlotCount,
-          'cursorSlotIndex': _cursorSlotIndex,
-          'hasNewCursorPath': hasNewCursorPath,
-        },
-      );
-      if (!slotCountGrew && !hasNewCursorPath) {
-        return false;
-      }
-      unawaited(_ensureTwoSlotWindow());
-      return true;
+      return false;
     }
     _reset();
     await _loadManifest();
@@ -235,7 +203,6 @@ class ShortManifestRepository extends GetxService {
       return;
     }
     _manifestId = nextManifestId;
-    _indexPath = indexPath;
     _index = decodedIndex;
     _slots.clear();
     _slotLoads.clear();
@@ -354,7 +321,6 @@ class ShortManifestRepository extends GetxService {
 
   void _reset() {
     _manifestId = '';
-    _indexPath = '';
     _index = null;
     _slots.clear();
     _slotLoads.clear();
