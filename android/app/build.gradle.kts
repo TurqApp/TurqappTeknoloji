@@ -47,6 +47,15 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    packaging {
+        jniLibs {
+            excludes += setOf(
+                "**/armeabi-v7a/*.so",
+                "**/x86_64/*.so",
+            )
+        }
+    }
+
     defaultConfig {
         // BUNLAR ÖNEMLİ: kendi proje değerlerinle aynı olmalı
         applicationId = "com.turqapp.app"
@@ -59,6 +68,10 @@ android {
         versionName = flutter.versionName
         manifestPlaceholders["googleMapsApiKey"] = googleMapsApiKey
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     /**
