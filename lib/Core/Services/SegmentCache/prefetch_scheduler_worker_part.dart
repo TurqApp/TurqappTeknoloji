@@ -107,6 +107,48 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _publishPrefetchHealthIfNeeded(force: true);
   }
 
+  void _pruneQuotaFillOutsideActiveWindow({
+    required String reason,
+  }) {
+    if (!_hasAnyActivePlaybackFocus) return;
+    final staleQueuedDocIds = _queue
+        .where((job) =>
+            job.source == 'quota' && !_shouldAllowQuotaFillForDoc(job.docID))
+        .map((job) => job.docID)
+        .toSet();
+    final stalePendingDocIds = _pendingFollowUpJobs.entries
+        .where((entry) =>
+            entry.value.source == 'quota' &&
+            !_shouldAllowQuotaFillForDoc(entry.key))
+        .map((entry) => entry.key)
+        .toSet();
+    if (staleQueuedDocIds.isEmpty && stalePendingDocIds.isEmpty) {
+      return;
+    }
+
+    _queue.removeWhere((job) => staleQueuedDocIds.contains(job.docID));
+    for (final docID in stalePendingDocIds) {
+      _pendingFollowUpJobs.remove(docID);
+    }
+    for (final docID in <String>{
+      ...staleQueuedDocIds,
+      ...stalePendingDocIds,
+    }) {
+      _jobEnqueuedAt.remove(docID);
+      _activeDocSources.remove(docID);
+      _activeBankDocIDs.remove(docID);
+    }
+
+    debugPrint(
+      '[ShortQuotaFill] status=pruned reason=$reason '
+      'queued=${staleQueuedDocIds.length} pending=${stalePendingDocIds.length} '
+      'activeFeed=$_hasActiveFeedPlaybackWindow '
+      'activeShort=$_hasActiveShortPlaybackWindow '
+      'activeProfile=$_hasActiveProfilePlaybackWindow',
+    );
+    _publishPrefetchHealthIfNeeded(force: true);
+  }
+
   int _effectiveMaxConcurrent() {
     if (_hasActiveFeedPlaybackWindow) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
@@ -275,6 +317,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           _pendingFollowUpJobs.length +
           _activeDocRefCounts.length;
     }
+    _pruneQuotaFillOutsideActiveWindow(reason: 'active_playback_window');
+    currentBacklog = _queue.length +
+        _pendingFollowUpJobs.length +
+        _activeDocRefCounts.length;
     debugPrint(
       '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
       'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
@@ -284,6 +330,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     );
     if (_automaticQuotaFillEnabled &&
         _shouldAllowBackgroundQuotaFill &&
+        !_hasAnyActivePlaybackFocus &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
@@ -293,7 +340,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           ? 'disabled'
           : (!_shouldAllowBackgroundQuotaFill
               ? 'background_gate'
-              : 'backlog_high');
+              : (_hasAnyActivePlaybackFocus
+                  ? 'active_playback_focus'
+                  : 'backlog_high'));
       debugPrint(
         '[ShortQuotaFill] status=skip reason=$reason '
         'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
@@ -481,9 +530,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             watchProgress: watchedProgress,
           );
       final effectiveQuotaReadySegments =
-          quotaFillMode && _useMinimalQuotaFillMode
-              ? 1
-              : desiredReadySegments;
+          quotaFillMode && _useMinimalQuotaFillMode ? 1 : desiredReadySegments;
       final startupBurstMode = shouldUseStartupBurstPrefetch(
         isFocusedDoc: _focusedDocID == job.docID,
         isCurrentDoc: _isCurrentPriorityDoc(job.docID),

@@ -88,10 +88,16 @@ void main() {
     expect(
       shortViewSource,
       contains(
-        "_segmentCacheRuntimeService.ensureMinimumReadySegments(\n"
-        "            neighborDocId,\n"
-        "            minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,",
+        'final neighborReadySegments = neighborPage > activePage',
       ),
+    );
+    expect(
+      shortViewSource,
+      contains('StartupPreloadPolicy.readySegmentsForAheadOffset('),
+    );
+    expect(
+      shortViewSource,
+      contains('minimumSegmentCount: neighborReadySegments,'),
     );
     expect(
       shortViewSource,
@@ -172,12 +178,17 @@ void main() {
     final audioFocusSource = await File(
       '/Users/turqapp/Desktop/TurqApp/lib/Core/Services/audio_focus_coordinator_runtime_part.dart',
     ).readAsString();
+    final playbackSurfacePolicySource = await File(
+      '/Users/turqapp/Desktop/TurqApp/lib/Core/Services/PlaybackIntelligence/playback_surface_policy.dart',
+    ).readAsString();
 
     expect(shortViewSource, contains('final isWarmNeighbor ='));
     expect(
       shortViewSource,
-      contains('defaultTargetPlatform == TargetPlatform.iOS && isWarmNeighbor'),
+      contains('PlaybackSurfacePolicy.shouldKeepWarmShortNeighborAudible('),
     );
+    expect(playbackSurfacePolicySource,
+        contains('return platform == TargetPlatform.iOS && isWarmNeighbor;'));
     expect(audioFocusSource, contains('p.preferWarmPoolPause'));
     expect(audioFocusSource, contains('!p.value.isPlaying'));
     expect(audioFocusSource, contains('await p.setVolume(0.0);'));

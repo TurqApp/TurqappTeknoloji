@@ -106,6 +106,15 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _abortStalePrefetchActivity(reason: 'quota_plan_background_gate');
       return;
     }
+    if (_hasAnyActivePlaybackFocus) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=active_playback_focus '
+        'activeFeed=$_hasActiveFeedPlaybackWindow '
+        'activeShort=$_hasActiveShortPlaybackWindow '
+        'activeProfile=$_hasActiveProfilePlaybackWindow',
+      );
+      return;
+    }
     if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
     if (_quotaFillRemoteInFlight) {
       debugPrint('[ShortQuotaFill] status=skip reason=plan_inflight');

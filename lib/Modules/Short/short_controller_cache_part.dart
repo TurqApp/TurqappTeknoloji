@@ -21,7 +21,8 @@ extension ShortControllerCachePart on ShortController {
   bool get _usesTightCellularShortProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
         isAndroid: defaultTargetPlatform == TargetPlatform.android,
-        isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+        isOnCellular:
+            NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
       );
 
   bool get _shouldPreferDirectCdnOnShorts =>
@@ -48,7 +49,8 @@ extension ShortControllerCachePart on ShortController {
       }
       final isOnCellular =
           NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
-      final limit = PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
+      final limit =
+          PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
         platform: defaultTargetPlatform,
         isOnCellular: isOnCellular,
         defaultCount: StartupPreloadPolicy.aheadFirstSegmentCount,
@@ -271,8 +273,9 @@ extension ShortControllerCachePart on ShortController {
     final isImmediateForwardNeighbor = neighborIndex == safeActiveIndex + 1;
     _ensureReadySegmentsForIndex(
       neighborIndex,
-      minimumSegmentCount:
-          isImmediateForwardNeighbor ? 3 : _neighborReadySegmentsForCurrentPlatform(),
+      minimumSegmentCount: isImmediateForwardNeighbor
+          ? StartupPreloadPolicy.readySegmentsForAheadOffset(1)
+          : _neighborReadySegmentsForCurrentPlatform(),
     );
 
     final activeAdapter = cache[safeActiveIndex];
@@ -290,7 +293,9 @@ extension ShortControllerCachePart on ShortController {
       if (adapter == null) return;
       _tiers[neighborIndex] = _CacheTier.warm;
       await adapter.setPreferredBufferDuration(
-        isImmediateForwardNeighbor ? _activeBufferSeconds : _neighborBufferSeconds,
+        isImmediateForwardNeighbor
+            ? _activeBufferSeconds
+            : _neighborBufferSeconds,
       );
     } else {
       if (existingNeighbor.isStopped ||
@@ -500,9 +505,8 @@ extension ShortControllerCachePart on ShortController {
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      final minimumReadySegments = offset == 1
-          ? math.max(minimumSegmentCount, 3)
-          : minimumSegmentCount;
+      final minimumReadySegments =
+          StartupPreloadPolicy.readySegmentsForAheadOffset(offset);
       _ensureReadySegmentsForIndex(
         targetIndex,
         minimumSegmentCount: minimumReadySegments,
@@ -533,9 +537,8 @@ extension ShortControllerCachePart on ShortController {
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      final minimumReadySegments = offset == 1
-          ? math.max(minimumSegmentCount, 3)
-          : minimumSegmentCount;
+      final minimumReadySegments =
+          StartupPreloadPolicy.readySegmentsForAheadOffset(offset);
       _ensureReadySegmentsForIndex(
         targetIndex,
         minimumSegmentCount: minimumReadySegments,

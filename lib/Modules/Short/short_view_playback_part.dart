@@ -566,9 +566,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     final useImmediateHandoff =
         PlaybackSurfacePolicy.supportsImmediateShortHandoff(
-          platform: defaultTargetPlatform,
-        ) &&
-        _canUseImmediatePageHandoff(nextOrganicPage);
+              platform: defaultTargetPlatform,
+            ) &&
+            _canUseImmediatePageHandoff(nextOrganicPage);
     _scrollDebounce?.cancel();
     if (useImmediateHandoff) {
       if (!mounted || currentPage != nextOrganicPage) return;
@@ -965,17 +965,17 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _tierReconcileDebounce = Timer(
       _shortTierReconcileDelayForCurrentNetwork,
       () async {
-      if (!_isShortRoutePlaybackActive) return;
-      final hadActiveAdapter = controller.cache[page] != null;
-      await controller.updateCacheTiers(
-        page,
-        suppressWarmPause: suppressWarmPause,
-      );
-      await _trimShortAttachedPlayers(page);
-      if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
-        return;
-      }
-      _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
+        if (!_isShortRoutePlaybackActive) return;
+        final hadActiveAdapter = controller.cache[page] != null;
+        await controller.updateCacheTiers(
+          page,
+          suppressWarmPause: suppressWarmPause,
+        );
+        await _trimShortAttachedPlayers(page);
+        if (!mounted || page != currentPage || !_isShortRoutePlaybackActive) {
+          return;
+        }
+        _setStateIfActiveAdapterChanged(page, hadActiveAdapter);
         if (!isManuallyPaused && controller.cache[page] != null) {
           _schedulePlayForPage(page);
         }
@@ -1125,10 +1125,15 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (controller.cache[neighborPage] != null) {
           return;
         }
+        final neighborReadySegments = neighborPage > activePage
+            ? StartupPreloadPolicy.readySegmentsForAheadOffset(
+                neighborPage - activePage,
+              )
+            : StartupPreloadPolicy.neighborReadySegments;
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             neighborDocId,
-            minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+            minimumSegmentCount: neighborReadySegments,
           );
         } catch (_) {}
         final hadNeighborAdapter = controller.cache[neighborPage] != null;
