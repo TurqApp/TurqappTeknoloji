@@ -14,6 +14,7 @@ class _SegmentCacheManagerState {
   bool persistDirty = false;
   final writeInFlight = <String, Future<File>>{};
   final playlistWriteInFlightByDoc = <String, int>{};
+  final evictingDocIds = <String>{};
   Future<void>? evictionInFlight;
   final recentlyPlayed = <String>[];
   final lastPersistedProgress = <String, double>{};
@@ -45,6 +46,7 @@ extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
   Map<String, Future<File>> get _writeInFlight => _state.writeInFlight;
   Map<String, int> get _playlistWriteInFlightByDoc =>
       _state.playlistWriteInFlightByDoc;
+  Set<String> get _evictingDocIds => _state.evictingDocIds;
   Future<void>? get _evictionInFlight => _state.evictionInFlight;
   set _evictionInFlight(Future<void>? value) => _state.evictionInFlight = value;
   List<String> get _recentlyPlayed => _state.recentlyPlayed;

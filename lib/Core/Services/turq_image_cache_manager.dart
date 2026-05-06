@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -8,9 +9,11 @@ import 'package:turqappv2/Models/posts_model.dart';
 class TurqImageCacheManager {
   static const key = 'turqImageCache';
   static const startupPosterHintsKey = 'posterHints';
+  static const int _maxRememberedResolvedFiles = 768;
 
   static CacheManager? _instance;
-  static final Map<String, String> _resolvedFilePathByUrl = <String, String>{};
+  static final LinkedHashMap<String, String> _resolvedFilePathByUrl =
+      LinkedHashMap<String, String>();
   static CacheManager? maybeFind() => _instance;
 
   static String _normalizeRememberedUrlKey(String url) {
@@ -31,12 +34,20 @@ class TurqImageCacheManager {
 
   static CacheManager get instance => ensure();
 
+  static void _rememberResolvedFileInMemory(String url, String filePath) {
+    _resolvedFilePathByUrl.remove(url);
+    _resolvedFilePathByUrl[url] = filePath;
+    while (_resolvedFilePathByUrl.length > _maxRememberedResolvedFiles) {
+      _resolvedFilePathByUrl.remove(_resolvedFilePathByUrl.keys.first);
+    }
+  }
+
   static void rememberResolvedFile(String url, String filePath) {
     final normalizedUrl = _normalizeRememberedUrlKey(url);
     final normalizedPath = filePath.trim();
     if (normalizedUrl.isEmpty || normalizedPath.isEmpty) return;
     if (!File(normalizedPath).existsSync()) return;
-    _resolvedFilePathByUrl[normalizedUrl] = normalizedPath;
+    _rememberResolvedFileInMemory(normalizedUrl, normalizedPath);
   }
 
   static String rememberedResolvedFilePathForUrl(String url) {
@@ -47,7 +58,7 @@ class TurqImageCacheManager {
       final legacyKey = url.trim();
       remembered = _resolvedFilePathByUrl[legacyKey] ?? '';
       if (remembered.isNotEmpty) {
-        _resolvedFilePathByUrl[normalized] = remembered;
+        _rememberResolvedFileInMemory(normalized, remembered);
         _resolvedFilePathByUrl.remove(legacyKey);
       }
     }
@@ -56,6 +67,7 @@ class TurqImageCacheManager {
       _resolvedFilePathByUrl.remove(normalized);
       return '';
     }
+    _rememberResolvedFileInMemory(normalized, remembered);
     return remembered;
   }
 

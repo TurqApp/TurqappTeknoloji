@@ -36,7 +36,7 @@ class AdmobKare extends StatefulWidget {
   final String? suggestionPlacementId;
 
   static Future<void> warmupPool({
-    int targetCount = 10,
+    int targetCount = _AdmobKareState._poolTargetCount,
     int maxRequestCount = 1,
     bool bypassMinInterval = false,
   }) {
@@ -72,11 +72,11 @@ class _AdmobKareState extends State<AdmobKare> {
   static int _globalFailureBurstCount = 0;
   static Future<void>? _sdkInitFuture;
   static bool _sdkInitialized = false;
-  static const int _poolTargetCount = 10;
-  static const int _poolLowWaterMark = 5;
-  static const int _poolTopUpBatchCount = 5;
+  static const int _poolTargetCount = 4;
+  static const int _poolLowWaterMark = 2;
+  static const int _poolTopUpBatchCount = 2;
   static const int _defaultWarmupCount = _poolTargetCount;
-  static const int _maxPoolSize = 12;
+  static const int _maxPoolSize = 5;
   static const Duration _warmupAttemptMinInterval = Duration(seconds: 8);
   static const int _failureBurstBeforeCooldown = 5;
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
@@ -121,6 +121,15 @@ class _AdmobKareState extends State<AdmobKare> {
   static void _notifySharedAdAvailabilityChanged() {
     _sharedAdAvailabilityRevision.value =
         _sharedAdAvailabilityRevision.value + 1;
+  }
+
+  static void _trimReadyPoolToLimit() {
+    while (_readyPool.length > _maxPoolSize) {
+      final ad = _readyPool.removeLast();
+      try {
+        ad.dispose();
+      } catch (_) {}
+    }
   }
 
   static Future<void> _ensureSdkInitialized() async {
@@ -246,8 +255,11 @@ class _AdmobKareState extends State<AdmobKare> {
     if (targetCount <= 0) return;
     if (maxRequestCount <= 0) return;
     if (_globalCooldownRemaining() > Duration.zero) return;
+    _trimReadyPoolToLimit();
+    final effectiveTargetCount = min(targetCount, _poolTargetCount);
     _log(
-      'warmup request target=$targetCount maxRequestCount=$maxRequestCount '
+      'warmup request target=$effectiveTargetCount requestedTarget=$targetCount '
+      'maxRequestCount=$maxRequestCount '
       'bypass=$bypassMinInterval state=$debugState',
     );
     try {
@@ -265,9 +277,10 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     _lastWarmupAttemptAt = now;
 
-    final missing = targetCount - (_readyPool.length + _loadingCount);
+    final missing = effectiveTargetCount - (_readyPool.length + _loadingCount);
     _log(
-      'warmup evaluate target=$targetCount missing=$missing state=$debugState',
+      'warmup evaluate target=$effectiveTargetCount missing=$missing '
+      'state=$debugState',
     );
     if (missing <= 0) return;
 
@@ -294,6 +307,7 @@ class _AdmobKareState extends State<AdmobKare> {
               'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
           if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
+            _trimReadyPoolToLimit();
             _notifySharedAdAvailabilityChanged();
           } else {
             loadedAd.dispose();

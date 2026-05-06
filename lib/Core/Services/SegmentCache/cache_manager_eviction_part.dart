@@ -189,6 +189,15 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   }
 
   Future<void> _evictEntry(VideoCacheEntry entry) async {
+    if (!_evictingDocIds.add(entry.docID)) return;
+    try {
+      await _evictEntryLocked(entry);
+    } finally {
+      _evictingDocIds.remove(entry.docID);
+    }
+  }
+
+  Future<void> _evictEntryLocked(VideoCacheEntry entry) async {
     final current = _index.entries[entry.docID];
     if (current == null) return;
     if (_hasInFlightWrite(entry.docID)) return;
@@ -197,8 +206,9 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
     if (await dir.exists()) {
       try {
         await dir.delete(recursive: true);
-      } on FileSystemException {
-        if (await dir.exists()) rethrow;
+      } on FileSystemException catch (error) {
+        final missingPath = error.osError?.errorCode == 2;
+        if (!missingPath && await dir.exists()) rethrow;
       }
     }
 
