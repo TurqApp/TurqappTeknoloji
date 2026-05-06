@@ -318,10 +318,16 @@ extension ShortViewUiPart on _ShortViewState {
                   fit: StackFit.expand,
                   children: [
                     if (isActivePage || isWarmNeighbor) videoWidget,
-                    if (isActivePage)
+                    if (isActivePage || isWarmNeighbor)
                       AnimatedBuilder(
                         animation: vp,
                         builder: (_, __) {
+                          if (!isActivePage) {
+                            return IgnorePointer(
+                              ignoring: true,
+                              child: pendingSurface,
+                            );
+                          }
                           final value = vp.value;
                           final decision =
                               _shortPlaybackDecisionFor(organicIndex, value);
