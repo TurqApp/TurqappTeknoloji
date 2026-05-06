@@ -410,13 +410,27 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
   }
 
   Widget _cachedThumb(PostsModel post, {String? overrideUrl}) {
+    const fallback = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF101316),
+            Color(0xFF1A2026),
+            Color(0xFF232B33),
+          ],
+        ),
+      ),
+      child: SizedBox.expand(),
+    );
     final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
     final candidates = <String>[
       if (resolvedUrl.isNotEmpty) resolvedUrl,
       ...post.preferredVideoPosterUrls,
     ];
     if (candidates.isEmpty) {
-      return const ColoredBox(color: Colors.black);
+      return fallback;
     }
     return CacheFirstNetworkImage(
       imageUrl: candidates.first,
@@ -426,7 +440,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           .toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      fallback: const ColoredBox(color: Colors.black),
+      fallback: fallback,
     );
   }
 

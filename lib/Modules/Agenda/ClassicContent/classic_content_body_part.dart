@@ -592,9 +592,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                   ValueListenableBuilder<HLSVideoValue>(
                     valueListenable: videoValueNotifier,
                     builder: (_, v, child) {
-                      if (widget.hideVideoPoster ||
-                          (isFeedStyleInlineSurface &&
-                              defaultTargetPlatform != TargetPlatform.iOS)) {
+                      if (widget.hideVideoPoster) {
                         return const SizedBox.shrink();
                       }
                       final showStartupPlaceholder =

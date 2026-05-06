@@ -1,6 +1,23 @@
 part of 'short_view.dart';
 
 extension ShortViewUiPart on _ShortViewState {
+  Widget _buildShortPosterFallback() {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF101316),
+            Color(0xFF1A2026),
+            Color(0xFF232B33),
+          ],
+        ),
+      ),
+      child: SizedBox.expand(),
+    );
+  }
+
   Widget _buildShortAdPage(BuildContext context, int adOrdinal) {
     return DecoratedBox(
       decoration: const BoxDecoration(color: Colors.black),
@@ -85,9 +102,7 @@ extension ShortViewUiPart on _ShortViewState {
       return true;
     }());
     if (previewUrls.isEmpty) {
-      return const SizedBox.expand(
-        child: ColoredBox(color: Colors.black),
-      );
+      return SizedBox.expand(child: _buildShortPosterFallback());
     }
     return SizedBox.expand(
       child: CacheFirstNetworkImage(
@@ -95,7 +110,7 @@ extension ShortViewUiPart on _ShortViewState {
         candidateUrls: previewUrls.skip(1).toList(growable: false),
         cacheManager: TurqImageCacheManager.instance,
         fit: BoxFit.cover,
-        fallback: const ColoredBox(color: Colors.black),
+        fallback: _buildShortPosterFallback(),
       ),
     );
   }

@@ -124,6 +124,20 @@ class DynamicShortViewState extends State<DynamicShortView> {
   }
 
   Widget _buildThumb(PostsModel post) {
+    const fallback = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color(0xFF101316),
+            Color(0xFF1A2026),
+            Color(0xFF232B33),
+          ],
+        ),
+      ),
+      child: SizedBox.expand(),
+    );
     final thumb = post.primaryVisualUrl.trim();
     final candidateUrls = <String>[
       if (thumb.isNotEmpty) thumb,
@@ -131,7 +145,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
     ];
     final primaryUrl = candidateUrls.isEmpty ? '' : candidateUrls.first.trim();
     if (primaryUrl.isEmpty) {
-      return const ColoredBox(color: Colors.black);
+      return fallback;
     }
     final modelAr = post.aspectRatio > 0 ? post.aspectRatio.toDouble() : 9 / 16;
     final image = CacheFirstNetworkImage(
@@ -139,7 +153,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
       candidateUrls: candidateUrls.skip(1).toList(growable: false),
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
-      fallback: const ColoredBox(color: Colors.black),
+      fallback: fallback,
     );
     if (modelAr > 1.2) {
       return Center(
