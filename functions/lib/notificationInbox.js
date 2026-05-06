@@ -21,8 +21,26 @@ function firstNonEmptyString(...values) {
     }
     return "";
 }
+function firstImageUrl(value) {
+    if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+    }
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            if (typeof entry === "string" && entry.trim().length > 0) {
+                return entry.trim();
+            }
+            if (entry && typeof entry === "object") {
+                const url = String(entry.url || "").trim();
+                if (url)
+                    return url;
+            }
+        }
+    }
+    return "";
+}
 function resolveInboxImageUrl(payload) {
-    return firstNonEmptyString(payload.imageUrl, payload.thumbnail, payload.imageURL, payload.avatarUrl, payload.applicantPfImage, payload.tutorImage, payload.companyLogo, payload.logo, payload.coverImageUrl, payload.img, payload.images);
+    return firstNonEmptyString(payload.imageUrl, payload.thumbnail, payload.imageURL, payload.avatarUrl, payload.applicantPfImage, payload.tutorImage, payload.companyLogo, payload.logo, payload.coverImageUrl, firstImageUrl(payload.imgMap), payload.img, payload.images);
 }
 function notificationsRef(db, uid) {
     return db.collection("users").doc(uid.trim()).collection("notifications");

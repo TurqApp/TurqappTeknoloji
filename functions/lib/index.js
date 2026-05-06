@@ -47,6 +47,24 @@ function _firstNonEmptyString(...values) {
     }
     return "";
 }
+function _pickFirstImageUrl(value) {
+    if (typeof value === "string" && value.trim().length > 0) {
+        return value.trim();
+    }
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            if (typeof entry === "string" && entry.trim().length > 0) {
+                return entry.trim();
+            }
+            if (entry && typeof entry === "object") {
+                const url = String(entry.url || "").trim();
+                if (url)
+                    return url;
+            }
+        }
+    }
+    return "";
+}
 function _buildUsersPublicDoc(uid, data) {
     const username = String(data?.username || data?.usernameLower || data?.nickname || "").trim();
     const nickname = String(data?.nickname || username).trim();
@@ -88,7 +106,7 @@ function _buildUsersPublicDoc(uid, data) {
 function _pickPostPreviewImage(data) {
     if (!data)
         return "";
-    return _firstNonEmptyString(data.imageUrl, data.thumbnail, data.imageURL, data.coverImageUrl, data.logo, data.avatarUrl, data.img, data.images);
+    return _firstNonEmptyString(data.imageUrl, data.thumbnail, data.imageURL, data.coverImageUrl, data.logo, data.avatarUrl, _pickFirstImageUrl(data.imgMap), data.img, data.images);
 }
 function _resolveUserPushToken(data) {
     if (!data)
