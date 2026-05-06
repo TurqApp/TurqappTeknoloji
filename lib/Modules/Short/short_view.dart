@@ -196,6 +196,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   ShortAdRenderPlan _renderPlan = const ShortAdRenderPlan.empty();
   int _currentRenderPage = 0;
   bool _shortAdRenderable = false;
+  int? _deferredFirstShortAdAfterOrganicIndex;
   final Set<String> _recordedVisibleShortDocIds = <String>{};
   final Map<HLSVideoAdapter, VoidCallback> _videoEndListeners =
       <HLSVideoAdapter, VoidCallback>{};
@@ -254,10 +255,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     final currentDocId = currentPage >= 0 && currentPage < _cachedShorts.length
         ? _cachedShorts[currentPage].docID.trim()
         : '';
-    final anchoredDocId = anchoredIndex >= 0 &&
-            anchoredIndex < _cachedShorts.length
-        ? _cachedShorts[anchoredIndex].docID.trim()
-        : '';
+    final anchoredDocId =
+        anchoredIndex >= 0 && anchoredIndex < _cachedShorts.length
+            ? _cachedShorts[anchoredIndex].docID.trim()
+            : '';
     if (anchoredIndex == currentPage && anchoredDocId == currentDocId) {
       return false;
     }
@@ -292,13 +293,15 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _renderPlan = buildShortAdRenderPlan(
       _cachedShorts,
       adReady: _shortAdRenderable,
-      showFallbackWhenNotReady: true,
+      deferFirstAdUntilAfterOrganicIndex:
+          _deferredFirstShortAdAfterOrganicIndex,
     );
     _currentRenderPage = _renderPlan.renderIndexForOrganicIndex(currentPage);
     _logShortAdSlots(
       'render_plan posts=${_cachedShorts.length} '
       'adReady=$_shortAdRenderable entries=${_renderPlan.length} '
       'currentPage=$currentPage renderPage=$_currentRenderPage '
+      'deferredFirstAdAfter=$_deferredFirstShortAdAfterOrganicIndex '
       'adState=${AdmobKare.debugState}',
     );
   }
@@ -313,6 +316,12 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       return;
     }
     final previousRenderPage = _currentRenderPage;
+    if (!_shortAdRenderable && nextRenderable) {
+      _deferredFirstShortAdAfterOrganicIndex =
+          currentPage >= kShortAdInsertionFrequency - 1 ? currentPage : null;
+    } else if (!nextRenderable) {
+      _deferredFirstShortAdAfterOrganicIndex = null;
+    }
     _shortAdRenderable = nextRenderable;
     _rebuildShortRenderPlan();
     _updateShortViewState(() {});
@@ -353,6 +362,12 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         return;
       }
       final previousRenderPage = _currentRenderPage;
+      if (!_shortAdRenderable && nextRenderable) {
+        _deferredFirstShortAdAfterOrganicIndex =
+            currentPage >= kShortAdInsertionFrequency - 1 ? currentPage : null;
+      } else if (!nextRenderable) {
+        _deferredFirstShortAdAfterOrganicIndex = null;
+      }
       _shortAdRenderable = nextRenderable;
       _rebuildShortRenderPlan();
       _updateShortViewState(() {});

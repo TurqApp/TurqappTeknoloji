@@ -40,6 +40,8 @@ import 'package:turqappv2/Core/Widgets/scale_tap.dart';
 part 'short_content_body_part.dart';
 part 'short_content_actions_part.dart';
 
+const Duration _shortOverlayToggleTapHold = Duration(milliseconds: 120);
+
 class ShortsContent extends StatefulWidget {
   final PostsModel model;
   final HLSVideoAdapter videoPlayerController;
@@ -78,6 +80,8 @@ class _ShortsContentState extends State<ShortsContent> {
   Function(bool) get volumeOff => widget.volumeOff;
   void Function(String updatedDocId)? get onEdited => widget.onEdited;
   String get _currentUserId => CurrentUserService.instance.effectiveUserId;
+  DateTime? _overlayTapDownAt;
+  bool _overlayTapEligible = false;
 
   StoryUserModel? _resolveStoryUser() {
     final rowController = maybeFindStoryRowController();
@@ -169,7 +173,24 @@ class _ShortsContentState extends State<ShortsContent> {
           : widget.showOverlayControls;
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
+        onTapDown: (_) {
+          _overlayTapDownAt = DateTime.now();
+          _overlayTapEligible = false;
+        },
+        onTapUp: (_) {
+          final startedAt = _overlayTapDownAt;
+          _overlayTapEligible = startedAt != null &&
+              DateTime.now().difference(startedAt) >=
+                  _shortOverlayToggleTapHold;
+        },
+        onTapCancel: () {
+          _overlayTapDownAt = null;
+          _overlayTapEligible = false;
+        },
         onTap: () {
+          if (!_overlayTapEligible) return;
+          _overlayTapEligible = false;
+          _overlayTapDownAt = null;
           if (widget.onToggleOverlay != null) {
             widget.onToggleOverlay!();
           } else {

@@ -74,6 +74,26 @@ void main() {
       expect(plan.organicIndexForRenderIndex(5), isNull);
       expect(plan.organicIndexForRenderIndex(6), 5);
     });
+
+    test('moves a missed first ad to the next organic boundary when ready late',
+        () {
+      final posts = List<PostsModel>.generate(
+        13,
+        (index) => _short('short-$index'),
+      );
+
+      final plan = buildShortAdRenderPlan(
+        posts,
+        adReady: true,
+        deferFirstAdUntilAfterOrganicIndex: 6,
+      );
+
+      expect(plan.entries[7].isAd, isTrue);
+      expect(plan.renderIndexForOrganicIndex(6), 6);
+      expect(plan.renderIndexForOrganicIndex(7), 8);
+      expect(plan.entries[13].isAd, isTrue);
+      expect(plan.entries.where((entry) => entry.isAd), hasLength(2));
+    });
   });
 }
 

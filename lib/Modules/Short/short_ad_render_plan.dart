@@ -60,6 +60,7 @@ ShortAdRenderPlan buildShortAdRenderPlan(
   required bool adReady,
   bool showFallbackWhenNotReady = false,
   int insertionFrequency = kShortAdInsertionFrequency,
+  int? deferFirstAdUntilAfterOrganicIndex,
 }) {
   if (posts.isEmpty) {
     return const ShortAdRenderPlan._(<ShortRenderEntry>[]);
@@ -67,6 +68,11 @@ ShortAdRenderPlan buildShortAdRenderPlan(
 
   final entries = <ShortRenderEntry>[];
   var adOrdinal = 0;
+  final deferredFirstBoundary = deferFirstAdUntilAfterOrganicIndex;
+  final firstInsertionBoundary = deferredFirstBoundary != null &&
+          deferredFirstBoundary >= insertionFrequency - 1
+      ? deferredFirstBoundary
+      : insertionFrequency - 1;
   for (var i = 0; i < posts.length; i++) {
     entries.add(
       ShortRenderEntry.post(
@@ -78,7 +84,8 @@ ShortAdRenderPlan buildShortAdRenderPlan(
     final shouldReserveAdSlot = adReady || showFallbackWhenNotReady;
     final reachedInsertionBoundary = shouldReserveAdSlot &&
         insertionFrequency > 0 &&
-        (i + 1) % insertionFrequency == 0;
+        i >= firstInsertionBoundary &&
+        (i - firstInsertionBoundary) % insertionFrequency == 0;
     final hasMoreOrganicContent = i < posts.length - 1;
     if (reachedInsertionBoundary && hasMoreOrganicContent) {
       adOrdinal++;
