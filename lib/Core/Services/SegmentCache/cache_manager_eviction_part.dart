@@ -19,7 +19,8 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
 
   bool _hasInFlightWrite(String docID) {
     final prefix = '$docID/';
-    return _writeInFlight.keys.any((key) => key.startsWith(prefix));
+    return _writeInFlight.keys.any((key) => key.startsWith(prefix)) ||
+        (_playlistWriteInFlightByDoc[docID] ?? 0) > 0;
   }
 
   bool _isReserveProtected(

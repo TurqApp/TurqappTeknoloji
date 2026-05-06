@@ -13,6 +13,7 @@ class _VideoStateManagerState {
   bool exclusiveMode = false;
   String? exclusiveDocID;
   Timer? pendingPlayTimer;
+  Timer? staleStateCleanupTimer;
   int playRequestSeq = 0;
 }
 
@@ -46,6 +47,10 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
 
   Timer? get _pendingPlayTimer => _state.pendingPlayTimer;
   set _pendingPlayTimer(Timer? value) => _state.pendingPlayTimer = value;
+
+  Timer? get _staleStateCleanupTimer => _state.staleStateCleanupTimer;
+  set _staleStateCleanupTimer(Timer? value) =>
+      _state.staleStateCleanupTimer = value;
 
   int get _playRequestSeq => _state.playRequestSeq;
   set _playRequestSeq(int value) => _state.playRequestSeq = value;

@@ -3,6 +3,8 @@ part of 'video_state_manager.dart';
 void _handleVideoStateManagerClose(VideoStateManager manager) {
   manager._pendingPlayTimer?.cancel();
   manager._pendingPlayTimer = null;
+  manager._staleStateCleanupTimer?.cancel();
+  manager._staleStateCleanupTimer = null;
   manager._externalOnDemandFetchClaims.clear();
 }
 
@@ -144,5 +146,12 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       _playbackExecutionService.resumeHandle(handle);
     }
     return true;
+  }
+
+  void ensureStaleStateCleanupTimer() {
+    if (_staleStateCleanupTimer != null) return;
+    _staleStateCleanupTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      cleanOldStates();
+    });
   }
 }

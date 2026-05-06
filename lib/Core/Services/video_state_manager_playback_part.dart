@@ -371,11 +371,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           !adapterValue.isCompleted;
       final shouldForceResumeAfterVisualReady =
           hlsActivationStalledAfterVisualReady ||
-          (adapterValue != null &&
-              adapterValue.position > Duration.zero &&
-              !adapterValue.isPlaying &&
-              !adapterValue.isBuffering &&
-              !adapterValue.isCompleted);
+              (adapterValue != null &&
+                  adapterValue.position > Duration.zero &&
+                  !adapterValue.isPlaying &&
+                  !adapterValue.isBuffering &&
+                  !adapterValue.isCompleted);
       if (!handle.isPlaying &&
           (!hasMeaningfulProgress || shouldForceResumeAfterVisualReady) &&
           !hlsHandleAlreadyActivating) {
@@ -533,8 +533,13 @@ VideoStateManager? maybeFindVideoStateManager() {
 
 VideoStateManager ensureVideoStateManager() {
   final existing = maybeFindVideoStateManager();
-  if (existing != null) return existing;
-  return Get.put(VideoStateManager());
+  if (existing != null) {
+    existing.ensureStaleStateCleanupTimer();
+    return existing;
+  }
+  final manager = Get.put(VideoStateManager());
+  manager.ensureStaleStateCleanupTimer();
+  return manager;
 }
 
 extension VideoStateManagerFacadePart on VideoStateManager {

@@ -57,6 +57,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
       _reconcileTotalSize();
       _normalizeStalePlayingEntries();
       await purgeExpiredEntries();
+      await _pruneOrphanPostDirectories(source: 'periodic');
     } catch (e) {
       debugPrint('[CacheManager] Periodic maintenance failed: $e');
     }

@@ -377,28 +377,27 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _pendingFollowUpJobs.clear();
     _jobEnqueuedAt.clear();
 
-    for (var i = 1; i <= _breadthCount; i++) {
-      final idx = safeCurrent + i;
-      if (idx >= docIDs.length) break;
-      final docID = docIDs[idx];
-
+    final queued = <String>{};
+    void addShortJob(int index, int priority) {
+      if (index < 0 || index >= docIDs.length) return;
+      final docID = docIDs[index];
+      if (!queued.add(docID)) return;
       final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
+      if (entry != null && entry.isFullyCached) return;
       final readySegments = _resolvedReadySegmentTarget(
         docID: docID,
         cacheManager: cacheManager,
       );
-      if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
-
+      if (!_shouldEnqueuePrefetchJob(readySegments)) return;
       _queue.add(_PrefetchJob(
         docID,
         readySegments,
-        0,
+        priority,
         _buildJobScore(
           currentIndex: safeCurrent,
           currentDocId: currentDocId,
-          targetIndex: idx,
-          priority: 0,
+          targetIndex: index,
+          priority: priority,
           watchProgress: entry?.watchProgress ?? 0.0,
           cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
           totalSegmentCount: entry?.totalSegmentCount ?? 0,
@@ -408,63 +407,20 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _jobEnqueuedAt[docID] = DateTime.now();
     }
 
+    for (var i = 1; i <= _breadthCount; i++) {
+      final idx = safeCurrent + i;
+      if (idx >= docIDs.length) break;
+      addShortJob(idx, 0);
+    }
+
     if (safeCurrent >= 0 && safeCurrent < docIDs.length) {
-      final docID = docIDs[safeCurrent];
-      final entry = cacheManager.getEntry(docID);
-      if (entry == null || !entry.isFullyCached) {
-        final readySegments = _resolvedReadySegmentTarget(
-          docID: docID,
-          cacheManager: cacheManager,
-        );
-        if (_shouldEnqueuePrefetchJob(readySegments)) {
-          _queue.add(_PrefetchJob(
-            docID,
-            readySegments,
-            1,
-            _buildJobScore(
-              currentIndex: safeCurrent,
-              currentDocId: currentDocId,
-              targetIndex: safeCurrent,
-              priority: 1,
-              watchProgress: entry?.watchProgress ?? 0.0,
-              cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-              totalSegmentCount: entry?.totalSegmentCount ?? 0,
-            ),
-            source: 'short',
-          ));
-          _jobEnqueuedAt[docID] = DateTime.now();
-        }
-      }
+      addShortJob(safeCurrent, 1);
     }
 
     for (var i = 1; i <= _depthCount - 1; i++) {
       final idx = safeCurrent + i;
       if (idx >= docIDs.length) break;
-      final docID = docIDs[idx];
-      final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
-      final readySegments = _resolvedReadySegmentTarget(
-        docID: docID,
-        cacheManager: cacheManager,
-      );
-      if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
-
-      _queue.add(_PrefetchJob(
-        docID,
-        readySegments,
-        2,
-        _buildJobScore(
-          currentIndex: safeCurrent,
-          currentDocId: currentDocId,
-          targetIndex: idx,
-          priority: 2,
-          watchProgress: entry?.watchProgress ?? 0.0,
-          cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-          totalSegmentCount: entry?.totalSegmentCount ?? 0,
-        ),
-        source: 'short',
-      ));
-      _jobEnqueuedAt[docID] = DateTime.now();
+      addShortJob(idx, 2);
     }
 
     for (var i = 1; i <= _prefetchSchedulerFeedRetainBehindCount; i++) {

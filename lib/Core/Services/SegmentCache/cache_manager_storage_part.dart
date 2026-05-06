@@ -136,6 +136,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
           '[CacheManager] Recovery: removed ${toRemove.length} stale + ${emptyEntries.length} empty entries');
       _markDirty();
     }
+    await _pruneOrphanPostDirectories(source: 'recovery');
     await _refreshMetadataUsage();
   }
 
@@ -198,6 +199,33 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     }
   }
 
+  Future<void> _pruneOrphanPostDirectories({required String source}) async {
+    final postsDir = Directory('$_cacheDir/Posts');
+    if (!await postsDir.exists()) return;
+    var removed = 0;
+    try {
+      await for (final entity
+          in postsDir.list(recursive: false, followLinks: false)) {
+        if (entity is! Directory) continue;
+        final docID = entity.path.split('/').last.trim();
+        if (docID.isEmpty) continue;
+        if (_index.entries.containsKey(docID)) continue;
+        if (_hasInFlightWrite(docID)) continue;
+        try {
+          await entity.delete(recursive: true);
+          removed++;
+        } catch (_) {}
+      }
+    } on FileSystemException catch (error) {
+      debugPrint('[CacheManager] Orphan cleanup skipped: $error');
+      return;
+    }
+    if (removed <= 0) return;
+    debugPrint(
+      '[CacheManager] Orphan post dirs pruned: $removed source=$source',
+    );
+  }
+
   Future<void> _cleanTempFiles(Directory dir) async {
     if (!await dir.exists()) return;
     try {
@@ -217,12 +245,16 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
   Future<void> clearAllCache() async {
     final root = Directory(_cacheDir);
     if (await root.exists()) {
-      await for (final entity in root.list()) {
-        final name = entity.path.split('/').last;
-        if (name == 'index.json') continue;
-        try {
-          await entity.delete(recursive: true);
-        } catch (_) {}
+      try {
+        await for (final entity in root.list()) {
+          final name = entity.path.split('/').last;
+          if (name == 'index.json') continue;
+          try {
+            await entity.delete(recursive: true);
+          } catch (_) {}
+        }
+      } on FileSystemException catch (error) {
+        debugPrint('[CacheManager] Clear cache list skipped: $error');
       }
     }
 

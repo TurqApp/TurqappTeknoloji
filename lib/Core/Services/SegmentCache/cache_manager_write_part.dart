@@ -79,25 +79,54 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
 
   /// M3U8 playlist'i disk'e yaz (index'e segment olarak eklenmez).
   Future<File> writePlaylist(String relativePath, String content) async {
-    final file = File('$_cacheDir/$relativePath');
-    await file.parent.create(recursive: true);
-    final previousLength = await file.exists() ? await file.length() : 0;
-    final tmpFile = File('${file.path}.tmp');
-    await tmpFile.writeAsString(content, flush: false);
+    final docID = _docIdForPlaylistPath(relativePath);
+    if (docID != null) {
+      _playlistWriteInFlightByDoc[docID] =
+          (_playlistWriteInFlightByDoc[docID] ?? 0) + 1;
+    }
     try {
-      await tmpFile.rename(file.path);
-    } on FileSystemException {
+      final file = File('$_cacheDir/$relativePath');
       await file.parent.create(recursive: true);
-      await file.writeAsString(content, flush: false);
-      if (await tmpFile.exists()) {
-        await tmpFile.delete();
+      final previousLength = await file.exists() ? await file.length() : 0;
+      final tmpFile = File('${file.path}.tmp');
+      await tmpFile.writeAsString(content, flush: false);
+      try {
+        await tmpFile.rename(file.path);
+      } on FileSystemException {
+        await file.parent.create(recursive: true);
+        await file.writeAsString(content, flush: false);
+        if (await tmpFile.exists()) {
+          await tmpFile.delete();
+        }
+      }
+      final nextLength = await file.exists() ? await file.length() : 0;
+      final delta = nextLength - previousLength;
+      _playlistMetadataBytes =
+          (_playlistMetadataBytes + delta).clamp(0, 1 << 62);
+      _scheduleEvictionIfNeeded();
+      return file;
+    } finally {
+      if (docID != null) {
+        final remaining = (_playlistWriteInFlightByDoc[docID] ?? 1) - 1;
+        if (remaining <= 0) {
+          _playlistWriteInFlightByDoc.remove(docID);
+        } else {
+          _playlistWriteInFlightByDoc[docID] = remaining;
+        }
       }
     }
-    final nextLength = await file.exists() ? await file.length() : 0;
-    final delta = nextLength - previousLength;
-    _playlistMetadataBytes = (_playlistMetadataBytes + delta).clamp(0, 1 << 62);
-    _scheduleEvictionIfNeeded();
-    return file;
+  }
+
+  String? _docIdForPlaylistPath(String relativePath) {
+    final normalized =
+        relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+    const prefix = 'Posts/';
+    if (!normalized.startsWith(prefix)) return null;
+    final rest = normalized.substring(prefix.length);
+    final slashIndex = rest.indexOf('/');
+    if (slashIndex <= 0) return null;
+    final docID = rest.substring(0, slashIndex).trim();
+    return docID.isEmpty ? null : docID;
   }
 
   /// Entry'nin master playlist URL'sini ve toplam segment sayısını güncelle.
