@@ -58,6 +58,7 @@ class ShortManifestRepository extends GetxService {
   int _cursorSlotIndex = 0;
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
+  static const int _retainedConsumedSlotCount = 1;
 
   void _logTiming(
     String stage, {
@@ -94,8 +95,10 @@ class ShortManifestRepository extends GetxService {
         _cursorItemIndex++;
       }
       if (_cursorItemIndex >= slot.length) {
+        final completedSlotIndex = _cursorSlotIndex;
         _cursorSlotIndex++;
         _cursorItemIndex = 0;
+        _trimConsumedSlots(completedSlotIndex: completedSlotIndex);
         unawaited(_ensureTwoSlotWindow());
       }
     }
@@ -287,6 +290,28 @@ class ShortManifestRepository extends GetxService {
     _slotLoads.clear();
     _cursorSlotIndex = 0;
     _cursorItemIndex = 0;
+  }
+
+  void _trimConsumedSlots({required int completedSlotIndex}) {
+    final retainFromSlot = _cursorSlotIndex - _retainedConsumedSlotCount;
+    if (retainFromSlot <= 0) return;
+    final removedSlots = <int>[];
+    for (final slotIndex in List<int>.from(_slots.keys)) {
+      if (slotIndex < retainFromSlot) {
+        _slots.remove(slotIndex);
+        removedSlots.add(slotIndex);
+      }
+    }
+    if (removedSlots.isEmpty) return;
+    _logTiming(
+      'consumed_slots_trimmed',
+      metadata: <String, Object?>{
+        'completedSlotIndex': completedSlotIndex,
+        'cursorSlotIndex': _cursorSlotIndex,
+        'removedSlots': removedSlots,
+        'cachedSlots': _slots.keys.toList(growable: false)..sort(),
+      },
+    );
   }
 
   Future<bool> _hasMore() async {
