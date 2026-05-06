@@ -153,6 +153,9 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (_hasActiveFeedPlaybackWindow) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
     }
+    if (_hasActiveShortPlaybackWindow && _isOnWiFi) {
+      return _maxConcurrent < 2 ? _maxConcurrent : 2;
+    }
     if (_hasAnyActivePlaybackFocus) {
       return _maxConcurrent > 1 ? 1 : _maxConcurrent;
     }
