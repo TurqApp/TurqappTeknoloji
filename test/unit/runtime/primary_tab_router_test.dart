@@ -764,6 +764,21 @@ void main() {
       expect(lifecycleSource, isNot(contains('hasEducation ? 4 : 3')));
     });
 
+    test('NavBar lifecycle flushes short resume state before startup shard',
+        () {
+      final lifecycleSource = File(
+        'lib/Modules/NavBar/nav_bar_controller_lifecycle_part.dart',
+      ).readAsStringSync();
+      final resumeFlushIndex =
+          lifecycleSource.indexOf('shorts.persistVisibleSnapshotNow()');
+      final startupShardIndex =
+          lifecycleSource.indexOf('shorts.persistStartupShard()');
+
+      expect(resumeFlushIndex, greaterThanOrEqualTo(0));
+      expect(startupShardIndex, greaterThanOrEqualTo(0));
+      expect(resumeFlushIndex, lessThan(startupShardIndex));
+    });
+
     test('PrimaryTabRouter reuses centralized startup route vocabulary', () {
       final source =
           File('lib/Runtime/primary_tab_router.dart').readAsStringSync();

@@ -434,6 +434,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       }
       final shorts = maybeFindShortController();
       if (shorts != null) {
+        tasks.add(shorts.persistVisibleSnapshotNow());
         tasks.add(shorts.persistStartupShard());
       }
     }
