@@ -748,7 +748,7 @@ class PlaybackSurfacePolicy {
   static bool shouldKeepTrimmedShortAdapterWarm({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.android;
   }
 
   static bool shouldRecoverShortPlaybackOnRevisit({

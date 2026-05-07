@@ -221,6 +221,21 @@ void main() {
       );
     });
 
+    test('does not keep trimmed iOS short adapters warm', () {
+      expect(
+        PlaybackSurfacePolicy.shouldKeepTrimmedShortAdapterWarm(
+          platform: TargetPlatform.iOS,
+        ),
+        isFalse,
+      );
+      expect(
+        PlaybackSurfacePolicy.shouldKeepTrimmedShortAdapterWarm(
+          platform: TargetPlatform.android,
+        ),
+        isTrue,
+      );
+    });
+
     test('prefers direct CDN for short surfaces on Android and iOS', () {
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForShort(
