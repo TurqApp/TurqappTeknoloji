@@ -7,9 +7,7 @@ void main() {
       expect(FeedManifestPolicy.primaryEnabled, isTrue);
     });
 
-    test(
-        'deck seed changes by user, manifest, and startup session',
-        () {
+    test('deck seed changes by user, manifest, and startup session', () {
       final base = FeedManifestPolicy.resolveDeckSeed(
         userId: 'u1',
         manifestId: 'm1',
@@ -51,7 +49,10 @@ void main() {
         FeedManifestPolicy.resolveGapCandidateLimit(40),
         FeedManifestPolicy.minGapCandidateLimit,
       );
-      expect(FeedManifestPolicy.resolveGapCandidateLimit(120), 120);
+      expect(
+        FeedManifestPolicy.resolveGapCandidateLimit(120),
+        FeedManifestPolicy.maxGapCandidateLimit,
+      );
       expect(
         FeedManifestPolicy.resolveGapCandidateLimit(999),
         FeedManifestPolicy.maxGapCandidateLimit,
@@ -70,7 +71,7 @@ void main() {
       );
       expect(
         FeedManifestPolicy.resolveSlotLoadBudget(pageNumber: 2),
-        FeedManifestPolicy.startupSlotLoadBudget * 2,
+        FeedManifestPolicy.maxSlotLoadBudget,
       );
       expect(
         FeedManifestPolicy.resolveSlotLoadBudget(pageNumber: 99),

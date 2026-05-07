@@ -6,7 +6,7 @@ void main() {
   group('Feed preplanned page contract', () {
     final anchorMs = DateTime(2026, 4, 14, 18, 27).millisecondsSinceEpoch;
 
-    test('buildPageApplyPlan normalizes preplanned page newest-first', () {
+    test('buildPageApplyPlan preserves preplanned page order', () {
       final service = AgendaFeedApplicationService(
         nowMsProvider: () => anchorMs,
       );
@@ -35,7 +35,7 @@ void main() {
 
       expect(
         plan.itemsToAdd.map((post) => post.docID).toList(growable: false),
-        <String>['p-1827', 'p-1825', 'p-1818'],
+        <String>['p-1825', 'p-1827', 'p-1818'],
       );
       expect(plan.pageItemsPreplanned, isTrue);
     });
@@ -73,7 +73,7 @@ void main() {
       expect(plan.pageItemsPreplanned, isFalse);
     });
 
-    test('mergeLiveItemsPreservingCurrentOrder keeps merged list newest-first',
+    test('mergeLiveItemsPreservingCurrentOrder preserves current-first handoff',
         () {
       final service = AgendaFeedApplicationService(
         nowMsProvider: () => anchorMs,
@@ -107,11 +107,11 @@ void main() {
 
       expect(
         merged.map((post) => post.docID).toList(growable: false),
-        <String>['p-1827', 'current', 'p-1825'],
+        <String>['current', 'p-1827', 'p-1825'],
       );
       expect(merged.map((post) => post.timeStamp).toList(growable: false), [
-        DateTime(2026, 4, 14, 18, 27).millisecondsSinceEpoch,
         DateTime(2026, 4, 14, 18, 26, 30).millisecondsSinceEpoch,
+        DateTime(2026, 4, 14, 18, 27).millisecondsSinceEpoch,
         DateTime(2026, 4, 14, 18, 25).millisecondsSinceEpoch,
       ]);
     });

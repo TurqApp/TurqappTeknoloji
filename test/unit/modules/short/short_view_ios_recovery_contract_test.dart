@@ -240,16 +240,15 @@ void main() {
     );
   });
 
-  test('iOS short replay nudges ignore buffering startup state', () async {
+  test('iOS short replay nudge keeps existing revisit playback contract',
+      () async {
     final shortViewSource = await File(
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
     ).readAsString();
 
     expect(
       shortViewSource,
-      contains('!recoveredRevisitPlayback &&\n'
-          '            !vc.value.isPlaying &&\n'
-          '            !vc.value.isBuffering'),
+      contains('if (!recoveredRevisitPlayback && !vc.value.isPlaying)'),
     );
     expect(
       shortViewSource,

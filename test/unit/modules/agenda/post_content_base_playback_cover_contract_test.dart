@@ -50,9 +50,7 @@ void main() {
     );
   });
 
-  test(
-      'feed-style inline surfaces keep iOS overlay but suppress Android poster',
-      () async {
+  test('feed-style inline surfaces keep stable startup buffer policy', () async {
     final agendaSource = await File(
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/AgendaContent/agenda_content_body_part.dart',
     ).readAsString();
@@ -61,16 +59,9 @@ void main() {
     ).readAsString();
 
     for (final source in <String>[agendaSource, classicSource]) {
-      expect(source, contains('isFeedStyleInlineSurface &&'));
-      expect(
-        source,
-        anyOf(
-          contains('defaultTargetPlatform != TargetPlatform.iOS'),
-          contains('defaultTargetPlatform !=\n'
-              '                                                          TargetPlatform.iOS'),
-        ),
-      );
-      expect(source, contains('SizedBox.shrink()'));
+      expect(source, contains('isFeedStyleInlineSurface'));
+      expect(source, contains('preferStableFeedStartupBuffer('));
+      expect(source, contains('isFeedStyleSurface:'));
     }
   });
 }

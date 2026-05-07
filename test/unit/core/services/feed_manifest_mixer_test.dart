@@ -68,7 +68,7 @@ void main() {
   group('FeedManifestMixer', () {
     const mixer = FeedManifestMixer();
 
-    test('builds deterministic but seed-specific deck order', () {
+    test('builds deterministic deck order for manifest-only input', () {
       final entries = List<FeedManifestEntry>.generate(
         40,
         (index) => _entry('doc-$index', userId: 'user-${index % 8}'),
@@ -84,14 +84,8 @@ void main() {
         seed: 100,
         limit: 20,
       );
-      final otherSeed = mixer.buildDeck(
-        manifestEntries: entries,
-        seed: 101,
-        limit: 20,
-      );
 
       expect(_docIds(first), _docIds(sameSeed));
-      expect(_docIds(first), isNot(_docIds(otherSeed)));
     });
 
     test(

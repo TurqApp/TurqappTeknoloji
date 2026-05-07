@@ -24,11 +24,11 @@ void main() {
     );
     expect(
       source,
-      contains('_playbackRuntimeService.requestStop(playbackHandleKey);'),
+      contains('agendaController.suspendPlaybackForOverlay();'),
     );
     expect(
       source,
-      contains('_stopPlaybackForSurfaceLoss();'),
+      contains('_safePauseVideo();'),
     );
   });
 
@@ -46,7 +46,7 @@ void main() {
     );
     expect(
       source,
-      contains('_isPrimaryFeedSurfaceInstance'),
+      contains('_usesFeedPlaybackPolicy'),
     );
     expect(
       source,
