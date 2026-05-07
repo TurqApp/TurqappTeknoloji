@@ -64,25 +64,18 @@ PlaybackPolicySnapshot _resolvePlaybackPolicy(
     );
   }
 
-  final lowData =
-      context.cellularDataMode == DataUsageMode.low || context.pauseOnCellular;
-
   return PlaybackPolicySnapshot(
     mode: PlaybackMode.cellularGuard,
-    policyTag: lowData ? 'cellular_guard_low_data' : 'cellular_guard',
-    reason: context.pauseOnCellular
-        ? 'cellular_paused_by_user'
-        : lowData
-            ? 'cellular_low_data_mode'
-            : 'cellular_connected',
-    allowBackgroundPrefetch: false,
-    allowOnDemandSegmentFetch: !context.pauseOnCellular,
+    policyTag: 'cellular_wifi_equivalent',
+    reason: 'cellular_connected_wifi_equivalent',
+    allowBackgroundPrefetch: true,
+    allowOnDemandSegmentFetch: true,
     allowPlaylistFetch: true,
-    cacheOnlyMode: context.pauseOnCellular,
-    enableMobileSeedMode: !lowData,
-    startupWindowSegments: lowData ? 1 : 2,
-    aheadWindowSegments: lowData ? 0 : 1,
-    maxConcurrentPrefetch: 1,
+    cacheOnlyMode: false,
+    enableMobileSeedMode: false,
+    startupWindowSegments: 2,
+    aheadWindowSegments: 2,
+    maxConcurrentPrefetch: 4,
     budgetProfile: budgetProfile,
   );
 }

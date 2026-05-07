@@ -111,6 +111,7 @@ extension ShortViewUiPart on _ShortViewState {
         cacheManager: TurqImageCacheManager.instance,
         fit: BoxFit.cover,
         fallback: _buildShortPosterFallback(),
+        eagerPrecache: true,
       ),
     );
   }

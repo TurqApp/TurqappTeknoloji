@@ -1141,7 +1141,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 220);
+      const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 80);
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
@@ -1177,7 +1177,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return !shouldHidePlaybackPoster(
         value,
-        visualReadyPositionThreshold: const Duration(milliseconds: 220),
+        visualReadyPositionThreshold: const Duration(milliseconds: 80),
       );
     }
     if (defaultTargetPlatform != TargetPlatform.android) return false;

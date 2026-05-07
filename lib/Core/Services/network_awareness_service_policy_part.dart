@@ -78,20 +78,22 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       'results=${results.map((e) => e.name).join(",")}',
     );
 
-    if (_currentNetwork.value != NetworkType.wifi) {
+    if (_currentNetwork.value == NetworkType.none) {
       _wifiSchedulerBootstrapApplied = false;
     }
 
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler != null) {
-      if (_currentNetwork.value == NetworkType.wifi) {
+      if (_currentNetwork.value != NetworkType.none) {
         final enteredWifi = previousNetwork != NetworkType.wifi;
-        if (enteredWifi) {
+        if (_currentNetwork.value == NetworkType.wifi && enteredWifi) {
           _wifiSchedulerBootstrapApplied = false;
         }
         final shouldBootstrapOnSchedulerAttach =
-            !_wifiSchedulerBootstrapApplied;
-        if (!scheduler.automaticQuotaFillEnabled &&
+            _currentNetwork.value == NetworkType.wifi &&
+                !_wifiSchedulerBootstrapApplied;
+        if (_currentNetwork.value == NetworkType.wifi &&
+            !scheduler.automaticQuotaFillEnabled &&
             (enteredWifi || shouldBootstrapOnSchedulerAttach)) {
           scheduler.setAutomaticQuotaFillEnabled(
             true,

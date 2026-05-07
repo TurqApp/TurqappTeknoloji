@@ -237,8 +237,7 @@ class PostsModel {
 
   bool get hasTextContent => metin.trim().isNotEmpty;
 
-  bool get hasImageContent =>
-      img.isNotEmpty || thumbnail.trim().isNotEmpty;
+  bool get hasImageContent => img.isNotEmpty || thumbnail.trim().isNotEmpty;
 
   List<String> get canonicalImageUrls {
     final urls = <String>[];
@@ -290,8 +289,7 @@ class PostsModel {
       !hasQuoteContent &&
       !hasPollContent;
 
-  bool get shouldHideWhileUploading =>
-      isUploading || isCompletelyEmptyPost;
+  bool get shouldHideWhileUploading => isUploading || isCompletelyEmptyPost;
 
   int get yorumVisibility {
     final v = yorumMap['visibility'];
@@ -341,11 +339,12 @@ class PostsModel {
     }
 
     addUrl(thumbnail);
-    if (img.isNotEmpty) {
-      addUrl(img.first);
+    if (canonicalImageUrls.isNotEmpty) {
+      addUrl(canonicalImageUrls.first);
     }
     if (hasVideoSignal) {
-      for (final candidate in CdnUrlBuilder.buildThumbnailUrlCandidates(docID)) {
+      for (final candidate
+          in CdnUrlBuilder.buildThumbnailUrlCandidates(docID)) {
         addUrl(candidate);
       }
     }
@@ -475,7 +474,10 @@ class PostsModel {
             resolvedAuthorNickname)
         .toString();
     final resolvedAuthorAvatarUrl = CdnUrlBuilder.toCdnUrl(
-      (data['authorAvatarUrl'] ?? authorMap['avatarUrl'] ?? '')
+      (data['authorAvatarUrl'] ??
+              data['avatarUrl'] ??
+              authorMap['avatarUrl'] ??
+              '')
           .toString()
           .trim(),
     );

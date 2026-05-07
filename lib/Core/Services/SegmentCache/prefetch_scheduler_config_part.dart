@@ -7,7 +7,7 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'Referer': '$_prefetchSchedulerCdnOrigin/',
 };
 const int _prefetchSchedulerTargetReadySegments = 2;
-const int _prefetchSchedulerFeedLeadReadySegments = 2;
+const int _prefetchSchedulerFeedLeadReadySegments = 1;
 const int _prefetchSchedulerPriorityWindowSize = 5;
 const int _prefetchSchedulerWifiMinBreadthCount = 5;
 const int _prefetchSchedulerWifiMinDepthCount = 3;

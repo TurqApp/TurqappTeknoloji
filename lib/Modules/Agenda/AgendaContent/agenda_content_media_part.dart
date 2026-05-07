@@ -35,6 +35,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
+            eagerPrecache: true,
           )
         : fallback;
     if (aspectRatio == null) return image;
@@ -126,8 +127,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
     }
 
     final floodController = maybeFindFloodListingController();
-    final isFloodSurface =
-        floodController != null &&
+    final isFloodSurface = floodController != null &&
         (widget.instanceTag?.startsWith('flood_') ?? false);
 
     if (isFloodSurface) {

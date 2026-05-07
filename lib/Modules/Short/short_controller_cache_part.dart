@@ -289,7 +289,8 @@ extension ShortControllerCachePart on ShortController {
     }
 
     final shouldReloadForActivation = existing.isStopped ||
-        (defaultTargetPlatform == TargetPlatform.android &&
+        ((defaultTargetPlatform == TargetPlatform.android ||
+                defaultTargetPlatform == TargetPlatform.iOS) &&
             !existing.value.isInitialized &&
             !existing.value.hasRenderedFirstFrame);
     if (shouldReloadForActivation) {
@@ -362,7 +363,10 @@ extension ShortControllerCachePart on ShortController {
     final hotIndices = window.hotIndices;
     final warmIndices = window.warmIndices;
     for (final i in hotIndices) {
-      _ensureReadySegmentsForIndex(i);
+      _ensureReadySegmentsForIndex(
+        i,
+        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+      );
     }
 
     final futures = <Future>[];
@@ -370,7 +374,8 @@ extension ShortControllerCachePart on ShortController {
       if (!cache.containsKey(i)) {
         futures.add(_preloadSingleVideoWithCache(i, shorts[i]));
       } else if (cache[i]!.isStopped ||
-          (defaultTargetPlatform == TargetPlatform.android &&
+          ((defaultTargetPlatform == TargetPlatform.android ||
+                  defaultTargetPlatform == TargetPlatform.iOS) &&
               !cache[i]!.value.isInitialized &&
               !cache[i]!.value.hasRenderedFirstFrame)) {
         futures.add(cache[i]!.reloadVideo());
@@ -491,7 +496,8 @@ extension ShortControllerCachePart on ShortController {
 
       futures.add(() async {
         if (existing.isStopped ||
-            (defaultTargetPlatform == TargetPlatform.android &&
+            ((defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS) &&
                 !existing.value.isInitialized &&
                 !existing.value.hasRenderedFirstFrame)) {
           await existing.reloadVideo();

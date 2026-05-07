@@ -62,8 +62,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return Duration.zero;
     }
     final adapterPosition = adapter.value.position;
-    if (adapterPosition >
-        PostContentBaseState._stableFramePositionThreshold) {
+    if (adapterPosition > PostContentBaseState._stableFramePositionThreshold) {
       return adapterPosition;
     }
     return Duration.zero;
@@ -537,11 +536,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final adapter = _videoAdapter;
     if (adapter == null) return;
     final shouldKeepWarmForSurfaceLoss =
-        defaultTargetPlatform == TargetPlatform.android &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+                defaultTargetPlatform == TargetPlatform.iOS) &&
             _usesFeedPlaybackPolicy &&
             !clearSavedState;
-      debugPrint(
-        '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
+    debugPrint(
+      '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
       'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
       'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
@@ -1033,14 +1033,18 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           );
           return;
         }
-        final shouldRestartStoppedOwner = GetPlatform.isAndroid &&
-            currentOwner &&
-            (adapter.isStopped ||
-                (!adapter.value.isInitialized &&
-                    adapter.hlsController.canRestartStoppedPlayback));
+        final shouldRestartStoppedOwner =
+            PlaybackSurfacePolicy.shouldRestartStoppedInlineFeedOwner(
+                  platform: defaultTargetPlatform,
+                  isFeedStyleSurface: _usesFeedPlaybackPolicy,
+                ) &&
+                currentOwner &&
+                (adapter.isStopped ||
+                    (!adapter.value.isInitialized &&
+                        adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final savedPosition =
-              _normalizeFeedResumePosition(_resolveSavedResumePosition(adapter));
+          final savedPosition = _normalizeFeedResumePosition(
+              _resolveSavedResumePosition(adapter));
           final shouldUseSavedResumeSeek =
               !_shouldBypassSavedResumeHintForPrimaryFeed(
             adapter.value,

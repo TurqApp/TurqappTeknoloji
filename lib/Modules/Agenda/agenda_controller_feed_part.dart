@@ -680,6 +680,7 @@ extension AgendaControllerFeedPart on AgendaController {
       nextPost.docID,
       readySegments: readySegments,
     );
+    _warmPostAvatar(nextPost);
     for (final posterUrl in nextPost.preferredVideoPosterUrls) {
       TurqImageCacheManager.warmUrl(posterUrl).ignore();
     }
@@ -816,6 +817,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final post = agendaList[current];
+    _warmPostAvatar(post);
     for (final posterUrl in post.preferredVideoPosterUrls) {
       TurqImageCacheManager.warmUrl(posterUrl).ignore();
     }
@@ -1077,6 +1079,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final end = (current + 4).clamp(0, agendaList.length);
     for (int i = start; i < end; i++) {
       final post = agendaList[i];
+      _warmPostAvatar(post);
       final preview = post.primaryImageUrl.trim();
       if (preview.isNotEmpty) {
         TurqImageCacheManager.warmUrl(preview).ignore();
@@ -1103,6 +1106,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_prefetchedThumbnailDocIds.add(post.docID)) {
         continue;
       }
+      _warmPostAvatar(post);
       final preview = post.primaryImageUrl.trim();
       if (preview.isNotEmpty) {
         TurqImageCacheManager.warmUrl(preview).ignore();
@@ -1114,6 +1118,12 @@ extension AgendaControllerFeedPart on AgendaController {
 
     _prefetchedThumbnailPostCount = max(_prefetchedThumbnailPostCount, end);
     _warmReplayAdsForPreparedWindow(end - start);
+  }
+
+  void _warmPostAvatar(PostsModel post) {
+    final avatarUrl = post.authorAvatarUrl.trim();
+    if (avatarUrl.isEmpty) return;
+    TurqImageCacheManager.warmUrl(avatarUrl).ignore();
   }
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {

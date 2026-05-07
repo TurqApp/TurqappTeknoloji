@@ -603,7 +603,8 @@ class PlaybackSurfacePolicy {
     required bool isCompleted,
     required Duration stableFrameThreshold,
   }) {
-    return platform == TargetPlatform.android &&
+    return (platform == TargetPlatform.android ||
+            platform == TargetPlatform.iOS) &&
         isFeedStyleSurface &&
         currentOwner &&
         position >= stableFrameThreshold &&
@@ -736,11 +737,8 @@ class PlaybackSurfacePolicy {
     required bool useTightWarmProfile,
     required int defaultCount,
   }) {
-    if (platform == TargetPlatform.android) {
+    if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
       return useTightWarmProfile ? 1 : defaultCount;
-    }
-    if (platform == TargetPlatform.iOS) {
-      return defaultCount < 2 ? 2 : defaultCount;
     }
     return defaultCount;
   }
@@ -748,7 +746,7 @@ class PlaybackSurfacePolicy {
   static bool shouldKeepTrimmedShortAdapterWarm({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.android;
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
   static bool shouldRecoverShortPlaybackOnRevisit({

@@ -35,6 +35,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
             fallback: fallback,
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
+            eagerPrecache: true,
           )
         : fallback;
     if (aspectRatio == null) return image;
@@ -75,8 +76,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
       Get.to(() => FloodListing(
             mainModel: widget.model,
             hostSurface: widget.floodHostSurface,
-          ))
-          ?.then((_) => _restoreClassicFeedCenter());
+          ))?.then((_) => _restoreClassicFeedCenter());
     } else {
       Get.to(() => PhotoShorts(
             fetchedList: visibleList,
@@ -101,8 +101,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     }
 
     final floodController = maybeFindFloodListingController();
-    final isFloodSurface =
-        floodController != null &&
+    final isFloodSurface = floodController != null &&
         (widget.instanceTag?.startsWith('flood_') ?? false);
 
     if (isFloodSurface) {

@@ -61,8 +61,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     if (allowedSurface == null || allowedSurface != controllerSurface) {
       return false;
     }
-    if (allowedSurface != 'short') return false;
-    return handle.adapter.preferWarmPoolPause;
+    if (allowedSurface == 'short') {
+      return handle.adapter.preferWarmPoolPause;
+    }
+    if (allowedSurface == 'feed') {
+      if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+      final value = handle.adapter.value;
+      return value.isPlaying ||
+          value.isBuffering ||
+          value.hasRenderedFirstFrame ||
+          value.position > Duration.zero;
+    }
+    return false;
   }
 
   void _pruneExternalOnDemandFetchClaims(String? activeDocID) {
@@ -259,12 +269,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               allowedSurface != controllerSurface) {
             shouldStopPlayback = true;
           }
-          if (handle is HLSAdapterPlaybackHandle &&
-              _shouldKeepWarmHandleDuringExclusiveSwitch(
-                allowedDocID,
-                controllerKey,
-                handle,
-              )) {
+          final keepWarmDuringSurfaceSwitch =
+              handle is HLSAdapterPlaybackHandle &&
+                  _shouldKeepWarmHandleDuringExclusiveSwitch(
+                    allowedDocID,
+                    controllerKey,
+                    handle,
+                  );
+          if (keepWarmDuringSurfaceSwitch) {
             shouldStopPlayback = false;
           }
           if (handle is HLSAdapterPlaybackHandle) {
@@ -274,6 +286,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               'playing=${handle.isPlaying} '
               'buffering=${handle.adapter.value.isBuffering} '
               'preferWarm=${handle.adapter.preferWarmPoolPause} '
+              'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
               'stopPlayback=$shouldStopPlayback',
             );
           }
@@ -343,7 +356,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     int attempt = 0,
   }) {
     _pendingPlayTimer?.cancel();
-    _pendingPlayTimer = Timer(_videoStateManagerPlayResumeDelay, () {
+    final resumeDelay =
+        defaultTargetPlatform == TargetPlatform.iOS && docID.startsWith('feed:')
+            ? Duration.zero
+            : _videoStateManagerPlayResumeDelay;
+    _pendingPlayTimer = Timer(resumeDelay, () {
       if (requestSeq != _playRequestSeq) return;
       if (_currentPlayingDocID != docID) return;
       final handle = _allVideoControllers[docID];
