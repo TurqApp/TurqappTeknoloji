@@ -1,5 +1,24 @@
 part of 'short_controller.dart';
 
+const Duration _shortOnYuklemeLogThrottle = Duration(milliseconds: 500);
+final Map<String, DateTime> _shortOnYuklemeLastLogAtByKey =
+    <String, DateTime>{};
+
+bool _shouldLogShortOnYukleme(String key) {
+  final now = DateTime.now();
+  final lastAt = _shortOnYuklemeLastLogAtByKey[key];
+  if (lastAt != null && now.difference(lastAt) < _shortOnYuklemeLogThrottle) {
+    return false;
+  }
+  if (_shortOnYuklemeLastLogAtByKey.length > 128) {
+    _shortOnYuklemeLastLogAtByKey.removeWhere(
+      (_, loggedAt) => now.difference(loggedAt) > _shortOnYuklemeLogThrottle,
+    );
+  }
+  _shortOnYuklemeLastLogAtByKey[key] = now;
+  return true;
+}
+
 extension ShortControllerCachePart on ShortController {
   static const int _androidActiveReadySegments =
       StartupPreloadPolicy.activeReadySegments;
@@ -87,9 +106,11 @@ extension ShortControllerCachePart on ShortController {
         'idx=$targetIndex offset=$offset doc=${shorts[targetIndex].docID} segments=$readySegments',
       );
     }
-    debugPrint(
-      '[ShortOnYukleme] reason=window anchor=$safeAnchor entries=${warmLogs.join(' | ')}',
-    );
+    final logMessage =
+        '[ShortOnYukleme] reason=window anchor=$safeAnchor entries=${warmLogs.join(' | ')}';
+    if (_shouldLogShortOnYukleme('window:$safeAnchor')) {
+      debugPrint(logMessage);
+    }
   }
 
   void primeOnYuklemeStartupWindow(int anchorIndex) {
@@ -104,9 +125,11 @@ extension ShortControllerCachePart on ShortController {
       _ensureReadySegmentsForIndex(i, minimumSegmentCount: 1);
       warmLogs.add('idx=$i doc=${shorts[i].docID} segments=1');
     }
-    debugPrint(
-      '[ShortOnYukleme] reason=startup anchor=$safeAnchor entries=${warmLogs.join(' | ')}',
-    );
+    final logMessage =
+        '[ShortOnYukleme] reason=startup anchor=$safeAnchor entries=${warmLogs.join(' | ')}';
+    if (_shouldLogShortOnYukleme('startup:$safeAnchor')) {
+      debugPrint(logMessage);
+    }
   }
 
   void primeImmediateNextAfterPlaybackStart(int anchorIndex) {

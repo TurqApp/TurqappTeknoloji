@@ -1,5 +1,26 @@
 part of 'prefetch_scheduler.dart';
 
+const Duration _shortQuotaFillWorkerLogThrottle = Duration(milliseconds: 750);
+final Map<String, DateTime> _shortQuotaFillWorkerLastLogAtByKey =
+    <String, DateTime>{};
+
+bool _shouldLogShortQuotaFillWorker(String key) {
+  final now = DateTime.now();
+  final lastAt = _shortQuotaFillWorkerLastLogAtByKey[key];
+  if (lastAt != null &&
+      now.difference(lastAt) < _shortQuotaFillWorkerLogThrottle) {
+    return false;
+  }
+  if (_shortQuotaFillWorkerLastLogAtByKey.length > 128) {
+    _shortQuotaFillWorkerLastLogAtByKey.removeWhere(
+      (_, loggedAt) =>
+          now.difference(loggedAt) > _shortQuotaFillWorkerLogThrottle,
+    );
+  }
+  _shortQuotaFillWorkerLastLogAtByKey[key] = now;
+  return true;
+}
+
 extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   String _segmentRequestKey(String docID, String segmentKey) =>
       '$docID|$segmentKey';
@@ -324,13 +345,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     currentBacklog = _queue.length +
         _pendingFollowUpJobs.length +
         _activeDocRefCounts.length;
-    debugPrint(
-      '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
-      'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
-      'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
-      'activeShort=$_hasActiveShortPlaybackWindow '
-      'activeProfile=$_hasActiveProfilePlaybackWindow',
-    );
+    final workerCheckLog =
+        '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
+        'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
+        'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
+        'activeShort=$_hasActiveShortPlaybackWindow '
+        'activeProfile=$_hasActiveProfilePlaybackWindow';
+    if (_shouldLogShortQuotaFillWorker('worker_check')) {
+      debugPrint(workerCheckLog);
+    }
     if (_automaticQuotaFillEnabled &&
         _shouldAllowBackgroundQuotaFill &&
         !_hasAnyActivePlaybackFocus &&
@@ -346,11 +369,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
               : (_hasAnyActivePlaybackFocus
                   ? 'active_playback_focus'
                   : 'backlog_high'));
-      debugPrint(
-        '[ShortQuotaFill] status=skip reason=$reason '
-        'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
-        'activeRefs=${_activeDocRefCounts.length}',
-      );
+      final skipLog = '[ShortQuotaFill] status=skip reason=$reason '
+          'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
+          'activeRefs=${_activeDocRefCounts.length}';
+      if (_shouldLogShortQuotaFillWorker('skip:$reason')) {
+        debugPrint(skipLog);
+      }
     }
     final effectiveMaxConcurrent = _effectiveMaxConcurrent();
     if (_paused || _queue.isEmpty) return;

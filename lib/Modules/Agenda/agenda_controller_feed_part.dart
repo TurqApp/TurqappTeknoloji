@@ -1,5 +1,22 @@
 part of 'agenda_controller.dart';
 
+const Duration _feedOnYuklemeLogThrottle = Duration(milliseconds: 500);
+final Map<String, DateTime> _feedOnYuklemeLastLogAtByKey = <String, DateTime>{};
+
+bool _shouldLogFeedOnYukleme(String key) {
+  final now = DateTime.now();
+  final lastAt = _feedOnYuklemeLastLogAtByKey[key];
+  if (lastAt != null && now.difference(lastAt) < _feedOnYuklemeLogThrottle) {
+    return false;
+  }
+  if (_feedOnYuklemeLastLogAtByKey.length > 128) {
+    _feedOnYuklemeLastLogAtByKey.removeWhere(
+        (_, loggedAt) => now.difference(loggedAt) > _feedOnYuklemeLogThrottle);
+  }
+  _feedOnYuklemeLastLogAtByKey[key] = now;
+  return true;
+}
+
 extension AgendaControllerFeedPart on AgendaController {
   static const int _startupThumbnailPrefetchInitialCount = 5;
   static const int _startupThumbnailPrefetchRadius = 5;
@@ -632,10 +649,13 @@ extension AgendaControllerFeedPart on AgendaController {
       }
     }
     if (boostLogs.isNotEmpty) {
-      debugPrint(
-        '[FeedOnYukleme] phase=playback_horizon centered=$centered '
-        'stabilizing=$startupWindowStabilizing entries=${boostLogs.join(' | ')}',
-      );
+      final logMessage =
+          '[FeedOnYukleme] phase=playback_horizon centered=$centered '
+          'stabilizing=$startupWindowStabilizing entries=${boostLogs.join(' | ')}';
+      final logKey = 'playback_horizon:$centered:$startupWindowStabilizing';
+      if (_shouldLogFeedOnYukleme(logKey)) {
+        debugPrint(logMessage);
+      }
     }
   }
 
