@@ -10,6 +10,12 @@ class CurrentUserAccountCenterRole {
   final CurrentUserService service;
   final StartupSessionFailureReporter _failureReporter;
 
+  int _sessionTimestampMs(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
+  }
+
   Future<void> adoptFreshSessionKeyIfNeeded() async {
     final uid = service.authUserId;
     if (uid.isEmpty) return;
@@ -41,7 +47,43 @@ class CurrentUserAccountCenterRole {
     if (activeDeviceKey.isEmpty) return false;
     final localDeviceKey =
         await DeviceSessionService.instance.getOrCreateDeviceKey();
-    if (activeDeviceKey == localDeviceKey) return false;
+    if (activeDeviceKey == localDeviceKey) {
+      DeviceSessionService.instance.clearOwnershipGuard(uid);
+      return false;
+    }
+    final claimAtMs = DeviceSessionService.instance.getOwnershipClaimAt(uid);
+    if (DeviceSessionService.instance.hasOwnershipGuard(uid)) {
+      final activeSessionUpdatedAtMs =
+          _sessionTimestampMs(data['activeSessionUpdatedAt']);
+      final isSnapshotOlderThanThisLogin = activeSessionUpdatedAtMs <= 0 ||
+          activeSessionUpdatedAtMs <= claimAtMs;
+      if (isSnapshotOlderThanThisLogin) {
+        try {
+          debugPrint(
+            '[DeviceSession] status=ignore_stale_remote_session '
+            'uid=$uid activeUpdatedAt=$activeSessionUpdatedAtMs '
+            'claimAt=$claimAtMs',
+          );
+          await ensureAccountCenterService()
+              .registerCurrentDeviceSessionIfEnabled();
+          return false;
+        } catch (error, stackTrace) {
+          _failureReporter.record(
+            kind: StartupSessionFailureKind.accountCenterRegistration,
+            operation:
+                'CurrentUserAccountCenterRole.handleExclusiveSessionIfNeeded.ownershipGuard',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+      }
+      debugPrint(
+        '[DeviceSession] status=remote_session_newer_than_claim '
+        'uid=$uid activeUpdatedAt=$activeSessionUpdatedAtMs '
+        'claimAt=$claimAtMs',
+      );
+      DeviceSessionService.instance.clearOwnershipGuard(uid);
+    }
     if (DeviceSessionService.instance.consumeFreshKeyGenerationFlag()) {
       try {
         await ensureAccountCenterService()

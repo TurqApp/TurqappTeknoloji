@@ -211,17 +211,33 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
 
   Future<void> registerCurrentDeviceSessionIfEnabled() async {
     final uid = CurrentUserService.instance.effectiveUserId.trim();
-    if (uid.isEmpty) return;
-    final raw = await UserRepository.ensure().getUserRaw(
-      uid,
-      preferCache: false,
-      forceServer: true,
+    if (uid.isEmpty) {
+      if (kDebugMode) {
+        debugPrint(
+          '[DeviceSession] status=skip_register reason=empty_uid',
+        );
+      }
+      return;
+    }
+    final raw = await _loadPrivateSessionSettings(uid);
+    if (raw == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[DeviceSession] status=skip_register uid=$uid reason=user_missing',
+        );
+      }
+      return;
+    }
+    final enabled = _accountCenterAsBool(
+      raw['singleDeviceSessionEnabled'],
+      fallback: false,
     );
-    if (raw == null ||
-        !_accountCenterAsBool(
-          raw['singleDeviceSessionEnabled'],
-          fallback: false,
-        )) {
+    if (!enabled) {
+      if (kDebugMode) {
+        debugPrint(
+          '[DeviceSession] status=skip_register uid=$uid reason=disabled',
+        );
+      }
       return;
     }
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -234,6 +250,36 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
       'updatedDate': nowMs,
     });
     DeviceSessionService.instance.clearPendingSessionClaim(uid);
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceSession] status=registered uid=$uid '
+        'updatedAt=$nowMs key=${deviceKey.substring(0, deviceKey.length > 12 ? 12 : deviceKey.length)}',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>?> _loadPrivateSessionSettings(String uid) async {
+    try {
+      final doc = await AppFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get(const GetOptions(source: Source.server));
+      if (doc.exists) {
+        return Map<String, dynamic>.from(doc.data() ?? const {});
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[DeviceSession] status=session_settings_server_read_failed '
+          'uid=$uid error=$error',
+        );
+      }
+    }
+    return UserRepository.ensure().getUserRaw(
+      uid,
+      preferCache: false,
+      forceServer: true,
+    );
   }
 
   Future<void> togglePinned(String uid) async {

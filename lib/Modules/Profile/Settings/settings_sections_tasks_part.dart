@@ -115,14 +115,21 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
       onYesPressed: () async {
         final currentUser = userService.effectiveUserId.trim();
         if (currentUser.isNotEmpty) {
-          await _userRepository.updateUserFields(
-            currentUser,
-            {"token": ""},
+          unawaited(
+            _userRepository
+                .updateUserFields(
+                  currentUser,
+                  {"token": ""},
+                )
+                .timeout(const Duration(seconds: 2))
+                .catchError((_) {}),
           );
-          await ensureAccountCenterService().markSessionState(
-            uid: currentUser,
-            isSessionValid: false,
-          );
+          try {
+            await ensureAccountCenterService().markSessionState(
+              uid: currentUser,
+              isSessionValid: false,
+            );
+          } catch (_) {}
         }
 
         try {

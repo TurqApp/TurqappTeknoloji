@@ -174,12 +174,24 @@ class SignInApplicationService {
         email: email,
         password: password,
       );
-      final signedUid = _authUserIdProvider().trim();
+      final signedUid = await _resolveSignedInUidAfterAuth();
       if (signedUid.isNotEmpty) {
         _beginSessionClaim(signedUid);
         try {
           await _registerCurrentDeviceSession();
-        } catch (_) {}
+        } catch (error) {
+          if (kDebugMode) {
+            debugPrint(
+              '[DeviceSession] status=register_after_password_sign_in_failed '
+              'uid=$signedUid error=$error',
+            );
+          }
+        }
+      } else if (kDebugMode) {
+        debugPrint(
+          '[DeviceSession] status=skip_register_after_password_sign_in '
+          'reason=empty_uid',
+        );
       }
       authSucceeded = true;
       await _schedulePostAuthTasks(email);
@@ -197,6 +209,15 @@ class SignInApplicationService {
       }
       return const SignInPasswordAttemptResult.genericFailure();
     }
+  }
+
+  Future<String> _resolveSignedInUidAfterAuth() async {
+    for (var attempt = 0; attempt < 6; attempt += 1) {
+      final uid = _authUserIdProvider().trim();
+      if (uid.isNotEmpty) return uid;
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    }
+    return _authUserIdProvider().trim();
   }
 
   Future<UserCredential> signInForPasswordReset({
