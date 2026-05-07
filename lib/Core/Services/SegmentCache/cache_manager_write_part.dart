@@ -44,7 +44,9 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
       await file.parent.create(recursive: true);
       await file.writeAsBytes(bytes, flush: false);
       if (await tmpFile.exists()) {
-        await tmpFile.delete();
+        try {
+          await tmpFile.delete();
+        } catch (_) {}
       }
     }
 
@@ -79,6 +81,22 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
 
   /// M3U8 playlist'i disk'e yaz (index'e segment olarak eklenmez).
   Future<File> writePlaylist(String relativePath, String content) async {
+    final normalizedPath =
+        relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
+    final existing = _playlistWriteInFlight[normalizedPath];
+    if (existing != null) return existing;
+
+    final future = _writePlaylistInternal(normalizedPath, content);
+    _playlistWriteInFlight[normalizedPath] = future;
+    try {
+      return await future;
+    } finally {
+      _playlistWriteInFlight.remove(normalizedPath);
+    }
+  }
+
+  Future<File> _writePlaylistInternal(
+      String relativePath, String content) async {
     final docID = _docIdForPlaylistPath(relativePath);
     if (docID != null) {
       _playlistWriteInFlightByDoc[docID] =
@@ -96,7 +114,9 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
         await file.parent.create(recursive: true);
         await file.writeAsString(content, flush: false);
         if (await tmpFile.exists()) {
-          await tmpFile.delete();
+          try {
+            await tmpFile.delete();
+          } catch (_) {}
         }
       }
       final nextLength = await file.exists() ? await file.length() : 0;

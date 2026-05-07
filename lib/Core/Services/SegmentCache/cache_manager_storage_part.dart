@@ -88,7 +88,9 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     await _cleanTempFiles(Directory(_cacheDir));
 
     final toRemove = <String>[];
-    for (final entry in _index.entries.entries) {
+    final entriesSnapshot = _index.entries.entries.toList(growable: false);
+    for (final entry in entriesSnapshot) {
+      if (!_index.entries.containsKey(entry.key)) continue;
       final dir = Directory('$_cacheDir/Posts/${entry.key}');
       if (!await dir.exists()) {
         toRemove.add(entry.key);
@@ -124,6 +126,7 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     }
 
     final emptyEntries = _index.entries.entries
+        .toList(growable: false)
         .where((e) => e.value.segments.isEmpty)
         .map((e) => e.key)
         .toList();
@@ -172,7 +175,9 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         }
       }
     } on FileSystemException catch (error) {
-      debugPrint('[CacheManager] Metadata usage refresh skipped: $error');
+      if (!_isMissingPathError(error)) {
+        debugPrint('[CacheManager] Metadata usage refresh skipped: $error');
+      }
     }
     _playlistMetadataBytes = playlistBytes;
     _indexMetadataBytes = indexBytes;
@@ -237,9 +242,14 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
         }
       }
     } on FileSystemException catch (error) {
-      debugPrint('[CacheManager] Temp cleanup skipped: $error');
+      if (!_isMissingPathError(error)) {
+        debugPrint('[CacheManager] Temp cleanup skipped: $error');
+      }
     }
   }
+
+  bool _isMissingPathError(FileSystemException error) =>
+      error.osError?.errorCode == 2;
 
   /// Tüm cache içeriğini diskten ve index'ten temizler.
   Future<void> clearAllCache() async {
