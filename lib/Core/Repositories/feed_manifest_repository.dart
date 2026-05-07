@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/manifest_disk_cipher.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -225,8 +226,7 @@ class FeedManifestRepository extends GetxService {
       final preview = entries
           .take(12)
           .map(
-            (entry) =>
-                '${entry.post.docID}'
+            (entry) => '${entry.post.docID}'
                 '@${entry.slotId}'
                 ' ts=${entry.post.timeStamp}'
                 ' path=${entry.slotPath}',
@@ -278,8 +278,7 @@ class FeedManifestRepository extends GetxService {
     if (_backgroundActiveSyncFuture != null) return;
     final nextRefreshAt = nextExpectedRefreshAt;
     final now = DateTime.now();
-    final shouldSync =
-        nextRefreshAt == null || !now.isBefore(nextRefreshAt);
+    final shouldSync = nextRefreshAt == null || !now.isBefore(nextRefreshAt);
     if (!shouldSync) return;
 
     final future = () async {
@@ -385,16 +384,30 @@ class FeedManifestRepository extends GetxService {
     required bool forceRefresh,
   }) async {
     final prefs = await _ensurePrefs();
+    final slotPrefsKey = _slotPrefsKey(slot.path);
     if (!forceRefresh) {
-      final cachedRaw = prefs.getString(_slotPrefsKey(slot.path));
+      final cachedRaw = prefs.getString(slotPrefsKey);
       if (cachedRaw != null && cachedRaw.isNotEmpty) {
-        final parsed = parseSlotEntries(
+        final clearText = await _decodeManifestPrefsString(
           cachedRaw,
-          fallbackSlotId: slot.slotId,
-          slotPath: slot.path,
+          prefsKey: slotPrefsKey,
         );
-        _slotEntries[slot.path] = parsed;
-        return;
+        if (clearText == null || clearText.isEmpty) {
+          await prefs.remove(slotPrefsKey);
+        } else {
+          final parsed = parseSlotEntries(
+            clearText,
+            fallbackSlotId: slot.slotId,
+            slotPath: slot.path,
+          );
+          _slotEntries[slot.path] = parsed;
+          await _rewritePlainManifestPrefsStringIfNeeded(
+            cachedRaw,
+            clearText,
+            prefsKey: slotPrefsKey,
+          );
+          return;
+        }
       }
     }
     try {
@@ -404,7 +417,7 @@ class FeedManifestRepository extends GetxService {
           .timeout(_slotDownloadTimeout);
       if (bytes == null || bytes.isEmpty) {
         _slotEntries[slot.path] = const <FeedManifestEntry>[];
-        await prefs.remove(_slotPrefsKey(slot.path));
+        await prefs.remove(slotPrefsKey);
         return;
       }
       final rawJson = utf8.decode(bytes);
@@ -413,7 +426,10 @@ class FeedManifestRepository extends GetxService {
         fallbackSlotId: slot.slotId,
         slotPath: slot.path,
       );
-      await prefs.setString(_slotPrefsKey(slot.path), rawJson);
+      await prefs.setString(
+        slotPrefsKey,
+        await _encodeManifestPrefsString(rawJson, prefsKey: slotPrefsKey),
+      );
     } catch (error) {
       _slotEntries.remove(slot.path);
       if (kDebugMode) {
@@ -438,22 +454,35 @@ class FeedManifestRepository extends GetxService {
     final raw = prefs.getString(_localWindowsPrefsKey);
     if (raw != null && raw.trim().isNotEmpty) {
       try {
-        final decoded = jsonDecode(raw);
-        if (decoded is List) {
-          _windows
-            ..clear()
-            ..addAll(
-              decoded
-                  .whereType<Map>()
-                  .map(
-                    (entry) => _FeedManifestWindow.fromJson(
-                      Map<String, dynamic>.from(
-                        entry.cast<dynamic, dynamic>(),
+        final clearText = await _decodeManifestPrefsString(
+          raw,
+          prefsKey: _localWindowsPrefsKey,
+        );
+        if (clearText == null || clearText.trim().isEmpty) {
+          await prefs.remove(_localWindowsPrefsKey);
+        } else {
+          final decoded = jsonDecode(clearText);
+          if (decoded is List) {
+            _windows
+              ..clear()
+              ..addAll(
+                decoded
+                    .whereType<Map>()
+                    .map(
+                      (entry) => _FeedManifestWindow.fromJson(
+                        Map<String, dynamic>.from(
+                          entry.cast<dynamic, dynamic>(),
+                        ),
                       ),
-                    ),
-                  )
-                  .where((entry) => entry.isValid),
+                    )
+                    .where((entry) => entry.isValid),
+              );
+            await _rewritePlainManifestPrefsStringIfNeeded(
+              raw,
+              clearText,
+              prefsKey: _localWindowsPrefsKey,
             );
+          }
         }
       } catch (_) {}
     }
@@ -521,9 +550,15 @@ class FeedManifestRepository extends GetxService {
     Set<String> removedPaths = const <String>{},
   }) async {
     final prefs = await _ensurePrefs();
+    final rawWindows = jsonEncode(
+      _windows.map((entry) => entry.toJson()).toList(),
+    );
     await prefs.setString(
       _localWindowsPrefsKey,
-      jsonEncode(_windows.map((entry) => entry.toJson()).toList()),
+      await _encodeManifestPrefsString(
+        rawWindows,
+        prefsKey: _localWindowsPrefsKey,
+      ),
     );
     for (final path in removedPaths) {
       await prefs.remove(_slotPrefsKey(path));
@@ -545,6 +580,39 @@ class FeedManifestRepository extends GetxService {
   String _slotPrefsKey(String path) {
     final encoded = base64Url.encode(utf8.encode(path));
     return '$_localSlotPrefsPrefix:$encoded';
+  }
+
+  Future<String> _encodeManifestPrefsString(
+    String raw, {
+    required String prefsKey,
+  }) {
+    return ManifestDiskCipher.instance.encodeForDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<String?> _decodeManifestPrefsString(
+    String raw, {
+    required String prefsKey,
+  }) {
+    return ManifestDiskCipher.instance.decodeFromDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<void> _rewritePlainManifestPrefsStringIfNeeded(
+    String stored,
+    String clearText, {
+    required String prefsKey,
+  }) async {
+    if (ManifestDiskCipher.instance.isEncryptedEnvelope(stored)) return;
+    final prefs = await _ensurePrefs();
+    await prefs.setString(
+      prefsKey,
+      await _encodeManifestPrefsString(clearText, prefsKey: prefsKey),
+    );
   }
 
   static List<FeedManifestEntry> parseSlotEntries(

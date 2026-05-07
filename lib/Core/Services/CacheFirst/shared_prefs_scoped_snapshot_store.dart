@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
+import 'package:turqappv2/Core/Services/manifest_disk_cipher.dart';
 
 import 'cache_first_serialization.dart';
 import 'cached_resource.dart';
@@ -18,11 +19,13 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     required this.prefsPrefix,
     required this.encode,
     required this.decode,
+    this.encryptAtRest = false,
   });
 
   final String prefsPrefix;
   final SnapshotEncoder<T> encode;
   final SnapshotDecoder<T> decode;
+  final bool encryptAtRest;
 
   SharedPreferences? _prefs;
 
@@ -36,7 +39,12 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
       final prefs = await _ensurePrefs();
       final raw = prefs.getString(prefsKey);
       if (raw == null || raw.isEmpty) return null;
-      final decoded = jsonDecode(raw);
+      final clearText = await _decodeStoredString(raw, prefsKey: prefsKey);
+      if (clearText == null || clearText.isEmpty) {
+        await prefs.remove(prefsKey);
+        return null;
+      }
+      final decoded = jsonDecode(clearText);
       if (decoded is! Map) {
         await prefs.remove(prefsKey);
         return null;
@@ -63,6 +71,11 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
         await prefs.remove(prefsKey);
         return null;
       }
+      await _rewritePlaintextIfNeeded(
+        raw,
+        clearText,
+        prefsKey: prefsKey,
+      );
       return ScopedSnapshotRecord<T>(
         data:
             decode(Map<String, dynamic>.from(dataMap.cast<dynamic, dynamic>())),
@@ -86,18 +99,20 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     ScopedSnapshotRecord<T> record,
   ) async {
     final prefs = await _ensurePrefs();
+    final prefsKey = _prefsKey(key);
+    final raw = jsonEncode(<String, dynamic>{
+      'surfaceKey': key.surfaceKey,
+      'userId': key.userId,
+      'scopeId': key.scopeId,
+      'snapshotAt': record.snapshotAt.millisecondsSinceEpoch,
+      'schemaVersion': record.schemaVersion,
+      'generationId': record.generationId,
+      'source': record.source.name,
+      'data': encode(record.data),
+    });
     await prefs.setString(
-      _prefsKey(key),
-      jsonEncode(<String, dynamic>{
-        'surfaceKey': key.surfaceKey,
-        'userId': key.userId,
-        'scopeId': key.scopeId,
-        'snapshotAt': record.snapshotAt.millisecondsSinceEpoch,
-        'schemaVersion': record.schemaVersion,
-        'generationId': record.generationId,
-        'source': record.source.name,
-        'data': encode(record.data),
-      }),
+      prefsKey,
+      await _encodeStoredString(raw, prefsKey: prefsKey),
     );
   }
 
@@ -126,7 +141,12 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
         continue;
       }
       try {
-        final decoded = jsonDecode(raw);
+        final clearText = await _decodeStoredString(raw, prefsKey: key);
+        if (clearText == null || clearText.isEmpty) {
+          await prefs.remove(key);
+          continue;
+        }
+        final decoded = jsonDecode(clearText);
         if (decoded is! Map) {
           await prefs.remove(key);
           continue;
@@ -152,6 +172,42 @@ class SharedPrefsScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
   }
 
   String _prefsKey(ScopedSnapshotKey key) => '$prefsPrefix:${key.storageKey}';
+
+  Future<String> _encodeStoredString(
+    String raw, {
+    required String prefsKey,
+  }) async {
+    if (!encryptAtRest) return raw;
+    return ManifestDiskCipher.instance.encodeForDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<String?> _decodeStoredString(
+    String raw, {
+    required String prefsKey,
+  }) async {
+    if (!encryptAtRest) return raw;
+    return ManifestDiskCipher.instance.decodeFromDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<void> _rewritePlaintextIfNeeded(
+    String stored,
+    String clearText, {
+    required String prefsKey,
+  }) async {
+    if (!encryptAtRest) return;
+    if (ManifestDiskCipher.instance.isEncryptedEnvelope(stored)) return;
+    final prefs = await _ensurePrefs();
+    await prefs.setString(
+      prefsKey,
+      await _encodeStoredString(clearText, prefsKey: prefsKey),
+    );
+  }
 
   CachedResourceSource _parseSource(Object? raw) {
     final value = raw?.toString().trim() ?? '';

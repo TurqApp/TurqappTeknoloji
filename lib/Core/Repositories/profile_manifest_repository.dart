@@ -41,6 +41,7 @@ class ProfileManifestRepository extends GetxService {
     prefsPrefix: 'profile_manifest_header_v1',
     encode: (data) => Map<String, dynamic>.from(data),
     decode: (data) => Map<String, dynamic>.from(data),
+    encryptAtRest: true,
   );
   late final SharedPrefsScopedSnapshotStore<Map<String, dynamic>>
       _bucketsSnapshotStore =
@@ -48,6 +49,7 @@ class ProfileManifestRepository extends GetxService {
     prefsPrefix: 'profile_manifest_buckets_v1',
     encode: (data) => Map<String, dynamic>.from(data),
     decode: (data) => Map<String, dynamic>.from(data),
+    encryptAtRest: true,
   );
 
   static ProfileManifestRepository? maybeFind() {
@@ -448,6 +450,19 @@ class ProfileManifestRepository extends GetxService {
 
   static Map<String, dynamic> headerAsUserCard(Map<String, dynamic> header) {
     String asTrimmedString(dynamic value) => (value ?? '').toString().trim();
+    int asCounter(List<String> keys) {
+      final stats = header['stats'] is Map
+          ? Map<String, dynamic>.from(header['stats'] as Map)
+          : const <String, dynamic>{};
+      for (final key in keys) {
+        final direct = header[key];
+        if (direct is num) return direct.toInt();
+        final nested = stats[key];
+        if (nested is num) return nested.toInt();
+      }
+      return 0;
+    }
+
     return <String, dynamic>{
       'nickname': asTrimmedString(header['nickname']),
       'displayName': asTrimmedString(header['displayName']),
@@ -456,8 +471,14 @@ class ProfileManifestRepository extends GetxService {
       'bio': asTrimmedString(header['bio']),
       'adres': asTrimmedString(header['adres']),
       'meslekKategori': asTrimmedString(header['meslekKategori']),
-      'counterOfFollowers': header['counterOfFollowers'] ?? 0,
-      'counterOfFollowings': header['counterOfFollowings'] ?? 0,
+      'counterOfFollowers': asCounter(<String>[
+        'counterOfFollowers',
+        'followerCount',
+      ]),
+      'counterOfFollowings': asCounter(<String>[
+        'counterOfFollowings',
+        'followingCount',
+      ]),
     };
   }
 
