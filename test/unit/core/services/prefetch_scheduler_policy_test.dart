@@ -180,18 +180,18 @@ void main() {
       expect(context.currentIndex, 2);
     });
 
-    test('keeps hard boost on current and next two, soft warm elsewhere', () {
+    test('keeps one ready segment across the feed warm window', () {
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 10),
-        2,
+        1,
       );
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 11),
-        2,
+        1,
       );
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 12),
-        2,
+        1,
       );
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 13),

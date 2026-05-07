@@ -168,10 +168,17 @@ extension _ShortControllerRuntimeX on ShortController {
     for (int i = start; i < endExclusive; i++) {
       final post = shorts[i];
       if (!_prefetchedPosterDocIds.add(post.docID)) continue;
+      _warmShortAvatar(post);
       for (final url in _posterWarmUrlsForPost(post)) {
         TurqImageCacheManager.warmUrl(url).ignore();
       }
     }
+  }
+
+  void _warmShortAvatar(PostsModel post) {
+    final avatarUrl = post.authorAvatarUrl.trim();
+    if (avatarUrl.isEmpty) return;
+    TurqImageCacheManager.warmUrl(avatarUrl).ignore();
   }
 
   void _bindNetworkAwareness() {

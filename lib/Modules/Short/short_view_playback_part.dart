@@ -196,7 +196,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
       return;
     }
     _persistShortPlaybackState(page, adapter);
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       try {
         await adapter.pause();
       } catch (_) {}
@@ -903,7 +904,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final activePage = currentPage;
     controller.primeImmediateNextAfterPlaybackStart(activePage);
     _prepareUpcomingVideoForSwipe(activePageOverride: activePage);
-    if (defaultTargetPlatform == TargetPlatform.android) {
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       scheduleMicrotask(() {
         if (!mounted || currentPage != activePage) return;
         controller.primePlaybackWindowReadySegments(
@@ -1107,7 +1109,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         )) {
           continue;
         }
-        if (defaultTargetPlatform == TargetPlatform.android) {
+        if (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS) {
           unawaited(vc.forceSilence());
         } else {
           _releasePlayback(vc);
