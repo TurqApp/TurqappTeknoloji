@@ -26,7 +26,13 @@ class ShortResumeState {
     required this.hasMore,
     required this.savedAtMs,
     required List<PostsModel> remainingPosts,
-  }) : remainingPosts = List<PostsModel>.from(remainingPosts);
+    List<String> consumedDocIds = const <String>[],
+  })  : remainingPosts = List<PostsModel>.from(remainingPosts),
+        consumedDocIds = consumedDocIds
+            .map((docId) => docId.trim())
+            .where((docId) => docId.isNotEmpty)
+            .toSet()
+            .toList(growable: false);
 
   final String manifestId;
   final int cursorSlotIndex;
@@ -34,6 +40,7 @@ class ShortResumeState {
   final bool hasMore;
   final int savedAtMs;
   final List<PostsModel> remainingPosts;
+  final List<String> consumedDocIds;
 
   bool get hasCursor =>
       manifestId.trim().isNotEmpty &&
@@ -47,6 +54,7 @@ class ShortResumeState {
       'cursorItemIndex': cursorItemIndex,
       'hasMore': hasMore,
       'savedAtMs': savedAtMs,
+      'consumedDocIds': consumedDocIds,
       'remainingPosts': remainingPosts
           .map((post) => <String, dynamic>{
                 'docId': post.docID,
@@ -76,6 +84,16 @@ class ShortResumeState {
         } catch (_) {}
       }
     }
+    final consumed = <String>[];
+    final consumedRaw = json['consumedDocIds'];
+    if (consumedRaw is List) {
+      for (final raw in consumedRaw) {
+        final docId = raw.toString().trim();
+        if (docId.isNotEmpty) {
+          consumed.add(docId);
+        }
+      }
+    }
     return ShortResumeState(
       manifestId: (json['manifestId'] ?? '').toString().trim(),
       cursorSlotIndex: _shortResumeAsInt(json['cursorSlotIndex']),
@@ -83,6 +101,7 @@ class ShortResumeState {
       hasMore: _shortResumeAsBool(json['hasMore']),
       savedAtMs: _shortResumeAsInt(json['savedAtMs']),
       remainingPosts: posts,
+      consumedDocIds: consumed,
     );
   }
 }

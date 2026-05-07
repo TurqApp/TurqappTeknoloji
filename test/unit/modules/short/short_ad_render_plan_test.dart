@@ -94,6 +94,26 @@ void main() {
       expect(plan.entries[13].isAd, isTrue);
       expect(plan.entries.where((entry) => entry.isAd), hasLength(2));
     });
+
+    test('can delay a late first ad past the currently visible organic item',
+        () {
+      final posts = List<PostsModel>.generate(
+        13,
+        (index) => _short('short-$index'),
+      );
+
+      final plan = buildShortAdRenderPlan(
+        posts,
+        adReady: true,
+        deferFirstAdUntilAfterOrganicIndex: 5,
+      );
+
+      expect(plan.entries[6].isAd, isTrue);
+      expect(plan.renderIndexForOrganicIndex(5), 5);
+      expect(plan.renderIndexForOrganicIndex(6), 7);
+      expect(plan.entries[12].isAd, isTrue);
+      expect(plan.entries.where((entry) => entry.isAd), hasLength(2));
+    });
   });
 }
 

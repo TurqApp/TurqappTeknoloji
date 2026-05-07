@@ -289,6 +289,17 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     debugPrint('[ShortAdSlots] $message');
   }
 
+  int? _deferredFirstShortAdBoundaryForLateReady() {
+    if (currentPage < kShortAdInsertionFrequency - 1) return null;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return (currentPage + 1).clamp(
+        kShortAdInsertionFrequency - 1,
+        _cachedShorts.isEmpty ? currentPage + 1 : _cachedShorts.length - 1,
+      );
+    }
+    return currentPage;
+  }
+
   void _rebuildShortRenderPlan() {
     _renderPlan = buildShortAdRenderPlan(
       _cachedShorts,
@@ -318,7 +329,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     final previousRenderPage = _currentRenderPage;
     if (!_shortAdRenderable && nextRenderable) {
       _deferredFirstShortAdAfterOrganicIndex =
-          currentPage >= kShortAdInsertionFrequency - 1 ? currentPage : null;
+          _deferredFirstShortAdBoundaryForLateReady();
     } else if (!nextRenderable) {
       _deferredFirstShortAdAfterOrganicIndex = null;
     }
@@ -364,7 +375,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       final previousRenderPage = _currentRenderPage;
       if (!_shortAdRenderable && nextRenderable) {
         _deferredFirstShortAdAfterOrganicIndex =
-            currentPage >= kShortAdInsertionFrequency - 1 ? currentPage : null;
+            _deferredFirstShortAdBoundaryForLateReady();
       } else if (!nextRenderable) {
         _deferredFirstShortAdAfterOrganicIndex = null;
       }
@@ -552,6 +563,19 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     }
   }
 
+  Future<void> _restoreShortRouteQueueOnOpen() async {
+    final restored = await controller.restoreVisibleResumeQueueIntoSurface(
+      reason: 'nav_route_open',
+    );
+    if (!mounted || !restored) return;
+    _syncShortSurfaceAfterStartup();
+    _alignCurrentPageToDocAnchor(
+      reason: 'nav_route_open',
+      jumpRenderPage: true,
+    );
+    _scheduleRouteVisiblePlaybackBootstrap(delay: Duration.zero);
+  }
+
   Future<void> _pauseCurrentShortRoutePlayback() async {
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();
@@ -649,6 +673,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     if (_cachedShorts.isNotEmpty) {
       _syncShortSurfaceAfterStartup();
     }
+    unawaited(_restoreShortRouteQueueOnOpen());
     unawaited(
       controller.onPrimarySurfaceVisible().then((_) {
         _syncShortSurfaceAfterStartup();

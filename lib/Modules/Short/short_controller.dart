@@ -85,6 +85,15 @@ class ShortController extends _ShortControllerBase {
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);
 
   String playbackHandleKeyForDoc(String docId) => 'short:${docId.trim()}';
+
+  void markShortSequencePassedDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return;
+    _state.sequencePassedDocIds.add(normalized);
+    while (_state.sequencePassedDocIds.length > 2000) {
+      _state.sequencePassedDocIds.remove(_state.sequencePassedDocIds.first);
+    }
+  }
 }
 
 ShortController ensureShortController() => _ensureShortController();

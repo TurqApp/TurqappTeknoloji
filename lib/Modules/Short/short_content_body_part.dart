@@ -70,10 +70,8 @@ extension ShortsContentBodyPart on _ShortsContentState {
                   GestureDetector(
                     onTap: () {
                       if (videoPlayerController.value.isPlaying) {
-                        videoPlayerController.pause();
                         volumeOff(false); // Manual pause bildirimi
                       } else {
-                        resumeIfActive();
                         volumeOff(true); // Manual play bildirimi
                       }
                     },
@@ -287,8 +285,9 @@ extension ShortsContentBodyPart on _ShortsContentState {
                           },
                           onUrlTap: (v) async {
                             volumeOff(false);
-                            final uniqueKey =
-                                DateTime.now().millisecondsSinceEpoch.toString();
+                            final uniqueKey = DateTime.now()
+                                .millisecondsSinceEpoch
+                                .toString();
                             await RedirectionLink()
                                 .goToLink(v, uniqueKey: uniqueKey);
                             volumeOff(true);

@@ -8,7 +8,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
   }) {
     final normalizedDocId = docId.trim();
     if (normalizedDocId.isEmpty) return;
-    _segmentCacheRuntimeService.markShortConsumed(normalizedDocId);
+    controller.markShortSequencePassedDoc(normalizedDocId);
     controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
     debugPrint(
       '[ShortSequencePassed] source=$source page=$page doc=$normalizedDocId',
@@ -425,6 +425,58 @@ extension ShortViewPlaybackPart on _ShortViewState {
         _playbackRuntimeService.playOnlyThis(playbackHandleKey);
       }
     } catch (_) {}
+  }
+
+  void _cancelPendingShortPlaybackForManualPause(
+    int page,
+    PostsModel post,
+    HLSVideoAdapter adapter,
+  ) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return;
+    if (page != currentPage) return;
+    isManuallyPaused = true;
+    _playDebounce?.cancel();
+    _playDebounce = null;
+    _pendingPlayPage = null;
+    _pendingPlayDocId = null;
+    _playbackWatchdogTimer?.cancel();
+    _iosNativePlaybackGuardTimer?.cancel();
+    _clearShortPlaybackAttemptSuppression();
+    _lastExclusivePlayDocId = null;
+    _lastExclusivePlayAt = null;
+    final handleKey = controller.playbackHandleKeyForDoc(docId);
+    try {
+      _playbackRuntimeService.requestStop(handleKey);
+      _playbackRuntimeService.exitExclusiveMode();
+    } catch (_) {}
+    debugPrint(
+      '[ShortManualPause] source=user_toggle page=$page doc=$docId '
+      'handle=$handleKey posMs=${adapter.value.position.inMilliseconds}',
+    );
+  }
+
+  Future<void> _pauseShortForUserIntent(
+    int page,
+    PostsModel post,
+    HLSVideoAdapter adapter,
+  ) async {
+    _cancelPendingShortPlaybackForManualPause(page, post, adapter);
+    await _playbackExecutionService.pauseAdapter(adapter);
+    if (!mounted || page != currentPage || adapter.isDisposed) return;
+    _persistShortPlaybackState(page, adapter);
+  }
+
+  void _resumeShortForUserIntent(
+    int page,
+    PostsModel post,
+    HLSVideoAdapter adapter,
+  ) {
+    if (page != currentPage || adapter.isDisposed) return;
+    isManuallyPaused = false;
+    _clearShortPlaybackAttemptSuppression();
+    _playbackExecutionService.playAdapter(adapter);
+    _requestExclusivePlayback(post.docID, adapter);
   }
 
   bool _shouldTrimShortAttachedPlayers(int page) {
@@ -925,11 +977,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
     return null;
   }
 
-  Future<void> _restoreShortPlaybackStateIfNeeded(
+  Future<bool> _restoreShortPlaybackStateIfNeeded(
     int page,
     HLSVideoAdapter adapter,
   ) async {
-    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) return;
+    if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
+      return false;
+    }
     final docId = _cachedShorts[page].docID;
     final handleKey = controller.playbackHandleKeyForDoc(docId);
     final target = _savedPlaybackPositionForPage(page, adapter);
@@ -939,15 +993,25 @@ extension ShortViewPlaybackPart on _ShortViewState {
       'currentMs=${adapter.value.position.inMilliseconds} '
       'init=${adapter.value.isInitialized}',
     );
-    if (target == null) return;
+    if (target == null) return false;
     try {
+      var seekTarget = target;
+      const resumeNudge = Duration(milliseconds: 350);
+      final duration = adapter.value.duration;
+      if (duration <= Duration.zero ||
+          duration - target > const Duration(milliseconds: 1200)) {
+        seekTarget = target + resumeNudge;
+      }
       debugPrint(
         '[ShortResume] restore_apply page=$page doc=$docId handle=$handleKey '
-        'targetMs=${target.inMilliseconds}',
+        'targetMs=${seekTarget.inMilliseconds} savedMs=${target.inMilliseconds}',
       );
-      await adapter.seekTo(target);
+      await adapter.seekTo(seekTarget);
       _playbackRuntimeService.clearSavedPlaybackState(handleKey);
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   bool _shouldRestartShortFromBeginning(
@@ -1444,19 +1508,23 @@ extension ShortViewPlaybackPart on _ShortViewState {
             'isInitialized': vc.value.isInitialized,
           },
         );
-        await _restoreShortPlaybackStateIfNeeded(page, vc);
-        if (_shouldResetArrivingShortToStart(page, vc)) {
+        final restoredSavedPosition =
+            await _restoreShortPlaybackStateIfNeeded(page, vc);
+        if (!restoredSavedPosition &&
+            _shouldResetArrivingShortToStart(page, vc)) {
           try {
             await vc.seekTo(Duration.zero);
           } catch (_) {}
         }
-        if (_shouldRestartShortFromBeginning(page, vc)) {
+        if (!restoredSavedPosition &&
+            _shouldRestartShortFromBeginning(page, vc)) {
           try {
             await vc.seekTo(Duration.zero);
           } catch (_) {}
         }
         var recoveredRevisitPlayback = false;
-        if (_shouldRecoverShortPlaybackOnRevisit(page, vc)) {
+        if (!restoredSavedPosition &&
+            _shouldRecoverShortPlaybackOnRevisit(page, vc)) {
           try {
             _markShortPlaybackAttempt(page, docId);
             await vc.recoverFrozenPlayback();

@@ -34,6 +34,7 @@ class _ShortControllerState {
   final invariantGuard = ensureRuntimeInvariantGuard();
   final visibilityPolicy = VisibilityPolicyService.ensure();
   final prefetchedPosterDocIds = <String>{};
+  final sequencePassedDocIds = <String>{};
   bool startupPresentationApplied = false;
   bool isShortRouteVisible = false;
   Worker? networkWorker;
@@ -103,6 +104,7 @@ extension ShortControllerFieldsPart on ShortController {
   RuntimeInvariantGuard get _invariantGuard => _state.invariantGuard;
   VisibilityPolicyService get _visibilityPolicy => _state.visibilityPolicy;
   Set<String> get _prefetchedPosterDocIds => _state.prefetchedPosterDocIds;
+  Set<String> get _sequencePassedDocIds => _state.sequencePassedDocIds;
   bool get _startupPresentationApplied => _state.startupPresentationApplied;
   set _startupPresentationApplied(bool value) =>
       _state.startupPresentationApplied = value;

@@ -292,12 +292,11 @@ extension ShortViewUiPart on _ShortViewState {
                       ignoring: !isActivePage,
                       child: Opacity(
                         opacity: isActivePage ? 1 : 0.001,
-                      child: _buildFullscreenVideoSurface(
+                        child: _buildFullscreenVideoSurface(
                           vp,
                           'vp-${post.docID}',
                           modelAspectRatio: modelAr,
-                          overrideAutoPlay:
-                              isActivePage &&
+                          overrideAutoPlay: isActivePage &&
                               _isShortRoutePlaybackActive &&
                               !isManuallyPaused,
                           preferResumePoster: isActivePage &&
@@ -380,11 +379,19 @@ extension ShortViewUiPart on _ShortViewState {
                         },
                         volumeOff: (v) {
                           if (v) {
-                            _playbackExecutionService.playAdapter(vp);
-                            isManuallyPaused = false;
+                            _resumeShortForUserIntent(
+                              organicIndex,
+                              post,
+                              vp,
+                            );
                           } else {
-                            _playbackExecutionService.pauseAdapter(vp);
-                            isManuallyPaused = true;
+                            unawaited(
+                              _pauseShortForUserIntent(
+                                organicIndex,
+                                post,
+                                vp,
+                              ),
+                            );
                           }
                           if (organicIndex == currentPage) {
                             VideoTelemetryService.instance.updateRuntimeHints(

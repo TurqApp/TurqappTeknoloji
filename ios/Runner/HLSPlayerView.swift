@@ -743,9 +743,6 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         let hasReadyLayer = (playerLayer?.isReadyForDisplay == true) || didRenderFirstFrame
         guard hasReadyLayer else { return }
 
-        let currentSeconds = player?.currentTime().seconds ?? 0.0
-        let hasVisibleProgress = currentSeconds.isFinite && currentSeconds >= 0.05
-
         let isActivelyPlaying: Bool
         if #available(iOS 10.0, *) {
             isActivelyPlaying = player?.timeControlStatus == .playing
@@ -753,13 +750,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             isActivelyPlaying = (player?.rate ?? 0) > 0
         }
 
-        guard isActivelyPlaying || hasVisibleProgress else { return }
+        guard isActivelyPlaying else { return }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
             guard let self = self else { return }
             guard !self._view.snapshotView.isHidden else { return }
-            let currentSeconds = self.player?.currentTime().seconds ?? 0.0
-            let hasVisibleProgress = currentSeconds.isFinite && currentSeconds >= 0.05
             let isActivelyPlaying: Bool
             if #available(iOS 10.0, *) {
                 isActivelyPlaying = self.player?.timeControlStatus == .playing
@@ -767,7 +762,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 isActivelyPlaying = (self.player?.rate ?? 0) > 0
             }
             guard (self.playerLayer?.isReadyForDisplay == true || self.didRenderFirstFrame) &&
-                (isActivelyPlaying || hasVisibleProgress) else { return }
+                isActivelyPlaying else { return }
             self.hideFrameSnapshot()
             self.recordNativeVisualPhase(
                 phase: "video_play",
