@@ -10,6 +10,8 @@ class TurqImageCacheManager {
   static const key = 'turqImageCache';
   static const startupPosterHintsKey = 'posterHints';
   static const int _maxRememberedResolvedFiles = 768;
+  static const Duration _diskStalePeriod = Duration(days: 14);
+  static const int _maxDiskCacheObjects = 1200;
 
   static CacheManager? _instance;
   static final LinkedHashMap<String, String> _resolvedFilePathByUrl =
@@ -27,8 +29,8 @@ class TurqImageCacheManager {
       (_instance = CacheManager(
         Config(
           key,
-          stalePeriod: const Duration(days: 30),
-          maxNrOfCacheObjects: 2000,
+          stalePeriod: _diskStalePeriod,
+          maxNrOfCacheObjects: _maxDiskCacheObjects,
         ),
       ));
 

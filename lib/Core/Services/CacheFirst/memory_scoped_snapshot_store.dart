@@ -1,15 +1,26 @@
+import 'dart:collection';
+
 import 'scoped_snapshot_store.dart';
 
 class MemoryScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
-  final Map<String, _MemoryScopedSnapshotEntry<T>> _entries =
-      <String, _MemoryScopedSnapshotEntry<T>>{};
+  MemoryScopedSnapshotStore({
+    this.maxEntries = 96,
+  });
+
+  final int maxEntries;
+  final LinkedHashMap<String, _MemoryScopedSnapshotEntry<T>> _entries =
+      LinkedHashMap<String, _MemoryScopedSnapshotEntry<T>>();
 
   @override
   Future<ScopedSnapshotRecord<T>?> read(
     ScopedSnapshotKey key, {
     bool allowStale = true,
   }) async {
-    return _entries[key.storageKey]?.record;
+    final storageKey = key.storageKey;
+    final entry = _entries.remove(storageKey);
+    if (entry == null) return null;
+    _entries[storageKey] = entry;
+    return entry.record;
   }
 
   @override
@@ -17,10 +28,13 @@ class MemoryScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
     ScopedSnapshotKey key,
     ScopedSnapshotRecord<T> record,
   ) async {
-    _entries[key.storageKey] = _MemoryScopedSnapshotEntry<T>(
+    final storageKey = key.storageKey;
+    _entries.remove(storageKey);
+    _entries[storageKey] = _MemoryScopedSnapshotEntry<T>(
       key: key,
       record: record,
     );
+    _trimToLimit();
   }
 
   @override
@@ -45,6 +59,16 @@ class MemoryScopedSnapshotStore<T> implements ScopedSnapshotStore<T> {
       return entry.key.userId.trim() == normalizedUser;
     });
   }
+
+  void _trimToLimit() {
+    if (maxEntries <= 0) {
+      _entries.clear();
+      return;
+    }
+    while (_entries.length > maxEntries) {
+      _entries.remove(_entries.keys.first);
+    }
+  }
 }
 
 class _MemoryScopedSnapshotEntry<T> {
@@ -56,4 +80,3 @@ class _MemoryScopedSnapshotEntry<T> {
   final ScopedSnapshotKey key;
   final ScopedSnapshotRecord<T> record;
 }
-

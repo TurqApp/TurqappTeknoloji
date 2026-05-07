@@ -19,10 +19,8 @@ extension ProfileControllerPrimaryPart on ProfileController {
   ) async {
     try {
       final posts = await _linkService.fetchResharedPosts(uid, refs);
-      if (posts.isNotEmpty || reshares.isEmpty) {
-        reshares.assignAll(List<PostsModel>.from(posts));
-        bootstrapFeedPlaybackAfterDataChange();
-      }
+      reshares.assignAll(List<PostsModel>.from(posts));
+      bootstrapFeedPlaybackAfterDataChange();
     } catch (e) {
       print('ProfileController hydrate reshares error: $e');
     }

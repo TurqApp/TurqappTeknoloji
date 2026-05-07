@@ -5,9 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Core/Services/app_firebase_storage.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/manifest_disk_cipher.dart';
 import 'package:turqappv2/Core/Services/short_resume_state_store.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -49,8 +52,15 @@ class ShortManifestRepository extends GetxService {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
+  static const int _maxIndexBytes = 1024 * 1024;
+  static const int _maxSlotBytes = 16 * 1024 * 1024;
+  static const int _maxCachedSlotPrefs = 12;
+  static const String _localIndexPrefsKey = 'short_manifest_index_v1';
+  static const String _localSlotPrefsPrefix = 'short_manifest_slot_v1';
+  static const String _localSlotListPrefsKey = 'short_manifest_cached_slots_v1';
 
   String _manifestId = '';
+  String _indexPath = '';
   Map<String, dynamic>? _index;
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
   final Map<int, Future<List<PostsModel>>> _slotLoads =
@@ -59,6 +69,7 @@ class ShortManifestRepository extends GetxService {
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
   Future<void>? _tailSlotFuture;
+  SharedPreferences? _prefs;
   static const int _retainedConsumedSlotCount = 1;
   static const int _rollingWindowSlotCount = 3;
 
@@ -201,7 +212,8 @@ class ShortManifestRepository extends GetxService {
       return;
     }
 
-    final decodedIndex = await _downloadIndex(
+    final decodedIndex = await _loadIndex(
+      manifestId: nextManifestId,
       indexPath,
       stage: 'index_download_ready',
     );
@@ -210,6 +222,7 @@ class ShortManifestRepository extends GetxService {
       return;
     }
     _manifestId = nextManifestId;
+    _indexPath = indexPath;
     _index = decodedIndex;
     _slots.clear();
     _slotLoads.clear();
@@ -228,12 +241,45 @@ class ShortManifestRepository extends GetxService {
     );
   }
 
+  Future<Map<String, dynamic>?> _loadIndex(
+    String indexPath, {
+    required String manifestId,
+    required String stage,
+  }) async {
+    final cached = await _readIndexSnapshot(
+      manifestId: manifestId,
+      indexPath: indexPath,
+    );
+    if (cached != null) {
+      _logTiming(
+        'index_cache_hit',
+        metadata: <String, Object?>{
+          'manifestId': manifestId,
+          'path': indexPath,
+        },
+      );
+      return cached;
+    }
+    final downloaded = await _downloadIndex(
+      indexPath,
+      stage: stage,
+    );
+    if (downloaded != null) {
+      await _writeIndexSnapshot(
+        manifestId: manifestId,
+        indexPath: indexPath,
+        index: downloaded,
+      );
+    }
+    return downloaded;
+  }
+
   Future<Map<String, dynamic>?> _downloadIndex(
     String indexPath, {
     required String stage,
   }) async {
     final indexStartedAt = DateTime.now();
-    final bytes = await _storage.ref(indexPath).getData(1024 * 1024);
+    final bytes = await _storage.ref(indexPath).getData(_maxIndexBytes);
     _logTiming(
       stage,
       metadata: <String, Object?>{
@@ -328,6 +374,7 @@ class ShortManifestRepository extends GetxService {
 
   void _reset() {
     _manifestId = '';
+    _indexPath = '';
     _index = null;
     _slots.clear();
     _slotLoads.clear();
@@ -529,6 +576,15 @@ class ShortManifestRepository extends GetxService {
     });
     index['slotCount'] = slotsRaw.length;
     index['itemCount'] = _sumSlotItemCount(slotsRaw);
+    final currentManifestId = _manifestId.trim();
+    final currentIndexPath = _indexPath.trim();
+    if (currentManifestId.isNotEmpty && currentIndexPath.isNotEmpty) {
+      await _writeIndexSnapshot(
+        manifestId: currentManifestId,
+        indexPath: currentIndexPath,
+        index: index,
+      );
+    }
     _logTiming(
       'tail_slot_appended',
       metadata: <String, Object?>{
@@ -544,8 +600,25 @@ class ShortManifestRepository extends GetxService {
   Future<List<PostsModel>> _loadSlot(int slotIndex) async {
     final path = _slotPath(slotIndex);
     if (path.isEmpty) return const <PostsModel>[];
+
+    final cachedSlot = await _readSlotSnapshot(
+      path: path,
+    );
+    if (cachedSlot != null) {
+      _slots[slotIndex] = cachedSlot;
+      _logTiming(
+        'slot_cache_hit_disk',
+        metadata: <String, Object?>{
+          'slotIndex': slotIndex,
+          'path': path,
+          'count': cachedSlot.length,
+        },
+      );
+      return cachedSlot;
+    }
+
     final startedAt = DateTime.now();
-    final bytes = await _storage.ref(path).getData(16 * 1024 * 1024);
+    final bytes = await _storage.ref(path).getData(_maxSlotBytes);
     _logTiming(
       'slot_download_ready',
       metadata: <String, Object?>{
@@ -569,6 +642,7 @@ class ShortManifestRepository extends GetxService {
       posts.add(PostsModel.fromMap(_manifestItemToPostMap(map), docId));
     }
     _slots[slotIndex] = posts;
+    await _writeSlotSnapshot(path: path, rawJson: utf8.decode(bytes));
     _logTiming(
       'slot_parse_ready',
       metadata: <String, Object?>{
@@ -605,6 +679,241 @@ class ShortManifestRepository extends GetxService {
       total += _parseSlotItemCount(slot['itemCount']);
     }
     return total;
+  }
+
+  Future<SharedPreferences> _ensurePrefs() async {
+    return _prefs ??=
+        await ensureLocalPreferenceRepository().sharedPreferences();
+  }
+
+  Future<Map<String, dynamic>?> _readIndexSnapshot({
+    required String manifestId,
+    required String indexPath,
+  }) async {
+    final prefs = await _ensurePrefs();
+    final raw = prefs.getString(_localIndexPrefsKey);
+    if (raw == null || raw.trim().isEmpty) return null;
+    final clearText = await _decodeManifestPrefsString(
+      raw,
+      prefsKey: _localIndexPrefsKey,
+    );
+    if (clearText == null || clearText.trim().isEmpty) {
+      await prefs.remove(_localIndexPrefsKey);
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(clearText);
+      if (decoded is! Map) {
+        await prefs.remove(_localIndexPrefsKey);
+        return null;
+      }
+      final map = Map<String, dynamic>.from(decoded.cast<dynamic, dynamic>());
+      final storedManifestId = (map['manifestId'] ?? '').toString().trim();
+      final storedIndexPath = (map['indexPath'] ?? '').toString().trim();
+      if (storedManifestId != manifestId.trim() ||
+          storedIndexPath != indexPath.trim()) {
+        return null;
+      }
+      final index = map['index'];
+      if (index is! Map) {
+        await prefs.remove(_localIndexPrefsKey);
+        return null;
+      }
+      await _rewritePlainManifestPrefsStringIfNeeded(
+        raw,
+        clearText,
+        prefsKey: _localIndexPrefsKey,
+      );
+      return Map<String, dynamic>.from(index.cast<dynamic, dynamic>());
+    } catch (_) {
+      await prefs.remove(_localIndexPrefsKey);
+      return null;
+    }
+  }
+
+  Future<void> _writeIndexSnapshot({
+    required String manifestId,
+    required String indexPath,
+    required Map<String, dynamic> index,
+  }) async {
+    final prefs = await _ensurePrefs();
+    final payload = jsonEncode(<String, dynamic>{
+      'manifestId': manifestId.trim(),
+      'indexPath': indexPath.trim(),
+      'savedAt': DateTime.now().millisecondsSinceEpoch,
+      'index': index,
+    });
+    await prefs.setString(
+      _localIndexPrefsKey,
+      await _encodeManifestPrefsString(payload, prefsKey: _localIndexPrefsKey),
+    );
+  }
+
+  Future<List<PostsModel>?> _readSlotSnapshot({required String path}) async {
+    final prefs = await _ensurePrefs();
+    final prefsKey = _slotPrefsKey(path);
+    final raw = prefs.getString(prefsKey);
+    if (raw == null || raw.trim().isEmpty) return null;
+    final clearText = await _decodeManifestPrefsString(
+      raw,
+      prefsKey: prefsKey,
+    );
+    if (clearText == null || clearText.trim().isEmpty) {
+      await prefs.remove(prefsKey);
+      return null;
+    }
+    try {
+      final posts = _parseSlotPosts(clearText);
+      await _rewritePlainManifestPrefsStringIfNeeded(
+        raw,
+        clearText,
+        prefsKey: prefsKey,
+      );
+      await _rememberCachedSlotPath(path);
+      return posts;
+    } catch (_) {
+      await prefs.remove(prefsKey);
+      await _removeCachedSlotPath(path);
+      return null;
+    }
+  }
+
+  Future<void> _writeSlotSnapshot({
+    required String path,
+    required String rawJson,
+  }) async {
+    final prefs = await _ensurePrefs();
+    final prefsKey = _slotPrefsKey(path);
+    await prefs.setString(
+      prefsKey,
+      await _encodeManifestPrefsString(rawJson, prefsKey: prefsKey),
+    );
+    await _rememberCachedSlotPath(path);
+  }
+
+  List<PostsModel> _parseSlotPosts(String rawJson) {
+    final decoded = jsonDecode(rawJson);
+    if (decoded is! Map) return const <PostsModel>[];
+    final itemsRaw = decoded['items'];
+    if (itemsRaw is! List) return const <PostsModel>[];
+    final posts = <PostsModel>[];
+    for (final raw in itemsRaw) {
+      if (raw is! Map) continue;
+      final map = Map<String, dynamic>.from(raw);
+      final docId = (map['docId'] ?? '').toString().trim();
+      if (docId.isEmpty) continue;
+      posts.add(PostsModel.fromMap(_manifestItemToPostMap(map), docId));
+    }
+    return posts;
+  }
+
+  Future<void> _rememberCachedSlotPath(String path) async {
+    final normalizedPath = path.trim();
+    if (normalizedPath.isEmpty) return;
+    final prefs = await _ensurePrefs();
+    final paths = await _readCachedSlotPaths();
+    paths.remove(normalizedPath);
+    paths.insert(0, normalizedPath);
+    final overflow = paths.length > _maxCachedSlotPrefs
+        ? paths.sublist(_maxCachedSlotPrefs)
+        : const <String>[];
+    final retained = paths.take(_maxCachedSlotPrefs).toList(growable: false);
+    await prefs.setString(
+      _localSlotListPrefsKey,
+      await _encodeManifestPrefsString(
+        jsonEncode(retained),
+        prefsKey: _localSlotListPrefsKey,
+      ),
+    );
+    for (final removedPath in overflow) {
+      await prefs.remove(_slotPrefsKey(removedPath));
+    }
+  }
+
+  Future<void> _removeCachedSlotPath(String path) async {
+    final normalizedPath = path.trim();
+    if (normalizedPath.isEmpty) return;
+    final prefs = await _ensurePrefs();
+    final paths = await _readCachedSlotPaths();
+    if (!paths.remove(normalizedPath)) return;
+    await prefs.setString(
+      _localSlotListPrefsKey,
+      await _encodeManifestPrefsString(
+        jsonEncode(paths),
+        prefsKey: _localSlotListPrefsKey,
+      ),
+    );
+  }
+
+  Future<List<String>> _readCachedSlotPaths() async {
+    final prefs = await _ensurePrefs();
+    final raw = prefs.getString(_localSlotListPrefsKey);
+    if (raw == null || raw.trim().isEmpty) return <String>[];
+    final clearText = await _decodeManifestPrefsString(
+      raw,
+      prefsKey: _localSlotListPrefsKey,
+    );
+    if (clearText == null || clearText.trim().isEmpty) {
+      await prefs.remove(_localSlotListPrefsKey);
+      return <String>[];
+    }
+    try {
+      final decoded = jsonDecode(clearText);
+      if (decoded is! List) {
+        await prefs.remove(_localSlotListPrefsKey);
+        return <String>[];
+      }
+      await _rewritePlainManifestPrefsStringIfNeeded(
+        raw,
+        clearText,
+        prefsKey: _localSlotListPrefsKey,
+      );
+      return decoded
+          .map((entry) => entry.toString().trim())
+          .where((entry) => entry.isNotEmpty)
+          .toList(growable: true);
+    } catch (_) {
+      await prefs.remove(_localSlotListPrefsKey);
+      return <String>[];
+    }
+  }
+
+  String _slotPrefsKey(String path) {
+    final encoded = base64Url.encode(utf8.encode(path.trim()));
+    return '$_localSlotPrefsPrefix:$encoded';
+  }
+
+  Future<String> _encodeManifestPrefsString(
+    String raw, {
+    required String prefsKey,
+  }) {
+    return ManifestDiskCipher.instance.encodeForDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<String?> _decodeManifestPrefsString(
+    String raw, {
+    required String prefsKey,
+  }) {
+    return ManifestDiskCipher.instance.decodeFromDisk(
+      raw,
+      context: prefsKey,
+    );
+  }
+
+  Future<void> _rewritePlainManifestPrefsStringIfNeeded(
+    String stored,
+    String clearText, {
+    required String prefsKey,
+  }) async {
+    if (ManifestDiskCipher.instance.isEncryptedEnvelope(stored)) return;
+    final prefs = await _ensurePrefs();
+    await prefs.setString(
+      prefsKey,
+      await _encodeManifestPrefsString(clearText, prefsKey: prefsKey),
+    );
   }
 
   Map<String, dynamic> _manifestItemToPostMap(Map<String, dynamic> item) {

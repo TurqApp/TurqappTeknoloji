@@ -80,12 +80,12 @@ class _TypesenseUserCardCacheServiceCachePart {
   }
 
   _CachedUserCardsResult? _getFromMemory(String cacheKey) {
-    final cached = service._memory[cacheKey];
+    final cached = service._memory.remove(cacheKey);
     if (cached == null) return null;
     if (!cached.isFresh) {
-      service._memory.remove(cacheKey);
       return null;
     }
+    _storeMemory(cacheKey, cached);
     return cached;
   }
 
@@ -148,7 +148,7 @@ class _TypesenseUserCardCacheServiceCachePart {
           }),
         );
       }
-      service._memory[cacheKey] = cached;
+      _storeMemory(cacheKey, cached);
       return cached;
     } catch (_) {
       await prefs?.remove(prefsKey);
@@ -164,7 +164,7 @@ class _TypesenseUserCardCacheServiceCachePart {
       cards: _cloneCards(cards),
       cachedAt: DateTime.now(),
     );
-    service._memory[cacheKey] = cached;
+    _storeMemory(cacheKey, cached);
     try {
       service._prefs ??=
           await ensureLocalPreferenceRepository().sharedPreferences();
@@ -175,7 +175,61 @@ class _TypesenseUserCardCacheServiceCachePart {
           'cards': _cloneCards(cards),
         }),
       );
+      await _prunePrefsIfNeeded();
     } catch (_) {}
+  }
+
+  void _storeMemory(String cacheKey, _CachedUserCardsResult cached) {
+    service._memory.remove(cacheKey);
+    service._memory[cacheKey] = cached;
+    while (service._memory.length > _typesenseUserCardMemoryEntryLimit) {
+      service._memory.remove(service._memory.keys.first);
+    }
+  }
+
+  Future<void> _prunePrefsIfNeeded() async {
+    final prefs = service._prefs;
+    if (prefs == null) return;
+    final keys = prefs
+        .getKeys()
+        .where((key) => key.startsWith('$_typesenseUserCardPrefsPrefix:'))
+        .toList(growable: false);
+    if (keys.isEmpty) return;
+
+    final live = <_TypesensePrefsEntry>[];
+    for (final key in keys) {
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) {
+        await prefs.remove(key);
+        continue;
+      }
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) {
+          await prefs.remove(key);
+          continue;
+        }
+        final cachedAtMs = _asInt(decoded['cachedAt']);
+        if (cachedAtMs <= 0) {
+          await prefs.remove(key);
+          continue;
+        }
+        final cachedAt = DateTime.fromMillisecondsSinceEpoch(cachedAtMs);
+        if (DateTime.now().difference(cachedAt) >= _typesenseUserCardCacheTtl) {
+          await prefs.remove(key);
+          continue;
+        }
+        live.add(_TypesensePrefsEntry(key: key, cachedAtMs: cachedAtMs));
+      } catch (_) {
+        await prefs.remove(key);
+      }
+    }
+    if (live.length <= _typesenseUserCardPrefsEntryLimit) return;
+    live.sort((left, right) => left.cachedAtMs.compareTo(right.cachedAtMs));
+    final removeCount = live.length - _typesenseUserCardPrefsEntryLimit;
+    for (final entry in live.take(removeCount)) {
+      await prefs.remove(entry.key);
+    }
   }
 
   String _cacheKey(List<String> ids) {
@@ -214,4 +268,14 @@ class _TypesenseUserCardCacheServiceCachePart {
     }
     return value;
   }
+}
+
+class _TypesensePrefsEntry {
+  const _TypesensePrefsEntry({
+    required this.key,
+    required this.cachedAtMs,
+  });
+
+  final String key;
+  final int cachedAtMs;
 }

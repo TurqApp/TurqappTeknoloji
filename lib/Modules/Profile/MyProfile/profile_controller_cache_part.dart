@@ -160,13 +160,11 @@ extension ProfileControllerCachePart on ProfileController {
         buckets.scheduled.isEmpty) {
       return false;
     }
-    if (buckets.all.isNotEmpty) allPosts.assignAll(buckets.all);
-    if (buckets.photos.isNotEmpty) photos.assignAll(buckets.photos);
-    if (buckets.videos.isNotEmpty) videos.assignAll(buckets.videos);
-    if (buckets.reshares.isNotEmpty) reshares.assignAll(buckets.reshares);
-    if (buckets.scheduled.isNotEmpty) {
-      scheduledPosts.assignAll(buckets.scheduled);
-    }
+    allPosts.assignAll(buckets.all);
+    photos.assignAll(buckets.photos);
+    videos.assignAll(buckets.videos);
+    reshares.assignAll(buckets.reshares);
+    scheduledPosts.assignAll(buckets.scheduled);
     return true;
   }
 }
