@@ -91,6 +91,63 @@ void main() {
     });
   });
 
+  group('surface prefetch network policy', () {
+    test('allows feed and short surface warmup on cellular playback network',
+        () {
+      final allowed = shouldAllowSurfacePrefetchNetwork(
+        isOnWiFi: false,
+        isOnCellular: true,
+        canPrefetch: false,
+        canFetchOnDemand: true,
+        canFetchPlaylist: true,
+        cacheOnlyMode: false,
+      );
+
+      expect(allowed, isTrue);
+      expect(
+        shouldAllowPrefetchJobForNetwork(
+          source: 'feed',
+          surfacePrefetchNetworkEligible: allowed,
+          quotaFillNetworkEligible: false,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldAllowPrefetchJobForNetwork(
+          source: 'short',
+          surfacePrefetchNetworkEligible: allowed,
+          quotaFillNetworkEligible: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('keeps quota fill blocked on cellular while surface warmup is allowed',
+        () {
+      expect(
+        shouldAllowPrefetchJobForNetwork(
+          source: 'quota',
+          surfacePrefetchNetworkEligible: true,
+          quotaFillNetworkEligible: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('respects cache-only cellular guard', () {
+      final allowed = shouldAllowSurfacePrefetchNetwork(
+        isOnWiFi: false,
+        isOnCellular: true,
+        canPrefetch: false,
+        canFetchOnDemand: false,
+        canFetchPlaylist: true,
+        cacheOnlyMode: true,
+      );
+
+      expect(allowed, isFalse);
+    });
+  });
+
   group('feed priority window helpers', () {
     test('keeps follow-up priority inside a single batch only', () {
       expect(

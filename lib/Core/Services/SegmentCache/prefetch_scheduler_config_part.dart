@@ -131,6 +131,35 @@ bool shouldUsePrefetchQuotaFillMode({
 }
 
 @visibleForTesting
+bool shouldAllowSurfacePrefetchNetwork({
+  required bool isOnWiFi,
+  required bool isOnCellular,
+  required bool canPrefetch,
+  required bool canFetchOnDemand,
+  required bool canFetchPlaylist,
+  required bool cacheOnlyMode,
+}) {
+  if (cacheOnlyMode) return false;
+  if (isOnWiFi) return canPrefetch;
+  if (isOnCellular) {
+    return canFetchOnDemand && canFetchPlaylist;
+  }
+  return canPrefetch;
+}
+
+@visibleForTesting
+bool shouldAllowPrefetchJobForNetwork({
+  required String source,
+  required bool surfacePrefetchNetworkEligible,
+  required bool quotaFillNetworkEligible,
+}) {
+  if (source == 'quota') {
+    return quotaFillNetworkEligible;
+  }
+  return surfacePrefetchNetworkEligible;
+}
+
+@visibleForTesting
 bool shouldUseStartupBurstPrefetch({
   required bool isFocusedDoc,
   required bool isCurrentDoc,

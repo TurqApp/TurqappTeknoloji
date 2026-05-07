@@ -114,9 +114,22 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   bool get _allowMobileQuotaFill => false;
 
+  bool get _isSurfacePrefetchNetworkEligible =>
+      shouldAllowSurfacePrefetchNetwork(
+        isOnWiFi: _isOnWiFi,
+        isOnCellular: _isOnCellular,
+        canPrefetch: CacheNetworkPolicy.canPrefetch,
+        canFetchOnDemand: CacheNetworkPolicy.canFetchOnDemand,
+        canFetchPlaylist: CacheNetworkPolicy.canFetchPlaylist,
+        cacheOnlyMode: CacheNetworkPolicy.cacheOnlyMode,
+      );
+
+  bool get _usesWifiSurfaceWarmSettings =>
+      _isOnWiFi || (_isOnCellular && _isSurfacePrefetchNetworkEligible);
+
   int get _breadthCount {
     final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;
-    return _isOnWiFi
+    return _usesWifiSurfaceWarmSettings
         ? base < _prefetchSchedulerWifiMinBreadthCount
             ? _prefetchSchedulerWifiMinBreadthCount
             : base
@@ -125,7 +138,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   int get _depthCount {
     final base = ReadBudgetRegistry.segmentPrefetchDepthCountValue;
-    return _isOnWiFi
+    return _usesWifiSurfaceWarmSettings
         ? base < _prefetchSchedulerWifiMinDepthCount
             ? _prefetchSchedulerWifiMinDepthCount
             : base
@@ -135,7 +148,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   int get _maxConcurrent {
     if (_mobileSeedMode) return 1;
     final base = ReadBudgetRegistry.segmentPrefetchMaxConcurrentValue;
-    return _isOnWiFi
+    return _usesWifiSurfaceWarmSettings
         ? base < _prefetchSchedulerWifiMinMaxConcurrent
             ? _prefetchSchedulerWifiMinMaxConcurrent
             : base

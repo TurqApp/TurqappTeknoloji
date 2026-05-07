@@ -40,7 +40,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return isOnCellular ? 3 : 5;
+      return 5;
     }
     return defaultCount;
   }
@@ -51,7 +51,7 @@ class PlaybackSurfacePolicy {
     required int defaultCount,
   }) {
     if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return isOnCellular ? 4 : 6;
+      return 6;
     }
     return defaultCount;
   }
@@ -65,7 +65,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return isOnCellular ? 5 : 6;
+      return 6;
     }
     return defaultCount;
   }
@@ -79,7 +79,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return isOnCellular ? 2 : 5;
+      return 5;
     }
     return defaultCount;
   }
@@ -716,7 +716,7 @@ class PlaybackSurfacePolicy {
     required int defaultCount,
   }) {
     if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return isOnCellular ? 5 : 6;
+      return 6;
     }
     return defaultCount;
   }

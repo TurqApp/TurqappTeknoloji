@@ -174,7 +174,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (_hasActiveFeedPlaybackWindow) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
     }
-    if (_hasActiveShortPlaybackWindow && _isOnWiFi) {
+    if (_hasActiveShortPlaybackWindow && _usesWifiSurfaceWarmSettings) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
     }
     if (_hasAnyActivePlaybackFocus) {
@@ -314,9 +314,21 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   Future<void> _processQueue() async {
     if (!_isQuotaFillNetworkEligible) {
+      _queue.removeWhere((job) => job.source == 'quota');
+      final staleQuotaDocIds = _pendingFollowUpJobs.entries
+          .where((entry) => entry.value.source == 'quota')
+          .map((entry) => entry.key)
+          .toList(growable: false);
+      for (final docID in staleQuotaDocIds) {
+        _pendingFollowUpJobs.remove(docID);
+        _jobEnqueuedAt.remove(docID);
+      }
+    }
+    if (!_isSurfacePrefetchNetworkEligible && !_isQuotaFillNetworkEligible) {
       debugPrint(
         '[ShortQuotaFill] status=skip reason=network_gate wifi=$_isOnWiFi '
-        'cellular=$_isOnCellular canPrefetch=${CacheNetworkPolicy.canPrefetch}',
+        'cellular=$_isOnCellular canPrefetch=${CacheNetworkPolicy.canPrefetch} '
+        'surfacePrefetch=$_isSurfacePrefetchNetworkEligible',
       );
       pause();
       return;
@@ -416,13 +428,18 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processJob(_PrefetchJob job) async {
-    if (!_isQuotaFillNetworkEligible) {
-      pause();
-      return;
-    }
-    if (!_isOnWiFi && job.source != 'quota') {
-      _requeueJob(job);
-      pause();
+    if (!shouldAllowPrefetchJobForNetwork(
+      source: job.source,
+      surfacePrefetchNetworkEligible: _isSurfacePrefetchNetworkEligible,
+      quotaFillNetworkEligible: _isQuotaFillNetworkEligible,
+    )) {
+      if (job.source == 'quota') {
+        _clearFollowUpJob(job.docID);
+        _jobEnqueuedAt.remove(job.docID);
+      } else {
+        _requeueJob(job);
+        pause();
+      }
       return;
     }
 

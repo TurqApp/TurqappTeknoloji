@@ -17,8 +17,7 @@ void main() {
   });
 
   group('warmReadySegmentsForOffset', () {
-    test(
-        'keeps mobile feed horizon at active plus three first-segment neighbors',
+    test('keeps mobile feed horizon aligned with wifi first-segment neighbors',
         () {
       expect(
         StartupPreloadPolicy.warmReadySegmentsForOffset(
@@ -46,7 +45,15 @@ void main() {
       );
       expect(
         StartupPreloadPolicy.warmReadySegmentsForOffset(
-          4,
+          5,
+          isAndroid: true,
+          isOnCellular: true,
+        ),
+        1,
+      );
+      expect(
+        StartupPreloadPolicy.warmReadySegmentsForOffset(
+          6,
           isAndroid: true,
           isOnCellular: true,
         ),
@@ -77,7 +84,7 @@ void main() {
     test('applies the same feed horizon to iOS', () {
       expect(
         StartupPreloadPolicy.warmReadySegmentsForOffset(
-          3,
+          5,
           isAndroid: false,
           isOnCellular: true,
         ),
@@ -85,7 +92,7 @@ void main() {
       );
       expect(
         StartupPreloadPolicy.warmReadySegmentsForOffset(
-          4,
+          6,
           isAndroid: false,
           isOnCellular: true,
         ),
@@ -111,7 +118,8 @@ void main() {
   });
 
   group('startupWarmReadySegmentsForRank', () {
-    test('keeps mobile startup warm count at four playable ranks', () {
+    test('keeps mobile startup warm count aligned with wifi playable ranks',
+        () {
       expect(
         StartupPreloadPolicy.startupWarmReadySegmentsForRank(
           0,
@@ -130,7 +138,15 @@ void main() {
       );
       expect(
         StartupPreloadPolicy.startupWarmReadySegmentsForRank(
-          4,
+          5,
+          isAndroid: true,
+          isOnCellular: true,
+        ),
+        1,
+      );
+      expect(
+        StartupPreloadPolicy.startupWarmReadySegmentsForRank(
+          6,
           isAndroid: true,
           isOnCellular: true,
         ),
@@ -160,7 +176,7 @@ void main() {
     test('keeps iOS startup warm counts aligned with Android', () {
       expect(
         StartupPreloadPolicy.startupWarmReadySegmentsForRank(
-          3,
+          5,
           isAndroid: false,
           isOnCellular: true,
         ),
@@ -168,7 +184,7 @@ void main() {
       );
       expect(
         StartupPreloadPolicy.startupWarmReadySegmentsForRank(
-          4,
+          6,
           isAndroid: false,
           isOnCellular: true,
         ),

@@ -4,7 +4,7 @@ import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_po
 
 void main() {
   group('feed playback surface policy', () {
-    test('keeps mobile feed horizon tight on Android and iOS', () {
+    test('keeps mobile feed horizon aligned with wifi on Android and iOS', () {
       expect(
         PlaybackSurfacePolicy.feedWarmFirstSegmentAheadCount(
           platform: TargetPlatform.android,
@@ -12,7 +12,7 @@ void main() {
           isOnCellular: true,
           defaultCount: 99,
         ),
-        3,
+        5,
       );
       expect(
         PlaybackSurfacePolicy.feedWarmFirstSegmentAheadCount(
@@ -21,7 +21,7 @@ void main() {
           isOnCellular: true,
           defaultCount: 99,
         ),
-        3,
+        5,
       );
     });
 
@@ -53,7 +53,7 @@ void main() {
           isOnCellular: true,
           defaultCount: 99,
         ),
-        4,
+        6,
       );
       expect(
         PlaybackSurfacePolicy.feedStartupWarmPlayableCount(
@@ -144,7 +144,7 @@ void main() {
           isOnCellular: true,
           defaultCount: 99,
         ),
-        5,
+        6,
       );
       expect(
         PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(

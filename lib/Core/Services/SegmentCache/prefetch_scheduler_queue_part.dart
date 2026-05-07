@@ -364,7 +364,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
 
-    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+    if (!_isSurfacePrefetchNetworkEligible) {
       pause();
       return;
     }
@@ -443,7 +443,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     _mobileSeedMode =
         _shouldEnableMobileSeedMode(docIDs: docIDs, cacheManager: cacheManager);
 
-    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+    if (!_isSurfacePrefetchNetworkEligible) {
       pause();
       return;
     }
@@ -552,7 +552,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       cacheManager: cacheManager,
     );
 
-    if (!_isOnWiFi || !CacheNetworkPolicy.canPrefetch) {
+    if (!_isSurfacePrefetchNetworkEligible) {
       return;
     }
 
