@@ -323,14 +323,14 @@ class ShortManifestRepository extends GetxService {
     }
   }
 
-  Future<void> _restorePersistedCursorIfNeeded() async {
+  Future<bool> _restorePersistedCursorIfNeeded() async {
     final userId = CurrentUserService.instance.effectiveUserId.trim();
-    if (userId.isEmpty || _manifestId.isEmpty) return;
+    if (userId.isEmpty || _manifestId.isEmpty) return false;
     final persisted = await ensureShortResumeStateStore().load(
       userId: userId,
     );
-    if (persisted == null) return;
-    if (persisted.manifestId != _manifestId) return;
+    if (persisted == null) return false;
+    if (persisted.manifestId != _manifestId) return false;
     var restoredSlotIndex =
         persisted.cursorSlotIndex < 0 ? 0 : persisted.cursorSlotIndex;
     var restoredItemIndex =
@@ -351,7 +351,7 @@ class ShortManifestRepository extends GetxService {
             'slotCount': (_index?['slots'] as List?)?.length ?? 0,
           },
         );
-        return;
+        return false;
       }
       final slot = await _ensureSlot(restoredSlotIndex);
       if (restoredItemIndex < slot.length) {
@@ -370,6 +370,23 @@ class ShortManifestRepository extends GetxService {
         'itemIndex': _cursorItemIndex,
       },
     );
+    return true;
+  }
+
+  Future<ShortManifestPageResult> takeNextPageFromPersistedCursor({
+    required int pageSize,
+  }) async {
+    await _ensureLoaded();
+    final restored = await _restorePersistedCursorIfNeeded();
+    if (!restored) {
+      return ShortManifestPageResult(
+        posts: const <PostsModel>[],
+        hasMore: await _hasMore(),
+        manifestId: _manifestId,
+        slotIndex: _cursorSlotIndex,
+      );
+    }
+    return takeNextPage(pageSize: pageSize);
   }
 
   void _reset() {

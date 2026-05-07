@@ -116,6 +116,28 @@ void main() {
     expect(loaded, isNull);
   });
 
+  test('short resume state store keeps cursor-only state valid', () async {
+    await store.save(
+      userId: 'user-a',
+      state: ShortResumeState(
+        manifestId: 'manifest-1',
+        cursorSlotIndex: 3,
+        cursorItemIndex: 120,
+        hasMore: true,
+        savedAtMs: DateTime.now().millisecondsSinceEpoch,
+        remainingPosts: const <PostsModel>[],
+      ),
+    );
+
+    final loaded = await store.load(userId: 'user-a');
+
+    expect(loaded, isNotNull);
+    expect(loaded!.hasCursor, isTrue);
+    expect(loaded.cursorSlotIndex, 3);
+    expect(loaded.cursorItemIndex, 120);
+    expect(loaded.remainingPosts, isEmpty);
+  });
+
   test('short resume state store keeps a large remaining queue intact',
       () async {
     final posts = List<PostsModel>.generate(

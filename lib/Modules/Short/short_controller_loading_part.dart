@@ -41,15 +41,18 @@ extension ShortControllerLoadingPart on ShortController {
 
   Future<List<PostsModel>> _restorePersistedResumeQueue() async {
     final persisted = await _loadPersistedResumeState();
-    if (persisted == null || persisted.remainingPosts.isEmpty) {
+    if (persisted == null) {
       return const <PostsModel>[];
+    }
+    if (persisted.remainingPosts.isEmpty) {
+      return _restorePersistedCursorQueue(persisted);
     }
     final eligible = persisted.remainingPosts
         .where(_isEligibleShortPost)
         .where((post) => !_isConsumedShortPostForResume(post))
         .toList(growable: false);
     if (eligible.isEmpty) {
-      return const <PostsModel>[];
+      return _restorePersistedCursorQueue(persisted);
     }
     final restored = await _filterVisibleShortPosts(
       eligible,
@@ -67,6 +70,42 @@ extension ShortControllerLoadingPart on ShortController {
       'item=${persisted.cursorItemIndex} '
       'savedAtMs=${persisted.savedAtMs} '
       'remaining=${persisted.remainingPosts.length} '
+      'eligible=${eligible.length} '
+      'restored=${restored.length} '
+      'docs=$restoredDocIds',
+    );
+    return restored;
+  }
+
+  Future<List<PostsModel>> _restorePersistedCursorQueue(
+    ShortResumeState persisted,
+  ) async {
+    if (!persisted.hasCursor) return const <PostsModel>[];
+    final manifestPage =
+        await _shortManifestRepository.takeNextPageFromPersistedCursor(
+      pageSize: ReadBudgetRegistry.shortHomeInitialLimitValue,
+    );
+    if (manifestPage.posts.isEmpty) return const <PostsModel>[];
+    final eligible = manifestPage.posts
+        .where(_isEligibleShortPost)
+        .where((post) => !_isConsumedShortPostForResume(post))
+        .toList(growable: false);
+    if (eligible.isEmpty) return const <PostsModel>[];
+    final restored = await _filterVisibleShortPosts(
+      eligible,
+      hydrateAuthors: false,
+    );
+    final restoredDocIds = restored
+        .take(8)
+        .map((post) => post.docID)
+        .where((docId) => docId.trim().isNotEmpty)
+        .join(',');
+    _log(
+      '[ShortResumeQueue] status=cursor_payload '
+      'manifest=${persisted.manifestId} '
+      'slot=${persisted.cursorSlotIndex} '
+      'item=${persisted.cursorItemIndex} '
+      'fetched=${manifestPage.posts.length} '
       'eligible=${eligible.length} '
       'restored=${restored.length} '
       'docs=$restoredDocIds',

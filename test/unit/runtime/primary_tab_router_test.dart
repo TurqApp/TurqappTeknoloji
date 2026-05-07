@@ -779,6 +779,26 @@ void main() {
       expect(resumeFlushIndex, lessThan(startupShardIndex));
     });
 
+    test('Short resume falls back to manifest cursor when queue is empty', () {
+      final controllerSource = File(
+        'lib/Modules/Short/short_controller_loading_part.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        'lib/Core/Repositories/short_manifest_repository.dart',
+      ).readAsStringSync();
+
+      expect(controllerSource, contains('_restorePersistedCursorQueue'));
+      expect(
+        controllerSource,
+        contains('takeNextPageFromPersistedCursor'),
+      );
+      expect(
+        repositorySource,
+        contains('Future<ShortManifestPageResult> '
+            'takeNextPageFromPersistedCursor'),
+      );
+    });
+
     test('PrimaryTabRouter reuses centralized startup route vocabulary', () {
       final source =
           File('lib/Runtime/primary_tab_router.dart').readAsStringSync();
