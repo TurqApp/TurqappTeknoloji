@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -196,11 +197,12 @@ class _SmartMiniVideoPlayerState extends State<SmartMiniVideoPlayer>
   @override
   Widget build(BuildContext context) {
     final thumbnail = SizedBox.expand(
-      child: CachedNetworkImage(
+      child: CacheFirstNetworkImage(
         imageUrl: widget.thumbnailUrl,
+        cacheManager: TurqImageCacheManager.instance,
         fit: BoxFit.cover,
-        placeholder: (c, u) => Container(color: Colors.black12),
-        errorWidget: (c, u, e) => Container(color: Colors.black12),
+        fallback: Container(color: Colors.black12),
+        eagerPrecache: true,
       ),
     );
 

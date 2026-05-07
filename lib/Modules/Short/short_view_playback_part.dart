@@ -701,7 +701,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.primePlaybackWindowReadySegments(
       currentPage,
-      minimumSegmentCount: 2,
+      minimumSegmentCount: 1,
       aheadCount: 5,
     );
     unawaited(
@@ -908,7 +908,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (!mounted || currentPage != activePage) return;
         controller.primePlaybackWindowReadySegments(
           activePage,
-          minimumSegmentCount: 2,
+          minimumSegmentCount: 1,
           aheadCount: 5,
         );
       });

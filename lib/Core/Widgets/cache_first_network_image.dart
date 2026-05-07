@@ -15,6 +15,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
   final int? memCacheWidth;
   final int? memCacheHeight;
   final bool downloadBeforeRender;
+  final bool eagerPrecache;
 
   const CacheFirstNetworkImage({
     super.key,
@@ -26,6 +27,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
     this.memCacheWidth,
     this.memCacheHeight,
     this.downloadBeforeRender = false,
+    this.eagerPrecache = false,
   });
 
   @override
@@ -41,6 +43,8 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   bool _advanceScheduled = false;
   bool _networkFetchInFlight = false;
   String _lastRememberRequestedUrl = '';
+  String _lastPrecacheRequestedUrl = '';
+  String _lastPrecacheRequestedFilePath = '';
   final Set<String> _attemptedNetworkUrls = <String>{};
 
   @override
@@ -86,6 +90,8 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     _advanceScheduled = false;
     _networkFetchInFlight = false;
     _lastRememberRequestedUrl = '';
+    _lastPrecacheRequestedUrl = '';
+    _lastPrecacheRequestedFilePath = '';
     _attemptedNetworkUrls.clear();
     if (mounted) {
       setState(() {});
@@ -220,6 +226,58 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     }());
   }
 
+  ImageProvider<Object> _providerForUrl(String url) {
+    return ResizeImage.resizeIfNeeded(
+      widget.memCacheWidth,
+      widget.memCacheHeight,
+      CachedNetworkImageProvider(
+        url,
+        cacheManager: widget.cacheManager,
+      ),
+    );
+  }
+
+  void _scheduleActivePrecache(BuildContext context, String url) {
+    if (!widget.eagerPrecache ||
+        url.trim().isEmpty ||
+        _lastPrecacheRequestedUrl == url) {
+      return;
+    }
+    _lastPrecacheRequestedUrl = url;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        precacheImage(
+          _providerForUrl(url),
+          context,
+        ).catchError((_) {
+          if (_lastPrecacheRequestedUrl == url) {
+            _lastPrecacheRequestedUrl = '';
+          }
+        }),
+      );
+    });
+  }
+
+  void _scheduleFilePrecache(BuildContext context, File file) {
+    if (!widget.eagerPrecache ||
+        !file.existsSync() ||
+        _lastPrecacheRequestedFilePath == file.path) {
+      return;
+    }
+    _lastPrecacheRequestedFilePath = file.path;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        precacheImage(FileImage(file), context).catchError((_) {
+          if (_lastPrecacheRequestedFilePath == file.path) {
+            _lastPrecacheRequestedFilePath = '';
+          }
+        }),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final candidates = _normalizedCandidates();
@@ -228,6 +286,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     if (_resolvedFilePath.isNotEmpty) {
       final file = File(_resolvedFilePath);
       if (file.existsSync()) {
+        _scheduleFilePrecache(context, file);
         return Image.file(
           file,
           fit: widget.fit,
@@ -246,15 +305,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       _ensureActiveCandidateDownloaded(activeUrl);
       return widget.fallback;
     }
+    _scheduleActivePrecache(context, activeUrl);
     return Image(
-      image: ResizeImage.resizeIfNeeded(
-        widget.memCacheWidth,
-        widget.memCacheHeight,
-        CachedNetworkImageProvider(
-          activeUrl,
-          cacheManager: widget.cacheManager,
-        ),
-      ),
+      image: _providerForUrl(activeUrl),
       fit: widget.fit,
       gaplessPlayback: true,
       frameBuilder: (_, child, frame, wasSynchronouslyLoaded) {

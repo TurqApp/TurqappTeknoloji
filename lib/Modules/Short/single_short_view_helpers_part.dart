@@ -441,6 +441,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: fallback,
+      eagerPrecache: true,
     );
   }
 

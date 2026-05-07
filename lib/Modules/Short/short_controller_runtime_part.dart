@@ -226,7 +226,7 @@ extension _ShortControllerRuntimeX on ShortController {
             NetworkType.none;
     _shortStartupNetworkType ??= network;
     final offlineReadyCount = _offlineReadyShortPoolCount();
-    final resolved = network == NetworkType.wifi
+    final resolved = network != NetworkType.none
         ? _ShortSessionSourceMode.wifiLive
         : offlineReadyCount > 0
             ? _ShortSessionSourceMode.mobileCacheOnly
@@ -341,12 +341,12 @@ extension ShortControllerPublicApiPart on ShortController {
       );
       return;
     }
-    if (networkType == NetworkType.wifi &&
+    if (networkType != NetworkType.none &&
         _promoteShortSessionToWifiLive(
           reason: 'runtime_network_${networkType.name}',
         )) {
       debugPrint(
-        '[ShortNetworkPolicy] status=session_upgraded_to_wifi_live '
+        '[ShortNetworkPolicy] status=session_upgraded_to_live '
         'network=${networkType.name} count=${shorts.length}',
       );
       unawaited(prepareStartupSurface(allowBackgroundRefresh: true));
@@ -442,7 +442,7 @@ extension ShortControllerPublicApiPart on ShortController {
       );
       primePlaybackWindowReadySegments(
         _currentVisibleShortIndex(this),
-        minimumSegmentCount: 2,
+        minimumSegmentCount: 1,
       );
       unawaited(
         warmStartupFirstSegments(

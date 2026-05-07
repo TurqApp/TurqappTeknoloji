@@ -154,6 +154,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
       cacheManager: TurqImageCacheManager.instance,
       fit: BoxFit.cover,
       fallback: fallback,
+      eagerPrecache: true,
     );
     if (modelAr > 1.2) {
       return Center(
