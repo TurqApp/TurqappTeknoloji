@@ -55,7 +55,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
     final shouldPersistAccounts = restored.length != decodedAccounts.length;
     if (_shouldLogDebug) {
       debugPrint(
-        '[AccountCenter] init rawLength=${raw.length} restored=${restored.map((e) => e.uid).toList()}',
+        '[AccountCenter] init rawLength=${raw.length} restoredCount=${restored.length}',
       );
     }
     accounts.assignAll(restored);
@@ -205,7 +205,7 @@ extension AccountCenterServiceStoragePart on AccountCenterService {
       final stored = _prefs?.getString(_accountCenterAccountsStorageKey) ?? '';
       debugPrint(
         '[AccountCenter] persist storedLength=${stored.length} '
-        'accounts=${accounts.map((e) => e.uid).toList()}',
+        'accountCount=${accounts.length}',
       );
     }
   }

@@ -27,8 +27,7 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
         : account;
     if (_shouldLogDebug) {
       debugPrint(
-        '[AccountCenter] addOrUpdate uid=${normalizedAccount.uid} '
-        'username=${normalizedAccount.username} '
+        '[AccountCenter] addOrUpdate '
         'sessionValid=${normalizedAccount.isSessionValid} '
         'promote=$promoteActiveUid before=${accounts.length}',
       );
@@ -75,8 +74,9 @@ extension AccountCenterServiceAccountsPart on AccountCenterService {
     await _persist();
     if (_shouldLogDebug) {
       debugPrint(
-        '[AccountCenter] addOrUpdate persisted accounts=${accounts.map((e) => e.uid).toList()} '
-        'active=${activeUid.value} lastUsed=${lastUsedUid.value}',
+        '[AccountCenter] addOrUpdate persisted accountCount=${accounts.length} '
+        'hasActive=${activeUid.value.isNotEmpty} '
+        'hasLastUsed=${lastUsedUid.value.isNotEmpty}',
       );
     }
   }

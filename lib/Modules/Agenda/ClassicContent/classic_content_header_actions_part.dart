@@ -36,7 +36,6 @@ extension ClassicContentHeaderActionsPart on _ClassicContentState {
           'hasPrimaryName': primaryName.trim().isNotEmpty,
           'hasHandle': handle.trim().isNotEmpty,
           'hasAvatarUrl': controller.avatarUrl.value.trim().isNotEmpty,
-          'userId': widget.model.userID,
         }}',
       );
     }

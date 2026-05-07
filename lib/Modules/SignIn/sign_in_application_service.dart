@@ -257,7 +257,7 @@ class SignInApplicationService {
     if (firebaseUser == null) return;
     if (kDebugMode) {
       debugPrint(
-        '[AccountCenterTrack] start uid=${firebaseUser.uid} currentUserReady=${currentUser != null}',
+        '[AccountCenterTrack] start currentUserReady=${currentUser != null}',
       );
     }
     final accountCenterService = _ensureAccountCenterService();
@@ -265,7 +265,7 @@ class SignInApplicationService {
     if (currentUser != null) {
       if (kDebugMode) {
         debugPrint(
-          '[AccountCenterTrack] source=currentUser nickname=${currentUser.nickname} uid=${currentUser.userID}',
+          '[AccountCenterTrack] source=currentUser',
         );
       }
       await accountCenterService.addCurrentAccount(
@@ -281,7 +281,7 @@ class SignInApplicationService {
       if (summary != null) {
         if (kDebugMode) {
           debugPrint(
-            '[AccountCenterTrack] source=userSummary username=${summary.username} uid=${summary.userID}',
+            '[AccountCenterTrack] source=userSummary',
           );
         }
         await accountCenterService.addOrUpdateAccount(
@@ -294,7 +294,7 @@ class SignInApplicationService {
       } else {
         if (kDebugMode) {
           debugPrint(
-            '[AccountCenterTrack] source=firebaseUser email=${firebaseUser.email} uid=${firebaseUser.uid}',
+            '[AccountCenterTrack] source=firebaseUser',
           );
         }
         await accountCenterService.addOrUpdateAccount(
@@ -305,7 +305,7 @@ class SignInApplicationService {
     }
     if (kDebugMode) {
       debugPrint(
-        '[AccountCenterTrack] done uid=${firebaseUser.uid} accounts=${accountCenterService.accounts.map((e) => e.uid).toList()}',
+        '[AccountCenterTrack] done accountCount=${accountCenterService.accounts.length}',
       );
     }
   }

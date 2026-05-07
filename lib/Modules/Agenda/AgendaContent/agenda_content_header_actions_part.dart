@@ -16,7 +16,6 @@ extension AgendaContentHeaderActionsPart on _AgendaContentState {
           'hasPrimaryName': primaryName.trim().isNotEmpty,
           'hasHandle': handle.trim().isNotEmpty,
           'hasAvatarUrl': controller.avatarUrl.value.trim().isNotEmpty,
-          'userId': widget.model.userID,
         }}',
       );
     }

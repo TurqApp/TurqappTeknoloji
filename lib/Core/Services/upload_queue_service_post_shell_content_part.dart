@@ -36,7 +36,7 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
       if (kDebugMode) {
         debugPrint(
           '[UploadQueue][Shell] write_start id=${upload.id} '
-          'uid=$userID keys=${shellData.keys.toList()} '
+          'keys=${shellData.keys.toList()} '
           'scheduledAt=$scheduledAt timeStamp=${shellData["timeStamp"]}',
         );
       }
@@ -51,7 +51,7 @@ extension UploadQueueServicePostShellContentPart on UploadQueueService {
       if (kDebugMode) {
         debugPrint(
           '[UploadQueue][Shell] write_failed id=${upload.id} '
-          'uid=$userID error=$e stack=$stackTrace',
+          'error=$e stack=$stackTrace',
         );
       }
       rethrow;

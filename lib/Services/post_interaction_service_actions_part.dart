@@ -516,7 +516,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     if (!_isValidDocId(postId)) return;
     final userId = await _resolveCurrentUserId();
     if (userId == null) {
-      debugPrint('[PostViewRecord] status=skip_no_user doc=$postId');
+      if (kDebugMode) {
+        debugPrint('[PostViewRecord] status=skip_no_user doc=$postId');
+      }
       return;
     }
 
@@ -526,8 +528,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     await _firestore.runTransaction((tx) async {
       final existing = await tx.get(viewerDocRef);
       if (existing.exists) {
-        debugPrint(
-            '[PostViewRecord] status=already_seen doc=$postId uid=$userId');
+        if (kDebugMode) {
+          debugPrint('[PostViewRecord] status=already_seen doc=$postId');
+        }
         return;
       }
 
@@ -537,7 +540,9 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
       tx.set(viewerDocRef,
           PostViewerModel(userID: userId, timeStamp: _nowMs()).toMap());
       tx.update(postRef, {'stats.statsCount': stats.statsCount + 1});
-      debugPrint('[PostViewRecord] status=recorded doc=$postId uid=$userId');
+      if (kDebugMode) {
+        debugPrint('[PostViewRecord] status=recorded doc=$postId');
+      }
     });
   }
 }

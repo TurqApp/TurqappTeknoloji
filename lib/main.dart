@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
 import 'package:get/get.dart';
@@ -30,6 +31,8 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
+const String _appCheckDebugToken =
+    String.fromEnvironment('TURQ_APP_CHECK_DEBUG_TOKEN');
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -208,8 +211,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
         debugPrintStack(stackTrace: st);
       }
     }
-    debugPrint(
-        '[AppCheck] disabled; firebase_app_check package is not linked.');
+    unawaited(_activateFirebaseAppCheck());
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -249,6 +251,32 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
     }
     return true;
   };
+}
+
+Future<void> _activateFirebaseAppCheck() async {
+  try {
+    await FirebaseAppCheck.instance.activate(
+      providerAndroid: kDebugMode
+          ? AndroidDebugProvider(
+              debugToken:
+                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
+            )
+          : const AndroidPlayIntegrityProvider(),
+      providerApple: kDebugMode
+          ? AppleDebugProvider(
+              debugToken:
+                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
+            )
+          : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    );
+    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+    debugPrint(
+      '[AppCheck] activated provider=${kDebugMode ? 'debug' : 'production'}',
+    );
+  } catch (e, st) {
+    debugPrint('[AppCheck] activation failed: $e');
+    debugPrintStack(stackTrace: st);
+  }
 }
 
 bool _isFirestoreConfigError(Object error) {

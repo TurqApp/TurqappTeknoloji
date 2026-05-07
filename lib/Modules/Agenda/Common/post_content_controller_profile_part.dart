@@ -47,7 +47,6 @@ extension PostContentControllerProfilePart on PostContentController {
           'nickname': nickname.value.trim().isNotEmpty,
           'fullName': fullName.value.trim().isNotEmpty,
           'avatarUrl': avatarUrl.value.trim().isNotEmpty,
-          'userId': userID,
         }}',
       );
     }
