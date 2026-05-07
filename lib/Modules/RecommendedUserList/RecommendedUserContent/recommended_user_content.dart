@@ -93,6 +93,7 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
                             width: avatarSize,
                             height: avatarSize,
                             child: CachedUserAvatar(
+                              userId: model.userID,
                               imageUrl: model.avatarUrl,
                               radius: avatarSize / 2,
                             ),

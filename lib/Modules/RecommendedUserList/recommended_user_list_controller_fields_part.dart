@@ -16,6 +16,7 @@ class _RecommendedUserListControllerState {
   final int usersFetchWarm = ReadBudgetRegistry.recommendedUsersFetchWarm;
   final int usersLimitInitial = ReadBudgetRegistry.recommendedUsersInitialLimit;
   final int usersLimitFull = ReadBudgetRegistry.recommendedUsersFullLimit;
+  final Set<String> cachePrimedAvatarUrls = <String>{};
   bool bgScheduled = false;
   bool loadedOnce = false;
   DateTime? lastLoadTime;
@@ -45,6 +46,7 @@ extension RecommendedUserListControllerFieldsPart
   int get usersLimitInitial =>
       ReadBudgetRegistry.recommendedUsersInitialLimitValue;
   int get usersLimitFull => _state.usersLimitFull;
+  Set<String> get _cachePrimedAvatarUrls => _state.cachePrimedAvatarUrls;
   bool get _bgScheduled => _state.bgScheduled;
   set _bgScheduled(bool value) => _state.bgScheduled = value;
   bool get loadedOnce => _state.loadedOnce;
