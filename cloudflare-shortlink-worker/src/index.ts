@@ -431,7 +431,7 @@ function privacyPolicyHtml(): string {
     <p>Bu politika zaman zaman güncellenebilir. Güncel metin bu sayfada yayımlanır. Önemli değişikliklerde uygulama içinden veya uygun iletişim kanallarıyla bilgilendirme yapılabilir.</p>
 
     <h2>11. İletişim</h2>
-    <p>Gizlilik, veri talepleri veya hesap silme konularında <a href="mailto:turqapp@gmail.com">turqapp@gmail.com</a> adresinden bizimle iletişime geçebilirsiniz.</p>
+    <p>Gizlilik, veri talepleri veya hesap silme konularında <a href="mailto:info@turqapp.com">info@turqapp.com</a> adresinden bizimle iletişime geçebilirsiniz.</p>
   </main>
 </body>
 </html>`;
