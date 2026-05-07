@@ -17,6 +17,8 @@ test("worker source contains route parser for all short link kinds", () => {
 
 test("worker source contains OG and well-known handlers", () => {
   assert.match(source, /\/og-image/);
+  assert.match(source, /\/policy/);
+  assert.match(source, /TurqApp Gizlilik Politikası/);
   assert.match(source, /\/\.well-known\/apple-app-site-association/);
   assert.match(source, /\/\.well-known\/assetlinks\.json/);
 });
