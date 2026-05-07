@@ -40,7 +40,7 @@ extension ProfileControllerCachePart on ProfileController {
   }
 
   Future<void> _performWarmProfileSurfaceCache() async {
-    final pinnedPosts = allPosts.take(postLimit).toList(growable: false);
+    final pinnedPosts = _resolveWarmProfileSurfacePosts();
     final cacheManager = maybeFindSegmentCacheManager();
     var hlsCount = 0;
     if (cacheManager != null &&
@@ -91,6 +91,25 @@ extension ProfileControllerCachePart on ProfileController {
         await TurqImageCacheManager.instance.getSingleFile(url);
       } catch (_) {}
     }
+  }
+
+  List<PostsModel> _resolveWarmProfileSurfacePosts() {
+    final seen = <String>{};
+    final posts = <PostsModel>[];
+    for (final post in <PostsModel>[
+      ...allPosts,
+      ...reshares,
+    ]) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seen.add(docId)) continue;
+      posts.add(post);
+    }
+    posts.sort((left, right) {
+      final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+      if (timeCompare != 0) return timeCompare;
+      return right.docID.trim().compareTo(left.docID.trim());
+    });
+    return posts.take(postLimit).toList(growable: false);
   }
 
   void _performClearInMemoryPostLists() {

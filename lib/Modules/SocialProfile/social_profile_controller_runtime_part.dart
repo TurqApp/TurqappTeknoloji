@@ -58,8 +58,7 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
   void _cacheOwnProfilePinnedPosts(ProfileBuckets buckets) {
     final cacheManager = maybeFindSegmentCacheManager();
     if (cacheManager == null || !cacheManager.isReady) return;
-    final pinnedPosts =
-        buckets.all.take(ownPinnedPostCount).toList(growable: false);
+    final pinnedPosts = _resolveOwnProfilePinnedPosts(buckets);
     if (pinnedPosts.isEmpty) return;
     cacheManager.cachePostCards(pinnedPosts);
     var hlsCount = 0;
@@ -74,6 +73,25 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
       '[ProfileOnYukleme] phase=own_profile_pin_cache '
       'posts=${pinnedPosts.length} hls=$hlsCount',
     );
+  }
+
+  List<PostsModel> _resolveOwnProfilePinnedPosts(ProfileBuckets buckets) {
+    final seen = <String>{};
+    final posts = <PostsModel>[];
+    for (final post in <PostsModel>[
+      ...buckets.all,
+      ...buckets.reshares,
+    ]) {
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !seen.add(docId)) continue;
+      posts.add(post);
+    }
+    posts.sort((left, right) {
+      final timeCompare = right.timeStamp.compareTo(left.timeStamp);
+      if (timeCompare != 0) return timeCompare;
+      return right.docID.trim().compareTo(left.docID.trim());
+    });
+    return posts.take(ownPinnedPostCount).toList(growable: false);
   }
 
   void _handleLifecycleClose() {
