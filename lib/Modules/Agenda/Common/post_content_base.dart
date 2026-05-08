@@ -154,6 +154,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _surfaceKeepAliveDebounceActive = false;
   String? _lastPlaybackVisualWarning;
   DateTime? _lastPlaybackVisualWarningAt;
+  String? _lastPosterOverlayDecisionSignature;
   double? _lastAppliedPlaybackVolume;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
@@ -1141,12 +1142,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 80);
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
-          value.isPlaying &&
-          value.position > iosFeedVisiblePlaybackThreshold;
+          (value.isPlaying || value.position > visualReadyPositionThreshold);
       if (!hasStableIosFeedFrame) {
         return false;
       }
@@ -1184,6 +1183,55 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return !shouldHidePlaybackPoster(
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
+    );
+  }
+
+  void recordPosterOverlayDecision(
+    HLSVideoValue value, {
+    required bool shouldHidePoster,
+    required bool showStartupPlaceholder,
+    required String source,
+  }) {
+    if (!kDebugMode) return;
+    if (!widget.model.hasPlayableVideo) return;
+    final signature = [
+      _qaSurfaceName,
+      source,
+      shouldHidePoster ? 'hide' : 'show',
+      showStartupPlaceholder ? 'placeholder' : 'no_placeholder',
+      value.isPlaying ? 'playing' : 'not_playing',
+      value.isBuffering ? 'buffering' : 'not_buffering',
+      value.hasRenderedFirstFrame ? 'first_frame' : 'no_first_frame',
+      value.hasVisibleVideoFrame ? 'visible_frame' : 'no_visible_frame',
+      value.awaitingFreshFrameAfterReattach ? 'awaiting_frame' : 'fresh_frame',
+      value.position.inMilliseconds ~/ 100,
+    ].join('|');
+    if (_lastPosterOverlayDecisionSignature == signature) return;
+    _lastPosterOverlayDecisionSignature = signature;
+    final reason = shouldHidePoster
+        ? 'hide'
+        : (!widget.shouldPlay || !_isSurfacePlaybackAllowed)
+            ? 'pinned_inactive'
+            : !value.hasRenderedFirstFrame
+                ? 'waiting_first_frame'
+                : value.isBuffering
+                    ? 'buffering'
+                    : !value.isPlaying &&
+                            value.position <= _stableFramePositionThreshold
+                        ? 'not_playing_before_threshold'
+                        : 'visible_decision_false';
+    debugPrint(
+      '[PosterOverlayDecision][${widget.model.docID}] source=$source '
+      'surface=$_qaSurfaceName hide=$shouldHidePoster '
+      'placeholder=$showStartupPlaceholder reason=$reason '
+      'shouldPlay=${widget.shouldPlay} allowed=$_isSurfacePlaybackAllowed '
+      'initialized=${value.isInitialized} playing=${value.isPlaying} '
+      'buffering=${value.isBuffering} completed=${value.isCompleted} '
+      'firstFrame=${value.hasRenderedFirstFrame} '
+      'visibleFrame=${value.hasVisibleVideoFrame} '
+      'awaitingFresh=${value.awaitingFreshFrameAfterReattach} '
+      'positionMs=${value.position.inMilliseconds} '
+      'durationMs=${value.duration.inMilliseconds}',
     );
   }
 
@@ -1325,6 +1373,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool _shouldSyncVideoNotifier(HLSVideoValue next) {
     final previous = videoValueNotifier.value;
+    if (shouldHidePlaybackPoster(previous) != shouldHidePlaybackPoster(next)) {
+      return true;
+    }
+    if (shouldShowStartupPlaybackPlaceholder(previous) !=
+        shouldShowStartupPlaybackPlaceholder(next)) {
+      return true;
+    }
     if (previous.isInitialized != next.isInitialized ||
         previous.isPlaying != next.isPlaying ||
         previous.isBuffering != next.isBuffering ||

@@ -623,13 +623,13 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isFeedStyleSurface,
   }) {
-    return platform == TargetPlatform.iOS && isFeedStyleSurface;
+    return false;
   }
 
   static bool preferStableFeedStartupWarmBuffer({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool preferDirectCdnForShort({
@@ -641,7 +641,7 @@ class PlaybackSurfacePolicy {
   static bool preferStableShortStartupBuffer({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS || platform == TargetPlatform.android;
+    return platform == TargetPlatform.android;
   }
 
   static bool preferStableDynamicShortStartupBuffer({

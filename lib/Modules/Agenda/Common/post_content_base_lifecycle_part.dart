@@ -274,6 +274,12 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (!mounted) return;
     final v = _videoAdapter!.value;
     _recordPlaybackVisualWarning(v);
+    recordPosterOverlayDecision(
+      v,
+      shouldHidePoster: shouldHidePlaybackPoster(v),
+      showStartupPlaceholder: shouldShowStartupPlaybackPlaceholder(v),
+      source: 'video_update',
+    );
     _primeImmediateFeedNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&

@@ -244,7 +244,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       final isFeedStyleInlineSurface =
                                           isPrimaryFeedSurfaceInstance ||
                                               isProfileFamilySurface ||
-                                              instanceTag.startsWith('flood_') ||
+                                              instanceTag
+                                                  .startsWith('flood_') ||
                                               instanceTag.startsWith(
                                                 'explore_series_',
                                               );
@@ -275,11 +276,11 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   preferStableStartupBuffer:
                                                       PlaybackSurfacePolicy
                                                           .preferStableFeedStartupBuffer(
-                                                        platform:
-                                                            defaultTargetPlatform,
-                                                        isFeedStyleSurface:
-                                                            isFeedStyleInlineSurface,
-                                                      ),
+                                                    platform:
+                                                        defaultTargetPlatform,
+                                                    isFeedStyleSurface:
+                                                        isFeedStyleInlineSurface,
+                                                  ),
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -293,13 +294,25 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               );
                                               final shouldHidePoster =
                                                   shouldHidePlaybackPoster(v);
+                                              recordPosterOverlayDecision(
+                                                v,
+                                                shouldHidePoster:
+                                                    shouldHidePoster,
+                                                showStartupPlaceholder:
+                                                    showStartupPlaceholder,
+                                                source: 'agenda_overlay',
+                                              );
                                               final posterFadeDuration =
-                                                  showStartupPlaceholder
-                                                      ? const Duration(
-                                                          milliseconds: 90,
-                                                        )
-                                                      : AppDuration
-                                                          .thumbnailFadeOut;
+                                                  shouldHidePoster &&
+                                                          defaultTargetPlatform ==
+                                                              TargetPlatform.iOS
+                                                      ? Duration.zero
+                                                      : showStartupPlaceholder
+                                                          ? const Duration(
+                                                              milliseconds: 90,
+                                                            )
+                                                          : AppDuration
+                                                              .thumbnailFadeOut;
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(

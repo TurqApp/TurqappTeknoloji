@@ -173,7 +173,7 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       return false;
     }
     if (!_offlineHlsArchiveEnabled) {
-      return true;
+      return entry.feedConsumedAt != null || entry.shortConsumedAt != null;
     }
     if (entry.state == VideoCacheState.watched) {
       return true;

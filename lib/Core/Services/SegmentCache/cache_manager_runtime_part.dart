@@ -8,7 +8,6 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
     _resetWatchStateForSessionStart();
-    await clearConsumedCache(source: 'session_init');
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
     _reconcileTimer = Timer.periodic(const Duration(minutes: 3), (_) {
