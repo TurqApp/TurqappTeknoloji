@@ -22,6 +22,7 @@ class _SocialProfileScrollState {
   String? lastPlaybackWarmSignature;
   String? pendingCenteredIdentity;
   final Map<int, double> visibleFractions = <int, double>{};
+  final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
   Timer? visibilityDebounce;
   Worker? centeredPlaybackRowWorker;
   final scrollController = ScrollController();
@@ -118,6 +119,7 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;
   Map<int, double> get _visibleFractions => _scrollState.visibleFractions;
+  Map<int, DateTime> get _visibleUpdatedAt => _scrollState.visibleUpdatedAt;
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;
   set _visibilityDebounce(Timer? value) =>
       _scrollState.visibilityDebounce = value;

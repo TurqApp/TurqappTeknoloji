@@ -404,6 +404,7 @@ extension AgendaControllerFeedPart on AgendaController {
     if (index < 0 || index >= agendaList.length) return;
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
+    _updateFeedPrefetchQueue(anchorIndex: index);
     _boostFeedPlaybackHorizon(index);
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
     final manager = VideoStateManager.instance;
@@ -619,6 +620,7 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchThumbnailBatches();
     final centered = _resolveFeedPlaybackAnchorIndex();
     if (centered >= 0 && centered < agendaList.length) {
+      _updateFeedPrefetchQueue(anchorIndex: centered);
       _boostFeedPlaybackHorizon(centered);
     }
     final prefetchRefreshDelay = _shouldUseTightCellularFeedWarmProfile
@@ -915,8 +917,8 @@ extension AgendaControllerFeedPart on AgendaController {
     if (!_shouldUseTightCellularFeedWarmProfile) return;
     if (targetIndex < 0 || targetIndex >= agendaList.length) return;
     _feedPrefetchDebounce?.cancel();
-    _boostFeedPlaybackHorizon(targetIndex);
     _updateFeedPrefetchQueue(anchorIndex: targetIndex);
+    _boostFeedPlaybackHorizon(targetIndex);
   }
 
   int _resolveFeedWarmBlockIndex(int centered) {

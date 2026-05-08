@@ -17,7 +17,7 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _resetWatchStateForSessionStart();
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
-    _reconcileTimer = Timer.periodic(const Duration(minutes: 3), (_) {
+    _reconcileTimer = Timer.periodic(const Duration(minutes: 15), (_) {
       unawaited(_runPeriodicMaintenance());
     });
     _isReady = true;

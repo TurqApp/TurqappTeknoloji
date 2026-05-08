@@ -108,45 +108,6 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       controller.getPhotos(initial: false);
     }
 
-    if (activeFeedLength == 0) return;
-
-    if (scrollController.offset <= 0) {
-      controller.currentVisibleIndex.value = 0;
-      if (controller.centeredIndex.value != 0) {
-        _updateSocialProfileState(() {
-          controller.centeredIndex.value = 0;
-          controller.lastCenteredIndex = 0;
-        });
-      } else {
-        controller.lastCenteredIndex = 0;
-      }
-      if (controller.postSelection.value == 0) {
-        _scrollSettleDebounce?.cancel();
-        _scrollSettleDebounce = Timer(
-          FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
-          () {
-            if (!mounted || controller.postSelection.value != 0) return;
-            final centered = controller.centeredIndex.value;
-            if (centered >= 0 &&
-                centered < controller.combinedFeedEntries.length) {
-              controller.ensureCenteredPlaybackForCurrentSelection();
-            } else {
-              controller.resumeCenteredPost();
-            }
-          },
-        );
-      }
-      return;
-    }
-
-    final safeLastIndex = activeFeedLength - 1;
-    if (controller.centeredIndex.value > safeLastIndex) {
-      _updateSocialProfileState(() {
-        controller.centeredIndex.value = safeLastIndex;
-        controller.lastCenteredIndex = safeLastIndex;
-      });
-    }
-
     if (controller.postSelection.value == 0) {
       _scrollSettleDebounce?.cancel();
       _scrollSettleDebounce = Timer(
@@ -162,6 +123,30 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
           }
         },
       );
+      return;
+    }
+
+    if (activeFeedLength == 0) return;
+
+    if (scrollController.offset <= 0) {
+      controller.currentVisibleIndex.value = 0;
+      if (controller.centeredIndex.value != 0) {
+        _updateSocialProfileState(() {
+          controller.centeredIndex.value = 0;
+          controller.lastCenteredIndex = 0;
+        });
+      } else {
+        controller.lastCenteredIndex = 0;
+      }
+      return;
+    }
+
+    final safeLastIndex = activeFeedLength - 1;
+    if (controller.centeredIndex.value > safeLastIndex) {
+      _updateSocialProfileState(() {
+        controller.centeredIndex.value = safeLastIndex;
+        controller.lastCenteredIndex = safeLastIndex;
+      });
     }
   }
 

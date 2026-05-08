@@ -541,11 +541,14 @@ extension ClassicContentBodyPart on _ClassicContentState {
             aspectRatio: frameAspectRatio,
             child: Builder(
               builder: (_) {
+                final instanceTag = widget.instanceTag ?? '';
+                final isSocialProfileSurface =
+                    instanceTag.startsWith('social_');
                 final isProfileFamilySurface =
-                    (widget.instanceTag ?? '').startsWith('profile_') ||
-                        (widget.instanceTag ?? '').startsWith('archives_') ||
-                        (widget.instanceTag ?? '').startsWith('liked_post_') ||
-                        (widget.instanceTag ?? '').startsWith('social_');
+                    instanceTag.startsWith('profile_') ||
+                        instanceTag.startsWith('archives_') ||
+                        instanceTag.startsWith('liked_post_') ||
+                        isSocialProfileSurface;
                 final isFeedStyleInlineSurface = isPrimaryFeedSurfaceInstance ||
                     isProfileFamilySurface ||
                     (widget.instanceTag ?? '').startsWith('flood_') ||
@@ -577,7 +580,8 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                     preferWarmPoolPauseOnAndroid,
                                 preferResumePoster: (!isFeedStyleInlineSurface &&
                                         shouldSuppressGenericResumeThumbnail) ||
-                                    isProfileFamilySurface,
+                                    (isProfileFamilySurface &&
+                                        !isSocialProfileSurface),
                                 startupRecoveryWatchdogEnabled:
                                     shouldEnableStartupRecoveryWatchdog,
                                 preferStableStartupBuffer: PlaybackSurfacePolicy

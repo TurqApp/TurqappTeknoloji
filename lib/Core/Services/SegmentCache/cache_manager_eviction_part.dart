@@ -1,7 +1,7 @@
 part of 'cache_manager.dart';
 
 const bool _offlineHlsArchiveEnabled = false;
-const Duration _userInteractionEvictionGracePeriod = Duration(minutes: 5);
+const Duration _userInteractionEvictionGracePeriod = Duration(minutes: 20);
 const int _shortOfflineReserveFloor = 0;
 const int _feedOfflineReserveFloor = 0;
 

@@ -232,15 +232,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           widget.instanceTag?.trim() ?? '';
                                       const preferWarmPoolPauseOnAndroid =
                                           false;
-                                      final isProfileFamilySurface =
-                                          (widget.instanceTag ?? '')
-                                                  .startsWith('profile_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('archives_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('liked_post_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('social_');
+                                      final isSocialProfileSurface =
+                                          instanceTag.startsWith('social_');
+                                      final isProfileFamilySurface = instanceTag
+                                              .startsWith('profile_') ||
+                                          instanceTag.startsWith('archives_') ||
+                                          instanceTag
+                                              .startsWith('liked_post_') ||
+                                          isSocialProfileSurface;
                                       final isFeedStyleInlineSurface =
                                           isPrimaryFeedSurfaceInstance ||
                                               isProfileFamilySurface ||
@@ -270,7 +269,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   preferResumePoster:
                                                       (!isFeedStyleInlineSurface &&
                                                               shouldSuppressGenericResumeThumbnail) ||
-                                                          isProfileFamilySurface,
+                                                          (isProfileFamilySurface &&
+                                                              !isSocialProfileSurface),
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:

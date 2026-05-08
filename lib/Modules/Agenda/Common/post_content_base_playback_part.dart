@@ -976,6 +976,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         } catch (_) {}
         return;
       }
+      _playbackRuntimeService.registerPlaybackHandle(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
+      );
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
       if (_usesFeedPlaybackPolicy) {

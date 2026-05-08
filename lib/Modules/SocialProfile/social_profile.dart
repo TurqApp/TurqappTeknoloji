@@ -79,32 +79,36 @@ part 'social_profile_header_actions_part.dart';
 Future<void> _prewarmSocialProfileSurface(String userId) async {
   final normalizedUserId = userId.trim();
   if (normalizedUserId.isEmpty) return;
-  try {
-    unawaited(
-      UserRepository.ensure().getPublicUserRaw(
+  unawaited(() async {
+    try {
+      await UserRepository.ensure().getPublicUserRaw(
         normalizedUserId,
         preferCache: true,
         cacheOnly: false,
-      ),
-    );
-    unawaited(
-      ProfilePostsSnapshotRepository.ensure()
+      );
+    } catch (_) {}
+  }());
+  unawaited(() async {
+    try {
+      await ProfilePostsSnapshotRepository.ensure()
           .bootstrapProfile(
             userId: normalizedUserId,
             limit: 10,
           )
-          .timeout(const Duration(milliseconds: 1600)),
-    );
-    unawaited(
-      MarketSnapshotRepository.ensure()
+          .timeout(const Duration(milliseconds: 1600));
+    } catch (_) {}
+  }());
+  unawaited(() async {
+    try {
+      await MarketSnapshotRepository.ensure()
           .loadOwner(
             userId: normalizedUserId,
             limit: 12,
             forceSync: false,
           )
-          .timeout(const Duration(milliseconds: 1600)),
-    );
-  } catch (_) {}
+          .timeout(const Duration(milliseconds: 1600));
+    } catch (_) {}
+  }());
 }
 
 class SocialProfile extends StatefulWidget {
