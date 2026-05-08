@@ -11,7 +11,11 @@ class _SegmentCacheManagerState {
   int? userSoftLimitBytes;
   Timer? persistTimer;
   Timer? reconcileTimer;
+  Timer? deferredEvictionTimer;
+  Timer? deferredMaintenanceTimer;
   bool persistDirty = false;
+  DateTime? lastEvictionDeferredLogAt;
+  DateTime? lastMaintenanceDeferredLogAt;
   final writeInFlight = <String, Future<File>>{};
   final playlistWriteInFlight = <String, Future<File>>{};
   final playlistWriteInFlightByDoc = <String, int>{};
@@ -42,8 +46,21 @@ extension SegmentCacheManagerFieldsPart on SegmentCacheManager {
   set _persistTimer(Timer? value) => _state.persistTimer = value;
   Timer? get _reconcileTimer => _state.reconcileTimer;
   set _reconcileTimer(Timer? value) => _state.reconcileTimer = value;
+  Timer? get _deferredEvictionTimer => _state.deferredEvictionTimer;
+  set _deferredEvictionTimer(Timer? value) =>
+      _state.deferredEvictionTimer = value;
+  Timer? get _deferredMaintenanceTimer => _state.deferredMaintenanceTimer;
+  set _deferredMaintenanceTimer(Timer? value) =>
+      _state.deferredMaintenanceTimer = value;
   bool get _persistDirty => _state.persistDirty;
   set _persistDirty(bool value) => _state.persistDirty = value;
+  DateTime? get _lastEvictionDeferredLogAt => _state.lastEvictionDeferredLogAt;
+  set _lastEvictionDeferredLogAt(DateTime? value) =>
+      _state.lastEvictionDeferredLogAt = value;
+  DateTime? get _lastMaintenanceDeferredLogAt =>
+      _state.lastMaintenanceDeferredLogAt;
+  set _lastMaintenanceDeferredLogAt(DateTime? value) =>
+      _state.lastMaintenanceDeferredLogAt = value;
   Map<String, Future<File>> get _writeInFlight => _state.writeInFlight;
   Map<String, Future<File>> get _playlistWriteInFlight =>
       _state.playlistWriteInFlight;

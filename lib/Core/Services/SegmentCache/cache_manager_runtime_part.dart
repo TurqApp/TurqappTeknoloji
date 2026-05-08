@@ -1,6 +1,13 @@
 part of 'cache_manager.dart';
 
 extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
+  static const Duration _hotPlaybackEvictionDelay = Duration(seconds: 8);
+  static const Duration _hotPlaybackEvictionLogThrottle = Duration(seconds: 20);
+  static const Duration _hotPlaybackMaintenanceDelay = Duration(seconds: 8);
+  static const Duration _hotPlaybackMaintenanceLogThrottle =
+      Duration(seconds: 20);
+  static const double _emergencyHardLimitMultiplier = 1.10;
+
   Future<void> init() async {
     _isReady = false;
     final appDir = await getApplicationSupportDirectory();
@@ -55,8 +62,12 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     try {
       _reconcileTotalSize();
       _normalizeStalePlayingEntries();
-      await purgeExpiredEntries();
-      await _pruneOrphanPostDirectories(source: 'periodic');
+      if (_shouldDeferMaintenanceForHotPlayback(source: 'periodic')) {
+        _scheduleDeferredMaintenance(source: 'periodic');
+      } else {
+        await purgeExpiredEntries();
+        await _pruneOrphanPostDirectories(source: 'periodic');
+      }
     } catch (e) {
       debugPrint('[CacheManager] Periodic maintenance failed: $e');
     }
@@ -365,10 +376,114 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     if (_evictionInFlight != null) return;
 
     final target = _segmentTargetBytesForQuota(_softLimitBytes);
+    if (_shouldDeferEvictionForHotPlayback(source: 'hard_limit')) {
+      _scheduleDeferredEviction(source: 'hard_limit', targetBytes: target);
+      return;
+    }
 
     _evictionInFlight = evictIfNeeded(targetBytes: target).whenComplete(() {
       _evictionInFlight = null;
     });
+  }
+
+  bool _shouldDeferEvictionForHotPlayback({required String source}) {
+    if (!_hasHotPlaybackFocus) return false;
+    if (_isEmergencyOverHardLimit) return false;
+    _logEvictionDeferred(source: source);
+    return true;
+  }
+
+  bool _shouldDeferMaintenanceForHotPlayback({required String source}) {
+    if (!_hasHotPlaybackFocus) return false;
+    if (_isEmergencyOverHardLimit) return false;
+    _logMaintenanceDeferred(source: source);
+    return true;
+  }
+
+  bool get _hasHotPlaybackFocus {
+    final manager = maybeFindVideoStateManager();
+    if (manager == null) return false;
+    return _isHotPlaybackHandle(manager.currentPlayingDocID) ||
+        _isHotPlaybackHandle(manager.targetPlaybackDocID);
+  }
+
+  bool _isHotPlaybackHandle(String? value) {
+    final normalized = value?.trim() ?? '';
+    return normalized.startsWith('feed:') ||
+        normalized.startsWith('short:') ||
+        normalized.startsWith('profile_') ||
+        normalized.startsWith('social_');
+  }
+
+  bool get _isEmergencyOverHardLimit {
+    final emergencyLimit =
+        (_hardLimitBytes * _emergencyHardLimitMultiplier).round();
+    return totalTrackedUsageBytes > emergencyLimit;
+  }
+
+  void _scheduleDeferredEviction({
+    required String source,
+    int? targetBytes,
+  }) {
+    if (_deferredEvictionTimer?.isActive == true) return;
+    _deferredEvictionTimer = Timer(_hotPlaybackEvictionDelay, () {
+      _deferredEvictionTimer = null;
+      if (!_isReady) return;
+      if (targetBytes != null) {
+        if (totalTrackedUsageBytes <= targetBytes) return;
+        if (_evictionInFlight != null) return;
+        _evictionInFlight = evictIfNeeded(
+          targetBytes: targetBytes,
+        ).whenComplete(() {
+          _evictionInFlight = null;
+        });
+        return;
+      }
+      if (totalTrackedUsageBytes <= _hardLimitBytes) {
+        return;
+      }
+      _scheduleEvictionIfNeeded();
+    });
+  }
+
+  void _scheduleDeferredMaintenance({required String source}) {
+    if (_deferredMaintenanceTimer?.isActive == true) return;
+    _deferredMaintenanceTimer = Timer(_hotPlaybackMaintenanceDelay, () {
+      _deferredMaintenanceTimer = null;
+      if (!_isReady) return;
+      unawaited(_runPeriodicMaintenance());
+    });
+    debugPrint(
+      '[CacheManager] Maintenance deferred source=$source '
+      'delayMs=${_hotPlaybackMaintenanceDelay.inMilliseconds}',
+    );
+  }
+
+  void _logEvictionDeferred({required String source}) {
+    final now = DateTime.now();
+    final last = _lastEvictionDeferredLogAt;
+    if (last != null &&
+        now.difference(last) < _hotPlaybackEvictionLogThrottle) {
+      return;
+    }
+    _lastEvictionDeferredLogAt = now;
+    debugPrint(
+      '[CacheManager] Eviction guarded source=$source reason=hot_playback '
+      'usage=$totalTrackedUsageBytes hard=$_hardLimitBytes',
+    );
+  }
+
+  void _logMaintenanceDeferred({required String source}) {
+    final now = DateTime.now();
+    final last = _lastMaintenanceDeferredLogAt;
+    if (last != null &&
+        now.difference(last) < _hotPlaybackMaintenanceLogThrottle) {
+      return;
+    }
+    _lastMaintenanceDeferredLogAt = now;
+    debugPrint(
+      '[CacheManager] Maintenance guarded source=$source reason=hot_playback',
+    );
   }
 
   int _segmentTargetBytesForQuota(int quotaBytes) {
@@ -381,6 +496,8 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _isReady = false;
     _persistTimer?.cancel();
     _reconcileTimer?.cancel();
+    _deferredEvictionTimer?.cancel();
+    _deferredMaintenanceTimer?.cancel();
     metrics.stopPeriodicLog();
     if (_persistDirty) {
       _persistDirty = false;
