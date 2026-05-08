@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+
 class JobModel {
   final String docID;
   final String brand;
@@ -147,7 +149,7 @@ class JobModel {
       isTanimi: _asString(map['isTanimi']),
       lat: _asDouble(map['lat']),
       long: _asDouble(map['long']),
-      logo: _asString(map['logo']),
+      logo: CdnUrlBuilder.toCdnUrl(_asString(map['logo']).trim()),
       adres: _asString(map['adres']),
       maas1: _asInt(map['maas1']),
       maas2: _asInt(map['maas2']),
@@ -165,8 +167,10 @@ class JobModel {
       viewCount: _asInt(map['viewCount']),
       applicationCount: _asInt(map['applicationCount']),
       endedAt: _asInt(map['endedAt']),
-      authorAvatarUrl: _asString(map['authorAvatarUrl'],
-          fallback: _asString(map['avatarUrl'])),
+      authorAvatarUrl: CdnUrlBuilder.toCdnUrl(
+        _asString(map['authorAvatarUrl'], fallback: _asString(map['avatarUrl']))
+            .trim(),
+      ),
       authorDisplayName: _asString(map['authorDisplayName'],
           fallback: _asString(map['displayName'])),
       authorNickname: _asString(map['authorNickname'],
@@ -199,7 +203,7 @@ class JobModel {
       lat: _asDouble(hit['lat']),
       long: _asDouble(hit['long']),
       adres: (hit['adres'] ?? '').toString(),
-      logo: firstNonEmpty(hit['logo'], hit['cover']),
+      logo: CdnUrlBuilder.toCdnUrl(firstNonEmpty(hit['logo'], hit['cover'])),
       maas1: _asInt(hit['maas1']),
       maas2: _asInt(hit['maas2']),
       meslek: (hit['meslek'] ?? hit['subtitle'] ?? '').toString(),
@@ -218,7 +222,9 @@ class JobModel {
       viewCount: _asInt(hit['viewCount']),
       applicationCount: _asInt(hit['applicationCount']),
       endedAt: _asInt(hit['endedAt']),
-      authorAvatarUrl: firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
+      authorAvatarUrl: CdnUrlBuilder.toCdnUrl(
+        firstNonEmpty(hit['avatarUrl'], hit['authorAvatarUrl']),
+      ),
       authorDisplayName:
           firstNonEmpty(hit['displayName'], hit['authorDisplayName']),
       authorNickname: firstNonEmpty(hit['nickname'], hit['authorNickname']),
