@@ -281,7 +281,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       showStartupPlaceholder: shouldShowStartupPlaybackPlaceholder(v),
       source: 'video_update',
     );
-    _primeImmediateFeedNextAfterPlaybackStart(v);
+    _primeImmediateNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&
         widget.shouldPlay &&
@@ -500,15 +500,26 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
   }
 
-  void _primeImmediateFeedNextAfterPlaybackStart(HLSVideoValue value) {
-    if (!_isPrimaryFeedSurfaceInstance) return;
+  void _primeImmediateNextAfterPlaybackStart(HLSVideoValue value) {
     if (!widget.model.hasPlayableVideo) return;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
     if (!value.hasRenderedFirstFrame) return;
     final docId = widget.model.docID.trim();
     if (docId.isEmpty || _lastImmediateFeedNextWarmDocId == docId) return;
     _lastImmediateFeedNextWarmDocId = docId;
-    agendaController.primeImmediateNextFeedAfterPlaybackStart(docId);
+    if (_isPrimaryFeedSurfaceInstance) {
+      agendaController.primeImmediateNextFeedAfterPlaybackStart(docId);
+      return;
+    }
+    if (_isProfileSurfaceInstance) {
+      ProfileController.maybeFind()
+          ?.primeImmediateNextProfileAfterPlaybackStart(docId);
+      return;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      _resolveSocialProfileController()
+          ?.primeImmediateNextProfileAfterPlaybackStart(docId);
+    }
   }
 
   void _maybePreloadWarmVideoController({

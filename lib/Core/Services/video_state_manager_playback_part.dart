@@ -48,6 +48,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return !(allowedSegmentWarm || allowedCacheOnly);
   }
 
+  bool _shouldKeepExternalOnDemandClaimDuringTargetChange(String docID) {
+    final normalizedDocID = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalizedDocID == null || normalizedDocID.isEmpty) {
+      return false;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    final tierInfo = scheduler?.classifyTransferDoc(normalizedDocID);
+    if (tierInfo == null) return false;
+    return tierInfo['allowedSegmentWarm'] == true ||
+        tierInfo['allowedCacheOnly'] == true;
+  }
+
   bool _shouldKeepWarmHandleDuringExclusiveSwitch(
     String? allowedDocID,
     String controllerKey,
@@ -90,7 +102,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
     final removed = <String>[];
     _externalOnDemandFetchClaims.removeWhere((docID, _) {
-      final shouldRemove = docID != normalizedActiveDocID;
+      final shouldRemove = docID != normalizedActiveDocID &&
+          !_shouldKeepExternalOnDemandClaimDuringTargetChange(docID);
       if (shouldRemove) removed.add(docID);
       return shouldRemove;
     });
@@ -270,6 +283,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           if (allowedSurface != null &&
               controllerSurface != null &&
               allowedSurface != controllerSurface) {
+            shouldStopPlayback = true;
+          }
+          if ((controllerSurface == 'social' ||
+                  controllerSurface == 'profile') &&
+              handle is HLSAdapterPlaybackHandle &&
+              handle.adapter.value.isPlaying) {
             shouldStopPlayback = true;
           }
           final keepWarmDuringSurfaceSwitch =

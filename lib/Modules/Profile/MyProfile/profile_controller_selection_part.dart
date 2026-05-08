@@ -548,6 +548,44 @@ extension ProfileControllerSelectionPart on ProfileController {
     );
   }
 
+  void primeImmediateNextProfileAfterPlaybackStart(String anchorDocId) {
+    final normalizedAnchorDocId = anchorDocId.trim();
+    if (normalizedAnchorDocId.isEmpty || mergedPosts.isEmpty) return;
+    final anchorIndex = mergedPosts.indexWhere((entry) {
+      final docId = ((entry['docID'] as String?) ?? '').trim();
+      return docId == normalizedAnchorDocId;
+    });
+    if (anchorIndex < 0 || anchorIndex >= mergedPosts.length) return;
+
+    var nextPlayableIndex = -1;
+    for (var index = anchorIndex + 1; index < mergedPosts.length; index++) {
+      if (!_performCanAutoplayMergedEntry(mergedPosts[index])) continue;
+      nextPlayableIndex = index;
+      break;
+    }
+    if (nextPlayableIndex < 0) return;
+
+    final nextPost = mergedPosts[nextPlayableIndex]['post'];
+    if (nextPost is! PostsModel) return;
+    final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(1);
+    maybeFindPrefetchScheduler()?.boostDoc(
+      nextPost.docID,
+      readySegments: readySegments,
+    );
+    for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+      TurqImageCacheManager.warmUrl(posterUrl).ignore();
+    }
+    final preview = nextPost.primaryImageUrl.trim();
+    if (preview.isNotEmpty) {
+      TurqImageCacheManager.warmUrl(preview).ignore();
+    }
+    debugPrint(
+      '[ProfileNextWarm] status=boost surface=my_profile source=first_frame '
+      'anchor=$anchorIndex next=$nextPlayableIndex '
+      'doc=${nextPost.docID} segments=$readySegments',
+    );
+  }
+
   GlobalKey _performGetPostKey({
     required String docId,
     required bool isReshare,

@@ -152,10 +152,15 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
+    final isInlineFeedStyleOwner = docID.startsWith('feed:') ||
+        docID.startsWith('social_') ||
+        docID.startsWith('profile_');
     final shouldReassertFeedPlayback =
         (GetPlatform.isAndroid || GetPlatform.isIOS) &&
-            docID.startsWith('feed:') &&
-            handle is HLSAdapterPlaybackHandle;
+            isInlineFeedStyleOwner &&
+            handle is HLSAdapterPlaybackHandle &&
+            (docID.startsWith('feed:') ||
+                handle.position <= const Duration(milliseconds: 180));
     if (!handle.isPlaying || shouldReassertFeedPlayback) {
       debugPrint(
         '[FeedPlaybackProof] '
