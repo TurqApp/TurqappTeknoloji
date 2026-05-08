@@ -41,8 +41,8 @@ const int _feedWarmWindowBehindCount = 2;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
-const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
+const int _androidPrimaryFeedNativeStrongOppositeCount = 0;
+const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 0;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
 
 enum _FeedNativeWarmTier {
@@ -163,6 +163,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _navSelectionWorker;
   Worker? _keepAliveWindowWorker;
   Worker? _warmPreloadAnchorWorker;
+  Worker? _feedScrollSettlingWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   Timer? _stallWatchdogTimer;
@@ -711,6 +712,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       hasPlayableVideo: widget.model.hasPlayableVideo,
     );
     if (!isAllowedByPolicy) {
+      return false;
+    }
+    if (_isPrimaryFeedSurfaceInstance &&
+        agendaController.isFeedScrollSettling) {
       return false;
     }
     if (_usesFeedPlaybackPolicy) {

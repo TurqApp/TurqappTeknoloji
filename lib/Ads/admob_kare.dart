@@ -24,6 +24,7 @@ class AdmobKare extends StatefulWidget {
     this.promoFallbackExtraWidth = 0,
     this.forceSingleLinePromoChips = false,
     this.suggestionPlacementId,
+    this.disposeImmediatelyWhenHidden = false,
   });
 
   final bool showChrome;
@@ -34,6 +35,7 @@ class AdmobKare extends StatefulWidget {
   final double promoFallbackExtraWidth;
   final bool forceSingleLinePromoChips;
   final String? suggestionPlacementId;
+  final bool disposeImmediatelyWhenHidden;
 
   static Future<void> warmupPool({
     int targetCount = _AdmobKareState._poolTargetCount,
@@ -430,7 +432,7 @@ class _AdmobKareState extends State<AdmobKare> {
           unawaited(warmupPool(
             targetCount: _poolTargetCount,
             maxRequestCount: _poolTopUpBatchCount,
-            bypassMinInterval: true,
+            bypassMinInterval: false,
           ));
         }
       }
@@ -628,7 +630,12 @@ class _AdmobKareState extends State<AdmobKare> {
     _loadFailed = false;
     _allowFallbackSurface = false;
     _impressionReported = false;
-    _disposeBannerAd(ad, reason: 'hidden_page');
+    _disposeBannerAd(
+      ad,
+      reason: 'hidden_page',
+      delay:
+          widget.disposeImmediatelyWhenHidden ? Duration.zero : _disposeDelay,
+    );
     _notifySharedAdAvailabilityChanged();
     if (mounted && !_isDisposed) {
       setState(() {});
@@ -752,7 +759,7 @@ class _AdmobKareState extends State<AdmobKare> {
           _notifySharedAdAvailabilityChanged();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
-              bypassMinInterval: true,
+              bypassMinInterval: false,
             ));
           }
         },
@@ -876,7 +883,12 @@ class _AdmobKareState extends State<AdmobKare> {
     _isAdLoaded = false;
     _bannerAd = null;
     if (ad != null) {
-      _disposeBannerAd(ad, reason: 'widget_dispose');
+      _disposeBannerAd(
+        ad,
+        reason: 'widget_dispose',
+        delay:
+            widget.disposeImmediatelyWhenHidden ? Duration.zero : _disposeDelay,
+      );
     }
     super.dispose();
   }

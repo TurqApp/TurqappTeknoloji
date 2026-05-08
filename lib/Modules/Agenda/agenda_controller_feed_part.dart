@@ -1363,6 +1363,21 @@ extension AgendaControllerFeedPart on AgendaController {
         },
       );
     }
+    if (!feedScrollSettlingRx.value) {
+      feedScrollSettlingRx.value = true;
+      debugPrint(
+        '[FeedScrollSettling] status=start offset=${currentOffset.toStringAsFixed(1)} '
+        'centered=${centeredIndex.value}',
+      );
+    }
+    if (!feedAdSurfaceSuppressedRx.value) {
+      feedAdSurfaceSuppressedRx.value = true;
+      debugPrint(
+        '[FeedAdSurface] status=suppressed offset=${currentOffset.toStringAsFixed(1)} '
+        'centered=${centeredIndex.value}',
+      );
+    }
+    _feedAdSurfaceReleaseDebounce?.cancel();
     bool shouldShowNavBar;
 
     if (currentOffset <= 0) {
@@ -1441,8 +1456,14 @@ extension AgendaControllerFeedPart on AgendaController {
 
     _scrollIdleDebounce?.cancel();
     _scrollIdleDebounce = Timer(
-      const Duration(milliseconds: 220),
+      const Duration(milliseconds: 380),
       () {
+        if (feedScrollSettlingRx.value) {
+          feedScrollSettlingRx.value = false;
+          debugPrint(
+            '[FeedScrollSettling] status=settled centered=${centeredIndex.value}',
+          );
+        }
         final settledAt = DateTime.now();
         final settledOffset = scrollController.hasClients
             ? scrollController.offset
@@ -1474,6 +1495,16 @@ extension AgendaControllerFeedPart on AgendaController {
         if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();
         }
+      },
+    );
+    _feedAdSurfaceReleaseDebounce = Timer(
+      const Duration(milliseconds: 1400),
+      () {
+        if (!feedAdSurfaceSuppressedRx.value) return;
+        feedAdSurfaceSuppressedRx.value = false;
+        debugPrint(
+          '[FeedAdSurface] status=released centered=${centeredIndex.value}',
+        );
       },
     );
   }

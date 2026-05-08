@@ -26,6 +26,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _maybePreloadWarmVideoController(source: 'warm_anchor_ready');
       },
     );
+    _feedScrollSettlingWorker ??= ever<bool>(
+      agendaController.feedScrollSettlingRx,
+      (isSettling) {
+        if (isSettling) return;
+        _keepAliveUpdateCallback?.call();
+        _maybePreloadWarmVideoController(source: 'feed_scroll_settled');
+      },
+    );
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =
@@ -131,6 +139,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _navSelectionWorker?.dispose();
     _keepAliveWindowWorker?.dispose();
     _warmPreloadAnchorWorker?.dispose();
+    _feedScrollSettlingWorker?.dispose();
     _releaseWarmPreloadFetchOwnership();
     videoValueNotifier.dispose();
   }

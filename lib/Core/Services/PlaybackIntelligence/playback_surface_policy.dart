@@ -65,7 +65,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return 6;
+      return 1;
     }
     return defaultCount;
   }
@@ -79,7 +79,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return 5;
+      return 1;
     }
     return defaultCount;
   }

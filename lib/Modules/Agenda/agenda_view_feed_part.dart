@@ -320,14 +320,19 @@ extension _AgendaViewFeedPart on AgendaView {
             children: [
               Padding(
                 padding: edgeInsets,
-                child: AdmobKare(
-                  key: ValueKey('agenda-feed-ad-$slotNumber'),
-                  contentPadding: EdgeInsets.zero,
-                  liveAdOffsetX: liveAdOffsetX,
-                  promoFallbackOffsetX: 0,
-                  promoFallbackExtraWidth: 0,
-                  forceSingleLinePromoChips: true,
-                  suggestionPlacementId: 'feed',
+                child: Obx(
+                  () => controller.feedAdSurfaceSuppressedRx.value
+                      ? const SizedBox(height: 270)
+                      : AdmobKare(
+                          key: ValueKey('agenda-feed-ad-$slotNumber'),
+                          contentPadding: EdgeInsets.zero,
+                          liveAdOffsetX: liveAdOffsetX,
+                          promoFallbackOffsetX: 0,
+                          promoFallbackExtraWidth: 0,
+                          forceSingleLinePromoChips: true,
+                          suggestionPlacementId: 'feed',
+                          disposeImmediatelyWhenHidden: true,
+                        ),
                 ),
               ),
               if (!isModernView) ...[

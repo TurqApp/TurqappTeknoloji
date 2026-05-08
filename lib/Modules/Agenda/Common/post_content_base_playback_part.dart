@@ -536,15 +536,19 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }) async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    final keepWarmWindowSurface = _usesFeedPlaybackPolicy &&
+        _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
     final shouldKeepWarmForSurfaceLoss =
         (defaultTargetPlatform == TargetPlatform.android ||
                 defaultTargetPlatform == TargetPlatform.iOS) &&
             _usesFeedPlaybackPolicy &&
+            keepWarmWindowSurface &&
             !clearSavedState;
     debugPrint(
       '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
       'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
+      'keepWarmWindowSurface=$keepWarmWindowSurface '
       'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
     );
     if (shouldKeepWarmForSurfaceLoss) {
