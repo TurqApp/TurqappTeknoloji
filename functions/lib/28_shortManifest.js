@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.f28_generateShortManifestScheduled = exports.f28_generateShortManifestCallable = void 0;
+exports.f28_generateDailyShortManifestScheduled = exports.f28_generateShortManifestScheduled = exports.f28_generateShortManifestCallable = void 0;
 exports.resolveShortManifestDateForNow = resolveShortManifestDateForNow;
 exports.resolveRollingShortManifestDatesForNow = resolveRollingShortManifestDatesForNow;
 exports.resolvePreparedRollingShortManifestDatesForNow = resolvePreparedRollingShortManifestDatesForNow;
@@ -27,7 +27,7 @@ const TYPESENSE_PAGE_SIZE = 250;
 const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
 const ISTANBUL_UTC_OFFSET = "+03:00";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SHORT_SOURCE_DAY_OFFSET = 4;
+const SHORT_SOURCE_DAY_OFFSET = 0;
 const SHORT_ROLLING_SOURCE_DAY_OFFSETS = [6, 5, 4];
 const SHORT_ROLLING_PREPARE_DAY_OFFSETS = [6, 5, 4, 3];
 function ensureAdmin() {
@@ -623,6 +623,39 @@ exports.f28_generateShortManifestScheduled = (0, scheduler_1.onSchedule)({
     catch (err) {
         const detail = err?.message || "unknown_error";
         console.error("short_manifest_scheduled_failed", { detail });
+        throw err;
+    }
+});
+exports.f28_generateDailyShortManifestScheduled = (0, scheduler_1.onSchedule)({
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    schedule: getEnv("SHORT_DAILY_MANIFEST_SCHEDULE") || "55 23 * * *",
+    timeZone: "Europe/Istanbul",
+}, async () => {
+    ensureAdmin();
+    const nowMs = Date.now();
+    const date = resolveShortManifestDateForNow(nowMs);
+    const defaultRange = istanbulDayRangeForDate(date);
+    try {
+        const result = await generateShortManifest({
+            actor: "daily_scheduled",
+            date,
+            maxSlots: 1,
+            startMs: defaultRange.startMs,
+            endMs: defaultRange.endMs,
+            publish: true,
+            publishActive: false,
+            generatedAt: nowMs,
+        });
+        console.log("short_manifest_daily_scheduled_done", {
+            ...result,
+            dailyDate: date,
+        });
+    }
+    catch (err) {
+        const detail = err?.message || "unknown_error";
+        console.error("short_manifest_daily_scheduled_failed", { detail, date });
         throw err;
     }
 });
