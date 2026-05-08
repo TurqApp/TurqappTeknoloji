@@ -22,25 +22,6 @@ void main() {
       expect(plan.organicIndexForRenderIndex(5), 5);
     });
 
-    test('can reserve fallback ad pages before Google ad is renderable', () {
-      final posts = List<PostsModel>.generate(
-        6,
-        (index) => _short('short-$index'),
-      );
-
-      final plan = buildShortAdRenderPlan(
-        posts,
-        adReady: false,
-        showFallbackWhenNotReady: true,
-      );
-
-      expect(plan.entries.length, 7);
-      expect(plan.entries[5].isAd, isTrue);
-      expect(plan.renderIndexForOrganicIndex(5), 6);
-      expect(plan.organicIndexForRenderIndex(5), isNull);
-      expect(plan.organicIndexForRenderIndex(6), 5);
-    });
-
     test('inserts ad pages only after full frequency windows', () {
       final posts = List<PostsModel>.generate(
         11,
@@ -73,46 +54,6 @@ void main() {
       expect(plan.renderIndexForOrganicIndex(5), 6);
       expect(plan.organicIndexForRenderIndex(5), isNull);
       expect(plan.organicIndexForRenderIndex(6), 5);
-    });
-
-    test('moves a missed first ad to the next organic boundary when ready late',
-        () {
-      final posts = List<PostsModel>.generate(
-        13,
-        (index) => _short('short-$index'),
-      );
-
-      final plan = buildShortAdRenderPlan(
-        posts,
-        adReady: true,
-        deferFirstAdUntilAfterOrganicIndex: 6,
-      );
-
-      expect(plan.entries[7].isAd, isTrue);
-      expect(plan.renderIndexForOrganicIndex(6), 6);
-      expect(plan.renderIndexForOrganicIndex(7), 8);
-      expect(plan.entries[13].isAd, isTrue);
-      expect(plan.entries.where((entry) => entry.isAd), hasLength(2));
-    });
-
-    test('can delay a late first ad past the currently visible organic item',
-        () {
-      final posts = List<PostsModel>.generate(
-        13,
-        (index) => _short('short-$index'),
-      );
-
-      final plan = buildShortAdRenderPlan(
-        posts,
-        adReady: true,
-        deferFirstAdUntilAfterOrganicIndex: 5,
-      );
-
-      expect(plan.entries[6].isAd, isTrue);
-      expect(plan.renderIndexForOrganicIndex(5), 5);
-      expect(plan.renderIndexForOrganicIndex(6), 7);
-      expect(plan.entries[12].isAd, isTrue);
-      expect(plan.entries.where((entry) => entry.isAd), hasLength(2));
     });
   });
 }

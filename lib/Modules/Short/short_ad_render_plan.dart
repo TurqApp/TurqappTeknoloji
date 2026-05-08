@@ -58,9 +58,7 @@ class ShortAdRenderPlan {
 ShortAdRenderPlan buildShortAdRenderPlan(
   List<PostsModel> posts, {
   required bool adReady,
-  bool showFallbackWhenNotReady = false,
   int insertionFrequency = kShortAdInsertionFrequency,
-  int? deferFirstAdUntilAfterOrganicIndex,
 }) {
   if (posts.isEmpty) {
     return const ShortAdRenderPlan._(<ShortRenderEntry>[]);
@@ -68,11 +66,7 @@ ShortAdRenderPlan buildShortAdRenderPlan(
 
   final entries = <ShortRenderEntry>[];
   var adOrdinal = 0;
-  final deferredFirstBoundary = deferFirstAdUntilAfterOrganicIndex;
-  final firstInsertionBoundary = deferredFirstBoundary != null &&
-          deferredFirstBoundary >= insertionFrequency - 1
-      ? deferredFirstBoundary
-      : insertionFrequency - 1;
+  final firstInsertionBoundary = insertionFrequency - 1;
   for (var i = 0; i < posts.length; i++) {
     entries.add(
       ShortRenderEntry.post(
@@ -81,8 +75,7 @@ ShortAdRenderPlan buildShortAdRenderPlan(
         renderIndex: entries.length,
       ),
     );
-    final shouldReserveAdSlot = adReady || showFallbackWhenNotReady;
-    final reachedInsertionBoundary = shouldReserveAdSlot &&
+    final reachedInsertionBoundary = adReady &&
         insertionFrequency > 0 &&
         i >= firstInsertionBoundary &&
         (i - firstInsertionBoundary) % insertionFrequency == 0;
