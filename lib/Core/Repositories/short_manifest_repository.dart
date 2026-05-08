@@ -58,6 +58,8 @@ class ShortManifestRepository extends GetxService {
   static const String _localIndexPrefsKey = 'short_manifest_index_v1';
   static const String _localSlotPrefsPrefix = 'short_manifest_slot_v1';
   static const String _localSlotListPrefsKey = 'short_manifest_cached_slots_v1';
+  static const List<int> _tailCandidateHoursAgo = <int>[72, 48, 24];
+  static const int _tailPrepareItemThreshold = 200;
 
   String _manifestId = '';
   String _indexPath = '';
@@ -80,6 +82,56 @@ class ShortManifestRepository extends GetxService {
     if (!kDebugMode) return;
     debugPrint(
       '[ShortManifestRepo] stage=$stage metadata=$metadata',
+    );
+  }
+
+  String _slotDebugLabel(int slotIndex) {
+    final path = _slotPath(slotIndex);
+    return path.isEmpty ? '$slotIndex:<missing>' : '$slotIndex:$path';
+  }
+
+  List<String> _memorySlotDebugLabels() {
+    final slotIndexes = _slots.keys.toList(growable: false)..sort();
+    return slotIndexes.map(_slotDebugLabel).toList(growable: false);
+  }
+
+  List<String> _slotDebugLabelsFor(Iterable<int> slotIndexes) {
+    return slotIndexes.map(_slotDebugLabel).toList(growable: false);
+  }
+
+  List<String> _indexSlotDebugLabels() {
+    final slotsRaw = _index?['slots'];
+    if (slotsRaw is! List) return const <String>[];
+    final labels = <String>[];
+    for (var i = 0; i < slotsRaw.length; i++) {
+      final slot = slotsRaw[i];
+      if (slot is! Map) {
+        labels.add('$i:<invalid>');
+        continue;
+      }
+      labels.add('$i:${(slot['path'] ?? '').toString()}');
+    }
+    return labels;
+  }
+
+  Future<void> _logSlotInventory(
+    String reason, {
+    Map<String, Object?> metadata = const <String, Object?>{},
+  }) async {
+    if (!kDebugMode) return;
+    final diskSlots = await _readCachedSlotPaths();
+    _logTiming(
+      'slot_inventory',
+      metadata: <String, Object?>{
+        'reason': reason,
+        'cursorSlotIndex': _cursorSlotIndex,
+        'cursorItemIndex': _cursorItemIndex,
+        'indexSlots': _indexSlotDebugLabels(),
+        'memorySlots': _memorySlotDebugLabels(),
+        'diskSlotCount': diskSlots.length,
+        'diskSlots': diskSlots,
+        ...metadata,
+      },
     );
   }
 
@@ -421,9 +473,18 @@ class ShortManifestRepository extends GetxService {
         'completedSlotIndex': completedSlotIndex,
         'cursorSlotIndex': _cursorSlotIndex,
         'removedSlots': removedSlots,
-        'cachedSlots': _slots.keys.toList(growable: false)..sort(),
+        'removedSlotPaths': _slotDebugLabelsFor(removedSlots),
+        'cachedSlots': _memorySlotDebugLabels(),
       },
     );
+    unawaited(_logSlotInventory(
+      'consumed_slots_trimmed',
+      metadata: <String, Object?>{
+        'completedSlotIndex': completedSlotIndex,
+        'removedSlots': removedSlots,
+        'removedSlotPaths': _slotDebugLabelsFor(removedSlots),
+      },
+    ));
   }
 
   Future<bool> _hasMore() async {
@@ -455,9 +516,17 @@ class ShortManifestRepository extends GetxService {
       metadata: <String, Object?>{
         'firstSlot': firstSlot,
         'lastSlot': lastSlot,
+        'memorySlots': _memorySlotDebugLabels(),
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );
+    unawaited(_logSlotInventory(
+      'rolling_window_ready',
+      metadata: <String, Object?>{
+        'firstSlot': firstSlot,
+        'lastSlot': lastSlot,
+      },
+    ));
   }
 
   Future<void> _ensureStartupSlotsLoaded() async {
@@ -480,9 +549,17 @@ class ShortManifestRepository extends GetxService {
       metadata: <String, Object?>{
         'slotCount': slotCount,
         'availableSlotCount': slotsRaw.length,
+        'memorySlots': _memorySlotDebugLabels(),
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );
+    unawaited(_logSlotInventory(
+      'startup_slots_loaded',
+      metadata: <String, Object?>{
+        'startupSlotCount': slotCount,
+        'availableSlotCount': slotsRaw.length,
+      },
+    ));
   }
 
   Future<List<PostsModel>> _ensureSlot(int slotIndex) async {
@@ -493,7 +570,9 @@ class ShortManifestRepository extends GetxService {
         'slot_cache_hit',
         metadata: <String, Object?>{
           'slotIndex': slotIndex,
+          'path': _slotPath(slotIndex),
           'count': cached.length,
+          'memorySlots': _memorySlotDebugLabels(),
         },
       );
       return cached;
@@ -524,14 +603,22 @@ class ShortManifestRepository extends GetxService {
       metadata: <String, Object?>{
         'firstSlot': firstSlot,
         'lastSlot': lastSlot,
+        'memorySlots': _memorySlotDebugLabels(),
       },
     );
+    unawaited(_logSlotInventory(
+      'rolling_window_primed',
+      metadata: <String, Object?>{
+        'firstSlot': firstSlot,
+        'lastSlot': lastSlot,
+      },
+    ));
   }
 
   Future<void> _ensureActiveTailSlot() {
     final existing = _tailSlotFuture;
     if (existing != null) return existing;
-    final future = _appendActiveTailSlotIfNeeded();
+    final future = _appendActiveTailSlotIfNeeded(reason: 'active_window');
     _tailSlotFuture = future;
     return future.whenComplete(() {
       if (identical(_tailSlotFuture, future)) {
@@ -540,48 +627,177 @@ class ShortManifestRepository extends GetxService {
     });
   }
 
-  Future<void> _appendActiveTailSlotIfNeeded() async {
+  Future<void> prepareTailSlotForCurrentPosition({
+    String reason = 'runtime',
+  }) async {
+    await _ensureLoaded();
+    final currentSlot = await _ensureSlot(_cursorSlotIndex);
+    final currentSlotLength = currentSlot.length;
+    final threshold =
+        currentSlotLength > 0 && currentSlotLength < _tailPrepareItemThreshold
+            ? currentSlotLength
+            : _tailPrepareItemThreshold;
+    if (_cursorItemIndex < threshold) {
+      _logTiming(
+        'tail_prepare_skip',
+        metadata: <String, Object?>{
+          'reason': 'before_threshold',
+          'trigger': reason,
+          'slotIndex': _cursorSlotIndex,
+          'itemIndex': _cursorItemIndex,
+          'threshold': threshold,
+          'slotLength': currentSlotLength,
+        },
+      );
+      return;
+    }
+    await _appendActiveTailSlotIfNeeded(
+      prepareNextWindow: true,
+      reason: reason,
+    );
+  }
+
+  Future<void> prepareTailSlotForVisiblePosition({
+    required int visibleIndex,
+    String reason = 'visible_runtime',
+  }) async {
+    if (visibleIndex < 0) return;
+    await _ensureLoaded();
+    final visibleSlotIndex = visibleIndex ~/ 240;
+    final visibleItemOrdinal = (visibleIndex % 240) + 1;
+    if (visibleItemOrdinal < _tailPrepareItemThreshold) {
+      _logTiming(
+        'tail_visible_prepare_skip',
+        metadata: <String, Object?>{
+          'reason': 'before_threshold',
+          'trigger': reason,
+          'visibleIndex': visibleIndex,
+          'visibleSlotIndex': visibleSlotIndex,
+          'visibleItemOrdinal': visibleItemOrdinal,
+          'threshold': _tailPrepareItemThreshold,
+        },
+      );
+      return;
+    }
+    await _appendActiveTailSlotIfNeeded(
+      prepareNextWindow: true,
+      reason: reason,
+      cursorSlotIndexOverride: visibleSlotIndex,
+      cursorItemIndexOverride: visibleItemOrdinal,
+    );
+  }
+
+  Future<void> _appendActiveTailSlotIfNeeded({
+    bool prepareNextWindow = false,
+    String reason = 'runtime',
+    int? cursorSlotIndexOverride,
+    int? cursorItemIndexOverride,
+  }) async {
     final index = _index;
     final slotsRaw = index?['slots'];
     if (index == null || slotsRaw is! List) return;
-    final neededSlotIndex = _cursorSlotIndex + _rollingWindowSlotCount - 1;
-    if (neededSlotIndex < slotsRaw.length) return;
+    final effectiveCursorSlotIndex =
+        cursorSlotIndexOverride ?? _cursorSlotIndex;
+    final effectiveCursorItemIndex =
+        cursorItemIndexOverride ?? _cursorItemIndex;
+    final neededSlotIndex = effectiveCursorSlotIndex +
+        _rollingWindowSlotCount -
+        1 +
+        (prepareNextWindow ? 1 : 0);
+    if (neededSlotIndex < slotsRaw.length) {
+      _logTiming(
+        'tail_slot_skip',
+        metadata: <String, Object?>{
+          'reason': 'window_ready',
+          'trigger': reason,
+          'prepareNextWindow': prepareNextWindow,
+          'cursorSlotIndex': effectiveCursorSlotIndex,
+          'cursorItemIndex': effectiveCursorItemIndex,
+          'neededSlotIndex': neededSlotIndex,
+          'slotCount': slotsRaw.length,
+        },
+      );
+      return;
+    }
 
     await _ensureManifestAccessReady();
     final active = await _loadActiveManifestDoc();
     final activeData = active.data() ?? const <String, dynamic>{};
+    final tailCandidates = <Map<String, dynamic>>[
+      ..._buildDynamicTailCandidates(),
+    ];
+    final rawTailSlots = activeData['tailSlots'];
+    if (rawTailSlots is List) {
+      for (final rawTailSlot in rawTailSlots) {
+        if (rawTailSlot is Map) {
+          tailCandidates.add(Map<String, dynamic>.from(rawTailSlot));
+        }
+      }
+    }
     final rawTailSlot = activeData['tailSlot'];
-    if (rawTailSlot is! Map) {
+    if (tailCandidates.isEmpty && rawTailSlot is Map) {
+      tailCandidates.add(Map<String, dynamic>.from(rawTailSlot));
+    }
+    if (tailCandidates.isEmpty) {
       _logTiming(
         'tail_slot_skip',
         metadata: <String, Object?>{
           'reason': 'missing_tail_slot',
-          'cursorSlotIndex': _cursorSlotIndex,
+          'trigger': reason,
+          'prepareNextWindow': prepareNextWindow,
+          'cursorSlotIndex': effectiveCursorSlotIndex,
+          'cursorItemIndex': effectiveCursorItemIndex,
+          'neededSlotIndex': neededSlotIndex,
           'slotCount': slotsRaw.length,
         },
       );
       return;
     }
-    final tailSlot = Map<String, dynamic>.from(rawTailSlot);
-    final path = (tailSlot['path'] ?? '').toString().trim();
-    if (path.isEmpty) return;
-
     final existingPaths = slotsRaw
         .whereType<Map>()
         .map((slot) => (slot['path'] ?? '').toString())
         .toSet();
-    if (existingPaths.contains(path)) {
+    Map<String, dynamic>? tailSlot;
+    for (final candidate in tailCandidates) {
+      final candidatePath = (candidate['path'] ?? '').toString().trim();
+      if (candidatePath.isEmpty || existingPaths.contains(candidatePath)) {
+        continue;
+      }
+      final date = (candidate['date'] ?? '').toString().trim();
+      if (date.isNotEmpty && !await _shortManifestDateExists(date)) {
+        _logTiming(
+          'tail_slot_skip_candidate',
+          metadata: <String, Object?>{
+            'reason': 'missing_date_doc',
+            'trigger': reason,
+            'prepareNextWindow': prepareNextWindow,
+            'date': date,
+            'path': candidatePath,
+            'source': candidate['source'],
+          },
+        );
+        continue;
+      }
+      tailSlot = candidate;
+      break;
+    }
+    if (tailSlot == null) {
       _logTiming(
         'tail_slot_skip',
         metadata: <String, Object?>{
-          'reason': 'duplicate_path',
-          'path': path,
-          'cursorSlotIndex': _cursorSlotIndex,
+          'reason': 'no_unused_tail_slot',
+          'trigger': reason,
+          'prepareNextWindow': prepareNextWindow,
+          'cursorSlotIndex': effectiveCursorSlotIndex,
+          'cursorItemIndex': effectiveCursorItemIndex,
+          'neededSlotIndex': neededSlotIndex,
           'slotCount': slotsRaw.length,
+          'tailCandidateCount': tailCandidates.length,
         },
       );
       return;
     }
+    final path = (tailSlot['path'] ?? '').toString().trim();
 
     final nextSlotIndex = slotsRaw.length;
     slotsRaw.add(<String, Object?>{
@@ -608,10 +824,67 @@ class ShortManifestRepository extends GetxService {
         'slotIndex': nextSlotIndex,
         'path': path,
         'date': (tailSlot['date'] ?? '').toString(),
+        'source': (tailSlot['source'] ?? '').toString(),
+        'trigger': reason,
+        'prepareNextWindow': prepareNextWindow,
+        'cursorSlotIndex': effectiveCursorSlotIndex,
+        'cursorItemIndex': effectiveCursorItemIndex,
+        'neededSlotIndex': neededSlotIndex,
         'slotCount': slotsRaw.length,
       },
     );
+    unawaited(_logSlotInventory(
+      'tail_slot_appended',
+      metadata: <String, Object?>{
+        'slotIndex': nextSlotIndex,
+        'path': path,
+        'date': (tailSlot['date'] ?? '').toString(),
+        'source': (tailSlot['source'] ?? '').toString(),
+      },
+    ));
     unawaited(_ensureSlot(nextSlotIndex));
+  }
+
+  List<Map<String, dynamic>> _buildDynamicTailCandidates() {
+    return _tailCandidateHoursAgo.map((hoursAgo) {
+      final date = _formatIstanbulDate(
+        DateTime.now()
+            .toUtc()
+            .add(const Duration(hours: 3))
+            .subtract(Duration(hours: hoursAgo)),
+      );
+      return <String, dynamic>{
+        'slotId': '${date}_slot_001',
+        'slotIndex': 0,
+        'itemCount': 240,
+        'path': 'shortManifest/$date/slots/slot_001.json',
+        'date': date,
+        'source': 'dynamic_$hoursAgo',
+      };
+    }).toList(growable: false);
+  }
+
+  String _formatIstanbulDate(DateTime istanbulDateTime) {
+    final year = istanbulDateTime.year.toString().padLeft(4, '0');
+    final month = istanbulDateTime.month.toString().padLeft(2, '0');
+    final day = istanbulDateTime.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
+
+  Future<bool> _shortManifestDateExists(String date) async {
+    try {
+      final doc = await _firestore.collection('shortManifest').doc(date).get();
+      return doc.exists;
+    } catch (error) {
+      _logTiming(
+        'tail_slot_date_check_failed',
+        metadata: <String, Object?>{
+          'date': date,
+          'error': error.toString(),
+        },
+      );
+      return false;
+    }
   }
 
   Future<List<PostsModel>> _loadSlot(int slotIndex) async {
@@ -629,6 +902,7 @@ class ShortManifestRepository extends GetxService {
           'slotIndex': slotIndex,
           'path': path,
           'count': cachedSlot.length,
+          'memorySlots': _memorySlotDebugLabels(),
         },
       );
       return cachedSlot;
@@ -664,7 +938,9 @@ class ShortManifestRepository extends GetxService {
       'slot_parse_ready',
       metadata: <String, Object?>{
         'slotIndex': slotIndex,
+        'path': path,
         'count': posts.length,
+        'memorySlots': _memorySlotDebugLabels(),
         'elapsedMs': DateTime.now().difference(startedAt).inMilliseconds,
       },
     );
@@ -845,6 +1121,14 @@ class ShortManifestRepository extends GetxService {
     for (final removedPath in overflow) {
       await prefs.remove(_slotPrefsKey(removedPath));
     }
+    _logTiming(
+      'disk_slot_cache_paths',
+      metadata: <String, Object?>{
+        'count': retained.length,
+        'retained': retained,
+        'removed': overflow,
+      },
+    );
   }
 
   Future<void> _removeCachedSlotPath(String path) async {

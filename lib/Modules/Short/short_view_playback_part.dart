@@ -681,6 +681,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
+    controller.prepareManifestTailForViewedIndex(
+      currentPage,
+      trigger: 'page_changed_200th_card',
+    );
     _recordShortPlaybackDispatch(
       'short_page_targeted',
       docId: nextDocId,
