@@ -290,7 +290,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (mergedPosts.isEmpty) return false;
     if (_performCanAutoplayMergedEntry(mergedPosts.first)) return false;
     final firstVisibleFraction = _visibleFractions[0] ?? 0.0;
-    return firstVisibleFraction >= FeedPlaybackSelectionPolicy.stopThreshold;
+    return firstVisibleFraction >= 0.86;
   }
 
   void _performEvaluateCenteredPlayback() {
