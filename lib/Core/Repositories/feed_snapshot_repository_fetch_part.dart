@@ -297,7 +297,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           ..._feedDiversityMemory.startupHeadPenaltyDocIds(),
           ..._feedDiversityMemory.startupHeadPenaltyFloodRootIds(),
         },
-        gapEvery: FeedManifestPolicy.gapEvery,
+        leadingGapCount: FeedManifestPolicy.gapSlotBatchSize,
         minUserSpacing: FeedManifestPolicy.minUserSpacing,
         maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
       );
@@ -500,7 +500,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       return const <FeedManifestEntry>[];
     }
     final effectiveNowMs = min(nowMs, gapCacheUntilMs);
-    final gapCutoffMs = max(cutoffMs, gapWindowStartMs);
+    final gapCutoffMs = max(
+      cutoffMs,
+      effectiveNowMs - FeedManifestPolicy.gapWindowDuration.inMilliseconds,
+    );
     if (gapCutoffMs >= effectiveNowMs) {
       return const <FeedManifestEntry>[];
     }

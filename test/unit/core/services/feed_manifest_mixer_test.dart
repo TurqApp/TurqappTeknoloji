@@ -9,6 +9,8 @@ FeedManifestEntry _entry(
   String userId = 'user-a',
   String canonicalId = '',
   bool floodRoot = false,
+  int timeStamp = 1776710000000,
+  String slotPath = 'feedManifest/2026-04-21/slots/slot_12.json',
 }) {
   return FeedManifestRepository.parseSlotEntries(
     jsonEncode(<String, dynamic>{
@@ -32,8 +34,8 @@ FeedManifestEntry _entry(
           'hlsStatus': 'ready',
           'hasPlayableVideo': true,
           'aspectRatio': 0.5625,
-          'timeStamp': 1776710000000,
-          'createdAtTs': 1776710000000,
+          'timeStamp': timeStamp,
+          'createdAtTs': timeStamp,
           'shortId': docId,
           'shortUrl': 'https://turqapp.com/p/$docId',
           'stats': const <String, dynamic>{
@@ -57,7 +59,7 @@ FeedManifestEntry _entry(
       ],
     }),
     fallbackSlotId: 'slot_12',
-    slotPath: 'feedManifest/2026-04-21/slots/slot_12.json',
+    slotPath: slotPath,
   ).single;
 }
 
@@ -161,7 +163,7 @@ void main() {
       expect(sameUserOnly.entries, hasLength(5));
     });
 
-    test('interleaves Typesense gap candidates without letting them dominate',
+    test('places Typesense gap candidates at the head before manifest slots',
         () {
       final result = mixer.buildDeck(
         manifestEntries: List<FeedManifestEntry>.generate(
@@ -174,17 +176,62 @@ void main() {
         ),
         seed: 12,
         limit: 24,
-        gapEvery: 6,
+        leadingGapCount: 15,
       );
 
       expect(result.entries, hasLength(24));
-      expect(result.gapCount, lessThanOrEqualTo(4));
-      expect(result.manifestCount, greaterThan(result.gapCount));
+      expect(result.gapCount, 15);
+      expect(result.manifestCount, 9);
       expect(
-          result.entries.take(5).every(
+          result.entries.take(15).every(
+                (entry) => entry.source == FeedManifestDeckSource.gap,
+              ),
+          isTrue);
+      expect(
+          result.entries.skip(15).every(
                 (entry) => entry.source == FeedManifestDeckSource.manifest,
               ),
           isTrue);
+    });
+
+    test('keeps gap first and manifest slots newest to oldest', () {
+      final result = mixer.buildDeck(
+        manifestEntries: <FeedManifestEntry>[
+          _entry(
+            'old-slot-newer-post',
+            timeStamp: 1776708000000,
+            slotPath: 'feedManifest/2026-04-21/slots/slot_09.json',
+          ),
+          _entry(
+            'new-slot-older-post',
+            timeStamp: 1776710000000,
+            slotPath: 'feedManifest/2026-04-21/slots/slot_12.json',
+          ),
+          _entry(
+            'new-slot-newer-post',
+            timeStamp: 1776711000000,
+            slotPath: 'feedManifest/2026-04-21/slots/slot_12.json',
+          ),
+        ],
+        gapEntries: <FeedManifestEntry>[
+          _entry('gap-old', timeStamp: 1776712000000),
+          _entry('gap-new', timeStamp: 1776713000000),
+        ],
+        seed: 12,
+        limit: 5,
+        leadingGapCount: 2,
+      );
+
+      expect(
+        _docIds(result),
+        <String>[
+          'gap-new',
+          'gap-old',
+          'new-slot-newer-post',
+          'new-slot-older-post',
+          'old-slot-newer-post',
+        ],
+      );
     });
 
     test('filters consumed canonical ids and doc ids', () {

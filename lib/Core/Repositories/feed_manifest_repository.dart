@@ -213,10 +213,6 @@ class FeedManifestRepository extends GetxService {
         : slotRefs;
     if (!forceRefresh && minEntriesToReturn != null && minEntriesToReturn > 0) {
       await _hydrateCachedSlots(effectiveSlotRefs);
-      if (_loadedEntryCount(effectiveSlotRefs) >= minEntriesToReturn) {
-        _scheduleBackgroundSlotPrefetch(slotRefs);
-        return _buildPoolResult(effectiveSlotRefs);
-      }
     }
     await _ensureSlotsLoaded(
       effectiveSlotRefs,
@@ -265,14 +261,6 @@ class FeedManifestRepository extends GetxService {
       loadedSlotCount: loadedSlotCount,
       generatedAt: _generatedAt,
     );
-  }
-
-  int _loadedEntryCount(List<_FeedManifestSlotRef> slots) {
-    var count = 0;
-    for (final slot in slots) {
-      count += _slotEntries[slot.path]?.length ?? 0;
-    }
-    return count;
   }
 
   Future<bool> syncActiveWindowIfChanged() async {
