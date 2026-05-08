@@ -21,6 +21,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final isFeedHandle = trimmedKey.startsWith('feed:');
     final isSocialHandle = trimmedKey.startsWith('social_');
     final isProfileHandle = trimmedKey.startsWith('profile_');
+    if (isSocialHandle || isProfileHandle) {
+      return true;
+    }
     if (!isShortHandle &&
         !isFeedHandle &&
         !isSocialHandle &&

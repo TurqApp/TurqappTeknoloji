@@ -195,6 +195,12 @@ extension ProfileControllerPrimaryPart on ProfileController {
         startAfter: initial ? null : _lastPrimaryDoc,
         limit: limit,
       );
+      debugPrint(
+        '[ProfilePostsSource] source=firestore_primary initial=$initial '
+        'force=$force limit=$limit all=${page.all.length} '
+        'photos=${page.photos.length} videos=${page.videos.length} '
+        'scheduled=${page.scheduled.length} hasMore=${page.hasMore}',
+      );
 
       final shouldPreserveExistingBuckets = initial &&
           !force &&
@@ -234,6 +240,12 @@ extension ProfileControllerPrimaryPart on ProfileController {
       hasMoreScheduled = _hasMorePrimary;
       bootstrapFeedPlaybackAfterDataChange();
       unawaited(_performWarmProfileSurfaceCache());
+      debugPrint(
+        '[ProfilePostsCache] action=schedule_persist_after_firestore '
+        'all=${allPosts.length} photos=${photos.length} videos=${videos.length} '
+        'reshares=${reshares.length} scheduled=${scheduledPosts.length}',
+      );
+      _performSchedulePersistPostCaches();
     } catch (e) {
       print('_fetchPrimaryBuckets error: $e');
     } finally {

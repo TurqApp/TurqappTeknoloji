@@ -3,17 +3,6 @@ part of 'profile_posts_snapshot_repository.dart';
 extension ProfilePostsSnapshotRepositoryCodecPart
     on ProfilePostsSnapshotRepository {
   Future<ProfileBuckets> _fetchBuckets(ProfilePostsSnapshotQuery query) async {
-    final manifestBuckets =
-        await ProfileManifestRepository.ensure().loadBuckets(
-      userId: query.userId,
-      limit: query.limit,
-    );
-    if (manifestBuckets != null) {
-      debugPrint(
-        '[ProfilePostsSnapshotRepo] stage=fetch_buckets source=manifest userId=${query.userId.trim()} limit=${query.limit} all=${manifestBuckets.all.length} photos=${manifestBuckets.photos.length} videos=${manifestBuckets.videos.length} reshares=${manifestBuckets.reshares.length}',
-      );
-      return manifestBuckets;
-    }
     final page = await _profileRepository.fetchPrimaryPage(
       uid: query.userId,
       limit: query.limit,
@@ -32,12 +21,8 @@ extension ProfilePostsSnapshotRepositoryCodecPart
 
   Future<ProfileBuckets?> _loadWarmSnapshot(
     ProfilePostsSnapshotQuery query,
-  ) {
-    return readLocalBuckets(
-      userId: query.userId,
-      limit: query.limit,
-    );
-  }
+  ) async =>
+      null;
 
   Map<String, dynamic> _encodeBuckets(ProfileBuckets buckets) {
     Map<String, dynamic> encodePosts(List<PostsModel> posts) {

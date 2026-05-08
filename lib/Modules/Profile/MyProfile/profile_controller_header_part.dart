@@ -74,12 +74,9 @@ extension ProfileControllerHeaderPart on ProfileController {
     final profile = (data['profile'] is Map)
         ? Map<String, dynamic>.from(data['profile'] as Map)
         : const <String, dynamic>{};
-    final nextFollowerCount =
-        (data['counterOfFollowers'] as num?)?.toInt();
-    final nextFollowingCount =
-        (data['counterOfFollowings'] as num?)?.toInt();
-    final nextListingCount =
-        (data['counterOfListings'] as num?)?.toInt();
+    final nextFollowerCount = (data['counterOfFollowers'] as num?)?.toInt();
+    final nextFollowingCount = (data['counterOfFollowings'] as num?)?.toInt();
+    final nextListingCount = (data['counterOfListings'] as num?)?.toInt();
     if (nextFollowerCount != null) {
       followerCount.value = nextFollowerCount;
     }
@@ -179,13 +176,6 @@ extension ProfileControllerHeaderPart on ProfileController {
         _applyProfileStartupHeader(header);
         didHydrate = true;
       }
-      if (allPosts.isEmpty) {
-        final posts = _decodeProfileStartupPosts(shard.payload['allPosts']);
-        if (posts.isNotEmpty) {
-          allPosts.assignAll(posts);
-          didHydrate = true;
-        }
-      }
       if (!didHydrate) return;
       _startupShardHydrated = true;
       _startupShardAgeMs =
@@ -198,17 +188,12 @@ extension ProfileControllerHeaderPart on ProfileController {
     if (userId == null || userId.isEmpty) return;
     final payload = <String, dynamic>{
       'header': _encodeProfileStartupHeader(),
-      'allPosts': _encodeProfileStartupPosts(
-        allPosts.take(ReadBudgetRegistry.profileStartupShardLimit).toList(),
-      ),
+      'allPosts': _encodeProfileStartupPosts(const <PostsModel>[]),
     };
     final hasHeader = (payload['header'] as Map<String, dynamic>).isNotEmpty;
-    final hasPosts =
-        ((payload['allPosts'] as Map<String, dynamic>)['items'] as List)
-            .isNotEmpty;
     try {
       final store = ensureStartupSnapshotShardStore();
-      if (!hasHeader && !hasPosts) {
+      if (!hasHeader) {
         await store.clear(
           surface: 'profile',
           userId: userId,
@@ -220,7 +205,7 @@ extension ProfileControllerHeaderPart on ProfileController {
         userId: userId,
         itemCount: allPosts.length,
         limit: ReadBudgetRegistry.profileStartupShardLimit,
-        source: hasPosts ? 'profile_snapshot' : 'user_summary',
+        source: 'user_summary',
         payload: payload,
       );
     } catch (_) {}
@@ -237,11 +222,7 @@ extension ProfileControllerHeaderPart on ProfileController {
             ? photos.length
             : videos.length;
     final hasLocalSnapshot = hasHeader || itemCount > 0;
-    final source = itemCount > 0
-        ? 'profile_snapshot'
-        : hasHeader
-            ? 'user_summary'
-            : 'none';
+    final source = hasHeader ? 'user_summary' : 'none';
     try {
       await ensureStartupSnapshotManifestStore().recordSurfaceState(
         surface: 'profile',
@@ -320,18 +301,15 @@ extension ProfileControllerHeaderPart on ProfileController {
     if (adres.isNotEmpty) {
       headerAdres.value = adres;
     }
-    final nextFollowerCount =
-        (header['counterOfFollowers'] as num?)?.toInt();
+    final nextFollowerCount = (header['counterOfFollowers'] as num?)?.toInt();
     if (nextFollowerCount != null && nextFollowerCount > 0) {
       followerCount.value = nextFollowerCount;
     }
-    final nextFollowingCount =
-        (header['counterOfFollowings'] as num?)?.toInt();
+    final nextFollowingCount = (header['counterOfFollowings'] as num?)?.toInt();
     if (nextFollowingCount != null && nextFollowingCount > 0) {
       followingCount.value = nextFollowingCount;
     }
-    final nextListingCount =
-        (header['counterOfListings'] as num?)?.toInt();
+    final nextListingCount = (header['counterOfListings'] as num?)?.toInt();
     if (nextListingCount != null && nextListingCount > 0) {
       listingCount.value = nextListingCount;
     }
@@ -353,33 +331,6 @@ extension ProfileControllerHeaderPart on ProfileController {
       payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
     }
     return payload;
-  }
-
-  List<PostsModel> _decodeProfileStartupPosts(dynamic raw) {
-    if (raw is! Map) return const <PostsModel>[];
-    TurqImageCacheManager.hydratePosterHintsFromPayload(
-      Map<String, dynamic>.from(raw.cast<dynamic, dynamic>()),
-    );
-    final items = raw['items'];
-    if (items is! List) return const <PostsModel>[];
-    return items
-        .whereType<Map>()
-        .map((entry) {
-          final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
-          final docId = (map['docID'] ?? '').toString().trim();
-          final data = map['data'];
-          if (docId.isEmpty || data is! Map) return null;
-          try {
-            return PostsModel.fromMap(
-              Map<String, dynamic>.from(data.cast<dynamic, dynamic>()),
-              docId,
-            );
-          } catch (_) {
-            return null;
-          }
-        })
-        .whereType<PostsModel>()
-        .toList(growable: false);
   }
 
   Future<void> _performShowSocialMediaLinkDelete(String docID) async {

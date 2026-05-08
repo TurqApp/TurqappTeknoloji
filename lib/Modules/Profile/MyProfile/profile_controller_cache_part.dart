@@ -26,16 +26,10 @@ extension ProfileControllerCachePart on ProfileController {
   }
 
   Future<void> _performRestoreCachedListsForActiveUser() async {
-    final uid = _resolvedActiveUid;
-    if (uid == null || uid.isEmpty) return;
-    final resource = await _profileSnapshotRepository.bootstrapProfile(
-      userId: uid,
-      limit: postLimit,
+    debugPrint(
+      '[ProfilePostsCache] action=skip_bootstrap_snapshot '
+      'reason=firestore_is_profile_source',
     );
-    final applied = _applyProfileBuckets(resource.data);
-    if (applied) {
-      bootstrapFeedPlaybackAfterDataChange();
-    }
     unawaited(_performWarmProfileSurfaceCache());
   }
 
@@ -131,47 +125,6 @@ extension ProfileControllerCachePart on ProfileController {
 
   Future<void> _performLoadInitialPrimaryBuckets({
     bool forceSync = false,
-  }) async {
-    final uid = _resolvedActiveUid;
-    if (uid == null || uid.isEmpty) return;
-    final resource = await _profileSnapshotRepository.loadProfile(
-      userId: uid,
-      limit: postLimit,
-      forceSync: forceSync,
-    );
-    final applied = _applyProfileBuckets(resource.data);
-    if (!applied) {
-      await _fetchPrimaryBuckets(initial: true, force: forceSync);
-      return;
-    }
-    _lastPrimaryDoc = null;
-    _hasMorePrimary = true;
-    lastPostDoc = null;
-    lastPostDocPhotos = null;
-    lastPostDocVideos = null;
-    lastScheduledDoc = null;
-    hasMorePosts = true;
-    hasMorePostsPhotos = true;
-    hasMorePostsVideos = true;
-    hasMoreScheduled = true;
-    bootstrapFeedPlaybackAfterDataChange();
-    unawaited(_performWarmProfileSurfaceCache());
-  }
-
-  bool _performApplyProfileBuckets(ProfileBuckets? buckets) {
-    if (buckets == null) return false;
-    if (buckets.all.isEmpty &&
-        buckets.photos.isEmpty &&
-        buckets.videos.isEmpty &&
-        buckets.reshares.isEmpty &&
-        buckets.scheduled.isEmpty) {
-      return false;
-    }
-    allPosts.assignAll(buckets.all);
-    photos.assignAll(buckets.photos);
-    videos.assignAll(buckets.videos);
-    reshares.assignAll(buckets.reshares);
-    scheduledPosts.assignAll(buckets.scheduled);
-    return true;
-  }
+  }) =>
+      _fetchPrimaryBuckets(initial: true, force: forceSync);
 }

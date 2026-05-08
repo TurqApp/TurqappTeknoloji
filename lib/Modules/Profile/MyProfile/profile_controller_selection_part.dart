@@ -422,6 +422,14 @@ extension ProfileControllerSelectionPart on ProfileController {
     final readyForImmediateHandoff =
         manager.canResumePlaybackFor(playbackKey) ||
         _performShouldPreferImmediatePlaybackHandoff(index);
+    debugPrint(
+      '[ProfilePlaybackTarget] action=activate index=$index '
+      'doc=$docId key=$playbackKey currentOwner=${manager.currentPlayingDocID ?? ''} '
+      'targetOwner=${manager.targetPlaybackDocID ?? ''} '
+      'readyForImmediateHandoff=$readyForImmediateHandoff '
+      'centered=${centeredIndex.value} visible=${currentVisibleIndex.value} '
+      'route=${Get.currentRoute} nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+    );
     final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
@@ -491,12 +499,22 @@ extension ProfileControllerSelectionPart on ProfileController {
         maxDocs: warmPosts.length,
       ),
     );
+    final warmLogs = <String>[];
     for (var i = 0; i < warmPosts.length; i++) {
       final readySegments = _profileReadySegmentsForPlayableOffset(i);
       if (readySegments <= 0) continue;
       prefetch.boostDoc(
         warmPosts[i].docID,
         readySegments: readySegments,
+      );
+      warmLogs.add(
+        '${i + 1}:${warmPosts[i].docID}:offset=$i:segments=$readySegments',
+      );
+    }
+    if (warmLogs.isNotEmpty) {
+      debugPrint(
+        '[ProfileOnYukleme] phase=$phase centered=$centered '
+        'current=$currentIndex entries=${warmLogs.join(' | ')}',
       );
     }
   }
