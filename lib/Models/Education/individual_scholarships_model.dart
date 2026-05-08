@@ -1,8 +1,21 @@
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+
 class IndividualScholarshipsModel {
   static int _asInt(Object? value) {
     if (value is int) return value;
     if (value is num) return value.toInt();
     return int.tryParse((value ?? '').toString()) ?? 0;
+  }
+
+  static String _firstString(Object? value) {
+    if (value is Iterable) {
+      for (final item in value) {
+        final clean = item.toString().trim();
+        if (clean.isNotEmpty) return clean;
+      }
+      return '';
+    }
+    return (value ?? '').toString().trim();
   }
 
   final String aciklama;
@@ -56,7 +69,7 @@ class IndividualScholarshipsModel {
     return List<String>.from(images, growable: false);
   }
 
-  String get providerLogoUrl => logo.trim();
+  String get providerLogoUrl => CdnUrlBuilder.toCdnUrl(logo.trim()).trim();
 
   String get primaryImageUrl {
     if (galleryImageUrls.isNotEmpty) return galleryImageUrls.first;
@@ -150,7 +163,9 @@ class IndividualScholarshipsModel {
       liseOrtaOkulSehirler: List<String>.from(
         json['liseOrtaOkulSehirler'] ?? [],
       ),
-      logo: (json['logo'] ?? '').toString(),
+      logo: CdnUrlBuilder.toCdnUrl(
+        _firstString(json['logo'] ?? json['logoUrl'] ?? json['logos']),
+      ),
       mukerrerDurumu: (json['mukerrerDurumu'] ?? '').toString(),
       ogrenciSayisi: (json['ogrenciSayisi'] ?? '').toString(),
       sehirler: List<String>.from(json['sehirler'] ?? []),

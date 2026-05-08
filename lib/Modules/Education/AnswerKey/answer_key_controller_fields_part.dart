@@ -10,7 +10,7 @@ class _AnswerKeyControllerState {
   final RxBool isSearchLoading = false.obs;
   final RxBool isLoadingMore = false.obs;
   final RxBool hasMore = true.obs;
-  final RxInt listingSelection = 1.obs;
+  final RxInt listingSelection = 0.obs;
   final RxBool listingSelectionReady = false.obs;
   final RxList<BookletModel> bookList = <BookletModel>[].obs;
   final RxList<BookletModel> searchResults = <BookletModel>[].obs;

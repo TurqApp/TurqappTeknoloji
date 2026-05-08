@@ -1,7 +1,7 @@
 part of 'view_mode_controller.dart';
 
 class _ViewModeControllerState {
-  final RxBool isGridView = true.obs, isReady = false.obs;
+  final RxBool isGridView = false.obs, isReady = false.obs;
 }
 
 extension ViewModeControllerFieldsPart on ViewModeController {

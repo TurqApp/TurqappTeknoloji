@@ -7,7 +7,7 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
   Future<void> _restoreListingSelectionImpl() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
       listingSelectionReady.value = true;
       return;
     }
@@ -15,9 +15,9 @@ extension DenemeSinavlariControllerDataPart on DenemeSinavlariController {
       final stored = await _localPreferenceRepository.getInt(
         _listingSelectionKeyForImpl(uid),
       );
-      listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
+      listingSelection.value = stored == null ? 0 : (stored == 1 ? 1 : 0);
     } catch (_) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
     } finally {
       listingSelectionReady.value = true;
     }

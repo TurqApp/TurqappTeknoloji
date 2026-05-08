@@ -25,7 +25,7 @@ class _ScholarshipsControllerState {
   final pageIndices = <int, RxInt>{}.obs;
   final scrollOffset = 0.0.obs;
   final listingSelectionReady = false.obs;
-  final listingSelection = 0.obs;
+  final listingSelection = 1.obs;
   final hasMoreData = true.obs;
   final totalCount = 0.obs;
   Future<void>? startupPrepareFuture;

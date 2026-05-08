@@ -205,16 +205,16 @@ extension _MarketControllerHomePart on MarketController {
   Future<void> _performRestoreListingSelection() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
       listingSelectionReady.value = true;
       return;
     }
     try {
       final preferences = ensureLocalPreferenceRepository();
       final stored = await preferences.getInt(_listingSelectionKeyFor(uid));
-      listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
+      listingSelection.value = stored == null ? 0 : (stored == 1 ? 1 : 0);
     } catch (_) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
     } finally {
       listingSelectionReady.value = true;
     }

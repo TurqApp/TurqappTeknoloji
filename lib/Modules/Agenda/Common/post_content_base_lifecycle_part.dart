@@ -136,6 +136,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidUpdateWidget(T oldWidget) {
+    controller.syncModelFromWidget(widget.model);
     if (oldWidget.model.docID != widget.model.docID) {
       _lastImmediateFeedNextWarmDocId = null;
     }

@@ -327,19 +327,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
         final initialCachedSegments =
             cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
+        const targetReadySegments = 1;
         debugPrint(
           '[FeedSegmentWarm] stage=boost_start doc=$normalized '
-          'targetReadySegments=3 cachedSegments=$initialCachedSegments '
+          'targetReadySegments=$targetReadySegments cachedSegments=$initialCachedSegments '
           'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads}',
         );
-        scheduler.boostDoc(normalized, readySegments: 3);
+        scheduler.boostDoc(normalized, readySegments: targetReadySegments);
         Future<void>.delayed(const Duration(milliseconds: 900), () {
           if (_currentPlayingDocID != activeDocID) return;
           final cachedSegments =
               cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
           debugPrint(
             '[FeedSegmentWarm] stage=boost_check doc=$normalized '
-            'targetReadySegments=3 cachedSegments=$cachedSegments '
+            'targetReadySegments=$targetReadySegments cachedSegments=$cachedSegments '
             'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads} '
             'feedReadyCount=${scheduler.feedReadyCount} feedWindowCount=${scheduler.feedWindowCount}',
           );

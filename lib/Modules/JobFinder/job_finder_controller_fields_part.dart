@@ -18,7 +18,7 @@ class _JobFinderControllerState {
   final search = TextEditingController();
   final scrollController = ScrollController();
   final scrollOffset = 0.0.obs;
-  final listingSelection = 1.obs;
+  final listingSelection = 0.obs;
   final listingSelectionReady = false.obs;
   final sehir = ''.obs;
   final sehirler = <String>[].obs;

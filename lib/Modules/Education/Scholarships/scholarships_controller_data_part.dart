@@ -77,9 +77,8 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
     final startupLimit = ReadBudgetRegistry.startupListingWarmLimit(
       onWiFi: true,
     );
-    final startupItems = allScholarships
-        .take(startupLimit)
-        .toList(growable: false);
+    final startupItems =
+        allScholarships.take(startupLimit).toList(growable: false);
     final store = ensureStartupSnapshotShardStore();
     if (startupItems.isEmpty) {
       await store.clear(surface: 'scholarships', userId: userId);
@@ -92,23 +91,21 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       limit: startupLimit,
       source: 'scholarship_snapshot',
       payload: <String, dynamic>{
-        'items': startupItems
-            .map((item) {
-              final model = item['model'] as IndividualScholarshipsModel?;
-              return <String, dynamic>{
-                'docId': item['docId'] ?? '',
-                'type': item['type'] ?? kIndividualScholarshipType,
-                'model': model?.toJson() ?? <String, dynamic>{},
-                'userData': Map<String, dynamic>.from(
-                  item['userData'] as Map? ?? const <String, dynamic>{},
-                ),
-                'likesCount': item['likesCount'] ?? 0,
-                'bookmarksCount': item['bookmarksCount'] ?? 0,
-                'timeStamp': item['timeStamp'] ?? 0,
-                'isSummary': item['isSummary'] ?? false,
-              };
-            })
-            .toList(growable: false),
+        'items': startupItems.map((item) {
+          final model = item['model'] as IndividualScholarshipsModel?;
+          return <String, dynamic>{
+            'docId': item['docId'] ?? '',
+            'type': item['type'] ?? kIndividualScholarshipType,
+            'model': model?.toJson() ?? <String, dynamic>{},
+            'userData': Map<String, dynamic>.from(
+              item['userData'] as Map? ?? const <String, dynamic>{},
+            ),
+            'likesCount': item['likesCount'] ?? 0,
+            'bookmarksCount': item['bookmarksCount'] ?? 0,
+            'timeStamp': item['timeStamp'] ?? 0,
+            'isSummary': item['isSummary'] ?? false,
+          };
+        }).toList(growable: false),
       },
     );
   }
@@ -119,7 +116,7 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
   Future<void> _restoreListingSelectionImpl() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      listingSelection.value = 0;
+      listingSelection.value = 1;
       listingSelectionReady.value = true;
       return;
     }
@@ -127,9 +124,9 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       final stored = await _localPreferenceRepository.getInt(
         _listingSelectionKeyFor(uid),
       );
-      listingSelection.value = stored == 1 ? 1 : 0;
+      listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
     } catch (_) {
-      listingSelection.value = 0;
+      listingSelection.value = 1;
     } finally {
       listingSelectionReady.value = true;
     }

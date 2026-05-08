@@ -409,6 +409,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
     if (!widget.shouldPlay) return false;
+    if (_usesFeedPlaybackPolicy) return false;
     if (_autoplaySegmentGateTimedOut) return false;
     final value = adapter.value;
     if (PlaybackSurfacePolicy.shouldBypassFeedSegmentDelayWhenInitialized(
@@ -982,6 +983,21 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       }
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
+      if (_usesFeedPlaybackPolicy) {
+        debugPrint(
+          '[FeedPlaybackProof] stage=controller_resume_result '
+          'doc=${widget.model.docID} source=$source '
+          'resumedByManager=$resumedByManager '
+          'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''} '
+          'shouldPlay=${widget.shouldPlay} '
+          'initialized=${adapter.value.isInitialized} '
+          'playing=${adapter.value.isPlaying} '
+          'buffering=${adapter.value.isBuffering} '
+          'firstFrame=${adapter.value.hasRenderedFirstFrame} '
+          'positionMs=${adapter.value.position.inMilliseconds} '
+          'durationMs=${adapter.value.duration.inMilliseconds}',
+        );
+      }
       if (!resumedByManager) {
         final shouldBootstrapInitialFeedClaim =
             _canBootstrapPrimaryFeedOwnershipClaim &&
@@ -1135,7 +1151,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final managerPendingPlay = _playbackRuntimeService.hasPendingPlayFor(
       playbackHandleKey,
     );
-    if (!adapter.value.isPlaying) {
+    final shouldReassertFeedAdapterPlay = _usesFeedPlaybackPolicy &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed;
+    if (!adapter.value.isPlaying || shouldReassertFeedAdapterPlay) {
       if (managerPendingPlay) {
         _recordPlaybackDispatch(
           'feed_card_adapter_play_skipped',
@@ -1145,7 +1164,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         );
       } else {
         _recordPlaybackDispatch(
-          'feed_card_adapter_play',
+          adapter.value.isPlaying
+              ? 'feed_card_adapter_reassert_play'
+              : 'feed_card_adapter_play',
           source: source,
         );
         unawaited(_playbackExecutionService.playAdapter(adapter));

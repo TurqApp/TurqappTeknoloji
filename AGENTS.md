@@ -1,5 +1,8 @@
 # TurqApp Working Notes
 
+Repo path: `/Users/turqapp/Desktop/TurqApp`.
+Do not use `/Users/turqapp/Documents/Turqapp` as the repo; it is not a git working tree.
+
 Bu repo icin kanonik insan/AI belge girisi `docs/README.md` dosyasidir.
 
 Notlar:

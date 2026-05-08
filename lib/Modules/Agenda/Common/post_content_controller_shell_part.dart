@@ -8,7 +8,7 @@ class _PostContentShellState {
   })  : identityState = _PostContentIdentityState.fromModel(model),
         controllerState = _PostContentControllerState(model);
 
-  final PostsModel model;
+  PostsModel model;
   final bool enableLegacyCommentSync;
   final bool scrollFeedToTopOnReshare;
   final _PostContentIdentityState identityState;
