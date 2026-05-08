@@ -805,18 +805,18 @@ extension _SplashViewWarmPart on _SplashViewState {
     unawaited(() async {
       try {
         var path = '';
-        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+        final cached = await TurqAvatarCacheManager.instance.getFileFromCache(
           avatarUrl,
         );
         path = cached?.file.path ?? '';
         if (path.isEmpty && allowAvatarNetwork) {
-          final file = await TurqImageCacheManager.instance.getSingleFile(
+          final file = await TurqAvatarCacheManager.instance.getSingleFile(
             avatarUrl,
           );
           path = file.path;
         }
         if (path.isNotEmpty) {
-          TurqImageCacheManager.rememberResolvedFile(avatarUrl, path);
+          TurqAvatarCacheManager.rememberResolvedFile(avatarUrl, path);
         }
       } catch (_) {}
     }());
@@ -857,19 +857,19 @@ extension _SplashViewWarmPart on _SplashViewState {
     if (normalized.isEmpty) return;
     try {
       var file =
-          await TurqImageCacheManager.instance.getFileFromCache(normalized);
+          await TurqAvatarCacheManager.instance.getFileFromCache(normalized);
       File? resolved = file?.file;
       if ((resolved == null || !resolved.existsSync()) &&
           allowNetwork &&
           onWiFi) {
-        resolved = await TurqImageCacheManager.instance
+        resolved = await TurqAvatarCacheManager.instance
             .getSingleFile(normalized)
             .timeout(const Duration(milliseconds: 180));
       }
       final path =
           (resolved != null && resolved.existsSync()) ? resolved.path : '';
       if (path.isNotEmpty) {
-        TurqImageCacheManager.rememberResolvedFile(normalized, path);
+        TurqAvatarCacheManager.rememberResolvedFile(normalized, path);
       }
     } catch (_) {}
   }
@@ -1129,19 +1129,19 @@ extension _SplashViewWarmPart on _SplashViewState {
         try {
           if (QALabMode.integrationSmokeRun) {
             final cached =
-                await TurqImageCacheManager.instance.getFileFromCache(
+                await TurqAvatarCacheManager.instance.getFileFromCache(
               url,
             );
             final path = cached?.file.path ?? '';
             if (path.isNotEmpty) {
-              TurqImageCacheManager.rememberResolvedFile(url, path);
+              TurqAvatarCacheManager.rememberResolvedFile(url, path);
             }
             continue;
           }
-          await TurqImageCacheManager.instance.getSingleFile(url);
+          await TurqAvatarCacheManager.instance.getSingleFile(url);
           final provider = CachedNetworkImageProvider(
             url,
-            cacheManager: TurqImageCacheManager.instance,
+            cacheManager: TurqAvatarCacheManager.instance,
           );
           if (mounted) {
             await precacheImage(provider, context);
@@ -1159,24 +1159,23 @@ extension _SplashViewWarmPart on _SplashViewState {
       final urls = <String>{};
       final avatarUrl = CurrentUserService.instance.avatarUrl.trim();
       if (avatarUrl.isNotEmpty) {
-        urls.add(avatarUrl);
         try {
           if (QALabMode.integrationSmokeRun) {
             final cached =
-                await TurqImageCacheManager.instance.getFileFromCache(
+                await TurqAvatarCacheManager.instance.getFileFromCache(
               avatarUrl,
             );
             final path = cached?.file.path ?? '';
             if (path.isNotEmpty) {
-              TurqImageCacheManager.rememberResolvedFile(avatarUrl, path);
+              TurqAvatarCacheManager.rememberResolvedFile(avatarUrl, path);
             }
           } else {
-            await TurqImageCacheManager.instance.getSingleFile(avatarUrl);
+            await TurqAvatarCacheManager.instance.getSingleFile(avatarUrl);
             if (mounted) {
               await precacheImage(
                 CachedNetworkImageProvider(
                   avatarUrl,
-                  cacheManager: TurqImageCacheManager.instance,
+                  cacheManager: TurqAvatarCacheManager.instance,
                 ),
                 context,
               );

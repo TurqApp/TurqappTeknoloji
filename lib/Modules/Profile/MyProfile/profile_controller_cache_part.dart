@@ -60,21 +60,22 @@ extension ProfileControllerCachePart on ProfileController {
       );
     }
 
-    final urls = <String>{userService.avatarUrl};
+    final avatarUrls = <String>{userService.avatarUrl};
+    final imageUrls = <String>{};
 
     void collectFrom(Iterable<PostsModel> posts) {
       for (final post in posts.take(18)) {
         final preview = post.primaryVisualUrl.trim();
         if (preview.isNotEmpty) {
-          urls.add(preview);
+          imageUrls.add(preview);
         }
         if (post.authorAvatarUrl.trim().isNotEmpty) {
-          urls.add(post.authorAvatarUrl.trim());
+          avatarUrls.add(post.authorAvatarUrl.trim());
         }
         for (final img in post.canonicalImageUrls.take(2)) {
           final normalized = img.trim();
           if (normalized.isNotEmpty) {
-            urls.add(normalized);
+            imageUrls.add(normalized);
           }
         }
       }
@@ -86,7 +87,13 @@ extension ProfileControllerCachePart on ProfileController {
     collectFrom(reshares);
     collectFrom(scheduledPosts);
 
-    for (final url in urls.where((e) => e.isNotEmpty).take(32)) {
+    for (final url in avatarUrls.where((e) => e.isNotEmpty).take(16)) {
+      try {
+        await TurqAvatarCacheManager.instance.getSingleFile(url);
+      } catch (_) {}
+    }
+
+    for (final url in imageUrls.where((e) => e.isNotEmpty).take(32)) {
       try {
         await TurqImageCacheManager.instance.getSingleFile(url);
       } catch (_) {}

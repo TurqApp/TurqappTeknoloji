@@ -41,6 +41,7 @@ import '../../Modules/Story/StoryRow/story_row_controller.dart';
 import '../../Modules/Profile/Settings/settings_controller.dart';
 import '../../Services/user_analytics_service.dart';
 import '../../Services/current_user_service.dart';
+import '../../Core/Services/turq_avatar_cache_manager.dart';
 import '../../Core/Services/turq_image_cache_manager.dart';
 import '../../Core/Repositories/market_snapshot_repository.dart';
 import '../../Core/Services/user_profile_cache_service.dart';

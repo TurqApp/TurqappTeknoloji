@@ -4,18 +4,17 @@ import 'dart:io';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/avatar_url.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
-import 'package:turqappv2/Models/posts_model.dart';
 
-class TurqImageCacheManager {
-  static const key = 'turqImageCache';
-  static const startupPosterHintsKey = 'posterHints';
-  static const int _maxRememberedResolvedFiles = 768;
-  static const Duration _diskStalePeriod = Duration(days: 14);
-  static const int _maxDiskCacheObjects = 5000;
+class TurqAvatarCacheManager {
+  static const key = 'turqAvatarCache';
+  static const int _maxRememberedResolvedFiles = 2048;
+  static const Duration _diskStalePeriod = Duration(days: 365);
+  static const int _maxDiskCacheObjects = 10000;
 
   static CacheManager? _instance;
   static final LinkedHashMap<String, String> _resolvedFilePathByUrl =
       LinkedHashMap<String, String>();
+
   static CacheManager? maybeFind() => _instance;
 
   static String _normalizeRememberedUrlKey(String url) {
@@ -88,78 +87,5 @@ class TurqImageCacheManager {
     final file = await instance.getSingleFile(normalized);
     rememberResolvedFile(normalized, file.path);
     return file;
-  }
-
-  static Future<void> removeUrl(String url) async {
-    final normalized = _normalizeRememberedUrlKey(url);
-    if (normalized.isEmpty) return;
-    try {
-      _resolvedFilePathByUrl.remove(normalized);
-      await instance.removeFile(normalized);
-    } catch (_) {}
-  }
-
-  static Future<void> removeUrls(Iterable<String> urls) async {
-    final normalized = urls
-        .map((url) => url.trim())
-        .where((url) => url.isNotEmpty)
-        .toSet()
-        .toList(growable: false);
-    if (normalized.isEmpty) return;
-    await Future.wait(
-      normalized.map(removeUrl),
-    );
-  }
-
-  static List<Map<String, String>> buildPosterHintsForPosts(
-    Iterable<PostsModel> posts, {
-    int maxEntries = 32,
-    int maxEntriesPerPost = 2,
-  }) {
-    if (maxEntries <= 0 || maxEntriesPerPost <= 0) {
-      return const <Map<String, String>>[];
-    }
-    final hints = <Map<String, String>>[];
-    final seenUrls = <String>{};
-
-    for (final post in posts) {
-      var addedForPost = 0;
-      for (final url in post.preferredVideoPosterUrls) {
-        final normalizedUrl = url.trim();
-        if (normalizedUrl.isEmpty || !seenUrls.add(normalizedUrl)) {
-          continue;
-        }
-        final path = rememberedResolvedFilePathForUrl(normalizedUrl);
-        if (path.isEmpty) continue;
-        hints.add(<String, String>{
-          'u': normalizedUrl,
-          'p': path,
-        });
-        addedForPost++;
-        if (addedForPost >= maxEntriesPerPost || hints.length >= maxEntries) {
-          break;
-        }
-      }
-      if (hints.length >= maxEntries) {
-        break;
-      }
-    }
-
-    return hints;
-  }
-
-  static void hydratePosterHints(dynamic raw) {
-    if (raw is! List) return;
-    for (final entry in raw.whereType<Map>()) {
-      final map = Map<String, dynamic>.from(entry.cast<dynamic, dynamic>());
-      final url = (map['u'] ?? map['url'] ?? '').toString().trim();
-      final path = (map['p'] ?? map['path'] ?? '').toString().trim();
-      if (url.isEmpty || path.isEmpty) continue;
-      rememberResolvedFile(url, path);
-    }
-  }
-
-  static void hydratePosterHintsFromPayload(Map<String, dynamic> payload) {
-    hydratePosterHints(payload[startupPosterHintsKey]);
   }
 }

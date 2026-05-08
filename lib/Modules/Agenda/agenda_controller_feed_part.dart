@@ -1151,7 +1151,7 @@ extension AgendaControllerFeedPart on AgendaController {
   void _warmPostAvatar(PostsModel post) {
     final avatarUrl = post.authorAvatarUrl.trim();
     if (avatarUrl.isEmpty) return;
-    TurqImageCacheManager.warmUrl(avatarUrl).ignore();
+    TurqAvatarCacheManager.warmUrl(avatarUrl).ignore();
   }
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {

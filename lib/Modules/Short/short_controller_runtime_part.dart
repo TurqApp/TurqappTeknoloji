@@ -178,7 +178,7 @@ extension _ShortControllerRuntimeX on ShortController {
   void _warmShortAvatar(PostsModel post) {
     final avatarUrl = post.authorAvatarUrl.trim();
     if (avatarUrl.isEmpty) return;
-    TurqImageCacheManager.warmUrl(avatarUrl).ignore();
+    TurqAvatarCacheManager.warmUrl(avatarUrl).ignore();
   }
 
   void _bindNetworkAwareness() {

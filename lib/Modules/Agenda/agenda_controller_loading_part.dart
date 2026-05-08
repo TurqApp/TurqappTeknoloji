@@ -347,7 +347,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final url = post.authorAvatarUrl.trim();
     if (url.isEmpty) return 0;
     try {
-      final file = await TurqImageCacheManager.warmUrl(url)
+      final file = await TurqAvatarCacheManager.warmUrl(url)
           .timeout(const Duration(seconds: 2));
       try {
         return await file.length();
@@ -380,11 +380,25 @@ extension AgendaControllerLoadingPart on AgendaController {
 
     await Future.wait(
       <Future<void>>[
-        ...avatarUrls.map(_primeCachedImageHint),
+        ...avatarUrls.map(_primeCachedAvatarHint),
         ...posterUrls.map(_primeCachedImageHint),
       ],
       eagerError: false,
     );
+  }
+
+  Future<void> _primeCachedAvatarHint(String url) async {
+    final normalized = url.trim();
+    if (normalized.isEmpty) return;
+    try {
+      final cached = await TurqAvatarCacheManager.instance
+          .getFileFromCache(normalized)
+          .timeout(const Duration(milliseconds: 120));
+      final file = cached?.file;
+      if (file != null && file.existsSync()) {
+        TurqAvatarCacheManager.rememberResolvedFile(normalized, file.path);
+      }
+    } catch (_) {}
   }
 
   Future<void> _primeCachedImageHint(String url) async {
