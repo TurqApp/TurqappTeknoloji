@@ -211,7 +211,7 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
         debugPrintStack(stackTrace: st);
       }
     }
-    unawaited(_activateFirebaseAppCheck());
+    await _activateFirebaseAppCheck();
   }
 
   FlutterError.onError = (FlutterErrorDetails details) {
