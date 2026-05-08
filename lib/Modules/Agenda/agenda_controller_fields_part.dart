@@ -42,6 +42,7 @@ class _AgendaControllerState {
   Worker? renderFeedWorker;
   final visibleFractions = <int, double>{};
   final visibleUpdatedAt = <int, DateTime>{};
+  final feedSequencePassedDocIds = <String>{};
   String? lastPlaybackWindowSignature;
   String? pendingCenteredDocId;
   int prefetchedThumbnailPostCount = 0;
@@ -83,7 +84,6 @@ class _AgendaControllerState {
   bool startupRenderBootstrapHold = false;
   bool growthRenderAppendHold = false;
   bool connectedFeedReservoirWarmInFlight = false;
-  bool connectedFeedStageFourReadyCheckpointLogged = false;
   int growthRenderAppendEpoch = 0;
   int connectedFeedReservoirWarmTarget = 0;
   int deferredInitialNetworkBootstrapToken = 0;
@@ -204,6 +204,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   set _renderFeedWorker(Worker? value) => _state.renderFeedWorker = value;
   Map<int, double> get _visibleFractions => _state.visibleFractions;
   Map<int, DateTime> get _visibleUpdatedAt => _state.visibleUpdatedAt;
+  Set<String> get _feedSequencePassedDocIds =>
+      _state.feedSequencePassedDocIds;
   String? get _lastPlaybackWindowSignature =>
       _state.lastPlaybackWindowSignature;
   set _lastPlaybackWindowSignature(String? value) =>
@@ -313,10 +315,6 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.connectedFeedReservoirWarmInFlight;
   set _connectedFeedReservoirWarmInFlight(bool value) =>
       _state.connectedFeedReservoirWarmInFlight = value;
-  bool get _connectedFeedStageFourReadyCheckpointLogged =>
-      _state.connectedFeedStageFourReadyCheckpointLogged;
-  set _connectedFeedStageFourReadyCheckpointLogged(bool value) =>
-      _state.connectedFeedStageFourReadyCheckpointLogged = value;
   int get _growthRenderAppendEpoch => _state.growthRenderAppendEpoch;
   set _growthRenderAppendEpoch(int value) =>
       _state.growthRenderAppendEpoch = value;

@@ -47,8 +47,6 @@ extension AgendaControllerLifecyclePart on AgendaController {
   }
 
   Future<void> _pruneConsumedFeedCachesOnSessionInit() async {
-    const stageThreeLimit = 180;
-    const stageFourLimit = 240;
     final userId = CurrentUserService.instance.effectiveUserId.trim();
     if (userId.isEmpty) return;
     final diversity = FeedDiversityMemoryService.ensure();
@@ -62,10 +60,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
       _feedSnapshotRepository.pruneHomeSnapshots(
         userId: userId,
         docIds: consumedDocIds,
-        additionalLimits: <int>[
-          stageThreeLimit,
-          stageFourLimit,
-        ],
+        additionalLimits: const <int>[],
       ),
       _feedSnapshotRepository.pruneHomeStartupShard(
         userId: userId,

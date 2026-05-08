@@ -6,11 +6,6 @@ extension AgendaControllerLoadingPart on AgendaController {
   static const bool _feedLaunchFallbackCandidatesEnabled = false;
   static const int _connectedColdFeedStageOneLimit = 60;
   static const int _connectedColdFeedStageTwoLimit = 120;
-  static const int _connectedColdFeedStageThreeLimit = 180;
-  static const int _connectedColdFeedStageFourLimit = 240;
-  static const int _connectedColdFeedStageThreeViewedTrigger = 50;
-  static const int _connectedColdFeedStageFourViewedTrigger = 110;
-  static const int _connectedColdFeedStageFourReadyViewedCheckpoint = 170;
   static const int _connectedColdFeedPrimeBatchFloor = 60;
   static const int _connectedInitialCandidateFetchFloor = 45;
   static const int _feedIdentityWarmPriorityCount = 5;
@@ -108,11 +103,6 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _recordFeedMotorContractSnapshot({required String reason}) {
     const expectedStageOne = 60;
     const expectedStageTwo = 120;
-    const expectedStageThree = 180;
-    const expectedStageFour = 240;
-    const expectedTriggerThree = 50;
-    const expectedTriggerFour = 110;
-    const expectedStageFourReadyCheckpoint = 170;
     const expectedPostsPerBlock = 15;
     const expectedVisualPriority = 5;
     final contract = <String, dynamic>{
@@ -124,12 +114,6 @@ extension AgendaControllerLoadingPart on AgendaController {
       'launchFallbackCandidatesEnabled': _feedLaunchFallbackCandidatesEnabled,
       'stageOneLimit': _connectedColdFeedStageOneLimit,
       'stageTwoLimit': _connectedColdFeedStageTwoLimit,
-      'stageThreeLimit': _connectedColdFeedStageThreeLimit,
-      'stageFourLimit': _connectedColdFeedStageFourLimit,
-      'stageThreeViewedTrigger': _connectedColdFeedStageThreeViewedTrigger,
-      'stageFourViewedTrigger': _connectedColdFeedStageFourViewedTrigger,
-      'stageFourReadyViewedCheckpoint':
-          _connectedColdFeedStageFourReadyViewedCheckpoint,
       'stageBatchFloor': _connectedColdFeedPrimeBatchFloor,
       'postsPerBlock': FeedRenderBlockPlan.postSlotsPerBlock,
       'visualPriorityCount': _feedIdentityWarmPriorityCount,
@@ -178,19 +162,9 @@ extension AgendaControllerLoadingPart on AgendaController {
     );
     assertRule(
       _connectedColdFeedStageOneLimit == expectedStageOne &&
-          _connectedColdFeedStageTwoLimit == expectedStageTwo &&
-          _connectedColdFeedStageThreeLimit == expectedStageThree &&
-          _connectedColdFeedStageFourLimit == expectedStageFour,
+          _connectedColdFeedStageTwoLimit == expectedStageTwo,
       'feed_motor_stage_limits_changed',
       'Feed motor staged reservoir limits changed',
-    );
-    assertRule(
-      _connectedColdFeedStageThreeViewedTrigger == expectedTriggerThree &&
-          _connectedColdFeedStageFourViewedTrigger == expectedTriggerFour &&
-          _connectedColdFeedStageFourReadyViewedCheckpoint ==
-              expectedStageFourReadyCheckpoint,
-      'feed_motor_stage_triggers_changed',
-      'Feed motor staged reservoir triggers changed',
     );
     assertRule(
       FeedRenderBlockPlan.postSlotsPerBlock == expectedPostsPerBlock,
@@ -555,7 +529,9 @@ extension AgendaControllerLoadingPart on AgendaController {
   }) {
     if (agendaList.isEmpty) return;
     void attemptRefreshPlaybackKick(String source) {
-      if (isClosed || agendaList.isEmpty || _feedMutationEpoch != expectedEpoch) {
+      if (isClosed ||
+          agendaList.isEmpty ||
+          _feedMutationEpoch != expectedEpoch) {
         return;
       }
       if (pauseAll.value) {
@@ -612,7 +588,8 @@ extension AgendaControllerLoadingPart on AgendaController {
     Future<void>.delayed(const Duration(milliseconds: 16), () {
       attemptRefreshPlaybackKick('delayed_16ms');
     });
-    final extraKickDelay = PlaybackSurfacePolicy.feedRefreshPlaybackExtraKickDelay(
+    final extraKickDelay =
+        PlaybackSurfacePolicy.feedRefreshPlaybackExtraKickDelay(
       platform: defaultTargetPlatform,
     );
     if (extraKickDelay != null) {
@@ -1105,7 +1082,6 @@ extension AgendaControllerLoadingPart on AgendaController {
       _plannedColdFeedNextTypesensePage = null;
       _connectedFeedReservoirWarmTarget = 0;
       _connectedFeedReservoirWarmInFlight = false;
-      _connectedFeedStageFourReadyCheckpointLogged = false;
       _prefetchedThumbnailPostCount = 0;
       _prefetchedThumbnailDocIds.clear();
       if (!preserveVisibleSeededHeadOnInitialBootstrap) {
@@ -1357,8 +1333,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         final remainingPlannedCount =
             _remainingPlannedColdFeedCount(seenDocIds: consumedDocIds);
         final hasPlannedRemaining = remainingPlannedCount > 0;
-        final canGrowConnectedPlan = ContentPolicy.isConnected &&
-            currentAgenda.length < _connectedColdFeedStageFourLimit;
+        const canGrowConnectedPlan = false;
         effectiveLastDoc = _plannedColdFeedLastDoc;
         effectiveNextTypesensePage = _plannedColdFeedNextTypesensePage;
         effectiveUsesPrimaryFeed = _plannedColdFeedUsesPrimaryFeed;
@@ -1618,46 +1593,7 @@ extension AgendaControllerLoadingPart on AgendaController {
   }
 
   void _maybeScheduleConnectedFeedReservoirForViewedCount(int viewedCount) {
-    _maybeRecordConnectedFeedStageFourReadyCheckpoint(viewedCount);
-    if (viewedCount >= _connectedColdFeedStageFourViewedTrigger) {
-      _scheduleConnectedFeedReservoirStageWarmup(
-        targetLimit: _connectedColdFeedStageFourLimit,
-        reason:
-            'viewed_${_connectedColdFeedStageFourViewedTrigger}_page4_ready_before_170',
-      );
-      return;
-    }
-    if (viewedCount >= _connectedColdFeedStageThreeViewedTrigger) {
-      _scheduleConnectedFeedReservoirStageWarmup(
-        targetLimit: _connectedColdFeedStageThreeLimit,
-        reason:
-            'viewed_${_connectedColdFeedStageThreeViewedTrigger}_page3_ready_before_110',
-      );
-    }
-  }
-
-  void _maybeRecordConnectedFeedStageFourReadyCheckpoint(int viewedCount) {
-    if (_connectedFeedStageFourReadyCheckpointLogged ||
-        viewedCount < _connectedColdFeedStageFourReadyViewedCheckpoint) {
-      return;
-    }
-    _connectedFeedStageFourReadyCheckpointLogged = true;
-    final planned = _plannedColdFeedWindow.length;
-    final ready = planned >= _connectedColdFeedStageFourLimit ||
-        agendaList.length >= _connectedColdFeedStageFourLimit;
-    _recordFeedMotorSignal(
-      name: ready ? 'stage_four_ready_at_170' : 'stage_four_not_ready_at_170',
-      status: ready ? 'ok' : 'warn',
-      reason: 'viewed_170_stage4_checkpoint',
-      metadata: <String, dynamic>{
-        'viewedCount': viewedCount,
-        'currentCount': agendaList.length,
-        'planned': planned,
-        'target': _connectedColdFeedStageFourLimit,
-        'warmTarget': _connectedFeedReservoirWarmTarget,
-        'warmInFlight': _connectedFeedReservoirWarmInFlight,
-      },
-    );
+    return;
   }
 
   void _scheduleConnectedFeedReservoirStageWarmup({
@@ -1734,6 +1670,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         includeSupplementalSources: false,
       );
       if (page.items.isEmpty) {
+        _plannedColdFeedNextTypesensePage = null;
+        _connectedFeedReservoirWarmTarget = targetLimit;
         debugPrint(
           '[FeedTypesenseStageWarm] status=empty reason=$reason '
           'target=$targetLimit',
@@ -1856,7 +1794,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     final planningSeedPosts = _plannedColdFeedWindow.isNotEmpty
         ? _plannedColdFeedWindow.toList(growable: false)
         : seedPosts;
-    final targetLimit = _connectedColdFeedStageThreeLimit;
+    final targetLimit = _connectedColdFeedStageTwoLimit;
     if (_plannedColdFeedWindow.length >= targetLimit) {
       return;
     }
@@ -1898,7 +1836,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (userId.isEmpty) return;
     final warm = await _feedSnapshotRepository.inspectWarmHome(
       userId: userId,
-      limit: _connectedColdFeedStageThreeLimit,
+      limit: _connectedColdFeedStageTwoLimit,
     );
     final cached = _dedupeColdPlanPosts(warm.data ?? const <PostsModel>[]);
     if (cached.length <= FeedSnapshotRepository.startupHomeLimitValue) {
@@ -1906,7 +1844,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     }
     _plannedColdFeedWindow
       ..clear()
-      ..addAll(cached.take(_connectedColdFeedStageThreeLimit));
+      ..addAll(cached.take(_connectedColdFeedStageTwoLimit));
     _plannedColdFeedLastDoc = null;
     _plannedColdFeedUsesPrimaryFeed = true;
     _plannedColdFeedNextTypesensePage = null;
@@ -2651,7 +2589,8 @@ extension AgendaControllerLoadingPart on AgendaController {
     isLoading.value = true;
     try {
       try {
-        await ensureFeedManifestRepository().syncActiveWindowIfRefreshGraceDue();
+        await ensureFeedManifestRepository()
+            .syncActiveWindowIfRefreshGraceDue();
       } catch (error) {
         debugPrint(
           '[FeedManifestRepo] stage=refresh_grace_sync_skip error=$error',
@@ -2744,8 +2683,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       final refreshTargetIndex = preservedRefreshTargetIndex >= 0
           ? preservedRefreshTargetIndex
           : fallbackRefreshTargetIndex;
-      final refreshTargetDocId =
-          refreshTargetIndex >= 0 && refreshTargetIndex < filteredMergedAgenda.length
+      final refreshTargetDocId = refreshTargetIndex >= 0 &&
+              refreshTargetIndex < filteredMergedAgenda.length
           ? filteredMergedAgenda[refreshTargetIndex].docID
           : (filteredMergedAgenda.isNotEmpty
               ? filteredMergedAgenda.first.docID

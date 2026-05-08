@@ -498,8 +498,36 @@ extension AgendaControllerFeedPart on AgendaController {
     _updateFeedPrefetchQueue();
   }
 
+  void _markFeedSequencePassedBefore(int newIndex) {
+    if (newIndex <= 0 || agendaList.isEmpty) return;
+    final endExclusive = min(newIndex, agendaList.length);
+    if (endExclusive <= 0) return;
+    final diversity = FeedDiversityMemoryService.ensure();
+    final markedDocIds = <String>[];
+    var marked = 0;
+    for (var index = 0; index < endExclusive; index++) {
+      final post = agendaList[index];
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !_feedSequencePassedDocIds.add(docId)) continue;
+      diversity.noteViewedPost(post);
+      if (post.hasPlayableVideo) {
+        maybeFindSegmentCacheManager()?.markFeedConsumed(docId);
+      }
+      if (markedDocIds.length < 8) {
+        markedDocIds.add(docId);
+      }
+      marked++;
+    }
+    if (marked <= 0) return;
+    debugPrint(
+      '[FeedSequencePassed] source=centered_index index=$newIndex '
+      'marked=$marked docPreview=$markedDocIds',
+    );
+  }
+
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
+      _markFeedSequencePassedBefore(newIndex);
       final videoManager = VideoStateManager.instance;
       final preserveExternalPlayback = _hasExternalPlaybackOwner(
         videoManager.currentPlayingDocID,
