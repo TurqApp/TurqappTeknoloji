@@ -977,6 +977,25 @@ async function upsertDoc(doc: PostSearchDoc) {
   }
 }
 
+async function postDocExists(postId: string): Promise<boolean> {
+  await ensurePostsCollection();
+  const baseUrl = getTypesenseBaseUrl();
+  try {
+    await axios.get(
+      `${baseUrl}/collections/${POSTS_COLLECTION}/documents/${encodeURIComponent(postId)}`,
+      {
+        headers: headers(),
+        timeout: 8000,
+      },
+    );
+    return true;
+  } catch (err) {
+    const status = (err as AxiosError)?.response?.status;
+    if (status === 404) return false;
+    throw err;
+  }
+}
+
 async function deleteDoc(postId: string) {
   await ensurePostsCollection();
   const baseUrl = getTypesenseBaseUrl();
@@ -1465,10 +1484,7 @@ async function getMotorCandidatesFromTypesense(options: {
       limit,
     },
   );
-  if (
-    strictRanked.preferredHits.length >= limit ||
-    Number(strictBody.found || 0) <= limit
-  ) {
+  if (strictRanked.preferredHits.length >= limit) {
     return {
       surface,
       ownedMinutes,
@@ -1688,6 +1704,30 @@ export const f14_syncPostsToTypesense = onDocumentWritten(
     if (beforeIndexed &&
         postDocsEqual(beforeComparable, afterComparable) &&
         !hasTagChanges) {
+      const exists = await postDocExists(postId);
+      if (!exists) {
+        const repairedDoc = await buildSearchDocForIndexing(postId, afterData);
+        await upsertDoc(repairedDoc);
+        if (afterTagEntries.length) {
+          await upsertTagDocs(
+            postId,
+            repairedDoc.userID || "",
+            Number(repairedDoc.timeStamp || Date.now()),
+            afterTagEntries,
+          );
+        }
+        console.log("post_sync_repair_missing", {
+          postId,
+          hlsStatus: repairedDoc.hlsStatus,
+          hasPlayableVideo: repairedDoc.hasPlayableVideo,
+          thumbnail: !!repairedDoc.thumbnail,
+          imgCount: repairedDoc.img.length,
+          video: !!repairedDoc.video,
+          hlsMasterUrl: !!repairedDoc.hlsMasterUrl,
+          flood: repairedDoc.flood,
+          floodCount: repairedDoc.floodCount,
+        });
+      }
       return;
     }
 
