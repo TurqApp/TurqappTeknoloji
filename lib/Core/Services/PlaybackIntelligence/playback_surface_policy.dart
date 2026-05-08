@@ -305,7 +305,7 @@ class PlaybackSurfacePolicy {
       return adapterBound && (isStrongWarmTier || isCacheOnlyWarmTier);
     }
     if (platform == TargetPlatform.iOS) {
-      return hasRenderedFirstFrame && hasResumeHint && isStrongWarmTier;
+      return adapterBound && isStrongWarmTier;
     }
     return false;
   }
@@ -314,7 +314,7 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isFeedStyleSurface,
   }) {
-    return platform == TargetPlatform.iOS && isFeedStyleSurface;
+    return false;
   }
 
   static bool shouldAllowFeedWarmControllerPreload({
@@ -330,7 +330,6 @@ class PlaybackSurfacePolicy {
     final isIosPrimaryFeed =
         platform == TargetPlatform.iOS && isFeedStyleSurface;
     if (!isAndroid && !isIosPrimaryFeed) return false;
-    if (isIosPrimaryFeed) return false;
     if (!isFeedStyleSurface || !hasPlayableVideo) return false;
     if (shouldPlay || !surfacePlaybackAllowed) return false;
     if (isAndroid && isPrimaryFeedSurface && !centeredWarmAnchorReady) {
