@@ -5,11 +5,14 @@ extension JobFinderControllerLifecyclePart on JobFinderController {
     _performHydrateJobFinderStartupSeedPoolSync();
     unawaited(_performPrepareStartupSurface());
     search.addListener(_searchListener);
+    scrollController.addListener(_scrollListener);
   }
 
   void _handleOnClose() {
     _homeSnapshotSub?.cancel();
     _deferredLocationTimer?.cancel();
+    scrollController.removeListener(_scrollListener);
+    scrollController.dispose();
     innerPageController.dispose();
     search.dispose();
   }
@@ -52,5 +55,10 @@ extension JobFinderControllerLifecyclePart on JobFinderController {
       _searchRequestId++;
       aramaSonucu.clear();
     }
+  }
+
+  void _scrollListener() {
+    if (!scrollController.hasClients) return;
+    scrollOffset.value = scrollController.offset;
   }
 }

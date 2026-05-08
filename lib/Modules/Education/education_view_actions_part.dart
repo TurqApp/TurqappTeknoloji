@@ -235,6 +235,8 @@ extension EducationViewActionsPart on EducationView {
         return maybeFindTutoringController()?.scrollController;
       case PasajTabIds.market:
         return maybeFindMarketController()?.scrollController;
+      case PasajTabIds.jobFinder:
+        return maybeFindJobFinderController()?.scrollController;
       default:
         return null;
     }
@@ -258,6 +260,8 @@ extension EducationViewActionsPart on EducationView {
         return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
       case PasajTabIds.market:
         return (maybeFindMarketController()?.scrollOffset.value ?? 0) <= 350;
+      case PasajTabIds.jobFinder:
+        return (maybeFindJobFinderController()?.scrollOffset.value ?? 0) <= 350;
       default:
         return true;
     }
