@@ -11,7 +11,7 @@ class ProfilePostsSnapshotRepository extends GetxService {
   static const String _surfaceKey = 'profile_posts_snapshot';
   static const int _defaultScopeLimit =
       ReadBudgetRegistry.profilePostsInitialLimit;
-  static const int _secondaryBucketLimit = 10;
+  static const int _secondaryBucketLimit = 12;
 
   static ProfilePostsSnapshotRepository? maybeFind() {
     final isRegistered = Get.isRegistered<ProfilePostsSnapshotRepository>();

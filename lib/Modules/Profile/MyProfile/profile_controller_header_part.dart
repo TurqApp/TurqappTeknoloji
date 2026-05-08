@@ -25,25 +25,16 @@ extension ProfileControllerHeaderPart on ProfileController {
     final uid = _resolvedActiveUid;
     if (uid == null || uid.isEmpty) return;
     try {
-      final manifestHeader =
-          await ProfileManifestRepository.ensure().loadHeader(userId: uid);
-      if (manifestHeader != null && manifestHeader.isNotEmpty) {
-        _performApplyHeaderCard(
-          ProfileManifestRepository.headerAsUserCard(manifestHeader),
-        );
-      }
-      final summary = await _userSummaryResolver.resolve(
-        uid,
-        preferCache: true,
-        cacheOnly: !allowBackgroundRefresh,
+      debugPrint(
+        '[ProfileHeaderSource] source=firebase_user_cache manifest=disabled '
+        'summary=disabled',
       );
       final cachedRaw = await _userRepository.getUserRaw(
         uid,
         preferCache: true,
         cacheOnly: true,
       );
-      final bootstrapData = cachedRaw ??
-          (summary != null ? summary.toMap() : const <String, dynamic>{});
+      final bootstrapData = cachedRaw ?? const <String, dynamic>{};
       if (bootstrapData.isEmpty) return;
       _performApplyHeaderCard(bootstrapData);
       if (allowBackgroundRefresh &&
@@ -159,178 +150,25 @@ extension ProfileControllerHeaderPart on ProfileController {
   }
 
   Future<void> _performHydrateProfileStartupShard() async {
-    final userId = _resolvedActiveUid?.trim();
-    if (userId == null || userId.isEmpty) return;
     _startupShardHydrated = false;
     _startupShardAgeMs = null;
-    try {
-      final shard = await ensureStartupSnapshotShardStore().load(
-        surface: 'profile',
-        userId: userId,
-        maxAge: StartupSnapshotShardStore.defaultFreshWindow,
-      );
-      if (shard == null) return;
-      var didHydrate = false;
-      final header = _decodeProfileStartupHeader(shard.payload['header']);
-      if (header.isNotEmpty) {
-        _applyProfileStartupHeader(header);
-        didHydrate = true;
-      }
-      if (!didHydrate) return;
-      _startupShardHydrated = true;
-      _startupShardAgeMs =
-          (DateTime.now().millisecondsSinceEpoch - shard.savedAtMs).toInt();
-    } catch (_) {}
+    debugPrint(
+      '[ProfileHeaderSource] startup_shard=disabled reason=posts_cache_only',
+    );
   }
 
   Future<void> _persistProfileStartupShard() async {
-    final userId = _resolvedActiveUid?.trim();
-    if (userId == null || userId.isEmpty) return;
-    final payload = <String, dynamic>{
-      'header': _encodeProfileStartupHeader(),
-      'allPosts': _encodeProfileStartupPosts(const <PostsModel>[]),
-    };
-    final hasHeader = (payload['header'] as Map<String, dynamic>).isNotEmpty;
-    try {
-      final store = ensureStartupSnapshotShardStore();
-      if (!hasHeader) {
-        await store.clear(
-          surface: 'profile',
-          userId: userId,
-        );
-        return;
-      }
-      await store.save(
-        surface: 'profile',
-        userId: userId,
-        itemCount: allPosts.length,
-        limit: ReadBudgetRegistry.profileStartupShardLimit,
-        source: 'user_summary',
-        payload: payload,
-      );
-    } catch (_) {}
+    debugPrint(
+      '[ProfileHeaderSource] persist_startup_shard=skip '
+      'reason=posts_cache_only',
+    );
   }
 
   Future<void> _recordProfileStartupSurface() async {
-    final userId = _resolvedActiveUid?.trim();
-    if (userId == null || userId.isEmpty) return;
-    final hasHeader = headerDisplayName.value.trim().isNotEmpty ||
-        headerNickname.value.trim().isNotEmpty;
-    final itemCount = allPosts.isNotEmpty
-        ? allPosts.length
-        : photos.isNotEmpty
-            ? photos.length
-            : videos.length;
-    final hasLocalSnapshot = hasHeader || itemCount > 0;
-    final source = hasHeader ? 'user_summary' : 'none';
-    try {
-      await ensureStartupSnapshotManifestStore().recordSurfaceState(
-        surface: 'profile',
-        userId: userId,
-        itemCount: itemCount,
-        hasLocalSnapshot: hasLocalSnapshot,
-        source: source,
-        startupShardHydrated: _startupShardHydrated,
-        startupShardAgeMs: _startupShardAgeMs,
-      );
-    } catch (_) {}
-  }
-
-  Map<String, dynamic> _encodeProfileStartupHeader() {
-    final payload = <String, dynamic>{
-      'counterOfFollowers': followerCount.value,
-      'counterOfFollowings': followingCount.value,
-      'counterOfListings': listingCount.value,
-      'headerNickname': headerNickname.value.trim(),
-      'headerRozet': headerRozet.value.trim(),
-      'headerDisplayName': headerDisplayName.value.trim(),
-      'headerAvatarUrl': headerAvatarUrl.value.trim(),
-      'headerFirstName': headerFirstName.value.trim(),
-      'headerLastName': headerLastName.value.trim(),
-      'headerMeslek': headerMeslek.value.trim(),
-      'headerBio': headerBio.value.trim(),
-      'headerAdres': headerAdres.value.trim(),
-    };
-    payload.removeWhere((_, value) {
-      if (value is String) return value.trim().isEmpty;
-      if (value is num) return value == 0;
-      return value == null;
-    });
-    return payload;
-  }
-
-  Map<String, dynamic> _decodeProfileStartupHeader(dynamic raw) {
-    if (raw is! Map) return const <String, dynamic>{};
-    return Map<String, dynamic>.from(raw.cast<dynamic, dynamic>());
-  }
-
-  void _applyProfileStartupHeader(Map<String, dynamic> header) {
-    final nickname = (header['headerNickname'] ?? '').toString().trim();
-    final displayName = (header['headerDisplayName'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) {
-      headerNickname.value = nickname;
-    }
-    if (displayName.isNotEmpty) {
-      headerDisplayName.value = displayName;
-    }
-    final rozet = (header['headerRozet'] ?? '').toString().trim();
-    if (rozet.isNotEmpty) {
-      headerRozet.value = rozet;
-    }
-    final avatarUrl = (header['headerAvatarUrl'] ?? '').toString().trim();
-    if (avatarUrl.isNotEmpty) {
-      headerAvatarUrl.value = avatarUrl;
-    }
-    final firstName = (header['headerFirstName'] ?? '').toString().trim();
-    if (firstName.isNotEmpty) {
-      headerFirstName.value = firstName;
-    }
-    final lastName = (header['headerLastName'] ?? '').toString().trim();
-    if (lastName.isNotEmpty) {
-      headerLastName.value = lastName;
-    }
-    final meslek = (header['headerMeslek'] ?? '').toString().trim();
-    if (meslek.isNotEmpty) {
-      headerMeslek.value = meslek;
-    }
-    final bio = (header['headerBio'] ?? '').toString().trim();
-    if (bio.isNotEmpty) {
-      headerBio.value = bio;
-    }
-    final adres = (header['headerAdres'] ?? '').toString().trim();
-    if (adres.isNotEmpty) {
-      headerAdres.value = adres;
-    }
-    final nextFollowerCount = (header['counterOfFollowers'] as num?)?.toInt();
-    if (nextFollowerCount != null && nextFollowerCount > 0) {
-      followerCount.value = nextFollowerCount;
-    }
-    final nextFollowingCount = (header['counterOfFollowings'] as num?)?.toInt();
-    if (nextFollowingCount != null && nextFollowingCount > 0) {
-      followingCount.value = nextFollowingCount;
-    }
-    final nextListingCount = (header['counterOfListings'] as num?)?.toInt();
-    if (nextListingCount != null && nextListingCount > 0) {
-      listingCount.value = nextListingCount;
-    }
-  }
-
-  Map<String, dynamic> _encodeProfileStartupPosts(List<PostsModel> posts) {
-    final payload = <String, dynamic>{
-      'items': posts
-          .map(
-            (post) => <String, dynamic>{
-              'docID': post.docID,
-              'data': post.toMap(),
-            },
-          )
-          .toList(growable: false),
-    };
-    final posterHints = TurqImageCacheManager.buildPosterHintsForPosts(posts);
-    if (posterHints.isNotEmpty) {
-      payload[TurqImageCacheManager.startupPosterHintsKey] = posterHints;
-    }
-    return payload;
+    debugPrint(
+      '[ProfileHeaderSource] record_startup_surface=skip '
+      'reason=posts_cache_only',
+    );
   }
 
   Future<void> _performShowSocialMediaLinkDelete(String docID) async {

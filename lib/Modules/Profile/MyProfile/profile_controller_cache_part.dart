@@ -20,15 +20,70 @@ extension ProfileControllerCachePart on ProfileController {
         reshares: reshares,
         scheduled: scheduledPosts,
       ),
-      limit: postLimit,
+      limit: _profileFirstPaintCacheLimit,
       source: CachedResourceSource.server,
+    );
+    debugPrint(
+      '[ProfilePostsCache] action=persist_first_paint '
+      'source=firebase limit=$_profileFirstPaintCacheLimit '
+      'all=${allPosts.length} photos=${photos.length} '
+      'videos=${videos.length} reshares=${reshares.length} '
+      'scheduled=${scheduledPosts.length}',
     );
   }
 
   Future<void> _performRestoreCachedListsForActiveUser() async {
+    final uid = _resolvedActiveUid;
+    if (uid == null || uid.isEmpty) {
+      unawaited(_performWarmProfileSurfaceCache());
+      return;
+    }
+
+    final hasVisiblePosts = allPosts.isNotEmpty ||
+        photos.isNotEmpty ||
+        videos.isNotEmpty ||
+        reshares.isNotEmpty ||
+        scheduledPosts.isNotEmpty;
+    if (hasVisiblePosts) {
+      debugPrint(
+        '[ProfilePostsCache] action=skip_first_paint '
+        'reason=visible_posts_exist all=${allPosts.length} '
+        'photos=${photos.length} videos=${videos.length} '
+        'reshares=${reshares.length} scheduled=${scheduledPosts.length}',
+      );
+      unawaited(_performWarmProfileSurfaceCache());
+      return;
+    }
+
+    final cached = await _profileSnapshotRepository.readLocalBuckets(
+      userId: uid,
+      limit: _profileFirstPaintCacheLimit,
+    );
+    if (cached == null || cached.all.isEmpty) {
+      debugPrint(
+        '[ProfilePostsCache] action=first_paint_miss userId=$uid',
+      );
+      unawaited(_performWarmProfileSurfaceCache());
+      return;
+    }
+
+    allPosts.assignAll(cached.all);
+    photos.assignAll(cached.photos);
+    videos.assignAll(cached.videos);
+    reshares.assignAll(cached.reshares);
+    scheduledPosts.assignAll(cached.scheduled);
+    _hasMorePrimary = true;
+    hasMorePosts = true;
+    hasMorePostsPhotos = true;
+    hasMorePostsVideos = true;
+    hasMoreScheduled = true;
+    bootstrapFeedPlaybackAfterDataChange();
     debugPrint(
-      '[ProfilePostsCache] action=skip_bootstrap_snapshot '
-      'reason=firestore_is_profile_source',
+      '[ProfilePostsCache] action=first_paint_apply '
+      'source=last_firebase_snapshot limit=$_profileFirstPaintCacheLimit '
+      'all=${cached.all.length} photos=${cached.photos.length} '
+      'videos=${cached.videos.length} reshares=${cached.reshares.length} '
+      'scheduled=${cached.scheduled.length}',
     );
     unawaited(_performWarmProfileSurfaceCache());
   }
@@ -58,7 +113,7 @@ extension ProfileControllerCachePart on ProfileController {
     final imageUrls = <String>{};
 
     void collectFrom(Iterable<PostsModel> posts) {
-      for (final post in posts.take(18)) {
+      for (final post in posts.take(_profileMediaCacheLimit)) {
         final preview = post.primaryVisualUrl.trim();
         if (preview.isNotEmpty) {
           imageUrls.add(preview);
@@ -75,19 +130,17 @@ extension ProfileControllerCachePart on ProfileController {
       }
     }
 
-    collectFrom(allPosts);
-    collectFrom(photos);
-    collectFrom(videos);
-    collectFrom(reshares);
-    collectFrom(scheduledPosts);
+    collectFrom(pinnedPosts);
 
-    for (final url in avatarUrls.where((e) => e.isNotEmpty).take(16)) {
+    for (final url
+        in avatarUrls.where((e) => e.isNotEmpty).take(_profileMediaCacheLimit)) {
       try {
         await TurqAvatarCacheManager.instance.getSingleFile(url);
       } catch (_) {}
     }
 
-    for (final url in imageUrls.where((e) => e.isNotEmpty).take(32)) {
+    for (final url
+        in imageUrls.where((e) => e.isNotEmpty).take(_profileMediaCacheLimit)) {
       try {
         await TurqImageCacheManager.instance.getSingleFile(url);
       } catch (_) {}
@@ -110,7 +163,7 @@ extension ProfileControllerCachePart on ProfileController {
       if (timeCompare != 0) return timeCompare;
       return right.docID.trim().compareTo(left.docID.trim());
     });
-    return posts.take(postLimit).toList(growable: false);
+    return posts.take(_profileMediaCacheLimit).toList(growable: false);
   }
 
   void _performClearInMemoryPostLists() {

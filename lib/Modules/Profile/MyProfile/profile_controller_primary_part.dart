@@ -216,6 +216,20 @@ extension ProfileControllerPrimaryPart on ProfileController {
         return;
       }
 
+      if (initial &&
+          (allPosts.isNotEmpty ||
+              photos.isNotEmpty ||
+              videos.isNotEmpty ||
+              scheduledPosts.isNotEmpty)) {
+        capturePendingCenteredEntry();
+        debugPrint(
+          '[ProfilePostsSource] action=preserve_anchor_before_firebase_apply '
+          'pending=${_pendingCenteredIdentity ?? ''} '
+          'scrollStarted=${_startupScrollStartedAt != null} '
+          'offset=${currentScrollOffset.toStringAsFixed(1)}',
+        );
+      }
+
       if (initial) {
         allPosts.assignAll(page.all);
         photos.assignAll(page.photos);
