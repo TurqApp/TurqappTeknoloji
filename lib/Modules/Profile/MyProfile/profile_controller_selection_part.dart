@@ -286,6 +286,13 @@ extension ProfileControllerSelectionPart on ProfileController {
     );
   }
 
+  bool _performShouldPinFirstNonPlayableEntry() {
+    if (mergedPosts.isEmpty) return false;
+    if (_performCanAutoplayMergedEntry(mergedPosts.first)) return false;
+    final firstVisibleFraction = _visibleFractions[0] ?? 0.0;
+    return firstVisibleFraction >= FeedPlaybackSelectionPolicy.stopThreshold;
+  }
+
   void _performEvaluateCenteredPlayback() {
     if (mergedPosts.isEmpty) return;
     if (_canRetainStartupPlaybackLock) {
@@ -312,6 +319,21 @@ extension ProfileControllerSelectionPart on ProfileController {
         }
         return;
       }
+    }
+    if (_performShouldPinFirstNonPlayableEntry()) {
+      final firstVisibleFraction = _visibleFractions[0] ?? 0.0;
+      if (centeredIndex.value != 0) {
+        debugPrint(
+          '[ProfilePlaybackTarget] action=pin_non_playable_first '
+          'index=0 visibleFraction=${firstVisibleFraction.toStringAsFixed(3)} '
+          'previousCentered=${centeredIndex.value}',
+        );
+      }
+      centeredIndex.value = 0;
+      currentVisibleIndex.value = 0;
+      lastCenteredIndex = 0;
+      VideoStateManager.instance.pauseAllVideos(force: true);
+      return;
     }
     final current = centeredIndex.value;
     if (current >= 0 && current < mergedPosts.length) {

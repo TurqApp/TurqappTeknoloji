@@ -940,11 +940,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (_controllerOwnsInlinePlayback) {
       final currentOwner =
           _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
-      final runtimeCurrentOwner =
-          _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
-      final pendingClaim = _playbackRuntimeService.hasPendingPlayFor(
-        playbackHandleKey,
-      );
       final shouldForceAndroidFeedResumeReassert =
           PlaybackSurfacePolicy.shouldReassertStoppedFeedOwner(
         platform: defaultTargetPlatform,
@@ -999,18 +994,23 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         );
       }
       if (!resumedByManager) {
+        final currentOwnerAfterResume =
+            _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
+        final pendingClaimAfterResume =
+            _playbackRuntimeService.hasPendingPlayFor(playbackHandleKey);
         final shouldBootstrapInitialFeedClaim =
             _canBootstrapPrimaryFeedOwnershipClaim &&
-                !pendingClaim &&
-                runtimeCurrentOwner.isEmpty;
+                !pendingClaimAfterResume &&
+                currentOwnerAfterResume.isEmpty;
         if (shouldBootstrapInitialFeedClaim) {
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _usesFeedPlaybackPolicy) {
             debugPrint(
               '[FeedColdStartTrace] stage=bootstrap_claim '
               'doc=${widget.model.docID} '
-              'source=$source currentOwner=$runtimeCurrentOwner '
-              'pendingClaim=$pendingClaim shouldPlay=${widget.shouldPlay} '
+              'source=$source currentOwner=$currentOwnerAfterResume '
+              'pendingClaim=$pendingClaimAfterResume '
+              'shouldPlay=${widget.shouldPlay} '
               'surfaceAllowed=$_isSurfacePlaybackAllowed '
               'adapterInit=${adapter.value.isInitialized} '
               'adapterPlaying=${adapter.value.isPlaying}',
@@ -1106,12 +1106,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           dispatchIssued: false,
           skipReason: currentOwner
               ? 'manager_not_ready'
-              : (pendingClaim
+              : (pendingClaimAfterResume
                   ? 'manager_pending_handoff'
                   : 'waiting_for_feed_controller_handoff'),
           metadata: <String, dynamic>{
             'currentOwner': currentOwner,
-            'pendingClaim': pendingClaim,
+            'pendingClaim': pendingClaimAfterResume,
+            'runtimeCurrentOwner': currentOwnerAfterResume,
           },
         );
         _applyPlaybackVolume();
