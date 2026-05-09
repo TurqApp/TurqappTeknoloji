@@ -42,7 +42,10 @@ class _TagPostsControllerState {
   final RxInt centeredIndex = 0.obs;
   int? lastCenteredIndex;
   String? pendingCenteredDocId;
+  int fetchGeneration = 0;
   final Map<String, GlobalKey> agendaKeys = {};
+  final Map<int, double> visibleFractions = <int, double>{};
+  final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
 }
 
 extension TagPostsControllerFieldsPart on TagPostsController {
@@ -58,5 +61,9 @@ extension TagPostsControllerFieldsPart on TagPostsController {
   String? get _pendingCenteredDocId => _state.pendingCenteredDocId;
   set _pendingCenteredDocId(String? value) =>
       _state.pendingCenteredDocId = value;
+  int get _fetchGeneration => _state.fetchGeneration;
+  set _fetchGeneration(int value) => _state.fetchGeneration = value;
   Map<String, GlobalKey> get _agendaKeys => _state.agendaKeys;
+  Map<int, double> get _visibleFractions => _state.visibleFractions;
+  Map<int, DateTime> get _visibleUpdatedAt => _state.visibleUpdatedAt;
 }

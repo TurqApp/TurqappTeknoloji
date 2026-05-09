@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
@@ -9,7 +10,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 class TagPostsRepository {
-  static const int _typesenseTagResultLimit = 50;
+  static const int _defaultTagResultLimit = 50;
 
   final FirebaseFirestore _db;
   final PostRepository _postRepository;
@@ -29,58 +30,165 @@ class TagPostsRepository {
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 
-  Future<List<PostsModel>> fetchByTag(String tag) async {
+  Future<List<PostsModel>> fetchByTag(
+    String tag, {
+    int limit = _defaultTagResultLimit,
+    bool fastFirstPaint = false,
+  }) async {
+    final startedAt = DateTime.now();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final normalizedTag = _normalizeTag(tag);
-
-    var posts = await _queryPostsByTagTypesense(normalizedTag);
-    posts = await _filterByPrivacy(posts);
-    posts = _filterByTimestamp(posts, nowMs);
-    if (posts.isNotEmpty) return posts;
-
+    final safeLimit = limit.clamp(1, _defaultTagResultLimit);
     final queries = _buildQueries(tag);
-    posts = await _queryPostsByTag(queries, nowMs);
-    posts = await _filterByPrivacy(posts);
+    final Future<List<PostsModel>>? firstPaintPostsArrayFuture = fastFirstPaint
+        ? _queryPostsByTag(queries, nowMs, limit: safeLimit)
+        : null;
 
-    if (posts.isNotEmpty) return posts;
+    var posts = await _queryFromTagIndex(tag, nowMs, limit: safeLimit);
+    posts = await _filterByPrivacy(posts);
+    posts = _sortAndLimit(posts, safeLimit);
+    if (posts.isNotEmpty && (fastFirstPaint || posts.length >= safeLimit)) {
+      _logFetchResult(
+        tag: tag,
+        source: 'tags_index',
+        limit: safeLimit,
+        count: posts.length,
+        startedAt: startedAt,
+      );
+      return posts;
+    }
+
+    final merged = <String, PostsModel>{
+      for (final post in posts)
+        if (post.docID.trim().isNotEmpty) post.docID: post,
+    };
+
+    var fallbackPosts = firstPaintPostsArrayFuture != null
+        ? await firstPaintPostsArrayFuture
+        : await _queryPostsByTag(queries, nowMs, limit: safeLimit);
+    fallbackPosts = await _filterByPrivacy(fallbackPosts);
+    for (final post in fallbackPosts) {
+      if (post.docID.trim().isNotEmpty) merged[post.docID] = post;
+    }
+    posts = _sortAndLimit(merged.values, safeLimit);
+    if (posts.isNotEmpty && (fastFirstPaint || posts.length >= safeLimit)) {
+      _logFetchResult(
+        tag: tag,
+        source: 'posts_array',
+        limit: safeLimit,
+        count: posts.length,
+        startedAt: startedAt,
+      );
+      return posts;
+    }
+    if (fastFirstPaint) {
+      _logFetchResult(
+        tag: tag,
+        source: 'firestore_first_empty',
+        limit: safeLimit,
+        count: posts.length,
+        startedAt: startedAt,
+      );
+      return posts;
+    }
 
     final capitalizedQueries = _buildQueries(_capitalizeAfterHash(tag));
-    posts = await _queryPostsByTag(capitalizedQueries, nowMs);
-    posts = await _filterByPrivacy(posts);
-    if (posts.isNotEmpty) return posts;
+    fallbackPosts = await _queryPostsByTag(
+      capitalizedQueries,
+      nowMs,
+      limit: safeLimit,
+    );
+    fallbackPosts = await _filterByPrivacy(fallbackPosts);
+    for (final post in fallbackPosts) {
+      if (post.docID.trim().isNotEmpty) merged[post.docID] = post;
+    }
+    posts = _sortAndLimit(merged.values, safeLimit);
+    if (posts.isNotEmpty && (fastFirstPaint || posts.length >= safeLimit)) {
+      _logFetchResult(
+        tag: tag,
+        source: 'posts_array_capitalized',
+        limit: safeLimit,
+        count: posts.length,
+        startedAt: startedAt,
+      );
+      return posts;
+    }
 
-    // Fallback: tags/{tag}/posts alt koleksiyonundan post ID topla
-    posts = await _queryFromTagIndex(tag, nowMs);
-    posts = await _filterByPrivacy(posts);
-    if (posts.isNotEmpty) return posts;
-
-    final capTag = _capitalizeAfterHash(tag);
-    posts = await _queryFromTagIndex(capTag, nowMs);
-    posts = await _filterByPrivacy(posts);
+    fallbackPosts = await _queryPostsByTagTypesense(
+      normalizedTag,
+      limit: safeLimit,
+    );
+    fallbackPosts = await _filterByPrivacy(fallbackPosts);
+    fallbackPosts = _filterByTimestamp(fallbackPosts, nowMs);
+    for (final post in fallbackPosts) {
+      if (post.docID.trim().isNotEmpty) merged[post.docID] = post;
+    }
+    posts = _sortAndLimit(merged.values, safeLimit);
+    _logFetchResult(
+      tag: tag,
+      source: 'typesense',
+      limit: safeLimit,
+      count: posts.length,
+      startedAt: startedAt,
+    );
     return posts;
   }
 
+  void _logFetchResult({
+    required String tag,
+    required String source,
+    required int limit,
+    required int count,
+    required DateTime startedAt,
+  }) {
+    debugPrint(
+      '[TagPostsFetchSource] tag=$tag source=$source '
+      'limit=$limit count=$count '
+      'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+    );
+  }
+
   String _normalizeTag(String tag) {
-    final trimmed = tag.trim().toLowerCase();
+    final trimmed = _lowerTag(tag.trim());
     if (trimmed.isEmpty) return '';
     return trimmed.startsWith('#') ? trimmed.substring(1) : trimmed;
+  }
+
+  String _lowerTag(String value) {
+    return value.replaceAll('İ', 'i').replaceAll('I', 'ı').toLowerCase().trim();
   }
 
   List<String> _buildQueries(String tag) {
     final t = tag.trim();
     if (t.isEmpty) return const [];
     final set = <String>{t};
-    if (!t.startsWith("#")) set.add("#$t");
+    final withoutHash = t.startsWith('#') ? t.substring(1) : t;
+    final normalized = _lowerTag(withoutHash);
+    set.add(withoutHash);
+    set.add(normalized);
+    set.add('#$withoutHash');
+    set.add('#$normalized');
     return set.toList();
   }
 
+  List<PostsModel> _sortAndLimit(Iterable<PostsModel> items, int limit) {
+    final sorted = items.toList(growable: false)
+      ..sort((a, b) => b.timeStamp.compareTo(a.timeStamp));
+    if (sorted.length <= limit) return sorted;
+    return sorted.sublist(0, limit);
+  }
+
   Future<List<PostsModel>> _queryPostsByTag(
-      List<String> queries, int nowMs) async {
+    List<String> queries,
+    int nowMs, {
+    required int limit,
+  }) async {
     if (queries.isEmpty) return const [];
+    final safeLimit = limit.clamp(1, 300);
     final snap = await _db
         .collection("Posts")
         .where("tags", arrayContainsAny: queries)
-        .limit(1000)
+        .limit(safeLimit)
         .get();
 
     return snap.docs
@@ -91,10 +199,14 @@ class TagPostsRepository {
         .toList();
   }
 
-  Future<List<PostsModel>> _queryPostsByTagTypesense(String tag) async {
+  Future<List<PostsModel>> _queryPostsByTagTypesense(
+    String tag, {
+    required int limit,
+  }) async {
     final normalized = _normalizeTag(tag);
     final currentUid = _currentUid.trim();
     if (normalized.isEmpty || currentUid.isEmpty) return const [];
+    final safeLimit = limit.clamp(1, _defaultTagResultLimit);
 
     Object? lastError;
     for (final fn in _functionsTargets) {
@@ -103,7 +215,7 @@ class TagPostsRepository {
           <String, dynamic>{
             'q': '',
             'tag': normalized,
-            'limit': _typesenseTagResultLimit,
+            'limit': safeLimit,
             'page': 1,
             'includeNonPublic': true,
           },
@@ -147,25 +259,46 @@ class TagPostsRepository {
         .toList(growable: false);
   }
 
-  Future<List<PostsModel>> _queryFromTagIndex(String tag, int nowMs) async {
-    final normalized = tag.replaceFirst('#', '').trim();
-    if (normalized.isEmpty) return const [];
+  Future<List<PostsModel>> _queryFromTagIndex(
+    String tag,
+    int nowMs, {
+    required int limit,
+  }) async {
+    final tagKeys = _buildTagIndexKeys(tag);
+    if (tagKeys.isEmpty) return const [];
+    final safeLimit = limit.clamp(1, 300);
 
     try {
-      final indexSnap = await _db
-          .collection('tags')
-          .doc(normalized)
-          .collection('posts')
-          .limit(300)
-          .get();
-
-      if (indexSnap.docs.isEmpty) return const [];
-
       final ids = <String>[];
-      for (final d in indexSnap.docs) {
-        final data = d.data();
-        final postId = (data['postId'] ?? data['id'] ?? d.id).toString();
-        if (postId.isNotEmpty) ids.add(postId);
+      final createdAtById = <String, int>{};
+
+      for (final tagKey in tagKeys) {
+        final tagStartedAt = DateTime.now();
+        final indexSnap = await _readTagIndexPosts(tagKey, safeLimit);
+        debugPrint(
+          '[TagPostsSource] source=tags_index tagKey=$tagKey '
+          'raw=${indexSnap.docs.length} limit=$safeLimit '
+          'elapsedMs=${DateTime.now().difference(tagStartedAt).inMilliseconds}',
+        );
+        if (indexSnap.docs.isEmpty) continue;
+
+        for (final d in indexSnap.docs) {
+          final data = d.data();
+          final candidateIds = <String>{
+            d.id,
+            (data['postId'] ?? '').toString(),
+            (data['id'] ?? '').toString(),
+          };
+          for (final rawPostId in candidateIds) {
+            final postId = rawPostId.trim();
+            if (postId.isEmpty || ids.contains(postId)) continue;
+            ids.add(postId);
+            createdAtById[postId] = _timestampMs(data['createdAt']);
+            if (ids.length >= safeLimit) break;
+          }
+          if (ids.length >= safeLimit) break;
+        }
+        if (ids.length >= safeLimit) break;
       }
       if (ids.isEmpty) return const [];
 
@@ -184,10 +317,59 @@ class TagPostsRepository {
           results.add(p);
         }
       }
+      debugPrint(
+        '[TagPostsSource] source=tags_index_hydrate '
+        'candidateIds=${ids.length} hydrated=${results.length} '
+        'limit=$safeLimit',
+      );
+      results.sort((a, b) {
+        final bStamp = createdAtById[b.docID] ?? b.timeStamp;
+        final aStamp = createdAtById[a.docID] ?? a.timeStamp;
+        return bStamp.compareTo(aStamp);
+      });
       return results;
     } catch (_) {
       return const [];
     }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _readTagIndexPosts(
+    String tagKey,
+    int limit,
+  ) async {
+    final ref = _db.collection('tags').doc(tagKey).collection('posts');
+    try {
+      return await ref
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+    } catch (_) {
+      return ref.limit(limit).get();
+    }
+  }
+
+  List<String> _buildTagIndexKeys(String tag) {
+    final trimmed = tag.trim();
+    if (trimmed.isEmpty) return const [];
+    final withoutHash =
+        trimmed.startsWith('#') ? trimmed.substring(1) : trimmed;
+    final normalized = _lowerTag(withoutHash);
+    final capitalized = _capitalizeAfterHash('#$normalized');
+    return <String>{
+      trimmed,
+      withoutHash,
+      normalized,
+      '#$withoutHash',
+      '#$normalized',
+      capitalized,
+    }.where((value) => value.trim().isNotEmpty).toList(growable: false);
+  }
+
+  int _timestampMs(Object? value) {
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return 0;
   }
 
   String _capitalizeAfterHash(String tag) {

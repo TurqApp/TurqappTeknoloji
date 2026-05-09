@@ -315,6 +315,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isExploreSeriesSurfaceInstance =>
       _surfaceInstanceTag.startsWith('explore_series_');
 
+  bool get _isTopTagSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('top_tag_');
+
+  bool get _isTagPostsSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('tag_post_');
+
   bool get _isProfileFamilySurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_') ||
       _surfaceInstanceTag.startsWith('archives_') ||
@@ -325,7 +331,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _isPrimaryFeedSurfaceInstance ||
       _isProfileFamilySurfaceInstance ||
       _isFloodSurfaceInstance ||
-      _isExploreSeriesSurfaceInstance;
+      _isExploreSeriesSurfaceInstance ||
+      _isTopTagSurfaceInstance ||
+      _isTagPostsSurfaceInstance;
 
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
@@ -477,6 +485,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.combinedFeedEntries.length ?? 0;
     }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.agendaList.length ?? 0;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.list.length ?? 0;
+    }
     return agendaController.agendaList.length;
   }
 
@@ -503,6 +517,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         isReshare: widget.isReshared,
       );
     }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.agendaList.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.list.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
     return agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
@@ -517,6 +543,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.centeredIndex.value ?? -1;
+    }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.centeredIndex.value ?? -1;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.centeredIndex.value ?? -1;
     }
     return agendaController.centeredIndex.value;
   }
@@ -538,6 +570,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.lastCenteredIndex;
+    }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.lastCenteredIndex;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.lastCenteredIndex;
     }
     return agendaController.lastCenteredIndex;
   }
@@ -587,6 +625,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           post.hasPlayableVideo &&
           !post.deletedPost &&
           !post.arsiv;
+    }
+    if (_isTopTagSurfaceInstance) {
+      final posts = maybeFindTopTagsController()?.agendaList;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      final posts = maybeFindTagPostsController()?.list;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
     }
     if (index >= agendaController.agendaList.length) return false;
     return agendaController.agendaList[index].hasPlayableVideo;
@@ -762,6 +810,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return _resolveSocialProfileController()?.centeredIndex ??
           agendaController.centeredIndex;
     }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
     return agendaController.centeredIndex;
   }
 
@@ -813,6 +869,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _controllerOwnsInlinePlayback =>
       !isStandalonePostInstance &&
       !_isFloodSurfaceInstance &&
+      !_isTopTagSurfaceInstance &&
+      !_isTagPostsSurfaceInstance &&
       (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
 
   bool get shouldAutoResumeInlinePlatformView {
@@ -856,6 +914,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (route == '/SocialProfile' || route == 'SocialProfile') {
         return true;
       }
+    }
+    if (_isTopTagSurfaceInstance || _isTagPostsSurfaceInstance) {
+      return true;
     }
     if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;

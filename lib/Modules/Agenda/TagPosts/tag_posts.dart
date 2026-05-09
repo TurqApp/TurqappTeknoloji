@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../Core/Buttons/back_buttons.dart';
 import '../../../Core/Helpers/RoadToTop/road_to_top.dart';
@@ -21,6 +22,7 @@ class _TagPostsState extends State<TagPosts> {
   late final bool _ownsController;
   final ScrollController scrollController = ScrollController();
   late final String _controllerTag;
+  bool _centerSyncScheduled = false;
 
   @override
   void initState() {
@@ -47,7 +49,17 @@ class _TagPostsState extends State<TagPosts> {
   }
 
   void _onScroll() {
-    controller.updateVisibleIndexByPosition(scrollController);
+    _scheduleRenderedCenterSync();
+  }
+
+  void _scheduleRenderedCenterSync() {
+    if (_centerSyncScheduled) return;
+    _centerSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _centerSyncScheduled = false;
+      if (!mounted) return;
+      controller.updateVisibleIndexByRenderedItems(context);
+    });
   }
 
   @override
@@ -75,7 +87,7 @@ class _TagPostsState extends State<TagPosts> {
               else
                 NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
-                    controller.updateVisibleIndexByPosition(scrollController);
+                    _scheduleRenderedCenterSync();
                     return false;
                   },
                   child: ListView.builder(
@@ -94,22 +106,44 @@ class _TagPostsState extends State<TagPosts> {
                       return Padding(
                         padding:
                             EdgeInsets.only(top: actualIndex == 0 ? 10 : 0),
-                        child: Column(
-                          children: [
-                            AgendaContent(
-                              key: controller.getAgendaKey(docId: model.docID),
-                              model: model,
-                              isPreview: false,
-                              instanceTag:
-                                  controller.agendaInstanceTag(model.docID),
-                              shouldPlay:
-                                  controller.centeredIndex.value == actualIndex,
-                            ),
-                            SizedBox(
-                              height: 1,
-                              child: Divider(color: Colors.grey.withAlpha(40)),
-                            ),
-                          ],
+                        child: VisibilityDetector(
+                          key: Key('tag_posts_visibility_${model.docID}'),
+                          onVisibilityChanged: (info) {
+                            controller.onPostVisibilityChanged(
+                              actualIndex,
+                              info.visibleFraction,
+                            );
+                          },
+                          child: Column(
+                            children: [
+                              Obx(() {
+                                final shouldPlay =
+                                    controller.centeredIndex.value ==
+                                        actualIndex;
+                                if (shouldPlay && model.hasPlayableVideo) {
+                                  debugPrint(
+                                    '[TagPostsPlayTarget] index=$actualIndex '
+                                    'doc=${model.docID}',
+                                  );
+                                }
+                                return AgendaContent(
+                                  key: controller.getAgendaKey(
+                                    docId: model.docID,
+                                  ),
+                                  model: model,
+                                  isPreview: false,
+                                  instanceTag:
+                                      controller.agendaInstanceTag(model.docID),
+                                  shouldPlay: shouldPlay,
+                                );
+                              }),
+                              SizedBox(
+                                height: 1,
+                                child:
+                                    Divider(color: Colors.grey.withAlpha(40)),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
