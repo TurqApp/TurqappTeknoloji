@@ -5,6 +5,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       nowMs - const Duration(days: 7).inMilliseconds;
 
   bool _isNonRootFloodChildPost(PostsModel post) {
+    if (post.mainFlood.trim().isNotEmpty) return true;
+    if (post.flood == true && !post.isFloodSeriesRoot) return true;
     if (post.floodCount.toInt() <= 1) return false;
     final docId = post.docID.trim();
     if (docId.isEmpty) return false;
@@ -340,13 +342,16 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         }
         return null;
       }
+      final pageTakeLimit = max(0, pageEndExclusive - pageStart);
       final pageItems =
-          visible.skip(pageStart).take(limit).toList(growable: false);
+          visible.skip(pageStart).take(pageTakeLimit).toList(growable: false);
       if (pageItems.isEmpty) {
         return null;
       }
-      final pageVisibleEntries =
-          visibleEntries.skip(pageStart).take(limit).toList(growable: false);
+      final pageVisibleEntries = visibleEntries
+          .skip(pageStart)
+          .take(pageTakeLimit)
+          .toList(growable: false);
       if (_shouldLogDiagnostics && pageVisibleEntries.isNotEmpty) {
         final topPreview = pageVisibleEntries.take(5).map((entry) {
           final post = entry.post;
@@ -869,6 +874,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     for (final post in posts) {
       final docId = post.docID.trim();
       if (docId.isEmpty || !seen.add(docId)) continue;
+      if (_isNonRootFloodChildPost(post)) continue;
       if (hiddenPostIds.contains(docId)) continue;
       if (post.userID.trim().isEmpty) continue;
       if (post.deletedPost == true || post.gizlendi) continue;

@@ -21,6 +21,11 @@ class FeedManifestPolicy {
   static const int minGapCandidateLimit = 60;
   static const int startupSlotLoadBudget = 24;
   static const int maxSlotLoadBudget = 24;
+  static const int startupSlotBatchSize = 5;
+  static const int startupManifestDeckLimit =
+      startupSlotLoadBudget * startupSlotBatchSize;
+  static const int startupVisibleDeckLimit =
+      gapSlotBatchSize + startupManifestDeckLimit;
 
   static int resolveDeckSeed({
     required String userId,

@@ -78,5 +78,14 @@ void main() {
         FeedManifestPolicy.maxSlotLoadBudget,
       );
     });
+
+    test('startup visible deck caps gap plus newest-to-oldest slot batches',
+        () {
+      expect(FeedManifestPolicy.gapSlotBatchSize, 15);
+      expect(FeedManifestPolicy.startupSlotLoadBudget, 24);
+      expect(FeedManifestPolicy.startupSlotBatchSize, 5);
+      expect(FeedManifestPolicy.startupManifestDeckLimit, 120);
+      expect(FeedManifestPolicy.startupVisibleDeckLimit, 135);
+    });
   });
 }
