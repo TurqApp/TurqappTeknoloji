@@ -42,6 +42,7 @@ class _PermissionsViewState extends State<PermissionsView>
   final Map<String, PermissionStatus> _statuses = {};
   bool _loading = true;
   int _selectedQuota = 3;
+  bool _showAdvancedControls = false;
   bool _showPlaybackPreferences = false;
   NetworkSettings _networkSettings = NetworkSettings();
   Timer? _quotaRefreshTimer;
@@ -73,10 +74,7 @@ class _PermissionsViewState extends State<PermissionsView>
   }
 
   void _initializePermissionsView() {
-    _startQuotaRefreshTimer();
-    _loadQuota();
     _loadAdminVisibility();
-    _loadNetworkSettings();
     _refreshStatuses();
   }
 
@@ -90,7 +88,17 @@ class _PermissionsViewState extends State<PermissionsView>
 
   Future<void> _loadAdminVisibility() async {
     final canManage = await AdminAccessService.canManageSliders();
-    _updatePermissionsViewState(() => _showPlaybackPreferences = canManage);
+    if (canManage) {
+      _startQuotaRefreshTimer();
+      _loadQuota();
+      _loadNetworkSettings();
+    } else {
+      _quotaRefreshTimer?.cancel();
+    }
+    _updatePermissionsViewState(() {
+      _showAdvancedControls = canManage;
+      _showPlaybackPreferences = canManage;
+    });
   }
 
   Widget _buildPage(BuildContext context) {
@@ -109,60 +117,65 @@ class _PermissionsViewState extends State<PermissionsView>
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         children: [
-                          Text(
-                            'permissions.preferences'.tr,
-                            style: const TextStyle(
-                              color: Colors.black45,
-                              fontSize: 13,
-                              fontFamily: 'MontserratMedium',
+                          if (_showAdvancedControls) ...[
+                            Text(
+                              'permissions.preferences'.tr,
+                              style: const TextStyle(
+                                color: Colors.black45,
+                                fontSize: 13,
+                                fontFamily: 'MontserratMedium',
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 10),
+                            const SizedBox(height: 10),
+                          ],
                           ..._items.map(_buildPermissionListItem),
-                          const SizedBox(height: 10),
-                          const Divider(height: 1),
-                          const SizedBox(height: 16),
-                          Text(
-                            'permissions.offline_space'.tr,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontFamily: 'MontserratMedium',
+                          if (_showAdvancedControls) ...[
+                            const SizedBox(height: 10),
+                            const Divider(height: 1),
+                            const SizedBox(height: 16),
+                            Text(
+                              'permissions.offline_space'.tr,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 18,
+                                fontFamily: 'MontserratMedium',
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              for (int i = 0;
-                                  i <
-                                      _PermissionsViewState
-                                          ._quotaOptions.length;
-                                  i++) ...[
-                                Expanded(
-                                  child: _buildQuotaButton(
-                                    _PermissionsViewState._quotaOptions[i],
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                for (int i = 0;
+                                    i <
+                                        _PermissionsViewState
+                                            ._quotaOptions.length;
+                                    i++) ...[
+                                  Expanded(
+                                    child: _buildQuotaButton(
+                                      _PermissionsViewState._quotaOptions[i],
+                                    ),
                                   ),
-                                ),
-                                if (i !=
-                                    _PermissionsViewState._quotaOptions.length -
-                                        1)
-                                  const SizedBox(width: 10),
+                                  if (i !=
+                                      _PermissionsViewState
+                                              ._quotaOptions.length -
+                                          1)
+                                    const SizedBox(width: 10),
+                                ],
                               ],
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'permissions.offline_space_desc'.tr,
-                            style: const TextStyle(
-                              color: Colors.black45,
-                              fontSize: 13,
-                              fontFamily: 'Montserrat',
-                              height: 1.3,
                             ),
-                          ),
-                          _buildQuotaBreakdown(),
-                          if (_showPlaybackPreferences)
-                            _buildPlaybackPolicyCard(),
+                            const SizedBox(height: 10),
+                            Text(
+                              'permissions.offline_space_desc'.tr,
+                              style: const TextStyle(
+                                color: Colors.black45,
+                                fontSize: 13,
+                                fontFamily: 'Montserrat',
+                                height: 1.3,
+                              ),
+                            ),
+                            _buildQuotaBreakdown(),
+                            if (_showPlaybackPreferences)
+                              _buildPlaybackPolicyCard(),
+                          ],
                         ],
                       ),
                     ),
