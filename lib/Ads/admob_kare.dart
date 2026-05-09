@@ -490,6 +490,15 @@ class _AdmobKareState extends State<AdmobKare> {
       );
       return true;
     }
+    if (identical(_bannerAd, slot.ad) && _isAdLoaded) {
+      _loadFailed = false;
+      _allowFallbackSurface = false;
+      _waitingForFuturePool = false;
+      _impressionReported = slot.impressionReported;
+      slot.ownerHash = owner;
+      slot.mark(_StableAdSlotPhase.bound);
+      return true;
+    }
     _bannerAd = slot.ad;
     _isAdLoaded = true;
     _loadFailed = false;
