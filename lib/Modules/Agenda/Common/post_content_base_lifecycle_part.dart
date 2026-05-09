@@ -515,7 +515,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   void _primeImmediateNextAfterPlaybackStart(HLSVideoValue value) {
     if (!widget.model.hasPlayableVideo) return;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
-    if (!value.hasRenderedFirstFrame) return;
+    if (!value.isInitialized && !value.hasRenderedFirstFrame) return;
     final docId = widget.model.docID.trim();
     if (docId.isEmpty || _lastImmediateFeedNextWarmDocId == docId) return;
     _lastImmediateFeedNextWarmDocId = docId;

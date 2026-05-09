@@ -134,6 +134,7 @@ class _AdmobKareState extends State<AdmobKare> {
   Timer? _fallbackGateTimer;
   Timer? _stableHiddenDetachTimer;
   Timer? _visibilityLoadDebounceTimer;
+  Timer? _scrollCriticalAttachDelayTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
@@ -144,6 +145,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
+  static const Duration _feedScrollCriticalAttachDelay =
+      Duration(milliseconds: 30);
   static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
@@ -666,10 +669,10 @@ class _AdmobKareState extends State<AdmobKare> {
       if (!_scrollCriticalLiveAdBindingPaused.value) {
         _waitingForFuturePool = false;
         _log(
-          'pool ready attach after settle placement=$_managedSuggestionPlacementId '
+          'pool ready attach scheduled after settle placement=$_managedSuggestionPlacementId '
           'slot=$_stableAdSlotKey state=$debugState',
         );
-        _attachBannerOrLoad();
+        _scheduleScrollCriticalAttachAfterSettle();
         return;
       }
       _log(
@@ -697,11 +700,19 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || !_usesScrollCriticalPoolOnly) {
       return;
     }
+    if (_scrollCriticalLiveAdBindingPaused.value) {
+      _scrollCriticalAttachDelayTimer?.cancel();
+      _scrollCriticalAttachDelayTimer = null;
+      if (mounted) {
+        setState(() {});
+      }
+      return;
+    }
     if (!_scrollCriticalLiveAdBindingPaused.value &&
         _isVisible &&
         (_waitingForFuturePool || _isRenderableBanner(_stableSlotState?.ad))) {
       _waitingForFuturePool = false;
-      _attachBannerOrLoad();
+      _scheduleScrollCriticalAttachAfterSettle();
       return;
     }
     if (mounted) {
@@ -709,8 +720,30 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
+  void _scheduleScrollCriticalAttachAfterSettle() {
+    if (!_usesScrollCriticalPoolOnly) {
+      _attachBannerOrLoad();
+      return;
+    }
+    _scrollCriticalAttachDelayTimer?.cancel();
+    _scrollCriticalAttachDelayTimer = Timer(
+      _feedScrollCriticalAttachDelay,
+      () {
+        _scrollCriticalAttachDelayTimer = null;
+        if (_isDisposed || !_isVisible) return;
+        if (_scrollCriticalLiveAdBindingPaused.value) return;
+        _attachBannerOrLoad();
+      },
+    );
+  }
+
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
+      return;
+    }
+    if (_usesScrollCriticalPoolOnly &&
+        _scrollCriticalLiveAdBindingPaused.value) {
+      _waitingForFuturePool = true;
       return;
     }
     if (_tryAttachStableSlotAd()) {
@@ -783,7 +816,7 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_requiresStableFeedVisibilityForLoad) {
       _visibilityLoadDebounceTimer = Timer(_feedVisibilityLoadDelay, () {
         if (_isDisposed) return;
-        _attachBannerOrLoad();
+        _scheduleScrollCriticalAttachAfterSettle();
       });
       return;
     }
@@ -1228,6 +1261,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _fallbackGateTimer?.cancel();
     _stableHiddenDetachTimer?.cancel();
     _visibilityLoadDebounceTimer?.cancel();
+    _scrollCriticalAttachDelayTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;

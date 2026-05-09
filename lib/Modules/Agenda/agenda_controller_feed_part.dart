@@ -734,7 +734,7 @@ extension AgendaControllerFeedPart on AgendaController {
       TurqImageCacheManager.warmUrl(preview).ignore();
     }
     debugPrint(
-      '[FeedNextWarm] status=boost source=first_frame '
+      '[FeedNextWarm] status=boost source=playback_initialized '
       'anchor=$anchorIndex next=$nextPlayableIndex '
       'doc=${nextPost.docID} segments=$readySegments',
     );

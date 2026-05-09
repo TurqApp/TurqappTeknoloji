@@ -2,12 +2,15 @@ part of 'cache_manager.dart';
 
 extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
   static const Duration _hotPlaybackEvictionDelay = Duration(minutes: 15);
+  static const Duration _hotPlaybackEmergencyEvictionSliceDelay =
+      Duration(seconds: 3);
   static const Duration _hotPlaybackEvictionLogThrottle = Duration(seconds: 20);
   static const Duration _hotPlaybackMaintenanceDelay = Duration(minutes: 15);
   static const Duration _hotPlaybackMaintenanceLogThrottle =
       Duration(seconds: 20);
   static const Duration _hotPlaybackEntryGrace = Duration(minutes: 20);
   static const double _emergencyHardLimitMultiplier = 1.10;
+  static const int _hotPlaybackEmergencyEvictionSliceSize = 2;
 
   Future<void> init() async {
     _isReady = false;
@@ -434,6 +437,37 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     final emergencyLimit =
         (_hardLimitBytes * _emergencyHardLimitMultiplier).round();
     return totalTrackedUsageBytes > emergencyLimit;
+  }
+
+  bool get _shouldSliceEmergencyEviction =>
+      _hasHotPlaybackFocus && _isEmergencyOverHardLimit;
+
+  bool _shouldYieldEmergencyEvictionSlice(int evictedCount) {
+    return _shouldSliceEmergencyEviction &&
+        evictedCount >= _hotPlaybackEmergencyEvictionSliceSize;
+  }
+
+  void _scheduleEmergencyEvictionContinuation({required int targetBytes}) {
+    if (_deferredEvictionTimer?.isActive == true) return;
+    _deferredEvictionTimer = Timer(
+      _hotPlaybackEmergencyEvictionSliceDelay,
+      () {
+        _deferredEvictionTimer = null;
+        if (!_isReady) return;
+        if (totalTrackedUsageBytes <= targetBytes) return;
+        if (_evictionInFlight != null) return;
+        _evictionInFlight =
+            evictIfNeeded(targetBytes: targetBytes).whenComplete(() {
+          _evictionInFlight = null;
+        });
+      },
+    );
+    debugPrint(
+      '[CacheManager] Emergency eviction sliced reason=hot_playback '
+      'delayMs=${_hotPlaybackEmergencyEvictionSliceDelay.inMilliseconds} '
+      'usage=$totalTrackedUsageBytes target=$targetBytes '
+      'hard=$_hardLimitBytes',
+    );
   }
 
   void _scheduleDeferredEviction({
