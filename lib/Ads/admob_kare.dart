@@ -150,8 +150,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const Duration _feedScrollCriticalAttachDelay =
       Duration(milliseconds: 30);
-  static const Duration _scrollCriticalLiveAdBindingResumeDelay =
-      Duration.zero;
+  static const Duration _scrollCriticalLiveAdBindingResumeDelay = Duration.zero;
   static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
@@ -280,10 +279,17 @@ class _AdmobKareState extends State<AdmobKare> {
       (widget.suggestionPlacementId?.trim().isNotEmpty ?? false);
   String get _managedSuggestionPlacementId =>
       widget.suggestionPlacementId?.trim() ?? '';
-  bool get _requiresStableFeedVisibilityForLoad =>
-      _managedSuggestionPlacementId == 'feed';
-  bool get _usesScrollCriticalPoolOnly =>
-      _managedSuggestionPlacementId == 'feed';
+  bool get _usesFeedFamilyAdBehavior {
+    switch (_managedSuggestionPlacementId) {
+      case 'feed':
+      case 'profile':
+        return true;
+    }
+    return false;
+  }
+
+  bool get _requiresStableFeedVisibilityForLoad => _usesFeedFamilyAdBehavior;
+  bool get _usesScrollCriticalPoolOnly => _usesFeedFamilyAdBehavior;
   String get _stableAdSlotKey => widget.adSlotId?.trim() ?? '';
   bool get _usesStableAdSlot => _stableAdSlotKey.isNotEmpty;
   _StableAdSlotState? get _stableSlotState =>

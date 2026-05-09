@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Models/posts_model.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Modules/Agenda/Common/agenda_spacing.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/Widgets/Ads/feed_family_ad_slot.dart';
 import 'package:turqappv2/Core/Widgets/post_interaction_widget.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import '../AgendaContent/agenda_content.dart';
@@ -109,19 +109,6 @@ class _FloodListingState extends State<FloodListing> {
                   itemBuilder: (context, index) {
                     final tailSpace = _tailSpaceHeight();
                     if (index == controller.floods.length) {
-                      if (controller.floods.length < 4) {
-                        return Column(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: AdmobKare(
-                                suggestionPlacementId: 'feed',
-                              ),
-                            ),
-                            SizedBox(height: tailSpace),
-                          ],
-                        );
-                      }
                       return SizedBox(height: tailSpace);
                     }
 
@@ -176,15 +163,14 @@ class _FloodListingState extends State<FloodListing> {
                       ),
                     );
 
-                    if ((index + 1) % 4 == 0) {
-                      final slot = ((index + 1) ~/ 4);
+                    if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(index)) {
+                      final slot =
+                          FeedFamilyAdSlot.slotNumberForPostIndex(index);
                       children.add(
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: AdmobKare(
-                            key: ValueKey('flood-ad-$slot'),
-                            suggestionPlacementId: 'feed',
-                          ),
+                        FeedFamilyAdSlot(
+                          surfaceId: 'flood-detail-${widget.mainModel.docID}',
+                          slotNumber: slot,
+                          placementId: 'feed',
                         ),
                       );
                     }

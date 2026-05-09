@@ -33,6 +33,7 @@ import 'package:turqappv2/Services/post_delete_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
+import 'package:turqappv2/Core/Widgets/Ads/feed_family_ad_slot.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/post_interaction_widget.dart';
 import 'package:turqappv2/Modules/EditPost/edit_post.dart';
@@ -56,7 +57,6 @@ import 'package:turqappv2/Themes/app_colors.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 
 import '../../../Core/text_styles.dart';
 import '../../Agenda/agenda_controller.dart';

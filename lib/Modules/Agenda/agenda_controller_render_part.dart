@@ -1,8 +1,7 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerRenderPart on AgendaController {
-  static const Duration _growthRenderReleaseDelay =
-      Duration(milliseconds: 34);
+  static const Duration _growthRenderReleaseDelay = Duration(milliseconds: 34);
 
   void _activateStartupRenderStages({String reason = 'unknown'}) {
     debugPrint(
@@ -162,6 +161,7 @@ extension AgendaControllerRenderPart on AgendaController {
     }
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
+      forceAdPromos: isFollowingMode || isCityMode,
     );
     final patch = _feedRenderCoordinator.buildPatch(
       previous: renderFeedEntries.toList(growable: false),
