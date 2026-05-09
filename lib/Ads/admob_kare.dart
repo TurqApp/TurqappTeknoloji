@@ -101,6 +101,7 @@ class _AdmobKareState extends State<AdmobKare> {
       ValueNotifier<int>(0);
   static final ValueNotifier<bool> _scrollCriticalLiveAdBindingPaused =
       ValueNotifier<bool>(false);
+  static Timer? _scrollCriticalLiveAdBindingResumeTimer;
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
   static final Map<String, int> _managedSuggestionNextIndexByPlacement =
@@ -149,6 +150,8 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const Duration _feedScrollCriticalAttachDelay =
       Duration(milliseconds: 30);
+  static const Duration _scrollCriticalLiveAdBindingResumeDelay =
+      Duration.zero;
   static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
@@ -173,6 +176,26 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   static void setScrollCriticalLiveAdBindingPaused(bool paused) {
+    if (!paused) {
+      final activeTimer = _scrollCriticalLiveAdBindingResumeTimer;
+      if (activeTimer != null && activeTimer.isActive) {
+        return;
+      }
+      _scrollCriticalLiveAdBindingResumeTimer = Timer(
+        _scrollCriticalLiveAdBindingResumeDelay,
+        () {
+          _scrollCriticalLiveAdBindingResumeTimer = null;
+          if (!_scrollCriticalLiveAdBindingPaused.value) {
+            return;
+          }
+          _scrollCriticalLiveAdBindingPaused.value = false;
+          _log('scroll-critical live ad binding paused=false');
+        },
+      );
+      return;
+    }
+    _scrollCriticalLiveAdBindingResumeTimer?.cancel();
+    _scrollCriticalLiveAdBindingResumeTimer = null;
     if (_scrollCriticalLiveAdBindingPaused.value == paused) {
       return;
     }
@@ -718,20 +741,17 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_scrollCriticalLiveAdBindingPaused.value) {
       _scrollCriticalAttachDelayTimer?.cancel();
       _scrollCriticalAttachDelayTimer = null;
-      if (mounted) {
-        setState(() {});
-      }
       return;
     }
     if (!_scrollCriticalLiveAdBindingPaused.value &&
         _isVisible &&
-        (_waitingForFuturePool || _isRenderableBanner(_stableSlotState?.ad))) {
+        (_waitingForFuturePool ||
+            _isRenderableBanner(_stableSlotState?.ad) ||
+            _bannerAd == null ||
+            !_isAdLoaded)) {
       _waitingForFuturePool = false;
       _scheduleScrollCriticalAttachAfterSettle();
       return;
-    }
-    if (mounted) {
-      setState(() {});
     }
   }
 
