@@ -34,6 +34,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     );
     if (centeredChanged) {
       centeredIndex.value = ownerIndex;
+      _notifyPlaybackRowUpdates(ownerIndex);
     }
     lastCenteredIndex = ownerIndex;
     if (!centeredChanged && !_isPlaybackTargetCurrent(ownerIndex)) {
@@ -189,6 +190,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
         final centeredChanged = centeredIndex.value != lockedIndex;
         if (centeredChanged) {
           centeredIndex.value = lockedIndex;
+          _notifyPlaybackRowUpdates(lockedIndex);
         }
         lastCenteredIndex = lockedIndex;
         if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
@@ -244,6 +246,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;
+        _notifyPlaybackRowUpdates(targetIndex);
         if (decision.shouldEnsurePlayback) {
           _ensureFeedPlaybackForIndex(targetIndex);
         }
