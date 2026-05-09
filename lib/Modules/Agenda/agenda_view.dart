@@ -87,6 +87,18 @@ class AgendaView extends StatelessWidget {
     if (_feedEntryWarmQueued) return;
     _feedEntryWarmQueued = true;
 
+    Future<void>.delayed(const Duration(milliseconds: 250), () {
+      if (controller.isClosed) {
+        return;
+      }
+      unawaited(AdmobKare.warmupPool(
+        targetCount: AdmobBannerWarmupService.feedEntryTarget,
+        maxRequestCount: AdmobBannerWarmupService.feedEntryTarget,
+        bypassMinInterval: false,
+        debugSource: 'feed_entry_early',
+      ));
+    });
+
     void attemptWarm({int attempt = 0}) {
       final delay = attempt == 0
           ? const Duration(milliseconds: 900)

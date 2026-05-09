@@ -630,7 +630,11 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       'warmup_request source=view_init '
       'state=${AdmobKare.debugState}',
     );
-    unawaited(AdmobKare.warmupPool(targetCount: 4, maxRequestCount: 2));
+    unawaited(AdmobKare.warmupPool(
+      targetCount: 4,
+      maxRequestCount: 2,
+      debugSource: 'short_view_init',
+    ));
     Future<void>.delayed(const Duration(milliseconds: 1200), () async {
       if (!mounted) return;
       _logShortAdSlots(
@@ -641,6 +645,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         targetCount: 4,
         maxRequestCount: 2,
         bypassMinInterval: true,
+        debugSource: 'short_view_init_delayed',
       );
     });
     if (_cachedShorts.isNotEmpty) {

@@ -43,11 +43,13 @@ class AdmobKare extends StatefulWidget {
     int targetCount = _AdmobKareState._poolTargetCount,
     int maxRequestCount = 1,
     bool bypassMinInterval = false,
+    String debugSource = '',
   }) {
     return _AdmobKareState.warmupPool(
       targetCount: targetCount,
       maxRequestCount: maxRequestCount,
       bypassMinInterval: bypassMinInterval,
+      debugSource: debugSource,
     );
   }
 
@@ -333,6 +335,7 @@ class _AdmobKareState extends State<AdmobKare> {
     int targetCount = _defaultWarmupCount,
     int maxRequestCount = 1,
     bool bypassMinInterval = false,
+    String debugSource = '',
   }) async {
     if (_usePlaceholderOnly) return;
     if (!_supportsSharedPool) return;
@@ -352,9 +355,11 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _lastWarmupAttemptAt = now;
+    final sourceLabel =
+        debugSource.trim().isEmpty ? '' : ' source=${debugSource.trim()}';
     _log(
-      'warmup request target=$effectiveTargetCount requestedTarget=$targetCount '
-      'maxRequestCount=$maxRequestCount '
+      'warmup request$sourceLabel target=$effectiveTargetCount '
+      'requestedTarget=$targetCount maxRequestCount=$maxRequestCount '
       'bypass=$bypassMinInterval state=$debugState',
     );
     try {
@@ -365,8 +370,8 @@ class _AdmobKareState extends State<AdmobKare> {
 
     final missing = effectiveTargetCount - (_readyPool.length + _loadingCount);
     _log(
-      'warmup evaluate target=$effectiveTargetCount missing=$missing '
-      'state=$debugState',
+      'warmup evaluate$sourceLabel target=$effectiveTargetCount '
+      'missing=$missing state=$debugState',
     );
     if (missing <= 0) return;
 
@@ -387,6 +392,7 @@ class _AdmobKareState extends State<AdmobKare> {
         targetCount: targetCount,
         maxRequestCount: maxRequestCount,
         bypassMinInterval: false,
+        debugSource: 'pool_top_up',
       ));
       return;
     }
@@ -400,6 +406,7 @@ class _AdmobKareState extends State<AdmobKare> {
         targetCount: targetCount,
         maxRequestCount: maxRequestCount,
         bypassMinInterval: false,
+        debugSource: 'deferred_pool_top_up',
       ));
     });
   }
@@ -620,6 +627,14 @@ class _AdmobKareState extends State<AdmobKare> {
       _handleScrollCriticalAdBindingChanged,
     );
     if (_usePlaceholderOnly) return;
+    if (_usesScrollCriticalPoolOnly) {
+      unawaited(warmupPool(
+        targetCount: _poolTargetCount,
+        maxRequestCount: _poolTopUpBatchCount,
+        bypassMinInterval: false,
+        debugSource: 'feed_slot_init',
+      ));
+    }
     if (_usesManagedSuggestion) {
       _fallbackSuggestionConfig =
           _pickRandomFallbackConfig(const <String, TurqAppSuggestionConfig>{});
