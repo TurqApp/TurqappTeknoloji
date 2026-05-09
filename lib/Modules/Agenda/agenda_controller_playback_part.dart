@@ -131,15 +131,25 @@ extension AgendaControllerPlaybackPart on AgendaController {
         return;
       }
       final updatedAt = _visibleUpdatedAt[index];
-      final age = updatedAt == null ? Duration.zero : now.difference(updatedAt);
+      final age = updatedAt == null
+          ? const Duration(days: 1)
+          : now.difference(updatedAt);
       final distanceFromAnchor = (index - anchorIndex).abs();
       final distanceFromCentered =
           centered >= 0 ? (index - centered).abs() : distanceFromAnchor;
-      final closestDistance = min(distanceFromAnchor, distanceFromCentered);
+      final keepCenteredAsAnchor = index == centered &&
+          age <= const Duration(milliseconds: 700) &&
+          distanceFromAnchor <= 4;
+      final closestDistance = keepCenteredAsAnchor
+          ? min(distanceFromAnchor, distanceFromCentered)
+          : distanceFromAnchor;
       final staleAndFar =
           age > const Duration(milliseconds: 900) && closestDistance > 8;
       final tinyAndFar = fraction < 0.12 && closestDistance > 6;
-      if (staleAndFar || tinyAndFar) {
+      final staleCenteredAndFar = index == centered &&
+          age > const Duration(milliseconds: 700) &&
+          distanceFromAnchor > 4;
+      if (staleAndFar || tinyAndFar || staleCenteredAndFar) {
         keysToRemove.add(index);
       }
     });
