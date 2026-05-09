@@ -71,6 +71,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
+  static Timer? _deferredPoolTopUpTimer;
   static int _globalFailureBurstCount = 0;
   static Future<void>? _sdkInitFuture;
   static bool _sdkInitialized = false;
@@ -98,11 +99,12 @@ class _AdmobKareState extends State<AdmobKare> {
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
+  bool _waitingForFuturePool = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
-  static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 240);
+  static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
   static const double _feedVisibilityLoadThreshold = 0.72;
@@ -180,7 +182,9 @@ class _AdmobKareState extends State<AdmobKare> {
   String get _managedSuggestionPlacementId =>
       widget.suggestionPlacementId?.trim() ?? '';
   bool get _requiresStableFeedVisibilityForLoad =>
-      Platform.isIOS && _managedSuggestionPlacementId == 'feed';
+      _managedSuggestionPlacementId == 'feed';
+  bool get _usesScrollCriticalPoolOnly =>
+      _managedSuggestionPlacementId == 'feed';
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -295,6 +299,33 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
+  static void _schedulePoolTopUp({
+    Duration delay = Duration.zero,
+    int targetCount = _poolTargetCount,
+    int maxRequestCount = _poolTopUpBatchCount,
+  }) {
+    if (delay <= Duration.zero) {
+      unawaited(warmupPool(
+        targetCount: targetCount,
+        maxRequestCount: maxRequestCount,
+        bypassMinInterval: false,
+      ));
+      return;
+    }
+    final activeTimer = _deferredPoolTopUpTimer;
+    if (activeTimer != null && activeTimer.isActive) {
+      return;
+    }
+    _deferredPoolTopUpTimer = Timer(delay, () {
+      _deferredPoolTopUpTimer = null;
+      unawaited(warmupPool(
+        targetCount: targetCount,
+        maxRequestCount: maxRequestCount,
+        bypassMinInterval: false,
+      ));
+    });
+  }
+
   static void _createAndLoadBannerForPool() {
     final adUnitId = _resolveAdUnitId();
     final ad = BannerAd(
@@ -380,6 +411,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _fallbackGateTimer?.cancel();
     _allowFallbackSurface = false;
     _suggestionConfig = null;
+    _waitingForFuturePool = false;
     _fallbackSuggestionConfig = nextPlacement.isEmpty
         ? null
         : _pickRandomFallbackConfig(const <String, TurqAppSuggestionConfig>{});
@@ -393,6 +425,13 @@ class _AdmobKareState extends State<AdmobKare> {
 
   void _handleSharedAdAvailability() {
     if (_isDisposed || _usePlaceholderOnly || !_isVisible) {
+      return;
+    }
+    if (_usesScrollCriticalPoolOnly && _waitingForFuturePool) {
+      _log(
+        'pool ready deferred for next scroll-critical slot '
+        'placement=$_managedSuggestionPlacementId state=$debugState',
+      );
       return;
     }
     if (_canRenderAd(_bannerAd)) {
@@ -419,6 +458,11 @@ class _AdmobKareState extends State<AdmobKare> {
         try {
           pooled.dispose();
         } catch (_) {}
+        if (_usesScrollCriticalPoolOnly) {
+          _waitingForFuturePool = true;
+          _schedulePoolTopUp(delay: const Duration(seconds: 4));
+          return;
+        }
         _loadBanner();
         return;
       }
@@ -431,16 +475,27 @@ class _AdmobKareState extends State<AdmobKare> {
       _notifySharedAdAvailabilityChanged();
       if (_supportsSharedPool) {
         if (_readyPool.length <= _poolLowWaterMark) {
-          unawaited(warmupPool(
-            targetCount: _poolTargetCount,
-            maxRequestCount: _poolTopUpBatchCount,
-            bypassMinInterval: false,
-          ));
+          _schedulePoolTopUp(
+            delay: _usesScrollCriticalPoolOnly
+                ? const Duration(seconds: 4)
+                : Duration.zero,
+          );
         }
       }
       if (mounted && !_isDisposed) {
         setState(() {});
       }
+      _waitingForFuturePool = false;
+      return;
+    }
+    if (_usesScrollCriticalPoolOnly) {
+      _waitingForFuturePool = true;
+      _log(
+        'pool miss; skip inline live load placement=$_managedSuggestionPlacementId '
+        'state=$debugState',
+      );
+      _armFallbackGate();
+      _schedulePoolTopUp(delay: const Duration(seconds: 4));
       return;
     }
     final cooldownRemaining = _globalCooldownRemaining();
@@ -632,6 +687,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _loadFailed = false;
     _allowFallbackSurface = false;
     _impressionReported = false;
+    _waitingForFuturePool = false;
     _disposeBannerAd(
       ad,
       reason: 'hidden_page',
@@ -657,6 +713,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _retryTimer?.cancel();
       _fallbackGateTimer?.cancel();
       _visibilityLoadDebounceTimer?.cancel();
+      _waitingForFuturePool = false;
       _releaseBannerForHiddenPage();
       return;
     }
