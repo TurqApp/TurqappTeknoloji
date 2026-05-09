@@ -4,7 +4,9 @@ extension ExploreControllerFeedPart on ExploreController {
   static const int _exploreFloodInitialHeadHydrateCount = 10;
 
   Future<void> _performPrimeExploreFloodSeriesHead() async {
-    if (exploreFloods.isNotEmpty || floodsIsLoading.value || !floodsHasMore.value) {
+    if (exploreFloods.isNotEmpty ||
+        floodsIsLoading.value ||
+        !floodsHasMore.value) {
       return;
     }
     floodsIsLoading.value = true;
@@ -34,8 +36,8 @@ extension ExploreControllerFeedPart on ExploreController {
       }
       exploreFloods.assignAll(batch);
       _floodManifestStoreOffset = storedPage.items.length;
-      floodsHasMore.value =
-          storedPage.hasMore && exploreFloods.length < _exploreFloodListMaxItems;
+      floodsHasMore.value = storedPage.hasMore &&
+          exploreFloods.length < _exploreFloodListMaxItems;
       _performResetFloodChildPrefetchPlan();
       capturePendingFloodEntry(preferredIndex: 0);
       _performRestoreFloodSeriesFocus();
@@ -197,11 +199,13 @@ extension ExploreControllerFeedPart on ExploreController {
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
 
-    final focusIndex = (preferredIndex ?? _performResolveFloodSeriesFocusIndex())
-        .clamp(0, exploreFloods.length - 1);
-    final maxPreparedStart = (((focusIndex + 1) ~/ _exploreFloodPrefetchChunkSize)
-            * _exploreFloodPrefetchChunkSize)
-        .clamp(0, exploreFloods.length - 1);
+    final focusIndex =
+        (preferredIndex ?? _performResolveFloodSeriesFocusIndex())
+            .clamp(0, exploreFloods.length - 1);
+    final maxPreparedStart =
+        (((focusIndex + 1) ~/ _exploreFloodPrefetchChunkSize) *
+                _exploreFloodPrefetchChunkSize)
+            .clamp(0, exploreFloods.length - 1);
 
     for (var chunkStart = 0;
         chunkStart <= maxPreparedStart;
@@ -833,7 +837,19 @@ extension ExploreControllerFeedPart on ExploreController {
         return;
       }
       trendingTags.assignAll(tags);
-    } catch (_) {}
+      debugPrint(
+        '[ExploreTrendingTags] status=ok count=${tags.length} '
+        'forceRefresh=$forceRefresh',
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[ExploreTrendingTags] status=error forceRefresh=$forceRefresh '
+        'error=$error',
+      );
+      if (kDebugMode) {
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
   }
 
   Future<void> _performFetchVideo() async {
@@ -1010,7 +1026,8 @@ extension ExploreControllerFeedPart on ExploreController {
         await _exploreRepository.ensureFloodManifestStoreFresh(
           force: exploreFloods.isEmpty && _floodManifestStoreOffset == 0,
         );
-        final storedPage = await _exploreRepository.fetchStoredFloodManifestPage(
+        final storedPage =
+            await _exploreRepository.fetchStoredFloodManifestPage(
           offset: _floodManifestStoreOffset,
           pageLimit: remainingSlots,
           nowMs: nowMs,
@@ -1075,7 +1092,8 @@ extension ExploreControllerFeedPart on ExploreController {
       );
       if (livePage.items.isEmpty) {
         if (previousItems.length > 1) {
-          final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+          final shuffled = List<PostsModel>.from(previousItems)
+            ..shuffle(Random());
           exploreFloods.assignAll(shuffled);
         }
         capturePendingFloodEntry(preferredIndex: 0);
@@ -1094,7 +1112,8 @@ extension ExploreControllerFeedPart on ExploreController {
 
       if (batch.isEmpty) {
         if (previousItems.length > 1) {
-          final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+          final shuffled = List<PostsModel>.from(previousItems)
+            ..shuffle(Random());
           exploreFloods.assignAll(shuffled);
         }
         capturePendingFloodEntry(preferredIndex: 0);
@@ -1113,7 +1132,8 @@ extension ExploreControllerFeedPart on ExploreController {
       if (hasNewFloods) {
         exploreFloods.assignAll(batch);
       } else if (previousItems.length > 1) {
-        final shuffled = List<PostsModel>.from(previousItems)..shuffle(Random());
+        final shuffled = List<PostsModel>.from(previousItems)
+          ..shuffle(Random());
         exploreFloods.assignAll(shuffled);
       }
 

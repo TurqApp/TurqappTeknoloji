@@ -164,10 +164,13 @@ class TagPostsRepository {
     final set = <String>{t};
     final withoutHash = t.startsWith('#') ? t.substring(1) : t;
     final normalized = _lowerTag(withoutHash);
+    final capitalized = _capitalizeAfterHash(withoutHash);
     set.add(withoutHash);
     set.add(normalized);
+    set.add(capitalized);
     set.add('#$withoutHash');
     set.add('#$normalized');
+    set.add('#$capitalized');
     return set.toList();
   }
 
@@ -184,6 +187,7 @@ class TagPostsRepository {
     required int limit,
   }) async {
     if (queries.isEmpty) return const [];
+    final startedAt = DateTime.now();
     final safeLimit = limit.clamp(1, 300);
     final snap = await _db
         .collection("Posts")
@@ -191,12 +195,18 @@ class TagPostsRepository {
         .limit(safeLimit)
         .get();
 
-    return snap.docs
+    final results = snap.docs
         .map((doc) => PostsModel.fromMap(doc.data(), doc.id))
         .where((p) => p.deletedPost != true)
         .where((p) => p.arsiv != true)
         .where((p) => p.timeStamp <= nowMs)
         .toList();
+    debugPrint(
+      '[TagPostsSource] source=posts_array raw=${snap.docs.length} '
+      'visible=${results.length} limit=$safeLimit queries=${queries.join("|")} '
+      'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+    );
+    return results;
   }
 
   Future<List<PostsModel>> _queryPostsByTagTypesense(
