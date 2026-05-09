@@ -6,6 +6,7 @@ void _handleVideoStateManagerClose(VideoStateManager manager) {
   manager._staleStateCleanupTimer?.cancel();
   manager._staleStateCleanupTimer = null;
   manager._externalOnDemandFetchClaims.clear();
+  manager._transitionResumeResetKeys.clear();
 }
 
 extension VideoStateManagerRuntimePart on VideoStateManager {

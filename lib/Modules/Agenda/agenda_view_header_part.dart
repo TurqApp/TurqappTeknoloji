@@ -183,6 +183,9 @@ extension _AgendaViewHeaderPart on AgendaView {
         size: actionSize,
         onTap: () async {
           final nextSelection = currentSelection == 1 ? 0 : 1;
+          controller.resetInitialFeedResumeForSurfaceTransition(
+            source: 'agenda_classic_toggle:$currentSelection->$nextSelection',
+          );
           await userService.updateFields({
             "viewSelection": nextSelection,
           });

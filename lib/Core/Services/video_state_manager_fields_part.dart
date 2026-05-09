@@ -7,6 +7,7 @@ class _VideoStateManagerState {
   Map<String, VideoState> videoStates = <String, VideoState>{};
   Map<String, PlaybackHandle> allVideoControllers = <String, PlaybackHandle>{};
   Map<String, int> externalOnDemandFetchClaims = <String, int>{};
+  final Set<String> transitionResumeResetKeys = <String>{};
   String? currentPlayingDocID;
   String? targetPlaybackDocID;
   DateTime? targetPlaybackUpdatedAt;
@@ -28,6 +29,9 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
 
   Map<String, int> get _externalOnDemandFetchClaims =>
       _state.externalOnDemandFetchClaims;
+
+  Set<String> get _transitionResumeResetKeys =>
+      _state.transitionResumeResetKeys;
 
   String? get _currentPlayingDocID => _state.currentPlayingDocID;
   set _currentPlayingDocID(String? value) => _state.currentPlayingDocID = value;
