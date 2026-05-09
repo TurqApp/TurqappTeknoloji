@@ -138,6 +138,7 @@ class FeedPlaybackSelectionPolicy {
       final currentFraction =
           currentIndex >= 0 ? (visibleFractions[currentIndex] ?? 0.0) : 0.0;
       final shouldRetainCurrentTarget = currentIndex >= 0 &&
+          currentIndex < itemCount &&
           currentIndex != bestIndex &&
           canAutoplayIndex(currentIndex) &&
           currentFraction >= switchRetentionThreshold &&

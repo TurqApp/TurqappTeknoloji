@@ -417,6 +417,18 @@ extension AgendaControllerFeedPart on AgendaController {
     );
     final now = DateTime.now();
     final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+    if (pendingPlay && manager.canResumePlaybackFor(playbackKey)) {
+      final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
+      debugPrint(
+        '[FeedPlaybackDecision] action=resume_pending_ready '
+        'index=$index doc=${post.docID} resumed=$resumed',
+      );
+      if (resumed) {
+        _lastPlaybackCommandDocId = playbackKey;
+        _lastPlaybackCommandAt = now;
+        return;
+      }
+    }
     final canAttemptCurrentRecovery =
         PlaybackSurfacePolicy.canAttemptCurrentFeedRecovery(
       platform: defaultTargetPlatform,
