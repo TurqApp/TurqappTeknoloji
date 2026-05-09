@@ -85,6 +85,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       previousFraction: prev,
       visibleFraction: visibleFraction,
     )) {
+      _pruneFeedVisibilityWindow(anchorIndex: modelIndex);
       return;
     }
 
@@ -95,6 +96,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       _visibleFractions[modelIndex] = visibleFraction;
       _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
+    _pruneFeedVisibilityWindow(anchorIndex: modelIndex);
 
     if (_shouldUseTightCellularFeedWarmProfile &&
         visibleFraction >= FeedPlaybackSelectionPolicy.secondaryThreshold) {
@@ -115,6 +117,40 @@ extension AgendaControllerPlaybackPart on AgendaController {
     _scheduleVisibilityEvaluation(
       playThreshold: FeedPlaybackSelectionPolicy.playThreshold,
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+  }
+
+  void _pruneFeedVisibilityWindow({required int anchorIndex}) {
+    final now = DateTime.now();
+    final centered = centeredIndex.value;
+    final keysToRemove = <int>[];
+    _visibleFractions.forEach((index, fraction) {
+      if (index < 0 || index >= agendaList.length) {
+        keysToRemove.add(index);
+        return;
+      }
+      final updatedAt = _visibleUpdatedAt[index];
+      final age = updatedAt == null ? Duration.zero : now.difference(updatedAt);
+      final distanceFromAnchor = (index - anchorIndex).abs();
+      final distanceFromCentered =
+          centered >= 0 ? (index - centered).abs() : distanceFromAnchor;
+      final closestDistance = min(distanceFromAnchor, distanceFromCentered);
+      final staleAndFar =
+          age > const Duration(milliseconds: 900) && closestDistance > 8;
+      final tinyAndFar = fraction < 0.12 && closestDistance > 6;
+      if (staleAndFar || tinyAndFar) {
+        keysToRemove.add(index);
+      }
+    });
+    if (keysToRemove.isEmpty) return;
+    for (final index in keysToRemove) {
+      _visibleFractions.remove(index);
+      _visibleUpdatedAt.remove(index);
+    }
+    debugPrint(
+      '[FeedVisibilityPrune] removed=${keysToRemove.length} '
+      'remaining=${_visibleFractions.length} anchor=$anchorIndex '
+      'centered=$centered removedKeys=$keysToRemove',
     );
   }
 

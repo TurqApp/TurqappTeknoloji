@@ -259,6 +259,17 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_globalCooldownRemaining() > Duration.zero) return;
     _trimReadyPoolToLimit();
     final effectiveTargetCount = min(targetCount, _poolTargetCount);
+    final currentMissing =
+        effectiveTargetCount - (_readyPool.length + _loadingCount);
+    if (currentMissing <= 0) return;
+    final now = DateTime.now();
+    final lastAttempt = _lastWarmupAttemptAt;
+    if (!bypassMinInterval &&
+        lastAttempt != null &&
+        now.difference(lastAttempt) < _warmupAttemptMinInterval) {
+      return;
+    }
+    _lastWarmupAttemptAt = now;
     _log(
       'warmup request target=$effectiveTargetCount requestedTarget=$targetCount '
       'maxRequestCount=$maxRequestCount '
@@ -269,15 +280,6 @@ class _AdmobKareState extends State<AdmobKare> {
     } catch (_) {
       return;
     }
-
-    final now = DateTime.now();
-    final lastAttempt = _lastWarmupAttemptAt;
-    if (!bypassMinInterval &&
-        lastAttempt != null &&
-        now.difference(lastAttempt) < _warmupAttemptMinInterval) {
-      return;
-    }
-    _lastWarmupAttemptAt = now;
 
     final missing = effectiveTargetCount - (_readyPool.length + _loadingCount);
     _log(

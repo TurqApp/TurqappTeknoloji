@@ -12,7 +12,6 @@ class _AgendaControllerState {
   final centeredIndex = 0.obs;
   final playbackSuspended = false.obs;
   final feedScrollSettling = false.obs;
-  final feedAdSurfaceSuppressed = false.obs;
   final feedWarmPreloadAnchorKey = ''.obs;
   final startupWarmPreloadDocIds = <String>[].obs;
   final startupWarmPreloadPreparedDocIds = <String>{};
@@ -29,7 +28,6 @@ class _AgendaControllerState {
   Timer? visibilityDebounce;
   Timer? feedPrefetchDebounce;
   Timer? scrollIdleDebounce;
-  Timer? feedAdSurfaceReleaseDebounce;
   Timer? playbackReassertTimer;
   Timer? reshareWarmupTimer;
   Timer? resharePostsFetchTimer;
@@ -121,7 +119,6 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxBool get playbackSuspended => _state.playbackSuspended;
   RxBool get feedScrollSettlingRx => _state.feedScrollSettling;
   bool get isFeedScrollSettling => _state.feedScrollSettling.value;
-  RxBool get feedAdSurfaceSuppressedRx => _state.feedAdSurfaceSuppressed;
   RxString get feedWarmPreloadAnchorKeyRx => _state.feedWarmPreloadAnchorKey;
   RxList<String> get startupWarmPreloadDocIdsRx =>
       _state.startupWarmPreloadDocIds;
@@ -172,10 +169,6 @@ extension AgendaControllerFieldsPart on AgendaController {
       _state.feedPrefetchDebounce = value;
   Timer? get _scrollIdleDebounce => _state.scrollIdleDebounce;
   set _scrollIdleDebounce(Timer? value) => _state.scrollIdleDebounce = value;
-  Timer? get _feedAdSurfaceReleaseDebounce =>
-      _state.feedAdSurfaceReleaseDebounce;
-  set _feedAdSurfaceReleaseDebounce(Timer? value) =>
-      _state.feedAdSurfaceReleaseDebounce = value;
   Timer? get _playbackReassertTimer => _state.playbackReassertTimer;
   set _playbackReassertTimer(Timer? value) =>
       _state.playbackReassertTimer = value;

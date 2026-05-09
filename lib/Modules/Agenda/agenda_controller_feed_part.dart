@@ -1334,9 +1334,7 @@ extension AgendaControllerFeedPart on AgendaController {
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
     final startupUnlockThreshold = startupLockActive ? 2.0 : 1.0;
-    final hasMeaningfulScrollMovement =
-        currentOffset.abs() > startupUnlockThreshold ||
-            scrollDelta > startupUnlockThreshold;
+    final hasMeaningfulScrollMovement = scrollDelta > startupUnlockThreshold;
     if (_qaScrollStartedAt == null) {
       if (!hasMeaningfulScrollMovement) {
         lastOffset = currentOffset;
@@ -1370,14 +1368,6 @@ extension AgendaControllerFeedPart on AgendaController {
         'centered=${centeredIndex.value}',
       );
     }
-    if (!feedAdSurfaceSuppressedRx.value) {
-      feedAdSurfaceSuppressedRx.value = true;
-      debugPrint(
-        '[FeedAdSurface] status=suppressed offset=${currentOffset.toStringAsFixed(1)} '
-        'centered=${centeredIndex.value}',
-      );
-    }
-    _feedAdSurfaceReleaseDebounce?.cancel();
     bool shouldShowNavBar;
 
     if (currentOffset <= 0) {
@@ -1495,16 +1485,6 @@ extension AgendaControllerFeedPart on AgendaController {
         if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();
         }
-      },
-    );
-    _feedAdSurfaceReleaseDebounce = Timer(
-      const Duration(milliseconds: 1400),
-      () {
-        if (!feedAdSurfaceSuppressedRx.value) return;
-        feedAdSurfaceSuppressedRx.value = false;
-        debugPrint(
-          '[FeedAdSurface] status=released centered=${centeredIndex.value}',
-        );
       },
     );
   }

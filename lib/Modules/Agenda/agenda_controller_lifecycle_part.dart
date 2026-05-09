@@ -92,7 +92,6 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _visibilityDebounce?.cancel();
     _feedPrefetchDebounce?.cancel();
     _scrollIdleDebounce?.cancel();
-    _feedAdSurfaceReleaseDebounce?.cancel();
     _playbackReassertTimer?.cancel();
     _reshareWarmupTimer?.cancel();
     _resharePostsFetchTimer?.cancel();
