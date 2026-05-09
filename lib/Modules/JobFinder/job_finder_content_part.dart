@@ -60,6 +60,7 @@ extension JobFinderContentPart on JobFinder {
           );
         }
         return ListView(
+          controller: controller.scrollController,
           padding: EdgeInsets.only(bottom: bottomInset),
           children: [
             _kesfetHeader(isSearching: isSearching, context: context),
@@ -99,6 +100,7 @@ extension JobFinderContentPart on JobFinder {
       }
 
       return SingleChildScrollView(
+        controller: controller.scrollController,
         padding: EdgeInsets.only(bottom: bottomInset),
         child: Column(
           children: [

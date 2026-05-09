@@ -19,7 +19,7 @@ class _DenemeSinavlariControllerState {
   final isSearchLoading = false.obs;
   final isLoadingMore = false.obs;
   final hasMore = true.obs;
-  final listingSelection = 1.obs;
+  final listingSelection = 0.obs;
   final listingSelectionReady = false.obs;
   final scrollController = ScrollController();
   double previousOffset = 0.0;

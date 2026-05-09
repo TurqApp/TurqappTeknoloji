@@ -287,7 +287,7 @@ extension _RecommendedUserListControllerRuntimeX
         nextIndex++;
         final url = urls[index];
         try {
-          await TurqImageCacheManager.warmUrl(url).timeout(
+          await TurqAvatarCacheManager.warmUrl(url).timeout(
             const Duration(seconds: 6),
           );
           warmed++;

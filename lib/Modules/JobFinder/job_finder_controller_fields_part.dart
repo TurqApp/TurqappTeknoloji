@@ -16,7 +16,9 @@ class _JobFinderControllerState {
   final list = <JobModel>[].obs;
   final aramaSonucu = <JobModel>[].obs;
   final search = TextEditingController();
-  final listingSelection = 1.obs;
+  final scrollController = ScrollController();
+  final scrollOffset = 0.0.obs;
+  final listingSelection = 0.obs;
   final listingSelectionReady = false.obs;
   final sehir = ''.obs;
   final sehirler = <String>[].obs;
@@ -51,6 +53,8 @@ extension JobFinderControllerFieldsPart on JobFinderController {
   RxList<JobModel> get list => _state.list;
   RxList<JobModel> get aramaSonucu => _state.aramaSonucu;
   TextEditingController get search => _state.search;
+  ScrollController get scrollController => _state.scrollController;
+  RxDouble get scrollOffset => _state.scrollOffset;
   RxInt get listingSelection => _state.listingSelection;
   RxBool get listingSelectionReady => _state.listingSelectionReady;
   RxString get sehir => _state.sehir;

@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 
 class CacheFirstNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -16,6 +17,9 @@ class CacheFirstNetworkImage extends StatefulWidget {
   final int? memCacheHeight;
   final bool downloadBeforeRender;
   final bool eagerPrecache;
+  final String Function(Iterable<String> urls)?
+      rememberedResolvedFilePathForUrls;
+  final void Function(String url, String filePath)? rememberResolvedFile;
 
   const CacheFirstNetworkImage({
     super.key,
@@ -28,6 +32,8 @@ class CacheFirstNetworkImage extends StatefulWidget {
     this.memCacheHeight,
     this.downloadBeforeRender = false,
     this.eagerPrecache = false,
+    this.rememberedResolvedFilePathForUrls,
+    this.rememberResolvedFile,
   });
 
   @override
@@ -72,7 +78,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   List<String> _normalizedCandidates() {
     final urls = <String>[];
     for (final rawUrl in <String>[widget.imageUrl, ...widget.candidateUrls]) {
-      final normalized = rawUrl.trim();
+      final normalized = CdnUrlBuilder.toCdnUrl(rawUrl.trim()).trim();
       if (normalized.isEmpty || urls.contains(normalized)) continue;
       urls.add(normalized);
     }
@@ -81,8 +87,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
 
   void _syncCandidates() {
     final candidates = _normalizedCandidates();
-    final rememberedPath =
-        TurqImageCacheManager.rememberedResolvedFilePathForUrls(candidates);
+    final rememberedPath = _rememberedResolvedFilePathForUrls(candidates);
     _resolvedFilePath = rememberedPath;
     _activeIndex = 0;
     _activeImageUrl = candidates.isEmpty ? '' : candidates.first;
@@ -126,7 +131,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       if (nextPath != _resolvedFilePath || nextUrl != _activeImageUrl) {
         final absoluteIndex = _normalizedCandidates().indexOf(nextUrl);
         if (nextPath.isNotEmpty) {
-          TurqImageCacheManager.rememberResolvedFile(nextUrl, nextPath);
+          _rememberResolvedFile(nextUrl, nextPath);
         }
         setState(() {
           _resolvedFilePath = nextPath;
@@ -163,7 +168,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
         final cached = await widget.cacheManager.getFileFromCache(normalized);
         final file = cached?.file;
         if (file != null && file.existsSync()) {
-          TurqImageCacheManager.rememberResolvedFile(normalized, file.path);
+          _rememberResolvedFile(normalized, file.path);
         }
       } catch (_) {}
     }());
@@ -210,7 +215,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
           _scheduleAdvanceCandidate();
           return;
         }
-        TurqImageCacheManager.rememberResolvedFile(normalized, file.path);
+        _rememberResolvedFile(normalized, file.path);
         setState(() {
           _resolvedFilePath = file.path;
           _activeImageUrl = normalized;
@@ -235,6 +240,21 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
         cacheManager: widget.cacheManager,
       ),
     );
+  }
+
+  String _rememberedResolvedFilePathForUrls(Iterable<String> urls) {
+    final resolver = widget.rememberedResolvedFilePathForUrls;
+    if (resolver != null) return resolver(urls);
+    return TurqImageCacheManager.rememberedResolvedFilePathForUrls(urls);
+  }
+
+  void _rememberResolvedFile(String url, String filePath) {
+    final remember = widget.rememberResolvedFile;
+    if (remember != null) {
+      remember(url, filePath);
+      return;
+    }
+    TurqImageCacheManager.rememberResolvedFile(url, filePath);
   }
 
   void _scheduleActivePrecache(BuildContext context, String url) {

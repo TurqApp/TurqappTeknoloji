@@ -10,6 +10,8 @@ routes = [
   { pattern = "turqapp.com/i/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/m/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/og-image", zone_name = "turqapp.com" },
+  { pattern = "turqapp.com/policy", zone_name = "turqapp.com" },
+  { pattern = "www.turqapp.com/policy", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/app-ads.txt", zone_name = "turqapp.com" },
   { pattern = "www.turqapp.com/app-ads.txt", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/.well-known/*", zone_name = "turqapp.com" }

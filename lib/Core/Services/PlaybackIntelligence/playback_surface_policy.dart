@@ -65,7 +65,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return 6;
+      return 1;
     }
     return defaultCount;
   }
@@ -79,7 +79,7 @@ class PlaybackSurfacePolicy {
     if ((platform == TargetPlatform.android ||
             platform == TargetPlatform.iOS) &&
         isFeedStyleSurface) {
-      return 5;
+      return 1;
     }
     return defaultCount;
   }
@@ -305,7 +305,7 @@ class PlaybackSurfacePolicy {
       return adapterBound && (isStrongWarmTier || isCacheOnlyWarmTier);
     }
     if (platform == TargetPlatform.iOS) {
-      return hasRenderedFirstFrame && hasResumeHint && isStrongWarmTier;
+      return adapterBound && isStrongWarmTier;
     }
     return false;
   }
@@ -314,7 +314,7 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isFeedStyleSurface,
   }) {
-    return platform == TargetPlatform.iOS && isFeedStyleSurface;
+    return false;
   }
 
   static bool shouldAllowFeedWarmControllerPreload({
@@ -330,7 +330,6 @@ class PlaybackSurfacePolicy {
     final isIosPrimaryFeed =
         platform == TargetPlatform.iOS && isFeedStyleSurface;
     if (!isAndroid && !isIosPrimaryFeed) return false;
-    if (isIosPrimaryFeed) return false;
     if (!isFeedStyleSurface || !hasPlayableVideo) return false;
     if (shouldPlay || !surfacePlaybackAllowed) return false;
     if (isAndroid && isPrimaryFeedSurface && !centeredWarmAnchorReady) {
@@ -623,13 +622,13 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isFeedStyleSurface,
   }) {
-    return platform == TargetPlatform.iOS && isFeedStyleSurface;
+    return false;
   }
 
   static bool preferStableFeedStartupWarmBuffer({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool preferDirectCdnForShort({
@@ -641,7 +640,7 @@ class PlaybackSurfacePolicy {
   static bool preferStableShortStartupBuffer({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS || platform == TargetPlatform.android;
+    return platform == TargetPlatform.android;
   }
 
   static bool preferStableDynamicShortStartupBuffer({

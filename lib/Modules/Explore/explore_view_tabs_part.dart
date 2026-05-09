@@ -361,19 +361,36 @@ extension _ExploreViewTabsPart on _ExploreViewState {
               isCentered: focusedIndex == i,
             );
             return RepaintBoundary(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: i == 0 ? 8 : 0,
-                  bottom: i == list.length - 1 ? 24 : 10,
-                ),
-                child: AgendaContent(
-                  key: ValueKey('explore-series-${p.docID}'),
-                  model: p,
-                  isPreview: true,
-                  instanceTag: 'explore_series_${p.docID}',
-                  shouldPlay: shouldPlay,
-                  floodHostSurface: FloodListingHostSurface.exploreSeries,
-                ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: i == 0 ? 8 : 0,
+                      bottom: FeedFamilyAdSlot.shouldInsertAfterPostIndex(i)
+                          ? 0
+                          : i == list.length - 1
+                              ? 24
+                              : 10,
+                    ),
+                    child: AgendaContent(
+                      key: ValueKey('explore-series-${p.docID}'),
+                      model: p,
+                      isPreview: true,
+                      instanceTag: 'explore_series_${p.docID}',
+                      shouldPlay: shouldPlay,
+                      floodHostSurface: FloodListingHostSurface.exploreSeries,
+                    ),
+                  ),
+                  if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(i))
+                    FeedFamilyAdSlot(
+                      surfaceId: 'explore-series-feed',
+                      slotNumber: FeedFamilyAdSlot.slotNumberForPostIndex(i),
+                      placementId: 'feed',
+                    ),
+                  if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(i) &&
+                      i == list.length - 1)
+                    const SizedBox(height: 24),
+                ],
               ),
             );
           },

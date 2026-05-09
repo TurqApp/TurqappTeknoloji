@@ -12,7 +12,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:svg_flutter/svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:visibility_detector/visibility_detector.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
@@ -41,6 +40,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Widgets/app_icon_surface.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
+import 'package:turqappv2/Core/Widgets/Ads/feed_family_ad_slot.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/post_interaction_widget.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
@@ -79,32 +79,36 @@ part 'social_profile_header_actions_part.dart';
 Future<void> _prewarmSocialProfileSurface(String userId) async {
   final normalizedUserId = userId.trim();
   if (normalizedUserId.isEmpty) return;
-  try {
-    unawaited(
-      UserRepository.ensure().getPublicUserRaw(
+  unawaited(() async {
+    try {
+      await UserRepository.ensure().getPublicUserRaw(
         normalizedUserId,
         preferCache: true,
         cacheOnly: false,
-      ),
-    );
-    unawaited(
-      ProfilePostsSnapshotRepository.ensure()
+      );
+    } catch (_) {}
+  }());
+  unawaited(() async {
+    try {
+      await ProfilePostsSnapshotRepository.ensure()
           .bootstrapProfile(
             userId: normalizedUserId,
             limit: 10,
           )
-          .timeout(const Duration(milliseconds: 1600)),
-    );
-    unawaited(
-      MarketSnapshotRepository.ensure()
+          .timeout(const Duration(milliseconds: 1600));
+    } catch (_) {}
+  }());
+  unawaited(() async {
+    try {
+      await MarketSnapshotRepository.ensure()
           .loadOwner(
             userId: normalizedUserId,
             limit: 12,
             forceSync: false,
           )
-          .timeout(const Duration(milliseconds: 1600)),
-    );
-  } catch (_) {}
+          .timeout(const Duration(milliseconds: 1600));
+    } catch (_) {}
+  }());
 }
 
 class SocialProfile extends StatefulWidget {

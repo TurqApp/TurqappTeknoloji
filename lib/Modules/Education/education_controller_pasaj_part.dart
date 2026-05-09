@@ -256,6 +256,13 @@ extension EducationControllerPasajPart on EducationController {
           market.scrollOffset.value = 0;
         }
         break;
+      case PasajTabIds.jobFinder:
+        final jobFinder = maybeFindJobFinderController();
+        if (jobFinder != null) {
+          _resetTrackedScrollController(jobFinder.scrollController);
+          jobFinder.scrollOffset.value = 0;
+        }
+        break;
       case PasajTabIds.scholarships:
         final scholarships = maybeFindScholarshipsController();
         if (scholarships != null) {

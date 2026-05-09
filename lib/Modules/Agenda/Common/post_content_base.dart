@@ -41,8 +41,8 @@ const int _feedWarmWindowBehindCount = 2;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
-const int _androidPrimaryFeedNativeStrongOppositeCount = 1;
-const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 2;
+const int _androidPrimaryFeedNativeStrongOppositeCount = 0;
+const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 0;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
 
 enum _FeedNativeWarmTier {
@@ -154,6 +154,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _surfaceKeepAliveDebounceActive = false;
   String? _lastPlaybackVisualWarning;
   DateTime? _lastPlaybackVisualWarningAt;
+  String? _lastPosterOverlayDecisionSignature;
   double? _lastAppliedPlaybackVolume;
   Timer? _replayAdHideTimer;
   Worker? _muteWorker;
@@ -162,6 +163,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Worker? _navSelectionWorker;
   Worker? _keepAliveWindowWorker;
   Worker? _warmPreloadAnchorWorker;
+  Worker? _feedScrollSettlingWorker;
   Timer? _lazyInitTimer;
   Timer? _playbackRecoveryTimer;
   Timer? _stallWatchdogTimer;
@@ -313,6 +315,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isExploreSeriesSurfaceInstance =>
       _surfaceInstanceTag.startsWith('explore_series_');
 
+  bool get _isTopTagSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('top_tag_');
+
+  bool get _isTagPostsSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('tag_post_');
+
   bool get _isProfileFamilySurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_') ||
       _surfaceInstanceTag.startsWith('archives_') ||
@@ -323,7 +331,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _isPrimaryFeedSurfaceInstance ||
       _isProfileFamilySurfaceInstance ||
       _isFloodSurfaceInstance ||
-      _isExploreSeriesSurfaceInstance;
+      _isExploreSeriesSurfaceInstance ||
+      _isTopTagSurfaceInstance ||
+      _isTagPostsSurfaceInstance;
 
   bool get _isPrimaryFeedSurfaceInstance =>
       !isStandalonePostInstance && _surfaceInstanceTag.isEmpty;
@@ -475,6 +485,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.combinedFeedEntries.length ?? 0;
     }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.agendaList.length ?? 0;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.list.length ?? 0;
+    }
     return agendaController.agendaList.length;
   }
 
@@ -501,6 +517,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         isReshare: widget.isReshared,
       );
     }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.agendaList.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.list.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
     return agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
@@ -515,6 +543,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.centeredIndex.value ?? -1;
+    }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.centeredIndex.value ?? -1;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.centeredIndex.value ?? -1;
     }
     return agendaController.centeredIndex.value;
   }
@@ -536,6 +570,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.lastCenteredIndex;
+    }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.lastCenteredIndex;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.lastCenteredIndex;
     }
     return agendaController.lastCenteredIndex;
   }
@@ -585,6 +625,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
           post.hasPlayableVideo &&
           !post.deletedPost &&
           !post.arsiv;
+    }
+    if (_isTopTagSurfaceInstance) {
+      final posts = maybeFindTopTagsController()?.agendaList;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      final posts = maybeFindTagPostsController()?.list;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
     }
     if (index >= agendaController.agendaList.length) return false;
     return agendaController.agendaList[index].hasPlayableVideo;
@@ -712,6 +762,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (!isAllowedByPolicy) {
       return false;
     }
+    if (_isPrimaryFeedSurfaceInstance &&
+        agendaController.isFeedScrollSettling) {
+      return false;
+    }
     if (_usesFeedPlaybackPolicy) {
       final modelIndex = _surfaceModelIndex();
       if (modelIndex >= 0) {
@@ -754,6 +808,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isSocialProfileSurfaceInstance) {
       return _resolveSocialProfileController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isTopTagSurfaceInstance) {
+      return maybeFindTopTagsController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return maybeFindTagPostsController()?.centeredIndex ??
           agendaController.centeredIndex;
     }
     return agendaController.centeredIndex;
@@ -807,6 +869,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _controllerOwnsInlinePlayback =>
       !isStandalonePostInstance &&
       !_isFloodSurfaceInstance &&
+      !_isTopTagSurfaceInstance &&
+      !_isTagPostsSurfaceInstance &&
       (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
 
   bool get shouldAutoResumeInlinePlatformView {
@@ -850,6 +914,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (route == '/SocialProfile' || route == 'SocialProfile') {
         return true;
       }
+    }
+    if (_isTopTagSurfaceInstance || _isTagPostsSurfaceInstance) {
+      return true;
     }
     if (!_isProfileFamilySurfaceInstance) {
       return agendaController.canClaimPlaybackNow;
@@ -1141,12 +1208,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 80);
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
-          value.isPlaying &&
-          value.position > iosFeedVisiblePlaybackThreshold;
+          (value.isPlaying || value.position > visualReadyPositionThreshold);
       if (!hasStableIosFeedFrame) {
         return false;
       }
@@ -1184,6 +1249,55 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return !shouldHidePlaybackPoster(
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
+    );
+  }
+
+  void recordPosterOverlayDecision(
+    HLSVideoValue value, {
+    required bool shouldHidePoster,
+    required bool showStartupPlaceholder,
+    required String source,
+  }) {
+    if (!kDebugMode) return;
+    if (!widget.model.hasPlayableVideo) return;
+    final signature = [
+      _qaSurfaceName,
+      source,
+      shouldHidePoster ? 'hide' : 'show',
+      showStartupPlaceholder ? 'placeholder' : 'no_placeholder',
+      value.isPlaying ? 'playing' : 'not_playing',
+      value.isBuffering ? 'buffering' : 'not_buffering',
+      value.hasRenderedFirstFrame ? 'first_frame' : 'no_first_frame',
+      value.hasVisibleVideoFrame ? 'visible_frame' : 'no_visible_frame',
+      value.awaitingFreshFrameAfterReattach ? 'awaiting_frame' : 'fresh_frame',
+      value.position.inMilliseconds ~/ 100,
+    ].join('|');
+    if (_lastPosterOverlayDecisionSignature == signature) return;
+    _lastPosterOverlayDecisionSignature = signature;
+    final reason = shouldHidePoster
+        ? 'hide'
+        : (!widget.shouldPlay || !_isSurfacePlaybackAllowed)
+            ? 'pinned_inactive'
+            : !value.hasRenderedFirstFrame
+                ? 'waiting_first_frame'
+                : value.isBuffering
+                    ? 'buffering'
+                    : !value.isPlaying &&
+                            value.position <= _stableFramePositionThreshold
+                        ? 'not_playing_before_threshold'
+                        : 'visible_decision_false';
+    debugPrint(
+      '[PosterOverlayDecision][${widget.model.docID}] source=$source '
+      'surface=$_qaSurfaceName hide=$shouldHidePoster '
+      'placeholder=$showStartupPlaceholder reason=$reason '
+      'shouldPlay=${widget.shouldPlay} allowed=$_isSurfacePlaybackAllowed '
+      'initialized=${value.isInitialized} playing=${value.isPlaying} '
+      'buffering=${value.isBuffering} completed=${value.isCompleted} '
+      'firstFrame=${value.hasRenderedFirstFrame} '
+      'visibleFrame=${value.hasVisibleVideoFrame} '
+      'awaitingFresh=${value.awaitingFreshFrameAfterReattach} '
+      'positionMs=${value.position.inMilliseconds} '
+      'durationMs=${value.duration.inMilliseconds}',
     );
   }
 
@@ -1325,6 +1439,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool _shouldSyncVideoNotifier(HLSVideoValue next) {
     final previous = videoValueNotifier.value;
+    if (shouldHidePlaybackPoster(previous) != shouldHidePlaybackPoster(next)) {
+      return true;
+    }
+    if (shouldShowStartupPlaybackPlaceholder(previous) !=
+        shouldShowStartupPlaybackPlaceholder(next)) {
+      return true;
+    }
     if (previous.isInitialized != next.isInitialized ||
         previous.isPlaying != next.isPlaying ||
         previous.isBuffering != next.isBuffering ||

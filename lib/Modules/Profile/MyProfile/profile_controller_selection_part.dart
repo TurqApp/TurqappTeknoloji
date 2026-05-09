@@ -7,7 +7,8 @@ extension ProfileControllerSelectionPart on ProfileController {
   bool get _performUsesTightCellularWarmProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
         isAndroid: GetPlatform.isAndroid,
-        isOnCellular: NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+        isOnCellular:
+            NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
       );
 
   bool _performShouldPreferImmediatePlaybackHandoff(int index) {
@@ -179,6 +180,7 @@ extension ProfileControllerSelectionPart on ProfileController {
     if (allPosts.isEmpty && reshares.isEmpty) {
       mergedPosts.clear();
       _visibleFractions.clear();
+      _visibleUpdatedAt.clear();
       centeredIndex.value = -1;
       currentVisibleIndex.value = -1;
       return;
@@ -251,8 +253,10 @@ extension ProfileControllerSelectionPart on ProfileController {
 
     if (visibleFraction <= 0.01) {
       _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
     } else {
       _visibleFractions[modelIndex] = visibleFraction;
+      _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
 
     if (_performUsesTightCellularWarmProfile &&
@@ -314,66 +318,47 @@ extension ProfileControllerSelectionPart on ProfileController {
       }
     }
     final current = centeredIndex.value;
-    if (current >= 0 && current < mergedPosts.length) {
-      final currentEntry = mergedPosts[current];
-      final currentDocId = ((currentEntry['docID'] as String?) ?? '').trim();
-      if (currentDocId.isNotEmpty) {
-        final dominantVisibleIndex = _visibleFractions.entries
-            .where((entry) => entry.key >= 0 && entry.key < mergedPosts.length)
-            .fold<int>(
-              -1,
-              (bestIndex, entry) {
-                if (bestIndex == -1) return entry.key;
-                final bestFraction = _visibleFractions[bestIndex] ?? 0.0;
-                return entry.value > bestFraction ? entry.key : bestIndex;
-              },
-            );
-        final dominantVisibleIsNonPlayable = dominantVisibleIndex >= 0 &&
-            dominantVisibleIndex < mergedPosts.length &&
-            !_performCanAutoplayMergedEntry(mergedPosts[dominantVisibleIndex]) &&
-            (_visibleFractions[dominantVisibleIndex] ?? 0.0) >=
-                FeedPlaybackSelectionPolicy.secondaryThreshold;
-        final currentPlaybackKey = agendaInstanceTag(
-          docId: currentDocId,
-          isReshare: currentEntry['isReshare'] == true,
-        );
-        final currentFraction = _visibleFractions[current] ?? 0.0;
-        if (!dominantVisibleIsNonPlayable &&
-            FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
-              lastCommandAt: _lastPlaybackCommandAt,
-              lastCommandDocId: _lastPlaybackCommandDocId,
-              currentDocId: currentPlaybackKey,
-              isCurrentTargetActive: _performIsPlaybackTargetCurrent(current),
-              currentFraction: currentFraction,
-              stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-            )) {
-          lastCenteredIndex = current;
-          currentVisibleIndex.value = current;
-          return;
-        }
-      }
-    }
-    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+    final decision = FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
       visibleFractions: _visibleFractions,
+      visibleUpdatedAt: _visibleUpdatedAt,
       currentIndex: centeredIndex.value,
       lastCenteredIndex: lastCenteredIndex,
       itemCount: mergedPosts.length,
       canAutoplayIndex: (index) =>
           _performCanAutoplayMergedEntry(mergedPosts[index]),
+      isPlaybackTargetCurrent: _performIsPlaybackTargetCurrent,
+      playbackKeyForIndex: (index) {
+        final entry = mergedPosts[index];
+        return agendaInstanceTag(
+          docId: ((entry['docID'] as String?) ?? '').trim(),
+          isReshare: entry['isReshare'] == true,
+        );
+      },
+      lastCommandAt: _lastPlaybackCommandAt,
+      lastCommandDocId: _lastPlaybackCommandDocId,
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+      supportsSwitchRetention:
+          PlaybackSurfacePolicy.supportsFeedSwitchRetention(
+        platform: defaultTargetPlatform,
+      ),
       preferDominantVisibleIndexWhenNonPlayable: true,
     );
 
-    if (targetIndex >= 0 && targetIndex < mergedPosts.length) {
+    if (decision.hasTarget) {
+      final targetIndex = decision.targetIndex;
+      debugPrint(
+        '[ProfilePlaybackDecision] action=${decision.action} '
+        'surface=my_profile current=$current target=$targetIndex '
+        'changed=${centeredIndex.value != targetIndex} '
+        'visible=${_visibleFractions.entries.map((e) => '${e.key}:${e.value.toStringAsFixed(2)}').join(',')}',
+      );
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;
       }
       currentVisibleIndex.value = targetIndex;
       lastCenteredIndex = targetIndex;
-      // Profile surfaces do not have a dedicated centered-index listener like
-      // the main feed, so a newly centered target must claim playback here.
-      if (centeredChanged || !_performIsPlaybackTargetCurrent(targetIndex)) {
+      if (decision.shouldEnsurePlayback) {
         _performEnsureCenteredPlaybackForIndex(targetIndex);
       }
     } else {
@@ -421,7 +406,15 @@ extension ProfileControllerSelectionPart on ProfileController {
     final manager = VideoStateManager.instance;
     final readyForImmediateHandoff =
         manager.canResumePlaybackFor(playbackKey) ||
-        _performShouldPreferImmediatePlaybackHandoff(index);
+            _performShouldPreferImmediatePlaybackHandoff(index);
+    debugPrint(
+      '[ProfilePlaybackTarget] action=activate index=$index '
+      'doc=$docId key=$playbackKey currentOwner=${manager.currentPlayingDocID ?? ''} '
+      'targetOwner=${manager.targetPlaybackDocID ?? ''} '
+      'readyForImmediateHandoff=$readyForImmediateHandoff '
+      'centered=${centeredIndex.value} visible=${currentVisibleIndex.value} '
+      'route=${Get.currentRoute} nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+    );
     final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
@@ -491,12 +484,22 @@ extension ProfileControllerSelectionPart on ProfileController {
         maxDocs: warmPosts.length,
       ),
     );
+    final warmLogs = <String>[];
     for (var i = 0; i < warmPosts.length; i++) {
       final readySegments = _profileReadySegmentsForPlayableOffset(i);
       if (readySegments <= 0) continue;
       prefetch.boostDoc(
         warmPosts[i].docID,
         readySegments: readySegments,
+      );
+      warmLogs.add(
+        '${i + 1}:${warmPosts[i].docID}:offset=$i:segments=$readySegments',
+      );
+    }
+    if (warmLogs.isNotEmpty) {
+      debugPrint(
+        '[ProfileOnYukleme] phase=$phase centered=$centered '
+        'current=$currentIndex entries=${warmLogs.join(' | ')}',
       );
     }
   }
@@ -542,6 +545,44 @@ extension ProfileControllerSelectionPart on ProfileController {
       playableOffset,
       isAndroid: GetPlatform.isAndroid,
       isOnCellular: _performUsesTightCellularWarmProfile,
+    );
+  }
+
+  void primeImmediateNextProfileAfterPlaybackStart(String anchorDocId) {
+    final normalizedAnchorDocId = anchorDocId.trim();
+    if (normalizedAnchorDocId.isEmpty || mergedPosts.isEmpty) return;
+    final anchorIndex = mergedPosts.indexWhere((entry) {
+      final docId = ((entry['docID'] as String?) ?? '').trim();
+      return docId == normalizedAnchorDocId;
+    });
+    if (anchorIndex < 0 || anchorIndex >= mergedPosts.length) return;
+
+    var nextPlayableIndex = -1;
+    for (var index = anchorIndex + 1; index < mergedPosts.length; index++) {
+      if (!_performCanAutoplayMergedEntry(mergedPosts[index])) continue;
+      nextPlayableIndex = index;
+      break;
+    }
+    if (nextPlayableIndex < 0) return;
+
+    final nextPost = mergedPosts[nextPlayableIndex]['post'];
+    if (nextPost is! PostsModel) return;
+    final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(1);
+    maybeFindPrefetchScheduler()?.boostDoc(
+      nextPost.docID,
+      readySegments: readySegments,
+    );
+    for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+      TurqImageCacheManager.warmUrl(posterUrl).ignore();
+    }
+    final preview = nextPost.primaryImageUrl.trim();
+    if (preview.isNotEmpty) {
+      TurqImageCacheManager.warmUrl(preview).ignore();
+    }
+    debugPrint(
+      '[ProfileNextWarm] status=boost surface=my_profile source=first_frame '
+      'anchor=$anchorIndex next=$nextPlayableIndex '
+      'doc=${nextPost.docID} segments=$readySegments',
     );
   }
 

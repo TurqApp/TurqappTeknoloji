@@ -120,17 +120,53 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
 
   bool resumeCurrentPlaybackIfReady(String docID) {
     if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=exclusive doc=$docID exclusive=$_exclusiveDocID',
+      );
       return false;
     }
-    if (_currentPlayingDocID != docID) return false;
+    if (_currentPlayingDocID != docID) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=owner_mismatch doc=$docID current=${_currentPlayingDocID ?? ''}',
+      );
+      return false;
+    }
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = DateTime.now();
     final handle = _allVideoControllers[docID];
-    if (handle == null) return false;
-    if (!handle.isInitialized) return false;
+    if (handle == null) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=no_handle doc=$docID',
+      );
+      return false;
+    }
+    if (!handle.isInitialized) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=not_initialized doc=$docID playing=${handle.isPlaying}',
+      );
+      return false;
+    }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
-    if (!handle.isPlaying) {
+    final isInlineFeedStyleOwner = docID.startsWith('feed:') ||
+        docID.startsWith('social_') ||
+        docID.startsWith('profile_');
+    final shouldReassertFeedPlayback =
+        (GetPlatform.isAndroid || GetPlatform.isIOS) &&
+            isInlineFeedStyleOwner &&
+            handle is HLSAdapterPlaybackHandle &&
+            (docID.startsWith('feed:') ||
+                handle.position <= const Duration(milliseconds: 180));
+    if (!handle.isPlaying || shouldReassertFeedPlayback) {
+      debugPrint(
+        '[FeedPlaybackProof] '
+        'stage=${handle.isPlaying ? 'resume_current_reassert_play' : 'resume_current_play'} '
+        'doc=$docID positionMs=${handle.position.inMilliseconds}',
+      );
       if ((GetPlatform.isAndroid || GetPlatform.isIOS) &&
           docID.startsWith('feed:') &&
           handle is HLSAdapterPlaybackHandle) {
@@ -140,6 +176,11 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
         }
       }
       _playbackExecutionService.resumeHandle(handle);
+    } else {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_already_playing '
+        'doc=$docID positionMs=${handle.position.inMilliseconds}',
+      );
     }
     return true;
   }

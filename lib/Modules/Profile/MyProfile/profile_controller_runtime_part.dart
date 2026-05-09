@@ -12,12 +12,9 @@ extension ProfileControllerRuntimePart on ProfileController {
     _counterSub = _userRepository.watchUserRaw(uid).listen((snapshot) {
       final data = snapshot;
       if (data != null) {
-        final nextFollowers =
-            (data['counterOfFollowers'] as num?)?.toInt();
-        final nextFollowings =
-            (data['counterOfFollowings'] as num?)?.toInt();
-        final nextListings =
-            (data['counterOfListings'] as num?)?.toInt();
+        final nextFollowers = (data['counterOfFollowers'] as num?)?.toInt();
+        final nextFollowings = (data['counterOfFollowings'] as num?)?.toInt();
+        final nextListings = (data['counterOfListings'] as num?)?.toInt();
         if (nextFollowers != null) {
           followerCount.value = nextFollowers;
         }
@@ -244,7 +241,4 @@ extension ProfileControllerRuntimePart on ProfileController {
     List<PostsModel> incoming,
   ) =>
       _performDedupePosts(existing, incoming);
-
-  bool _applyProfileBuckets(ProfileBuckets? buckets) =>
-      _performApplyProfileBuckets(buckets);
 }

@@ -54,7 +54,7 @@ void main() {
       expect(fetchSource, contains("status=fallback_personal"));
     });
 
-    test('explicit opt-out is manifest-only and legacy page is unreachable', 
+    test('explicit opt-out is manifest-only and legacy page is unreachable',
         () {
       final fetchSource = File(
         '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
@@ -158,7 +158,9 @@ void main() {
       );
       expect(
         fetchSource,
-        contains('final gapCutoffMs = max(cutoffMs, gapWindowStartMs);'),
+        contains(
+          'effectiveNowMs - FeedManifestPolicy.gapWindowDuration.inMilliseconds',
+        ),
       );
       expect(
         fetchSource,
@@ -179,7 +181,8 @@ void main() {
 
       expect(
         loadingSource,
-        contains('final shouldDeferPlannedColdConsumption = usesPlannedColdPage'),
+        contains(
+            'final shouldDeferPlannedColdConsumption = usesPlannedColdPage'),
       );
       expect(
         loadingSource,

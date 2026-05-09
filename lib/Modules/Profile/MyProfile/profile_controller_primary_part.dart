@@ -195,6 +195,12 @@ extension ProfileControllerPrimaryPart on ProfileController {
         startAfter: initial ? null : _lastPrimaryDoc,
         limit: limit,
       );
+      debugPrint(
+        '[ProfilePostsSource] source=firestore_primary initial=$initial '
+        'force=$force limit=$limit all=${page.all.length} '
+        'photos=${page.photos.length} videos=${page.videos.length} '
+        'scheduled=${page.scheduled.length} hasMore=${page.hasMore}',
+      );
 
       final shouldPreserveExistingBuckets = initial &&
           !force &&
@@ -208,6 +214,20 @@ extension ProfileControllerPrimaryPart on ProfileController {
               scheduledPosts.isNotEmpty);
       if (shouldPreserveExistingBuckets) {
         return;
+      }
+
+      if (initial &&
+          (allPosts.isNotEmpty ||
+              photos.isNotEmpty ||
+              videos.isNotEmpty ||
+              scheduledPosts.isNotEmpty)) {
+        capturePendingCenteredEntry();
+        debugPrint(
+          '[ProfilePostsSource] action=preserve_anchor_before_firebase_apply '
+          'pending=${_pendingCenteredIdentity ?? ''} '
+          'scrollStarted=${_startupScrollStartedAt != null} '
+          'offset=${currentScrollOffset.toStringAsFixed(1)}',
+        );
       }
 
       if (initial) {
@@ -234,6 +254,12 @@ extension ProfileControllerPrimaryPart on ProfileController {
       hasMoreScheduled = _hasMorePrimary;
       bootstrapFeedPlaybackAfterDataChange();
       unawaited(_performWarmProfileSurfaceCache());
+      debugPrint(
+        '[ProfilePostsCache] action=schedule_persist_after_firestore '
+        'all=${allPosts.length} photos=${photos.length} videos=${videos.length} '
+        'reshares=${reshares.length} scheduled=${scheduledPosts.length}',
+      );
+      _performSchedulePersistPostCaches();
     } catch (e) {
       print('_fetchPrimaryBuckets error: $e');
     } finally {

@@ -120,9 +120,9 @@ test("short manifest slot builder keeps only full 240-item slots", () => {
   assert.equal(index.slots[1].path, "shortManifest/2026-04-21/slots/slot_002.json");
 });
 
-test("short manifest defaults to previous Istanbul day and exact day bounds", () => {
+test("short manifest defaults to current Istanbul day and exact day bounds", () => {
   const nowMs = Date.parse("2026-04-21T01:10:54.036+03:00");
-  assert.equal(resolveShortManifestDateForNow(nowMs), "2026-04-17");
+  assert.equal(resolveShortManifestDateForNow(nowMs), "2026-04-21");
   assert.deepEqual(resolveRollingShortManifestDatesForNow(nowMs), [
     "2026-04-15",
     "2026-04-16",

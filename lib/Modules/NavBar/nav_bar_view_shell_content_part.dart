@@ -177,8 +177,8 @@ extension _NavBarViewShellContentPart on NavBarView {
     );
     unawaited(
       AdmobKare.warmupPool(
-        targetCount: 1,
-        maxRequestCount: 1,
+        targetCount: 4,
+        maxRequestCount: 2,
         bypassMinInterval: true,
       ),
     );

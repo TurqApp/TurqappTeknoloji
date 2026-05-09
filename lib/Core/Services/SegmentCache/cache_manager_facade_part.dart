@@ -207,8 +207,18 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
 
   Future<void> evictIfNeeded({int? targetBytes}) async {
     final target = targetBytes ?? softLimitBytes;
+    if (_SegmentCacheManagerRuntimeX(this)._shouldDeferEvictionForHotPlayback(
+      source: 'evict_if_needed',
+    )) {
+      _SegmentCacheManagerRuntimeX(this)._scheduleDeferredEviction(
+        source: 'evict_if_needed',
+        targetBytes: target,
+      );
+      return;
+    }
     final minCachedVideoCount =
         _offlineHlsArchiveEnabled ? ContentPolicy.minGlobalCachedVideos : 0;
+    var evictedCount = 0;
     while (_index.totalSizeBytes > target) {
       if (cachedVideoCount <= minCachedVideoCount) {
         break;
@@ -216,6 +226,14 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
       final candidate = _findEvictionCandidate(preferLowQuality: true);
       if (candidate == null) break;
       await _evictEntry(candidate);
+      evictedCount++;
+      if (_SegmentCacheManagerRuntimeX(this)
+          ._shouldYieldEmergencyEvictionSlice(evictedCount)) {
+        _SegmentCacheManagerRuntimeX(
+          this,
+        )._scheduleEmergencyEvictionContinuation(targetBytes: target);
+        break;
+      }
     }
   }
 

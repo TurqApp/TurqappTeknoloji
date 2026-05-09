@@ -22,17 +22,19 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
     required int resultLimit,
   }) async {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final startedAt = DateTime.now();
     final snap = await _db
         .collection("tags")
         .orderBy("count", descending: true)
         .limit(ReadBudgetRegistry.topTagsRepositoryFetchLimit)
         .get();
 
-    final list = <HashtagModel>[];
+    final byTag = <String, HashtagModel>{};
+    int skippedStale = 0;
+    int skippedLowCount = 0;
     for (final doc in snap.docs) {
       final data = doc.data();
       final rawTag = doc.id.toString().trim();
-      if (rawTag.startsWith("#")) continue;
       final tag = rawTag.replaceFirst("#", "");
       if (tag.isEmpty) continue;
 
@@ -40,7 +42,10 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       final threshold =
           ((data["trendThreshold"] ?? _topTagsDefaultTrendThreshold) as num)
               .toInt();
-      if (count < threshold || count <= 0) continue;
+      if (count < threshold || count <= 0) {
+        skippedLowCount++;
+        continue;
+      }
 
       final windowHours =
           ((data["trendWindowHours"] ?? _topTagsDefaultTrendWindowHours) as num)
@@ -54,25 +59,42 @@ extension TopTagsRepositoryRuntimePart on TopTagsRepository {
       final effectiveLastSeenTs =
           _resolveLastSeenActivityTs(rawLastSeenTs, windowMs, nowMs);
       if (effectiveLastSeenTs <= 0) continue;
-      if ((nowMs - effectiveLastSeenTs) > windowMs) continue;
+      if ((nowMs - effectiveLastSeenTs) > windowMs) {
+        skippedStale++;
+        continue;
+      }
 
-      list.add(
-        HashtagModel(
-          tag,
-          count,
-          hasHashtag: rawTag.startsWith("#") ||
-              (((data["hashtagCount"] ?? 0) as num) > 0),
-          lastSeenTs: effectiveLastSeenTs,
-        ),
+      final key = tag.toLowerCase();
+      final next = HashtagModel(
+        tag,
+        count,
+        hasHashtag: rawTag.startsWith("#") ||
+            (((data["hashtagCount"] ?? 0) as num) > 0),
+        lastSeenTs: effectiveLastSeenTs,
       );
+      final current = byTag[key];
+      if (current == null ||
+          next.count > current.count ||
+          (next.count == current.count &&
+              (next.lastSeenTs ?? 0) > (current.lastSeenTs ?? 0))) {
+        byTag[key] = next;
+      }
     }
 
+    final list = byTag.values.toList(growable: false);
     list.sort((a, b) {
       final countCmp = b.count.compareTo(a.count);
       if (countCmp != 0) return countCmp;
       return (b.lastSeenTs ?? 0).compareTo(a.lastSeenTs ?? 0);
     });
-    return list.take(resultLimit).toList(growable: false);
+    final result = list.take(resultLimit).toList(growable: false);
+    debugPrint(
+      '[TopTagsRepository] source=firestore raw=${snap.docs.length} '
+      'eligible=${list.length} returned=${result.length} '
+      'skippedLowCount=$skippedLowCount skippedStale=$skippedStale '
+      'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
+    );
+    return result;
   }
 
   Future<List<HashtagModel>?> readTrendingTagsCache({

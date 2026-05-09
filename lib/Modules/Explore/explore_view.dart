@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Widgets/Ads/ad_placement_hooks.dart';
+import 'package:turqappv2/Core/Widgets/Ads/feed_family_ad_slot.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/texts.dart';

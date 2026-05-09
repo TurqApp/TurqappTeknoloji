@@ -23,7 +23,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
           final downloadUrl = await WebpUploadService.uploadFileAsWebp(
             file: tempFile,
             storagePathWithoutExt:
-                'users/$userId/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
+                'educators/$userId/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
           );
           imageUrls.add(downloadUrl);
         } finally {
@@ -56,7 +56,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         final downloadUrl = await WebpUploadService.uploadFileAsWebp(
           file: localFile,
           storagePathWithoutExt:
-              'users/$userId/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
+              'educators/$userId/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
         );
         imageUrls.add(downloadUrl);
       }

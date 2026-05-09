@@ -51,7 +51,8 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
     await AdmobKare.warmupPool(
       targetCount: target,
       maxRequestCount: target,
-      bypassMinInterval: true,
+      bypassMinInterval: false,
+      debugSource: 'splash',
     );
     if (target >= AdmobBannerWarmupService.lowWaterMark) {
       Future<void>.delayed(AdmobBannerWarmupService._secondaryTopUpDelay,
@@ -60,7 +61,8 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
           await AdmobKare.warmupPool(
             targetCount: target,
             maxRequestCount: AdmobBannerWarmupService.topUpBatchSize,
-            bypassMinInterval: true,
+            bypassMinInterval: false,
+            debugSource: 'splash_secondary',
           );
         } catch (_) {}
       });
@@ -101,7 +103,8 @@ extension AdmobBannerWarmupServiceRuntimePart on AdmobBannerWarmupService {
     await AdmobKare.warmupPool(
       targetCount: targetCount,
       maxRequestCount: targetCount,
-      bypassMinInterval: true,
+      bypassMinInterval: false,
+      debugSource: surfaceKey,
     );
   }
 

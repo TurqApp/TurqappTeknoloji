@@ -232,19 +232,19 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           widget.instanceTag?.trim() ?? '';
                                       const preferWarmPoolPauseOnAndroid =
                                           false;
-                                      final isProfileFamilySurface =
-                                          (widget.instanceTag ?? '')
-                                                  .startsWith('profile_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('archives_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('liked_post_') ||
-                                              (widget.instanceTag ?? '')
-                                                  .startsWith('social_');
+                                      final isSocialProfileSurface =
+                                          instanceTag.startsWith('social_');
+                                      final isProfileFamilySurface = instanceTag
+                                              .startsWith('profile_') ||
+                                          instanceTag.startsWith('archives_') ||
+                                          instanceTag
+                                              .startsWith('liked_post_') ||
+                                          isSocialProfileSurface;
                                       final isFeedStyleInlineSurface =
                                           isPrimaryFeedSurfaceInstance ||
                                               isProfileFamilySurface ||
-                                              instanceTag.startsWith('flood_') ||
+                                              instanceTag
+                                                  .startsWith('flood_') ||
                                               instanceTag.startsWith(
                                                 'explore_series_',
                                               );
@@ -269,17 +269,18 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   preferResumePoster:
                                                       (!isFeedStyleInlineSurface &&
                                                               shouldSuppressGenericResumeThumbnail) ||
-                                                          isProfileFamilySurface,
+                                                          (isProfileFamilySurface &&
+                                                              !isSocialProfileSurface),
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:
                                                       PlaybackSurfacePolicy
                                                           .preferStableFeedStartupBuffer(
-                                                        platform:
-                                                            defaultTargetPlatform,
-                                                        isFeedStyleSurface:
-                                                            isFeedStyleInlineSurface,
-                                                      ),
+                                                    platform:
+                                                        defaultTargetPlatform,
+                                                    isFeedStyleSurface:
+                                                        isFeedStyleInlineSurface,
+                                                  ),
                                                 ),
                                           ValueListenableBuilder<HLSVideoValue>(
                                             valueListenable: videoValueNotifier,
@@ -293,13 +294,25 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               );
                                               final shouldHidePoster =
                                                   shouldHidePlaybackPoster(v);
+                                              recordPosterOverlayDecision(
+                                                v,
+                                                shouldHidePoster:
+                                                    shouldHidePoster,
+                                                showStartupPlaceholder:
+                                                    showStartupPlaceholder,
+                                                source: 'agenda_overlay',
+                                              );
                                               final posterFadeDuration =
-                                                  showStartupPlaceholder
-                                                      ? const Duration(
-                                                          milliseconds: 90,
-                                                        )
-                                                      : AppDuration
-                                                          .thumbnailFadeOut;
+                                                  shouldHidePoster &&
+                                                          defaultTargetPlatform ==
+                                                              TargetPlatform.iOS
+                                                      ? Duration.zero
+                                                      : showStartupPlaceholder
+                                                          ? const Duration(
+                                                              milliseconds: 90,
+                                                            )
+                                                          : AppDuration
+                                                              .thumbnailFadeOut;
                                               return IgnorePointer(
                                                 ignoring: true,
                                                 child: AnimatedOpacity(

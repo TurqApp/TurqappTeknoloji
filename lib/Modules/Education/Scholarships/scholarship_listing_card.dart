@@ -32,7 +32,7 @@ class ScholarshipListingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final burs = scholarshipData['model'] as IndividualScholarshipsModel;
-    final logoUrl = burs.primaryImageUrl;
+    final logoUrl = burs.providerLogoUrl;
     final description = burs.shortDescription.trim().isNotEmpty
         ? burs.shortDescription.trim()
         : burs.aciklama.trim();

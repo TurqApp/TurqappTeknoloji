@@ -68,29 +68,40 @@ class UserPostLinkService {
             .toList(growable: false);
       }
 
-      yield* _firestore
-          .collection('users')
-          .doc(userId)
-          .collection(collection)
-          .orderBy('timeStamp', descending: true)
-          .limit(_maxRefsPerFetch)
-          .snapshots()
-          .asyncMap((snap) async {
-        final entries = snap.docs
-            .map(
-              (doc) => UserSubcollectionEntry(
-                id: doc.id,
-                data: _cloneUserRefData(doc.data()),
-              ),
-            )
-            .toList(growable: false);
-        await _userSubcollectionRepository.setEntries(
-          userId,
-          subcollection: collection,
-          items: entries,
+      try {
+        await for (final refs in _firestore
+            .collection('users')
+            .doc(userId)
+            .collection(collection)
+            .orderBy('timeStamp', descending: true)
+            .limit(_maxRefsPerFetch)
+            .snapshots()
+            .asyncMap((snap) async {
+          final entries = snap.docs
+              .map(
+                (doc) => UserSubcollectionEntry(
+                  id: doc.id,
+                  data: _cloneUserRefData(doc.data()),
+                ),
+              )
+              .toList(growable: false);
+          await _userSubcollectionRepository.setEntries(
+            userId,
+            subcollection: collection,
+            items: entries,
+          );
+          return snap.docs
+              .map(UserPostReference.fromDoc)
+              .toList(growable: false);
+        })) {
+          yield refs;
+        }
+      } catch (e) {
+        print(
+          '[UserPostLinkService] listenUserRefs skipped remote '
+          'user=$userId collection=$collection error=$e',
         );
-        return snap.docs.map(UserPostReference.fromDoc).toList(growable: false);
-      });
+      }
     })();
   }
 

@@ -93,6 +93,7 @@ class FeedManifestRepository extends GetxService {
   Future<FeedManifestPoolResult> loadRollingPool({
     bool forceRefresh = false,
     int? maxSlotsToLoad,
+    int? minEntriesToReturn,
   }) {
     if (!forceRefresh) {
       final existing = _loadFuture;
@@ -101,6 +102,7 @@ class FeedManifestRepository extends GetxService {
     final future = _loadRollingPool(
       forceRefresh: forceRefresh,
       maxSlotsToLoad: maxSlotsToLoad,
+      minEntriesToReturn: minEntriesToReturn,
     );
     _loadFuture = future;
     return future.whenComplete(() {
@@ -153,6 +155,7 @@ class FeedManifestRepository extends GetxService {
   Future<FeedManifestPoolResult> _loadRollingPool({
     required bool forceRefresh,
     required int? maxSlotsToLoad,
+    required int? minEntriesToReturn,
   }) async {
     await _hydrateLocalCache();
     final hasLocalWindows = _windows.isNotEmpty;
@@ -208,11 +211,20 @@ class FeedManifestRepository extends GetxService {
     final effectiveSlotRefs = maxSlotsToLoad != null && maxSlotsToLoad > 0
         ? slotRefs.take(maxSlotsToLoad).toList(growable: false)
         : slotRefs;
+    if (!forceRefresh && minEntriesToReturn != null && minEntriesToReturn > 0) {
+      await _hydrateCachedSlots(effectiveSlotRefs);
+    }
     await _ensureSlotsLoaded(
       effectiveSlotRefs,
       forceRefresh: forceRefresh,
     );
     _scheduleBackgroundSlotPrefetch(slotRefs);
+    return _buildPoolResult(effectiveSlotRefs);
+  }
+
+  FeedManifestPoolResult _buildPoolResult(
+    List<_FeedManifestSlotRef> effectiveSlotRefs,
+  ) {
     final entries = <FeedManifestEntry>[];
     var loadedSlotCount = 0;
     for (final slot in effectiveSlotRefs) {
@@ -370,6 +382,16 @@ class FeedManifestRepository extends GetxService {
     }
   }
 
+  Future<void> _hydrateCachedSlots(List<_FeedManifestSlotRef> slots) async {
+    final pending = slots
+        .where((slot) =>
+            slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
+        .toList(growable: false);
+    for (final slot in pending) {
+      await _loadSlotFromPrefs(slot);
+    }
+  }
+
   String _slotWindowKeyFor(DateTime timestamp) {
     final local = timestamp.toLocal();
     final slotHour = (local.hour ~/ 3) * 3;
@@ -386,29 +408,8 @@ class FeedManifestRepository extends GetxService {
     final prefs = await _ensurePrefs();
     final slotPrefsKey = _slotPrefsKey(slot.path);
     if (!forceRefresh) {
-      final cachedRaw = prefs.getString(slotPrefsKey);
-      if (cachedRaw != null && cachedRaw.isNotEmpty) {
-        final clearText = await _decodeManifestPrefsString(
-          cachedRaw,
-          prefsKey: slotPrefsKey,
-        );
-        if (clearText == null || clearText.isEmpty) {
-          await prefs.remove(slotPrefsKey);
-        } else {
-          final parsed = parseSlotEntries(
-            clearText,
-            fallbackSlotId: slot.slotId,
-            slotPath: slot.path,
-          );
-          _slotEntries[slot.path] = parsed;
-          await _rewritePlainManifestPrefsStringIfNeeded(
-            cachedRaw,
-            clearText,
-            prefsKey: slotPrefsKey,
-          );
-          return;
-        }
-      }
+      final loadedFromPrefs = await _loadSlotFromPrefs(slot);
+      if (loadedFromPrefs) return;
     }
     try {
       final bytes = await _storage
@@ -439,6 +440,33 @@ class FeedManifestRepository extends GetxService {
         );
       }
     }
+  }
+
+  Future<bool> _loadSlotFromPrefs(_FeedManifestSlotRef slot) async {
+    final prefs = await _ensurePrefs();
+    final slotPrefsKey = _slotPrefsKey(slot.path);
+    final cachedRaw = prefs.getString(slotPrefsKey);
+    if (cachedRaw == null || cachedRaw.isEmpty) return false;
+    final clearText = await _decodeManifestPrefsString(
+      cachedRaw,
+      prefsKey: slotPrefsKey,
+    );
+    if (clearText == null || clearText.isEmpty) {
+      await prefs.remove(slotPrefsKey);
+      return false;
+    }
+    final parsed = parseSlotEntries(
+      clearText,
+      fallbackSlotId: slot.slotId,
+      slotPath: slot.path,
+    );
+    _slotEntries[slot.path] = parsed;
+    await _rewritePlainManifestPrefsStringIfNeeded(
+      cachedRaw,
+      clearText,
+      prefsKey: slotPrefsKey,
+    );
+    return true;
   }
 
   void _reset() {

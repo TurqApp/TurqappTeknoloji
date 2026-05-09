@@ -7,7 +7,7 @@ extension AnswerKeyControllerSearchPart on AnswerKeyController {
   Future<void> _restoreListingSelection() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
       listingSelectionReady.value = true;
       return;
     }
@@ -15,9 +15,9 @@ extension AnswerKeyControllerSearchPart on AnswerKeyController {
       final stored = await _localPreferenceRepository.getInt(
         _listingSelectionKeyFor(uid),
       );
-      listingSelection.value = stored == null ? 1 : (stored == 1 ? 1 : 0);
+      listingSelection.value = stored == null ? 0 : (stored == 1 ? 1 : 0);
     } catch (_) {
-      listingSelection.value = 1;
+      listingSelection.value = 0;
     } finally {
       listingSelectionReady.value = true;
     }

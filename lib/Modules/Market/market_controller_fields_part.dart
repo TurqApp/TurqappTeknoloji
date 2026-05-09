@@ -8,7 +8,7 @@ class _MarketControllerState {
   final search = TextEditingController();
   final scrollOffset = 0.0.obs;
   final listingSelectionReady = false.obs;
-  final listingSelection = 1.obs;
+  final listingSelection = 0.obs;
   final isLoading = false.obs;
   final isSearchLoading = false.obs;
   final searchQuery = ''.obs;

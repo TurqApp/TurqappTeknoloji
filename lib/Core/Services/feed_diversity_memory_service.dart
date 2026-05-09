@@ -16,7 +16,7 @@ class FeedDiversityMemoryService extends GetxService {
   static const String _startupHeadKey = 'feed_diversity_startup_heads_v1';
   static const String _weeklyWatchKey = 'feed_diversity_weekly_watches_v1';
   static const int _maxStartupHeadRecords = 480;
-  static const int _maxWeeklyWatchRecords = 320;
+  static const int _maxWeeklyWatchRecords = 240 * 24;
 
   SharedPreferences? _prefs;
   bool _ready = false;

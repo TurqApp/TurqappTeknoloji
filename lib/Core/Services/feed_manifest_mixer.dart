@@ -45,7 +45,6 @@ class FeedManifestMixer {
 
   static const int defaultLimit = 60;
   static const int defaultSlotBatchSize = 5;
-  static const int defaultGapEvery = 6;
   static const int defaultMinUserSpacing = 3;
   static const int defaultMaxItemsPerUser = 3;
   static const int defaultScanWindow = 24;
@@ -59,7 +58,7 @@ class FeedManifestMixer {
     Set<String> consumedCanonicalIds = const <String>{},
     Set<String> consumedDocIds = const <String>{},
     Set<String> headPenaltyCanonicalIds = const <String>{},
-    int gapEvery = defaultGapEvery,
+    int leadingGapCount = 0,
     int minUserSpacing = defaultMinUserSpacing,
     int maxItemsPerUser = defaultMaxItemsPerUser,
     int scanWindow = defaultScanWindow,
@@ -134,7 +133,7 @@ class FeedManifestMixer {
       FeedManifestDeckSource.manifest,
     );
     final gap = prepare(
-      gapEntries,
+      _sortEntriesNewestFirst(gapEntries),
       FeedManifestDeckSource.gap,
     );
 
@@ -142,24 +141,59 @@ class FeedManifestMixer {
     final recentUsers = <String>[];
     var manifestCount = 0;
     var gapCount = 0;
-    final effectiveGapEvery = max(2, gapEvery);
-    final maxGapCount =
-        min(gap.length, (normalizedLimit / effectiveGapEvery).ceil());
+    final maxGapCount = min(
+      gap.length,
+      min(
+        leadingGapCount > 0 ? leadingGapCount : gap.length,
+        normalizedLimit,
+      ),
+    );
     final effectiveScanWindow = max(1, scanWindow);
     final effectiveSpacing = max(0, minUserSpacing);
     final effectiveMaxItemsPerUser = max(1, maxItemsPerUser);
     final emittedUserCounts = <String, int>{};
 
+    void rememberEmittedUser(FeedManifestEntry entry) {
+      final userId = entry.post.userID.trim();
+      if (userId.isEmpty) return;
+      emittedUserCounts[userId] = (emittedUserCounts[userId] ?? 0) + 1;
+      if (effectiveSpacing <= 0) return;
+      recentUsers.add(userId);
+      if (recentUsers.length > effectiveSpacing) {
+        recentUsers.removeAt(0);
+      }
+    }
+
+    if (maxGapCount > 0) {
+      while (deck.length < normalizedLimit &&
+          gap.isNotEmpty &&
+          gapCount < maxGapCount) {
+        final candidate = _takeNext(
+          gap,
+          recentUsers: recentUsers,
+          position: deck.length,
+          minUserSpacing: effectiveSpacing,
+          emittedUserCounts: emittedUserCounts,
+          maxItemsPerUser: effectiveMaxItemsPerUser,
+          scanWindow: effectiveScanWindow,
+          headPenaltyDepth: headPenaltyDepth,
+        );
+        if (candidate == null) break;
+        deck.add(
+          FeedManifestDeckEntry(
+            entry: candidate.entry,
+            source: candidate.source,
+          ),
+        );
+        gapCount++;
+        rememberEmittedUser(candidate.entry);
+      }
+    }
+
     while (deck.length < normalizedLimit &&
         (manifest.isNotEmpty || gap.isNotEmpty)) {
-      final shouldTryGap = gap.isNotEmpty &&
-          gapCount < maxGapCount &&
-          deck.length >= effectiveGapEvery - 1 &&
-          ((deck.length + seed.abs()) % effectiveGapEvery == 0);
-      final primary = shouldTryGap ? gap : manifest;
-      final fallback = shouldTryGap ? manifest : gap;
       var candidate = _takeNext(
-        primary,
+        manifest,
         recentUsers: recentUsers,
         position: deck.length,
         minUserSpacing: effectiveSpacing,
@@ -169,7 +203,7 @@ class FeedManifestMixer {
         headPenaltyDepth: headPenaltyDepth,
       );
       candidate ??= _takeNext(
-        fallback,
+        gap,
         recentUsers: recentUsers,
         position: deck.length,
         minUserSpacing: effectiveSpacing,
@@ -191,16 +225,7 @@ class FeedManifestMixer {
       } else {
         manifestCount++;
       }
-      final userId = candidate.entry.post.userID.trim();
-      if (userId.isNotEmpty) {
-        emittedUserCounts[userId] = (emittedUserCounts[userId] ?? 0) + 1;
-        if (effectiveSpacing > 0) {
-          recentUsers.add(userId);
-          if (recentUsers.length > effectiveSpacing) {
-            recentUsers.removeAt(0);
-          }
-        }
-      }
+      rememberEmittedUser(candidate.entry);
     }
 
     return FeedManifestDeckResult(
@@ -281,6 +306,20 @@ class FeedManifestMixer {
     }
 
     slotOrder.sort(compareSlotKeysNewestFirst);
+    for (final bucket in grouped.values) {
+      final originalIndexes = <FeedManifestEntry, int>{
+        for (var index = 0; index < bucket.length; index++)
+          bucket[index]: index,
+      };
+      bucket.sort((left, right) {
+        final timeCompare =
+            right.post.timeStamp.toInt().compareTo(left.post.timeStamp.toInt());
+        if (timeCompare != 0) return timeCompare;
+        return (originalIndexes[left] ?? 0).compareTo(
+          originalIndexes[right] ?? 0,
+        );
+      });
+    }
 
     final ordered = <FeedManifestEntry>[];
     var added = true;
@@ -349,6 +388,24 @@ class FeedManifestMixer {
       return candidates.removeAt(userCapFallbackIndex);
     }
     return candidates.removeAt(0);
+  }
+
+  static List<FeedManifestEntry> _sortEntriesNewestFirst(
+    List<FeedManifestEntry> entries,
+  ) {
+    if (entries.length < 2) return entries;
+    final indexed = <({FeedManifestEntry entry, int index})>[
+      for (var index = 0; index < entries.length; index++)
+        (entry: entries[index], index: index),
+    ];
+    indexed.sort((left, right) {
+      final timeCompare = right.entry.post.timeStamp
+          .toInt()
+          .compareTo(left.entry.post.timeStamp.toInt());
+      if (timeCompare != 0) return timeCompare;
+      return left.index.compareTo(right.index);
+    });
+    return indexed.map((item) => item.entry).toList(growable: false);
   }
 
   static int _compareCandidates(

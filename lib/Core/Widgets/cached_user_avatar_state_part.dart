@@ -46,7 +46,7 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
   }
 
   String _rememberedFilePathFor(String url) =>
-      TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
+      TurqAvatarCacheManager.rememberedResolvedFilePathForUrl(url);
 
   String _initialResolvedUrl() {
     final uid = (widget.userId ?? '').trim();
@@ -323,17 +323,17 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       return;
     }
     try {
-      final cached = await TurqImageCacheManager.instance.getFileFromCache(
+      final cached = await TurqAvatarCacheManager.instance.getFileFromCache(
         normalized,
       );
       File? file = cached?.file;
       if ((file == null || !file.existsSync()) && allowNetwork) {
-        file = await TurqImageCacheManager.instance.getSingleFile(normalized);
+        file = await TurqAvatarCacheManager.instance.getSingleFile(normalized);
       }
       if (!_isBootstrapEpochCurrent(epoch)) return;
       final nextPath = (file != null && file.existsSync()) ? file.path : '';
       if (nextPath.isNotEmpty) {
-        TurqImageCacheManager.rememberResolvedFile(normalized, nextPath);
+        TurqAvatarCacheManager.rememberResolvedFile(normalized, nextPath);
       }
       if (nextPath != _resolvedFilePath && _isBootstrapEpochCurrent(epoch)) {
         setState(() {
@@ -497,12 +497,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         height: size,
         child: CacheFirstNetworkImage(
           imageUrl: imageUrl,
-          cacheManager: TurqImageCacheManager.instance,
+          cacheManager: TurqAvatarCacheManager.instance,
           fit: BoxFit.cover,
           downloadBeforeRender: false,
           fallback: fallback,
           memCacheWidth: size.round(),
           memCacheHeight: size.round(),
+          rememberedResolvedFilePathForUrls:
+              TurqAvatarCacheManager.rememberedResolvedFilePathForUrls,
+          rememberResolvedFile: TurqAvatarCacheManager.rememberResolvedFile,
         ),
       ),
     );

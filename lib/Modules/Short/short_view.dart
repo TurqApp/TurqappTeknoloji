@@ -196,7 +196,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   ShortAdRenderPlan _renderPlan = const ShortAdRenderPlan.empty();
   int _currentRenderPage = 0;
   bool _shortAdRenderable = false;
-  int? _deferredFirstShortAdAfterOrganicIndex;
   final Set<String> _recordedVisibleShortDocIds = <String>{};
   final Map<HLSVideoAdapter, VoidCallback> _videoEndListeners =
       <HLSVideoAdapter, VoidCallback>{};
@@ -289,30 +288,16 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     debugPrint('[ShortAdSlots] $message');
   }
 
-  int? _deferredFirstShortAdBoundaryForLateReady() {
-    if (currentPage < kShortAdInsertionFrequency - 1) return null;
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return (currentPage + 1).clamp(
-        kShortAdInsertionFrequency - 1,
-        _cachedShorts.isEmpty ? currentPage + 1 : _cachedShorts.length - 1,
-      );
-    }
-    return currentPage;
-  }
-
   void _rebuildShortRenderPlan() {
     _renderPlan = buildShortAdRenderPlan(
       _cachedShorts,
       adReady: _shortAdRenderable,
-      deferFirstAdUntilAfterOrganicIndex:
-          _deferredFirstShortAdAfterOrganicIndex,
     );
     _currentRenderPage = _renderPlan.renderIndexForOrganicIndex(currentPage);
     _logShortAdSlots(
       'render_plan posts=${_cachedShorts.length} '
       'adReady=$_shortAdRenderable entries=${_renderPlan.length} '
       'currentPage=$currentPage renderPage=$_currentRenderPage '
-      'deferredFirstAdAfter=$_deferredFirstShortAdAfterOrganicIndex '
       'adState=${AdmobKare.debugState}',
     );
   }
@@ -327,12 +312,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       return;
     }
     final previousRenderPage = _currentRenderPage;
-    if (!_shortAdRenderable && nextRenderable) {
-      _deferredFirstShortAdAfterOrganicIndex =
-          _deferredFirstShortAdBoundaryForLateReady();
-    } else if (!nextRenderable) {
-      _deferredFirstShortAdAfterOrganicIndex = null;
-    }
     _shortAdRenderable = nextRenderable;
     _rebuildShortRenderPlan();
     _updateShortViewState(() {});
@@ -357,8 +336,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     );
     unawaited(() async {
       await AdmobKare.warmupPool(
-        targetCount: 1,
-        maxRequestCount: 1,
+        targetCount: 4,
+        maxRequestCount: 2,
         bypassMinInterval: true,
       );
       if (!mounted) return;
@@ -373,12 +352,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         return;
       }
       final previousRenderPage = _currentRenderPage;
-      if (!_shortAdRenderable && nextRenderable) {
-        _deferredFirstShortAdAfterOrganicIndex =
-            _deferredFirstShortAdBoundaryForLateReady();
-      } else if (!nextRenderable) {
-        _deferredFirstShortAdAfterOrganicIndex = null;
-      }
       _shortAdRenderable = nextRenderable;
       _rebuildShortRenderPlan();
       _updateShortViewState(() {});
@@ -657,7 +630,11 @@ class _ShortViewState extends State<ShortView> with RouteAware {
       'warmup_request source=view_init '
       'state=${AdmobKare.debugState}',
     );
-    unawaited(AdmobKare.warmupPool(targetCount: 1, maxRequestCount: 1));
+    unawaited(AdmobKare.warmupPool(
+      targetCount: 4,
+      maxRequestCount: 2,
+      debugSource: 'short_view_init',
+    ));
     Future<void>.delayed(const Duration(milliseconds: 1200), () async {
       if (!mounted) return;
       _logShortAdSlots(
@@ -665,9 +642,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
         'state=${AdmobKare.debugState}',
       );
       await AdmobKare.warmupPool(
-        targetCount: 1,
-        maxRequestCount: 1,
+        targetCount: 4,
+        maxRequestCount: 2,
         bypassMinInterval: true,
+        debugSource: 'short_view_init_delayed',
       );
     });
     if (_cachedShorts.isNotEmpty) {
@@ -753,6 +731,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _shortsWorker?.dispose();
     AdmobKare.availabilityRevision
         .removeListener(_handleShortAdAvailabilityChanged);
+    AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
     if (_routeObserverSubscribed) {
       try {
         routeObserver.unsubscribe(this);

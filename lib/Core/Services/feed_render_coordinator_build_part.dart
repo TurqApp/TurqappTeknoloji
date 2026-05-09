@@ -77,6 +77,7 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
   List<Map<String, dynamic>> buildRenderEntries({
     required List<Map<String, dynamic>> filteredEntries,
     int? maxRenderEntries,
+    bool forceAdPromos = false,
   }) {
     if (filteredEntries.isEmpty) return const <Map<String, dynamic>>[];
 
@@ -134,7 +135,8 @@ extension FeedRenderCoordinatorBuildPart on FeedRenderCoordinator {
           break;
         }
 
-        final promoType = promoOrdinal.isEven ? 'ad' : 'recommended';
+        final promoType =
+            forceAdPromos ? 'ad' : (promoOrdinal.isEven ? 'ad' : 'recommended');
         renderEntries.add(<String, dynamic>{
           'renderType': 'promo',
           'promoType': promoType,

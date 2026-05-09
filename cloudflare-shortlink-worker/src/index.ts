@@ -43,6 +43,15 @@ export default {
       return proxyOgImage(request, url, env);
     }
 
+    if (path === "/policy" || path === "/policy/") {
+      return new Response(privacyPolicyHtml(), {
+        status: 200,
+        headers: htmlHeaders({
+          "cache-control": "public, max-age=300",
+        }),
+      });
+    }
+
     if (path === "/app-ads.txt") {
       const body = String(env.APP_ADS_TXT || DEFAULT_APP_ADS_TXT).trim();
       return new Response(`${body}\n`, {
@@ -356,6 +365,75 @@ function ogHtml(input: { title: string; desc: string; image: string; canonical: 
   <meta name="twitter:image" content="${input.image}" />
 </head>
 <body></body>
+</html>`;
+}
+
+function privacyPolicyHtml(): string {
+  return `<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TurqApp Gizlilik Politikası</title>
+  <meta name="description" content="TurqApp gizlilik politikası" />
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #181818; background: #ffffff; }
+    main { max-width: 860px; margin: 0 auto; padding: 40px 20px 56px; line-height: 1.62; }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+    h2 { font-size: 20px; margin: 30px 0 8px; }
+    p, li { font-size: 16px; }
+    .muted { color: #666; margin-top: 0; }
+    a { color: #175cd3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TurqApp Gizlilik Politikası</h1>
+    <p class="muted">Son güncelleme: 8 Mayıs 2026</p>
+
+    <p>TurqApp, kullanıcı gizliliğini ürün deneyiminin temel bir parçası olarak görür. Bu politika, TurqApp mobil uygulaması ve ilişkili web sayfalarında hangi bilgilerin hangi amaçlarla işlendiğini açıklar.</p>
+
+    <h2>1. Topladığımız Bilgiler</h2>
+    <p>TurqApp kullanılırken aşağıdaki bilgiler oluşabilir veya kullanıcı tarafından paylaşılabilir:</p>
+    <ul>
+      <li>Hesap açarken ve profil düzenlerken verilen ad, kullanıcı adı, profil fotoğrafı, bio, meslek, okul ve benzeri profil bilgileri.</li>
+      <li>Paylaşılan post, video, görsel, hikaye, yorum, mesaj, başvuru, ilan ve pazar yeri içerikleri.</li>
+      <li>Uygulama kullanımı sırasında oluşan cihaz, uygulama sürümü, hata, güvenlik, performans ve oturum kayıtları.</li>
+      <li>Kullanıcı izin verirse konum, kamera, galeri, bildirim ve rehber gibi cihaz izinlerine bağlı veriler.</li>
+      <li>Satın alma, reklam, analitik veya güvenlik servisleri tarafından sağlanan teknik işlem bilgileri.</li>
+    </ul>
+
+    <h2>2. Bilgileri Neden Kullanırız?</h2>
+    <p>Bu bilgiler; uygulamayı çalıştırmak, hesap ve profil deneyimini sunmak, içerikleri göstermek ve sıralamak, güvenliği sağlamak, spam ve kötüye kullanımı önlemek, bildirim göndermek, destek taleplerini değerlendirmek, performansı iyileştirmek ve yasal yükümlülükleri yerine getirmek için kullanılabilir.</p>
+
+    <h2>3. İzinler</h2>
+    <p>TurqApp belirli özellikler için cihaz izinleri isteyebilir. Konum izni yakın içerik ve konum bazlı özellikler için, kamera ve galeri izinleri medya yükleme için, bildirim izni uygulama bildirimleri için, rehber izni ise kullanıcı açıkça tercih ederse kişi bulma ve bağlantı kolaylığı için kullanılabilir. İzin verilmemesi durumunda ilgili özellikler sınırlı çalışabilir.</p>
+
+    <h2>4. Üçüncü Taraf Servisler</h2>
+    <p>TurqApp; kimlik doğrulama, veri saklama, medya depolama, bildirim, analitik, performans izleme, hata raporlama, reklam ve uygulama dağıtımı için Google Firebase, Google Play, Apple servisleri ve kullanılan reklam/analitik sağlayıcıları gibi üçüncü taraf servislerden yararlanabilir. Bu servisler yalnızca uygulamanın çalışması, güvenliği ve geliştirilmesi için gerekli ölçüde kullanılır.</p>
+
+    <h2>5. İçerik ve Mahremiyet</h2>
+    <p>TurqApp içinde paylaşılan bazı içerikler, paylaşım yapılan yüzeye ve görünürlük ayarlarına bağlı olarak diğer kullanıcılar tarafından görülebilir. Mesajlar, raporlanan içerikler, güvenlik riski taşıyan durumlar veya hukuki zorunluluklar haricinde keyfi olarak incelenmez; platform güvenliği için gerekli hallerde sınırlı inceleme yapılabilir.</p>
+
+    <h2>6. Veri Saklama ve Silme</h2>
+    <p>Veriler, hizmetin sunulması, güvenlik, yasal yükümlülükler ve kullanıcı taleplerinin yönetilmesi için gerekli süre boyunca saklanır. Kullanıcılar hesap kapatma veya veri silme talepleri için bizimle iletişime geçebilir. Silinen hesaplara ait bazı kayıtlar; güvenlik, uyuşmazlık çözümü veya yasal zorunluluklar nedeniyle sınırlı süreyle saklanabilir.</p>
+
+    <h2>7. Çocuklar ve Genç Kullanıcılar</h2>
+    <p>TurqApp eğitim odaklı yüzeyler içerebilir. Çocuk güvenliğini tehdit eden içeriklere izin verilmez. Yaş gruplarına göre ek koruma ve kısıtlamalar uygulanabilir. Yasal olarak gerekli hallerde ebeveyn veya yasal temsilci onayı aranabilir.</p>
+
+    <h2>8. Kullanıcı Hakları</h2>
+    <p>Kullanıcılar profil bilgilerini güncelleyebilir, cihaz izinlerini ve bildirim tercihlerini yönetebilir, hesap kapatma veya veri taleplerini iletebilir. Talepler, kimlik doğrulama ve güvenlik kontrollerinden sonra değerlendirilir.</p>
+
+    <h2>9. Güvenlik</h2>
+    <p>TurqApp; yetkisiz erişim, veri kaybı, sahtecilik, spam ve kötüye kullanımı azaltmak için teknik ve operasyonel önlemler uygular. Buna rağmen internet üzerinden çalışan hiçbir sistemin tamamen risksiz olmadığı unutulmamalıdır.</p>
+
+    <h2>10. Politika Güncellemeleri</h2>
+    <p>Bu politika zaman zaman güncellenebilir. Güncel metin bu sayfada yayımlanır. Önemli değişikliklerde uygulama içinden veya uygun iletişim kanallarıyla bilgilendirme yapılabilir.</p>
+
+    <h2>11. İletişim</h2>
+    <p>Gizlilik, veri talepleri veya hesap silme konularında <a href="mailto:info@turqapp.com">info@turqapp.com</a> adresinden bizimle iletişime geçebilirsiniz.</p>
+  </main>
+</body>
 </html>`;
 }
 

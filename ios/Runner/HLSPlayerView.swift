@@ -306,9 +306,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         logVisualCheckpoint("play:entry")
         let now = CACurrentMediaTime()
         let normalizedUrl = currentUrl ?? ""
+        let snapshotIsVisible = !_view.snapshotView.isHidden
+        let playerIsActivelyPlaying = isPlaying()
         if !normalizedUrl.isEmpty,
            lastExplicitPlayUrl == normalizedUrl,
-           now - lastExplicitPlayAt < 0.35 {
+           now - lastExplicitPlayAt < 0.35,
+           playerIsActivelyPlaying,
+           !snapshotIsVisible {
             log("playDeduped url=\(normalizedUrl)")
             return
         }
@@ -326,6 +330,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackHealthMonitor.onPlaybackRequested()
         player?.play()
         scheduleVisualLayerStabilization(forceReattach: false)
+        scheduleFrameSnapshotRelease(source: "play_after_native_play")
         logVisualCheckpoint("play:after_native_play")
     }
 
@@ -687,6 +692,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             } else {
                 player.play()
             }
+            self.scheduleFrameSnapshotRelease(source: "autoplay_after_native_play")
             self.logVisualCheckpoint("autoplay:after_native_play")
         }
         autoplayRequestWorkItem = workItem
@@ -768,6 +774,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                 phase: "video_play",
                 source: source
             )
+        }
+    }
+
+    private func scheduleFrameSnapshotRelease(source: String) {
+        let delays: [Double] = [0.0, 0.08, 0.18, 0.35]
+        for delay in delays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.maybeReleaseFrameSnapshot(source: source)
+            }
         }
     }
 
@@ -1176,6 +1191,7 @@ extension HLSPlayerView: FlutterStreamHandler {
             sendEvent(["event": "firstFrame"])
         }
         if isPlaying() {
+            scheduleFrameSnapshotRelease(source: "stream_listen_playing")
             sendEvent(["event": "play"])
         } else if playerItem?.isPlaybackLikelyToKeepUp == false {
             sendEvent(["event": "buffering", "isBuffering": true])

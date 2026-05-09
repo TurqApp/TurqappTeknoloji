@@ -52,8 +52,11 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
         return _buildLoadingPlaceholder();
       }
 
-      final List<RecommendedUserModel> items = controller.list;
-      // Slot bazlı döndürme: her slot farklı 15'lik pencere göstersin
+      final List<RecommendedUserModel> items = _rankedItemsForBatch(
+        controller.list,
+        widget.batch,
+      );
+      // Slot bazlı döndürme: her slot farklı 6'lık pencere göstersin
       const int window = 6;
       if (items.isEmpty) return const SizedBox.shrink();
       final int start = ((widget.batch - 1) * window) % items.length;
@@ -127,6 +130,34 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
         _prefetchRequested = false; // controller bulunamazsa tekrar dene
       }
     }
+  }
+
+  List<RecommendedUserModel> _rankedItemsForBatch(
+    List<RecommendedUserModel> items,
+    int batch,
+  ) {
+    if (items.length < 2) return List<RecommendedUserModel>.from(items);
+    final now = DateTime.now();
+    final daySeed = now.year * 10000 + now.month * 100 + now.day;
+    final seed = 'recommended:$daySeed:$batch';
+    final ranked = List<RecommendedUserModel>.from(items);
+    ranked.sort((left, right) {
+      final leftScore = _stableHash('$seed:${left.userID}');
+      final rightScore = _stableHash('$seed:${right.userID}');
+      final scoreCompare = leftScore.compareTo(rightScore);
+      if (scoreCompare != 0) return scoreCompare;
+      return left.userID.compareTo(right.userID);
+    });
+    return ranked;
+  }
+
+  int _stableHash(String value) {
+    var hash = 0x811c9dc5;
+    for (var i = 0; i < value.length; i++) {
+      hash ^= value.codeUnitAt(i);
+      hash = (hash * 0x01000193) & 0x7fffffff;
+    }
+    return hash;
   }
 
   Widget _buildLoadingPlaceholder() {

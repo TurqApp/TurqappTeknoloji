@@ -409,6 +409,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   bool _shouldDelayAutoplayForSegments(HLSVideoAdapter adapter) {
     if (!widget.model.hasPlayableVideo) return false;
     if (!widget.shouldPlay) return false;
+    if (_usesFeedPlaybackPolicy) return false;
     if (_autoplaySegmentGateTimedOut) return false;
     final value = adapter.value;
     if (PlaybackSurfacePolicy.shouldBypassFeedSegmentDelayWhenInitialized(
@@ -535,15 +536,19 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }) async {
     final adapter = _videoAdapter;
     if (adapter == null) return;
+    final keepWarmWindowSurface = _usesFeedPlaybackPolicy &&
+        _shouldKeepPrimaryFeedSurfaceAliveInWarmWindow;
     final shouldKeepWarmForSurfaceLoss =
         (defaultTargetPlatform == TargetPlatform.android ||
                 defaultTargetPlatform == TargetPlatform.iOS) &&
             _usesFeedPlaybackPolicy &&
+            keepWarmWindowSurface &&
             !clearSavedState;
     debugPrint(
       '[FeedSurfaceDecision] stage=dispose_for_surface_loss '
       'doc=${widget.model.docID} clearSavedState=$clearSavedState '
       'shouldKeepWarmForSurfaceLoss=$shouldKeepWarmForSurfaceLoss '
+      'keepWarmWindowSurface=$keepWarmWindowSurface '
       'modelIndex=${_surfaceModelIndex()} adapterBound=${_videoAdapter != null}',
     );
     if (shouldKeepWarmForSurfaceLoss) {
@@ -594,46 +599,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   }
 
   void pauseVideo() => _safePauseVideo();
-
-  bool _shouldRestartFromBeginningOnFeedReentry(String source) =>
-      _usesFeedPlaybackPolicy &&
-      source == 'widget_should_play_changed' &&
-      defaultTargetPlatform == TargetPlatform.android;
-
-  Future<void> _restartPlaybackFromBeginningForFeedReentry({
-    required HLSVideoAdapter adapter,
-    required String source,
-  }) async {
-    _recordPlaybackDispatch(
-      'feed_card_reentry_restart_from_zero',
-      source: source,
-      dispatchIssued: false,
-      metadata: <String, dynamic>{
-        'positionMs': adapter.value.position.inMilliseconds,
-        'durationMs': adapter.value.duration.inMilliseconds,
-      },
-    );
-    _replayOverlayLatched = false;
-    _replayAdPrewarmed = false;
-    _replayAdVisible = false;
-    _replayButtonVisible = false;
-    _replayAdImpressionReceived = false;
-    _replayAdHideTimer?.cancel();
-    _manualPauseRequested = false;
-    _hasAutoPlayed = false;
-    _lastQueuedSavedResumePosition = null;
-    _lastQueuedSavedResumeAt = null;
-    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
-    try {
-      await adapter.setLooping(shouldLoopVideo);
-      await adapter.seekTo(Duration.zero);
-    } catch (_) {
-      return;
-    }
-    if (!mounted || _videoAdapter != adapter) return;
-    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
-    _startPlaybackWhenReady(source: '$source:reentry_zero');
-  }
 
   Future<void> _restartCompletedPlaybackForAutoplay({
     required String source,
@@ -761,17 +726,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           source: '$source:init_requested',
         );
       }
-      return;
-    }
-
-    if (_shouldRestartFromBeginningOnFeedReentry(source) &&
-        adapter.value.position > Duration.zero) {
-      unawaited(
-        _restartPlaybackFromBeginningForFeedReentry(
-          adapter: adapter,
-          source: source,
-        ),
-      );
       return;
     }
 
@@ -939,11 +893,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (_controllerOwnsInlinePlayback) {
       final currentOwner =
           _playbackRuntimeService.currentPlayingDocId == playbackHandleKey;
-      final runtimeCurrentOwner =
-          _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
-      final pendingClaim = _playbackRuntimeService.hasPendingPlayFor(
-        playbackHandleKey,
-      );
       final shouldForceAndroidFeedResumeReassert =
           PlaybackSurfacePolicy.shouldReassertStoppedFeedOwner(
         platform: defaultTargetPlatform,
@@ -980,21 +929,45 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         } catch (_) {}
         return;
       }
+      _playbackRuntimeService.registerPlaybackHandle(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
+      );
       final resumedByManager = _playbackRuntimeService
           .resumeCurrentPlaybackIfReady(playbackHandleKey);
+      if (_usesFeedPlaybackPolicy) {
+        debugPrint(
+          '[FeedPlaybackProof] stage=controller_resume_result '
+          'doc=${widget.model.docID} source=$source '
+          'resumedByManager=$resumedByManager '
+          'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''} '
+          'shouldPlay=${widget.shouldPlay} '
+          'initialized=${adapter.value.isInitialized} '
+          'playing=${adapter.value.isPlaying} '
+          'buffering=${adapter.value.isBuffering} '
+          'firstFrame=${adapter.value.hasRenderedFirstFrame} '
+          'positionMs=${adapter.value.position.inMilliseconds} '
+          'durationMs=${adapter.value.duration.inMilliseconds}',
+        );
+      }
       if (!resumedByManager) {
+        final currentOwnerAfterResume =
+            _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
+        final pendingClaimAfterResume =
+            _playbackRuntimeService.hasPendingPlayFor(playbackHandleKey);
         final shouldBootstrapInitialFeedClaim =
             _canBootstrapPrimaryFeedOwnershipClaim &&
-                !pendingClaim &&
-                runtimeCurrentOwner.isEmpty;
+                !pendingClaimAfterResume &&
+                currentOwnerAfterResume.isEmpty;
         if (shouldBootstrapInitialFeedClaim) {
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _usesFeedPlaybackPolicy) {
             debugPrint(
               '[FeedColdStartTrace] stage=bootstrap_claim '
               'doc=${widget.model.docID} '
-              'source=$source currentOwner=$runtimeCurrentOwner '
-              'pendingClaim=$pendingClaim shouldPlay=${widget.shouldPlay} '
+              'source=$source currentOwner=$currentOwnerAfterResume '
+              'pendingClaim=$pendingClaimAfterResume '
+              'shouldPlay=${widget.shouldPlay} '
               'surfaceAllowed=$_isSurfacePlaybackAllowed '
               'adapterInit=${adapter.value.isInitialized} '
               'adapterPlaying=${adapter.value.isPlaying}',
@@ -1090,12 +1063,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           dispatchIssued: false,
           skipReason: currentOwner
               ? 'manager_not_ready'
-              : (pendingClaim
+              : (pendingClaimAfterResume
                   ? 'manager_pending_handoff'
                   : 'waiting_for_feed_controller_handoff'),
           metadata: <String, dynamic>{
             'currentOwner': currentOwner,
-            'pendingClaim': pendingClaim,
+            'pendingClaim': pendingClaimAfterResume,
+            'runtimeCurrentOwner': currentOwnerAfterResume,
           },
         );
         _applyPlaybackVolume();
@@ -1135,7 +1109,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     final managerPendingPlay = _playbackRuntimeService.hasPendingPlayFor(
       playbackHandleKey,
     );
-    if (!adapter.value.isPlaying) {
+    final shouldReassertFeedAdapterPlay = _usesFeedPlaybackPolicy &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed;
+    if (!adapter.value.isPlaying || shouldReassertFeedAdapterPlay) {
       if (managerPendingPlay) {
         _recordPlaybackDispatch(
           'feed_card_adapter_play_skipped',
@@ -1145,7 +1122,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         );
       } else {
         _recordPlaybackDispatch(
-          'feed_card_adapter_play',
+          adapter.value.isPlaying
+              ? 'feed_card_adapter_reassert_play'
+              : 'feed_card_adapter_play',
           source: source,
         );
         unawaited(_playbackExecutionService.playAdapter(adapter));

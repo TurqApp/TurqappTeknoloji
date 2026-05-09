@@ -238,6 +238,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     try {
       final poolFuture = _feedManifestRepository.loadRollingPool(
         maxSlotsToLoad: slotLoadBudget,
+        minEntriesToReturn: pageEndExclusive,
       );
       final pool = primaryLoadTimeout == Duration.zero
           ? await poolFuture
@@ -263,9 +264,14 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       }
 
       await _feedDiversityMemory.ensureReady();
+      final consumedDocIds = _feedDiversityMemory.weeklyWatchedPenaltyDocIds();
+      final consumedFloodRootIds =
+          _feedDiversityMemory.weeklyWatchedFloodRootIds();
       final gapEntries = await _loadFeedManifestGapEntries(
         manifestId: pool.manifestId,
         hiddenPostIds: hiddenPostIds,
+        consumedDocIds: consumedDocIds,
+        consumedFloodRootIds: consumedFloodRootIds,
         nowMs: nowMs,
         cutoffMs: cutoffMs,
         manifestGeneratedAt: pool.generatedAt,
@@ -291,13 +297,10 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           ..._feedDiversityMemory.startupHeadPenaltyDocIds(),
           ..._feedDiversityMemory.startupHeadPenaltyFloodRootIds(),
         },
-        gapEvery: FeedManifestPolicy.gapEvery,
+        leadingGapCount: FeedManifestPolicy.gapSlotBatchSize,
         minUserSpacing: FeedManifestPolicy.minUserSpacing,
         maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
       );
-      final consumedDocIds = _feedDiversityMemory.weeklyWatchedPenaltyDocIds();
-      final consumedFloodRootIds =
-          _feedDiversityMemory.weeklyWatchedFloodRootIds();
       final visibleEntries = _selectVisibleFeedManifestEntries(
         manifestEntries: pool.entries,
         gapEntries: gapEntries,
@@ -349,7 +352,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           final post = entry.post;
           final ageMinutes = max(
             0,
-            ((nowMs - post.timeStamp.toInt()) / const Duration(minutes: 1).inMilliseconds)
+            ((nowMs - post.timeStamp.toInt()) /
+                    const Duration(minutes: 1).inMilliseconds)
                 .floor(),
           );
           final slotPath = entry.entry.slotPath.trim();
@@ -458,8 +462,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       summaryCacheOnly: true,
       refreshNonPublicCachedSummaries: false,
     );
+    final filteredVisible = _filterConsumedFeedSnapshotPosts(visible);
     return FeedSourcePage(
-      items: visible,
+      items: filteredVisible,
       lastDoc: null,
       usesPrimaryFeed: false,
       itemsPreplanned: true,
@@ -470,6 +475,8 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({
     required String manifestId,
     required Set<String> hiddenPostIds,
+    required Set<String> consumedDocIds,
+    required Set<String> consumedFloodRootIds,
     required int nowMs,
     required int cutoffMs,
     required int manifestGeneratedAt,
@@ -493,38 +500,98 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       return const <FeedManifestEntry>[];
     }
     final effectiveNowMs = min(nowMs, gapCacheUntilMs);
-    final gapCutoffMs = max(cutoffMs, gapWindowStartMs);
+    final gapCutoffMs = max(
+      cutoffMs,
+      effectiveNowMs - FeedManifestPolicy.gapWindowDuration.inMilliseconds,
+    );
     if (gapCutoffMs >= effectiveNowMs) {
       return const <FeedManifestEntry>[];
     }
-    final cacheKey = '${slotWindow.cacheKey}:$gapWindowStartMs:$gapCacheUntilMs';
+    final cacheKey =
+        '${slotWindow.cacheKey}:$gapWindowStartMs:$gapCacheUntilMs';
+    final candidateLimit = FeedManifestPolicy.resolveGapCandidateLimit(limit);
+    List<FeedManifestEntry> filterUsableGapEntries(
+      List<FeedManifestEntry> entries,
+    ) {
+      final result = _filterUsableFeedManifestGapEntries(
+        entries,
+        hiddenPostIds: hiddenPostIds,
+        consumedDocIds: consumedDocIds,
+        consumedFloodRootIds: consumedFloodRootIds,
+        nowMs: effectiveNowMs,
+        cutoffMs: gapCutoffMs,
+        limit: candidateLimit,
+      );
+      return result.entries;
+    }
+
+    bool isGapCacheUsable({
+      required List<FeedManifestEntry> rawEntries,
+      required List<FeedManifestEntry> visibleEntries,
+    }) {
+      if (rawEntries.isEmpty) return false;
+      if (visibleEntries.length >= FeedManifestPolicy.gapSlotBatchSize) {
+        return true;
+      }
+      return visibleEntries.length == rawEntries.length;
+    }
+
     if (_state.gapWindowCacheKey == cacheKey &&
         _state.gapWindowCacheFuture == null &&
         nowMs < gapCacheUntilMs) {
+      final visibleCacheEntries =
+          filterUsableGapEntries(_state.gapWindowCacheEntries);
       if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedManifestPrimary] gap_status=cache_hit '
           'manifest=$manifestId count=${_state.gapWindowCacheEntries.length} '
+          'visible=${visibleCacheEntries.length} '
           'windowStart=$gapWindowStartMs cacheUntil=$gapCacheUntilMs',
         );
       }
-      return _state.gapWindowCacheEntries;
+      if (isGapCacheUsable(
+        rawEntries: _state.gapWindowCacheEntries,
+        visibleEntries: visibleCacheEntries,
+      )) {
+        return visibleCacheEntries;
+      }
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] gap_status=cache_stale '
+          'manifest=$manifestId raw=${_state.gapWindowCacheEntries.length} '
+          'visible=${visibleCacheEntries.length} reason=consumed_pruned',
+        );
+      }
     }
     final persisted = await _readPersistedGapEntries(
       cacheKey: cacheKey,
       nowMs: nowMs,
     );
     if (persisted.isNotEmpty) {
-      _state.gapWindowCacheKey = cacheKey;
-      _state.gapWindowCacheEntries = persisted;
+      final visiblePersisted = filterUsableGapEntries(persisted);
       if (_shouldLogDiagnostics) {
         debugPrint(
           '[FeedManifestPrimary] gap_status=disk_cache_hit '
           'manifest=$manifestId count=${persisted.length} '
+          'visible=${visiblePersisted.length} '
           'windowStart=$gapWindowStartMs cacheUntil=$gapCacheUntilMs',
         );
       }
-      return persisted;
+      if (isGapCacheUsable(
+        rawEntries: persisted,
+        visibleEntries: visiblePersisted,
+      )) {
+        _state.gapWindowCacheKey = cacheKey;
+        _state.gapWindowCacheEntries = visiblePersisted;
+        return visiblePersisted;
+      }
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] gap_status=disk_cache_stale '
+          'manifest=$manifestId raw=${persisted.length} '
+          'visible=${visiblePersisted.length} reason=consumed_pruned',
+        );
+      }
     }
     if (_state.gapWindowCacheKey == cacheKey &&
         _state.gapWindowCacheFuture != null &&
@@ -532,7 +599,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       return _state.gapWindowCacheFuture!;
     }
     final ownedMinutes = List<int>.generate(60, (index) => index);
-    final candidateLimit = FeedManifestPolicy.resolveGapCandidateLimit(limit);
     final loadFuture = () async {
       try {
         final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
@@ -559,28 +625,43 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
               ),
             )
             .toList(growable: false);
-        _state.gapWindowCacheKey = cacheKey;
-        _state.gapWindowCacheEntries = entries;
-        await _persistGapEntries(
-          cacheKey: cacheKey,
-          cacheUntilMs: gapCacheUntilMs,
-          entries: entries,
+        final usableResult = _filterUsableFeedManifestGapEntries(
+          entries,
+          hiddenPostIds: hiddenPostIds,
+          consumedDocIds: consumedDocIds,
+          consumedFloodRootIds: consumedFloodRootIds,
+          nowMs: effectiveNowMs,
+          cutoffMs: gapCutoffMs,
+          limit: candidateLimit,
         );
+        final usableEntries = usableResult.entries;
+        _state.gapWindowCacheKey = cacheKey;
+        _state.gapWindowCacheEntries = usableEntries;
+        if (usableEntries.isNotEmpty) {
+          await _persistGapEntries(
+            cacheKey: cacheKey,
+            cacheUntilMs: gapCacheUntilMs,
+            entries: usableEntries,
+          );
+        }
         if (_shouldLogDiagnostics) {
           debugPrint(
             '[FeedManifestPrimary] gap_status=ready '
             'manifest=$manifestId rawFetched=${motorPage.items.length} '
             'filteredVisible=${visible.length} count=${entries.length} '
+            'usable=${usableEntries.length} '
+            'consumedPruned=${usableResult.consumedPrunedCount} '
             'windowStart=$gapWindowStartMs '
             'cacheUntil=$gapCacheUntilMs',
           );
           debugPrint(
             '[GAP] status=ready '
             'manifest=$manifestId raw=${motorPage.items.length} '
-            'filtered=${visible.length} cached=${entries.length}',
+            'filtered=${visible.length} cached=${usableEntries.length} '
+            'consumedPruned=${usableResult.consumedPrunedCount}',
           );
         }
-        return entries;
+        return usableEntries;
       } catch (error) {
         if (_shouldLogDiagnostics) {
           debugPrint('[FeedManifestPrimary] gap_status=fail error=$error');
@@ -595,6 +676,62 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     _state.gapWindowCacheKey = cacheKey;
     _state.gapWindowCacheFuture = loadFuture;
     return loadFuture;
+  }
+
+  ({List<FeedManifestEntry> entries, int consumedPrunedCount})
+      _filterUsableFeedManifestGapEntries(
+    List<FeedManifestEntry> entries, {
+    required Set<String> hiddenPostIds,
+    required Set<String> consumedDocIds,
+    required Set<String> consumedFloodRootIds,
+    required int nowMs,
+    required int cutoffMs,
+    required int limit,
+  }) {
+    if (entries.isEmpty || limit <= 0) {
+      return (entries: const <FeedManifestEntry>[], consumedPrunedCount: 0);
+    }
+    final visible = <FeedManifestEntry>[];
+    final seenDocIds = <String>{};
+    final seenCanonicals = <String>{};
+    var consumedPrunedCount = 0;
+    for (final entry in entries) {
+      final post = entry.post;
+      final docId = post.docID.trim();
+      final canonicalId = entry.canonicalId.trim();
+      if (docId.isEmpty || canonicalId.isEmpty) continue;
+      if (!seenDocIds.add(docId)) continue;
+      if (!seenCanonicals.add(canonicalId)) continue;
+      if (_isNonRootFloodChildPost(post)) continue;
+      if (hiddenPostIds.contains(docId)) continue;
+      if (consumedDocIds.contains(docId)) {
+        consumedPrunedCount++;
+        continue;
+      }
+      final floodRootId = post.isFloodSeriesContent
+          ? (post.mainFlood.trim().isNotEmpty
+              ? post.mainFlood.trim()
+              : (post.isFloodSeriesRoot
+                  ? docId
+                  : docId.replaceFirst(RegExp(r'_\d+$'), '')))
+          : '';
+      if (floodRootId.isNotEmpty &&
+          consumedFloodRootIds.contains(floodRootId)) {
+        consumedPrunedCount++;
+        continue;
+      }
+      if (post.userID.trim().isEmpty) continue;
+      if (post.deletedPost == true || post.gizlendi) continue;
+      if (post.shouldHideWhileUploading) continue;
+      if (!_isRenderablePost(post)) continue;
+      if (!_isInAgendaWindow(post.timeStamp.toInt(), nowMs, cutoffMs)) {
+        continue;
+      }
+      if (post.timeStamp > nowMs) continue;
+      visible.add(entry);
+      if (visible.length >= limit) break;
+    }
+    return (entries: visible, consumedPrunedCount: consumedPrunedCount);
   }
 
   String _resolvePrimarySlotPath(List<FeedManifestEntry> entries) {
@@ -1008,17 +1145,19 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       summaryCacheOnly: cacheOnly,
       refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
     );
+    final filteredVisible = _filterConsumedFeedSnapshotPosts(visible);
 
     if (_shouldLogDiagnostics) {
       debugPrint(
         '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
         'merged=${merged.length} visible=${visible.length} '
+        'consumedFiltered=${filteredVisible.length} '
         'globalBadge=${globalBadgePosts.length}',
       );
     }
 
     return FeedSourcePage(
-      items: visible,
+      items: filteredVisible,
       lastDoc: null,
       usesPrimaryFeed: false,
       itemsPreplanned: false,
@@ -1057,13 +1196,48 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       summaryCacheOnly: false,
       refreshNonPublicCachedSummaries: false,
     );
+    final filteredVisible = _filterConsumedFeedSnapshotPosts(visible);
     return FeedSourcePage(
-      items: visible,
+      items: filteredVisible,
       lastDoc: null,
       usesPrimaryFeed: true,
       itemsPreplanned: false,
       nextTypesensePage: null,
     );
+  }
+
+  List<PostsModel> _filterConsumedFeedSnapshotPosts(List<PostsModel> posts) {
+    if (posts.isEmpty) return posts;
+    final diversity = FeedDiversityMemoryService.maybeFind();
+    if (diversity == null || !diversity.isReady) return posts;
+    final consumedDocIds = diversity.weeklyWatchedPenaltyDocIds();
+    final consumedFloodRootIds = diversity.weeklyWatchedFloodRootIds();
+    if (consumedDocIds.isEmpty && consumedFloodRootIds.isEmpty) return posts;
+    final filtered = posts.where((post) {
+      final docId = post.docID.trim();
+      if (docId.isNotEmpty && consumedDocIds.contains(docId)) {
+        return false;
+      }
+      final floodRootId = post.isFloodSeriesContent
+          ? (post.mainFlood.trim().isNotEmpty
+              ? post.mainFlood.trim()
+              : (post.isFloodSeriesRoot
+                  ? docId
+                  : docId.replaceFirst(RegExp(r'_\d+$'), '')))
+          : '';
+      if (floodRootId.isNotEmpty &&
+          consumedFloodRootIds.contains(floodRootId)) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+    if (_shouldLogDiagnostics && filtered.length != posts.length) {
+      debugPrint(
+        '[FeedSnapshot] status=consumed_fallback_prune '
+        'before=${posts.length} after=${filtered.length}',
+      );
+    }
+    return filtered;
   }
 
   List<PostsModel> _sortFeedCandidatesForVisibility(List<PostsModel> posts) {

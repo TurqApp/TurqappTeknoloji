@@ -8,6 +8,7 @@ extension ProfileControllerLifecyclePart on ProfileController {
     lastCenteredIndex = mergedPosts.isEmpty ? null : 0;
     _pendingCenteredIdentity = null;
     _visibleFractions.clear();
+    _visibleUpdatedAt.clear();
     pausetheall.value = false;
     showPfImage.value = false;
     showScrollToTop.value = false;

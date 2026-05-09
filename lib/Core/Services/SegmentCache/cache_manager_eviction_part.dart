@@ -1,7 +1,7 @@
 part of 'cache_manager.dart';
 
 const bool _offlineHlsArchiveEnabled = false;
-const Duration _userInteractionEvictionGracePeriod = Duration(minutes: 5);
+const Duration _userInteractionEvictionGracePeriod = Duration(minutes: 20);
 const int _shortOfflineReserveFloor = 0;
 const int _feedOfflineReserveFloor = 0;
 
@@ -37,6 +37,15 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   }
 
   Future<void> purgeExpiredEntries() async {
+    if (_SegmentCacheManagerRuntimeX(
+      this,
+    )._shouldDeferMaintenanceForHotPlayback(source: 'purge_expired')) {
+      _SegmentCacheManagerRuntimeX(
+        this,
+      )._scheduleDeferredMaintenance(source: 'purge_expired');
+      return;
+    }
+
     final now = DateTime.now();
     final reservedShortCount = _reservedShortCount();
     final reservedFeedCount = _reservedFeedCount();
@@ -173,7 +182,7 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
       return false;
     }
     if (!_offlineHlsArchiveEnabled) {
-      return true;
+      return entry.feedConsumedAt != null || entry.shortConsumedAt != null;
     }
     if (entry.state == VideoCacheState.watched) {
       return true;

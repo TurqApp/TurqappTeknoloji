@@ -827,6 +827,23 @@ async function upsertDoc(doc) {
         throw err;
     }
 }
+async function postDocExists(postId) {
+    await ensurePostsCollection();
+    const baseUrl = getTypesenseBaseUrl();
+    try {
+        await axios_1.default.get(`${baseUrl}/collections/${POSTS_COLLECTION}/documents/${encodeURIComponent(postId)}`, {
+            headers: headers(),
+            timeout: 8000,
+        });
+        return true;
+    }
+    catch (err) {
+        const status = err?.response?.status;
+        if (status === 404)
+            return false;
+        throw err;
+    }
+}
 async function deleteDoc(postId) {
     await ensurePostsCollection();
     const baseUrl = getTypesenseBaseUrl();
@@ -1227,8 +1244,7 @@ async function getMotorCandidatesFromTypesense(options) {
         surface,
         limit,
     });
-    if (strictRanked.preferredHits.length >= limit ||
-        Number(strictBody.found || 0) <= limit) {
+    if (strictRanked.preferredHits.length >= limit) {
         return {
             surface,
             ownedMinutes,
@@ -1422,6 +1438,25 @@ exports.f14_syncPostsToTypesense = (0, firestore_1.onDocumentWritten)({
     if (beforeIndexed &&
         postDocsEqual(beforeComparable, afterComparable) &&
         !hasTagChanges) {
+        const exists = await postDocExists(postId);
+        if (!exists) {
+            const repairedDoc = await buildSearchDocForIndexing(postId, afterData);
+            await upsertDoc(repairedDoc);
+            if (afterTagEntries.length) {
+                await upsertTagDocs(postId, repairedDoc.userID || "", Number(repairedDoc.timeStamp || Date.now()), afterTagEntries);
+            }
+            console.log("post_sync_repair_missing", {
+                postId,
+                hlsStatus: repairedDoc.hlsStatus,
+                hasPlayableVideo: repairedDoc.hasPlayableVideo,
+                thumbnail: !!repairedDoc.thumbnail,
+                imgCount: repairedDoc.img.length,
+                video: !!repairedDoc.video,
+                hlsMasterUrl: !!repairedDoc.hlsMasterUrl,
+                flood: repairedDoc.flood,
+                floodCount: repairedDoc.floodCount,
+            });
+        }
         return;
     }
     const afterDoc = hasDocChanges

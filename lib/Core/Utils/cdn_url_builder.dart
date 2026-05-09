@@ -4,6 +4,9 @@
 class CdnUrlBuilder {
   static const String cdnDomain = 'cdn.turqapp.com';
   static const String storageBucket = 'turqappteknoloji.firebasestorage.app';
+  static const Set<String> _legacyBuckets = <String>{
+    'burs-city.appspot.com',
+  };
   static const String _firebaseHost = 'firebasestorage.googleapis.com';
 
   static String _buildStorageUrl(String storagePath) {
@@ -23,29 +26,45 @@ class CdnUrlBuilder {
     return '';
   }
 
+  static String _remapLegacyBucket(String url) {
+    var normalized = url;
+    for (final legacyBucket in _legacyBuckets) {
+      normalized = normalized.replaceFirst(
+        '/v0/b/$legacyBucket/o/',
+        '/v0/b/$storageBucket/o/',
+      );
+      normalized = normalized.replaceFirst(
+        '$legacyBucket/v0/b/',
+        '$storageBucket/v0/b/',
+      );
+    }
+    return normalized;
+  }
+
   /// Firebase Storage download URL'sini CDN URL'sine dönüştürür.
   /// Token parametresi korunur (auth gerektiğinde).
   static String toCdnUrl(String url) {
     if (url.isEmpty) return url;
-    if (url.contains(cdnDomain)) return url;
+    final bucketNormalized = _remapLegacyBucket(url.trim());
+    if (bucketNormalized.contains(cdnDomain)) return bucketNormalized;
 
-    final objectPath = _decodeFirebaseObjectPath(url);
+    final objectPath = _decodeFirebaseObjectPath(bucketNormalized);
     if (objectPath.startsWith('Posts/') || objectPath.startsWith('users/')) {
       return _buildStorageUrl(objectPath);
     }
 
     // Firebase Storage URL → CDN URL (host değiştir, path aynen kalsın)
-    if (url.contains(_firebaseHost)) {
-      return url.replaceFirst(_firebaseHost, cdnDomain);
+    if (bucketNormalized.contains(_firebaseHost)) {
+      return bucketNormalized.replaceFirst(_firebaseHost, cdnDomain);
     }
 
     // firebasestorage.app format (yeni SDK)
     // https://turqappteknoloji.firebasestorage.app/v0/b/...
-    if (url.contains('$storageBucket/v0/b/')) {
-      return url.replaceFirst(storageBucket, cdnDomain);
+    if (bucketNormalized.contains('$storageBucket/v0/b/')) {
+      return bucketNormalized.replaceFirst(storageBucket, cdnDomain);
     }
 
-    return url;
+    return bucketNormalized;
   }
 
   /// CDN URL'sini mümkünse Firebase origin URL'sine geri çevirir.

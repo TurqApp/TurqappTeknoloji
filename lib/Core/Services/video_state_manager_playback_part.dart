@@ -21,6 +21,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final isFeedHandle = trimmedKey.startsWith('feed:');
     final isSocialHandle = trimmedKey.startsWith('social_');
     final isProfileHandle = trimmedKey.startsWith('profile_');
+    if (isSocialHandle || isProfileHandle) {
+      return true;
+    }
     if (!isShortHandle &&
         !isFeedHandle &&
         !isSocialHandle &&
@@ -45,6 +48,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return !(allowedSegmentWarm || allowedCacheOnly);
   }
 
+  bool _shouldKeepExternalOnDemandClaimDuringTargetChange(String docID) {
+    final normalizedDocID = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalizedDocID == null || normalizedDocID.isEmpty) {
+      return false;
+    }
+    final scheduler = maybeFindPrefetchScheduler();
+    final tierInfo = scheduler?.classifyTransferDoc(normalizedDocID);
+    if (tierInfo == null) return false;
+    return tierInfo['allowedSegmentWarm'] == true ||
+        tierInfo['allowedCacheOnly'] == true;
+  }
+
   bool _shouldKeepWarmHandleDuringExclusiveSwitch(
     String? allowedDocID,
     String controllerKey,
@@ -65,6 +80,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return handle.adapter.preferWarmPoolPause;
     }
     if (allowedSurface == 'feed') {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return handle.adapter.preferWarmPoolPause;
+      }
       if (defaultTargetPlatform != TargetPlatform.iOS) return false;
       final value = handle.adapter.value;
       return value.isPlaying ||
@@ -87,7 +105,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
     final removed = <String>[];
     _externalOnDemandFetchClaims.removeWhere((docID, _) {
-      final shouldRemove = docID != normalizedActiveDocID;
+      final shouldRemove = docID != normalizedActiveDocID &&
+          !_shouldKeepExternalOnDemandClaimDuringTargetChange(docID);
       if (shouldRemove) removed.add(docID);
       return shouldRemove;
     });
@@ -269,6 +288,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               allowedSurface != controllerSurface) {
             shouldStopPlayback = true;
           }
+          if ((controllerSurface == 'social' ||
+                  controllerSurface == 'profile') &&
+              handle is HLSAdapterPlaybackHandle &&
+              handle.adapter.value.isPlaying) {
+            shouldStopPlayback = true;
+          }
           final keepWarmDuringSurfaceSwitch =
               handle is HLSAdapterPlaybackHandle &&
                   _shouldKeepWarmHandleDuringExclusiveSwitch(
@@ -327,19 +352,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
         final initialCachedSegments =
             cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
+        const targetReadySegments = 1;
         debugPrint(
           '[FeedSegmentWarm] stage=boost_start doc=$normalized '
-          'targetReadySegments=3 cachedSegments=$initialCachedSegments '
+          'targetReadySegments=$targetReadySegments cachedSegments=$initialCachedSegments '
           'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads}',
         );
-        scheduler.boostDoc(normalized, readySegments: 3);
+        scheduler.boostDoc(normalized, readySegments: targetReadySegments);
         Future<void>.delayed(const Duration(milliseconds: 900), () {
           if (_currentPlayingDocID != activeDocID) return;
           final cachedSegments =
               cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
           debugPrint(
             '[FeedSegmentWarm] stage=boost_check doc=$normalized '
-            'targetReadySegments=3 cachedSegments=$cachedSegments '
+            'targetReadySegments=$targetReadySegments cachedSegments=$cachedSegments '
             'queueSize=${scheduler.queueSize} activeDownloads=${scheduler.activeDownloads} '
             'feedReadyCount=${scheduler.feedReadyCount} feedWindowCount=${scheduler.feedWindowCount}',
           );

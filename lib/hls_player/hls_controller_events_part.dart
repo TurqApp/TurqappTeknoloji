@@ -68,7 +68,11 @@ extension HLSControllerEventsPart on HLSController {
             _emitDuration(
               Duration(milliseconds: (durationSeconds * 1000).toInt()),
             );
-            _updateState(PlayerState.ready);
+            if (_state != PlayerState.playing &&
+                _state != PlayerState.buffering &&
+                _state != PlayerState.completed) {
+              _updateState(PlayerState.ready);
+            }
             final pendingSeek = _pendingReattachSeekSeconds;
             final pendingPlay = _pendingReattachShouldPlay;
             _pendingReattachSeekSeconds = null;
@@ -251,11 +255,10 @@ extension HLSControllerEventsPart on HLSController {
                 'error_handling.category_unknown'.tr;
             final errorCodeName =
                 (event['errorCodeName'] as String? ?? '').toUpperCase();
-            final shouldFastFallbackToCdn =
-                _fallbackUrl != null &&
-                    !_fallbackAttempted &&
-                    (_currentUrl?.startsWith('http://127.0.0.1:') ?? false) &&
-                    errorCodeName.contains('BAD_HTTP_STATUS');
+            final shouldFastFallbackToCdn = _fallbackUrl != null &&
+                !_fallbackAttempted &&
+                (_currentUrl?.startsWith('http://127.0.0.1:') ?? false) &&
+                errorCodeName.contains('BAD_HTTP_STATUS');
             if (_telemetryVideoId != null) {
               _telemetry.onError(_telemetryVideoId!, message);
             }
@@ -342,10 +345,10 @@ extension HLSControllerEventsPart on HLSController {
     final currentPosition = _currentPosition.isFinite ? _currentPosition : 0.0;
     final effectiveSeekSeconds =
         defaultTargetPlatform == TargetPlatform.android &&
-            seekSeconds != null &&
-            seekSeconds <= _androidMinMeaningfulReattachSeekSeconds
-        ? null
-        : seekSeconds;
+                seekSeconds != null &&
+                seekSeconds <= _androidMinMeaningfulReattachSeekSeconds
+            ? null
+            : seekSeconds;
     final hasStableVisualResume =
         _hasRenderedFirstFrame && currentPosition > 0.05;
     final seekAlreadyApplied = effectiveSeekSeconds != null &&

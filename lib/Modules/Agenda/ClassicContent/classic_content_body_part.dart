@@ -541,243 +541,257 @@ extension ClassicContentBodyPart on _ClassicContentState {
             aspectRatio: frameAspectRatio,
             child: Builder(
               builder: (_) {
+                final instanceTag = widget.instanceTag ?? '';
+                final isSocialProfileSurface =
+                    instanceTag.startsWith('social_');
                 final isProfileFamilySurface =
-                    (widget.instanceTag ?? '').startsWith('profile_') ||
-                    (widget.instanceTag ?? '').startsWith('archives_') ||
-                    (widget.instanceTag ?? '').startsWith('liked_post_') ||
-                    (widget.instanceTag ?? '').startsWith('social_');
-                final isFeedStyleInlineSurface =
-                    isPrimaryFeedSurfaceInstance ||
+                    instanceTag.startsWith('profile_') ||
+                        instanceTag.startsWith('archives_') ||
+                        instanceTag.startsWith('liked_post_') ||
+                        isSocialProfileSurface;
+                final isFeedStyleInlineSurface = isPrimaryFeedSurfaceInstance ||
                     isProfileFamilySurface ||
                     (widget.instanceTag ?? '').startsWith('flood_') ||
                     (widget.instanceTag ?? '').startsWith('explore_series_');
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                if (_shouldBlurIzBirakPost) ...[
-                  _buildVideoThumbnail(aspectRatio: frameAspectRatio),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: buildUploadIndicator(),
-                  ),
-                ] else if (showInlinePlayer) ...[
-                  IgnorePointer(
-                    ignoring: true,
-                    child: _isFullscreen
-                        ? const SizedBox.shrink()
-                        : videoController!.buildPlayer(
-                            key: ValueKey('classic-$controllerTag'),
-                            aspectRatio: frameAspectRatio,
-                            useAspectRatio: false,
-                            overrideAutoPlay:
-                                shouldAutoResumeInlinePlatformView,
-                            isPrimaryFeedSurface: isPrimaryFeedSurfaceInstance,
-                            preferWarmPoolPauseOnAndroid:
-                                preferWarmPoolPauseOnAndroid,
-                            preferResumePoster:
-                                (!isFeedStyleInlineSurface &&
-                                        shouldSuppressGenericResumeThumbnail) ||
-                                    isProfileFamilySurface,
-                            startupRecoveryWatchdogEnabled:
-                                shouldEnableStartupRecoveryWatchdog,
-                            preferStableStartupBuffer: PlaybackSurfacePolicy
-                                .preferStableFeedStartupBuffer(
-                              platform: defaultTargetPlatform,
-                              isFeedStyleSurface: isFeedStyleInlineSurface,
-                            ),
-                          ),
-                  ),
-                  // Thumbnail overlay - video hazır olana kadar göster
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, child) {
-                      if (widget.hideVideoPoster) {
-                        return const SizedBox.shrink();
-                      }
-                      final showStartupPlaceholder =
-                          shouldShowStartupPlaybackPlaceholder(v);
-                      final shouldHidePoster = shouldHidePlaybackPoster(v);
-                      final posterFadeDuration =
-                          showStartupPlaceholder
-                              ? const Duration(milliseconds: 90)
-                              : AppDuration.thumbnailFadeOut;
-                      return IgnorePointer(
-                        ignoring: true,
-                        child: AnimatedOpacity(
-                          opacity: shouldHidePoster ? 0 : 1,
-                          duration: posterFadeDuration,
-                          curve: Curves.easeOut,
-                          child: child!,
-                        ),
-                      );
-                    },
-                    child: AspectRatio(
-                      aspectRatio: frameAspectRatio,
-                      child: _buildVideoThumbnail(
-                        aspectRatio: frameAspectRatio,
+                    if (_shouldBlurIzBirakPost) ...[
+                      _buildVideoThumbnail(aspectRatio: frameAspectRatio),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: buildUploadIndicator(),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: buildUploadIndicator(),
-                  ),
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, __) => buildFeedReplayOverlay(v),
-                  ),
-                ] else
-                  _buildVideoThumbnail(aspectRatio: frameAspectRatio),
-                if (videoController == null)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: buildUploadIndicator(),
-                  ),
-                if (!widget.suppressFloodBadge &&
-                    videoController != null &&
-                    !_shouldBlurIzBirakPost &&
-                    widget.model.floodCount > 1)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    child: Texts.colorfulFloodForVideo,
-                  ),
-                _buildClassicReshareOverlay(
-                  bottom: widget.model.originalUserID.isNotEmpty
-                      ? ((widget.model.floodCount > 1) ? 52 : 34)
-                      : ((widget.model.floodCount > 1) ? 26 : 8),
-                ),
-                _buildMediaTapOverlay(
-                  onTap: _openVideoMedia,
-                  onDoubleTap: controller.like,
-                ),
-                if (widget.model.originalUserID.isNotEmpty)
-                  Positioned(
-                    left: 8,
-                    bottom: (widget.model.floodCount > 1) ? 26 : 8,
-                    child: SharedPostLabel(
-                      originalUserID: widget.model.originalUserID,
-                      sourceUserID: widget.model.quotedPost
-                          ? widget.model.quotedSourceUserID
-                          : '',
-                      labelSuffix: widget.model.quotedPost ? 'alıntılandı' : '',
-                      textColor: Colors.white,
-                      fontSize: _classicPostAttributionFontSize,
-                    ),
-                  ),
-                _buildIzBirakBlurOverlay(),
-                _buildIzBirakBottomBar(),
-                if (!_isIzBirakPost)
-                  Positioned(
-                    bottom: 8,
-                    right: 8,
-                    child: Row(
-                      children: [
-                        if (videoController != null)
-                          ValueListenableBuilder<HLSVideoValue>(
-                            valueListenable: videoValueNotifier,
-                            builder: (_, v, __) {
-                              final isPlaying = v.isPlaying && !v.isCompleted;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  final vc = videoController;
-                                  if (vc == null || !vc.value.isInitialized) {
-                                    return;
-                                  }
-                                  if (isPlaying) {
-                                    pauseVideoManually();
-                                  } else {
-                                    resumeVideoManually();
-                                  }
-                                },
-                                child: Container(
-                                  margin: const EdgeInsets.only(right: 6),
-                                  padding: const EdgeInsets.all(7),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.black54,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    isPlaying
-                                        ? CupertinoIcons.pause_fill
-                                        : CupertinoIcons.play_fill,
-                                    color: Colors.white,
-                                    size: 14,
-                                  ),
+                    ] else if (showInlinePlayer) ...[
+                      IgnorePointer(
+                        ignoring: true,
+                        child: _isFullscreen
+                            ? const SizedBox.shrink()
+                            : videoController!.buildPlayer(
+                                key: ValueKey('classic-$controllerTag'),
+                                aspectRatio: frameAspectRatio,
+                                useAspectRatio: false,
+                                overrideAutoPlay:
+                                    shouldAutoResumeInlinePlatformView,
+                                isPrimaryFeedSurface:
+                                    isPrimaryFeedSurfaceInstance,
+                                preferWarmPoolPauseOnAndroid:
+                                    preferWarmPoolPauseOnAndroid,
+                                preferResumePoster: (!isFeedStyleInlineSurface &&
+                                        shouldSuppressGenericResumeThumbnail) ||
+                                    (isProfileFamilySurface &&
+                                        !isSocialProfileSurface),
+                                startupRecoveryWatchdogEnabled:
+                                    shouldEnableStartupRecoveryWatchdog,
+                                preferStableStartupBuffer: PlaybackSurfacePolicy
+                                    .preferStableFeedStartupBuffer(
+                                  platform: defaultTargetPlatform,
+                                  isFeedStyleSurface: isFeedStyleInlineSurface,
                                 ),
-                              );
-                            },
-                          ),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            agendaController.isMuted.toggle();
-                            final vc = videoController;
-                            if (vc != null && vc.value.isInitialized) {
-                              vc.setVolume(
-                                  agendaController.isMuted.value ? 0 : 1);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(7),
-                            decoration: const BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
+                              ),
+                      ),
+                      // Thumbnail overlay - video hazır olana kadar göster
+                      ValueListenableBuilder<HLSVideoValue>(
+                        valueListenable: videoValueNotifier,
+                        builder: (_, v, child) {
+                          if (widget.hideVideoPoster) {
+                            return const SizedBox.shrink();
+                          }
+                          final showStartupPlaceholder =
+                              shouldShowStartupPlaybackPlaceholder(v);
+                          final shouldHidePoster = shouldHidePlaybackPoster(v);
+                          recordPosterOverlayDecision(
+                            v,
+                            shouldHidePoster: shouldHidePoster,
+                            showStartupPlaceholder: showStartupPlaceholder,
+                            source: 'classic_overlay',
+                          );
+                          final posterFadeDuration = shouldHidePoster &&
+                                  defaultTargetPlatform == TargetPlatform.iOS
+                              ? Duration.zero
+                              : showStartupPlaceholder
+                                  ? const Duration(milliseconds: 90)
+                                  : AppDuration.thumbnailFadeOut;
+                          return IgnorePointer(
+                            ignoring: true,
+                            child: AnimatedOpacity(
+                              opacity: shouldHidePoster ? 0 : 1,
+                              duration: posterFadeDuration,
+                              curve: Curves.easeOut,
+                              child: child!,
                             ),
-                            child: Obx(() => Icon(
-                                  agendaController.isMuted.value
-                                      ? CupertinoIcons.volume_off
-                                      : CupertinoIcons.volume_up,
-                                  color: Colors.white,
-                                  size: 14,
-                                )),
+                          );
+                        },
+                        child: AspectRatio(
+                          aspectRatio: frameAspectRatio,
+                          child: _buildVideoThumbnail(
+                            aspectRatio: frameAspectRatio,
                           ),
                         ),
-                      ],
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: buildUploadIndicator(),
+                      ),
+                      ValueListenableBuilder<HLSVideoValue>(
+                        valueListenable: videoValueNotifier,
+                        builder: (_, v, __) => buildFeedReplayOverlay(v),
+                      ),
+                    ] else
+                      _buildVideoThumbnail(aspectRatio: frameAspectRatio),
+                    if (videoController == null)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: buildUploadIndicator(),
+                      ),
+                    if (!widget.suppressFloodBadge &&
+                        videoController != null &&
+                        !_shouldBlurIzBirakPost &&
+                        widget.model.floodCount > 1)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        child: Texts.colorfulFloodForVideo,
+                      ),
+                    _buildClassicReshareOverlay(
+                      bottom: widget.model.originalUserID.isNotEmpty
+                          ? ((widget.model.floodCount > 1) ? 52 : 34)
+                          : ((widget.model.floodCount > 1) ? 26 : 8),
                     ),
-                  ),
-                _buildClassicMediaHeader(),
-                if (videoController != null && !_shouldBlurIzBirakPost)
-                  ValueListenableBuilder<HLSVideoValue>(
-                    valueListenable: videoValueNotifier,
-                    builder: (_, v, __) {
-                      if (!v.isInitialized || v.duration <= Duration.zero) {
-                        return const SizedBox.shrink();
-                      }
-                      final remaining = v.duration - v.position;
-                      final safeRemaining =
-                          remaining.isNegative ? Duration.zero : remaining;
-                      final countdownColor = isStartupCacheOriginVideo
-                          ? const Color(0xFF61E37A)
-                          : Colors.white;
-                      return Positioned(
-                        top: 40,
-                        right: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _formatDuration(safeRemaining),
-                            style: TextStyle(
-                              color: countdownColor,
-                              fontSize: 12,
-                              fontFamily: "Montserrat",
-                            ),
-                          ),
+                    _buildMediaTapOverlay(
+                      onTap: _openVideoMedia,
+                      onDoubleTap: controller.like,
+                    ),
+                    if (widget.model.originalUserID.isNotEmpty)
+                      Positioned(
+                        left: 8,
+                        bottom: (widget.model.floodCount > 1) ? 26 : 8,
+                        child: SharedPostLabel(
+                          originalUserID: widget.model.originalUserID,
+                          sourceUserID: widget.model.quotedPost
+                              ? widget.model.quotedSourceUserID
+                              : '',
+                          labelSuffix:
+                              widget.model.quotedPost ? 'alıntılandı' : '',
+                          textColor: Colors.white,
+                          fontSize: _classicPostAttributionFontSize,
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    _buildIzBirakBlurOverlay(),
+                    _buildIzBirakBottomBar(),
+                    if (!_isIzBirakPost)
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Row(
+                          children: [
+                            if (videoController != null)
+                              ValueListenableBuilder<HLSVideoValue>(
+                                valueListenable: videoValueNotifier,
+                                builder: (_, v, __) {
+                                  final isPlaying =
+                                      v.isPlaying && !v.isCompleted;
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      final vc = videoController;
+                                      if (vc == null ||
+                                          !vc.value.isInitialized) {
+                                        return;
+                                      }
+                                      if (isPlaying) {
+                                        pauseVideoManually();
+                                      } else {
+                                        resumeVideoManually();
+                                      }
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 6),
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isPlaying
+                                            ? CupertinoIcons.pause_fill
+                                            : CupertinoIcons.play_fill,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                agendaController.isMuted.toggle();
+                                final vc = videoController;
+                                if (vc != null && vc.value.isInitialized) {
+                                  vc.setVolume(
+                                      agendaController.isMuted.value ? 0 : 1);
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Obx(() => Icon(
+                                      agendaController.isMuted.value
+                                          ? CupertinoIcons.volume_off
+                                          : CupertinoIcons.volume_up,
+                                      color: Colors.white,
+                                      size: 14,
+                                    )),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    _buildClassicMediaHeader(),
+                    if (videoController != null && !_shouldBlurIzBirakPost)
+                      ValueListenableBuilder<HLSVideoValue>(
+                        valueListenable: videoValueNotifier,
+                        builder: (_, v, __) {
+                          if (!v.isInitialized || v.duration <= Duration.zero) {
+                            return const SizedBox.shrink();
+                          }
+                          final remaining = v.duration - v.position;
+                          final safeRemaining =
+                              remaining.isNegative ? Duration.zero : remaining;
+                          final countdownColor = isStartupCacheOriginVideo
+                              ? const Color(0xFF61E37A)
+                              : Colors.white;
+                          return Positioned(
+                            top: 40,
+                            right: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _formatDuration(safeRemaining),
+                                style: TextStyle(
+                                  color: countdownColor,
+                                  fontSize: 12,
+                                  fontFamily: "Montserrat",
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 );
               },

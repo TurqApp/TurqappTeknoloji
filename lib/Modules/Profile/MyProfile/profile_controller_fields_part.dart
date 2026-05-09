@@ -32,6 +32,7 @@ class _ProfileScrollState {
   DateTime? startupScrollStartedAt;
   double lastObservedOffset = 0.0;
   final Map<int, double> visibleFractions = <int, double>{};
+  final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
   Timer? visibilityDebounce;
   final pausetheall = false.obs;
   final showScrollToTop = false.obs;
@@ -138,7 +139,8 @@ extension ProfileControllerFieldsPart on ProfileController {
   DateTime? get _lastPlaybackCommandAt => _scrollState.lastPlaybackCommandAt;
   set _lastPlaybackCommandAt(DateTime? value) =>
       _scrollState.lastPlaybackCommandAt = value;
-  String? get _lastStartupWarmSignature => _scrollState.lastStartupWarmSignature;
+  String? get _lastStartupWarmSignature =>
+      _scrollState.lastStartupWarmSignature;
   set _lastStartupWarmSignature(String? value) =>
       _scrollState.lastStartupWarmSignature = value;
   String? get _lastPlaybackWarmSignature =>
@@ -158,6 +160,7 @@ extension ProfileControllerFieldsPart on ProfileController {
   set _lastObservedOffset(double value) =>
       _scrollState.lastObservedOffset = value;
   Map<int, double> get _visibleFractions => _scrollState.visibleFractions;
+  Map<int, DateTime> get _visibleUpdatedAt => _scrollState.visibleUpdatedAt;
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;
   set _visibilityDebounce(Timer? value) =>
       _scrollState.visibilityDebounce = value;

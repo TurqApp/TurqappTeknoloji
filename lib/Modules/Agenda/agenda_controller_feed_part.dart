@@ -404,8 +404,12 @@ extension AgendaControllerFeedPart on AgendaController {
     if (index < 0 || index >= agendaList.length) return;
     final post = agendaList[index];
     if (!_canAutoplayVideoPost(post)) return;
+    _updateFeedPrefetchQueue(anchorIndex: index);
     _boostFeedPlaybackHorizon(index);
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      markFeedWarmPreloadAnchorReady(playbackKey);
+    }
     final manager = VideoStateManager.instance;
     _reclaimFeedPlaybackFromExternalOwner(
       manager,
@@ -413,6 +417,18 @@ extension AgendaControllerFeedPart on AgendaController {
     );
     final now = DateTime.now();
     final pendingPlay = manager.hasPendingPlayFor(playbackKey);
+    if (pendingPlay && manager.canResumePlaybackFor(playbackKey)) {
+      final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
+      debugPrint(
+        '[FeedPlaybackDecision] action=resume_pending_ready '
+        'index=$index doc=${post.docID} resumed=$resumed',
+      );
+      if (resumed) {
+        _lastPlaybackCommandDocId = playbackKey;
+        _lastPlaybackCommandAt = now;
+        return;
+      }
+    }
     final canAttemptCurrentRecovery =
         PlaybackSurfacePolicy.canAttemptCurrentFeedRecovery(
       platform: defaultTargetPlatform,
@@ -498,8 +514,36 @@ extension AgendaControllerFeedPart on AgendaController {
     _updateFeedPrefetchQueue();
   }
 
+  void _markFeedSequencePassedBefore(int newIndex) {
+    if (newIndex <= 0 || agendaList.isEmpty) return;
+    final endExclusive = min(newIndex, agendaList.length);
+    if (endExclusive <= 0) return;
+    final diversity = FeedDiversityMemoryService.ensure();
+    final markedDocIds = <String>[];
+    var marked = 0;
+    for (var index = 0; index < endExclusive; index++) {
+      final post = agendaList[index];
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !_feedSequencePassedDocIds.add(docId)) continue;
+      diversity.noteViewedPost(post);
+      if (post.hasPlayableVideo) {
+        maybeFindSegmentCacheManager()?.markFeedConsumed(docId);
+      }
+      if (markedDocIds.length < 8) {
+        markedDocIds.add(docId);
+      }
+      marked++;
+    }
+    if (marked <= 0) return;
+    debugPrint(
+      '[FeedSequencePassed] source=centered_index index=$newIndex '
+      'marked=$marked docPreview=$markedDocIds',
+    );
+  }
+
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
+      _markFeedSequencePassedBefore(newIndex);
       final videoManager = VideoStateManager.instance;
       final preserveExternalPlayback = _hasExternalPlaybackOwner(
         videoManager.currentPlayingDocID,
@@ -591,6 +635,7 @@ extension AgendaControllerFeedPart on AgendaController {
     _prefetchThumbnailBatches();
     final centered = _resolveFeedPlaybackAnchorIndex();
     if (centered >= 0 && centered < agendaList.length) {
+      _updateFeedPrefetchQueue(anchorIndex: centered);
       _boostFeedPlaybackHorizon(centered);
     }
     final prefetchRefreshDelay = _shouldUseTightCellularFeedWarmProfile
@@ -689,7 +734,7 @@ extension AgendaControllerFeedPart on AgendaController {
       TurqImageCacheManager.warmUrl(preview).ignore();
     }
     debugPrint(
-      '[FeedNextWarm] status=boost source=first_frame '
+      '[FeedNextWarm] status=boost source=playback_initialized '
       'anchor=$anchorIndex next=$nextPlayableIndex '
       'doc=${nextPost.docID} segments=$readySegments',
     );
@@ -887,8 +932,8 @@ extension AgendaControllerFeedPart on AgendaController {
     if (!_shouldUseTightCellularFeedWarmProfile) return;
     if (targetIndex < 0 || targetIndex >= agendaList.length) return;
     _feedPrefetchDebounce?.cancel();
-    _boostFeedPlaybackHorizon(targetIndex);
     _updateFeedPrefetchQueue(anchorIndex: targetIndex);
+    _boostFeedPlaybackHorizon(targetIndex);
   }
 
   int _resolveFeedWarmBlockIndex(int centered) {
@@ -1123,7 +1168,7 @@ extension AgendaControllerFeedPart on AgendaController {
   void _warmPostAvatar(PostsModel post) {
     final avatarUrl = post.authorAvatarUrl.trim();
     if (avatarUrl.isEmpty) return;
-    TurqImageCacheManager.warmUrl(avatarUrl).ignore();
+    TurqAvatarCacheManager.warmUrl(avatarUrl).ignore();
   }
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
@@ -1304,9 +1349,7 @@ extension AgendaControllerFeedPart on AgendaController {
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
     final startupUnlockThreshold = startupLockActive ? 2.0 : 1.0;
-    final hasMeaningfulScrollMovement =
-        currentOffset.abs() > startupUnlockThreshold ||
-            scrollDelta > startupUnlockThreshold;
+    final hasMeaningfulScrollMovement = scrollDelta > startupUnlockThreshold;
     if (_qaScrollStartedAt == null) {
       if (!hasMeaningfulScrollMovement) {
         lastOffset = currentOffset;
@@ -1331,6 +1374,14 @@ extension AgendaControllerFeedPart on AgendaController {
               ? agendaList[centeredIndex.value].docID
               : '',
         },
+      );
+    }
+    if (!feedScrollSettlingRx.value) {
+      feedScrollSettlingRx.value = true;
+      AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
+      debugPrint(
+        '[FeedScrollSettling] status=start offset=${currentOffset.toStringAsFixed(1)} '
+        'centered=${centeredIndex.value}',
       );
     }
     bool shouldShowNavBar;
@@ -1411,8 +1462,15 @@ extension AgendaControllerFeedPart on AgendaController {
 
     _scrollIdleDebounce?.cancel();
     _scrollIdleDebounce = Timer(
-      const Duration(milliseconds: 220),
+      const Duration(milliseconds: 380),
       () {
+        if (feedScrollSettlingRx.value) {
+          feedScrollSettlingRx.value = false;
+          AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
+          debugPrint(
+            '[FeedScrollSettling] status=settled centered=${centeredIndex.value}',
+          );
+        }
         final settledAt = DateTime.now();
         final settledOffset = scrollController.hasClients
             ? scrollController.offset

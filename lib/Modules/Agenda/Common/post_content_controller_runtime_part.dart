@@ -5,6 +5,52 @@ extension PostContentControllerRuntimePart on PostContentController {
     return ensureAgendaController();
   }
 
+  void syncModelFromWidget(PostsModel next) {
+    final previous = model;
+    if (identical(previous, next)) return;
+
+    _shellState.model = next;
+    currentModel.value = next;
+
+    final nextEditTime = next.editTime?.toInt() ?? 0;
+    if (nextEditTime > 0 && editTime.value != nextEditTime) {
+      editTime.value = nextEditTime;
+    }
+    arsiv.value = next.arsiv;
+    gizlendi.value = next.gizlendi;
+    silindi.value = next.deletedPost;
+
+    final nextNickname = next.authorNickname.trim();
+    if (nextNickname.isNotEmpty && nickname.value != nextNickname) {
+      nickname.value = nextNickname;
+      username.value = nextNickname;
+    }
+
+    final nextDisplayName = next.authorDisplayName.trim();
+    if (nextDisplayName.isNotEmpty && fullName.value != nextDisplayName) {
+      fullName.value = nextDisplayName;
+    }
+
+    final nextAvatar = next.authorAvatarUrl.trim();
+    if (nextAvatar.isNotEmpty) {
+      final resolvedAvatar = resolveAvatarUrl({'avatarUrl': nextAvatar});
+      if (resolvedAvatar != avatarUrl.value) {
+        avatarUrl.value = resolvedAvatar;
+      }
+    }
+
+    if (previous.docID != next.docID) {
+      countManager.initializeCounts(
+        next.docID,
+        likeCount: next.stats.likeCount.toInt(),
+        commentCount: next.stats.commentCount.toInt(),
+        savedCount: next.stats.savedCount.toInt(),
+        retryCount: next.stats.retryCount.toInt(),
+        statsCount: next.stats.statsCount.toInt(),
+      );
+    }
+  }
+
   Future<void> _performOnReshareAdded(
     String? uid, {
     String? targetPostId,

@@ -27,8 +27,14 @@ extension AgendaControllerPlaybackPart on AgendaController {
             : stopThreshold;
     if (ownerFraction < retainThreshold) return false;
     final centeredChanged = centeredIndex.value != ownerIndex;
+    debugPrint(
+      '[FeedPlaybackDecision] action=retain_visible_owner '
+      'owner=$ownerIndex doc=$feedDocId fraction=${ownerFraction.toStringAsFixed(3)} '
+      'threshold=${retainThreshold.toStringAsFixed(3)} centered=${centeredIndex.value}',
+    );
     if (centeredChanged) {
       centeredIndex.value = ownerIndex;
+      _notifyPlaybackRowUpdates(ownerIndex);
     }
     lastCenteredIndex = ownerIndex;
     if (!centeredChanged && !_isPlaybackTargetCurrent(ownerIndex)) {
@@ -80,6 +86,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       previousFraction: prev,
       visibleFraction: visibleFraction,
     )) {
+      _pruneFeedVisibilityWindow(anchorIndex: modelIndex);
       return;
     }
 
@@ -90,6 +97,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
       _visibleFractions[modelIndex] = visibleFraction;
       _visibleUpdatedAt[modelIndex] = DateTime.now();
     }
+    _pruneFeedVisibilityWindow(anchorIndex: modelIndex);
 
     if (_shouldUseTightCellularFeedWarmProfile &&
         visibleFraction >= FeedPlaybackSelectionPolicy.secondaryThreshold) {
@@ -110,6 +118,50 @@ extension AgendaControllerPlaybackPart on AgendaController {
     _scheduleVisibilityEvaluation(
       playThreshold: FeedPlaybackSelectionPolicy.playThreshold,
       stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+    );
+  }
+
+  void _pruneFeedVisibilityWindow({required int anchorIndex}) {
+    final now = DateTime.now();
+    final centered = centeredIndex.value;
+    final keysToRemove = <int>[];
+    _visibleFractions.forEach((index, fraction) {
+      if (index < 0 || index >= agendaList.length) {
+        keysToRemove.add(index);
+        return;
+      }
+      final updatedAt = _visibleUpdatedAt[index];
+      final age = updatedAt == null
+          ? const Duration(days: 1)
+          : now.difference(updatedAt);
+      final distanceFromAnchor = (index - anchorIndex).abs();
+      final distanceFromCentered =
+          centered >= 0 ? (index - centered).abs() : distanceFromAnchor;
+      final keepCenteredAsAnchor = index == centered &&
+          age <= const Duration(milliseconds: 700) &&
+          distanceFromAnchor <= 4;
+      final closestDistance = keepCenteredAsAnchor
+          ? min(distanceFromAnchor, distanceFromCentered)
+          : distanceFromAnchor;
+      final staleAndFar =
+          age > const Duration(milliseconds: 900) && closestDistance > 8;
+      final tinyAndFar = fraction < 0.12 && closestDistance > 6;
+      final staleCenteredAndFar = index == centered &&
+          age > const Duration(milliseconds: 700) &&
+          distanceFromAnchor > 4;
+      if (staleAndFar || tinyAndFar || staleCenteredAndFar) {
+        keysToRemove.add(index);
+      }
+    });
+    if (keysToRemove.isEmpty) return;
+    for (final index in keysToRemove) {
+      _visibleFractions.remove(index);
+      _visibleUpdatedAt.remove(index);
+    }
+    debugPrint(
+      '[FeedVisibilityPrune] removed=${keysToRemove.length} '
+      'remaining=${_visibleFractions.length} anchor=$anchorIndex '
+      'centered=$centered removedKeys=$keysToRemove',
     );
   }
 
@@ -141,9 +193,14 @@ extension AgendaControllerPlaybackPart on AgendaController {
       if (lockedIndex >= 0 &&
           lockedIndex < agendaList.length &&
           _canAutoplayVideoPost(agendaList[lockedIndex])) {
+        debugPrint(
+          '[FeedPlaybackDecision] action=retain_startup_lock '
+          'locked=$lockedIndex doc=$lockedDocId centered=${centeredIndex.value}',
+        );
         final centeredChanged = centeredIndex.value != lockedIndex;
         if (centeredChanged) {
           centeredIndex.value = lockedIndex;
+          _notifyPlaybackRowUpdates(lockedIndex);
         }
         lastCenteredIndex = lockedIndex;
         if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
@@ -158,66 +215,52 @@ extension AgendaControllerPlaybackPart on AgendaController {
       current: current,
       stopThreshold: stopThreshold,
     )) {
+      final currentFraction = _visibleFractions[current] ?? 0.0;
+      debugPrint(
+        '[FeedPlaybackDecision] action=retain_startup_target '
+        'current=$current doc=${agendaList[current].docID} '
+        'fraction=${currentFraction.toStringAsFixed(3)} '
+        'stop=${stopThreshold.toStringAsFixed(3)}',
+      );
       lastCenteredIndex = current;
       _trackPlaybackWindow();
       return;
     }
-    if (current >= 0 && current < agendaList.length) {
-      final currentDocId = agendaList[current].docID;
-      final currentPlaybackKey = _feedPlaybackHandleKeyForDoc(currentDocId);
-      final currentFraction = _visibleFractions[current] ?? 0.0;
-      if (FeedPlaybackSelectionPolicy.shouldRetainRecentlyActivatedTarget(
-        lastCommandAt: _lastPlaybackCommandAt,
-        lastCommandDocId: _lastPlaybackCommandDocId,
-        currentDocId: currentPlaybackKey,
-        isCurrentTargetActive: _isPlaybackTargetCurrent(current),
-        currentFraction: currentFraction,
-        stopThreshold: stopThreshold,
-      )) {
-        lastCenteredIndex = current;
-        _trackPlaybackWindow();
-        return;
-      }
-    }
-    final targetIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+    final decision = FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
       visibleFractions: _visibleFractions,
+      visibleUpdatedAt: _visibleUpdatedAt,
       currentIndex: current,
       lastCenteredIndex: lastCenteredIndex,
       itemCount: agendaList.length,
       canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
+      isPlaybackTargetCurrent: _isPlaybackTargetCurrent,
+      playbackKeyForIndex: (index) =>
+          _feedPlaybackHandleKeyForDoc(agendaList[index].docID),
+      lastCommandAt: _lastPlaybackCommandAt,
+      lastCommandDocId: _lastPlaybackCommandDocId,
       stopThreshold: stopThreshold,
+      supportsSwitchRetention:
+          PlaybackSurfacePolicy.supportsFeedSwitchRetention(
+        platform: defaultTargetPlatform,
+      ),
       preferDominantVisibleIndexWhenNonPlayable: true,
     );
 
-    if (targetIndex >= 0 && targetIndex < agendaList.length) {
-      final now = DateTime.now();
-      if (PlaybackSurfacePolicy.supportsFeedSwitchRetention(
-            platform: defaultTargetPlatform,
-          ) &&
-          current >= 0 &&
-          current < agendaList.length &&
-          current != targetIndex &&
-          _isPlaybackTargetCurrent(current)) {
-        final currentFraction = _visibleFractions[current] ?? 0.0;
-        final targetUpdatedAt = _visibleUpdatedAt[targetIndex];
-        final targetIsFresh = targetUpdatedAt != null &&
-            now.difference(targetUpdatedAt) <
-                FeedPlaybackSelectionPolicy.scrollSettleReassertDuration;
-        if (currentFraction >=
-                FeedPlaybackSelectionPolicy.switchRetentionThreshold &&
-            targetIsFresh) {
-          lastCenteredIndex = current;
-          _trackPlaybackWindow();
-          return;
-        }
-      }
+    if (decision.hasTarget) {
+      final targetIndex = decision.targetIndex;
+      debugPrint(
+        '[FeedPlaybackDecision] action=${decision.action} '
+        'current=$current target=$targetIndex changed=${centeredIndex.value != targetIndex} '
+        'visible=${_visibleFractions.entries.map((e) => '${e.key}:${e.value.toStringAsFixed(2)}').join(',')}',
+      );
       final centeredChanged = centeredIndex.value != targetIndex;
       if (centeredChanged) {
         centeredIndex.value = targetIndex;
-        if (GetPlatform.isIOS || !_isPlaybackTargetCurrent(targetIndex)) {
+        _notifyPlaybackRowUpdates(targetIndex);
+        if (decision.shouldEnsurePlayback) {
           _ensureFeedPlaybackForIndex(targetIndex);
         }
-      } else if (!_isPlaybackTargetCurrent(targetIndex)) {
+      } else if (decision.shouldEnsurePlayback) {
         _ensureFeedPlaybackForIndex(targetIndex);
       }
       lastCenteredIndex = targetIndex;

@@ -190,30 +190,12 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
                   height: 2,
                   child: Divider(color: Colors.grey.withAlpha(50)),
                 ),
-                if ((actualIndex + 1) % 4 == 0)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(48, 8, 5, 8),
-                    child: AdmobKare(
-                      key: ValueKey(
-                        'myprof-ad-slot-${(actualIndex + 1) ~/ 4}',
-                      ),
-                      contentPadding: EdgeInsets.zero,
-                      liveAdOffsetX: 5,
-                      forceSingleLinePromoChips: true,
-                      suggestionPlacementId: 'profile',
-                    ),
-                  ),
-                if (combinedPosts.length < 4 &&
-                    actualIndex == combinedPosts.length - 1)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(48, 8, 5, 8),
-                    child: AdmobKare(
-                      key: ValueKey('myprof-ad-end'),
-                      contentPadding: EdgeInsets.zero,
-                      liveAdOffsetX: 5,
-                      forceSingleLinePromoChips: true,
-                      suggestionPlacementId: 'profile',
-                    ),
+                if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(actualIndex))
+                  FeedFamilyAdSlot(
+                    surfaceId: 'my-profile-feed',
+                    slotNumber:
+                        FeedFamilyAdSlot.slotNumberForPostIndex(actualIndex),
+                    placementId: 'profile',
                   ),
               ],
             ),

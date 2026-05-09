@@ -19,7 +19,7 @@ const TYPESENSE_PAGE_SIZE = 250;
 const TURQAPP_SHORT_DOMAIN = getEnv("SHORT_LINK_DOMAIN") || "turqapp.com";
 const ISTANBUL_UTC_OFFSET = "+03:00";
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SHORT_SOURCE_DAY_OFFSET = 4;
+const SHORT_SOURCE_DAY_OFFSET = 0;
 const SHORT_ROLLING_SOURCE_DAY_OFFSETS = [6, 5, 4] as const;
 const SHORT_ROLLING_PREPARE_DAY_OFFSETS = [6, 5, 4, 3] as const;
 
@@ -821,6 +821,42 @@ export const f28_generateShortManifestScheduled = onSchedule(
     } catch (err: any) {
       const detail = err?.message || "unknown_error";
       console.error("short_manifest_scheduled_failed", { detail });
+      throw err;
+    }
+  },
+);
+
+export const f28_generateDailyShortManifestScheduled = onSchedule(
+  {
+    region: REGION,
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    schedule: getEnv("SHORT_DAILY_MANIFEST_SCHEDULE") || "55 23 * * *",
+    timeZone: "Europe/Istanbul",
+  },
+  async () => {
+    ensureAdmin();
+    const nowMs = Date.now();
+    const date = resolveShortManifestDateForNow(nowMs);
+    const defaultRange = istanbulDayRangeForDate(date);
+    try {
+      const result = await generateShortManifest({
+        actor: "daily_scheduled",
+        date,
+        maxSlots: 1,
+        startMs: defaultRange.startMs,
+        endMs: defaultRange.endMs,
+        publish: true,
+        publishActive: false,
+        generatedAt: nowMs,
+      });
+      console.log("short_manifest_daily_scheduled_done", {
+        ...result,
+        dailyDate: date,
+      });
+    } catch (err: any) {
+      const detail = err?.message || "unknown_error";
+      console.error("short_manifest_daily_scheduled_failed", { detail, date });
       throw err;
     }
   },

@@ -1,3 +1,5 @@
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+
 class TutoringModel {
   final String docID;
   final String aciklama;
@@ -67,7 +69,7 @@ class TutoringModel {
     if (source == null || source.isEmpty) return const <String>[];
     final images = <String>[];
     for (final image in source) {
-      final clean = image.trim();
+      final clean = CdnUrlBuilder.toCdnUrl(image.trim()).trim();
       if (clean.isEmpty || images.contains(clean)) continue;
       images.add(clean);
     }
@@ -139,7 +141,10 @@ class TutoringModel {
       end: _asNum(json['end']),
       favorites: (json['favorites'] as List<dynamic>?)?.cast<String>() ?? [],
       fiyat: _asNum(json['fiyat']),
-      imgs: (json['imgs'] as List<dynamic>?)?.cast<String>(),
+      imgs: (json['imgs'] as List<dynamic>?)
+          ?.map((entry) => CdnUrlBuilder.toCdnUrl(entry.toString().trim()))
+          .where((entry) => entry.isNotEmpty)
+          .toList(),
       ilce: json['ilce'] as String? ?? '',
       onayVerildi: json['onayVerildi'] as bool? ?? false,
       sehir: json['sehir'] as String? ?? '',
@@ -165,7 +170,9 @@ class TutoringModel {
       verified: json['verified'] as bool?,
       verificationDocs:
           (json['verificationDocs'] as List<dynamic>?)?.cast<String>(),
-      avatarUrl: json['avatarUrl'] as String? ?? '',
+      avatarUrl: CdnUrlBuilder.toCdnUrl(
+        (json['avatarUrl'] as String? ?? '').trim(),
+      ),
       displayName: json['displayName'] as String? ?? '',
       nickname: json['nickname'] as String? ?? '',
       shortId: json['shortId'] as String? ?? '',
@@ -213,7 +220,7 @@ class TutoringModel {
       favorites: const <String>[],
       fiyat: asNum(hit['fiyat']),
       imgs: pick(hit['cover'], hit['img']).isNotEmpty
-          ? <String>[pick(hit['cover'], hit['img'])]
+          ? <String>[CdnUrlBuilder.toCdnUrl(pick(hit['cover'], hit['img']))]
           : null,
       ilce: (hit['town'] ?? '').toString(),
       onayVerildi: hit['active'] == true,
@@ -230,7 +237,9 @@ class TutoringModel {
       reviewCount: asNum(hit['reviewCount']),
       lat: asDoubleOrNull(hit['lat']),
       long: asDoubleOrNull(hit['long']),
-      avatarUrl: (hit['avatarUrl'] ?? '').toString(),
+      avatarUrl: CdnUrlBuilder.toCdnUrl(
+        (hit['avatarUrl'] ?? '').toString().trim(),
+      ),
       displayName: (hit['displayName'] ?? '').toString(),
       nickname: (hit['nickname'] ?? '').toString(),
       shortId: (hit['shortId'] ?? '').toString(),

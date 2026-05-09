@@ -26,6 +26,14 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _maybePreloadWarmVideoController(source: 'warm_anchor_ready');
       },
     );
+    _feedScrollSettlingWorker ??= ever<bool>(
+      agendaController.feedScrollSettlingRx,
+      (isSettling) {
+        if (isSettling) return;
+        _keepAliveUpdateCallback?.call();
+        _maybePreloadWarmVideoController(source: 'feed_scroll_settled');
+      },
+    );
 
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =
@@ -131,11 +139,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _navSelectionWorker?.dispose();
     _keepAliveWindowWorker?.dispose();
     _warmPreloadAnchorWorker?.dispose();
+    _feedScrollSettlingWorker?.dispose();
     _releaseWarmPreloadFetchOwnership();
     videoValueNotifier.dispose();
   }
 
   void _handleDidUpdateWidget(T oldWidget) {
+    controller.syncModelFromWidget(widget.model);
     if (oldWidget.model.docID != widget.model.docID) {
       _lastImmediateFeedNextWarmDocId = null;
     }
@@ -159,7 +169,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         final shouldKeepAndroidSurfaceAlive =
-            _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind;
+            _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind ||
+                (defaultTargetPlatform == TargetPlatform.android &&
+                    _isPrimaryFeedSurfaceInstance &&
+                    _surfaceKeepAliveDebounceActive);
         if (defaultTargetPlatform == TargetPlatform.android &&
             _isPrimaryFeedSurfaceInstance) {
           debugPrint(
@@ -274,7 +287,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (!mounted) return;
     final v = _videoAdapter!.value;
     _recordPlaybackVisualWarning(v);
-    _primeImmediateFeedNextAfterPlaybackStart(v);
+    recordPosterOverlayDecision(
+      v,
+      shouldHidePoster: shouldHidePlaybackPoster(v),
+      showStartupPlaceholder: shouldShowStartupPlaybackPlaceholder(v),
+      source: 'video_update',
+    );
+    _primeImmediateNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&
         widget.shouldPlay &&
@@ -493,15 +512,26 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
   }
 
-  void _primeImmediateFeedNextAfterPlaybackStart(HLSVideoValue value) {
-    if (!_isPrimaryFeedSurfaceInstance) return;
+  void _primeImmediateNextAfterPlaybackStart(HLSVideoValue value) {
     if (!widget.model.hasPlayableVideo) return;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
-    if (!value.hasRenderedFirstFrame) return;
+    if (!value.isInitialized && !value.hasRenderedFirstFrame) return;
     final docId = widget.model.docID.trim();
     if (docId.isEmpty || _lastImmediateFeedNextWarmDocId == docId) return;
     _lastImmediateFeedNextWarmDocId = docId;
-    agendaController.primeImmediateNextFeedAfterPlaybackStart(docId);
+    if (_isPrimaryFeedSurfaceInstance) {
+      agendaController.primeImmediateNextFeedAfterPlaybackStart(docId);
+      return;
+    }
+    if (_isProfileSurfaceInstance) {
+      ProfileController.maybeFind()
+          ?.primeImmediateNextProfileAfterPlaybackStart(docId);
+      return;
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      _resolveSocialProfileController()
+          ?.primeImmediateNextProfileAfterPlaybackStart(docId);
+    }
   }
 
   void _maybePreloadWarmVideoController({

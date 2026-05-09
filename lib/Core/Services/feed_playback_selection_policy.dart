@@ -3,6 +3,22 @@ import 'dart:core';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+class FeedPlaybackDecision {
+  const FeedPlaybackDecision({
+    required this.action,
+    required this.targetIndex,
+    required this.shouldEnsurePlayback,
+    required this.shouldPauseAll,
+  });
+
+  final String action;
+  final int targetIndex;
+  final bool shouldEnsurePlayback;
+  final bool shouldPauseAll;
+
+  bool get hasTarget => targetIndex >= 0;
+}
+
 class FeedPlaybackSelectionPolicy {
   static bool get _isAndroidPlatform =>
       GetPlatform.isAndroid || defaultTargetPlatform == TargetPlatform.android;
@@ -122,6 +138,7 @@ class FeedPlaybackSelectionPolicy {
       final currentFraction =
           currentIndex >= 0 ? (visibleFractions[currentIndex] ?? 0.0) : 0.0;
       final shouldRetainCurrentTarget = currentIndex >= 0 &&
+          currentIndex < itemCount &&
           currentIndex != bestIndex &&
           canAutoplayIndex(currentIndex) &&
           currentFraction >= switchRetentionThreshold &&
@@ -196,6 +213,99 @@ class FeedPlaybackSelectionPolicy {
     }
 
     return -1;
+  }
+
+  static FeedPlaybackDecision resolvePlaybackDecision({
+    required Map<int, double> visibleFractions,
+    required Map<int, DateTime> visibleUpdatedAt,
+    required int currentIndex,
+    required int? lastCenteredIndex,
+    required int itemCount,
+    required bool Function(int index) canAutoplayIndex,
+    required bool Function(int index) isPlaybackTargetCurrent,
+    required String Function(int index) playbackKeyForIndex,
+    required DateTime? lastCommandAt,
+    required String? lastCommandDocId,
+    required double stopThreshold,
+    required bool supportsSwitchRetention,
+    bool preferDominantVisibleIndexWhenNonPlayable = true,
+  }) {
+    if (itemCount <= 0) {
+      return const FeedPlaybackDecision(
+        action: 'empty',
+        targetIndex: -1,
+        shouldEnsurePlayback: false,
+        shouldPauseAll: true,
+      );
+    }
+
+    if (currentIndex >= 0 && currentIndex < itemCount) {
+      final currentPlaybackKey = playbackKeyForIndex(currentIndex);
+      final currentFraction = visibleFractions[currentIndex] ?? 0.0;
+      if (shouldRetainRecentlyActivatedTarget(
+        lastCommandAt: lastCommandAt,
+        lastCommandDocId: lastCommandDocId,
+        currentDocId: currentPlaybackKey,
+        isCurrentTargetActive: isPlaybackTargetCurrent(currentIndex),
+        currentFraction: currentFraction,
+        stopThreshold: stopThreshold,
+      )) {
+        return FeedPlaybackDecision(
+          action: 'retain_recent_target',
+          targetIndex: currentIndex,
+          shouldEnsurePlayback: false,
+          shouldPauseAll: false,
+        );
+      }
+    }
+
+    final targetIndex = resolveCenteredIndex(
+      visibleFractions: visibleFractions,
+      currentIndex: currentIndex,
+      lastCenteredIndex: lastCenteredIndex,
+      itemCount: itemCount,
+      canAutoplayIndex: canAutoplayIndex,
+      stopThreshold: stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable:
+          preferDominantVisibleIndexWhenNonPlayable,
+    );
+
+    if (targetIndex < 0 || targetIndex >= itemCount) {
+      return const FeedPlaybackDecision(
+        action: 'clear',
+        targetIndex: -1,
+        shouldEnsurePlayback: false,
+        shouldPauseAll: true,
+      );
+    }
+
+    if (supportsSwitchRetention &&
+        currentIndex >= 0 &&
+        currentIndex < itemCount &&
+        currentIndex != targetIndex &&
+        isPlaybackTargetCurrent(currentIndex)) {
+      final currentFraction = visibleFractions[currentIndex] ?? 0.0;
+      final targetUpdatedAt = visibleUpdatedAt[targetIndex];
+      final targetIsFresh = targetUpdatedAt != null &&
+          DateTime.now().difference(targetUpdatedAt) <
+              scrollSettleReassertDuration;
+      if (currentFraction >= switchRetentionThreshold && targetIsFresh) {
+        return FeedPlaybackDecision(
+          action: 'retain_switch_guard',
+          targetIndex: currentIndex,
+          shouldEnsurePlayback: false,
+          shouldPauseAll: false,
+        );
+      }
+    }
+
+    return FeedPlaybackDecision(
+      action: 'apply_target',
+      targetIndex: targetIndex,
+      shouldEnsurePlayback:
+          currentIndex != targetIndex || !isPlaybackTargetCurrent(targetIndex),
+      shouldPauseAll: false,
+    );
   }
 
   static int _findFirstPlayableIndex({

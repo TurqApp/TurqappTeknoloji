@@ -226,7 +226,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           if (defaultTargetPlatform == TargetPlatform.android ||
               defaultTargetPlatform == TargetPlatform.iOS) {
-            await adapter.silenceAndStopPlayback();
+            debugPrint(
+              '[PlaybackStopTrace] source=short_ad_page_silence '
+              'cacheIndex=${entry.key} stopPlayback=false',
+            );
+            await adapter.forceSilence();
             return;
           }
           await _releasePlayback(adapter);
@@ -681,6 +685,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.commitLaunchSelectionForItems(currentPage, _cachedShorts);
     controller.schedulePersistVisibleSnapshot();
+    controller.prepareManifestTailForViewedIndex(
+      currentPage,
+      trigger: 'page_changed_200th_card',
+    );
     _recordShortPlaybackDispatch(
       'short_page_targeted',
       docId: nextDocId,
@@ -1408,7 +1416,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
           source: 'primary',
         )) {
           _applyShortPlaybackPresentation(page, vc);
-          if (vc.value.isPlaying || decision.hasStableVisualFrame) {
+          if (vc.value.isPlaying) {
             _recordShortPlaybackDispatch(
               'short_page_play_skipped',
               docId: docId,
@@ -1432,7 +1440,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         if (_shouldSuppressDuplicatePrimaryPlay(docId, vc)) {
           _applyShortPlaybackPresentation(page, vc);
-          if (vc.value.isPlaying || decision.hasStableVisualFrame) {
+          if (vc.value.isPlaying) {
             _recordShortPlaybackDispatch(
               'short_page_play_skipped',
               docId: docId,

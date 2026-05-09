@@ -34,6 +34,7 @@ extension ShortViewUiPart on _ShortViewState {
                     contentPadding: EdgeInsets.zero,
                     forceSingleLinePromoChips: true,
                     suggestionPlacementId: 'feed',
+                    adSlotId: 'short-ad-$adOrdinal',
                     onImpression: () {
                       if (kDebugMode) {
                         debugPrint(
@@ -253,223 +254,239 @@ extension ShortViewUiPart on _ShortViewState {
             _didInitialAttach = true;
           }
 
-          final pager = PageView.builder(
-            controller: pageController,
-            scrollDirection: Axis.vertical,
-            physics: const PageScrollPhysics(),
-            itemCount: list.length,
-            onPageChanged: _onPageChanged,
-            itemBuilder: (_, idx) {
-              final item = list[idx];
-              if (item.isAd) {
-                return KeyedSubtree(
-                  key: ValueKey('short-ad-page-${item.adOrdinal}'),
-                  child: _buildShortAdPage(context, item.adOrdinal ?? 0),
-                );
+          final pager = NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification ||
+                  notification is ScrollUpdateNotification) {
+                AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
+              } else if (notification is ScrollEndNotification) {
+                AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
               }
-
-              final organicIndex = item.organicIndex!;
-              final post = item.post!;
-              final vp = controller.cache[organicIndex];
-              final modelAr =
-                  post.aspectRatio > 0 ? post.aspectRatio.toDouble() : (9 / 16);
-              final isActivePage = idx == _currentRenderPage;
-              final isWarmNeighbor = (idx - _currentRenderPage).abs() <= 1;
-
-              if (vp == null) {
-                if (isActivePage) {
-                  _ensureActivePageAdapterAfterBuild(organicIndex);
-                } else if (isWarmNeighbor) {
-                  _ensureWarmNeighborAdapterAfterBuild(
-                    currentPage,
-                    organicIndex,
+              return false;
+            },
+            child: PageView.builder(
+              controller: pageController,
+              scrollDirection: Axis.vertical,
+              physics: const PageScrollPhysics(),
+              itemCount: list.length,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (_, idx) {
+                final item = list[idx];
+                if (item.isAd) {
+                  return KeyedSubtree(
+                    key: ValueKey('short-ad-page-${item.adOrdinal}'),
+                    child: _buildShortAdPage(context, item.adOrdinal ?? 0),
                   );
                 }
-                return _buildPendingShortSurface(post);
-              }
 
-              final videoWidget = isActivePage || isWarmNeighbor
-                  ? IgnorePointer(
-                      ignoring: !isActivePage,
-                      child: Opacity(
-                        opacity: isActivePage ? 1 : 0.001,
-                        child: _buildFullscreenVideoSurface(
-                          vp,
-                          'vp-${post.docID}',
-                          modelAspectRatio: modelAr,
-                          overrideAutoPlay: isActivePage &&
-                              _isShortRoutePlaybackActive &&
-                              !isManuallyPaused,
-                          preferResumePoster: isActivePage &&
-                              _shouldPreferResumePosterForPage(
-                                organicIndex,
-                                vp,
-                              ),
+                final organicIndex = item.organicIndex!;
+                final post = item.post!;
+                final vp = controller.cache[organicIndex];
+                final modelAr = post.aspectRatio > 0
+                    ? post.aspectRatio.toDouble()
+                    : (9 / 16);
+                final isActivePage = idx == _currentRenderPage;
+                final isWarmNeighbor = (idx - _currentRenderPage).abs() <= 1;
+
+                if (vp == null) {
+                  if (isActivePage) {
+                    _ensureActivePageAdapterAfterBuild(organicIndex);
+                  } else if (isWarmNeighbor) {
+                    _ensureWarmNeighborAdapterAfterBuild(
+                      currentPage,
+                      organicIndex,
+                    );
+                  }
+                  return _buildPendingShortSurface(post);
+                }
+
+                final videoWidget = isActivePage || isWarmNeighbor
+                    ? IgnorePointer(
+                        ignoring: !isActivePage,
+                        child: Opacity(
+                          opacity: isActivePage ? 1 : 0.001,
+                          child: _buildFullscreenVideoSurface(
+                            vp,
+                            'vp-${post.docID}',
+                            modelAspectRatio: modelAr,
+                            overrideAutoPlay: isActivePage &&
+                                _isShortRoutePlaybackActive &&
+                                !isManuallyPaused,
+                            preferResumePoster: isActivePage &&
+                                _shouldPreferResumePosterForPage(
+                                  organicIndex,
+                                  vp,
+                                ),
+                          ),
                         ),
-                      ),
-                    )
-                  : const SizedBox.shrink();
+                      )
+                    : const SizedBox.shrink();
 
-              final pendingSurface = _buildPendingShortSurface(post);
+                final pendingSurface = _buildPendingShortSurface(post);
 
-              return KeyedSubtree(
-                key: ValueKey('short-page-${post.docID}'),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (isActivePage || isWarmNeighbor) videoWidget,
-                    if (isActivePage || isWarmNeighbor)
-                      AnimatedBuilder(
-                        animation: vp,
-                        builder: (_, __) {
-                          if (!isActivePage) {
+                return KeyedSubtree(
+                  key: ValueKey('short-page-${post.docID}'),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (isActivePage || isWarmNeighbor) videoWidget,
+                      if (isActivePage || isWarmNeighbor)
+                        AnimatedBuilder(
+                          animation: vp,
+                          builder: (_, __) {
+                            if (!isActivePage) {
+                              return IgnorePointer(
+                                ignoring: true,
+                                child: pendingSurface,
+                              );
+                            }
+                            final value = vp.value;
+                            final decision =
+                                _shortPlaybackDecisionFor(organicIndex, value);
+                            final hasVisibleVideoFrame =
+                                defaultTargetPlatform != TargetPlatform.android
+                                    ? value.hasRenderedFirstFrame
+                                    : value.hasVisibleVideoFrame;
+                            final holdAndroidPosterAtStart =
+                                defaultTargetPlatform ==
+                                        TargetPlatform.android &&
+                                    decision.shouldHidePoster &&
+                                    hasVisibleVideoFrame &&
+                                    value.position <
+                                        const Duration(milliseconds: 180);
+                            final shouldHidePoster =
+                                decision.shouldHidePoster &&
+                                    !holdAndroidPosterAtStart;
+                            _reportStableShortFrameIfNeeded(
+                              organicIndex,
+                              vp,
+                              decision.hasStableVisualFrame,
+                            );
                             return IgnorePointer(
                               ignoring: true,
-                              child: pendingSurface,
+                              child: AnimatedOpacity(
+                                opacity: shouldHidePoster ? 0.0 : 1.0,
+                                duration:
+                                    shouldHidePoster && hasVisibleVideoFrame
+                                        ? Duration.zero
+                                        : const Duration(milliseconds: 90),
+                                curve: Curves.easeOut,
+                                child: pendingSurface,
+                              ),
                             );
-                          }
-                          final value = vp.value;
-                          final decision =
-                              _shortPlaybackDecisionFor(organicIndex, value);
-                          final hasVisibleVideoFrame =
-                              defaultTargetPlatform != TargetPlatform.android
-                                  ? value.hasRenderedFirstFrame
-                                  : value.hasVisibleVideoFrame;
-                          final holdAndroidPosterAtStart =
-                              defaultTargetPlatform == TargetPlatform.android &&
-                                  decision.shouldHidePoster &&
-                                  hasVisibleVideoFrame &&
-                                  value.position <
-                                      const Duration(milliseconds: 180);
-                          final shouldHidePoster = decision.shouldHidePoster &&
-                              !holdAndroidPosterAtStart;
-                          _reportStableShortFrameIfNeeded(
-                            organicIndex,
-                            vp,
-                            decision.hasStableVisualFrame,
-                          );
-                          return IgnorePointer(
-                            ignoring: true,
-                            child: AnimatedOpacity(
-                              opacity: shouldHidePoster ? 0.0 : 1.0,
-                              duration: shouldHidePoster && hasVisibleVideoFrame
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 90),
-                              curve: Curves.easeOut,
-                              child: pendingSurface,
-                            ),
-                          );
-                        },
-                      ),
-                    if (isActivePage)
-                      ShortsContent(
-                        model: post,
-                        isActive: isActivePage,
-                        showOverlayControls: _showOverlayControls,
-                        onToggleOverlay: () {
-                          if (!mounted) return;
-                          _updateShortViewState(() {
-                            _showOverlayControls = !_showOverlayControls;
-                          });
-                        },
-                        onDoubleTapLike: () async {
-                          await PostRepository.ensure().toggleLike(post);
-                        },
-                        onSwipeRight: () async {
-                          const PrimaryTabRouter().openFeed();
-                        },
-                        volumeOff: (v) {
-                          if (v) {
-                            _resumeShortForUserIntent(
-                              organicIndex,
-                              post,
-                              vp,
-                            );
-                          } else {
-                            unawaited(
-                              _pauseShortForUserIntent(
+                          },
+                        ),
+                      if (isActivePage)
+                        ShortsContent(
+                          model: post,
+                          isActive: isActivePage,
+                          showOverlayControls: _showOverlayControls,
+                          onToggleOverlay: () {
+                            if (!mounted) return;
+                            _updateShortViewState(() {
+                              _showOverlayControls = !_showOverlayControls;
+                            });
+                          },
+                          onDoubleTapLike: () async {
+                            await PostRepository.ensure().toggleLike(post);
+                          },
+                          onSwipeRight: () async {
+                            const PrimaryTabRouter().openFeed();
+                          },
+                          volumeOff: (v) {
+                            if (v) {
+                              _resumeShortForUserIntent(
                                 organicIndex,
                                 post,
                                 vp,
-                              ),
-                            );
-                          }
-                          if (organicIndex == currentPage) {
-                            VideoTelemetryService.instance.updateRuntimeHints(
-                              post.docID,
-                              isAudible: volume,
-                              hasStableFocus: v,
-                            );
-                          }
-                        },
-                        videoPlayerController: vp,
-                        onEdited: (updatedDocId) async {
-                          await controller.updateShort(updatedDocId);
-                          await controller.refreshVideoController(organicIndex);
-                          _updateShortViewState(() {});
-                        },
-                      ),
-                    if (_showOverlayControls && isActivePage)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: _ShortProgressBar(adapter: vp),
-                      ),
-                    if (_showOverlayControls)
-                      SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const AppBackButton(
-                                    icon: CupertinoIcons.arrow_left,
-                                    key: ValueKey(
-                                      IntegrationTestKeys.actionShortBack,
+                              );
+                            } else {
+                              unawaited(
+                                _pauseShortForUserIntent(
+                                  organicIndex,
+                                  post,
+                                  vp,
+                                ),
+                              );
+                            }
+                            if (organicIndex == currentPage) {
+                              VideoTelemetryService.instance.updateRuntimeHints(
+                                post.docID,
+                                isAudible: volume,
+                                hasStableFocus: v,
+                              );
+                            }
+                          },
+                          videoPlayerController: vp,
+                          onEdited: (updatedDocId) async {
+                            await controller.updateShort(updatedDocId);
+                            await controller
+                                .refreshVideoController(organicIndex);
+                            _updateShortViewState(() {});
+                          },
+                        ),
+                      if (_showOverlayControls && isActivePage)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _ShortProgressBar(adapter: vp),
+                        ),
+                      if (_showOverlayControls)
+                        SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const AppBackButton(
+                                      icon: CupertinoIcons.arrow_left,
+                                      key: ValueKey(
+                                        IntegrationTestKeys.actionShortBack,
+                                      ),
+                                      iconColor: Colors.white,
+                                      surfaceColor: Color(0x50000000),
                                     ),
-                                    iconColor: Colors.white,
-                                    surfaceColor: Color(0x50000000),
-                                  ),
-                                  _buildCircleButton(
-                                    icon: volume
-                                        ? CupertinoIcons.volume_up
-                                        : CupertinoIcons.volume_off,
-                                    onTap: () {
-                                      _updateShortViewState(
-                                        () => volume = !volume,
-                                      );
-                                      _applyShortPlaybackPresentation(
-                                        organicIndex,
-                                        vp,
-                                      );
-                                      if (organicIndex == currentPage) {
-                                        final decision =
-                                            _shortPlaybackDecisionFor(
+                                    _buildCircleButton(
+                                      icon: volume
+                                          ? CupertinoIcons.volume_up
+                                          : CupertinoIcons.volume_off,
+                                      onTap: () {
+                                        _updateShortViewState(
+                                          () => volume = !volume,
+                                        );
+                                        _applyShortPlaybackPresentation(
                                           organicIndex,
-                                          vp.value,
+                                          vp,
                                         );
-                                        VideoTelemetryService.instance
-                                            .updateRuntimeHints(
-                                          post.docID,
-                                          isAudible: decision.shouldBeAudible,
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
+                                        if (organicIndex == currentPage) {
+                                          final decision =
+                                              _shortPlaybackDecisionFor(
+                                            organicIndex,
+                                            vp.value,
+                                          );
+                                          VideoTelemetryService.instance
+                                              .updateRuntimeHints(
+                                            post.docID,
+                                            isAudible: decision.shouldBeAudible,
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           );
 
           return Stack(

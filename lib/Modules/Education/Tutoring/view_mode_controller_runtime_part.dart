@@ -10,16 +10,16 @@ class _ViewModeControllerRuntimePart {
   Future<void> restoreViewMode() async {
     final uid = CurrentUserService.instance.effectiveUserId;
     if (uid.isEmpty) {
-      controller.isGridView.value = true;
+      controller.isGridView.value = false;
       controller.isReady.value = true;
       return;
     }
     try {
       final preferences = ensureLocalPreferenceRepository();
       controller.isGridView.value =
-          await preferences.getBool(viewModeKeyFor(uid)) ?? true;
+          await preferences.getBool(viewModeKeyFor(uid)) ?? false;
     } catch (_) {
-      controller.isGridView.value = true;
+      controller.isGridView.value = false;
     } finally {
       controller.isReady.value = true;
     }

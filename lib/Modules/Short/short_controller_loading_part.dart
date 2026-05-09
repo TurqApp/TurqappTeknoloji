@@ -203,6 +203,18 @@ extension ShortControllerLoadingPart on ShortController {
     return true;
   }
 
+  void prepareManifestTailForViewedIndex(
+    int viewedIndex, {
+    String trigger = 'viewed_index',
+  }) {
+    unawaited(
+      _shortManifestRepository.prepareTailSlotForVisiblePosition(
+        visibleIndex: viewedIndex,
+        reason: trigger,
+      ),
+    );
+  }
+
   Future<List<PostsModel>> _loadOfflineReadyShortPosts({
     required int limit,
   }) async {
@@ -386,6 +398,11 @@ extension ShortControllerLoadingPart on ShortController {
       final manifestStartedAt = DateTime.now();
       final manifestPage = await _shortManifestRepository.takeNextPage(
         pageSize: effectivePageSize,
+      );
+      unawaited(
+        _shortManifestRepository.prepareTailSlotForCurrentPosition(
+          reason: trigger,
+        ),
       );
       _recordShortFetchEvent(
         stage: 'manifest_page_timing',
