@@ -34,6 +34,7 @@ class TagPostsRepository {
     String tag, {
     int limit = _defaultTagResultLimit,
     bool fastFirstPaint = false,
+    bool allowTypesenseFallback = true,
   }) async {
     final startedAt = DateTime.now();
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -107,6 +108,17 @@ class TagPostsRepository {
       _logFetchResult(
         tag: tag,
         source: 'posts_array_capitalized',
+        limit: safeLimit,
+        count: posts.length,
+        startedAt: startedAt,
+      );
+      return posts;
+    }
+
+    if (!allowTypesenseFallback) {
+      _logFetchResult(
+        tag: tag,
+        source: 'firestore_partial',
         limit: safeLimit,
         count: posts.length,
         startedAt: startedAt,

@@ -13,6 +13,7 @@ extension TagPostsControllerRuntimePart on TagPostsController {
         tag,
         limit: limit,
         fastFirstPaint: limit == progressiveLimits.first,
+        allowTypesenseFallback: limit == progressiveLimits.last,
       );
       if (_fetchGeneration != generation) return;
       for (final post in fetchedPosts) {
@@ -34,10 +35,7 @@ extension TagPostsControllerRuntimePart on TagPostsController {
         'fetched=${fetchedPosts.length} visible=${nextPosts.length} '
         'elapsedMs=${DateTime.now().difference(startedAt).inMilliseconds}',
       );
-      if (fetchedPosts.isEmpty) break;
-      if (limit != progressiveLimits.first && fetchedPosts.length < limit) {
-        break;
-      }
+      if (fetchedPosts.isEmpty && limit == progressiveLimits.first) continue;
     }
   }
 
