@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -9,6 +11,11 @@ part 'app_snackbar_text_part.dart';
 String? _lastSnackbarSignature;
 DateTime? _lastSnackbarAt;
 const Duration _snackbarDedupWindow = Duration(milliseconds: 1200);
+OverlayEntry? _activeSnackbarEntry;
+Timer? _activeSnackbarTimer;
+_AppSnackbarRequest? _pendingSnackbarRequest;
+bool _snackbarPostFrameScheduled = false;
+int _snackbarSerial = 0;
 
 Map<String, dynamic> readLastSnackbarDebugState() {
   return <String, dynamic>{
@@ -35,5 +42,33 @@ class _AppSnackbarPalette {
     required this.iconBadge,
     required this.text,
     required this.icon,
+  });
+}
+
+class _AppSnackbarRequest {
+  final String title;
+  final String message;
+  final Color? backgroundColor;
+  final Duration duration;
+  final SnackPosition snackPosition;
+  final EdgeInsets margin;
+  final double borderRadius;
+  final Widget? icon;
+  final _AppSnackbarPalette palette;
+  final TextStyle titleStyle;
+  final TextStyle messageStyle;
+
+  const _AppSnackbarRequest({
+    required this.title,
+    required this.message,
+    required this.backgroundColor,
+    required this.duration,
+    required this.snackPosition,
+    required this.margin,
+    required this.borderRadius,
+    required this.icon,
+    required this.palette,
+    required this.titleStyle,
+    required this.messageStyle,
   });
 }
