@@ -600,46 +600,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void pauseVideo() => _safePauseVideo();
 
-  bool _shouldRestartFromBeginningOnFeedReentry(String source) =>
-      _usesFeedPlaybackPolicy &&
-      source == 'widget_should_play_changed' &&
-      defaultTargetPlatform == TargetPlatform.android;
-
-  Future<void> _restartPlaybackFromBeginningForFeedReentry({
-    required HLSVideoAdapter adapter,
-    required String source,
-  }) async {
-    _recordPlaybackDispatch(
-      'feed_card_reentry_restart_from_zero',
-      source: source,
-      dispatchIssued: false,
-      metadata: <String, dynamic>{
-        'positionMs': adapter.value.position.inMilliseconds,
-        'durationMs': adapter.value.duration.inMilliseconds,
-      },
-    );
-    _replayOverlayLatched = false;
-    _replayAdPrewarmed = false;
-    _replayAdVisible = false;
-    _replayButtonVisible = false;
-    _replayAdImpressionReceived = false;
-    _replayAdHideTimer?.cancel();
-    _manualPauseRequested = false;
-    _hasAutoPlayed = false;
-    _lastQueuedSavedResumePosition = null;
-    _lastQueuedSavedResumeAt = null;
-    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
-    try {
-      await adapter.setLooping(shouldLoopVideo);
-      await adapter.seekTo(Duration.zero);
-    } catch (_) {
-      return;
-    }
-    if (!mounted || _videoAdapter != adapter) return;
-    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
-    _startPlaybackWhenReady(source: '$source:reentry_zero');
-  }
-
   Future<void> _restartCompletedPlaybackForAutoplay({
     required String source,
   }) async {
@@ -766,17 +726,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           source: '$source:init_requested',
         );
       }
-      return;
-    }
-
-    if (_shouldRestartFromBeginningOnFeedReentry(source) &&
-        adapter.value.position > Duration.zero) {
-      unawaited(
-        _restartPlaybackFromBeginningForFeedReentry(
-          adapter: adapter,
-          source: source,
-        ),
-      );
       return;
     }
 
