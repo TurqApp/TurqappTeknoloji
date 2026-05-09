@@ -210,7 +210,13 @@ extension _HlsVideoAdapterStatePart on HLSVideoAdapter {
   void _performExecutePendingCommands() {
     if (_pendingReloadOnReady && _isStopped) {
       final shouldAutoPlay = _wantPlay && !_wantPause;
-      unawaited(_performRestartStoppedPlayback(autoPlay: shouldAutoPlay));
+      unawaited(
+        _performRestartStoppedPlayback(
+          autoPlay: shouldAutoPlay,
+          debugSource:
+              'adapter.pendingReloadOnReady.wantPlay=$_wantPlay.wantPause=$_wantPause',
+        ),
+      );
       return;
     }
     if (_pendingPreferredBufferDurationSeconds != null) {

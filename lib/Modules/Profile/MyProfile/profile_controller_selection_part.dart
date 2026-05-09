@@ -239,9 +239,31 @@ extension ProfileControllerSelectionPart on ProfileController {
   }
 
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
-    if (postSelection.value != 0) return;
-    if (pausetheall.value || showPfImage.value) return;
-    if (modelIndex < 0 || modelIndex >= mergedPosts.length) return;
+    if (postSelection.value != 0) {
+      debugPrint(
+        '[ProfilePlaybackDecision] action=visibility_skip surface=my_profile '
+        'reason=selection selection=${postSelection.value} index=$modelIndex '
+        'fraction=${visibleFraction.toStringAsFixed(2)}',
+      );
+      return;
+    }
+    if (pausetheall.value || showPfImage.value) {
+      debugPrint(
+        '[ProfilePlaybackDecision] action=visibility_skip surface=my_profile '
+        'reason=paused_or_overlay pauseAll=${pausetheall.value} '
+        'showPfImage=${showPfImage.value} index=$modelIndex '
+        'fraction=${visibleFraction.toStringAsFixed(2)}',
+      );
+      return;
+    }
+    if (modelIndex < 0 || modelIndex >= mergedPosts.length) {
+      debugPrint(
+        '[ProfilePlaybackDecision] action=visibility_skip surface=my_profile '
+        'reason=index_out_of_range index=$modelIndex count=${mergedPosts.length} '
+        'fraction=${visibleFraction.toStringAsFixed(2)}',
+      );
+      return;
+    }
 
     final prev = _visibleFractions[modelIndex];
     if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
@@ -362,6 +384,13 @@ extension ProfileControllerSelectionPart on ProfileController {
         _performEnsureCenteredPlaybackForIndex(targetIndex);
       }
     } else {
+      debugPrint(
+        '[ProfilePlaybackDecision] action=no_target surface=my_profile '
+        'current=$current count=${mergedPosts.length} '
+        'visible=${_visibleFractions.entries.map((e) => '${e.key}:${e.value.toStringAsFixed(2)}').join(',')} '
+        'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''} '
+        'targetOwner=${VideoStateManager.instance.targetPlaybackDocID ?? ''}',
+      );
       centeredIndex.value = -1;
       currentVisibleIndex.value = -1;
       VideoStateManager.instance.pauseAllVideos(force: true);
@@ -371,6 +400,11 @@ extension ProfileControllerSelectionPart on ProfileController {
   void _performSetPostSelection(int index) {
     postSelection.value = index;
     if (index != 0) {
+      debugPrint(
+        '[ProfilePlaybackDecision] action=pause_all surface=my_profile '
+        'reason=post_selection selection=$index '
+        'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
+      );
       VideoStateManager.instance.pauseAllVideos(force: true);
     }
   }
@@ -423,7 +457,15 @@ extension ProfileControllerSelectionPart on ProfileController {
           ? Duration.zero
           : const Duration(milliseconds: 120),
     );
-    if (issuedAt == null) return;
+    if (issuedAt == null) {
+      debugPrint(
+        '[ProfilePlaybackTarget] action=activate_miss index=$index '
+        'doc=$docId key=$playbackKey currentOwner=${manager.currentPlayingDocID ?? ''} '
+        'targetOwner=${manager.targetPlaybackDocID ?? ''} '
+        'readyForImmediateHandoff=$readyForImmediateHandoff',
+      );
+      return;
+    }
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = issuedAt;
     if (_performUsesTightCellularWarmProfile) {

@@ -576,6 +576,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                     shouldAutoResumeInlinePlatformView,
                                 isPrimaryFeedSurface:
                                     isPrimaryFeedSurfaceInstance,
+                                isFeedStyleSurface: isFeedStyleInlineSurface,
                                 preferWarmPoolPauseOnAndroid:
                                     preferWarmPoolPauseOnAndroid,
                                 preferResumePoster: (!isFeedStyleInlineSurface &&

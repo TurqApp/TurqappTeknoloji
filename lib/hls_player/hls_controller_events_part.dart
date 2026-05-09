@@ -270,6 +270,7 @@ extension HLSControllerEventsPart on HLSController {
                   autoPlay: true,
                   loop: _isLooping,
                   preferResumePoster: _preferResumePoster,
+                  debugSource: 'controller.fastFallbackToCdn',
                 ),
               );
               break;
@@ -327,7 +328,10 @@ extension HLSControllerEventsPart on HLSController {
     }
     if (_fallbackUrl != null && !_fallbackAttempted) {
       _fallbackAttempted = true;
-      loadVideo(_fallbackUrl!);
+      loadVideo(
+        _fallbackUrl!,
+        debugSource: 'controller.handleErrorFallback',
+      );
       return;
     }
 

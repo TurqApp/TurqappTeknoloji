@@ -335,7 +335,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       }
       final bufferingHealthy =
           value.isBuffering && _stallWatchdogBufferingCycles < 2;
-      final healthy = progressed || bufferingHealthy || value.isCompleted;
+      final visuallyPlaying = value.isPlaying && value.hasVisibleVideoFrame;
+      final healthy = progressed ||
+          bufferingHealthy ||
+          visuallyPlaying ||
+          value.isCompleted;
       _stallWatchdogLastPosition = value.position;
       final shouldDeferIosInitialFeedRecovery =
           PlaybackSurfacePolicy.shouldDeferInitialFeedStallRecovery(
@@ -358,7 +362,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       if (_stallWatchdogRetries >= 2) return;
       _stallWatchdogRetries++;
       try {
-        final shouldRecoverFrozenPlayback = value.hasRenderedFirstFrame &&
+        final shouldRecoverFrozenPlayback = !value.isPlaying &&
+            !value.isBuffering &&
+            value.hasRenderedFirstFrame &&
             !value.isCompleted &&
             (_stallWatchdogRetries > 1 ||
                 value.position >= const Duration(milliseconds: 2500) ||
@@ -379,6 +385,12 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           _playbackRuntimeService.playOnlyThis(playbackHandleKey);
         }
         if (shouldRecoverFrozenPlayback) {
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              _usesFeedPlaybackPolicy) {
+            _markIosPrimaryFeedRecoveryAttempt();
+            _startPlaybackWhenReady(source: 'stall_watchdog:ios_reassert');
+            return;
+          }
           await _runFeedRecoverOnce(
             adapter: adapter,
             source: 'stall_watchdog',
@@ -904,7 +916,13 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             PostContentBaseState._stableFramePositionThreshold,
       );
       if (shouldForceAndroidFeedResumeReassert) {
-        final resumePosition = adapter.value.position;
+        final resumePosition =
+            PlaybackSurfacePolicy.shouldZeroSavedResumePositionFallback(
+          platform: defaultTargetPlatform,
+          isFeedStyleSurface: _usesFeedPlaybackPolicy,
+        )
+                ? Duration.zero
+                : adapter.value.position;
         _recordPlaybackDispatch(
           'feed_card_resume_reassert_position',
           source: source,

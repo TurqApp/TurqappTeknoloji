@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'hls_controller.dart';
 
+const bool _suppressHlsPlayerSmokeLogs =
+    bool.fromEnvironment('RUN_INTEGRATION_SMOKE', defaultValue: false);
+
 class HLSPlayer extends StatefulWidget {
   final String url;
   final HLSController controller;
@@ -67,7 +70,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
 
     // Reload video if URL changed
     if (oldWidget.url != widget.url && _isInitialized) {
-      _loadVideo();
+      _loadVideo(reason: 'did_update_url_changed', previousUrl: oldWidget.url);
     }
 
     // Update loop if changed
@@ -75,8 +78,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
       widget.controller.setLoop(widget.loop);
     }
 
-    if (oldWidget.autoPlay != widget.autoPlay &&
-        _isInitialized) {
+    if (oldWidget.autoPlay != widget.autoPlay && _isInitialized) {
       if (Platform.isIOS) {
         unawaited(widget.controller.updateAutoplayIntent(widget.autoPlay));
       }
@@ -98,16 +100,35 @@ class _HLSPlayerState extends State<HLSPlayer> {
   void _onPlatformViewCreated(int viewId) {
     _isInitialized = true;
     widget.controller.initialize(viewId);
-    unawaited(_loadVideo());
+    unawaited(_loadVideo(reason: 'platform_view_created'));
   }
 
-  Future<void> _loadVideo() async {
+  Future<void> _loadVideo({
+    required String reason,
+    String? previousUrl,
+  }) async {
+    if (kDebugMode && !_suppressHlsPlayerSmokeLogs) {
+      debugPrint(
+        '[HLSPlayerLoadDecision] reason=$reason '
+        'view=${widget.controller.viewIdForDiagnostics ?? '-'} '
+        'video=${widget.controller.telemetryVideoIdForDiagnostics ?? '-'} '
+        'sameAsController=${widget.controller.currentUrl == widget.url} '
+        'previousWidgetUrl=${previousUrl ?? '-'} '
+        'controllerUrl=${widget.controller.currentUrl ?? '-'} '
+        'targetUrl=${widget.url} '
+        'autoPlay=${widget.autoPlay} '
+        'loop=${widget.loop} '
+        'primaryFeed=${widget.isPrimaryFeedSurface} '
+        'preferResumePoster=${widget.preferResumePoster}',
+      );
+    }
     await widget.controller.loadVideo(
       widget.url,
       autoPlay: widget.autoPlay,
       loop: widget.loop,
       preferResumePoster: widget.preferResumePoster,
       suppressPauseSnapshot: widget.suppressPauseSnapshot,
+      debugSource: 'HLSPlayer.$reason',
     );
   }
 

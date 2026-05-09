@@ -71,6 +71,12 @@ extension AgendaControllerPlaybackPart on AgendaController {
   void _performOnPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= agendaList.length) return;
     if (playbackSuspended.value || !isPrimaryFeedRouteVisible) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=visibility_skip '
+        'index=$modelIndex fraction=${visibleFraction.toStringAsFixed(2)} '
+        'suspended=${playbackSuspended.value} route=${Get.currentRoute} '
+        'primary=$isPrimaryFeedRouteVisible nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+      );
       _visibleFractions.remove(modelIndex);
       _visibleUpdatedAt.remove(modelIndex);
       if (centeredIndex.value == modelIndex) {
@@ -265,6 +271,13 @@ extension AgendaControllerPlaybackPart on AgendaController {
       }
       lastCenteredIndex = targetIndex;
     } else {
+      debugPrint(
+        '[FeedPlaybackDecision] action=no_target '
+        'current=$current visible=${_visibleFractions.entries.map((e) => '${e.key}:${e.value.toStringAsFixed(2)}').join(',')} '
+        'canClaim=$canClaimPlaybackNow route=${Get.currentRoute} '
+        'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1} '
+        'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value}',
+      );
       centeredIndex.value = -1;
     }
 

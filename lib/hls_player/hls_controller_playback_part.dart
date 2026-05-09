@@ -6,10 +6,16 @@ extension HLSControllerPlaybackPart on HLSController {
     String? fallbackUrl,
     bool autoPlay = true,
     bool loop = false,
+    String debugSource = 'unspecified',
   }) async {
     _fallbackUrl = fallbackUrl;
     _fallbackAttempted = false;
-    await loadVideo(url, autoPlay: autoPlay, loop: loop);
+    await loadVideo(
+      url,
+      autoPlay: autoPlay,
+      loop: loop,
+      debugSource: debugSource,
+    );
   }
 
   void setTelemetryVideoId(String videoId) {
@@ -26,6 +32,7 @@ extension HLSControllerPlaybackPart on HLSController {
     bool loop = false,
     bool? preferResumePoster,
     bool? suppressPauseSnapshot,
+    String debugSource = 'unspecified',
   }) async {
     if (_isInactive) return;
     if (_viewId == null) {
@@ -62,6 +69,23 @@ extension HLSControllerPlaybackPart on HLSController {
     }
 
     try {
+      if (kDebugMode && !_suppressHlsSmokeLogs) {
+        debugPrint(
+          '[HLSControllerLoadCommand][view=$_viewId]'
+          '[video=${_telemetryVideoId ?? '-'}] '
+          'source=$debugSource '
+          'sameAsPrevious=${previousUrl == url} '
+          'sameVideoReload=$sameVideoReload '
+          'deferAutoplay=$shouldDeferAutoplayForReattach '
+          'autoPlay=$autoPlay '
+          'nativeAutoPlay=${shouldDeferAutoplayForReattach ? false : autoPlay} '
+          'loop=$loop '
+          'preferResumePoster=$_preferResumePoster '
+          'suppressPauseSnapshot=${suppressPauseSnapshot ?? false} '
+          'previousUrl=${previousUrl ?? '-'} '
+          'targetUrl=$url',
+        );
+      }
       await HLSController._methodChannel.invokeMethod('loadVideo', {
         'viewId': _viewId,
         'url': url,

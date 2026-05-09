@@ -200,7 +200,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if let suppressPauseSnapshot = suppressPauseSnapshot {
             self.suppressPauseSnapshot = suppressPauseSnapshot
         }
-        log("loadVideo url=\(url)")
+        let previousUrl = currentUrl ?? "-"
+        let isSameUrl = currentUrl == url
+        log(
+            "loadVideo view=\(viewId) sameUrl=\(isSameUrl) " +
+            "hasPlayer=\(player != nil) hasItem=\(playerItem != nil) " +
+            "autoPlay=\(isAutoPlay) loop=\(isLooping) " +
+            "preferResumePoster=\(self.preferResumePoster) " +
+            "suppressPauseSnapshot=\(self.suppressPauseSnapshot) " +
+            "previousUrl=\(previousUrl) url=\(url)"
+        )
         logVisualCheckpoint("loadVideo:entry")
         guard let videoURL = URL(string: url) else {
             log("invalidUrl url=\(url)")
@@ -215,6 +224,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             playerItem != nil
         if canSoftResumeSameUrl {
             player?.actionAtItemEnd = isLooping ? .none : .pause
+            log(
+                "loadVideoSoftResume view=\(viewId) autoPlay=\(isAutoPlay) " +
+                "currentUrl=\(currentUrl ?? "-")"
+            )
             logVisualCheckpoint("loadVideo:same_url_soft_resume")
             if isAutoPlay {
                 didRequestInitialPlay = false

@@ -132,6 +132,14 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         let loop = args["loop"] as? Bool
         let preferResumePoster = args["preferResumePoster"] as? Bool
         let suppressPauseSnapshot = args["suppressPauseSnapshot"] as? Bool
+        print(
+            "[HLSPlayerPlugin] loadVideo view=\(viewId) " +
+            "autoPlay=\(autoPlay.map { String($0) } ?? "-") " +
+            "loop=\(loop.map { String($0) } ?? "-") " +
+            "preferResumePoster=\(preferResumePoster.map { String($0) } ?? "-") " +
+            "suppressPauseSnapshot=\(suppressPauseSnapshot.map { String($0) } ?? "-") " +
+            "url=\(url)"
+        )
         playerView.loadVideo(
             url: url,
             autoPlay: autoPlay,

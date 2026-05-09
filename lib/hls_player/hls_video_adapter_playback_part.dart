@@ -28,8 +28,46 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     return false;
   }
 
+  String _debugStackSource({int depth = 5}) {
+    if (!kDebugMode) return '';
+    final rawLines = StackTrace.current
+        .toString()
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    final filtered = rawLines
+        .where((line) =>
+            line.contains('package:turqappv2/') &&
+            !line.contains('hls_video_adapter_playback_part.dart'))
+        .take(depth)
+        .join(' <- ');
+    if (filtered.isNotEmpty) return filtered;
+    return rawLines.take(depth).join(' <- ');
+  }
+
+  void _logPlaybackControlCommand(String command) {
+    if (!kDebugMode) return;
+    debugPrint(
+      '[HLSAdapterControl]'
+      ' command=$command'
+      ' video=${_hls.telemetryVideoIdForDiagnostics ?? '-'}'
+      ' isStopped=$_isStopped'
+      ' viewReady=$_viewReady'
+      ' primaryFeedSurface=$_isPrimaryFeedSurface'
+      ' feedStyleSurface=$_isFeedStyleSurface'
+      ' valuePlaying=${_value.isPlaying}'
+      ' valueBuffering=${_value.isBuffering}'
+      ' valueFirstFrame=${_value.hasRenderedFirstFrame}'
+      ' positionMs=${_value.position.inMilliseconds}'
+      ' url=${_hls.currentUrl ?? url}'
+      ' stack=${_debugStackSource()}',
+    );
+  }
+
   Future<void> _performRestartStoppedPlayback({
     required bool autoPlay,
+    String debugSource = 'adapter.restartStopped',
   }) async {
     if (_disposed) return;
     _refreshProxyUrlIfNeeded();
@@ -42,19 +80,38 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     final pendingSeek = _pendingSeek;
     final hasPendingVolume = _hasPendingVolume;
     final pendingVolume = _pendingVolume;
-    final shouldDeferAutoplayUntilSeek =
-        autoPlay && pendingSeek != null && pendingSeek > Duration.zero;
+    final shouldDeferAutoplayUntilSeek = autoPlay &&
+        pendingSeek != null &&
+        pendingSeek > Duration.zero &&
+        !(defaultTargetPlatform == TargetPlatform.iOS && _isFeedStyleSurface);
 
     _pendingReloadOnReady = false;
     _isStopped = false;
     _wantPlay = autoPlay;
     _wantPause = false;
 
+    if (kDebugMode) {
+      debugPrint(
+        '[HLSAdapterRestartStopped]'
+        ' source=$debugSource'
+        ' requestedAutoPlay=$autoPlay'
+        ' nativeAutoPlay=${shouldDeferAutoplayUntilSeek ? false : autoPlay}'
+        ' deferUntilSeek=$shouldDeferAutoplayUntilSeek'
+        ' pendingSeekMs=${pendingSeek?.inMilliseconds ?? -1}'
+        ' primaryFeedSurface=$_isPrimaryFeedSurface'
+        ' feedStyleSurface=$_isFeedStyleSurface'
+        ' viewReady=$_viewReady'
+        ' canRestart=${_hls.canRestartStoppedPlayback}'
+        ' url=$url',
+      );
+    }
+
     await _hls.loadVideoWithFallback(
       url,
       fallbackUrl: _fallbackUrl,
       autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
       loop: loop,
+      debugSource: '$debugSource.restartLoad',
     );
     if (autoPlay) {
       _markNativePlayRequest();
@@ -89,12 +146,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     final resumeAt = shouldPreservePosition ? _value.position : Duration.zero;
     await _performStopPlayback(preserveFrameSnapshot: false);
     await Future<void>.delayed(const Duration(milliseconds: 80));
-    await reloadVideo();
     if (resumeAt > Duration.zero) {
       _pendingSeek = resumeAt;
     }
     _wantPlay = true;
     _wantPause = false;
+    _pendingReloadOnReady = !_viewReady;
     if (_viewReady) {
       _markNativePlayRequest();
       await _hls.loadVideoWithFallback(
@@ -102,6 +159,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         fallbackUrl: _fallbackUrl,
         autoPlay: true,
         loop: loop,
+        debugSource: 'adapter.recoverFrozen.directLoad',
       );
       if (resumeAt > Duration.zero) {
         await _hls.seekTo(resumeAt.inMilliseconds / 1000.0);
@@ -127,7 +185,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     if (_isStopped) {
       _wantPlay = true;
       _wantPause = false;
-      await _performRestartStoppedPlayback(autoPlay: true);
+      await _performRestartStoppedPlayback(
+        autoPlay: true,
+        debugSource: 'adapter.playWhileStopped',
+      );
       return;
     }
     if (_viewReady) {
@@ -143,6 +204,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performPause() {
     if (_disposed) return Future.value();
+    _logPlaybackControlCommand('pause');
     if (coordinateAudioFocus) {
       try {
         AudioFocusCoordinator.instance.requestPause(this);
@@ -160,6 +222,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performForceSilence() async {
     if (_disposed) return;
+    _logPlaybackControlCommand('force_silence');
     _wantPlay = false;
     _wantPause = true;
     _pendingVolume = 0.0;
@@ -269,8 +332,16 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performStopPlayback({
     bool preserveFrameSnapshot = true,
+    String? sourceStack,
   }) {
     if (_disposed) return Future.value();
+    final sourceSuffix = sourceStack == null || sourceStack.isEmpty
+        ? ''
+        : ' sourceStack=$sourceStack';
+    _logPlaybackControlCommand(
+      'stop_playback:preserveFrameSnapshot=$preserveFrameSnapshot'
+      '$sourceSuffix',
+    );
     _isStopped = true;
     _pendingReloadOnReady = false;
     _wantPlay = false;
@@ -286,15 +357,22 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSilenceAndStopPlayback() async {
     if (_disposed) return;
+    final sourceStack = _debugStackSource(depth: 8);
     await _performForceSilence();
-    await _performStopPlayback(preserveFrameSnapshot: false);
+    await _performStopPlayback(
+      preserveFrameSnapshot: false,
+      sourceStack: sourceStack,
+    );
   }
 
   Future<void> _performReloadVideo() async {
     if (_disposed) return;
     _refreshProxyUrlIfNeeded();
     if (!_isStopped) return;
-    await _performRestartStoppedPlayback(autoPlay: false);
+    await _performRestartStoppedPlayback(
+      autoPlay: false,
+      debugSource: 'adapter.reloadVideo',
+    );
   }
 
   Future<void> _performSetPreferredBufferDuration(double seconds) {
@@ -319,6 +397,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     required bool? overrideAutoPlay,
     required bool forceFullscreenOnAndroid,
     required bool isPrimaryFeedSurface,
+    required bool isFeedStyleSurface,
     required bool preferWarmPoolPauseOnAndroid,
     required bool preferResumePoster,
     bool suppressPauseSnapshot = false,
@@ -328,6 +407,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   }) {
     if (_disposed) return const SizedBox.shrink();
     _isPrimaryFeedSurface = isPrimaryFeedSurface;
+    _isFeedStyleSurface = isPrimaryFeedSurface || isFeedStyleSurface;
     _refreshProxyUrlIfNeeded();
     updateWarmPoolPausePreference(
       preferWarmPoolPauseOnAndroid ||

@@ -39,12 +39,14 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     bool coordinateAudioFocus = true,
     bool preferWarmPoolPauseOnAndroid = false,
   }) {
-    final sharedLeasedAdapter = _findReusableLeasedAdapter(
-      cacheKey: cacheKey,
-      requestedUrl: url,
-      useLocalProxy: useLocalProxy,
-      coordinateAudioFocus: coordinateAudioFocus,
-    );
+    final sharedLeasedAdapter = Platform.isIOS
+        ? null
+        : _findReusableLeasedAdapter(
+            cacheKey: cacheKey,
+            requestedUrl: url,
+            useLocalProxy: useLocalProxy,
+            coordinateAudioFocus: coordinateAudioFocus,
+          );
     if (sharedLeasedAdapter != null) {
       _leasedKeys[sharedLeasedAdapter] = cacheKey;
       _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;
@@ -283,8 +285,10 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   void _restoreSavedPosition(String cacheKey, HLSVideoAdapter adapter) {
-    if ((Platform.isIOS || Platform.isAndroid) &&
-        cacheKey.startsWith('feed:')) {
+    final isInlineFeedStyleKey = cacheKey.startsWith('feed:') ||
+        cacheKey.startsWith('profile_') ||
+        cacheKey.startsWith('social_');
+    if ((Platform.isIOS || Platform.isAndroid) && isInlineFeedStyleKey) {
       return;
     }
     final state = VideoStateManager.instance.getVideoState(cacheKey);
