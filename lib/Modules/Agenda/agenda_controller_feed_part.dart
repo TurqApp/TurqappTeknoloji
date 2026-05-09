@@ -407,6 +407,9 @@ extension AgendaControllerFeedPart on AgendaController {
     _updateFeedPrefetchQueue(anchorIndex: index);
     _boostFeedPlaybackHorizon(index);
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      markFeedWarmPreloadAnchorReady(playbackKey);
+    }
     final manager = VideoStateManager.instance;
     _reclaimFeedPlaybackFromExternalOwner(
       manager,

@@ -169,7 +169,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _resetAutoplaySegmentGate();
         _lazyInitTimer?.cancel();
         final shouldKeepAndroidSurfaceAlive =
-            _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind;
+            _shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind ||
+                (defaultTargetPlatform == TargetPlatform.android &&
+                    _isPrimaryFeedSurfaceInstance &&
+                    _surfaceKeepAliveDebounceActive);
         if (defaultTargetPlatform == TargetPlatform.android &&
             _isPrimaryFeedSurfaceInstance) {
           debugPrint(
