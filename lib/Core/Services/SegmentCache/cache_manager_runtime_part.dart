@@ -1,11 +1,12 @@
 part of 'cache_manager.dart';
 
 extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
-  static const Duration _hotPlaybackEvictionDelay = Duration(seconds: 8);
+  static const Duration _hotPlaybackEvictionDelay = Duration(minutes: 15);
   static const Duration _hotPlaybackEvictionLogThrottle = Duration(seconds: 20);
-  static const Duration _hotPlaybackMaintenanceDelay = Duration(seconds: 8);
+  static const Duration _hotPlaybackMaintenanceDelay = Duration(minutes: 15);
   static const Duration _hotPlaybackMaintenanceLogThrottle =
       Duration(seconds: 20);
+  static const Duration _hotPlaybackEntryGrace = Duration(minutes: 20);
   static const double _emergencyHardLimitMultiplier = 1.10;
 
   Future<void> init() async {
@@ -402,9 +403,23 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
 
   bool get _hasHotPlaybackFocus {
     final manager = maybeFindVideoStateManager();
-    if (manager == null) return false;
-    return _isHotPlaybackHandle(manager.currentPlayingDocID) ||
-        _isHotPlaybackHandle(manager.targetPlaybackDocID);
+    if (manager != null &&
+        (_isHotPlaybackHandle(manager.currentPlayingDocID) ||
+            _isHotPlaybackHandle(manager.targetPlaybackDocID))) {
+      return true;
+    }
+    return _hasRecentPlayingCacheEntry;
+  }
+
+  bool get _hasRecentPlayingCacheEntry {
+    final now = DateTime.now();
+    return _index.entries.values.any((entry) {
+      if (entry.state != VideoCacheState.playing) return false;
+      final lastUserInteractionAt = entry.lastUserInteractionAt;
+      return now.difference(entry.lastAccessedAt) < _hotPlaybackEntryGrace ||
+          (lastUserInteractionAt != null &&
+              now.difference(lastUserInteractionAt) < _hotPlaybackEntryGrace);
+    });
   }
 
   bool _isHotPlaybackHandle(String? value) {
@@ -455,6 +470,27 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     });
     debugPrint(
       '[CacheManager] Maintenance deferred source=$source '
+      'delayMs=${_hotPlaybackMaintenanceDelay.inMilliseconds}',
+    );
+  }
+
+  void _scheduleDeferredConsumedCacheClear({
+    required double progressThreshold,
+    required String source,
+  }) {
+    if (_deferredMaintenanceTimer?.isActive == true) return;
+    _deferredMaintenanceTimer = Timer(_hotPlaybackMaintenanceDelay, () {
+      _deferredMaintenanceTimer = null;
+      if (!_isReady) return;
+      unawaited(
+        clearConsumedCache(
+          progressThreshold: progressThreshold,
+          source: 'deferred_$source',
+        ),
+      );
+    });
+    debugPrint(
+      '[CacheManager] Consumed cleanup deferred source=$source '
       'delayMs=${_hotPlaybackMaintenanceDelay.inMilliseconds}',
     );
   }

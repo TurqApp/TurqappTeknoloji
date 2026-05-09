@@ -328,6 +328,7 @@ extension _AgendaViewFeedPart on AgendaView {
                   promoFallbackExtraWidth: 0,
                   forceSingleLinePromoChips: true,
                   suggestionPlacementId: 'feed',
+                  adSlotId: 'feed-ad-$slotNumber',
                   disposeImmediatelyWhenHidden: true,
                 ),
               ),

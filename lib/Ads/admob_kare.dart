@@ -24,6 +24,7 @@ class AdmobKare extends StatefulWidget {
     this.promoFallbackExtraWidth = 0,
     this.forceSingleLinePromoChips = false,
     this.suggestionPlacementId,
+    this.adSlotId,
     this.disposeImmediatelyWhenHidden = false,
   });
 
@@ -35,6 +36,7 @@ class AdmobKare extends StatefulWidget {
   final double promoFallbackExtraWidth;
   final bool forceSingleLinePromoChips;
   final String? suggestionPlacementId;
+  final String? adSlotId;
   final bool disposeImmediatelyWhenHidden;
 
   static Future<void> warmupPool({
@@ -54,15 +56,49 @@ class AdmobKare extends StatefulWidget {
   static ValueListenable<int> get availabilityRevision =>
       _AdmobKareState._sharedAdAvailabilityRevision;
   static Map<String, Object> get debugState => _AdmobKareState.debugState;
+  static void setScrollCriticalLiveAdBindingPaused(bool paused) {
+    _AdmobKareState.setScrollCriticalLiveAdBindingPaused(paused);
+  }
 
   @override
   State<AdmobKare> createState() => _AdmobKareState();
 }
 
+enum _StableAdSlotPhase {
+  empty,
+  loading,
+  ready,
+  bound,
+  impressed,
+}
+
+class _StableAdSlotState {
+  _StableAdSlotState(this.id);
+
+  final String id;
+  BannerAd? ad;
+  _StableAdSlotPhase phase = _StableAdSlotPhase.empty;
+  int ownerHash = 0;
+  bool impressionReported = false;
+  DateTime updatedAt = DateTime.now();
+
+  bool get hasRenderableAd => ad?.responseInfo != null;
+  bool get isOwned => ownerHash != 0;
+
+  void mark(_StableAdSlotPhase nextPhase) {
+    phase = nextPhase;
+    updatedAt = DateTime.now();
+  }
+}
+
 class _AdmobKareState extends State<AdmobKare> {
   static final List<BannerAd> _readyPool = <BannerAd>[];
+  static final Map<String, _StableAdSlotState> _stableSlots =
+      <String, _StableAdSlotState>{};
   static final ValueNotifier<int> _sharedAdAvailabilityRevision =
       ValueNotifier<int>(0);
+  static final ValueNotifier<bool> _scrollCriticalLiveAdBindingPaused =
+      ValueNotifier<bool>(false);
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
   static final Map<String, int> _managedSuggestionNextIndexByPlacement =
@@ -80,6 +116,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const int _poolTopUpBatchCount = 2;
   static const int _defaultWarmupCount = _poolTargetCount;
   static const int _maxPoolSize = 5;
+  static const int _maxStableSlotCount = 12;
   static const Duration _warmupAttemptMinInterval = Duration(seconds: 8);
   static const int _failureBurstBeforeCooldown = 5;
   static const bool _renderLiveAdsInDebug = bool.fromEnvironment(
@@ -95,16 +132,19 @@ class _AdmobKareState extends State<AdmobKare> {
   int _retryCount = 0;
   Timer? _retryTimer;
   Timer? _fallbackGateTimer;
+  Timer? _stableHiddenDetachTimer;
   Timer? _visibilityLoadDebounceTimer;
   DateTime? _qaRequestStartedAt;
   late final Key _visibilityKey;
   bool _isVisible = false;
   bool _waitingForFuturePool = false;
+  bool _liveAdEverRendered = false;
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
+  static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
   static const double _feedVisibilityLoadThreshold = 0.72;
@@ -127,12 +167,43 @@ class _AdmobKareState extends State<AdmobKare> {
         _sharedAdAvailabilityRevision.value + 1;
   }
 
+  static void setScrollCriticalLiveAdBindingPaused(bool paused) {
+    if (_scrollCriticalLiveAdBindingPaused.value == paused) {
+      return;
+    }
+    _scrollCriticalLiveAdBindingPaused.value = paused;
+    _log('scroll-critical live ad binding paused=$paused');
+  }
+
   static void _trimReadyPoolToLimit() {
     while (_readyPool.length > _maxPoolSize) {
       final ad = _readyPool.removeLast();
       try {
         ad.dispose();
       } catch (_) {}
+    }
+  }
+
+  static void _trimStableSlots({String preserveSlotId = ''}) {
+    if (_stableSlots.length <= _maxStableSlotCount) {
+      return;
+    }
+    final removable = _stableSlots.values
+        .where((slot) => slot.id != preserveSlotId && !slot.isOwned)
+        .toList(growable: false)
+      ..sort((left, right) => left.updatedAt.compareTo(right.updatedAt));
+    for (final slot in removable) {
+      if (_stableSlots.length <= _maxStableSlotCount) {
+        break;
+      }
+      final removed = _stableSlots.remove(slot.id);
+      final ad = removed?.ad;
+      if (ad != null) {
+        try {
+          ad.dispose();
+        } catch (_) {}
+      }
+      _log('stable slot evicted id=${slot.id} phase=${slot.phase.name}');
     }
   }
 
@@ -185,6 +256,10 @@ class _AdmobKareState extends State<AdmobKare> {
       _managedSuggestionPlacementId == 'feed';
   bool get _usesScrollCriticalPoolOnly =>
       _managedSuggestionPlacementId == 'feed';
+  String get _stableAdSlotKey => widget.adSlotId?.trim() ?? '';
+  bool get _usesStableAdSlot => _stableAdSlotKey.isNotEmpty;
+  _StableAdSlotState? get _stableSlotState =>
+      _usesStableAdSlot ? _stableSlots[_stableAdSlotKey] : null;
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -387,11 +462,151 @@ class _AdmobKareState extends State<AdmobKare> {
     return ad.responseInfo != null;
   }
 
+  bool _isRenderableBanner(BannerAd? ad) => ad?.responseInfo != null;
+
+  _StableAdSlotState _ensureStableSlotState() {
+    final slotId = _stableAdSlotKey;
+    final slot = _stableSlots.putIfAbsent(
+      slotId,
+      () => _StableAdSlotState(slotId),
+    );
+    _trimStableSlots(preserveSlotId: slotId);
+    return slot;
+  }
+
+  bool _tryAttachStableSlotAd() {
+    if (!_usesStableAdSlot) {
+      return false;
+    }
+    final slot = _stableSlotState;
+    if (slot == null || !slot.hasRenderableAd) {
+      return false;
+    }
+    final owner = identityHashCode(this);
+    if (slot.ownerHash != 0 && slot.ownerHash != owner) {
+      _log(
+        'stable slot busy id=${slot.id} owner=${slot.ownerHash} '
+        'requester=$owner phase=${slot.phase.name}',
+      );
+      return true;
+    }
+    _bannerAd = slot.ad;
+    _isAdLoaded = true;
+    _loadFailed = false;
+    _allowFallbackSurface = false;
+    _waitingForFuturePool = false;
+    _impressionReported = slot.impressionReported;
+    slot.ownerHash = owner;
+    slot.mark(_StableAdSlotPhase.bound);
+    _log('stable slot attach id=${slot.id} phase=${slot.phase.name}');
+    if (mounted && !_isDisposed) {
+      setState(() {});
+    }
+    return true;
+  }
+
+  void _bindAdToStableSlot(BannerAd ad) {
+    if (!_usesStableAdSlot) {
+      return;
+    }
+    final slot = _ensureStableSlotState();
+    slot.ad = ad;
+    slot.ownerHash = identityHashCode(this);
+    slot.impressionReported = false;
+    slot.mark(_StableAdSlotPhase.bound);
+    _log('stable slot bound id=${slot.id}');
+  }
+
+  void _detachStableSlotOwner({
+    required bool resetLocalState,
+    required String reason,
+  }) {
+    if (!_usesStableAdSlot) {
+      return;
+    }
+    final slot = _stableSlotState;
+    if (slot == null) {
+      return;
+    }
+    final owner = identityHashCode(this);
+    if (slot.ownerHash == owner) {
+      slot.ownerHash = 0;
+      slot.mark(slot.hasRenderableAd
+          ? _StableAdSlotPhase.ready
+          : _StableAdSlotPhase.empty);
+      _log('stable slot detached id=${slot.id} reason=$reason');
+    }
+    if (resetLocalState) {
+      _bannerAd = null;
+      _isAdLoaded = false;
+      _loadFailed = false;
+      _allowFallbackSurface = false;
+      _waitingForFuturePool = false;
+      _liveAdEverRendered = false;
+    }
+  }
+
+  void _detachStableSlotOwnerById(
+    String slotId, {
+    required bool resetLocalState,
+    required String reason,
+  }) {
+    final normalized = slotId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    final slot = _stableSlots[normalized];
+    if (slot == null) {
+      return;
+    }
+    final owner = identityHashCode(this);
+    if (slot.ownerHash == owner) {
+      slot.ownerHash = 0;
+      slot.mark(slot.hasRenderableAd
+          ? _StableAdSlotPhase.ready
+          : _StableAdSlotPhase.empty);
+      _log('stable slot detached id=${slot.id} reason=$reason');
+    }
+    if (resetLocalState) {
+      _bannerAd = null;
+      _isAdLoaded = false;
+      _loadFailed = false;
+      _allowFallbackSurface = false;
+      _waitingForFuturePool = false;
+      _liveAdEverRendered = false;
+    }
+  }
+
+  void _scheduleStableHiddenDetach() {
+    _stableHiddenDetachTimer?.cancel();
+    _stableHiddenDetachTimer = Timer(_stableHiddenDetachDelay, () {
+      _stableHiddenDetachTimer = null;
+      if (_isDisposed || _isVisible) {
+        return;
+      }
+      _detachStableSlotOwner(
+        resetLocalState: true,
+        reason: 'hidden_page_deferred',
+      );
+      _notifySharedAdAvailabilityChanged();
+      if (mounted && !_isDisposed) {
+        setState(() {});
+      }
+    });
+    _log(
+      'stable slot hidden detach deferred id=$_stableAdSlotKey '
+      'delayMs=${_stableHiddenDetachDelay.inMilliseconds}',
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _visibilityKey = ValueKey<String>('admob-kare-${identityHashCode(this)}');
     _sharedAdAvailabilityRevision.addListener(_handleSharedAdAvailability);
+    _scrollCriticalLiveAdBindingPaused.addListener(
+      _handleScrollCriticalAdBindingChanged,
+    );
     if (_usePlaceholderOnly) return;
     if (_usesManagedSuggestion) {
       _fallbackSuggestionConfig =
@@ -405,8 +620,19 @@ class _AdmobKareState extends State<AdmobKare> {
     super.didUpdateWidget(oldWidget);
     final previousPlacement = oldWidget.suggestionPlacementId?.trim() ?? '';
     final nextPlacement = widget.suggestionPlacementId?.trim() ?? '';
-    if (previousPlacement == nextPlacement) {
+    final previousSlot = oldWidget.adSlotId?.trim() ?? '';
+    final nextSlot = widget.adSlotId?.trim() ?? '';
+    if (previousPlacement == nextPlacement && previousSlot == nextSlot) {
       return;
+    }
+    if (previousSlot != nextSlot) {
+      _stableHiddenDetachTimer?.cancel();
+      _stableHiddenDetachTimer = null;
+      _detachStableSlotOwnerById(
+        previousSlot,
+        resetLocalState: true,
+        reason: 'slot_changed',
+      );
     }
     _fallbackGateTimer?.cancel();
     _allowFallbackSurface = false;
@@ -428,9 +654,19 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     if (_usesScrollCriticalPoolOnly && _waitingForFuturePool) {
+      if (!_scrollCriticalLiveAdBindingPaused.value) {
+        _waitingForFuturePool = false;
+        _log(
+          'pool ready attach after settle placement=$_managedSuggestionPlacementId '
+          'slot=$_stableAdSlotKey state=$debugState',
+        );
+        _attachBannerOrLoad();
+        return;
+      }
       _log(
         'pool ready deferred for next scroll-critical slot '
-        'placement=$_managedSuggestionPlacementId state=$debugState',
+        'placement=$_managedSuggestionPlacementId slot=$_stableAdSlotKey '
+        'state=$debugState',
       );
       return;
     }
@@ -448,8 +684,27 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
+  void _handleScrollCriticalAdBindingChanged() {
+    if (_isDisposed || !_usesScrollCriticalPoolOnly) {
+      return;
+    }
+    if (!_scrollCriticalLiveAdBindingPaused.value &&
+        _isVisible &&
+        (_waitingForFuturePool || _isRenderableBanner(_stableSlotState?.ad))) {
+      _waitingForFuturePool = false;
+      _attachBannerOrLoad();
+      return;
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
+      return;
+    }
+    if (_tryAttachStableSlotAd()) {
       return;
     }
     final pooled = _takePreloadedBanner();
@@ -471,6 +726,8 @@ class _AdmobKareState extends State<AdmobKare> {
       _loadFailed = false;
       _allowFallbackSurface = false;
       _impressionReported = false;
+      _liveAdEverRendered = false;
+      _bindAdToStableSlot(pooled);
       _fallbackGateTimer?.cancel();
       _notifySharedAdAvailabilityChanged();
       if (_supportsSharedPool) {
@@ -490,9 +747,12 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     if (_usesScrollCriticalPoolOnly) {
       _waitingForFuturePool = true;
+      if (_usesStableAdSlot) {
+        _ensureStableSlotState().mark(_StableAdSlotPhase.loading);
+      }
       _log(
         'pool miss; skip inline live load placement=$_managedSuggestionPlacementId '
-        'state=$debugState',
+        'slot=$_stableAdSlotKey state=$debugState',
       );
       _armFallbackGate();
       _schedulePoolTopUp(delay: const Duration(seconds: 4));
@@ -682,12 +942,17 @@ class _AdmobKareState extends State<AdmobKare> {
   void _releaseBannerForHiddenPage() {
     final ad = _bannerAd;
     if (ad == null) return;
+    if (_usesStableAdSlot) {
+      _scheduleStableHiddenDetach();
+      return;
+    }
     _bannerAd = null;
     _isAdLoaded = false;
     _loadFailed = false;
     _allowFallbackSurface = false;
     _impressionReported = false;
     _waitingForFuturePool = false;
+    _liveAdEverRendered = false;
     _disposeBannerAd(
       ad,
       reason: 'hidden_page',
@@ -717,6 +982,8 @@ class _AdmobKareState extends State<AdmobKare> {
       _releaseBannerForHiddenPage();
       return;
     }
+    _stableHiddenDetachTimer?.cancel();
+    _stableHiddenDetachTimer = null;
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
       _advanceManagedSuggestionIndex();
       if (_canRenderAd(_bannerAd)) {
@@ -768,6 +1035,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _retryTimer?.cancel();
     final previousAd = _bannerAd;
     _bannerAd = null;
+    _liveAdEverRendered = false;
     if (previousAd != null) {
       _disposeBannerAd(previousAd, reason: 'replace_before_load');
     }
@@ -813,6 +1081,9 @@ class _AdmobKareState extends State<AdmobKare> {
               _loadFailed = false;
               _allowFallbackSurface = false;
             });
+          }
+          if (ad is BannerAd) {
+            _bindAdToStableSlot(ad);
           }
           _fallbackGateTimer?.cancel();
           _notifySharedAdAvailabilityChanged();
@@ -923,6 +1194,12 @@ class _AdmobKareState extends State<AdmobKare> {
           );
           if (!_impressionReported) {
             _impressionReported = true;
+            final slot = _stableSlotState;
+            if (slot != null && slot.ownerHash == identityHashCode(this)) {
+              slot.impressionReported = true;
+              slot.mark(_StableAdSlotPhase.impressed);
+              _log('stable slot impressed id=${slot.id}');
+            }
             widget.onImpression?.call();
           }
           _lastReportedManagedItemId = '';
@@ -935,13 +1212,23 @@ class _AdmobKareState extends State<AdmobKare> {
   void dispose() {
     _isDisposed = true;
     _sharedAdAvailabilityRevision.removeListener(_handleSharedAdAvailability);
+    _scrollCriticalLiveAdBindingPaused.removeListener(
+      _handleScrollCriticalAdBindingChanged,
+    );
     _retryTimer?.cancel();
     _fallbackGateTimer?.cancel();
+    _stableHiddenDetachTimer?.cancel();
     _visibilityLoadDebounceTimer?.cancel();
     final ad = _bannerAd;
     _isAdLoaded = false;
     _bannerAd = null;
-    if (ad != null) {
+    _liveAdEverRendered = false;
+    if (_usesStableAdSlot) {
+      _detachStableSlotOwner(
+        resetLocalState: false,
+        reason: 'widget_dispose',
+      );
+    } else if (ad != null) {
       _disposeBannerAd(
         ad,
         reason: 'widget_dispose',
@@ -975,10 +1262,18 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     } else {
       final ad = _bannerAd;
-      final canRenderLiveAd = !_loadFailed && _canRenderAd(ad);
+      final liveAdBindingPaused = _usesScrollCriticalPoolOnly &&
+          _scrollCriticalLiveAdBindingPaused.value;
+      final hasRenderableAd = _canRenderAd(ad);
+      final shouldPreserveVisibleLiveAd =
+          hasRenderableAd && (_liveAdEverRendered || _isVisible);
+      final canRenderLiveAd = hasRenderableAd &&
+          (shouldPreserveVisibleLiveAd ||
+              (!_loadFailed && !liveAdBindingPaused));
       final showManagedSuggestion =
           _usesManagedSuggestion && _suggestionSliderItems.isNotEmpty;
       if (canRenderLiveAd) {
+        _liveAdEverRendered = true;
         final bannerAd = ad!;
 
         try {
@@ -1031,7 +1326,7 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        if (_allowFallbackSurface || _loadFailed) {
+        if (_allowFallbackSurface || _loadFailed || liveAdBindingPaused) {
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {
@@ -1040,6 +1335,8 @@ class _AdmobKareState extends State<AdmobKare> {
       } else {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
+        } else if (liveAdBindingPaused) {
+          child = _buildDeferredAdSlot();
         } else if (!_allowFallbackSurface && !_loadFailed) {
           child = _buildPendingAdSlot();
         } else {
@@ -1081,6 +1378,24 @@ class _AdmobKareState extends State<AdmobKare> {
         borderRadius: BorderRadius.circular(12),
         child: child,
       ),
+    );
+  }
+
+  Widget _buildDeferredAdSlot() {
+    final fallbackSurface = SizedBox(
+      height: _promoSlotHeight,
+      child: _buildPromoFrame(
+        child: _buildPromoFallbackSurface(),
+      ),
+    );
+    return Padding(
+      padding: widget.contentPadding,
+      child: widget.promoFallbackOffsetX == 0
+          ? fallbackSurface
+          : Transform.translate(
+              offset: Offset(widget.promoFallbackOffsetX, 0),
+              child: fallbackSurface,
+            ),
     );
   }
 

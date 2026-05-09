@@ -726,6 +726,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _shortsWorker?.dispose();
     AdmobKare.availabilityRevision
         .removeListener(_handleShortAdAvailabilityChanged);
+    AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
     if (_routeObserverSubscribed) {
       try {
         routeObserver.unsubscribe(this);

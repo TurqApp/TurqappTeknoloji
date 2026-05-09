@@ -75,8 +75,7 @@ ShortAdRenderPlan buildShortAdRenderPlan(
         renderIndex: entries.length,
       ),
     );
-    final reachedInsertionBoundary = adReady &&
-        insertionFrequency > 0 &&
+    final reachedInsertionBoundary = insertionFrequency > 0 &&
         i >= firstInsertionBoundary &&
         (i - firstInsertionBoundary) % insertionFrequency == 0;
     final hasMoreOrganicContent = i < posts.length - 1;

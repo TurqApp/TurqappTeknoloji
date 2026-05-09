@@ -101,6 +101,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _startupWarmPreloadReleaseTimer?.cancel();
     _growthRenderReleaseTimer?.cancel();
     _manifestWindowSyncTimer?.cancel();
+    AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
     _disposeFeedScrollControllerSafely();
   }
 

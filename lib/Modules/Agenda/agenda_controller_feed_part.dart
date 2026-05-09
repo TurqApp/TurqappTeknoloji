@@ -1378,6 +1378,7 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     if (!feedScrollSettlingRx.value) {
       feedScrollSettlingRx.value = true;
+      AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
       debugPrint(
         '[FeedScrollSettling] status=start offset=${currentOffset.toStringAsFixed(1)} '
         'centered=${centeredIndex.value}',
@@ -1465,6 +1466,7 @@ extension AgendaControllerFeedPart on AgendaController {
       () {
         if (feedScrollSettlingRx.value) {
           feedScrollSettlingRx.value = false;
+          AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
           debugPrint(
             '[FeedScrollSettling] status=settled centered=${centeredIndex.value}',
           );

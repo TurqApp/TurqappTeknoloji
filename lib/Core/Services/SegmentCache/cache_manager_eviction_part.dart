@@ -37,6 +37,15 @@ extension SegmentCacheManagerEvictionPart on SegmentCacheManager {
   }
 
   Future<void> purgeExpiredEntries() async {
+    if (_SegmentCacheManagerRuntimeX(
+      this,
+    )._shouldDeferMaintenanceForHotPlayback(source: 'purge_expired')) {
+      _SegmentCacheManagerRuntimeX(
+        this,
+      )._scheduleDeferredMaintenance(source: 'purge_expired');
+      return;
+    }
+
     final now = DateTime.now();
     final reservedShortCount = _reservedShortCount();
     final reservedFeedCount = _reservedFeedCount();
