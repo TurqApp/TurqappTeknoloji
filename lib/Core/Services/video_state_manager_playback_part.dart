@@ -60,13 +60,6 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         tierInfo['allowedCacheOnly'] == true;
   }
 
-  bool _isInlineFeedStylePlaybackKey(String docID) {
-    final trimmed = docID.trim();
-    return trimmed.startsWith('feed:') ||
-        trimmed.startsWith('profile_') ||
-        trimmed.startsWith('social_');
-  }
-
   bool _shouldKeepWarmHandleDuringExclusiveSwitch(
     String? allowedDocID,
     String controllerKey,
@@ -144,10 +137,6 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
   void _saveVideoState(String docID, PlaybackHandle handle) {
     if (!handle.isInitialized) return;
-    if (_isInlineFeedStylePlaybackKey(docID)) {
-      _videoStates.remove(docID);
-      return;
-    }
 
     _videoStates[docID] = VideoState(
       position: handle.position,
@@ -192,10 +181,6 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     String docID,
     PlaybackHandle handle,
   ) async {
-    if (_isInlineFeedStylePlaybackKey(docID)) {
-      _clearVideoState(docID);
-      return;
-    }
     final state = _getVideoState(docID);
     if (state == null || !handle.isInitialized) return;
 

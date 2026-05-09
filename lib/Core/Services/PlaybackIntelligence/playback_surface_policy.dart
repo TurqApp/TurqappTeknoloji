@@ -232,8 +232,7 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isFeedStyleSurface,
   }) {
-    return (platform == TargetPlatform.android || platform == TargetPlatform.iOS) &&
-        isFeedStyleSurface;
+    return platform == TargetPlatform.iOS && isFeedStyleSurface;
   }
 
   static Duration feedRecoveryCooldown({

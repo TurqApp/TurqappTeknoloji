@@ -916,13 +916,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             PostContentBaseState._stableFramePositionThreshold,
       );
       if (shouldForceAndroidFeedResumeReassert) {
-        final resumePosition =
-            PlaybackSurfacePolicy.shouldZeroSavedResumePositionFallback(
-          platform: defaultTargetPlatform,
-          isFeedStyleSurface: _usesFeedPlaybackPolicy,
-        )
-                ? Duration.zero
-                : adapter.value.position;
+        final resumePosition = adapter.value.position;
         _recordPlaybackDispatch(
           'feed_card_resume_reassert_position',
           source: source,

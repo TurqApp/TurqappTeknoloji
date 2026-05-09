@@ -285,10 +285,8 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
   }
 
   void _restoreSavedPosition(String cacheKey, HLSVideoAdapter adapter) {
-    final isInlineFeedStyleKey = cacheKey.startsWith('feed:') ||
-        cacheKey.startsWith('profile_') ||
-        cacheKey.startsWith('social_');
-    if ((Platform.isIOS || Platform.isAndroid) && isInlineFeedStyleKey) {
+    if ((Platform.isIOS || Platform.isAndroid) &&
+        cacheKey.startsWith('feed:')) {
       return;
     }
     final state = VideoStateManager.instance.getVideoState(cacheKey);
