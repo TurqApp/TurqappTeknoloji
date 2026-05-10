@@ -1,6 +1,20 @@
 part of 'short_view.dart';
 
+final Set<String> _shortConsumedDebugSignals = <String>{};
+
 extension ShortViewPlaybackPart on _ShortViewState {
+  String _shortPositionDebug({
+    required int page,
+    required String docId,
+  }) {
+    const slotSize = 240;
+    final safePage = page < 0 ? 0 : page;
+    final slotIndex = safePage ~/ slotSize;
+    final slotOrdinal = (safePage % slotSize) + 1;
+    return 'page=$page ordinal=${safePage + 1} slotIndex=$slotIndex '
+        'slotOrdinal=$slotOrdinal total=${_cachedShorts.length} doc=$docId';
+  }
+
   void _markShortSequencePassed(
     String docId, {
     required int page,
@@ -11,7 +25,24 @@ extension ShortViewPlaybackPart on _ShortViewState {
     controller.markShortSequencePassedDoc(normalizedDocId);
     controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
     debugPrint(
-      '[ShortSequencePassed] source=$source page=$page doc=$normalizedDocId',
+      '[ShortSequencePassed] source=$source '
+      '${_shortPositionDebug(page: page, docId: normalizedDocId)}',
+    );
+  }
+
+  void _markShortConsumedForCache(
+    String docId, {
+    required int page,
+    required String source,
+  }) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    _segmentCacheRuntimeService.markShortConsumed(normalizedDocId);
+    final logKey = '$normalizedDocId|$source';
+    if (!_shortConsumedDebugSignals.add(logKey)) return;
+    debugPrint(
+      '[ShortConsumed] source=$source '
+      '${_shortPositionDebug(page: page, docId: normalizedDocId)}',
     );
   }
 
@@ -2210,8 +2241,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
               currentSegment: currentSegment,
             );
             if (currentSegment >= 1) {
-              _segmentCacheRuntimeService.markShortConsumed(
+              _markShortConsumedForCache(
                 currentShort.docID,
+                page: currentPage,
+                source: 'progress_segment_$currentSegment',
               );
               controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
             }
@@ -2226,7 +2259,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     if (shouldAutoAdvance) {
       _isTransitioning = true;
-      _segmentCacheRuntimeService.markShortConsumed(currentDocId);
+      _markShortConsumedForCache(
+        currentDocId,
+        page: currentPage,
+        source: 'auto_advance_complete',
+      );
       controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
       VideoTelemetryService.instance.onCompleted(currentDocId);
       _detachVideoEndListener(vc);

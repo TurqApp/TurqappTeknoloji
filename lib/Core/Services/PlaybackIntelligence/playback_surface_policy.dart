@@ -634,7 +634,7 @@ class PlaybackSurfacePolicy {
   static bool preferDirectCdnForShort({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+    return false;
   }
 
   static bool preferStableShortStartupBuffer({
