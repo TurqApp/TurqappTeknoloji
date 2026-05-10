@@ -1,6 +1,13 @@
 import UIKit
 import AVFoundation
 
+private enum GlobalPlaybackBufferPolicy {
+    static let firstSegmentSeconds: Double = 2.0
+    static let nextSegmentSeconds: Double = 6.0
+    static let activeSecondSegmentBufferSeconds: Double =
+        firstSegmentSeconds + (nextSegmentSeconds / 3.0)
+}
+
 /// Global Singleton HLS Player Manager
 /// TikTok/Instagram-style player reuse mimarisi
 /// 1 Player instance + Multiple surfaces support
@@ -173,7 +180,8 @@ class GlobalHLSPlayerManager {
 
         // Configure for optimal HLS playback
         if #available(iOS 10.0, *) {
-            playerItem.preferredForwardBufferDuration = 1.0
+            playerItem.preferredForwardBufferDuration =
+                GlobalPlaybackBufferPolicy.activeSecondSegmentBufferSeconds
         }
 
         currentPlayerItem = playerItem

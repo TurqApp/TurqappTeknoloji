@@ -20,14 +20,16 @@ bool _shouldLogShortOnYukleme(String key) {
 }
 
 extension ShortControllerCachePart on ShortController {
-  static const int _shortActiveReadySegments = 1;
+  static const int _shortActiveReadySegments =
+      StartupPreloadPolicy.activeReadySegments;
   static const int _startupFirstVideoWindowCount =
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeStartupCount =
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeAheadFirstSegmentCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
-  static const int _onYuklemeActiveReadySegments = 1;
+  static const int _onYuklemeActiveReadySegments =
+      StartupPreloadPolicy.activeReadySegments;
 
   bool get _usesTightCellularShortProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
@@ -56,7 +58,7 @@ extension ShortControllerCachePart on ShortController {
   int _onYuklemeReadySegmentsForOffset(int playableOffset) {
     if (_usesTightCellularShortProfile) {
       if (playableOffset <= 0) {
-        return 1;
+        return _onYuklemeActiveReadySegments;
       }
       final isOnCellular =
           NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
@@ -509,7 +511,7 @@ extension ShortControllerCachePart on ShortController {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
       safeAnchor,
-      minimumSegmentCount: 1,
+      minimumSegmentCount: minimumSegmentCount,
     );
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;
@@ -527,7 +529,7 @@ extension ShortControllerCachePart on ShortController {
 
   void primePlaybackWindowReadySegments(
     int anchorIndex, {
-    int minimumSegmentCount = 1,
+    int minimumSegmentCount = _shortActiveReadySegments,
     int aheadCount = 5,
     int hotBehindCount = 3,
     int warmBehindCount = 5,
@@ -535,7 +537,7 @@ extension ShortControllerCachePart on ShortController {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
       safeAnchor,
-      minimumSegmentCount: 1,
+      minimumSegmentCount: minimumSegmentCount,
     );
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;

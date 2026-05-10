@@ -105,6 +105,9 @@ int resolveFeedWindowReadySegments({
     return hardBoostReadySegments;
   }
   final distance = targetIndex - currentIndex;
+  if (distance == 0) {
+    return HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal;
+  }
   if (distance >= 0 && distance < hardBoostCount) {
     return hardBoostReadySegments;
   }

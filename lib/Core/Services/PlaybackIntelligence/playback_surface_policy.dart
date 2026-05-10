@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show TargetPlatform;
+import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 
 class PlaybackSurfacePolicy {
   const PlaybackSurfacePolicy._();
@@ -50,9 +51,6 @@ class PlaybackSurfacePolicy {
     required bool isOnCellular,
     required int defaultCount,
   }) {
-    if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return 6;
-    }
     return defaultCount;
   }
 
@@ -94,7 +92,10 @@ class PlaybackSurfacePolicy {
         !isFeedStyleSurface) {
       return null;
     }
-    return shouldPlay ? 0.75 : 0.45;
+    return HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+      shouldPlay ? HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal : 1,
+      nextSegmentFraction: shouldPlay ? 1 / 3 : 1.0,
+    );
   }
 
   static Duration feedAutoplayGateTimeout({
@@ -715,9 +716,6 @@ class PlaybackSurfacePolicy {
     required bool isOnCellular,
     required int defaultCount,
   }) {
-    if (platform == TargetPlatform.android || platform == TargetPlatform.iOS) {
-      return 6;
-    }
     return defaultCount;
   }
 

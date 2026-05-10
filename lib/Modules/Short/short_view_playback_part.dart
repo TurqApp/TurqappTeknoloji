@@ -817,7 +817,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.primePlaybackWindowReadySegments(
       currentPage,
-      minimumSegmentCount: 1,
+      minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
       aheadCount: 5,
     );
     unawaited(
@@ -1024,7 +1024,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (!mounted || currentPage != activePage) return;
         controller.primePlaybackWindowReadySegments(
           activePage,
-          minimumSegmentCount: 1,
+          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
           aheadCount: 5,
         );
       });
@@ -1297,7 +1297,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             docId,
-            minimumSegmentCount: 1,
+            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
           );
         } catch (_) {}
       }
@@ -1364,7 +1364,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             docId,
-            minimumSegmentCount: 1,
+            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
           );
         } catch (_) {}
         final hadActiveAdapter = controller.cache[page] != null;
@@ -1579,7 +1579,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
             try {
               _segmentCacheRuntimeService.ensureMinimumReadySegments(
                 docId,
-                minimumSegmentCount: 1,
+                minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
               );
             } catch (_) {}
           }

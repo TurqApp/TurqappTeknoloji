@@ -63,11 +63,22 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     final nextSegmentKey = '$segmentDir$nextUri';
     if (cacheManager.getSegmentFile(docId, nextSegmentKey) != null) return;
 
+    final nextSegmentOrdinal =
+        ShortSwipeSegmentGuard.segmentOrdinalFromKey(nextSegmentKey);
+    if (nextSegmentOrdinal != null &&
+        nextSegmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+      if (kDebugMode) {
+        debugPrint(
+          '[HlsPlaybackWarm] status=skip reason=max_segment_2 '
+          'doc=$docId segment=$nextSegmentKey segmentOrdinal=$nextSegmentOrdinal',
+        );
+      }
+      return;
+    }
+
     final nextPath =
         '${currentPath.substring(0, currentPath.lastIndexOf('/') + 1)}$nextUri';
     if (_segmentFetchInFlight.containsKey(nextPath)) return;
-    final nextSegmentOrdinal =
-        ShortSwipeSegmentGuard.segmentOrdinalFromKey(nextSegmentKey);
     if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
       docId: docId,
       segmentKey: nextSegmentKey,

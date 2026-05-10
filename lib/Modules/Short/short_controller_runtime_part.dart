@@ -6,11 +6,18 @@ const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 10.0 : 6.4;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.activeReadySegments,
+  nextSegmentFraction: 1 / 3,
+);
 final double _neighborBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 6.0 : 4.8;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.neighborReadySegments,
+);
 final double _prepBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.8;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.neighborReadySegments,
+);
 Future<void>? _shortProxyWarmPathFuture;
 
 Future<void> _ensureShortProxyWarmPathReady({
@@ -457,7 +464,7 @@ extension ShortControllerPublicApiPart on ShortController {
       );
       primePlaybackWindowReadySegments(
         _currentVisibleShortIndex(this),
-        minimumSegmentCount: 1,
+        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
       );
       unawaited(
         warmStartupFirstSegments(

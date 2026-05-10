@@ -416,7 +416,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (GetPlatform.isAndroid && activeKey.startsWith('feed:')) {
         final initialCachedSegments =
             cacheManager?.getEntry(normalized)?.cachedSegmentCount ?? 0;
-        const targetReadySegments = 1;
+        const targetReadySegments =
+            HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal;
         debugPrint(
           '[FeedSegmentWarm] stage=boost_start doc=$normalized '
           'targetReadySegments=$targetReadySegments cachedSegments=$initialCachedSegments '

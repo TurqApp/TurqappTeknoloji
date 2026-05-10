@@ -4,6 +4,17 @@ import CoreImage
 import Flutter
 import Darwin
 
+private enum PlaybackBufferPolicy {
+    // Playback decision is segment based: active playback may warm segment 2,
+    // but must not race ahead into segment 3+.
+    static let firstSegmentSeconds: Double = 2.0
+    static let nextSegmentSeconds: Double = 6.0
+    static let activeSecondSegmentBufferSeconds: Double =
+        firstSegmentSeconds + (nextSegmentSeconds / 3.0)
+    static let stableSecondSegmentBufferSeconds: Double =
+        firstSegmentSeconds + (nextSegmentSeconds / 2.0)
+}
+
 private final class PlayerContainerView: UIView {
     weak var linkedPlayerLayer: AVPlayerLayer?
     let snapshotView = UIImageView()
@@ -282,7 +293,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Configure player item for optimal HLS playback
         if #available(iOS 10.0, *) {
-            playerItem?.preferredForwardBufferDuration = preferStableStartupBuffer ? 10.0 : 6.0
+            let forwardBuffer = preferStableStartupBuffer
+                ? PlaybackBufferPolicy.stableSecondSegmentBufferSeconds
+                : PlaybackBufferPolicy.activeSecondSegmentBufferSeconds
+            playerItem?.preferredForwardBufferDuration = forwardBuffer
         }
 
         // Create player
