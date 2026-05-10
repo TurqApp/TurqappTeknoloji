@@ -63,19 +63,59 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     final nextSegmentKey = '$segmentDir$nextUri';
     if (cacheManager.getSegmentFile(docId, nextSegmentKey) != null) return;
 
+    final nextSegmentOrdinal =
+        ShortSwipeSegmentGuard.segmentOrdinalFromKey(nextSegmentKey);
+    if (nextSegmentOrdinal != null &&
+        nextSegmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+      if (kDebugMode) {
+        debugPrint(
+          '[HlsPlaybackWarm] status=skip reason=max_segment_2 '
+          'doc=$docId segment=$nextSegmentKey segmentOrdinal=$nextSegmentOrdinal',
+        );
+      }
+      return;
+    }
+
     final nextPath =
         '${currentPath.substring(0, currentPath.lastIndexOf('/') + 1)}$nextUri';
     if (_segmentFetchInFlight.containsKey(nextPath)) return;
+    if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+      docId: docId,
+      segmentKey: nextSegmentKey,
+      segmentOrdinal: nextSegmentOrdinal,
+      cacheOrigin: 'playback_warm',
+      queueLength: 0,
+      activeDownloads: 0,
+    )) {
+      return;
+    }
 
     unawaited(() async {
       try {
-        final future = _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$nextPath');
+        final future =
+            _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$nextPath');
         _segmentFetchInFlight[nextPath] = future;
         final bytes = await future;
         if (!_canFetchSegmentOnDemandForDoc(docId)) {
           return;
         }
-        await cacheManager.writeSegment(docId, nextSegmentKey, bytes);
+        if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
+          docId: docId,
+          segmentKey: nextSegmentKey,
+          segmentOrdinal: nextSegmentOrdinal,
+          cacheOrigin: 'playback_warm',
+          queueLength: 0,
+          activeDownloads: 0,
+          bytes: bytes.length,
+        )) {
+          return;
+        }
+        await cacheManager.writeSegment(
+          docId,
+          nextSegmentKey,
+          bytes,
+          cacheOrigin: 'playback_warm',
+        );
         _logPlaybackSegmentServe(
           docId: docId,
           segmentKey: nextSegmentKey,
@@ -124,12 +164,14 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             }
             metrics?.recordHit(bytes.length);
             cacheManager.touchEntry(docID);
+            final entry = cacheManager.getEntry(docID);
             probe.recordSegmentTransfer(
               docId: docID,
               segmentKey: segmentKey,
               bytes: bytes.length,
               source: HlsTrafficSource.playback,
               cacheHit: true,
+              cacheOriginOverride: entry?.segments[segmentKey]?.cacheOrigin,
             );
             _logPlaybackSegmentServe(
               docId: docID,
@@ -183,6 +225,19 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         if (docID != null) {
           final segmentKey = _extractSegmentKey(path, docID);
           if (segmentKey != null) {
+            final segmentOrdinal =
+                ShortSwipeSegmentGuard.segmentOrdinalFromKey(segmentKey);
+            if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+              docId: docID,
+              segmentKey: segmentKey,
+              segmentOrdinal: segmentOrdinal,
+              cacheOrigin: 'playback',
+              queueLength: 0,
+              activeDownloads: 0,
+            )) {
+              await _respondStalePlaybackSegment(request);
+              return;
+            }
             probe.recordSegmentStart(
               docId: docID,
               segmentKey: segmentKey,
@@ -237,7 +292,14 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             bytes: bytes.length,
             path: path,
           );
-          unawaited(cacheManager.writeSegment(docID, segmentKey, bytes));
+          unawaited(
+            cacheManager.writeSegment(
+              docID,
+              segmentKey,
+              bytes,
+              cacheOrigin: 'playback',
+            ),
+          );
         }
       }
 

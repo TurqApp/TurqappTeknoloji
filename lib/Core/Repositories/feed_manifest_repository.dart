@@ -60,7 +60,8 @@ class FeedManifestRepository extends GetxService {
   static const int _maxCachedManifestWindows = 24;
   static const Duration _activeRetryDelay = Duration(milliseconds: 700);
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
-  static const Duration _slotDownloadTimeout = Duration(milliseconds: 4000);
+  static const Duration _slotDownloadTimeout = Duration(seconds: 6);
+  static const int _slotLoadRetryPasses = 2;
   static const String _localWindowsPrefsKey = 'feed_manifest_windows_v1';
   static const String _localSlotPrefsPrefix = 'feed_manifest_slot_v1';
   static const String _refreshGraceSyncPrefsKey =
@@ -378,6 +379,40 @@ class FeedManifestRepository extends GetxService {
       final batch = pending.sublist(start, end);
       await Future.wait(
         batch.map((slot) => _loadSlot(slot, forceRefresh: forceRefresh)),
+      );
+    }
+    for (var retry = 1; retry <= _slotLoadRetryPasses; retry++) {
+      final missing = slots
+          .where((slot) =>
+              slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
+          .toList(growable: false);
+      if (missing.isEmpty) return;
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedManifestRepo] stage=slot_load_retry '
+          'attempt=$retry missing=${missing.length} '
+          'paths=${missing.map((slot) => slot.path).join(',')}',
+        );
+      }
+      for (var start = 0;
+          start < missing.length;
+          start += _maxConcurrentSlotLoads) {
+        final end = (start + _maxConcurrentSlotLoads).clamp(0, missing.length);
+        final batch = missing.sublist(start, end);
+        await Future.wait(
+          batch.map((slot) => _loadSlot(slot, forceRefresh: true)),
+        );
+      }
+    }
+    final stillMissing = slots
+        .where((slot) =>
+            slot.path.isNotEmpty && !_slotEntries.containsKey(slot.path))
+        .toList(growable: false);
+    if (stillMissing.isNotEmpty && kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=slot_load_incomplete '
+        'missing=${stillMissing.length} '
+        'paths=${stillMissing.map((slot) => slot.path).join(',')}',
       );
     }
   }

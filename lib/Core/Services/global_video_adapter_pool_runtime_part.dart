@@ -39,12 +39,14 @@ extension _GlobalVideoAdapterPoolRuntimeX on GlobalVideoAdapterPool {
     bool coordinateAudioFocus = true,
     bool preferWarmPoolPauseOnAndroid = false,
   }) {
-    final sharedLeasedAdapter = _findReusableLeasedAdapter(
-      cacheKey: cacheKey,
-      requestedUrl: url,
-      useLocalProxy: useLocalProxy,
-      coordinateAudioFocus: coordinateAudioFocus,
-    );
+    final sharedLeasedAdapter = Platform.isIOS
+        ? null
+        : _findReusableLeasedAdapter(
+            cacheKey: cacheKey,
+            requestedUrl: url,
+            useLocalProxy: useLocalProxy,
+            coordinateAudioFocus: coordinateAudioFocus,
+          );
     if (sharedLeasedAdapter != null) {
       _leasedKeys[sharedLeasedAdapter] = cacheKey;
       _leaseCounts[cacheKey] = (_leaseCounts[cacheKey] ?? 0) + 1;

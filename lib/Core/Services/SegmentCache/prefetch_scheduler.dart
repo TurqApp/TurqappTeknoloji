@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
@@ -24,6 +25,7 @@ import 'hls_data_usage_probe.dart';
 import 'hls_segment_policy.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
+import 'short_swipe_segment_guard.dart';
 
 part 'prefetch_scheduler_class_part.dart';
 part 'prefetch_scheduler_facade_part.dart';

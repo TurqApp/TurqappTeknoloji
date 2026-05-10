@@ -398,6 +398,15 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     final readyForImmediateHandoff =
         manager.canResumePlaybackFor(playbackKey) ||
             _performShouldPreferImmediatePlaybackHandoff(index);
+    debugPrint(
+      '[ProfilePlaybackTarget] action=activate surface=social_profile '
+      'index=$index doc=$docId key=$playbackKey '
+      'currentOwner=${manager.currentPlayingDocID ?? ''} '
+      'targetOwner=${manager.targetPlaybackDocID ?? ''} '
+      'readyForImmediateHandoff=$readyForImmediateHandoff '
+      'centered=${centeredIndex.value} visible=${currentVisibleIndex.value} '
+      'route=${Get.currentRoute}',
+    );
     final issuedAt = manager.activatePlaybackTargetIfReady(
       playbackKey,
       lastCommandDocId: _lastPlaybackCommandDocId,
@@ -406,7 +415,16 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
           ? Duration.zero
           : const Duration(milliseconds: 120),
     );
-    if (issuedAt == null) return;
+    if (issuedAt == null) {
+      debugPrint(
+        '[ProfilePlaybackTarget] action=activate_miss surface=social_profile '
+        'index=$index doc=$docId key=$playbackKey '
+        'currentOwner=${manager.currentPlayingDocID ?? ''} '
+        'targetOwner=${manager.targetPlaybackDocID ?? ''} '
+        'readyForImmediateHandoff=$readyForImmediateHandoff',
+      );
+      return;
+    }
     _lastPlaybackCommandDocId = playbackKey;
     _lastPlaybackCommandAt = issuedAt;
     if (_performUsesTightCellularWarmProfile) {

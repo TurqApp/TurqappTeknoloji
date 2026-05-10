@@ -87,6 +87,7 @@ extension ProfileControllerLifecyclePart on ProfileController {
   void _performOnInit() {
     _activeUid = _resolvedActiveUid;
     _authSub = userService.authStateChanges().listen(_onAuthChanged);
+    _performEnableProfileQuotaFillIfWifi();
 
     _performBindCacheWorkers();
     for (final selection in const <int>[0, 1, 2, 3, 4, 5]) {
@@ -120,6 +121,17 @@ extension ProfileControllerLifecyclePart on ProfileController {
     for (final controller in _scrollControllers.values) {
       controller.dispose();
     }
+  }
+
+  void _performEnableProfileQuotaFillIfWifi() {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    if (!(NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false)) return;
+    prefetch.setAutomaticQuotaFillEnabled(
+      true,
+      reason: 'profile_controller_wifi',
+    );
+    unawaited(prefetch.ensureWifiQuotaFillPlan());
   }
 
   ScrollController _performBuildTrackedScrollController(int selection) {

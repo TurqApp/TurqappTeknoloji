@@ -2,6 +2,7 @@ part of 'hls_data_usage_probe.dart';
 
 extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
   static const Duration _offscreenLeakAlertCooldown = Duration(seconds: 3);
+  static const int _segmentOriginLimit = 4096;
 
   String _currentNetworkTypeName() {
     final network = NetworkAwarenessService.maybeFind();
@@ -228,10 +229,36 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     required bool cacheHit,
     Map<String, dynamic>? ownerInfoOverride,
     Map<String, dynamic>? tierInfoOverride,
+    String? cacheOriginOverride,
   }) {
     final transferKey = '$docId|$segmentKey|${source.name}';
     final transfer = _inFlight.remove(transferKey);
     _recomputeConcurrency();
+    final ownerInfo = ownerInfoOverride ??
+        transfer?.ownerInfo ??
+        maybeFindPrefetchScheduler()?.describeTransferOwner(docId);
+    final tierInfo = tierInfoOverride ??
+        transfer?.tierInfo ??
+        maybeFindPrefetchScheduler()?.classifyTransferDoc(docId);
+    final segmentOriginKey = '$docId|$segmentKey';
+    final owner = (ownerInfo?['owner'] ?? 'unknown').toString();
+    if (source == HlsTrafficSource.prefetch && !cacheHit) {
+      _rememberSegmentOrigin(segmentOriginKey, owner);
+    }
+    final cacheOrigin = cacheHit
+        ? ((cacheOriginOverride ?? '').trim().isNotEmpty
+            ? cacheOriginOverride!.trim()
+            : (_segmentOrigins[segmentOriginKey] ?? 'disk_cache_unknown'))
+        : (source == HlsTrafficSource.playback ? 'network' : owner);
+    _logShortQuotaConsumeProbe(
+      docId: docId,
+      segmentKey: segmentKey,
+      source: source,
+      cacheHit: cacheHit,
+      cacheOrigin: cacheOrigin,
+      ownerInfo: ownerInfo,
+      tierInfo: tierInfo,
+    );
 
     final variantKey = _variantKeyFromSegmentKey(segmentKey);
     final event = HlsTransferEvent(
@@ -247,10 +274,16 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       networkType: _currentNetworkTypeName(),
     );
     _events.add(event);
+    _logSegmentTrace(
+      event: event,
+      ownerInfo: ownerInfo,
+      tierInfo: tierInfo,
+      origin: cacheOrigin,
+    );
     _recordOffscreenLeakSignal(
       event,
-      ownerInfoOverride: ownerInfoOverride ?? transfer?.ownerInfo,
-      tierInfoOverride: tierInfoOverride ?? transfer?.tierInfo,
+      ownerInfoOverride: ownerInfo,
+      tierInfoOverride: tierInfo,
     );
 
     final doc =
@@ -298,6 +331,82 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     if (!cacheHit) {
       _publishMobileBytesKpiIfNeeded();
     }
+  }
+
+  void _rememberSegmentOrigin(String key, String origin) {
+    if (origin.isEmpty) return;
+    _segmentOrigins[key] = origin;
+    if (_segmentOrigins.length <= _segmentOriginLimit) return;
+    final overflow = _segmentOrigins.length - _segmentOriginLimit;
+    final keysToRemove =
+        _segmentOrigins.keys.take(overflow).toList(growable: false);
+    for (final removeKey in keysToRemove) {
+      _segmentOrigins.remove(removeKey);
+    }
+  }
+
+  void _logSegmentTrace({
+    required HlsTransferEvent event,
+    required Map<String, dynamic>? ownerInfo,
+    required Map<String, dynamic>? tierInfo,
+    required String origin,
+  }) {
+    if (!kDebugMode) return;
+    final owner = ownerInfo?['owner'] ?? 'unknown';
+    final shortDoc =
+        event.docId.length > 8 ? event.docId.substring(0, 8) : event.docId;
+    debugPrint(
+      '[HlsSegmentTrace] source=${event.source.name} cacheHit=${event.cacheHit} '
+      'origin=$origin doc=$shortDoc segment=${event.pathKey} '
+      'segmentOrdinal=${_segmentOrdinalFromKey(event.pathKey) ?? '?'} '
+      'visible=${event.visibleDocId == event.docId} '
+      'visibleDoc=${event.visibleDocId ?? '-'} owner=$owner '
+      'inShortWindow=${ownerInfo?['inShortWindow']} '
+      'inFeedWindow=${ownerInfo?['inFeedWindow']} '
+      'pendingPrefetch=${ownerInfo?['pendingPrefetch']} '
+      'activeDownload=${ownerInfo?['activeDownload']} '
+      'activeShort=${ownerInfo?['hasActiveShortPlaybackWindow']} '
+      'activeFeed=${ownerInfo?['hasActiveFeedPlaybackWindow']} '
+      'tier=${tierInfo?['tier'] ?? 'unknown'} '
+      'bytes=${event.bytes}',
+    );
+  }
+
+  void _logShortQuotaConsumeProbe({
+    required String docId,
+    required String segmentKey,
+    required HlsTrafficSource source,
+    required bool cacheHit,
+    required String cacheOrigin,
+    required Map<String, dynamic>? ownerInfo,
+    required Map<String, dynamic>? tierInfo,
+  }) {
+    if (!kDebugMode || source != HlsTrafficSource.playback || !cacheHit) {
+      return;
+    }
+    final ordinal = _segmentOrdinalFromKey(segmentKey);
+    if (ordinal != 1) return;
+    final owner = (ownerInfo?['owner'] ?? 'unknown').toString();
+    if (owner != 'short') return;
+    final shortDoc = docId.length > 8 ? docId.substring(0, 8) : docId;
+    debugPrint(
+      '[ShortQuotaConsume] status=first_segment_cache_hit '
+      'quotaHit=${cacheOrigin == 'quota'} cacheOrigin=$cacheOrigin '
+      'doc=$shortDoc segment=$segmentKey segmentOrdinal=$ordinal '
+      'visible=${ownerInfo?['owner'] == 'short'} '
+      'activeShort=${ownerInfo?['hasActiveShortPlaybackWindow']} '
+      'activeFeed=${ownerInfo?['hasActiveFeedPlaybackWindow']} '
+      'tier=${tierInfo?['tier'] ?? 'unknown'}',
+    );
+  }
+
+  int? _segmentOrdinalFromKey(String segmentKey) {
+    final fileName = segmentKey.split('/').last;
+    final match = RegExp(r'(\d+)(?=\D*$)').firstMatch(fileName);
+    if (match == null) return null;
+    final parsed = int.tryParse(match.group(1)!);
+    if (parsed == null) return null;
+    return parsed + 1;
   }
 
   void _recordPlaylistEvent({

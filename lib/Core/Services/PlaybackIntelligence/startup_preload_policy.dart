@@ -9,8 +9,8 @@ class StartupPreloadPolicy {
   static const int startupWarmCount = 5;
 
   // Active playback
-  static const int activeReadySegments = 1;
-  static const int neighborReadySegments = 3;
+  static const int activeReadySegments = 2;
+  static const int neighborReadySegments = 1;
 
   // Forward preload horizon
   static const int aheadFirstSegmentCount = 5;
@@ -63,11 +63,6 @@ class StartupPreloadPolicy {
       return playableOffset <= limit ? 1 : 0;
     }
     final baseReadySegments = readySegmentsForAheadOffset(playableOffset);
-    if (platform == TargetPlatform.iOS && playableOffset <= 2) {
-      return baseReadySegments > neighborReadySegments
-          ? baseReadySegments
-          : neighborReadySegments;
-    }
     return baseReadySegments;
   }
 

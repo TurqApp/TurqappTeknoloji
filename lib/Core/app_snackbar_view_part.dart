@@ -52,77 +52,150 @@ void AppSnackbar(
     overflow: TextOverflow.ellipsis,
   );
 
-  if (Get.isSnackbarOpen) {
-    Get.closeCurrentSnackbar();
+  _queueAppSnackbar(
+    _AppSnackbarRequest(
+      title: normalizedTitle,
+      message: normalizedMessage,
+      backgroundColor: backgroundColor,
+      duration: duration ?? const Duration(seconds: 3),
+      snackPosition: snackPosition ?? SnackPosition.TOP,
+      margin: margin ?? const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      borderRadius: borderRadius ?? 16,
+      icon: icon,
+      palette: palette,
+      titleStyle: mergedTitleStyle,
+      messageStyle: mergedMessageStyle,
+    ),
+  );
+}
+
+void _queueAppSnackbar(_AppSnackbarRequest request) {
+  _pendingSnackbarRequest = request;
+  if (_snackbarPostFrameScheduled) return;
+  _snackbarPostFrameScheduled = true;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _snackbarPostFrameScheduled = false;
+    final next = _pendingSnackbarRequest;
+    _pendingSnackbarRequest = null;
+    if (next == null) return;
+    _showAppSnackbarOverlay(next);
+  });
+}
+
+void _showAppSnackbarOverlay(_AppSnackbarRequest request) {
+  final context = Get.overlayContext ?? Get.context;
+  if (context == null) {
+    debugPrint('[AppSnackbar] skipped: overlay context is not ready.');
+    return;
   }
-  Get.snackbar(
-    '',
-    '',
-    snackStyle: SnackStyle.FLOATING,
-    titleText: const SizedBox.shrink(),
-    messageText: DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor ?? palette.background,
-        borderRadius: BorderRadius.circular(borderRadius ?? 16),
-        border: Border.all(color: palette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x29000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) {
+    debugPrint('[AppSnackbar] skipped: overlay is not available.');
+    return;
+  }
+
+  _removeActiveAppSnackbar();
+  final serial = ++_snackbarSerial;
+  final entry = OverlayEntry(
+    builder: (context) {
+      final mediaPadding =
+          MediaQuery.maybeOf(context)?.padding ?? EdgeInsets.zero;
+      final isBottom = request.snackPosition == SnackPosition.BOTTOM;
+      final verticalOffset = isBottom
+          ? mediaPadding.bottom + request.margin.bottom
+          : mediaPadding.top + request.margin.top;
+      final snackbar = Dismissible(
+        key: ValueKey<int>(serial),
+        direction: DismissDirection.horizontal,
+        onDismissed: (_) => _removeActiveAppSnackbar(serial: serial),
+        child: Material(
+          color: Colors.transparent,
+          child: _buildAppSnackbarContent(request),
+        ),
+      );
+      return Positioned(
+        left: request.margin.left,
+        right: request.margin.right,
+        top: isBottom ? null : verticalOffset,
+        bottom: isBottom ? verticalOffset : null,
+        child: snackbar,
+      );
+    },
+  );
+  _activeSnackbarEntry = entry;
+  overlay.insert(entry);
+  _activeSnackbarTimer = Timer(
+    request.duration,
+    () => _removeActiveAppSnackbar(serial: serial),
+  );
+}
+
+Widget _buildAppSnackbarContent(_AppSnackbarRequest request) {
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      color: request.backgroundColor ?? request.palette.background,
+      borderRadius: BorderRadius.circular(request.borderRadius),
+      border: Border.all(color: request.palette.border),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x29000000),
+          blurRadius: 18,
+          offset: Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: request.palette.iconBadge,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: request.icon ??
+                Icon(
+                  request.palette.icon,
+                  color: request.palette.text,
+                  size: 16,
+                ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  if (request.title.isNotEmpty)
+                    TextSpan(text: request.title, style: request.titleStyle),
+                  if (request.message.isNotEmpty)
+                    TextSpan(
+                      text: request.title.isNotEmpty
+                          ? '  ${request.message}'
+                          : request.message,
+                      style: request.messageStyle,
+                    ),
+                ],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: palette.iconBadge,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: icon ??
-                  Icon(
-                    palette.icon,
-                    color: palette.text,
-                    size: 16,
-                  ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    if (normalizedTitle.isNotEmpty)
-                      TextSpan(text: normalizedTitle, style: mergedTitleStyle),
-                    if (normalizedMessage.isNotEmpty)
-                      TextSpan(
-                        text: normalizedTitle.isNotEmpty
-                            ? '  $normalizedMessage'
-                            : normalizedMessage,
-                        style: mergedMessageStyle,
-                      ),
-                  ],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
     ),
-    backgroundColor: Colors.transparent,
-    snackPosition: snackPosition ?? SnackPosition.TOP,
-    duration: duration ?? const Duration(seconds: 3),
-    margin: margin ?? const EdgeInsets.fromLTRB(12, 10, 12, 0),
-    borderRadius: borderRadius ?? 16,
-    padding: EdgeInsets.zero,
-    isDismissible: true,
-    dismissDirection: DismissDirection.horizontal,
   );
+}
+
+void _removeActiveAppSnackbar({int? serial}) {
+  if (serial != null && serial != _snackbarSerial) return;
+  _activeSnackbarTimer?.cancel();
+  _activeSnackbarTimer = null;
+  final entry = _activeSnackbarEntry;
+  _activeSnackbarEntry = null;
+  try {
+    entry?.remove();
+  } catch (_) {}
 }

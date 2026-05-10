@@ -12,7 +12,6 @@ class _NetworkAwarenessServiceState {
   StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
   Timer? connectivityPollTimer;
   NetworkType? debugOverrideNetwork;
-  bool wifiSchedulerBootstrapApplied = false;
 }
 
 extension _NetworkAwarenessServiceFieldsPart on NetworkAwarenessService {
@@ -31,8 +30,4 @@ extension _NetworkAwarenessServiceFieldsPart on NetworkAwarenessService {
   NetworkType? get _debugOverrideNetwork => _state.debugOverrideNetwork;
   set _debugOverrideNetwork(NetworkType? value) =>
       _state.debugOverrideNetwork = value;
-  bool get _wifiSchedulerBootstrapApplied =>
-      _state.wifiSchedulerBootstrapApplied;
-  set _wifiSchedulerBootstrapApplied(bool value) =>
-      _state.wifiSchedulerBootstrapApplied = value;
 }

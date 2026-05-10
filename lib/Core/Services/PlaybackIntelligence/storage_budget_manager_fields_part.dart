@@ -1,7 +1,7 @@
 part of 'storage_budget_manager.dart';
 
 class _StorageBudgetManagerState {
-  final selectedPlanGb = 3.obs;
+  final selectedPlanGb = defaultStorageBudgetPlanGb.obs;
 }
 
 extension StorageBudgetManagerFieldsPart on StorageBudgetManager {

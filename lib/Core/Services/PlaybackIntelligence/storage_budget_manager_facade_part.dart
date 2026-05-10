@@ -1,6 +1,7 @@
 part of 'storage_budget_manager.dart';
 
-const List<int> storageBudgetPlanOptionsGb = <int>[3, 5, 7, 9];
+const int defaultStorageBudgetPlanGb = 5;
+const List<int> storageBudgetPlanOptionsGb = <int>[5, 7, 9];
 
 int normalizeStorageBudgetPlanGb(int gb) {
   for (final option in storageBudgetPlanOptionsGb) {

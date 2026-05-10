@@ -7,6 +7,7 @@ class HlsSegmentPolicy {
   static const int _defaultFirstSegmentSeconds = 2;
   static const int _defaultNextSegmentSeconds = 6;
   static const Duration _configTtl = Duration(minutes: 30);
+  static const int playbackWarmMaxSegmentOrdinal = 2;
 
   static int _firstSegmentSeconds = _defaultFirstSegmentSeconds;
   static int _nextSegmentSeconds = _defaultNextSegmentSeconds;
@@ -15,6 +16,16 @@ class HlsSegmentPolicy {
   static int get firstSegmentSeconds => _firstSegmentSeconds;
 
   static int get nextSegmentSeconds => _nextSegmentSeconds;
+
+  static double bufferSecondsForSegmentOrdinal(
+    int segmentOrdinal, {
+    double nextSegmentFraction = 1.0,
+  }) {
+    if (segmentOrdinal <= 1) return firstSegmentSeconds.toDouble();
+    final clampedFraction = nextSegmentFraction.clamp(0.0, 1.0);
+    return firstSegmentSeconds +
+        ((segmentOrdinal - 1) * nextSegmentSeconds * clampedFraction);
+  }
 
   static Future<void> refresh({bool forceRefresh = false}) {
     final inFlight = _refreshFuture;

@@ -9,12 +9,14 @@ import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/debug_overlay.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/short_swipe_segment_guard.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
-import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/startup_preload_policy.dart';
+import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Services/feed_diversity_memory_service.dart';
 import 'package:turqappv2/Core/Services/playback_execution_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
@@ -603,11 +605,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } catch (_) {}
     currentPage = initialIndex;
     _shortAdRenderable = AdmobKare.hasRenderableBanner;
-    _markShortSequencePassed(
-      initialDocId,
-      page: initialIndex,
-      source: 'view_init',
-    );
     controller.commitLaunchSelectionForItems(
       currentPage,
       controller.shorts,
@@ -616,6 +613,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     _rebuildShortRenderPlan();
     _alignCurrentPageToDocAnchor(reason: 'view_init');
+    final readyDocId = currentPage >= 0 && currentPage < _cachedShorts.length
+        ? _cachedShorts[currentPage].docID.trim()
+        : initialDocId;
+    debugPrint(
+      '[ShortViewInitPosition] source=view_init_ready '
+      '${_shortPositionDebug(page: currentPage, docId: readyDocId)}',
+    );
     controller.logShortOpenTrace(
       stage: 'view_init',
       metadata: <String, dynamic>{

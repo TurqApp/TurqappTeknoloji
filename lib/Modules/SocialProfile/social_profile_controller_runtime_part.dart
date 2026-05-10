@@ -3,6 +3,7 @@ part of 'social_profile_controller.dart';
 extension SocialProfileControllerRuntimePart on SocialProfileController {
   void _handleLifecycleInit() {
     _bindCenteredPlaybackRowUpdates();
+    _enableProfileQuotaFillIfWifi();
     UserAnalyticsService.instance.trackFeatureUsage('social_profile_open');
     unawaited(_primeOwnProfileCaches());
     getUserData();
@@ -100,6 +101,17 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
     _resharesSub?.cancel();
     _visibilityDebounce?.cancel();
     _centeredPlaybackRowWorker?.dispose();
+  }
+
+  void _enableProfileQuotaFillIfWifi() {
+    final prefetch = maybeFindPrefetchScheduler();
+    if (prefetch == null) return;
+    if (!(NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false)) return;
+    prefetch.setAutomaticQuotaFillEnabled(
+      true,
+      reason: 'social_profile_controller_wifi',
+    );
+    unawaited(prefetch.ensureWifiQuotaFillPlan());
   }
 
   void _bindCenteredPlaybackRowUpdates() {

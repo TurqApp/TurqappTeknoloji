@@ -193,12 +193,62 @@ extension AgendaControllerSupportPart on AgendaController {
     return CurrentUserService.instance.preferredLocationCity;
   }
 
+  void resetInitialFeedResumeForSurfaceTransition({
+    required String source,
+  }) {
+    const initialWindowLimit = 3;
+    if (agendaList.isEmpty) return;
+
+    final candidates = <int>[];
+    final currentKey =
+        VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    if (currentKey.startsWith('feed:')) {
+      final currentDocId = currentKey.substring('feed:'.length).trim();
+      final currentIndex =
+          agendaList.indexWhere((post) => post.docID == currentDocId);
+      if (currentIndex >= 0) candidates.add(currentIndex);
+    }
+    candidates.add(centeredIndex.value);
+    final lastIndex = lastCenteredIndex;
+    if (lastIndex != null) candidates.add(lastIndex);
+    candidates.addAll(const <int>[0, 1, 2]);
+
+    final seen = <int>{};
+    for (final index in candidates) {
+      if (!seen.add(index)) continue;
+      if (index < 0 || index >= agendaList.length) continue;
+      if (index >= initialWindowLimit) continue;
+      final post = agendaList[index];
+      if (!_canAutoplayVideoPost(post)) continue;
+      final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
+      VideoStateManager.instance.markTransitionResumeReset(
+        playbackKey,
+        reason: source,
+      );
+      debugPrint(
+        '[FeedResumeReset] action=initial_surface_transition '
+        'source=$source index=$index doc=${post.docID} key=$playbackKey '
+        'current=$currentKey centered=${centeredIndex.value} last=$lastCenteredIndex',
+      );
+      return;
+    }
+
+    debugPrint(
+      '[FeedResumeReset] action=skip_initial_surface_transition '
+      'source=$source current=$currentKey centered=${centeredIndex.value} '
+      'last=$lastCenteredIndex count=${agendaList.length}',
+    );
+  }
+
   void setFeedViewMode(FeedViewMode mode) {
     if (feedViewMode.value == mode) return;
     final previousMode = feedViewMode.value;
     if (mode == FeedViewMode.city && currentUserLocationCity.trim().isEmpty) {
       return;
     }
+    resetInitialFeedResumeForSurfaceTransition(
+      source: 'feed_mode_tab:$previousMode->$mode',
+    );
     feedViewMode.value = mode;
     if (previousMode == FeedViewMode.city || mode == FeedViewMode.city) {
       unawaited(refreshAgenda(forceNewLaunchSession: true));

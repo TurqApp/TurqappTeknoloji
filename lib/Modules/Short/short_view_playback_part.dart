@@ -1,6 +1,29 @@
 part of 'short_view.dart';
 
+final Set<String> _shortConsumedDebugSignals = <String>{};
+
 extension ShortViewPlaybackPart on _ShortViewState {
+  String _shortPositionDebug({
+    required int page,
+    required String docId,
+  }) {
+    final manifestPosition = controller.manifestPositionLabelForDoc(docId);
+    if (manifestPosition != null && manifestPosition.isNotEmpty) {
+      return 'page=$page positionSource=manifest $manifestPosition '
+          'total=${_cachedShorts.length} doc=$docId';
+    }
+    const slotSize = 240;
+    final safePage = page < 0 ? 0 : page;
+    final slotIndex = safePage ~/ slotSize;
+    final slotNo = slotIndex + 1;
+    final slotOrdinal = (safePage % slotSize) + 1;
+    final globalCardNo = slotIndex * slotSize + slotOrdinal;
+    return 'page=$page positionSource=page_fallback '
+        'globalCardNo=$globalCardNo slotNo=$slotNo '
+        'slotIndex=$slotIndex slotOrdinal=$slotOrdinal '
+        'total=${_cachedShorts.length} doc=$docId';
+  }
+
   void _markShortSequencePassed(
     String docId, {
     required int page,
@@ -9,9 +32,31 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final normalizedDocId = docId.trim();
     if (normalizedDocId.isEmpty) return;
     controller.markShortSequencePassedDoc(normalizedDocId);
+    controller.commitLaunchSelectionForItems(
+      page,
+      _cachedShorts,
+      selectedDocId: normalizedDocId,
+    );
     controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
     debugPrint(
-      '[ShortSequencePassed] source=$source page=$page doc=$normalizedDocId',
+      '[ShortSequencePassed] source=$source '
+      '${_shortPositionDebug(page: page, docId: normalizedDocId)}',
+    );
+  }
+
+  void _markShortConsumedForCache(
+    String docId, {
+    required int page,
+    required String source,
+  }) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    _segmentCacheRuntimeService.markShortConsumed(normalizedDocId);
+    final logKey = '$normalizedDocId|$source';
+    if (!_shortConsumedDebugSignals.add(logKey)) return;
+    debugPrint(
+      '[ShortConsumed] source=$source '
+      '${_shortPositionDebug(page: page, docId: normalizedDocId)}',
     );
   }
 
@@ -595,6 +640,57 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
   }
 
+  void _recordShortSwipeSegmentBoundary(
+    int page, {
+    required String reason,
+  }) {
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return;
+    final adapter = controller.cache[page];
+    final value = adapter?.value;
+    final position = value?.position ?? Duration.zero;
+    final duration = value?.duration ?? Duration.zero;
+    final cacheManager = maybeFindSegmentCacheManager();
+    final entry = cacheManager?.getEntry(docId);
+    final totalSegmentCount = entry?.totalSegmentCount ?? 0;
+    final boundarySegment = ShortSwipeSegmentGuard.estimateBoundarySegment(
+      position: position,
+      duration: duration,
+      totalSegmentCount: totalSegmentCount,
+    );
+    final cachedOrdinals = (entry?.segments.keys ?? const <String>[])
+        .map(ShortSwipeSegmentGuard.segmentOrdinalFromKey)
+        .whereType<int>()
+        .toList(growable: false);
+    int? maxCachedSegment;
+    var cachedAfterBoundary = 0;
+    for (final ordinal in cachedOrdinals) {
+      if (maxCachedSegment == null || ordinal > maxCachedSegment) {
+        maxCachedSegment = ordinal;
+      }
+      if (boundarySegment != null && ordinal > boundarySegment) {
+        cachedAfterBoundary += 1;
+      }
+    }
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    ShortSwipeSegmentGuard.recordSwipeAway(
+      docId: docId,
+      page: page,
+      reason: reason,
+      position: position,
+      duration: duration,
+      progress: progress,
+      boundarySegmentOrdinal: boundarySegment,
+      cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+      cachedAfterBoundaryCount: cachedAfterBoundary,
+      maxCachedSegmentOrdinal: maxCachedSegment,
+      totalSegmentCount: totalSegmentCount,
+    );
+  }
+
   void _onPageChanged(int renderPage) {
     if (_cachedShorts.isEmpty) return;
     if (renderPage == _currentRenderPage) return;
@@ -646,6 +742,31 @@ extension ShortViewPlaybackPart on _ShortViewState {
         'isAdPage': isAdPage,
       },
     );
+
+    if (nextDocId.isNotEmpty) {
+      ShortSwipeSegmentGuard.clearForActiveDoc(
+        docId: nextDocId,
+        reason: 'short_page_active',
+      );
+    }
+    _syncShortExclusivePlaybackOwner(nextOrganicPage);
+    final movingForward = isAdPage || nextOrganicPage > previousOrganicPage;
+    if (movingForward) {
+      _recordShortSwipeSegmentBoundary(
+        previousOrganicPage,
+        reason: isAdPage ? 'page_changed_to_ad' : 'page_changed_forward',
+      );
+      if (previousOrganicPage >= 0 &&
+          previousOrganicPage < _cachedShorts.length) {
+        final previousDocId = _cachedShorts[previousOrganicPage].docID.trim();
+        if (previousDocId.isNotEmpty) {
+          maybeFindPrefetchScheduler()?.abortShortSwipeBoundaryDoc(
+            previousDocId,
+            reason: isAdPage ? 'page_changed_to_ad' : 'page_changed_forward',
+          );
+        }
+      }
+    }
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
@@ -710,7 +831,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.primePlaybackWindowReadySegments(
       currentPage,
-      minimumSegmentCount: 1,
+      minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
       aheadCount: 5,
     );
     unawaited(
@@ -719,7 +840,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
         trigger: 'page_changed',
       ),
     );
-    _syncShortExclusivePlaybackOwner(nextOrganicPage);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
@@ -918,7 +1038,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (!mounted || currentPage != activePage) return;
         controller.primePlaybackWindowReadySegments(
           activePage,
-          minimumSegmentCount: 1,
+          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
           aheadCount: 5,
         );
       });
@@ -1313,15 +1433,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (controller.cache[neighborPage] != null) {
           return;
         }
-        final neighborReadySegments = neighborPage > activePage
-            ? StartupPreloadPolicy.readySegmentsForAheadOffset(
-                neighborPage - activePage,
-              )
-            : StartupPreloadPolicy.neighborReadySegments;
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             neighborDocId,
-            minimumSegmentCount: neighborReadySegments,
+            minimumSegmentCount: 1,
           );
         } catch (_) {}
         final hadNeighborAdapter = controller.cache[neighborPage] != null;
@@ -1476,7 +1591,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (shouldGate) {
           if (docId.isNotEmpty) {
             try {
-              _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+              _segmentCacheRuntimeService.ensureMinimumReadySegments(
+                docId,
+                minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+              );
             } catch (_) {}
           }
           _autoplaySegmentGateStartedAt ??= DateTime.now();
@@ -2210,8 +2328,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
               currentSegment: currentSegment,
             );
             if (currentSegment >= 1) {
-              _segmentCacheRuntimeService.markShortConsumed(
+              _markShortConsumedForCache(
                 currentShort.docID,
+                page: currentPage,
+                source: 'progress_segment_$currentSegment',
               );
               controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
             }
@@ -2226,7 +2346,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     if (shouldAutoAdvance) {
       _isTransitioning = true;
-      _segmentCacheRuntimeService.markShortConsumed(currentDocId);
+      _markShortConsumedForCache(
+        currentDocId,
+        page: currentPage,
+        source: 'auto_advance_complete',
+      );
       controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
       VideoTelemetryService.instance.onCompleted(currentDocId);
       _detachVideoEndListener(vc);

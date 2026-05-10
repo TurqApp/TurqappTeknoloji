@@ -21,6 +21,7 @@ import 'package:turqappv2/Core/Services/short_growth_policy.dart';
 import 'package:turqappv2/Core/Services/short_fetch_policy.dart';
 import 'package:turqappv2/Core/Services/startup_surface_order_service.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/Services/runtime_invariant_guard.dart';
@@ -86,6 +87,12 @@ class ShortController extends _ShortControllerBase {
       _ShortControllerRuntimeX(this).isEligibleShortPost(post);
 
   String playbackHandleKeyForDoc(String docId) => 'short:${docId.trim()}';
+
+  String? manifestPositionLabelForDoc(String docId) =>
+      _state.shortManifestRepository.positionLabelForDoc(docId);
+
+  ShortManifestItemPosition? manifestPositionForDoc(String docId) =>
+      _state.shortManifestRepository.positionForDoc(docId);
 
   void markShortSequencePassedDoc(String docId) {
     final normalized = docId.trim();

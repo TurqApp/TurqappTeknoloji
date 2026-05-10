@@ -6,7 +6,8 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
   Future<void> _loadQuota() async {
     final preferences = ensureLocalPreferenceRepository();
     final saved = _normalizeDisplayQuota(
-      await preferences.getInt(_PermissionsViewState._quotaKey) ?? 3,
+      await preferences.getInt(_PermissionsViewState._quotaKey) ??
+          defaultStorageBudgetPlanGb,
     );
     await StorageBudgetManager.maybeFind()?.applyPlanGb(saved);
     await SegmentCacheManager.maybeFind()?.setUserLimitGB(saved);
@@ -29,6 +30,11 @@ extension _PermissionsViewQuotaPart on _PermissionsViewState {
     final prefetch = maybeFindPrefetchScheduler();
     if (prefetch == null) return;
     prefetch.resetWifiQuotaFillPlan();
+    if (!(NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false)) return;
+    prefetch.setAutomaticQuotaFillEnabled(
+      true,
+      reason: 'settings_quota_wifi',
+    );
     await prefetch.ensureWifiQuotaFillPlan();
   }
 

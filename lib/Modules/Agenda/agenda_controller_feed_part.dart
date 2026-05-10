@@ -400,10 +400,32 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void _ensureFeedPlaybackForIndex(int index) {
-    if (!canClaimPlaybackNow) return;
-    if (index < 0 || index >= agendaList.length) return;
+    if (!canClaimPlaybackNow) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=ensure_skip reason=cannot_claim '
+        'index=$index route=${Get.currentRoute} '
+        'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1} '
+        'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
+        'refresh=$_feedRefreshInFlight primary=$isPrimaryFeedRouteVisible',
+      );
+      return;
+    }
+    if (index < 0 || index >= agendaList.length) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=ensure_skip reason=index_out_of_range '
+        'index=$index count=${agendaList.length}',
+      );
+      return;
+    }
     final post = agendaList[index];
-    if (!_canAutoplayVideoPost(post)) return;
+    if (!_canAutoplayVideoPost(post)) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=ensure_skip reason=not_playable '
+        'index=$index doc=${post.docID} hasVideo=${post.hasPlayableVideo} '
+        'video=${post.video.trim().isNotEmpty}',
+      );
+      return;
+    }
     _updateFeedPrefetchQueue(anchorIndex: index);
     _boostFeedPlaybackHorizon(index);
     final playbackKey = _feedPlaybackHandleKeyForDoc(post.docID);
@@ -492,6 +514,13 @@ extension AgendaControllerFeedPart on AgendaController {
         platform: defaultTargetPlatform,
         pendingPlay: pendingPlay,
       )) {
+        debugPrint(
+          '[FeedPlaybackDecision] action=activate_miss '
+          'index=$index doc=${post.docID} key=$playbackKey '
+          'current=${manager.currentPlayingDocID ?? ''} '
+          'target=${manager.targetPlaybackDocID ?? ''} '
+          'pending=$pendingPlay readyForImmediateHandoff=$readyForImmediateHandoff',
+        );
         _schedulePlaybackReassert(
           index: index,
           docId: post.docID,
@@ -562,7 +591,9 @@ extension AgendaControllerFeedPart on AgendaController {
 
       if (playbackSuspended.value) {
         _cancelPendingPlaybackReassert();
-        videoManager.pauseAllVideos(force: true);
+        if (!preserveExternalPlayback) {
+          videoManager.pauseAllVideos(force: true);
+        }
         return;
       }
 
@@ -981,6 +1012,16 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void primeInitialCenteredPost() {
+    if (pauseAll.value || playbackSuspended.value || !isPrimaryFeedRouteVisible) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=prime_skip reason=surface_not_ready '
+        'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
+        'primary=$isPrimaryFeedRouteVisible route=${Get.currentRoute} '
+        'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1} '
+        'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
+      );
+      return;
+    }
     final target = _agendaFeedApplicationService.resolveInitialCenteredIndex(
       agendaList: agendaList.toList(growable: false),
       pendingCenteredDocId: _pendingCenteredDocId,
@@ -1013,6 +1054,14 @@ extension AgendaControllerFeedPart on AgendaController {
           target < 0 ||
           target >= agendaList.length ||
           agendaList[target].docID != targetPost.docID) {
+        debugPrint(
+          '[FeedPlaybackDecision] action=prime_skip reason=post_frame_guard '
+          'target=$target doc=${targetPost.docID} isClosed=$isClosed '
+          'pauseAll=${pauseAll.value} primary=$isPrimaryFeedRouteVisible '
+          'centered=${centeredIndex.value} count=${agendaList.length} '
+          'route=${Get.currentRoute} '
+          'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+        );
         return;
       }
       void startPlaybackWork() {
@@ -1023,6 +1072,14 @@ extension AgendaControllerFeedPart on AgendaController {
             target < 0 ||
             target >= agendaList.length ||
             agendaList[target].docID != targetPost.docID) {
+          debugPrint(
+            '[FeedPlaybackDecision] action=prime_skip reason=start_guard '
+            'target=$target doc=${targetPost.docID} isClosed=$isClosed '
+            'pauseAll=${pauseAll.value} primary=$isPrimaryFeedRouteVisible '
+            'centered=${centeredIndex.value} count=${agendaList.length} '
+            'route=${Get.currentRoute} '
+            'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+          );
           return;
         }
         if (canClaimPlaybackNow) {
@@ -1034,6 +1091,15 @@ extension AgendaControllerFeedPart on AgendaController {
               manager: VideoStateManager.instance,
             );
           }
+        } else {
+          debugPrint(
+            '[FeedPlaybackDecision] action=prime_skip reason=cannot_claim '
+            'target=$target doc=${targetPost.docID} '
+            'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
+            'refresh=$_feedRefreshInFlight primary=$isPrimaryFeedRouteVisible '
+            'route=${Get.currentRoute} '
+            'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1}',
+          );
         }
         _scheduleStartupAutoplayKick(
           index: target,

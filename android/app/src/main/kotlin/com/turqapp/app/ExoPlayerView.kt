@@ -45,6 +45,16 @@ class ExoPlayerView(
 
     companion object {
         private const val RESUME_FRAME_CACHE_MAX_ENTRIES = 8
+        // Playback decision is segment based: active playback may warm segment 2,
+        // but must not race ahead into segment 3+.
+        private const val FIRST_SEGMENT_MS = 2000L
+        private const val NEXT_SEGMENT_MS = 6000L
+        private const val ACTIVE_SECOND_SEGMENT_BUFFER_MS =
+            FIRST_SEGMENT_MS + (NEXT_SEGMENT_MS / 3)
+        private const val ACTIVE_STABLE_SECOND_SEGMENT_BUFFER_MS =
+            FIRST_SEGMENT_MS + (NEXT_SEGMENT_MS / 2)
+        private const val DEFAULT_MIN_BUFFER_MS = 1800
+        private const val STABLE_MIN_BUFFER_MS = 2400
         private val resumeFrameCache = object : LinkedHashMap<String, Bitmap>(
             RESUME_FRAME_CACHE_MAX_ENTRIES,
             0.75f,
@@ -92,7 +102,11 @@ class ExoPlayerView(
     private val handler = Handler(Looper.getMainLooper())
     private var positionRunnable: Runnable? = null
     private var preferredMaxBufferMs: Long =
-        if (preferStableStartupBuffer) 10000 else 6000
+        if (preferStableStartupBuffer) {
+            ACTIVE_STABLE_SECOND_SEGMENT_BUFFER_MS
+        } else {
+            ACTIVE_SECOND_SEGMENT_BUFFER_MS
+        }
     private val startupRecoveryMaxResumePositionMs = 1200L
     private var currentUrl: String? = null
     private var isSoftHeld = false
@@ -437,38 +451,47 @@ class ExoPlayerView(
             // rebuffer/start tamponu kullan.
             val targetBufferMs = if (forceFullscreen) {
                 if (preferStableStartupBuffer) {
-                    preferredMaxBufferMs.coerceIn(9000, 18000)
+                    preferredMaxBufferMs.coerceIn(
+                        STABLE_MIN_BUFFER_MS.toLong(),
+                        ACTIVE_STABLE_SECOND_SEGMENT_BUFFER_MS
+                    )
                 } else {
-                    preferredMaxBufferMs.coerceIn(4500, 18000)
+                    preferredMaxBufferMs.coerceIn(
+                        DEFAULT_MIN_BUFFER_MS.toLong(),
+                        ACTIVE_SECOND_SEGMENT_BUFFER_MS
+                    )
                 }
             } else {
-                preferredMaxBufferMs.coerceIn(3500, 8000)
+                preferredMaxBufferMs.coerceIn(
+                    DEFAULT_MIN_BUFFER_MS.toLong(),
+                    ACTIVE_SECOND_SEGMENT_BUFFER_MS
+                )
             }.toInt()
             val minBufferMs = if (forceFullscreen) {
-                val ratio = if (preferStableStartupBuffer) 0.95 else 0.9
+                val ratio = if (preferStableStartupBuffer) 0.75 else 0.7
                 (targetBufferMs * ratio).toInt().coerceAtLeast(
-                    if (preferStableStartupBuffer) 7000 else 4000
+                    if (preferStableStartupBuffer) STABLE_MIN_BUFFER_MS else DEFAULT_MIN_BUFFER_MS
                 )
             } else {
-                (targetBufferMs * 0.8).toInt().coerceAtLeast(3200)
+                (targetBufferMs * 0.7).toInt().coerceAtLeast(DEFAULT_MIN_BUFFER_MS)
             }
             val playbackBufferMs = if (forceFullscreen) {
                 if (preferStableStartupBuffer) {
-                    (minBufferMs * 0.18).toInt().coerceIn(1400, 2400)
+                    (minBufferMs * 0.18).toInt().coerceIn(600, 1200)
                 } else {
-                    (minBufferMs * 0.16).toInt().coerceIn(1100, 1700)
+                    (minBufferMs * 0.16).toInt().coerceIn(500, 1000)
                 }
             } else {
-                (minBufferMs * 0.24).toInt().coerceIn(900, 1800)
+                (minBufferMs * 0.22).toInt().coerceIn(500, 1000)
             }
             val rebufferPlaybackMs = if (forceFullscreen) {
                 if (preferStableStartupBuffer) {
-                    (minBufferMs * 0.44).toInt().coerceIn(3200, 5200)
+                    (minBufferMs * 0.42).toInt().coerceIn(1200, 2400)
                 } else {
-                    (minBufferMs * 0.42).toInt().coerceIn(2600, 3800)
+                    (minBufferMs * 0.40).toInt().coerceIn(1000, 2000)
                 }
             } else {
-                (minBufferMs * 0.55).toInt().coerceIn(1600, 3200)
+                (minBufferMs * 0.45).toInt().coerceIn(900, 1800)
             }
             val loadControl = DefaultLoadControl.Builder()
                 .setBufferDurationsMs(

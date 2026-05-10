@@ -85,8 +85,6 @@ StorageBudgetProfile _storageProfileForPlanGb(int gb) {
 
 int _storageBaseRecentProtectionWindow(int planGb) {
   switch (normalizeStorageBudgetPlanGb(planGb)) {
-    case 3:
-      return 32;
     case 5:
       return 46;
     case 7:
@@ -104,14 +102,6 @@ int _storageScaledWindow(int base, double factor, int minWindow) {
 
 _BudgetTemplate _storageTemplateFor(int planGb) {
   switch (planGb) {
-    case 3:
-      return const _BudgetTemplate(
-        mediaQuotaBytes: 3072 * StorageBudgetManager._mb,
-        imageQuotaBytes: 512 * StorageBudgetManager._mb,
-        metadataQuotaBytes: 0,
-        reserveQuotaBytes: 256 * StorageBudgetManager._mb,
-        osSafetyMarginBytes: 256 * StorageBudgetManager._mb,
-      );
     case 5:
       return const _BudgetTemplate(
         mediaQuotaBytes: 5120 * StorageBudgetManager._mb,

@@ -1,7 +1,7 @@
 part of 'prefetch_scheduler.dart';
 
 const String _prefetchSchedulerCdnOrigin = 'https://cdn.turqapp.com';
-const bool _prefetchSchedulerOfflineQuotaFillEnabled = false;
+const bool _prefetchSchedulerOfflineQuotaFillEnabled = true;
 const Map<String, String> _prefetchSchedulerCdnHeaders = {
   'X-Turq-App': 'turqapp-mobile',
   'Referer': '$_prefetchSchedulerCdnOrigin/',
@@ -17,9 +17,7 @@ const int _prefetchSchedulerFeedAheadCount = 5;
 const int _prefetchSchedulerFeedBehindCount = 2;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
 const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
-const int _prefetchSchedulerQuotaFillBurstSegments = 4;
-const int _prefetchSchedulerQuotaFillBoostReadySegments = 2;
-const int _prefetchSchedulerQuotaFillPlanningBatchSize = 180;
+const int _prefetchSchedulerQuotaFillBoostReadySegments = 1;
 const int _prefetchSchedulerQuotaFillLowWatermark = 16;
 const double _prefetchSchedulerShortLandscapeAspectThreshold = 1.2;
 
@@ -107,6 +105,9 @@ int resolveFeedWindowReadySegments({
     return hardBoostReadySegments;
   }
   final distance = targetIndex - currentIndex;
+  if (distance == 0) {
+    return HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal;
+  }
   if (distance >= 0 && distance < hardBoostCount) {
     return hardBoostReadySegments;
   }
@@ -190,24 +191,7 @@ List<int> buildQuotaFillSegmentOrder({
   if (totalSegments <= 0) {
     return const <int>[];
   }
-  final normalizedDesired = desiredReadySegments < 1
-      ? 1
-      : (desiredReadySegments > totalSegments
-          ? totalSegments
-          : desiredReadySegments);
-  final ordered = <int>[];
-  final seen = <int>{};
-  for (var index = 0; index < normalizedDesired; index++) {
-    if (seen.add(index) && !cachedSegmentIndices.contains(index)) {
-      ordered.add(index);
-    }
-  }
-  for (var index = normalizedDesired; index < totalSegments; index++) {
-    if (seen.add(index) && !cachedSegmentIndices.contains(index)) {
-      ordered.add(index);
-    }
-  }
-  return ordered;
+  return cachedSegmentIndices.contains(0) ? const <int>[] : const <int>[0];
 }
 
 @visibleForTesting

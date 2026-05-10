@@ -327,7 +327,8 @@ class PostLoginWarmup {
     try {
       final preferences = ensureLocalPreferenceRepository();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        await preferences.getInt('offline_cache_quota_gb') ?? 3,
+        await preferences.getInt('offline_cache_quota_gb') ??
+            defaultStorageBudgetPlanGb,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       final cache = SegmentCacheManager.maybeFind();
@@ -417,7 +418,8 @@ class PostLoginWarmup {
         Future<void> Function() action,
       ) async {
         final startedAt = DateTime.now();
-        debugPrint('[StartupWarmGuest] status=start label=$label onWiFi=$onWiFi');
+        debugPrint(
+            '[StartupWarmGuest] status=start label=$label onWiFi=$onWiFi');
         try {
           await action();
           debugPrint(
@@ -436,9 +438,11 @@ class PostLoginWarmup {
 
       Future<void> runFloodStep() async {
         final startedAt = DateTime.now();
-        debugPrint('[StartupWarmGuest] status=start label=flood_manifest onWiFi=$onWiFi');
+        debugPrint(
+            '[StartupWarmGuest] status=start label=flood_manifest onWiFi=$onWiFi');
         try {
-          final roots = await ExploreRepository.ensure().ensureFloodManifestStoreReady();
+          final roots =
+              await ExploreRepository.ensure().ensureFloodManifestStoreReady();
           if (roots <= 0) {
             throw StateError('flood_manifest_empty');
           }

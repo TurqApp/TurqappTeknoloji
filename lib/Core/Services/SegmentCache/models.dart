@@ -18,12 +18,14 @@ class CachedSegment {
   final String diskPath; // absolute path
   final int sizeBytes;
   final DateTime cachedAt;
+  final String? cacheOrigin;
 
   CachedSegment({
     required this.segmentUri,
     required this.diskPath,
     required this.sizeBytes,
     required this.cachedAt,
+    this.cacheOrigin = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -31,6 +33,7 @@ class CachedSegment {
         'diskPath': diskPath,
         'sizeBytes': sizeBytes,
         'cachedAt': cachedAt.millisecondsSinceEpoch,
+        'cacheOrigin': cacheOrigin ?? '',
       };
 
   factory CachedSegment.fromJson(Map<String, dynamic> json) => CachedSegment(
@@ -43,6 +46,7 @@ class CachedSegment {
             fallback: DateTime.now().millisecondsSinceEpoch,
           ),
         ),
+        cacheOrigin: (json['cacheOrigin'] ?? '').toString(),
       );
 
   bool get isValid =>
@@ -255,8 +259,8 @@ class CacheIndex {
   final Map<String, VideoCacheEntry> entries; // docID -> entry
   int totalSizeBytes;
 
-  /// 3 GB hard limit
-  static const int maxSizeBytes = 3 * 1024 * 1024 * 1024;
+  /// 5 GB default media limit; user plan applies runtime soft/hard budget.
+  static const int maxSizeBytes = 5 * 1024 * 1024 * 1024;
 
   /// Soft limit = hard limit'in %70'i — eviction bu eşikte tetiklenir.
   static const int softLimitBytes = (maxSizeBytes * 70) ~/ 100;

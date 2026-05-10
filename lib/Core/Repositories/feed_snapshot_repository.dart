@@ -52,6 +52,10 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
 
   static int get startupHomeLimitValue =>
       ReadBudgetRegistry.feedHomeInitialLimitValue;
+  static int get startupManifestDeckLimitValue =>
+      FeedManifestPolicy.startupManifestDeckLimit;
+  static int get startupVisibleDeckLimitValue =>
+      FeedManifestPolicy.startupVisibleDeckLimit;
 
   @visibleForTesting
   static ({int pageStart, int pageEndExclusive, int deckLimit})
@@ -62,14 +66,15 @@ class FeedSnapshotRepository extends _FeedSnapshotRepositoryBase {
     final normalizedPageNumber = pageNumber < 1 ? 1 : pageNumber;
     final normalizedPageSize = pageSize < 1 ? 1 : pageSize;
     if (normalizedPageNumber == 1) {
+      final startupDeckLimit = startupVisibleDeckLimitValue;
       return (
         pageStart: 0,
-        pageEndExclusive: normalizedPageSize,
-        deckLimit: normalizedPageSize,
+        pageEndExclusive: startupDeckLimit,
+        deckLimit: startupDeckLimit,
       );
     }
 
-    final startupHeadSize = startupHomeLimitValue;
+    final startupHeadSize = startupVisibleDeckLimitValue;
     final pageStart =
         startupHeadSize + ((normalizedPageNumber - 2) * normalizedPageSize);
     final pageEndExclusive = pageStart + normalizedPageSize;

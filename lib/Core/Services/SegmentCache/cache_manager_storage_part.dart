@@ -282,10 +282,12 @@ extension SegmentCacheManagerStoragePart on SegmentCacheManager {
     double progressThreshold = 0.50,
     String source = 'manual',
   }) async {
-    if (_SegmentCacheManagerRuntimeX(this)
-        ._shouldDeferMaintenanceForHotPlayback(
-      source: 'consumed_cleanup_$source',
-    )) {
+    final shouldRunImmediately = source == 'cold_start';
+    if (!shouldRunImmediately &&
+        _SegmentCacheManagerRuntimeX(this)
+            ._shouldDeferMaintenanceForHotPlayback(
+          source: 'consumed_cleanup_$source',
+        )) {
       _SegmentCacheManagerRuntimeX(this)._scheduleDeferredConsumedCacheClear(
         progressThreshold: progressThreshold,
         source: source,

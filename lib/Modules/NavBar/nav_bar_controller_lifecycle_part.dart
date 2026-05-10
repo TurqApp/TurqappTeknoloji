@@ -220,6 +220,14 @@ extension _NavBarControllerLifecyclePart on NavBarController {
           includeHomeSurfaces: previous == 0,
         ),
       );
+      if (previous == 0) {
+        try {
+          maybeFindAgendaController()
+              ?.resetInitialFeedResumeForSurfaceTransition(
+            source: 'primary_tab_exit:$previous->$index',
+          );
+        } catch (_) {}
+      }
       _suspendFeedForTabExitImpl();
       _pauseGlobalTabMediaImpl();
     }

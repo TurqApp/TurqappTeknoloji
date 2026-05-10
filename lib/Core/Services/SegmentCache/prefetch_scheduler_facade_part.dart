@@ -52,16 +52,17 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     final pendingPrefetch = hasPendingPrefetchForDoc(normalized);
     final activeDownload = isActivelyDownloadingDoc(normalized);
     final sourceHint = _prefetchSourceForDoc(normalized) ?? 'unknown';
+    final isQuotaPrefetch = sourceHint == 'quota' &&
+        _shouldAllowQuotaFillWithCurrentFocus &&
+        (pendingPrefetch || activeDownload);
 
     String owner;
-    if (inShortWindow) {
+    if (isQuotaPrefetch) {
+      owner = 'quota';
+    } else if (inShortWindow) {
       owner = 'short';
     } else if (inFeedWindow || inFeedBank) {
       owner = 'feed';
-    } else if (sourceHint == 'quota' &&
-        _shouldAllowBackgroundQuotaFill &&
-        (pendingPrefetch || activeDownload)) {
-      owner = 'quota';
     } else {
       owner = 'unknown';
     }
@@ -249,6 +250,8 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     _state.automaticQuotaFillEnabled = resolvedEnabled;
     if (!resolvedEnabled) {
       _resetWifiQuotaFillPlanState();
+    } else if (_paused) {
+      resume();
     }
     debugPrint(
       '[Prefetch] automaticQuotaFillEnabled=$resolvedEnabled reason=$reason',

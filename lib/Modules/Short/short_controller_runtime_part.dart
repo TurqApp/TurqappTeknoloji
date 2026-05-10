@@ -4,14 +4,20 @@ const bool _verboseShortLogs = false;
 const int _initialPreloadCount = 5;
 const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
-const double _mobileShortLowQuotaRatio = 0.15;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 10.0 : 6.4;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.activeReadySegments,
+  nextSegmentFraction: 1 / 3,
+);
 final double _neighborBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 6.0 : 4.8;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.neighborReadySegments,
+);
 final double _prepBufferSeconds =
-    defaultTargetPlatform == TargetPlatform.android ? 2.8 : 3.8;
+    HlsSegmentPolicy.bufferSecondsForSegmentOrdinal(
+  StartupPreloadPolicy.neighborReadySegments,
+);
 Future<void>? _shortProxyWarmPathFuture;
 
 Future<void> _ensureShortProxyWarmPathReady({
@@ -109,13 +115,21 @@ extension _ShortControllerRuntimeX on ShortController {
     try {
       final preferences = ensureLocalPreferenceRepository();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        await preferences.getInt('offline_cache_quota_gb') ?? 3,
+        await preferences.getInt('offline_cache_quota_gb') ??
+            defaultStorageBudgetPlanGb,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         prefetch.resetWifiQuotaFillPlan();
+        if (NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false) {
+          prefetch.setAutomaticQuotaFillEnabled(
+            true,
+            reason: 'short_controller_wifi',
+          );
+          await prefetch.ensureWifiQuotaFillPlan();
+        }
       }
     } catch (e) {
       _log('Shorts cache quota apply error: $e');
@@ -260,9 +274,10 @@ extension _ShortControllerRuntimeX on ShortController {
   }
 
   int _mobileShortLowQuotaThresholdCount() {
-    final threshold =
-        (ShortGrowthPolicy.stageOneLimit * _mobileShortLowQuotaRatio).ceil();
-    return math.max(_initialPreloadCount, threshold);
+    return math.max(
+      _initialPreloadCount,
+      ReadBudgetRegistry.shortMobileFallbackMinReadyCountValue,
+    );
   }
 
   bool _shouldPromoteShortMobileFallback({
@@ -449,7 +464,7 @@ extension ShortControllerPublicApiPart on ShortController {
       );
       primePlaybackWindowReadySegments(
         _currentVisibleShortIndex(this),
-        minimumSegmentCount: 1,
+        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
       );
       unawaited(
         warmStartupFirstSegments(

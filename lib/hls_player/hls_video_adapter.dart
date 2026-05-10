@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
+    show TargetPlatform, defaultTargetPlatform, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
@@ -94,6 +94,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   bool _loggedProxyFallback = false;
   bool _preferWarmPoolPause = false;
   bool _isPrimaryFeedSurface = false;
+  bool _isFeedStyleSurface = false;
   bool get isDisposed => _disposed;
 
   /// Network/decoder durdurulmuş mu? (stopPlayback çağrıldı)
@@ -223,6 +224,7 @@ class HLSVideoAdapter extends ChangeNotifier {
     bool? overrideAutoPlay,
     bool forceFullscreenOnAndroid = false,
     bool isPrimaryFeedSurface = false,
+    bool isFeedStyleSurface = false,
     bool preferWarmPoolPauseOnAndroid = false,
     bool preferResumePoster = false,
     bool suppressPauseSnapshot = false,
@@ -237,6 +239,7 @@ class HLSVideoAdapter extends ChangeNotifier {
         overrideAutoPlay: overrideAutoPlay,
         forceFullscreenOnAndroid: forceFullscreenOnAndroid,
         isPrimaryFeedSurface: isPrimaryFeedSurface,
+        isFeedStyleSurface: isFeedStyleSurface,
         preferWarmPoolPauseOnAndroid: preferWarmPoolPauseOnAndroid,
         preferResumePoster: preferResumePoster,
         suppressPauseSnapshot: suppressPauseSnapshot,

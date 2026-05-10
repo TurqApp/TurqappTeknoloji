@@ -264,6 +264,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                       shouldAutoResumeInlinePlatformView,
                                                   isPrimaryFeedSurface:
                                                       isPrimaryFeedSurfaceInstance,
+                                                  isFeedStyleSurface:
+                                                      isFeedStyleInlineSurface,
                                                   preferWarmPoolPauseOnAndroid:
                                                       preferWarmPoolPauseOnAndroid,
                                                   preferResumePoster:

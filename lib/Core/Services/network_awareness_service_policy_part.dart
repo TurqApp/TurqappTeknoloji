@@ -78,33 +78,10 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       'results=${results.map((e) => e.name).join(",")}',
     );
 
-    if (_currentNetwork.value == NetworkType.none) {
-      _wifiSchedulerBootstrapApplied = false;
-    }
-
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler != null) {
       if (_currentNetwork.value != NetworkType.none) {
         final enteredWifi = previousNetwork != NetworkType.wifi;
-        if (_currentNetwork.value == NetworkType.wifi && enteredWifi) {
-          _wifiSchedulerBootstrapApplied = false;
-        }
-        final shouldBootstrapOnSchedulerAttach =
-            _currentNetwork.value == NetworkType.wifi &&
-                !_wifiSchedulerBootstrapApplied;
-        if (_currentNetwork.value == NetworkType.wifi &&
-            !scheduler.automaticQuotaFillEnabled &&
-            (enteredWifi || shouldBootstrapOnSchedulerAttach)) {
-          scheduler.setAutomaticQuotaFillEnabled(
-            true,
-            reason: enteredWifi
-                ? 'wifi_network_transition'
-                : 'wifi_scheduler_attach',
-          );
-          _wifiSchedulerBootstrapApplied = true;
-        } else if (scheduler.automaticQuotaFillEnabled) {
-          _wifiSchedulerBootstrapApplied = true;
-        }
         if (enteredWifi || scheduler.isPaused) {
           scheduler.resume();
         }
@@ -191,12 +168,6 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
     if (isOnWiFi) {
-      if (!scheduler.automaticQuotaFillEnabled) {
-        scheduler.setAutomaticQuotaFillEnabled(
-          true,
-          reason: 'wifi_debug_override',
-        );
-      }
       if (scheduler.isPaused) {
         scheduler.resume();
       }

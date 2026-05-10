@@ -880,6 +880,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_manualPauseRequested) return false;
     final adapter = _videoAdapter;
     if (adapter == null) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _usesFeedPlaybackPolicy) {
+      return true;
+    }
     if (_playbackRuntimeService.currentPlayingDocId == playbackHandleKey) {
       return true;
     }

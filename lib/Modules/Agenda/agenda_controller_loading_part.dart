@@ -1255,7 +1255,7 @@ extension AgendaControllerLoadingPart on AgendaController {
               effectiveRawPageVisibleItems.isNotEmpty
           ? (effectivePageItemsPreplanned
               ? effectiveRawPageVisibleItems
-                  .take(FeedSnapshotRepository.startupHomeLimitValue)
+                  .take(FeedSnapshotRepository.startupVisibleDeckLimitValue)
                   .toList(growable: false)
               : (isCityMode
                   ? effectiveRawPageVisibleItems

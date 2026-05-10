@@ -73,8 +73,7 @@ void main() {
       expect(fetchSource, isNot(contains('_loadLegacyPage(')));
     });
 
-    test('manifest page windows preserve startup head then continue in blocks',
-        () {
+    test('manifest page windows cap startup head then continue in blocks', () {
       final first = FeedSnapshotRepository.resolveManifestPageWindow(
         pageNumber: 1,
         pageSize: 15,
@@ -89,24 +88,38 @@ void main() {
       );
 
       expect(first.pageStart, 0);
-      expect(first.pageEndExclusive, 15);
-      expect(first.deckLimit, 15);
+      expect(first.pageEndExclusive, 135);
+      expect(first.deckLimit, 135);
 
-      expect(second.pageStart, 15);
-      expect(second.pageEndExclusive, 39);
-      expect(second.deckLimit, 39);
+      expect(second.pageStart, 135);
+      expect(second.pageEndExclusive, 159);
+      expect(second.deckLimit, 159);
 
-      expect(third.pageStart, 39);
-      expect(third.pageEndExclusive, 63);
-      expect(third.deckLimit, 63);
+      expect(third.pageStart, 159);
+      expect(third.pageEndExclusive, 183);
+      expect(third.deckLimit, 183);
     });
 
-    test('manifest selection does not bypass consumed newest-slot cards', () {
+    test('manifest selection prunes watched cards and bypasses empty slots',
+        () {
       final fetchSource = File(
         '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(fetchSource, contains('if (consumedDocIds.contains(docId)) {'));
+      expect(
+        fetchSource,
+        contains('if (_isNonRootFloodChildPost(post)) return;'),
+      );
+      expect(
+        fetchSource,
+        contains('if (floodRootId.isNotEmpty &&'),
+      );
+      expect(
+        fetchSource,
+        contains('consumedFloodRootIds.contains(floodRootId)'),
+      );
+      expect(fetchSource, contains('status=slot_exhausted_bypass'));
       expect(
         fetchSource,
         isNot(contains('status=newest_slot_grace')),
@@ -158,17 +171,29 @@ void main() {
       );
       expect(
         fetchSource,
+        contains("if (post.mainFlood.trim().isNotEmpty) return true;"),
+      );
+      expect(
+        fetchSource,
+        contains('if (post.flood == true && !post.isFloodSeriesRoot)'),
+      );
+      expect(
+        fetchSource,
         contains(
           'effectiveNowMs - FeedManifestPolicy.gapWindowDuration.inMilliseconds',
         ),
       );
       expect(
         fetchSource,
-        contains('visible.skip(pageStart).take(limit).toList'),
+        contains('final pageTakeLimit = max(0, pageEndExclusive - pageStart);'),
       );
       expect(
         fetchSource,
-        contains('visibleEntries.skip(pageStart).take(limit).toList'),
+        contains('visible.skip(pageStart).take(pageTakeLimit).toList'),
+      );
+      expect(
+        fetchSource,
+        contains('.take(pageTakeLimit)'),
       );
     });
 

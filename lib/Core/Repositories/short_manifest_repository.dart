@@ -42,6 +42,27 @@ class ShortManifestCursorSnapshot {
   final bool hasMore;
 }
 
+class ShortManifestItemPosition {
+  const ShortManifestItemPosition({
+    required this.slotIndex,
+    required this.itemIndex,
+    required this.slotPath,
+  });
+
+  final int slotIndex;
+  final int itemIndex;
+  final String slotPath;
+
+  int get slotNo => slotIndex + 1;
+  int get slotOrdinal => itemIndex + 1;
+  int get globalCardNo =>
+      slotIndex * ShortManifestRepository.slotItemCapacity + slotOrdinal;
+
+  String get debugLabel =>
+      'globalCardNo=$globalCardNo slotNo=$slotNo slotIndex=$slotIndex '
+      'slotOrdinal=$slotOrdinal itemIndex=$itemIndex slotPath=$slotPath';
+}
+
 class ShortManifestRepository extends GetxService {
   ShortManifestRepository({
     FirebaseFirestore? firestore,
@@ -59,6 +80,8 @@ class ShortManifestRepository extends GetxService {
   static const String _localSlotPrefsPrefix = 'short_manifest_slot_v1';
   static const String _localSlotListPrefsKey = 'short_manifest_cached_slots_v1';
   static const List<int> _tailCandidateHoursAgo = <int>[72, 48, 24];
+  static const int _slotItemCapacity = 240;
+  static const int slotItemCapacity = _slotItemCapacity;
   static const int _tailPrepareItemThreshold = 200;
 
   String _manifestId = '';
@@ -67,6 +90,9 @@ class ShortManifestRepository extends GetxService {
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
   final Map<int, Future<List<PostsModel>>> _slotLoads =
       <int, Future<List<PostsModel>>>{};
+  final Map<String, String> _lastQuotaSeedPositionByDoc = <String, String>{};
+  final Map<String, ShortManifestItemPosition> _positionByDocId =
+      <String, ShortManifestItemPosition>{};
   int _cursorSlotIndex = 0;
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
@@ -87,7 +113,12 @@ class ShortManifestRepository extends GetxService {
 
   String _slotDebugLabel(int slotIndex) {
     final path = _slotPath(slotIndex);
-    return path.isEmpty ? '$slotIndex:<missing>' : '$slotIndex:$path';
+    final slotNo = slotIndex + 1;
+    final firstCardNo = slotIndex * _slotItemCapacity + 1;
+    final lastCardNo = (slotIndex + 1) * _slotItemCapacity;
+    final label =
+        'slotNo=$slotNo index=$slotIndex cards=$firstCardNo-$lastCardNo';
+    return path.isEmpty ? '$label path=<missing>' : '$label path=$path';
   }
 
   List<String> _memorySlotDebugLabels() {
@@ -112,6 +143,36 @@ class ShortManifestRepository extends GetxService {
       labels.add('$i:${(slot['path'] ?? '').toString()}');
     }
     return labels;
+  }
+
+  String? quotaSeedPositionLabelForDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return null;
+    return _lastQuotaSeedPositionByDoc[normalized];
+  }
+
+  ShortManifestItemPosition? positionForDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return null;
+    return _positionByDocId[normalized];
+  }
+
+  String? positionLabelForDoc(String docId) {
+    return positionForDoc(docId)?.debugLabel;
+  }
+
+  void _rememberSlotPositions(int slotIndex, List<PostsModel> slot) {
+    final path = _slotPath(slotIndex);
+    if (path.isEmpty || slot.isEmpty) return;
+    for (var itemIndex = 0; itemIndex < slot.length; itemIndex++) {
+      final docId = slot[itemIndex].docID.trim();
+      if (docId.isEmpty) continue;
+      _positionByDocId[docId] = ShortManifestItemPosition(
+        slotIndex: slotIndex,
+        itemIndex: itemIndex,
+        slotPath: path,
+      );
+    }
   }
 
   Future<void> _logSlotInventory(
@@ -223,6 +284,104 @@ class ShortManifestRepository extends GetxService {
   Future<void> warmStartupWindow() async {
     await _ensureLoaded();
     await _ensureStartupSlotsLoaded();
+  }
+
+  Future<List<PostsModel>> quotaFillSeedPosts({
+    int maxPosts = 0,
+    String? startAfterDocId,
+  }) async {
+    await _ensureLoaded();
+    final slotsRaw = _index?['slots'];
+    if (slotsRaw is! List || slotsRaw.isEmpty) {
+      return const <PostsModel>[];
+    }
+
+    final output = <PostsModel>[];
+    final seenDocIds = <String>{};
+    final slotCounts = <String, int>{};
+    _lastQuotaSeedPositionByDoc.clear();
+    var startSlotIndex = _cursorSlotIndex.clamp(0, slotsRaw.length - 1);
+    var startItemIndex = _cursorItemIndex < 0 ? 0 : _cursorItemIndex;
+    var startReason = 'cursor';
+    final normalizedStartAfterDocId = startAfterDocId?.trim() ?? '';
+    if (normalizedStartAfterDocId.isNotEmpty) {
+      var found = false;
+      for (var slotIndex = 0; slotIndex < slotsRaw.length; slotIndex++) {
+        final slot = await _ensureSlot(slotIndex);
+        for (var itemIndex = 0; itemIndex < slot.length; itemIndex++) {
+          if (slot[itemIndex].docID.trim() != normalizedStartAfterDocId) {
+            continue;
+          }
+          startSlotIndex = slotIndex;
+          startItemIndex = itemIndex + 1;
+          if (startItemIndex >= slot.length &&
+              startSlotIndex + 1 < slotsRaw.length) {
+            startSlotIndex++;
+            startItemIndex = 0;
+          }
+          startReason = 'watch_plus_one';
+          found = true;
+          break;
+        }
+        if (found) break;
+      }
+      if (!found) {
+        startReason = 'watch_doc_not_found_cursor';
+      }
+    }
+    for (var slotIndex = startSlotIndex;
+        slotIndex < slotsRaw.length;
+        slotIndex++) {
+      final path = _slotPath(slotIndex);
+      if (path.isEmpty) continue;
+      final slot = await _ensureSlot(slotIndex);
+      final itemStart = slotIndex == startSlotIndex ? startItemIndex : 0;
+      var addedForSlot = 0;
+      for (var itemIndex = itemStart; itemIndex < slot.length; itemIndex++) {
+        final post = slot[itemIndex];
+        final docId = post.docID.trim();
+        if (docId.isEmpty || !seenDocIds.add(docId)) continue;
+        if (!post.hasPlayableVideo) continue;
+        final position = ShortManifestItemPosition(
+          slotIndex: slotIndex,
+          itemIndex: itemIndex,
+          slotPath: path,
+        );
+        _positionByDocId[docId] = position;
+        _lastQuotaSeedPositionByDoc[docId] = position.debugLabel;
+        output.add(post);
+        addedForSlot++;
+        if (maxPosts > 0 && output.length >= maxPosts) break;
+      }
+      slotCounts['$slotIndex:$path'] = addedForSlot;
+      if (maxPosts > 0 && output.length >= maxPosts) break;
+    }
+
+    _logTiming(
+      'quota_seed_posts_ready',
+      metadata: <String, Object?>{
+        'source': 'short_manifest_slots',
+        'networkSeed': false,
+        'count': output.length,
+        'slotCounts': slotCounts,
+        'maxPosts': maxPosts,
+        'startSlotIndex': startSlotIndex,
+        'startItemIndex': startItemIndex,
+        'startReason': startReason,
+        'startAfterDocId': normalizedStartAfterDocId,
+        'startSlotPath': _slotPath(startSlotIndex),
+        'firstDoc': output.isEmpty ? '-' : output.first.docID,
+        'lastDoc': output.isEmpty ? '-' : output.last.docID,
+        'candidatePreview': output
+            .take(8)
+            .map((post) =>
+                '${post.docID}:${_lastQuotaSeedPositionByDoc[post.docID] ?? '-'}')
+            .toList(growable: false),
+        'cursorSlotIndex': _cursorSlotIndex,
+        'cursorItemIndex': _cursorItemIndex,
+      },
+    );
+    return output;
   }
 
   Future<void> _loadManifest() async {
@@ -382,6 +541,15 @@ class ShortManifestRepository extends GetxService {
       userId: userId,
     );
     if (persisted == null) return false;
+    return _restoreCursorFromState(persisted,
+        clearInvalidStateForUserId: userId);
+  }
+
+  Future<bool> _restoreCursorFromState(
+    ShortResumeState persisted, {
+    String? clearInvalidStateForUserId,
+  }) async {
+    if (_manifestId.isEmpty) return false;
     if (persisted.manifestId != _manifestId) return false;
     var restoredSlotIndex =
         persisted.cursorSlotIndex < 0 ? 0 : persisted.cursorSlotIndex;
@@ -390,7 +558,10 @@ class ShortManifestRepository extends GetxService {
     while (true) {
       final path = _slotPath(restoredSlotIndex);
       if (path.isEmpty) {
-        await ensureShortResumeStateStore().clear(userId: userId);
+        final userId = clearInvalidStateForUserId?.trim() ?? '';
+        if (userId.isNotEmpty) {
+          await ensureShortResumeStateStore().clear(userId: userId);
+        }
         _cursorSlotIndex = 0;
         _cursorItemIndex = 0;
         _logTiming(
@@ -426,10 +597,11 @@ class ShortManifestRepository extends GetxService {
   }
 
   Future<ShortManifestPageResult> takeNextPageFromPersistedCursor({
+    required ShortResumeState persisted,
     required int pageSize,
   }) async {
     await _ensureLoaded();
-    final restored = await _restorePersistedCursorIfNeeded();
+    final restored = await _restoreCursorFromState(persisted);
     if (!restored) {
       return ShortManifestPageResult(
         posts: const <PostsModel>[],
@@ -447,6 +619,7 @@ class ShortManifestRepository extends GetxService {
     _index = null;
     _slots.clear();
     _slotLoads.clear();
+    _positionByDocId.clear();
     _cursorSlotIndex = 0;
     _cursorItemIndex = 0;
   }
@@ -663,8 +836,8 @@ class ShortManifestRepository extends GetxService {
   }) async {
     if (visibleIndex < 0) return;
     await _ensureLoaded();
-    final visibleSlotIndex = visibleIndex ~/ 240;
-    final visibleItemOrdinal = (visibleIndex % 240) + 1;
+    final visibleSlotIndex = visibleIndex ~/ _slotItemCapacity;
+    final visibleItemOrdinal = (visibleIndex % _slotItemCapacity) + 1;
     if (visibleItemOrdinal < _tailPrepareItemThreshold) {
       _logTiming(
         'tail_visible_prepare_skip',
@@ -672,6 +845,9 @@ class ShortManifestRepository extends GetxService {
           'reason': 'before_threshold',
           'trigger': reason,
           'visibleIndex': visibleIndex,
+          'visibleGlobalCardNo':
+              visibleSlotIndex * _slotItemCapacity + visibleItemOrdinal,
+          'visibleSlotNo': visibleSlotIndex + 1,
           'visibleSlotIndex': visibleSlotIndex,
           'visibleItemOrdinal': visibleItemOrdinal,
           'threshold': _tailPrepareItemThreshold,
@@ -896,6 +1072,7 @@ class ShortManifestRepository extends GetxService {
     );
     if (cachedSlot != null) {
       _slots[slotIndex] = cachedSlot;
+      _rememberSlotPositions(slotIndex, cachedSlot);
       _logTiming(
         'slot_cache_hit_disk',
         metadata: <String, Object?>{
@@ -933,6 +1110,7 @@ class ShortManifestRepository extends GetxService {
       posts.add(PostsModel.fromMap(_manifestItemToPostMap(map), docId));
     }
     _slots[slotIndex] = posts;
+    _rememberSlotPositions(slotIndex, posts);
     await _writeSlotSnapshot(path: path, rawJson: utf8.decode(bytes));
     _logTiming(
       'slot_parse_ready',

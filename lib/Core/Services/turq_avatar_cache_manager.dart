@@ -8,7 +8,7 @@ import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 class TurqAvatarCacheManager {
   static const key = 'turqAvatarCache';
   static const int _maxRememberedResolvedFiles = 2048;
-  static const Duration _diskStalePeriod = Duration(days: 365);
+  static const Duration _diskStalePeriod = Duration(days: 30);
   static const int _maxDiskCacheObjects = 10000;
 
   static CacheManager? _instance;

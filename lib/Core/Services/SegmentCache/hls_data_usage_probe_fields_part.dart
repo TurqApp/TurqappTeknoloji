@@ -8,6 +8,7 @@ class _HlsDataUsageProbeState {
       <String, _VariantCatalog>{};
   final Map<String, _DocAccumulator> docUsage = <String, _DocAccumulator>{};
   final Map<String, _InFlightTransfer> inFlight = <String, _InFlightTransfer>{};
+  final Map<String, String> segmentOrigins = <String, String>{};
   final math.Random random = math.Random(7);
 
   DateTime startedAt = DateTime.now();
@@ -30,6 +31,7 @@ extension _HlsDataUsageProbeFieldsPart on HlsDataUsageProbe {
   Map<String, _VariantCatalog> get _variantCatalogs => _state.variantCatalogs;
   Map<String, _DocAccumulator> get _docUsage => _state.docUsage;
   Map<String, _InFlightTransfer> get _inFlight => _state.inFlight;
+  Map<String, String> get _segmentOrigins => _state.segmentOrigins;
   math.Random get _random => _state.random;
 
   DateTime get _startedAt => _state.startedAt;
