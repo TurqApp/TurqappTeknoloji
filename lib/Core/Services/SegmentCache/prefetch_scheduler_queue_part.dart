@@ -72,10 +72,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         continue;
       }
       const readySegments = 1;
-      if ((entry?.cachedSegmentCount ?? 0) >= readySegments) {
-        skippedReadySegments++;
-        continue;
-      }
       if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
       final slotOrderScore = (resolved.docIDs.length - index).toDouble();
       _queue.add(
