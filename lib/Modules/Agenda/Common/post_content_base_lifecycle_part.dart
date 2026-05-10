@@ -207,7 +207,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           return;
         }
         if (shouldKeepAndroidSurfaceAlive) {
-          _safePauseVideo();
+          _stopPlaybackForSurfaceLoss();
           return;
         }
         if (_shouldPreserveIosPrimaryFeedPlaybackForResumeTransition) {

@@ -81,7 +81,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
     if (allowedSurface == 'feed') {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        return handle.adapter.preferWarmPoolPause;
+        return false;
       }
       if (defaultTargetPlatform != TargetPlatform.iOS) return false;
       final value = handle.adapter.value;
@@ -358,6 +358,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               handle.adapter.value.isPlaying) {
             shouldStopPlayback = true;
           }
+          if (defaultTargetPlatform == TargetPlatform.android &&
+              allowedSurface == 'feed' &&
+              controllerSurface == 'feed' &&
+              handle is HLSAdapterPlaybackHandle) {
+            shouldStopPlayback = true;
+          }
           final keepWarmDuringSurfaceSwitch =
               handle is HLSAdapterPlaybackHandle &&
                   _shouldKeepWarmHandleDuringExclusiveSwitch(
@@ -378,6 +384,19 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
               'stopPlayback=$shouldStopPlayback',
             );
+            if (controllerSurface == 'feed' || allowedSurface == 'feed') {
+              debugPrint(
+                '[FeedCdnProbe] signal=hidden_handle_decision '
+                'allowed=$allowedDocID stopping=${entry.key} '
+                'surface=$controllerSurface allowedSurface=$allowedSurface '
+                'stopPlayback=$shouldStopPlayback '
+                'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
+                'preferWarm=${handle.adapter.preferWarmPoolPause} '
+                'playing=${handle.isPlaying} '
+                'buffering=${handle.adapter.value.isBuffering} '
+                'positionMs=${handle.adapter.value.position.inMilliseconds}',
+              );
+            }
           }
           _playbackExecutionService.quietHandle(
             handle,

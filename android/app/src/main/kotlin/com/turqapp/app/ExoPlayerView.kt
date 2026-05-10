@@ -24,6 +24,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -145,6 +147,47 @@ class ExoPlayerView(
     private val smokeMonitor = PlaybackHealthMonitor(tag = "PlaybackHealthMonitor#$viewId")
     private var smokeProbe: ExoPlayerPlaybackProbe? = null
     private var isSmokeRegistryActive = false
+
+    private fun playbackStateName(state: Int): String {
+        return when (state) {
+            Player.STATE_IDLE -> "idle"
+            Player.STATE_BUFFERING -> "buffering"
+            Player.STATE_READY -> "ready"
+            Player.STATE_ENDED -> "ended"
+            else -> "unknown"
+        }
+    }
+
+    private fun docIdFromUrl(url: String?): String {
+        if (url.isNullOrBlank()) return "-"
+        val marker = "/Posts/"
+        val start = url.indexOf(marker)
+        if (start < 0) return "-"
+        val docStart = start + marker.length
+        val docEnd = url.indexOf("/", docStart)
+        if (docEnd <= docStart) return "-"
+        return url.substring(docStart, docEnd)
+    }
+
+    private fun shouldLogMediaLoad(uri: String): Boolean {
+        return uri.contains("cdn.turqapp.com") ||
+            uri.contains("/hls/") ||
+            uri.contains(".m3u8") ||
+            uri.contains(".ts")
+    }
+
+    private fun logCdnProbe(signal: String, extra: String = "") {
+        val p = player
+        val url = currentUrl ?: "-"
+        val message =
+            "view=$viewId signal=$signal primaryFeed=$isPrimaryFeedSurface " +
+                "doc=${docIdFromUrl(url)} state=${playbackStateName(p?.playbackState ?: Player.STATE_IDLE)} " +
+                "playWhenReady=${p?.playWhenReady ?: false} isPlaying=${p?.isPlaying ?: false} " +
+                "isLoading=${p?.isLoading ?: false} mediaItems=${p?.mediaItemCount ?: 0} " +
+                "softHeld=$isSoftHeld posMs=${p?.currentPosition ?: 0L} " +
+                "url=$url$extra"
+        Log.d("TurqCdnProbe", message)
+    }
 
     private fun hasReusableVideoFrame(): Boolean {
         return didRenderFirstFrame || firstVideoFrameAtMs > 0L || lastVideoFrameAtMs > 0L
@@ -435,6 +478,10 @@ class ExoPlayerView(
             existing.mediaItemCount > 0 &&
             existing.playbackState != Player.STATE_IDLE
         if (canSoftResumeSameUrl) {
+            logCdnProbe(
+                "load_soft_resume",
+                " autoPlay=$autoPlay loop=$loop requestedDoc=${docIdFromUrl(url)}"
+            )
             existing.repeatMode = if (loop) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             if (autoPlay) {
                 startupRecoveryAttempts = 0
@@ -594,6 +641,7 @@ class ExoPlayerView(
             }
             activePlayer.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
+                logCdnProbe("state_${playbackStateName(playbackState)}")
                 when (playbackState) {
                     Player.STATE_READY -> {
                         if (isBufferingDispatched) {
@@ -634,6 +682,7 @@ class ExoPlayerView(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                logCdnProbe("is_playing_changed", " value=$isPlaying")
                 if (isPlaying) {
                     if (isBufferingDispatched) {
                         isBufferingDispatched = false
@@ -653,6 +702,10 @@ class ExoPlayerView(
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                logCdnProbe(
+                    "player_error",
+                    " errorCode=${error.errorCodeName} message=${error.message ?: ""}"
+                )
                 val shouldRevealOnError =
                     didRenderFirstFrame ||
                         activePlayer.playWhenReady ||
@@ -707,6 +760,7 @@ class ExoPlayerView(
             }
 
             override fun onRenderedFirstFrame() {
+                logCdnProbe("rendered_first_frame")
                 val alreadyShowingStableFrame =
                     didRenderFirstFrame && playerView.alpha >= 1f
                 val resumeOverlayVisible = resumeFrameOverlay.visibility == View.VISIBLE
@@ -731,6 +785,45 @@ class ExoPlayerView(
             }
             })
             activePlayer.addAnalyticsListener(object : AnalyticsListener {
+                override fun onLoadStarted(
+                    eventTime: AnalyticsListener.EventTime,
+                    loadEventInfo: LoadEventInfo,
+                    mediaLoadData: MediaLoadData,
+                ) {
+                    val uri = loadEventInfo.uri.toString()
+                    if (!shouldLogMediaLoad(uri)) return
+                    logCdnProbe(
+                        "load_started",
+                        " uri=$uri dataType=${mediaLoadData.dataType} trackType=${mediaLoadData.trackType}"
+                    )
+                }
+
+                override fun onLoadCompleted(
+                    eventTime: AnalyticsListener.EventTime,
+                    loadEventInfo: LoadEventInfo,
+                    mediaLoadData: MediaLoadData,
+                ) {
+                    val uri = loadEventInfo.uri.toString()
+                    if (!shouldLogMediaLoad(uri)) return
+                    logCdnProbe(
+                        "load_completed",
+                        " uri=$uri bytes=${loadEventInfo.bytesLoaded} loadMs=${loadEventInfo.loadDurationMs}"
+                    )
+                }
+
+                override fun onLoadCanceled(
+                    eventTime: AnalyticsListener.EventTime,
+                    loadEventInfo: LoadEventInfo,
+                    mediaLoadData: MediaLoadData,
+                ) {
+                    val uri = loadEventInfo.uri.toString()
+                    if (!shouldLogMediaLoad(uri)) return
+                    logCdnProbe(
+                        "load_canceled",
+                        " uri=$uri bytes=${loadEventInfo.bytesLoaded} loadMs=${loadEventInfo.loadDurationMs}"
+                    )
+                }
+
                 override fun onDroppedVideoFrames(
                     eventTime: AnalyticsListener.EventTime,
                     droppedFrames: Int,
@@ -788,6 +881,7 @@ class ExoPlayerView(
         playerView.player = activePlayer
         player = activePlayer
         currentUrl = url
+        logCdnProbe("load_prepare", " autoPlay=$autoPlay loop=$loop")
         activePlayer.prepare()
         if (autoPlay) {
             smokeMonitor.resetForNewPlaybackSession()
@@ -797,6 +891,7 @@ class ExoPlayerView(
 
     fun play() {
         player?.let { p ->
+            logCdnProbe("play_command_before")
             val shouldRecordAutoplayRequest =
                 !smokeMonitor.isPlaybackExpected || !p.playWhenReady
             if (shouldRecordAutoplayRequest) {
@@ -811,17 +906,24 @@ class ExoPlayerView(
                 startStartupRecoveryWatchdog()
             }
             startStallWatchdog()
+            logCdnProbe("play_command_after")
         }
     }
 
     fun pause() {
+        logCdnProbe("pause_command_before")
         isSoftHeld = false
         stopStartupRecoveryWatchdog()
         player?.pause()
         stopStallWatchdog()
+        logCdnProbe("pause_command_after")
+        handler.postDelayed({
+            logCdnProbe("pause_post_700ms")
+        }, 700)
     }
 
     fun softHold() {
+        logCdnProbe("soft_hold_before")
         stopStartupRecoveryWatchdog()
         player?.let { p ->
             if (!isSoftHeld) {
@@ -832,6 +934,10 @@ class ExoPlayerView(
             isSoftHeld = true
         }
         stopStallWatchdog()
+        logCdnProbe("soft_hold_after")
+        handler.postDelayed({
+            logCdnProbe("soft_hold_post_700ms")
+        }, 700)
     }
 
     fun onAppBackgrounded() {
@@ -994,6 +1100,7 @@ class ExoPlayerView(
     /// Oynatmayı durdur, network/decoder kaynaklarını serbest bırak.
     /// Player view hayatta kalır, tekrar loadVideo ile yüklenebilir.
     fun stopPlayback() {
+        logCdnProbe("stop_command_before")
         stopPositionUpdates()
         stopStallWatchdog()
         stopStartupRecoveryWatchdog()
@@ -1007,6 +1114,10 @@ class ExoPlayerView(
             p.stop()
             p.clearMediaItems()
         }
+        logCdnProbe("stop_command_after")
+        handler.postDelayed({
+            logCdnProbe("stop_post_700ms")
+        }, 700)
         sendEvent(mapOf("event" to "stopped"))
     }
 

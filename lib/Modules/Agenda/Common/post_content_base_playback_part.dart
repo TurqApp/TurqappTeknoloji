@@ -509,6 +509,20 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          _isPrimaryFeedSurfaceInstance) {
+        debugPrint(
+          '[FeedCdnProbe] signal=flutter_quiet_pause '
+          'doc=${widget.model.docID} shouldPlay=${widget.shouldPlay} '
+          'surfaceAllowed=$_isSurfacePlaybackAllowed '
+          'warmWindow=$_shouldKeepPrimaryFeedSurfaceAliveInWarmWindow '
+          'keepRebind=$_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind '
+          'offset=${_feedPlaybackOffsetLabel()} '
+          'playing=${v.value.isPlaying} buffering=${v.value.isBuffering} '
+          'positionMs=${v.value.position.inMilliseconds} '
+          'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+        );
+      }
       _playbackRecoveryTimer?.cancel();
       _playbackRecoveryTimer = null;
       _cancelFeedStallWatchdog();
@@ -525,6 +539,20 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          _isPrimaryFeedSurfaceInstance) {
+        debugPrint(
+          '[FeedCdnProbe] signal=flutter_stop_surface_loss '
+          'doc=${widget.model.docID} shouldPlay=${widget.shouldPlay} '
+          'surfaceAllowed=$_isSurfacePlaybackAllowed '
+          'warmWindow=$_shouldKeepPrimaryFeedSurfaceAliveInWarmWindow '
+          'keepRebind=$_shouldKeepAndroidPrimaryFeedSurfaceAliveForRebind '
+          'offset=${_feedPlaybackOffsetLabel()} '
+          'playing=${v.value.isPlaying} buffering=${v.value.isBuffering} '
+          'positionMs=${v.value.position.inMilliseconds} '
+          'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+        );
+      }
       debugPrint(
         '[PlaybackStopTrace] source=surface_loss doc=${widget.model.docID} '
         'modelIndex=${_surfaceModelIndex()} '
