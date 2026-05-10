@@ -421,27 +421,24 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       _publishPrefetchHealthIfNeeded(force: true);
       return;
     }
-    var currentBacklog = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
+    var currentBacklog = _totalPrefetchBacklogCount();
     if (!_shouldAllowBackgroundQuotaFill) {
       _abortStalePrefetchActivity(reason: 'quota_background_gate');
-      currentBacklog = _queue.length +
-          _pendingFollowUpJobs.length +
-          _activeDocRefCounts.length;
+      currentBacklog = _totalPrefetchBacklogCount();
     } else if (!_shouldAllowQuotaFillWithCurrentFocus) {
       _abortStalePrefetchActivity(reason: 'quota_active_surface_gate');
-      currentBacklog = _queue.length +
-          _pendingFollowUpJobs.length +
-          _activeDocRefCounts.length;
+      currentBacklog = _totalPrefetchBacklogCount();
     }
     _pruneQuotaFillOutsideActiveWindow(reason: 'active_playback_window');
-    currentBacklog = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
+    currentBacklog = _totalPrefetchBacklogCount();
+    final quotaBacklog = _quotaFillBacklogCount();
+    final quotaQueueCount = _quotaFillQueueCount();
+    final quotaPendingCount = _quotaFillPendingCount();
     final workerCheckLog =
         '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
         'allow=$_shouldAllowQuotaFillWithCurrentFocus backlog=$currentBacklog '
+        'quotaBacklog=$quotaBacklog quotaQueue=$quotaQueueCount '
+        'quotaPending=$quotaPendingCount '
         'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow '
@@ -451,8 +448,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     }
     if (_automaticQuotaFillEnabled &&
         _shouldAllowQuotaFillWithCurrentFocus &&
-        (_queue.isEmpty ||
-            (_queue.length + _pendingFollowUpJobs.length) <=
+        (_quotaFillQueueCount() == 0 ||
+            _quotaFillBacklogCount(includeActiveRefs: false) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
       await _ensureWifiQuotaFillPlan();
     } else {
@@ -465,6 +462,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
                   : 'backlog_high'));
       final skipLog = '[ShortQuotaFill] status=skip reason=$reason '
           'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
+          'quotaQueue=$quotaQueueCount quotaPending=$quotaPendingCount '
           'activeRefs=${_activeDocRefCounts.length} '
           '${_quotaFocusDebugLabel}';
       if (_shouldLogShortQuotaFillWorker('skip:$reason')) {
@@ -792,12 +790,21 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
         final segmentOrdinal = _segmentOrdinalFromKey(segmentKey);
-        final ownerInfoAtDispatch =
+        final rawOwnerInfoAtDispatch =
             describeTransferOwner(job.docID) ?? <String, dynamic>{};
+        final ownerInfoAtDispatch = quotaFillMode
+            ? <String, dynamic>{
+                ...rawOwnerInfoAtDispatch,
+                'playbackOwner':
+                    (rawOwnerInfoAtDispatch['owner'] ?? 'unknown').toString(),
+                'owner': 'quota',
+              }
+            : rawOwnerInfoAtDispatch;
         final tierInfoAtDispatch =
             classifyTransferDoc(job.docID) ?? <String, dynamic>{};
-        final cacheOriginAtDispatch =
-            (ownerInfoAtDispatch['owner'] ?? job.source).toString();
+        final cacheOriginAtDispatch = quotaFillMode
+            ? 'quota'
+            : (ownerInfoAtDispatch['owner'] ?? job.source).toString();
         if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
           docId: job.docID,
           segmentKey: segmentKey,

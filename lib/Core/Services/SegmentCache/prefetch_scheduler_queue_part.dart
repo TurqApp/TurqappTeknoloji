@@ -28,6 +28,23 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
   }
 
+  int _quotaFillQueueCount() =>
+      _queue.where((job) => job.source == 'quota').length;
+
+  int _quotaFillPendingCount() =>
+      _pendingFollowUpJobs.values.where((job) => job.source == 'quota').length;
+
+  int _quotaFillActiveRefCount() =>
+      _activeDocSources.values.where((source) => source == 'quota').length;
+
+  int _quotaFillBacklogCount({bool includeActiveRefs = true}) =>
+      _quotaFillQueueCount() +
+      _quotaFillPendingCount() +
+      (includeActiveRefs ? _quotaFillActiveRefCount() : 0);
+
+  int _totalPrefetchBacklogCount() =>
+      _queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length;
+
   void _appendQuotaFillJobs(
     _ResolvedPrefetchQueue resolved,
     SegmentCacheManager cacheManager, {
@@ -186,13 +203,18 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
       debugPrint(
         '[ShortQuotaFill] status=plan_start enabled=$_automaticQuotaFillEnabled '
-        'wifi=$_isOnWiFi cellular=$_isOnCellular backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
+        'wifi=$_isOnWiFi cellular=$_isOnCellular backlog=${_totalPrefetchBacklogCount()} '
+        'quotaBacklog=${_quotaFillBacklogCount()} quotaQueue=${_quotaFillQueueCount()} '
+        'quotaPending=${_quotaFillPendingCount()} '
         'targetBytes=$_quotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes} '
         'activeShort=$_hasActiveShortPlaybackWindow activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow',
       );
 
       Future<void> seedFromShortManifestSlots() async {
+        final remainingQuotaSlots = _prefetchSchedulerQuotaFillLowWatermark -
+            _quotaFillBacklogCount(includeActiveRefs: false);
+        if (remainingQuotaSlots <= 0) return;
         String? startAfterShortDocId;
         if (_lastShortDocIDs.isNotEmpty) {
           final safeShortIndex = _lastShortCurrentIndex.clamp(
@@ -224,7 +246,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           localCandidates,
           0,
           maxDocs: localCandidates.length,
-          maxAddedJobs: _prefetchSchedulerQuotaFillLowWatermark,
+          maxAddedJobs: remainingQuotaSlots,
         );
         for (final post in localCandidates.take(2)) {
           boostDoc(
@@ -234,9 +256,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         }
       }
 
-      final backlogCount = _queue.length +
-          _pendingFollowUpJobs.length +
-          _activeDocRefCounts.length;
+      final backlogCount = _quotaFillBacklogCount();
       if (backlogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
         return;
       }
@@ -244,9 +264,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       await seedFromShortManifestSlots();
       if (stopIfBackgroundGateClosed('plan_interrupted_by_playback')) return;
 
-      final refreshedBacklogCount = _queue.length +
-          _pendingFollowUpJobs.length +
-          _activeDocRefCounts.length;
+      final refreshedBacklogCount = _quotaFillBacklogCount();
       if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
         return;
       }
