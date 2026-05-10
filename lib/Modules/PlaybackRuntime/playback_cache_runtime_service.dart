@@ -423,6 +423,7 @@ class SegmentCacheRuntimeService {
     double progress, {
     int lookAheadSegments = globalWatchLookAheadSegments,
     double? positionSeconds,
+    int? maxReadySegments,
   }) {
     final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
     if (normalizedDocId == null) return;
@@ -443,8 +444,12 @@ class SegmentCacheRuntimeService {
             progress: normalized,
             totalSegments: totalSegmentCount,
           );
-    final targetReadySegments =
+    final maxReady = maxReadySegments;
+    var targetReadySegments =
         (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
+    if (maxReady != null && maxReady > 0 && targetReadySegments > maxReady) {
+      targetReadySegments = maxReady.clamp(1, totalSegmentCount);
+    }
 
     if (entry.cachedSegmentCount >= targetReadySegments) {
       final lastRequested =

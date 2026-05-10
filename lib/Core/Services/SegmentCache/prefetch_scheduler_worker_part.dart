@@ -650,9 +650,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           describeTransferOwner(job.docID) ?? <String, dynamic>{};
       final isShortPrefetchJob =
           job.source == 'short' || ownerInfoForPolicy['owner'] == 'short';
+      final isFeedPrefetchJob = job.source == 'feed';
       final effectiveDesiredReadySegments = isShortPrefetchJob
           ? math.min(desiredReadySegments, _shortPrefetchMaxReadySegments)
-          : desiredReadySegments;
+          : isFeedPrefetchJob
+              ? math.min(
+                  desiredReadySegments,
+                  HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+                )
+              : desiredReadySegments;
       final quotaFillMode = job.source == 'quota' &&
           _shouldAllowQuotaFillWithCurrentFocus &&
           shouldUsePrefetchQuotaFillMode(
@@ -805,6 +811,20 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final cacheOriginAtDispatch = quotaFillMode
             ? 'quota'
             : (ownerInfoAtDispatch['owner'] ?? job.source).toString();
+        if (isFeedPrefetchJob &&
+            segmentOrdinal != null &&
+            segmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+          debugPrint(
+            '[SegmentWarmGuard] status=block_prefetch reason=max_segment_2 '
+            'origin=$cacheOriginAtDispatch doc=${job.docID} '
+            'segment=$segmentKey segmentOrdinal=$segmentOrdinal '
+            'queue=${_queue.length} activeDownloads=$_activeDownloads',
+          );
+          _clearFollowUpJob(job.docID);
+          _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+          _publishPrefetchHealthIfNeeded(force: true);
+          continue;
+        }
         if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
           docId: job.docID,
           segmentKey: segmentKey,
@@ -976,6 +996,20 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           queueLength: _queue.length,
           activeDownloads: _activeDownloads,
         )) {
+          _clearFollowUpJob(result.docID);
+          _publishPrefetchHealthIfNeeded();
+          _processQueue();
+          return;
+        }
+        if (cacheOrigin == 'feed' &&
+            segmentOrdinal != null &&
+            segmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+          debugPrint(
+            '[SegmentWarmGuard] status=drop_write reason=max_segment_2 '
+            'origin=$cacheOrigin doc=${result.docID} '
+            'segment=${result.segmentKey} segmentOrdinal=$segmentOrdinal '
+            'bytes=${bytes.length}',
+          );
           _clearFollowUpJob(result.docID);
           _publishPrefetchHealthIfNeeded();
           _processQueue();

@@ -481,6 +481,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             widget.model.docID,
             progress,
             positionSeconds: positionSeconds,
+            maxReadySegments:
+                SegmentCacheRuntimeService.globalReadySegmentCount,
           );
         } catch (_) {}
         try {
