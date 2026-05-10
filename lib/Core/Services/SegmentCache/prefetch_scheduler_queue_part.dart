@@ -124,9 +124,31 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
   Future<void> _ensureWifiQuotaFillPlan() async {
     final cacheManager = _getCacheManager();
-    if (cacheManager == null || _paused) return;
-    if (!_isQuotaFillNetworkEligible || _mobileSeedMode) return;
+    if (cacheManager == null || _paused) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=manager_or_paused '
+        'hasCacheManager=${cacheManager != null} paused=$_paused',
+      );
+      return;
+    }
+    if (!_isQuotaFillNetworkEligible || _mobileSeedMode) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=network_or_mobile_seed '
+        'networkEligible=$_isQuotaFillNetworkEligible '
+        'wifi=$_isOnWiFi cellular=$_isOnCellular '
+        'canPrefetch=${CacheNetworkPolicy.canPrefetch} '
+        'mobileSeed=$_mobileSeedMode',
+      );
+      return;
+    }
     if (!_shouldAllowBackgroundQuotaFill) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=background_gate '
+        'enabled=$_automaticQuotaFillEnabled '
+        'surfaceMounted=$_hasQuotaEligibleSurfaceMounted '
+        'wifi=$_isOnWiFi canPrefetch=${CacheNetworkPolicy.canPrefetch} '
+        'route=${Get.currentRoute}',
+      );
       _abortStalePrefetchActivity(reason: 'quota_plan_background_gate');
       return;
     }
@@ -139,7 +161,14 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       );
       return;
     }
-    if (_hasReachedWifiQuotaFillTarget(cacheManager)) return;
+    if (_hasReachedWifiQuotaFillTarget(cacheManager)) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip reason=target_reached '
+        'targetBytes=$_quotaFillTargetBytes '
+        'usageBytes=${cacheManager.totalTrackedUsageBytes}',
+      );
+      return;
+    }
     if (_quotaFillRemoteInFlight) {
       debugPrint('[ShortQuotaFill] status=skip reason=plan_inflight');
       return;
