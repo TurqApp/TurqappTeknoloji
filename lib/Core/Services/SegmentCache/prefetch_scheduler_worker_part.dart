@@ -393,7 +393,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'allow=$_shouldAllowQuotaFillWithCurrentFocus backlog=$currentBacklog '
         'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
-        'activeProfile=$_hasActiveProfilePlaybackWindow';
+        'activeProfile=$_hasActiveProfilePlaybackWindow '
+        '${_quotaFocusDebugLabel}';
     if (_shouldLogShortQuotaFillWorker('worker_check')) {
       debugPrint(workerCheckLog);
     }
@@ -409,11 +410,12 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           : (!_shouldAllowBackgroundQuotaFill
               ? 'background_gate'
               : (!_shouldAllowQuotaFillWithCurrentFocus
-                  ? 'active_non_short_playback_focus'
+                  ? 'active_feed_playback_focus'
                   : 'backlog_high'));
       final skipLog = '[ShortQuotaFill] status=skip reason=$reason '
           'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
-          'activeRefs=${_activeDocRefCounts.length}';
+          'activeRefs=${_activeDocRefCounts.length} '
+          '${_quotaFocusDebugLabel}';
       if (_shouldLogShortQuotaFillWorker('skip:$reason')) {
         debugPrint(skipLog);
       }
@@ -580,7 +582,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         _clearFollowUpJob(job.docID);
         _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
         debugPrint(
-          '[ShortQuotaFill] status=skip_job reason=active_non_short_playback doc=${job.docID}',
+          '[ShortQuotaFill] status=skip_job reason=active_feed_playback doc=${job.docID}',
         );
         return;
       }

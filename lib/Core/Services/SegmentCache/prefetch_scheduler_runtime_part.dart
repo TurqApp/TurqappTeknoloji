@@ -14,8 +14,47 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   bool get _isFeedSurfaceVisible {
     final nav = maybeFindNavBarController();
-    return nav == null ||
-        (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
+    if (nav == null) return false;
+    if (nav.selectedIndex.value != 0 || nav.mediaOverlayActive) return false;
+    final route = Get.currentRoute.trim();
+    return route.isEmpty || route == '/NavBarView' || route == 'NavBarView';
+  }
+
+  bool get _isExploreSurfaceVisible {
+    final nav = maybeFindNavBarController();
+    if (nav == null) return false;
+    if (nav.selectedIndex.value != 1 || nav.mediaOverlayActive) return false;
+    final route = Get.currentRoute.trim();
+    return route.isEmpty || route == '/NavBarView' || route == 'NavBarView';
+  }
+
+  String get _quotaSurfaceLabel {
+    final nav = maybeFindNavBarController();
+    if (nav == null) return 'none';
+    if (nav.mediaOverlayActive) return 'overlay';
+    if (_isFeedSurfaceVisible) return 'feed';
+    if (_isExploreSurfaceVisible) return 'explore';
+    switch (nav.selectedIndex.value) {
+      case 2:
+        return 'short_or_education';
+      case 3:
+        return 'pasaj_or_profile';
+      case 4:
+        return 'profile';
+      default:
+        return 'nav_${nav.selectedIndex.value}';
+    }
+  }
+
+  String get _quotaFocusDebugLabel {
+    final nav = maybeFindNavBarController();
+    final manager = maybeFindVideoStateManager();
+    return 'surface=$_quotaSurfaceLabel '
+        'nav=${nav?.selectedIndex.value ?? -1} '
+        'overlay=${nav?.mediaOverlayActive ?? false} '
+        'route=${Get.currentRoute.trim()} '
+        'current=${manager?.currentPlayingDocID ?? ''} '
+        'target=${manager?.targetPlaybackDocID ?? ''}';
   }
 
   bool _isProfilePlaybackHandle(String value) {
@@ -80,10 +119,7 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   bool _shouldAllowQuotaFillForDoc(String docID) {
     if (!_shouldAllowQuotaFillWithCurrentFocus) return false;
-    if (!_hasAnyActivePlaybackFocus) return true;
-    if (_hasActiveShortPlaybackWindow &&
-        !_hasActiveFeedPlaybackWindow &&
-        !_hasActiveProfilePlaybackWindow) {
+    if (!_hasActiveFeedPlaybackWindow) {
       return true;
     }
 
@@ -100,13 +136,25 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   bool get _shouldAllowBackgroundQuotaFill =>
       _prefetchSchedulerOfflineQuotaFillEnabled &&
       _automaticQuotaFillEnabled &&
+      _hasQuotaEligibleSurfaceMounted &&
       _isOnWiFi &&
       CacheNetworkPolicy.canPrefetch;
 
   bool get _shouldAllowQuotaFillWithCurrentFocus =>
-      _shouldAllowBackgroundQuotaFill &&
-      !_hasActiveFeedPlaybackWindow &&
-      !_hasActiveProfilePlaybackWindow;
+      _shouldAllowBackgroundQuotaFill && !_hasActiveFeedPlaybackWindow;
+
+  bool get _hasQuotaEligibleSurfaceMounted {
+    final nav = maybeFindNavBarController();
+    if (nav == null || nav.mediaOverlayActive) return false;
+    final route = Get.currentRoute.trim().toLowerCase();
+    if (route.contains('signin') ||
+        route.contains('sign_in') ||
+        route.contains('login') ||
+        route.contains('splash')) {
+      return false;
+    }
+    return true;
+  }
 
   bool get _useMinimalQuotaFillMode => _hasAnyActivePlaybackFocus;
 

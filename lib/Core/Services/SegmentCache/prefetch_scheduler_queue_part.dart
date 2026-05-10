@@ -103,7 +103,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     }
     if (!_shouldAllowQuotaFillWithCurrentFocus) {
       debugPrint(
-        '[ShortQuotaFill] status=skip reason=active_non_short_playback_focus '
+        '[ShortQuotaFill] status=skip reason=active_feed_playback_focus '
         'activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow',
@@ -801,18 +801,16 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     final firstSegmentKey =
         '$variantDir$firstSegmentUri'.replaceFirst('Posts/$docID/hls/', '');
     if (cacheManager.getSegmentFile(docID, firstSegmentKey) != null) {
+      final cacheOrigin =
+          cacheManager.getEntry(docID)?.segments[firstSegmentKey]?.cacheOrigin;
       debugPrint(
         '[ShortQuotaFill] status=skip_doc reason=first_segment_ready '
-        'doc=$docID segment=$firstSegmentKey segmentOrdinal=1',
+        'doc=$docID segment=$firstSegmentKey segmentOrdinal=1 '
+        'cacheOrigin=${(cacheOrigin ?? '').trim().isEmpty ? 'unknown' : cacheOrigin}',
       );
       return const <String>[];
     }
 
-    debugPrint(
-      '[ShortQuotaFill] status=select_first_segment_only '
-      'doc=$docID segment=$firstSegmentKey segmentOrdinal=1 '
-      'requestedReadySegments=$desiredReadySegments',
-    );
     return <String>[firstSegmentUri];
   }
 

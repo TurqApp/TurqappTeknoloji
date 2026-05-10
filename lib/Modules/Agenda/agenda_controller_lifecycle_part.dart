@@ -76,7 +76,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (playbackSuspended.value) return;
       maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-        false,
+        true,
         reason: 'feed_controller_ready',
       );
       _scheduleFeedManifestWindowSync(reason: 'controller_ready');
@@ -85,10 +85,6 @@ extension AgendaControllerLifecyclePart on AgendaController {
   }
 
   void _handleLifecycleClose() {
-    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'feed_controller_close',
-    );
     _mergedFeedWorker?.dispose();
     _filteredFeedWorker?.dispose();
     _renderFeedWorker?.dispose();

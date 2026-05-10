@@ -96,10 +96,6 @@ extension SocialProfileControllerRuntimePart on SocialProfileController {
   }
 
   void _handleLifecycleClose() {
-    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'social_profile_controller_close',
-    );
     scrollController.dispose();
     _userDocSub?.cancel();
     _resharesSub?.cancel();

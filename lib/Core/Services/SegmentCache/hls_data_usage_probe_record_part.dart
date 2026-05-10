@@ -250,6 +250,15 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
             ? cacheOriginOverride!.trim()
             : (_segmentOrigins[segmentOriginKey] ?? 'disk_cache_unknown'))
         : (source == HlsTrafficSource.playback ? 'network' : owner);
+    _logShortQuotaConsumeProbe(
+      docId: docId,
+      segmentKey: segmentKey,
+      source: source,
+      cacheHit: cacheHit,
+      cacheOrigin: cacheOrigin,
+      ownerInfo: ownerInfo,
+      tierInfo: tierInfo,
+    );
 
     final variantKey = _variantKeyFromSegmentKey(segmentKey);
     final event = HlsTransferEvent(
@@ -360,6 +369,34 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       'activeFeed=${ownerInfo?['hasActiveFeedPlaybackWindow']} '
       'tier=${tierInfo?['tier'] ?? 'unknown'} '
       'bytes=${event.bytes}',
+    );
+  }
+
+  void _logShortQuotaConsumeProbe({
+    required String docId,
+    required String segmentKey,
+    required HlsTrafficSource source,
+    required bool cacheHit,
+    required String cacheOrigin,
+    required Map<String, dynamic>? ownerInfo,
+    required Map<String, dynamic>? tierInfo,
+  }) {
+    if (!kDebugMode || source != HlsTrafficSource.playback || !cacheHit) {
+      return;
+    }
+    final ordinal = _segmentOrdinalFromKey(segmentKey);
+    if (ordinal != 1) return;
+    final owner = (ownerInfo?['owner'] ?? 'unknown').toString();
+    if (owner != 'short') return;
+    final shortDoc = docId.length > 8 ? docId.substring(0, 8) : docId;
+    debugPrint(
+      '[ShortQuotaConsume] status=first_segment_cache_hit '
+      'quotaHit=${cacheOrigin == 'quota'} cacheOrigin=$cacheOrigin '
+      'doc=$shortDoc segment=$segmentKey segmentOrdinal=$ordinal '
+      'visible=${ownerInfo?['owner'] == 'short'} '
+      'activeShort=${ownerInfo?['hasActiveShortPlaybackWindow']} '
+      'activeFeed=${ownerInfo?['hasActiveFeedPlaybackWindow']} '
+      'tier=${tierInfo?['tier'] ?? 'unknown'}',
     );
   }
 

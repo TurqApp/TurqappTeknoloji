@@ -132,10 +132,6 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void handleOnClose() {
     _log('[Shorts] ❌ ShortController.onClose() called');
-    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'short_controller_close',
-    );
     _persistVisibleSnapshotTimer?.cancel();
     _persistVisibleSnapshotTimer = null;
     _playbackCoordinator.reset();

@@ -106,10 +106,6 @@ extension ProfileControllerLifecyclePart on ProfileController {
   }
 
   void _performOnClose() {
-    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
-      false,
-      reason: 'profile_controller_close',
-    );
     _authSub?.cancel();
     _resharesSub?.cancel();
     _counterSub?.cancel();

@@ -44,7 +44,7 @@ class _PrefetchSchedulerState {
   QueryDocumentSnapshot<Map<String, dynamic>>? quotaFillRemoteCursor;
   int quotaFillRemoteExhaustedUsageBytes = 0;
   int quotaFillRemoteExhaustedTargetBytes = 0;
-  bool automaticQuotaFillEnabled = false;
+  bool automaticQuotaFillEnabled = _prefetchSchedulerOfflineQuotaFillEnabled;
   bool queuePumpActive = false;
   bool queuePumpRequested = false;
 }
