@@ -1182,6 +1182,10 @@ extension ShortControllerLoadingPart on ShortController {
   }) {
     newItems = newItems.where(_isEligibleShortPost).toList(growable: false);
     if (_hasSameRenderOrder(shorts, newItems)) {
+      _seedVisibleShortQuotaFirstSegments(
+        shorts.toList(growable: false),
+        reason: 'replace_same_order',
+      );
       return;
     }
     final previous = shorts.toList(growable: false);
@@ -1220,6 +1224,10 @@ extension ShortControllerLoadingPart on ShortController {
           },
         );
         shorts.addAll(appendOnlyItems);
+        _seedVisibleShortQuotaFirstSegments(
+          shorts.toList(growable: false),
+          reason: 'replace_append_visible',
+        );
       }
       return;
     }
@@ -1239,6 +1247,36 @@ extension ShortControllerLoadingPart on ShortController {
       },
     );
     shorts.assignAll(newItems);
+    _seedVisibleShortQuotaFirstSegments(
+      newItems,
+      reason: 'replace_assign_visible',
+    );
+  }
+
+  void _seedVisibleShortQuotaFirstSegments(
+    List<PostsModel> items, {
+    required String reason,
+  }) {
+    if (items.isEmpty) return;
+    final scheduler = maybeFindPrefetchScheduler();
+    if (scheduler == null) return;
+    final currentIndex = lastIndex.value < 0
+        ? 0
+        : (lastIndex.value >= items.length
+            ? items.length - 1
+            : lastIndex.value);
+    debugPrint(
+      '[ShortQuotaFill] status=visible_seed_request reason=$reason '
+      'count=${items.length} currentIndex=$currentIndex '
+      'firstDoc=${items.first.docID} lastDoc=${items.last.docID}',
+    );
+    unawaited(
+      scheduler.seedShortVisibleQuotaFirstSegmentsForPosts(
+        items,
+        currentIndex: currentIndex,
+        reason: reason,
+      ),
+    );
   }
 
   bool _hasSameRenderOrder(
