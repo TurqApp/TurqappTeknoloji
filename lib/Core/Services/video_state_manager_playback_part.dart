@@ -77,7 +77,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return false;
     }
     if (allowedSurface == 'short') {
-      return handle.adapter.preferWarmPoolPause;
+      return false;
     }
     if (allowedSurface == 'feed') {
       return false;
@@ -350,9 +350,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               handle.adapter.value.isPlaying) {
             shouldStopPlayback = true;
           }
-          if (defaultTargetPlatform == TargetPlatform.android &&
-              allowedSurface == 'feed' &&
-              controllerSurface == 'feed' &&
+          if ((allowedSurface == 'feed' || allowedSurface == 'short') &&
+              controllerSurface == allowedSurface &&
               handle is HLSAdapterPlaybackHandle) {
             shouldStopPlayback = true;
           }
@@ -379,6 +378,19 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
             if (controllerSurface == 'feed' || allowedSurface == 'feed') {
               debugPrint(
                 '[FeedCdnProbe] signal=hidden_handle_decision '
+                'allowed=$allowedDocID stopping=${entry.key} '
+                'surface=$controllerSurface allowedSurface=$allowedSurface '
+                'stopPlayback=$shouldStopPlayback '
+                'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
+                'preferWarm=${handle.adapter.preferWarmPoolPause} '
+                'playing=${handle.isPlaying} '
+                'buffering=${handle.adapter.value.isBuffering} '
+                'positionMs=${handle.adapter.value.position.inMilliseconds}',
+              );
+            }
+            if (controllerSurface == 'short' || allowedSurface == 'short') {
+              debugPrint(
+                '[ShortCdnProbe] signal=hidden_handle_decision '
                 'allowed=$allowedDocID stopping=${entry.key} '
                 'surface=$controllerSurface allowedSurface=$allowedSurface '
                 'stopPlayback=$shouldStopPlayback '
