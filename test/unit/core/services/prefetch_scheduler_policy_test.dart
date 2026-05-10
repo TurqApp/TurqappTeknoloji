@@ -46,24 +46,23 @@ void main() {
   });
 
   group('buildQuotaFillSegmentOrder', () {
-    test('prioritizes the first two uncached segments then fills the rest', () {
+    test('returns only the first segment for quota fill', () {
       final order = buildQuotaFillSegmentOrder(
         totalSegments: 6,
         desiredReadySegments: 2,
       );
 
-      expect(order, <int>[0, 1, 2, 3, 4, 5]);
+      expect(order, <int>[0]);
     });
 
-    test('skips cached first segment and continues through remaining segments',
-        () {
+    test('does not continue when the first segment is already cached', () {
       final order = buildQuotaFillSegmentOrder(
         totalSegments: 6,
         desiredReadySegments: 2,
         cachedSegmentIndices: const <int>{0},
       );
 
-      expect(order, <int>[1, 2, 3, 4, 5]);
+      expect(order, isEmpty);
     });
   });
 

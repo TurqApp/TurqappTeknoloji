@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('auth-entry warm keeps manifest, quota, flood, pasaj order stable',
-      () async {
+  test('auth-entry warm keeps manifest, flood, pasaj order stable', () async {
     final source = await File(
       'lib/Modules/SignIn/sign_in_entry_warm_service.dart',
     ).readAsString();
@@ -13,26 +12,23 @@ void main() {
         source.indexOf("await runStep(\n          'feed_manifest'");
     final shortIndex =
         source.indexOf("await runStep(\n          'short_manifest'");
-    final quotaIndex =
-        source.indexOf('await _startQuotaFillAfterShortReady();');
     final floodIndex = source.indexOf('final floodFuture = runFloodStep()');
     final pasajIndex = source.indexOf('await runPasajStep();');
     final floodAwaitIndex = source.indexOf('await floodFuture;');
 
     expect(feedIndex, greaterThanOrEqualTo(0));
     expect(shortIndex, greaterThan(feedIndex));
-    expect(quotaIndex, greaterThan(shortIndex));
-    expect(floodIndex, greaterThan(quotaIndex));
+    expect(floodIndex, greaterThan(shortIndex));
     expect(pasajIndex, greaterThan(floodIndex));
     expect(floodAwaitIndex, greaterThan(pasajIndex));
     expect(
-      source.contains("await runStep(\n          'quota_fill',"),
+      source.contains('quota_fill'),
       isFalse,
-      reason: 'quota fill must stay on dedicated helper after short manifest',
+      reason: 'sign-in must not start offline quota downloads',
     );
   });
 
-  test('post-auth warm keeps quota fill after short and before flood',
+  test('post-auth warm keeps feed, short and flood order without quota fill',
       () async {
     final source = await File(
       'lib/Modules/SignIn/sign_in_application_service.dart',
@@ -43,17 +39,18 @@ void main() {
     );
     final shortIndex = source
         .indexOf("await runStep('short_manifest', _warmShortsAfterAuth);");
-    final quotaIndex = source.indexOf(
-      "await runStep('quota_fill', _startQuotaFillAfterShortReady);",
-    );
     final floodIndex = source.indexOf(
       "await runStep('flood_manifest', _warmFloodManifestAfterAuth);",
     );
 
     expect(feedIndex, greaterThanOrEqualTo(0));
     expect(shortIndex, greaterThan(feedIndex));
-    expect(quotaIndex, greaterThan(shortIndex));
-    expect(floodIndex, greaterThan(quotaIndex));
+    expect(floodIndex, greaterThan(shortIndex));
+    expect(
+      source.contains('quota_fill'),
+      isFalse,
+      reason: 'post-auth warm must not start offline quota downloads',
+    );
   });
 
   test('guest startup warm keeps feed, short, flood manifest order stable',
@@ -90,16 +87,18 @@ void main() {
     expect(source.contains('PasajTabIds.tutoring'), isTrue);
     expect(source.contains("label=pasaj_\$tabId"), isTrue);
     expect(
-      source.indexOf('await _startQuotaFillAfterShortReady();'),
+      source.indexOf("final floodFuture = runFloodStep()"),
       greaterThan(source.indexOf("'short_manifest'")),
     );
     expect(
-      source.indexOf("final floodFuture = runFloodStep()"),
-      greaterThan(source.indexOf('await _startQuotaFillAfterShortReady();')),
+      source.contains('_startQuotaFillAfterShortReady'),
+      isFalse,
+      reason: 'auth-entry warm must not contain sign-in quota fill helper',
     );
   });
 
-  test('sign-in route forwards first-launch state into auth-entry warm', () async {
+  test('sign-in route forwards first-launch state into auth-entry warm',
+      () async {
     final splashSource = await File(
       'lib/Modules/Splash/splash_view_startup_part.dart',
     ).readAsString();

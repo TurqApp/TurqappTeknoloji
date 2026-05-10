@@ -36,9 +36,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     SegmentCacheManager cacheManager,
   ) {
     if (resolved.docIDs.isEmpty) return;
-    final safeCurrent =
-        resolved.currentIndex.clamp(0, resolved.docIDs.length - 1);
-    final currentDocId = resolved.docIDs[safeCurrent];
     final queuedDocIds = _queue.map((job) => job.docID).toSet()
       ..addAll(_pendingFollowUpJobs.keys)
       ..addAll(_activeDocRefCounts.keys);
@@ -49,29 +46,27 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (!queuedDocIds.add(docID)) continue;
       final entry = cacheManager.getEntry(docID);
       if (entry != null && entry.isFullyCached) continue;
-      final readySegments = _resolvedReadySegmentTarget(
-        docID: docID,
-        cacheManager: cacheManager,
-      );
+      const readySegments = 1;
+      if ((entry?.cachedSegmentCount ?? 0) >= readySegments) continue;
       if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
+      final slotOrderScore = (resolved.docIDs.length - index).toDouble();
       _queue.add(
         _PrefetchJob(
           docID,
           readySegments,
           2,
-          _buildJobScore(
-            currentIndex: safeCurrent,
-            currentDocId: currentDocId,
-            targetIndex: index,
-            priority: 2,
-            watchProgress: entry?.watchProgress ?? 0.0,
-            cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
-            totalSegmentCount: entry?.totalSegmentCount ?? 0,
-          ),
+          slotOrderScore,
           source: 'quota',
         ),
       );
       _jobEnqueuedAt[docID] = DateTime.now();
+      final quotaSeedPosition =
+          ensureShortManifestRepository().quotaSeedPositionLabelForDoc(docID);
+      debugPrint(
+        '[ShortQuotaFill] status=queue_doc source=short_manifest_slots '
+        'networkSeed=false doc=$docID readySegments=$readySegments '
+        'queueOrder=$index seedPosition=${quotaSeedPosition ?? '-'}',
+      );
       addedJobs++;
     }
 
@@ -137,20 +132,22 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         'targetBytes=$_quotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes}',
       );
 
-      Future<void> seedFromLocalCandidates() async {
+      Future<void> seedFromShortManifestSlots() async {
+        final slotPosts =
+            await ensureShortManifestRepository().quotaFillSeedPosts();
         final localCandidates = _selectShortQuotaFillCandidates(
-          cacheManager.getQuotaFillCandidatePosts(
-            limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
-          ),
-          limit: _prefetchSchedulerQuotaFillPlanningBatchSize,
+          slotPosts,
+          limit: slotPosts.length,
+          preserveOrder: true,
         );
         debugPrint(
-          '[ShortQuotaFill] status=local_seed count=${localCandidates.length}',
+          '[ShortQuotaFill] status=short_slot_seed '
+          'source=short_manifest_slots networkSeed=false '
+          'raw=${slotPosts.length} filtered=${localCandidates.length} '
+          'firstDoc=${localCandidates.isEmpty ? '-' : localCandidates.first.docID} '
+          'lastDoc=${localCandidates.isEmpty ? '-' : localCandidates.last.docID}',
         );
         if (localCandidates.isEmpty) return;
-        for (final post in localCandidates) {
-          cacheManager.markReservedForShort(post.docID);
-        }
         await _appendQuotaFillQueueForPosts(
           localCandidates,
           0,
@@ -171,7 +168,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         return;
       }
 
-      await seedFromLocalCandidates();
+      await seedFromShortManifestSlots();
       if (stopIfBackgroundGateClosed('plan_interrupted_by_playback')) return;
 
       final refreshedBacklogCount = _queue.length +
@@ -180,7 +177,10 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (refreshedBacklogCount >= _prefetchSchedulerQuotaFillLowWatermark) {
         return;
       }
-      debugPrint('[ShortQuotaFill] status=manifest_only_no_remote_seed');
+      debugPrint(
+        '[ShortQuotaFill] status=manifest_only_no_remote_seed '
+        'networkSeed=false reason=short_manifest_only',
+      );
     } catch (e) {
       debugPrint('[Prefetch] Quota fill plan failed: $e');
     } finally {
@@ -191,6 +191,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   List<PostsModel> _selectShortQuotaFillCandidates(
     List<PostsModel> posts, {
     required int limit,
+    bool preserveOrder = false,
   }) {
     if (posts.isEmpty || limit <= 0) {
       return const <PostsModel>[];
@@ -217,12 +218,15 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         return false;
       }
       return true;
-    }).toList(growable: false)
-      ..sort((left, right) {
+    }).toList(growable: false);
+
+    if (!preserveOrder) {
+      filtered.sort((left, right) {
         final timeCompare = right.timeStamp.compareTo(left.timeStamp);
         if (timeCompare != 0) return timeCompare;
         return right.docID.trim().compareTo(left.docID.trim());
       });
+    }
 
     if (filtered.isEmpty) {
       return const <PostsModel>[];

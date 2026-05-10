@@ -67,6 +67,7 @@ class ShortManifestRepository extends GetxService {
   final Map<int, List<PostsModel>> _slots = <int, List<PostsModel>>{};
   final Map<int, Future<List<PostsModel>>> _slotLoads =
       <int, Future<List<PostsModel>>>{};
+  final Map<String, String> _lastQuotaSeedPositionByDoc = <String, String>{};
   int _cursorSlotIndex = 0;
   int _cursorItemIndex = 0;
   Future<void>? _loadFuture;
@@ -112,6 +113,12 @@ class ShortManifestRepository extends GetxService {
       labels.add('$i:${(slot['path'] ?? '').toString()}');
     }
     return labels;
+  }
+
+  String? quotaSeedPositionLabelForDoc(String docId) {
+    final normalized = docId.trim();
+    if (normalized.isEmpty) return null;
+    return _lastQuotaSeedPositionByDoc[normalized];
   }
 
   Future<void> _logSlotInventory(
@@ -223,6 +230,67 @@ class ShortManifestRepository extends GetxService {
   Future<void> warmStartupWindow() async {
     await _ensureLoaded();
     await _ensureStartupSlotsLoaded();
+  }
+
+  Future<List<PostsModel>> quotaFillSeedPosts({int maxPosts = 0}) async {
+    await _ensureLoaded();
+    final slotsRaw = _index?['slots'];
+    if (slotsRaw is! List || slotsRaw.isEmpty) {
+      return const <PostsModel>[];
+    }
+
+    final output = <PostsModel>[];
+    final seenDocIds = <String>{};
+    final slotCounts = <String, int>{};
+    _lastQuotaSeedPositionByDoc.clear();
+    final startSlotIndex = _cursorSlotIndex.clamp(0, slotsRaw.length - 1);
+    final startItemIndex = _cursorItemIndex < 0 ? 0 : _cursorItemIndex;
+    for (var slotIndex = startSlotIndex;
+        slotIndex < slotsRaw.length;
+        slotIndex++) {
+      final path = _slotPath(slotIndex);
+      if (path.isEmpty) continue;
+      final slot = await _ensureSlot(slotIndex);
+      final itemStart = slotIndex == startSlotIndex ? startItemIndex : 0;
+      var addedForSlot = 0;
+      for (var itemIndex = itemStart; itemIndex < slot.length; itemIndex++) {
+        final post = slot[itemIndex];
+        final docId = post.docID.trim();
+        if (docId.isEmpty || !seenDocIds.add(docId)) continue;
+        if (!post.hasPlayableVideo) continue;
+        _lastQuotaSeedPositionByDoc[docId] =
+            'slotIndex=$slotIndex itemIndex=$itemIndex itemOrdinal=${itemIndex + 1} slotPath=$path';
+        output.add(post);
+        addedForSlot++;
+        if (maxPosts > 0 && output.length >= maxPosts) break;
+      }
+      slotCounts['$slotIndex:$path'] = addedForSlot;
+      if (maxPosts > 0 && output.length >= maxPosts) break;
+    }
+
+    _logTiming(
+      'quota_seed_posts_ready',
+      metadata: <String, Object?>{
+        'source': 'short_manifest_slots',
+        'networkSeed': false,
+        'count': output.length,
+        'slotCounts': slotCounts,
+        'maxPosts': maxPosts,
+        'startSlotIndex': startSlotIndex,
+        'startItemIndex': startItemIndex,
+        'startSlotPath': _slotPath(startSlotIndex),
+        'firstDoc': output.isEmpty ? '-' : output.first.docID,
+        'lastDoc': output.isEmpty ? '-' : output.last.docID,
+        'candidatePreview': output
+            .take(8)
+            .map((post) =>
+                '${post.docID}:${_lastQuotaSeedPositionByDoc[post.docID] ?? '-'}')
+            .toList(growable: false),
+        'cursorSlotIndex': _cursorSlotIndex,
+        'cursorItemIndex': _cursorItemIndex,
+      },
+    );
+    return output;
   }
 
   Future<void> _loadManifest() async {

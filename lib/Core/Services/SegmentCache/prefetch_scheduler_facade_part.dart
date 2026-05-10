@@ -249,6 +249,8 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
     _state.automaticQuotaFillEnabled = resolvedEnabled;
     if (!resolvedEnabled) {
       _resetWifiQuotaFillPlanState();
+    } else if (_paused) {
+      resume();
     }
     debugPrint(
       '[Prefetch] automaticQuotaFillEnabled=$resolvedEnabled reason=$reason',

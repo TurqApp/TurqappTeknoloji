@@ -109,13 +109,21 @@ extension _ShortControllerRuntimeX on ShortController {
     try {
       final preferences = ensureLocalPreferenceRepository();
       final quotaGb = normalizeStorageBudgetPlanGb(
-        await preferences.getInt('offline_cache_quota_gb') ?? 3,
+        await preferences.getInt('offline_cache_quota_gb') ??
+            defaultStorageBudgetPlanGb,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
       final prefetch = maybeFindPrefetchScheduler();
       if (prefetch != null) {
         prefetch.resetWifiQuotaFillPlan();
+        if (NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false) {
+          prefetch.setAutomaticQuotaFillEnabled(
+            true,
+            reason: 'short_controller_wifi',
+          );
+          await prefetch.ensureWifiQuotaFillPlan();
+        }
       }
     } catch (e) {
       _log('Shorts cache quota apply error: $e');
@@ -124,6 +132,10 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void handleOnClose() {
     _log('[Shorts] ❌ ShortController.onClose() called');
+    maybeFindPrefetchScheduler()?.setAutomaticQuotaFillEnabled(
+      false,
+      reason: 'short_controller_close',
+    );
     _persistVisibleSnapshotTimer?.cancel();
     _persistVisibleSnapshotTimer = null;
     _playbackCoordinator.reset();

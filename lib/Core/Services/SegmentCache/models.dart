@@ -255,8 +255,8 @@ class CacheIndex {
   final Map<String, VideoCacheEntry> entries; // docID -> entry
   int totalSizeBytes;
 
-  /// 3 GB hard limit
-  static const int maxSizeBytes = 3 * 1024 * 1024 * 1024;
+  /// 5 GB default media limit; user plan applies runtime soft/hard budget.
+  static const int maxSizeBytes = 5 * 1024 * 1024 * 1024;
 
   /// Soft limit = hard limit'in %70'i — eviction bu eşikte tetiklenir.
   static const int softLimitBytes = (maxSizeBytes * 70) ~/ 100;

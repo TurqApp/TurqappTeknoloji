@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:turqappv2/Core/Slider/slider_catalog.dart';
 import 'package:turqappv2/Core/Repositories/job_home_snapshot_repository.dart';
-import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Repositories/market_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/scholarship_snapshot_repository.dart';
 import 'package:turqappv2/Core/Repositories/tutoring_snapshot_repository.dart';
@@ -12,9 +11,6 @@ import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Repositories/short_manifest_repository.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.dart';
 import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_seed_pool.dart';
-import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/pasaj_feature_gate.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
@@ -77,29 +73,6 @@ class SignInEntryWarmService {
   static Future<void>? _inFlight;
   static Future<void>? _pasajInFlight;
   static Future<void>? _sliderAssetPrecacheInFlight;
-
-  static Future<void> _startQuotaFillAfterShortReady() async {
-    try {
-      final preferences = ensureLocalPreferenceRepository();
-      final quotaGb = normalizeStorageBudgetPlanGb(
-        await preferences.getInt('offline_cache_quota_gb') ?? 3,
-      );
-      await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
-      await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);
-      final prefetch = maybeFindPrefetchScheduler();
-      if (prefetch != null) {
-        prefetch.resetWifiQuotaFillPlan();
-        await prefetch.ensureWifiQuotaFillPlan();
-      }
-      debugPrint(
-        '[AuthEntryWarm] status=refresh_ok label=quota_fill source=short_manifest quotaGb=$quotaGb',
-      );
-    } catch (error) {
-      debugPrint(
-        '[AuthEntryWarm] status=refresh_fail label=quota_fill source=short_manifest error=$error',
-      );
-    }
-  }
 
   static Future<List<String>> _loadVisiblePasajListingTabs() async {
     final resolved = await loadEffectivePasajVisibility(
@@ -249,13 +222,12 @@ class SignInEntryWarmService {
           .toList(growable: false);
     }
     final warmedImages = await _warmPreviewImages(<String>[
-      for (final item in items)
-        ...<String>[
-          (((item['model'] as dynamic)?.img) ?? item['img'] ?? '').toString(),
-          (((item['model'] as dynamic)?.img2) ?? item['img2'] ?? '').toString(),
-          (((item['model'] as dynamic)?.logo) ?? item['logo'] ?? '').toString(),
-          (item['avatarUrl'] ?? item['authorAvatarUrl'] ?? '').toString(),
-        ],
+      for (final item in items) ...<String>[
+        (((item['model'] as dynamic)?.img) ?? item['img'] ?? '').toString(),
+        (((item['model'] as dynamic)?.img2) ?? item['img2'] ?? '').toString(),
+        (((item['model'] as dynamic)?.logo) ?? item['logo'] ?? '').toString(),
+        (item['avatarUrl'] ?? item['authorAvatarUrl'] ?? '').toString(),
+      ],
     ]);
     await _saveScholarshipStartupShard(
       userId: userId,
@@ -423,25 +395,23 @@ class SignInEntryWarmService {
       limit: _authEntryPasajWarmLimit,
       source: 'auth_entry_warm',
       payload: <String, dynamic>{
-        'items': startupItems
-            .map((item) {
-              final model = item['model'];
-              return <String, dynamic>{
-                'docId': item['docId'] ?? '',
-                'type': item['type'] ?? '',
-                'model': model is IndividualScholarshipsModel
-                    ? model.toJson()
-                    : <String, dynamic>{},
-                'userData': Map<String, dynamic>.from(
-                  item['userData'] as Map? ?? const <String, dynamic>{},
-                ),
-                'likesCount': item['likesCount'] ?? 0,
-                'bookmarksCount': item['bookmarksCount'] ?? 0,
-                'timeStamp': item['timeStamp'] ?? 0,
-                'isSummary': item['isSummary'] ?? false,
-              };
-            })
-            .toList(growable: false),
+        'items': startupItems.map((item) {
+          final model = item['model'];
+          return <String, dynamic>{
+            'docId': item['docId'] ?? '',
+            'type': item['type'] ?? '',
+            'model': model is IndividualScholarshipsModel
+                ? model.toJson()
+                : <String, dynamic>{},
+            'userData': Map<String, dynamic>.from(
+              item['userData'] as Map? ?? const <String, dynamic>{},
+            ),
+            'likesCount': item['likesCount'] ?? 0,
+            'bookmarksCount': item['bookmarksCount'] ?? 0,
+            'timeStamp': item['timeStamp'] ?? 0,
+            'isSummary': item['isSummary'] ?? false,
+          };
+        }).toList(growable: false),
       },
     );
     await store.save(
@@ -451,25 +421,23 @@ class SignInEntryWarmService {
       limit: _authEntryPasajWarmLimit,
       source: 'auth_entry_warm',
       payload: <String, dynamic>{
-        'items': startupItems
-            .map((item) {
-              final model = item['model'];
-              return <String, dynamic>{
-                'docId': item['docId'] ?? '',
-                'type': item['type'] ?? '',
-                'model': model is IndividualScholarshipsModel
-                    ? model.toJson()
-                    : <String, dynamic>{},
-                'userData': Map<String, dynamic>.from(
-                  item['userData'] as Map? ?? const <String, dynamic>{},
-                ),
-                'likesCount': item['likesCount'] ?? 0,
-                'bookmarksCount': item['bookmarksCount'] ?? 0,
-                'timeStamp': item['timeStamp'] ?? 0,
-                'isSummary': item['isSummary'] ?? false,
-              };
-            })
-            .toList(growable: false),
+        'items': startupItems.map((item) {
+          final model = item['model'];
+          return <String, dynamic>{
+            'docId': item['docId'] ?? '',
+            'type': item['type'] ?? '',
+            'model': model is IndividualScholarshipsModel
+                ? model.toJson()
+                : <String, dynamic>{},
+            'userData': Map<String, dynamic>.from(
+              item['userData'] as Map? ?? const <String, dynamic>{},
+            ),
+            'likesCount': item['likesCount'] ?? 0,
+            'bookmarksCount': item['bookmarksCount'] ?? 0,
+            'timeStamp': item['timeStamp'] ?? 0,
+            'isSummary': item['isSummary'] ?? false,
+          };
+        }).toList(growable: false),
       },
     );
   }
@@ -683,9 +651,11 @@ class SignInEntryWarmService {
 
     Future<void> runFloodStep() async {
       final startedAt = DateTime.now();
-      debugPrint('[AuthEntryWarm] status=start label=flood_manifest source=$source');
+      debugPrint(
+          '[AuthEntryWarm] status=start label=flood_manifest source=$source');
       try {
-        final roots = await ExploreRepository.ensure().ensureFloodManifestStoreReady();
+        final roots =
+            await ExploreRepository.ensure().ensureFloodManifestStoreReady();
         if (roots <= 0) {
           throw StateError('flood_manifest_empty');
         }
@@ -724,7 +694,6 @@ class SignInEntryWarmService {
           'short_manifest',
           () => ensureShortManifestRepository().warmStartupWindow(),
         );
-        await _startQuotaFillAfterShortReady();
         final floodFuture = runFloodStep().catchError((error, stackTrace) {
           return;
         });
@@ -795,6 +764,7 @@ class SignInEntryWarmService {
           rethrow;
         }
       }
+
       await Future.wait(<Future<void>>[
         standaloneSliderFuture,
         for (final tabId in tabs) warmTab(tabId),

@@ -114,7 +114,8 @@ void main() {
     expect(snapshot.startupWindowSegments, 2);
   });
 
-  test('playback policy resolves cellular guard conservatively', () {
+  test('playback policy treats cellular playback like wifi except quota fill',
+      () {
     final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: true,
@@ -127,15 +128,15 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.cellularGuard);
-    expect(snapshot.policyTag, 'cellular_guard_low_data');
-    expect(snapshot.allowBackgroundPrefetch, isFalse);
+    expect(snapshot.policyTag, 'cellular_wifi_equivalent');
+    expect(snapshot.reason, 'cellular_connected_wifi_equivalent');
+    expect(snapshot.allowBackgroundPrefetch, isTrue);
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
-    expect(snapshot.startupWindowSegments, 1);
-    expect(snapshot.aheadWindowSegments, 0);
+    expect(snapshot.startupWindowSegments, 2);
+    expect(snapshot.aheadWindowSegments, 2);
   });
 
-  test('playback policy enters cache-only cellular guard when paused by user',
-      () {
+  test('playback policy ignores old pause-on-cellular guard for playback', () {
     final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
         isConnected: true,
@@ -148,9 +149,9 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.cellularGuard);
-    expect(snapshot.reason, 'cellular_paused_by_user');
-    expect(snapshot.allowOnDemandSegmentFetch, isFalse);
-    expect(snapshot.cacheOnlyMode, isTrue);
+    expect(snapshot.reason, 'cellular_connected_wifi_equivalent');
+    expect(snapshot.allowOnDemandSegmentFetch, isTrue);
+    expect(snapshot.cacheOnlyMode, isFalse);
   });
 
   test('playback policy resolves offline guard with cache-only behavior', () {

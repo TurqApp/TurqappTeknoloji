@@ -6,7 +6,8 @@ extension ExploreControllerRecentSearchPart on ExploreController {
   Future<void> _applyUserCacheQuota() async {
     try {
       final quotaGb = normalizeStorageBudgetPlanGb(
-        await _localPreferences.getInt('offline_cache_quota_gb') ?? 3,
+        await _localPreferences.getInt('offline_cache_quota_gb') ??
+            defaultStorageBudgetPlanGb,
       );
       await StorageBudgetManager.maybeFind()?.applyPlanGb(quotaGb);
       await SegmentCacheManager.maybeFind()?.setUserLimitGB(quotaGb);

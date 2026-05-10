@@ -17,7 +17,7 @@ class VideoRemoteConfigService extends GetxService {
   static const int _defaultPrefetchBreadthSegments = 2;
   static const int _defaultPrefetchDepthCount = 3;
   static const int _defaultPrefetchMaxConcurrent = 2;
-  static const int _defaultCacheSoftLimitMb = 2560;
-  static const int _defaultCacheHardLimitMb = 3072;
+  static const int _defaultCacheSoftLimitMb = 5120;
+  static const int _defaultCacheHardLimitMb = 5632;
   static const int _defaultCacheRecentProtectCount = 3;
 }

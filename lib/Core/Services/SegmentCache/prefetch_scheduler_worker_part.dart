@@ -171,6 +171,10 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   int _effectiveMaxConcurrent() {
+    if (_activeDocSources.values.any((source) => source == 'quota') ||
+        (_queue.isNotEmpty && _queue.first.source == 'quota')) {
+      return 1;
+    }
     if (_hasActiveFeedPlaybackWindow) {
       return _maxConcurrent < 2 ? _maxConcurrent : 2;
     }
@@ -574,7 +578,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             watchProgress: watchedProgress,
           );
       final effectiveQuotaReadySegments =
-          quotaFillMode && _useMinimalQuotaFillMode ? 1 : desiredReadySegments;
+          quotaFillMode ? 1 : desiredReadySegments;
       final startupBurstMode = shouldUseStartupBurstPrefetch(
         isFocusedDoc: _focusedDocID == job.docID,
         isCurrentDoc: _isCurrentPriorityDoc(job.docID),
@@ -648,9 +652,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final dispatchLimit = seedNextSegmentLater
           ? 1
           : quotaFillMode
-              ? availableSlots < _prefetchSchedulerQuotaFillBurstSegments
-                  ? availableSlots
-                  : _prefetchSchedulerQuotaFillBurstSegments
+              ? 1
               : startupBurstMode
                   ? availableSlots < desiredReadySegments
                       ? availableSlots

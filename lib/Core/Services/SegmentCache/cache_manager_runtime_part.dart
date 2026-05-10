@@ -18,6 +18,8 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     _cacheDir = '${appDir.path}/hls_cache';
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
+    _normalizeStalePlayingEntries(maxIdle: Duration.zero);
+    await clearConsumedCache(source: 'cold_start');
     _resetWatchStateForSessionStart();
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
