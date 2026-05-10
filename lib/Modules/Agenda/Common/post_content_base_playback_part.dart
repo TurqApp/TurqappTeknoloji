@@ -538,6 +538,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
   }
 
+  void _resetPlaybackSessionForSurfaceExit(
+    HLSVideoAdapter adapter, {
+    required String source,
+  }) {
+    if (_isSurfacePlaybackAllowed) return;
+    if (!_usesFeedPlaybackPolicy) return;
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+    _lastQueuedSavedResumePosition = null;
+    _lastQueuedSavedResumeAt = null;
+    _savedResumeRecoveryGuardUntil = null;
+    debugPrint(
+      '[SurfacePlaybackDecision] action=surface_exit_reset '
+      'doc=${widget.model.docID} source=$source '
+      'surface=$_qaSurfaceName positionMs=${adapter.value.position.inMilliseconds}',
+    );
+    unawaited(adapter.seekTo(Duration.zero));
+  }
+
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
@@ -566,11 +584,37 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _feedRecoverInFlight = false;
       _lastAppliedPlaybackVolume = null;
       unawaited(_playbackExecutionService.stopAdapter(v));
+      _resetPlaybackSessionForSurfaceExit(
+        v,
+        source: 'stop_playback_for_surface_loss',
+      );
       _hasAutoPlayed = false;
       _resetAutoplaySegmentGate();
       _playbackIntentTracked = false;
       _syncRuntimeHints(hasStableFocus: false);
     }
+  }
+
+  bool _enforceBlockedSurfacePlaybackStop(
+    HLSVideoValue value, {
+    required String source,
+  }) {
+    if (_isSurfacePlaybackAllowed) return false;
+    if (!_usesFeedPlaybackPolicy) return false;
+    if (!value.isPlaying && !value.isBuffering) return false;
+    debugPrint(
+      '[SurfacePlaybackDecision] action=surface_block_session_reset '
+      'doc=${widget.model.docID} source=$source '
+      'surface=$_qaSurfaceName '
+      'shouldPlay=${widget.shouldPlay} '
+      'allowed=$_isSurfacePlaybackAllowed '
+      'playing=${value.isPlaying} buffering=${value.isBuffering} '
+      'positionMs=${value.position.inMilliseconds} '
+      'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+    );
+    _playbackRuntimeService.requestStop(playbackHandleKey);
+    _stopPlaybackForSurfaceLoss();
+    return true;
   }
 
   Future<void> _disposePlaybackForSurfaceLoss({

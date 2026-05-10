@@ -293,6 +293,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       showStartupPlaceholder: shouldShowStartupPlaybackPlaceholder(v),
       source: 'video_update',
     );
+    if (_enforceBlockedSurfacePlaybackStop(v, source: 'video_update')) {
+      return;
+    }
     _primeImmediateNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&
