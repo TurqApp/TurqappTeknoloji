@@ -82,7 +82,7 @@ extension ShortControllerLoadingPart on ShortController {
         _log(
           '[ShortResumeQueue] status=load_persisted source=guest '
           'savedAtMs=${guestState.savedAtMs} '
-          'remaining=${guestState.remainingPosts.length} '
+          'legacyPayloadIgnored=${guestState.remainingPosts.length} '
           'consumed=${guestState.consumedDocIds.length}',
         );
       }
@@ -100,7 +100,7 @@ extension ShortControllerLoadingPart on ShortController {
         '[ShortResumeQueue] status=load_persisted '
         'source=${identical(selected, guestState) ? 'guest' : 'user'} '
         'savedAtMs=${selected.savedAtMs} '
-        'remaining=${selected.remainingPosts.length} '
+        'legacyPayloadIgnored=${selected.remainingPosts.length} '
         'consumed=${selected.consumedDocIds.length}',
       );
     }
@@ -112,37 +112,7 @@ extension ShortControllerLoadingPart on ShortController {
     if (persisted == null) {
       return const <PostsModel>[];
     }
-    if (persisted.remainingPosts.isEmpty) {
-      return _restorePersistedCursorQueue(persisted);
-    }
-    final eligible = persisted.remainingPosts
-        .where(_isEligibleShortPost)
-        .where((post) => !_isConsumedShortPostForResume(post))
-        .toList(growable: false);
-    if (eligible.isEmpty) {
-      return _restorePersistedCursorQueue(persisted);
-    }
-    final restored = await _filterVisibleShortPosts(
-      eligible,
-      hydrateAuthors: false,
-    );
-    final restoredDocIds = restored
-        .take(8)
-        .map((post) => post.docID)
-        .where((docId) => docId.trim().isNotEmpty)
-        .join(',');
-    _log(
-      '[ShortResumeQueue] status=restore_payload '
-      'manifest=${persisted.manifestId} '
-      'slot=${persisted.cursorSlotIndex} '
-      'item=${persisted.cursorItemIndex} '
-      'savedAtMs=${persisted.savedAtMs} '
-      'remaining=${persisted.remainingPosts.length} '
-      'eligible=${eligible.length} '
-      'restored=${restored.length} '
-      'docs=$restoredDocIds',
-    );
-    return restored;
+    return _restorePersistedCursorQueue(persisted);
   }
 
   Future<List<PostsModel>> _restorePersistedCursorQueue(
@@ -151,6 +121,7 @@ extension ShortControllerLoadingPart on ShortController {
     if (!persisted.hasCursor) return const <PostsModel>[];
     final manifestPage =
         await _shortManifestRepository.takeNextPageFromPersistedCursor(
+      persisted: persisted,
       pageSize: ReadBudgetRegistry.shortHomeInitialLimitValue,
     );
     if (manifestPage.posts.isEmpty) return const <PostsModel>[];
@@ -213,25 +184,6 @@ extension ShortControllerLoadingPart on ShortController {
         reason: trigger,
       ),
     );
-  }
-
-  Future<List<PostsModel>> _loadOfflineReadyShortPosts({
-    required int limit,
-  }) async {
-    final cacheManager = maybeFindSegmentCacheManager();
-    if (cacheManager == null || !cacheManager.isReady) {
-      return const <PostsModel>[];
-    }
-    final rawPosts = cacheManager.getOfflineReadyPostsForShort(limit: limit);
-    if (rawPosts.isEmpty) {
-      return const <PostsModel>[];
-    }
-    final eligible =
-        rawPosts.where(_isEligibleShortPost).toList(growable: false);
-    if (eligible.isEmpty) {
-      return const <PostsModel>[];
-    }
-    return _filterVisibleShortPosts(eligible);
   }
 
   List<PostsModel> _applyStartupShortPresentationOrder(
@@ -598,34 +550,6 @@ extension ShortControllerLoadingPart on ShortController {
           'first=${resumedQueue.first.docID}',
         );
         unawaited(preloadRange(0, range: 0));
-      } else if (sessionMode == _ShortSessionSourceMode.mobileCacheOnly) {
-        final cachedPosts = await _loadOfflineReadyShortPosts(
-          limit: ReadBudgetRegistry.shortHomeInitialLimitValue,
-        );
-        if (cachedPosts.isNotEmpty) {
-          _replaceShorts(
-            _applyStartupShortPresentationOrder(cachedPosts),
-            remapCache: true,
-          );
-          _log(
-            '[ShortSessionSource] status=cache_bootstrap_ok '
-            'count=${cachedPosts.length}',
-          );
-          unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
-        } else if (_promoteShortSessionToMobileNetworkFallback(
-          reason: 'initial_cache_empty',
-        )) {
-          _log(
-            '[ShortSessionSource] status=cache_bootstrap_empty '
-            'fallback=network',
-          );
-          await _loadNextPage(trigger: 'initial_mobile_network_fallback');
-        } else {
-          _log(
-            '[ShortSessionSource] status=cache_bootstrap_empty '
-            'fallback=blocked',
-          );
-        }
       } else {
         _log('[Shorts] loadInitialShorts - _loadNextPage çağrılıyor');
         await _loadNextPage(trigger: 'initial_empty_bootstrap');
@@ -1264,19 +1188,42 @@ extension ShortControllerLoadingPart on ShortController {
       }
       return;
     }
-    final visibleIndex = lastIndex.value.clamp(0, shorts.length - 1);
-    final remainingPosts = shorts
-        .skip(visibleIndex)
-        .where((post) => !_isConsumedShortPostForResume(post))
-        .toList(growable: false);
     final cursor = _shortManifestRepository.currentCursorSnapshot();
+    final safeIndex = lastIndex.value.clamp(0, shorts.length - 1).toInt();
+    final visibleDocId = lastVisibleDocId.trim().isNotEmpty
+        ? lastVisibleDocId.trim()
+        : shorts[safeIndex].docID.trim();
+    final visiblePosition = _shortManifestRepository.positionForDoc(
+      visibleDocId,
+    );
+    if (visibleDocId.isNotEmpty && visiblePosition == null) {
+      _log(
+        '[ShortResumeQueue] status=skip_persist_missing_manifest_position '
+        'visibleDoc=$visibleDocId lastIndex=${lastIndex.value} '
+        'count=${shorts.length} fetchCursorSlot=${cursor.slotIndex} '
+        'fetchCursorItem=${cursor.itemIndex}',
+      );
+      return;
+    }
+    final persistSlotIndex = visiblePosition?.slotIndex ?? cursor.slotIndex;
+    final persistItemIndex = visiblePosition == null
+        ? cursor.itemIndex
+        : visiblePosition.itemIndex + 1;
+    _log(
+      '[ShortResumeQueue] status=persist_visible_cursor '
+      'visibleDoc=$visibleDocId '
+      'position=${visiblePosition?.debugLabel ?? '-'} '
+      'nextSlotIndex=$persistSlotIndex nextItemIndex=$persistItemIndex '
+      'fetchCursorSlot=${cursor.slotIndex} '
+      'fetchCursorItem=${cursor.itemIndex}',
+    );
     final state = ShortResumeState(
       manifestId: cursor.manifestId,
-      cursorSlotIndex: cursor.slotIndex,
-      cursorItemIndex: cursor.itemIndex,
+      cursorSlotIndex: persistSlotIndex,
+      cursorItemIndex: persistItemIndex,
       hasMore: hasMore.value || cursor.hasMore,
       savedAtMs: DateTime.now().millisecondsSinceEpoch,
-      remainingPosts: remainingPosts,
+      remainingPosts: const <PostsModel>[],
       consumedDocIds: _sequencePassedDocIds.toList(growable: false),
     );
     for (final userId in userIds) {

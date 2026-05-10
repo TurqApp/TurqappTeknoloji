@@ -164,8 +164,18 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       );
 
       Future<void> seedFromShortManifestSlots() async {
+        String? startAfterShortDocId;
+        if (_lastShortDocIDs.isNotEmpty) {
+          final safeShortIndex = _lastShortCurrentIndex.clamp(
+            0,
+            _lastShortDocIDs.length - 1,
+          );
+          startAfterShortDocId = _lastShortDocIDs[safeShortIndex].trim();
+        }
         final slotPosts =
-            await ensureShortManifestRepository().quotaFillSeedPosts();
+            await ensureShortManifestRepository().quotaFillSeedPosts(
+          startAfterDocId: startAfterShortDocId,
+        );
         final localCandidates = _selectShortQuotaFillCandidates(
           slotPosts,
           limit: slotPosts.length,
@@ -175,6 +185,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           '[ShortQuotaFill] status=short_slot_seed '
           'source=short_manifest_slots networkSeed=false '
           'raw=${slotPosts.length} filtered=${localCandidates.length} '
+          'startAfterDoc=${startAfterShortDocId ?? '-'} '
+          'lastShortCurrentIndex=$_lastShortCurrentIndex '
           'firstDoc=${localCandidates.isEmpty ? '-' : localCandidates.first.docID} '
           'lastDoc=${localCandidates.isEmpty ? '-' : localCandidates.last.docID}',
         );

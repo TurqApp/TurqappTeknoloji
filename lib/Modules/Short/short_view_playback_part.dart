@@ -7,12 +7,21 @@ extension ShortViewPlaybackPart on _ShortViewState {
     required int page,
     required String docId,
   }) {
+    final manifestPosition = controller.manifestPositionLabelForDoc(docId);
+    if (manifestPosition != null && manifestPosition.isNotEmpty) {
+      return 'page=$page positionSource=manifest $manifestPosition '
+          'total=${_cachedShorts.length} doc=$docId';
+    }
     const slotSize = 240;
     final safePage = page < 0 ? 0 : page;
     final slotIndex = safePage ~/ slotSize;
+    final slotNo = slotIndex + 1;
     final slotOrdinal = (safePage % slotSize) + 1;
-    return 'page=$page ordinal=${safePage + 1} slotIndex=$slotIndex '
-        'slotOrdinal=$slotOrdinal total=${_cachedShorts.length} doc=$docId';
+    final globalCardNo = slotIndex * slotSize + slotOrdinal;
+    return 'page=$page positionSource=page_fallback '
+        'globalCardNo=$globalCardNo slotNo=$slotNo '
+        'slotIndex=$slotIndex slotOrdinal=$slotOrdinal '
+        'total=${_cachedShorts.length} doc=$docId';
   }
 
   void _markShortSequencePassed(
@@ -23,6 +32,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final normalizedDocId = docId.trim();
     if (normalizedDocId.isEmpty) return;
     controller.markShortSequencePassedDoc(normalizedDocId);
+    controller.commitLaunchSelectionForItems(
+      page,
+      _cachedShorts,
+      selectedDocId: normalizedDocId,
+    );
     controller.schedulePersistVisibleSnapshot(delay: Duration.zero);
     debugPrint(
       '[ShortSequencePassed] source=$source '

@@ -605,11 +605,6 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     } catch (_) {}
     currentPage = initialIndex;
     _shortAdRenderable = AdmobKare.hasRenderableBanner;
-    _markShortSequencePassed(
-      initialDocId,
-      page: initialIndex,
-      source: 'view_init',
-    );
     controller.commitLaunchSelectionForItems(
       currentPage,
       controller.shorts,
@@ -618,6 +613,13 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _cachedShorts = List<PostsModel>.from(controller.shorts);
     _rebuildShortRenderPlan();
     _alignCurrentPageToDocAnchor(reason: 'view_init');
+    final readyDocId = currentPage >= 0 && currentPage < _cachedShorts.length
+        ? _cachedShorts[currentPage].docID.trim()
+        : initialDocId;
+    debugPrint(
+      '[ShortViewInitPosition] source=view_init_ready '
+      '${_shortPositionDebug(page: currentPage, docId: readyDocId)}',
+    );
     controller.logShortOpenTrace(
       stage: 'view_init',
       metadata: <String, dynamic>{

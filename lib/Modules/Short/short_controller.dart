@@ -88,6 +88,12 @@ class ShortController extends _ShortControllerBase {
 
   String playbackHandleKeyForDoc(String docId) => 'short:${docId.trim()}';
 
+  String? manifestPositionLabelForDoc(String docId) =>
+      _state.shortManifestRepository.positionLabelForDoc(docId);
+
+  ShortManifestItemPosition? manifestPositionForDoc(String docId) =>
+      _state.shortManifestRepository.positionForDoc(docId);
+
   void markShortSequencePassedDoc(String docId) {
     final normalized = docId.trim();
     if (normalized.isEmpty) return;
