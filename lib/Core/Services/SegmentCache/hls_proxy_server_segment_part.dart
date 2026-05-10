@@ -69,13 +69,19 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
 
     unawaited(() async {
       try {
-        final future = _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$nextPath');
+        final future =
+            _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$nextPath');
         _segmentFetchInFlight[nextPath] = future;
         final bytes = await future;
         if (!_canFetchSegmentOnDemandForDoc(docId)) {
           return;
         }
-        await cacheManager.writeSegment(docId, nextSegmentKey, bytes);
+        await cacheManager.writeSegment(
+          docId,
+          nextSegmentKey,
+          bytes,
+          cacheOrigin: 'playback_warm',
+        );
         _logPlaybackSegmentServe(
           docId: docId,
           segmentKey: nextSegmentKey,
@@ -124,12 +130,14 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             }
             metrics?.recordHit(bytes.length);
             cacheManager.touchEntry(docID);
+            final entry = cacheManager.getEntry(docID);
             probe.recordSegmentTransfer(
               docId: docID,
               segmentKey: segmentKey,
               bytes: bytes.length,
               source: HlsTrafficSource.playback,
               cacheHit: true,
+              cacheOriginOverride: entry?.segments[segmentKey]?.cacheOrigin,
             );
             _logPlaybackSegmentServe(
               docId: docID,
@@ -237,7 +245,14 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             bytes: bytes.length,
             path: path,
           );
-          unawaited(cacheManager.writeSegment(docID, segmentKey, bytes));
+          unawaited(
+            cacheManager.writeSegment(
+              docID,
+              segmentKey,
+              bytes,
+              cacheOrigin: 'playback',
+            ),
+          );
         }
       }
 

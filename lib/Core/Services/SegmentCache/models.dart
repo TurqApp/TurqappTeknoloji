@@ -18,12 +18,14 @@ class CachedSegment {
   final String diskPath; // absolute path
   final int sizeBytes;
   final DateTime cachedAt;
+  final String? cacheOrigin;
 
   CachedSegment({
     required this.segmentUri,
     required this.diskPath,
     required this.sizeBytes,
     required this.cachedAt,
+    this.cacheOrigin = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -31,6 +33,7 @@ class CachedSegment {
         'diskPath': diskPath,
         'sizeBytes': sizeBytes,
         'cachedAt': cachedAt.millisecondsSinceEpoch,
+        'cacheOrigin': cacheOrigin ?? '',
       };
 
   factory CachedSegment.fromJson(Map<String, dynamic> json) => CachedSegment(
@@ -43,6 +46,7 @@ class CachedSegment {
             fallback: DateTime.now().millisecondsSinceEpoch,
           ),
         ),
+        cacheOrigin: (json['cacheOrigin'] ?? '').toString(),
       );
 
   bool get isValid =>

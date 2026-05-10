@@ -4,14 +4,23 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
   /// Segment'i disk'e yaz, index'i güncelle.
   /// Per-key lock ile aynı segment için eş zamanlı yazımı engeller.
   Future<File> writeSegment(
-      String docID, String segmentKey, Uint8List bytes) async {
+    String docID,
+    String segmentKey,
+    Uint8List bytes, {
+    String cacheOrigin = '',
+  }) async {
     final lockKey = '$docID/$segmentKey';
     final clonedBytes = Uint8List.fromList(bytes);
 
     final existing = _writeInFlight[lockKey];
     if (existing != null) return existing;
 
-    final future = _writeSegmentInternal(docID, segmentKey, clonedBytes);
+    final future = _writeSegmentInternal(
+      docID,
+      segmentKey,
+      clonedBytes,
+      cacheOrigin: cacheOrigin,
+    );
     _writeInFlight[lockKey] = future;
     try {
       return await future;
@@ -21,7 +30,11 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
   }
 
   Future<File> _writeSegmentInternal(
-      String docID, String segmentKey, Uint8List bytes) async {
+    String docID,
+    String segmentKey,
+    Uint8List bytes, {
+    required String cacheOrigin,
+  }) async {
     _index.entries.putIfAbsent(
       docID,
       () => VideoCacheEntry(
@@ -61,6 +74,7 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
       diskPath: file.path,
       sizeBytes: bytes.length,
       cachedAt: DateTime.now(),
+      cacheOrigin: cacheOrigin.trim(),
     );
     entry.segments[segmentKey] = segment;
     entry.totalSizeBytes += bytes.length;

@@ -19,14 +19,22 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
     await Directory(_cacheDir).create(recursive: true);
     await _loadIndex();
     _normalizeStalePlayingEntries(maxIdle: Duration.zero);
-    await clearConsumedCache(source: 'cold_start');
     _resetWatchStateForSessionStart();
+    unawaited(_runColdStartConsumedCleanup());
     unawaited(_recoverAndPurgeExpiredEntries());
     metrics.startPeriodicLog();
     _reconcileTimer = Timer.periodic(const Duration(minutes: 15), (_) {
       unawaited(_runPeriodicMaintenance());
     });
     _isReady = true;
+  }
+
+  Future<void> _runColdStartConsumedCleanup() async {
+    try {
+      await clearConsumedCache(source: 'cold_start');
+    } catch (e) {
+      debugPrint('[CacheManager] Cold start consumed cleanup failed: $e');
+    }
   }
 
   void _resetWatchStateForSessionStart() {

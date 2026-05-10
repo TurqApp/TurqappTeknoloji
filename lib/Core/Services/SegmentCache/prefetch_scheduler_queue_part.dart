@@ -101,9 +101,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _abortStalePrefetchActivity(reason: 'quota_plan_background_gate');
       return;
     }
-    if (_hasAnyActivePlaybackFocus) {
+    if (!_shouldAllowQuotaFillWithCurrentFocus) {
       debugPrint(
-        '[ShortQuotaFill] status=skip reason=active_playback_focus '
+        '[ShortQuotaFill] status=skip reason=active_non_short_playback_focus '
         'activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow',
@@ -120,7 +120,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
     try {
       bool stopIfBackgroundGateClosed(String reason) {
-        if (_shouldAllowBackgroundQuotaFill) return false;
+        if (_shouldAllowQuotaFillWithCurrentFocus) return false;
         _abortStalePrefetchActivity(reason: reason);
         debugPrint('[ShortQuotaFill] status=skip reason=$reason');
         return true;
@@ -129,7 +129,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       debugPrint(
         '[ShortQuotaFill] status=plan_start enabled=$_automaticQuotaFillEnabled '
         'wifi=$_isOnWiFi cellular=$_isOnCellular backlog=${_queue.length + _pendingFollowUpJobs.length + _activeDocRefCounts.length} '
-        'targetBytes=$_quotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes}',
+        'targetBytes=$_quotaFillTargetBytes usageBytes=${cacheManager.totalTrackedUsageBytes} '
+        'activeShort=$_hasActiveShortPlaybackWindow activeFeed=$_hasActiveFeedPlaybackWindow '
+        'activeProfile=$_hasActiveProfilePlaybackWindow',
       );
 
       Future<void> seedFromShortManifestSlots() async {
@@ -377,15 +379,38 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return;
     }
 
-    _queue.clear();
-    _pendingFollowUpJobs.clear();
-    _jobEnqueuedAt.clear();
+    _queue.removeWhere((job) {
+      final shouldRemove = job.source != 'quota';
+      if (shouldRemove) _jobEnqueuedAt.remove(job.docID);
+      return shouldRemove;
+    });
+    final nonQuotaPendingDocIds = _pendingFollowUpJobs.entries
+        .where((entry) => entry.value.source != 'quota')
+        .map((entry) => entry.key)
+        .toList(growable: false);
+    for (final docID in nonQuotaPendingDocIds) {
+      _pendingFollowUpJobs.remove(docID);
+      _jobEnqueuedAt.remove(docID);
+    }
 
     final queued = <String>{};
     void addShortJob(int index, int priority) {
       if (index < 0 || index >= docIDs.length) return;
       final docID = docIDs[index];
       if (!queued.add(docID)) return;
+      var removedQuotaJob = false;
+      _queue.removeWhere((job) {
+        final shouldRemove = job.source == 'quota' && job.docID == docID;
+        if (shouldRemove) removedQuotaJob = true;
+        return shouldRemove;
+      });
+      if (_pendingFollowUpJobs[docID]?.source == 'quota') {
+        _pendingFollowUpJobs.remove(docID);
+        removedQuotaJob = true;
+      }
+      if (removedQuotaJob) {
+        _jobEnqueuedAt.remove(docID);
+      }
       final entry = cacheManager.getEntry(docID);
       if (entry != null && entry.isFullyCached) return;
       final readySegments = _resolvedReadySegmentTarget(
@@ -772,21 +797,23 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
   }) {
     if (segmentUris.isEmpty) return const <String>[];
 
-    final cachedIndices = <int>{};
-    for (var index = 0; index < segmentUris.length; index++) {
-      final uri = segmentUris[index];
-      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
-      if (cacheManager.getSegmentFile(docID, key) != null) {
-        cachedIndices.add(index);
-      }
+    final firstSegmentUri = segmentUris.first;
+    final firstSegmentKey =
+        '$variantDir$firstSegmentUri'.replaceFirst('Posts/$docID/hls/', '');
+    if (cacheManager.getSegmentFile(docID, firstSegmentKey) != null) {
+      debugPrint(
+        '[ShortQuotaFill] status=skip_doc reason=first_segment_ready '
+        'doc=$docID segment=$firstSegmentKey segmentOrdinal=1',
+      );
+      return const <String>[];
     }
 
-    final orderedIndices = buildQuotaFillSegmentOrder(
-      totalSegments: segmentUris.length,
-      desiredReadySegments: desiredReadySegments,
-      cachedSegmentIndices: cachedIndices,
+    debugPrint(
+      '[ShortQuotaFill] status=select_first_segment_only '
+      'doc=$docID segment=$firstSegmentKey segmentOrdinal=1 '
+      'requestedReadySegments=$desiredReadySegments',
     );
-    return orderedIndices.map((index) => segmentUris[index]);
+    return <String>[firstSegmentUri];
   }
 
   int _estimateWatchedSegment({

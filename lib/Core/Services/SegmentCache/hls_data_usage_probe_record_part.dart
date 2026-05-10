@@ -229,6 +229,7 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
     required bool cacheHit,
     Map<String, dynamic>? ownerInfoOverride,
     Map<String, dynamic>? tierInfoOverride,
+    String? cacheOriginOverride,
   }) {
     final transferKey = '$docId|$segmentKey|${source.name}';
     final transfer = _inFlight.remove(transferKey);
@@ -245,7 +246,9 @@ extension HlsDataUsageProbeRecordPart on HlsDataUsageProbe {
       _rememberSegmentOrigin(segmentOriginKey, owner);
     }
     final cacheOrigin = cacheHit
-        ? (_segmentOrigins[segmentOriginKey] ?? 'disk_cache_unknown')
+        ? ((cacheOriginOverride ?? '').trim().isNotEmpty
+            ? cacheOriginOverride!.trim()
+            : (_segmentOrigins[segmentOriginKey] ?? 'disk_cache_unknown'))
         : (source == HlsTrafficSource.playback ? 'network' : owner);
 
     final variantKey = _variantKeyFromSegmentKey(segmentKey);

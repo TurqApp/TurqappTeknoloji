@@ -51,7 +51,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       return false;
     }
     if (source == 'quota') {
-      return !_shouldAllowBackgroundQuotaFill;
+      return !_shouldAllowQuotaFillWithCurrentFocus;
     }
     final tierInfo = classifyTransferDoc(docID);
     return tierInfo == null || tierInfo['allowedSegmentWarm'] != true;
@@ -132,6 +132,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     required String reason,
   }) {
     if (!_hasAnyActivePlaybackFocus) return;
+    if (_hasActiveShortPlaybackWindow &&
+        !_hasActiveFeedPlaybackWindow &&
+        !_hasActiveProfilePlaybackWindow) {
+      return;
+    }
     final staleQueuedDocIds = _queue
         .where((job) =>
             job.source == 'quota' && !_shouldAllowQuotaFillForDoc(job.docID))
@@ -317,6 +322,23 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
   }
 
   Future<void> _processQueue() async {
+    if (_queuePumpActive) {
+      _queuePumpRequested = true;
+      return;
+    }
+    _queuePumpActive = true;
+    try {
+      await _processQueueUnlocked();
+    } finally {
+      _queuePumpActive = false;
+      if (_queuePumpRequested) {
+        _queuePumpRequested = false;
+        scheduleMicrotask(_processQueue);
+      }
+    }
+  }
+
+  Future<void> _processQueueUnlocked() async {
     if (!_isQuotaFillNetworkEligible) {
       _queue.removeWhere((job) => job.source == 'quota');
       final staleQuotaDocIds = _pendingFollowUpJobs.entries
@@ -356,6 +378,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       currentBacklog = _queue.length +
           _pendingFollowUpJobs.length +
           _activeDocRefCounts.length;
+    } else if (!_shouldAllowQuotaFillWithCurrentFocus) {
+      _abortStalePrefetchActivity(reason: 'quota_active_surface_gate');
+      currentBacklog = _queue.length +
+          _pendingFollowUpJobs.length +
+          _activeDocRefCounts.length;
     }
     _pruneQuotaFillOutsideActiveWindow(reason: 'active_playback_window');
     currentBacklog = _queue.length +
@@ -363,7 +390,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         _activeDocRefCounts.length;
     final workerCheckLog =
         '[ShortQuotaFill] status=worker_check enabled=$_automaticQuotaFillEnabled '
-        'allow=$_shouldAllowBackgroundQuotaFill backlog=$currentBacklog '
+        'allow=$_shouldAllowQuotaFillWithCurrentFocus backlog=$currentBacklog '
         'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow';
@@ -371,8 +398,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       debugPrint(workerCheckLog);
     }
     if (_automaticQuotaFillEnabled &&
-        _shouldAllowBackgroundQuotaFill &&
-        !_hasAnyActivePlaybackFocus &&
+        _shouldAllowQuotaFillWithCurrentFocus &&
         (_queue.isEmpty ||
             (_queue.length + _pendingFollowUpJobs.length) <=
                 _prefetchSchedulerQuotaFillLowWatermark)) {
@@ -382,8 +408,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           ? 'disabled'
           : (!_shouldAllowBackgroundQuotaFill
               ? 'background_gate'
-              : (_hasAnyActivePlaybackFocus
-                  ? 'active_playback_focus'
+              : (!_shouldAllowQuotaFillWithCurrentFocus
+                  ? 'active_non_short_playback_focus'
                   : 'backlog_high'));
       final skipLog = '[ShortQuotaFill] status=skip reason=$reason '
           'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
@@ -550,11 +576,11 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         _clearFollowUpJob(job.docID);
         return;
       }
-      if (job.source == 'quota' && !_shouldAllowBackgroundQuotaFill) {
+      if (job.source == 'quota' && !_shouldAllowQuotaFillWithCurrentFocus) {
         _clearFollowUpJob(job.docID);
         _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
         debugPrint(
-          '[ShortQuotaFill] status=skip_job reason=active_playback doc=${job.docID}',
+          '[ShortQuotaFill] status=skip_job reason=active_non_short_playback doc=${job.docID}',
         );
         return;
       }
@@ -570,7 +596,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;
       final quotaFillMode = job.source == 'quota' &&
-          _shouldAllowBackgroundQuotaFill &&
+          _shouldAllowQuotaFillWithCurrentFocus &&
           shouldUsePrefetchQuotaFillMode(
             isOnWiFi: _isOnWiFi,
             allowCellularQuotaFill: _allowMobileQuotaFill,
@@ -680,6 +706,19 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
+        if (quotaFillMode) {
+          final seedPosition = ensureShortManifestRepository()
+                  .quotaSeedPositionLabelForDoc(job.docID) ??
+              '-';
+          debugPrint(
+            '[ShortQuotaFill] status=dispatch_segment origin=quota '
+            'doc=${job.docID} segment=$segmentKey '
+            'segmentOrdinal=${_segmentOrdinalFromKey(segmentKey) ?? '?'} '
+            'seedPosition=$seedPosition activeShort=$_hasActiveShortPlaybackWindow '
+            'activeFeed=$_hasActiveFeedPlaybackWindow activeProfile=$_hasActiveProfilePlaybackWindow '
+            'queue=${_queue.length} pending=${_pendingFollowUpJobs.length}',
+          );
+        }
         final requestKey = _segmentRequestKey(job.docID, segmentKey);
         final requestID = _nextSegmentRequestID(job.docID, segmentKey);
 
@@ -800,9 +839,27 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       );
       final cacheManager = _getCacheManager();
       if (cacheManager != null) {
+        final cacheOrigin =
+            (ownerInfoAtDispatch?['owner'] ?? 'unknown').toString();
+        if (cacheOrigin == 'quota') {
+          final seedPosition = ensureShortManifestRepository()
+                  .quotaSeedPositionLabelForDoc(result.docID) ??
+              '-';
+          debugPrint(
+            '[ShortQuotaFill] status=write_segment origin=quota '
+            'doc=${result.docID} segment=${result.segmentKey} '
+            'segmentOrdinal=${_segmentOrdinalFromKey(result.segmentKey) ?? '?'} '
+            'seedPosition=$seedPosition bytes=${bytes.length}',
+          );
+        }
         unawaited(
           cacheManager
-              .writeSegment(result.docID, result.segmentKey, bytes)
+              .writeSegment(
+            result.docID,
+            result.segmentKey,
+            bytes,
+            cacheOrigin: cacheOrigin,
+          )
               .then((_) {
             _updateFeedReadyRatio();
             _publishPrefetchHealthIfNeeded();
@@ -835,6 +892,15 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     _queueLatencySamples += 1;
     _avgQueueDispatchLatencyMs +=
         (latencyMs - _avgQueueDispatchLatencyMs) / _queueLatencySamples;
+  }
+
+  int? _segmentOrdinalFromKey(String segmentKey) {
+    final fileName = segmentKey.split('/').last;
+    final match = RegExp(r'(\d+)(?=\D*$)').firstMatch(fileName);
+    if (match == null) return null;
+    final parsed = int.tryParse(match.group(1)!);
+    if (parsed == null) return null;
+    return parsed + 1;
   }
 
   int? _resolveLiveFeedReadySegmentsForDoc(

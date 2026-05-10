@@ -45,6 +45,8 @@ class _PrefetchSchedulerState {
   int quotaFillRemoteExhaustedUsageBytes = 0;
   int quotaFillRemoteExhaustedTargetBytes = 0;
   bool automaticQuotaFillEnabled = false;
+  bool queuePumpActive = false;
+  bool queuePumpRequested = false;
 }
 
 extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
@@ -138,4 +140,8 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   set _quotaFillRemoteExhaustedTargetBytes(int value) =>
       _state.quotaFillRemoteExhaustedTargetBytes = value;
   bool get _automaticQuotaFillEnabled => _state.automaticQuotaFillEnabled;
+  bool get _queuePumpActive => _state.queuePumpActive;
+  set _queuePumpActive(bool value) => _state.queuePumpActive = value;
+  bool get _queuePumpRequested => _state.queuePumpRequested;
+  set _queuePumpRequested(bool value) => _state.queuePumpRequested = value;
 }

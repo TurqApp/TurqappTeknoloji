@@ -79,8 +79,13 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
   }
 
   bool _shouldAllowQuotaFillForDoc(String docID) {
-    if (!_shouldAllowBackgroundQuotaFill) return false;
+    if (!_shouldAllowQuotaFillWithCurrentFocus) return false;
     if (!_hasAnyActivePlaybackFocus) return true;
+    if (_hasActiveShortPlaybackWindow &&
+        !_hasActiveFeedPlaybackWindow &&
+        !_hasActiveProfilePlaybackWindow) {
+      return true;
+    }
 
     final shortTier = classifyShortTransferDoc(docID);
     final feedTier = classifyFeedTransferDoc(docID);
@@ -97,6 +102,11 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
       _automaticQuotaFillEnabled &&
       _isOnWiFi &&
       CacheNetworkPolicy.canPrefetch;
+
+  bool get _shouldAllowQuotaFillWithCurrentFocus =>
+      _shouldAllowBackgroundQuotaFill &&
+      !_hasActiveFeedPlaybackWindow &&
+      !_hasActiveProfilePlaybackWindow;
 
   bool get _useMinimalQuotaFillMode => _hasAnyActivePlaybackFocus;
 

@@ -82,8 +82,8 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
         final bytes = existing != null
             ? await existing
             : await () async {
-                final future =
-                    _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$requestPath');
+                final future = _fetchSegmentFromCDN(
+                    '$_hlsProxyServerCdnOrigin$requestPath');
                 _segmentFetchInFlight[requestPath] = future;
                 try {
                   return await future;
@@ -93,7 +93,12 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
               }();
 
         if (!_canFetchSegmentOnDemandForDoc(docID)) return;
-        await cacheManager.writeSegment(docID, segmentKey, bytes);
+        await cacheManager.writeSegment(
+          docID,
+          segmentKey,
+          bytes,
+          cacheOrigin: 'playlist_warm',
+        );
         _logPlaybackSegmentServe(
           docId: docID,
           segmentKey: segmentKey,
