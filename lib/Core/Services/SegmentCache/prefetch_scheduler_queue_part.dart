@@ -22,11 +22,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _resetWifiQuotaFillPlanState();
       return;
     }
-    final usageDropThreshold = ((targetBytes * 0.15).round())
-        .clamp(32 * 1024 * 1024, 256 * 1024 * 1024);
     final currentUsageBytes = cacheManager.totalTrackedUsageBytes;
-    if (currentUsageBytes + usageDropThreshold <
-        _quotaFillRemoteExhaustedUsageBytes) {
+    if (currentUsageBytes < _quotaFillRemoteExhaustedUsageBytes) {
       _resetWifiQuotaFillPlanState();
     }
   }
@@ -91,6 +88,36 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (resolved == null) return;
     cacheManager.cachePostCards(resolved.posts);
     _appendQuotaFillJobs(resolved, cacheManager);
+  }
+
+  Future<void> seedShortVisibleQuotaFirstSegmentsForPosts(
+    List<PostsModel> posts, {
+    required int currentIndex,
+    required String reason,
+  }) async {
+    if (posts.isEmpty) return;
+    final cacheManager = _getCacheManager();
+    if (cacheManager == null) return;
+    if (!_isQuotaFillNetworkEligible) return;
+    if (!_shouldAllowQuotaFillWithCurrentFocus) return;
+    final beforeBacklog = _queue.length +
+        _pendingFollowUpJobs.length +
+        _activeDocRefCounts.length;
+    await _appendQuotaFillQueueForPosts(
+      posts,
+      currentIndex,
+      maxDocs: posts.length,
+    );
+    final afterBacklog = _queue.length +
+        _pendingFollowUpJobs.length +
+        _activeDocRefCounts.length;
+    debugPrint(
+      '[ShortQuotaFill] status=visible_queue_seed reason=$reason '
+      'count=${posts.length} currentIndex=$currentIndex '
+      'before=$beforeBacklog after=$afterBacklog '
+      'activeFeed=$_hasActiveFeedPlaybackWindow activeShort=$_hasActiveShortPlaybackWindow',
+    );
+    _processQueue();
   }
 
   Future<void> _ensureWifiQuotaFillPlan() async {
@@ -398,6 +425,22 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (index < 0 || index >= docIDs.length) return;
       final docID = docIDs[index];
       if (!queued.add(docID)) return;
+      final hasQuotaJob = _queue.any(
+            (job) => job.source == 'quota' && job.docID == docID,
+          ) ||
+          _pendingFollowUpJobs[docID]?.source == 'quota';
+      final entry = cacheManager.getEntry(docID);
+      final readySegments = _resolvedReadySegmentTarget(
+        docID: docID,
+        cacheManager: cacheManager,
+      );
+      if (hasQuotaJob && readySegments <= 1) {
+        debugPrint(
+          '[ShortQuotaFill] status=keep_quota_first_segment '
+          'doc=$docID readySegments=$readySegments priority=$priority',
+        );
+        return;
+      }
       var removedQuotaJob = false;
       _queue.removeWhere((job) {
         final shouldRemove = job.source == 'quota' && job.docID == docID;
@@ -411,12 +454,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       if (removedQuotaJob) {
         _jobEnqueuedAt.remove(docID);
       }
-      final entry = cacheManager.getEntry(docID);
       if (entry != null && entry.isFullyCached) return;
-      final readySegments = _resolvedReadySegmentTarget(
-        docID: docID,
-        cacheManager: cacheManager,
-      );
       if (!_shouldEnqueuePrefetchJob(readySegments)) return;
       _queue.add(_PrefetchJob(
         docID,

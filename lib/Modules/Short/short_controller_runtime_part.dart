@@ -4,7 +4,6 @@ const bool _verboseShortLogs = false;
 const int _initialPreloadCount = 5;
 const int _startupReadyMagazineCount = 5;
 const double _shortLandscapeAspectThreshold = 1.2;
-const double _mobileShortLowQuotaRatio = 0.15;
 const Duration _shortLaunchSessionMaxAge = Duration(hours: 1);
 final double _activeBufferSeconds =
     defaultTargetPlatform == TargetPlatform.android ? 10.0 : 6.4;
@@ -268,9 +267,10 @@ extension _ShortControllerRuntimeX on ShortController {
   }
 
   int _mobileShortLowQuotaThresholdCount() {
-    final threshold =
-        (ShortGrowthPolicy.stageOneLimit * _mobileShortLowQuotaRatio).ceil();
-    return math.max(_initialPreloadCount, threshold);
+    return math.max(
+      _initialPreloadCount,
+      ReadBudgetRegistry.shortMobileFallbackMinReadyCountValue,
+    );
   }
 
   bool _shouldPromoteShortMobileFallback({

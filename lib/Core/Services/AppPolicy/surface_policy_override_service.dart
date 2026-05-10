@@ -44,6 +44,8 @@ class SurfacePolicyOverrideKeys {
   static const String segmentCacheHardLimitMb = 'segment_cache_hard_limit_mb';
   static const String segmentCacheRecentProtectCount =
       'segment_cache_recent_protect_count';
+  static const String shortMobileFallbackMinReadyCount =
+      'short_mobile_fallback_min_ready_count';
 }
 
 SurfacePolicyOverrideService ensureSurfacePolicyOverrideService({

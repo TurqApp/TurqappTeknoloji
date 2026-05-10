@@ -151,6 +151,8 @@ class ReadBudgetRegistry {
       SurfacePolicyRegistry.storyReadyForNavCount;
   static const int shortReadyForNavCount =
       SurfacePolicyRegistry.shortReadyForNavCount;
+  static const int shortMobileFallbackMinReadyCount =
+      SurfacePolicyRegistry.shortMobileFallbackMinReadyCount;
 
   static const int marketStartupShardLimit =
       SurfacePolicyRegistry.marketStartupShardLimit;
@@ -223,6 +225,11 @@ class ReadBudgetRegistry {
   static int get recommendedUsersInitialLimitValue => _readOverride(
         SurfacePolicyOverrideKeys.recommendedUsersInitialLimit,
         recommendedUsersInitialLimit,
+      );
+
+  static int get shortMobileFallbackMinReadyCountValue => _readOverride(
+        SurfacePolicyOverrideKeys.shortMobileFallbackMinReadyCount,
+        shortMobileFallbackMinReadyCount,
       );
 
   static int get marketHomeInitialLimitValue => _readOverride(

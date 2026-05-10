@@ -1,7 +1,6 @@
 part of 'prefetch_scheduler.dart';
 
 extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
-  static const double _mobileQuotaFillTargetRatio = 0.02;
   int get activeDownloads => _activeDownloads;
   int get queueSize => _queue.length;
   bool get isPaused => _paused;
@@ -240,9 +239,6 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
     final baseTargetBytes = _wifiQuotaFillTargetBytes;
     if (baseTargetBytes <= 0) return 0;
     if (_isOnWiFi) return baseTargetBytes;
-    if (_allowMobileQuotaFill) {
-      return (baseTargetBytes * _mobileQuotaFillTargetRatio).round();
-    }
     return 0;
   }
 

@@ -69,12 +69,24 @@ extension SegmentCacheManagerWritePart on SegmentCacheManager {
       _index.totalSizeBytes -= oldSeg.sizeBytes;
     }
 
+    var nextCacheOrigin = cacheOrigin.trim();
+    final previousCacheOrigin = oldSeg?.cacheOrigin?.trim() ?? '';
+    if (previousCacheOrigin == 'quota' && nextCacheOrigin != 'quota') {
+      nextCacheOrigin = 'quota';
+      if (kDebugMode && segmentKey.endsWith('seg_000.ts')) {
+        debugPrint(
+          '[ShortQuotaConsume] status=preserve_quota_origin '
+          'doc=$docID segment=$segmentKey incomingOrigin=${cacheOrigin.trim()}',
+        );
+      }
+    }
+
     final segment = CachedSegment(
       segmentUri: segmentKey,
       diskPath: file.path,
       sizeBytes: bytes.length,
       cachedAt: DateTime.now(),
-      cacheOrigin: cacheOrigin.trim(),
+      cacheOrigin: nextCacheOrigin,
     );
     entry.segments[segmentKey] = segment;
     entry.totalSizeBytes += bytes.length;
