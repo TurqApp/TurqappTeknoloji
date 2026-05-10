@@ -1,7 +1,7 @@
 part of 'hls_proxy_server.dart';
 
 extension HlsProxyServerPlaylistPart on HLSProxyServer {
-  static const int _shortStartupWarmFutureSegmentCount = 2;
+  static const int _shortStartupWarmFutureSegmentCount = 0;
 
   bool _shouldWarmShortStartupSegments(String docID) {
     bool matchesShortHandle(String? handleKey) {
@@ -78,6 +78,18 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
           continue;
         }
 
+        final segmentOrdinal =
+            ShortSwipeSegmentGuard.segmentOrdinalFromKey(segmentKey);
+        if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+          docId: docID,
+          segmentKey: segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: 'playlist_warm',
+          queueLength: 0,
+          activeDownloads: 0,
+        )) {
+          return;
+        }
         final existing = _segmentFetchInFlight[requestPath];
         final bytes = existing != null
             ? await existing
@@ -93,6 +105,17 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
               }();
 
         if (!_canFetchSegmentOnDemandForDoc(docID)) return;
+        if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
+          docId: docID,
+          segmentKey: segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: 'playlist_warm',
+          queueLength: 0,
+          activeDownloads: 0,
+          bytes: bytes.length,
+        )) {
+          return;
+        }
         await cacheManager.writeSegment(
           docID,
           segmentKey,

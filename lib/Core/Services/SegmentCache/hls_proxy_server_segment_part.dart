@@ -66,6 +66,18 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     final nextPath =
         '${currentPath.substring(0, currentPath.lastIndexOf('/') + 1)}$nextUri';
     if (_segmentFetchInFlight.containsKey(nextPath)) return;
+    final nextSegmentOrdinal =
+        ShortSwipeSegmentGuard.segmentOrdinalFromKey(nextSegmentKey);
+    if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+      docId: docId,
+      segmentKey: nextSegmentKey,
+      segmentOrdinal: nextSegmentOrdinal,
+      cacheOrigin: 'playback_warm',
+      queueLength: 0,
+      activeDownloads: 0,
+    )) {
+      return;
+    }
 
     unawaited(() async {
       try {
@@ -74,6 +86,17 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         _segmentFetchInFlight[nextPath] = future;
         final bytes = await future;
         if (!_canFetchSegmentOnDemandForDoc(docId)) {
+          return;
+        }
+        if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
+          docId: docId,
+          segmentKey: nextSegmentKey,
+          segmentOrdinal: nextSegmentOrdinal,
+          cacheOrigin: 'playback_warm',
+          queueLength: 0,
+          activeDownloads: 0,
+          bytes: bytes.length,
+        )) {
           return;
         }
         await cacheManager.writeSegment(
@@ -191,6 +214,19 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         if (docID != null) {
           final segmentKey = _extractSegmentKey(path, docID);
           if (segmentKey != null) {
+            final segmentOrdinal =
+                ShortSwipeSegmentGuard.segmentOrdinalFromKey(segmentKey);
+            if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+              docId: docID,
+              segmentKey: segmentKey,
+              segmentOrdinal: segmentOrdinal,
+              cacheOrigin: 'playback',
+              queueLength: 0,
+              activeDownloads: 0,
+            )) {
+              await _respondStalePlaybackSegment(request);
+              return;
+            }
             probe.recordSegmentStart(
               docId: docID,
               segmentKey: segmentKey,

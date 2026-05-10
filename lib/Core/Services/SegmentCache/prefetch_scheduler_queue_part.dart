@@ -317,7 +317,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final readySegments = _resolvedReadySegmentTarget(
         docID: focusedDocID,
         cacheManager: cacheManager,
-      );
+        fallback: 1,
+      ).clamp(1, 1);
       if (_shouldEnqueuePrefetchJob(readySegments)) {
         _queue.add(
           _PrefetchJob(
@@ -436,7 +437,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final readySegments = _resolvedReadySegmentTarget(
         docID: docID,
         cacheManager: cacheManager,
-      );
+        fallback: 1,
+      ).clamp(1, 1);
       if (hasQuotaJob && readySegments <= 1) {
         debugPrint(
           '[ShortQuotaFill] status=keep_quota_first_segment '
@@ -787,6 +789,30 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     return ordered;
   }
 
+  Iterable<String> _pickLeadingReadySegments({
+    required String docID,
+    required List<String> segmentUris,
+    required String variantDir,
+    required SegmentCacheManager cacheManager,
+    required int desiredReadySegments,
+  }) {
+    if (segmentUris.isEmpty || desiredReadySegments <= 0) {
+      return const <String>[];
+    }
+
+    final targetReadySegments =
+        desiredReadySegments.clamp(1, segmentUris.length);
+    final ordered = <String>[];
+    for (int seg = 1; seg <= targetReadySegments; seg++) {
+      final uri = segmentUris[seg - 1];
+      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
+      if (cacheManager.getSegmentFile(docID, key) == null) {
+        ordered.add(uri);
+      }
+    }
+    return ordered;
+  }
+
   Iterable<String> _pickWatchedPrioritySegments({
     required String docID,
     required List<String> segmentUris,
@@ -817,15 +843,6 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       }
     }
 
-    if (ordered.isNotEmpty) return ordered;
-
-    for (int idx = targetReadySegments; idx < total; idx++) {
-      final uri = segmentUris[idx];
-      final key = '$variantDir$uri'.replaceFirst('Posts/$docID/hls/', '');
-      if (cacheManager.getSegmentFile(docID, key) == null) {
-        ordered.add(uri);
-      }
-    }
     return ordered;
   }
 

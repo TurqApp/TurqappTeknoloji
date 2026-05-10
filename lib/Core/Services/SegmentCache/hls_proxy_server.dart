@@ -13,6 +13,7 @@ import 'hls_data_usage_probe.dart';
 import 'hls_segment_policy.dart';
 import 'm3u8_parser.dart';
 import 'network_policy.dart';
+import 'short_swipe_segment_guard.dart';
 
 part 'hls_proxy_server_fields_part.dart';
 part 'hls_proxy_server_facade_part.dart';

@@ -4,6 +4,8 @@ const Duration _shortQuotaFillWorkerLogThrottle = Duration(milliseconds: 750);
 final Map<String, DateTime> _shortQuotaFillWorkerLastLogAtByKey =
     <String, DateTime>{};
 
+const int _shortPrefetchMaxReadySegments = 1;
+
 bool _shouldLogShortQuotaFillWorker(String key) {
   final now = DateTime.now();
   final lastAt = _shortQuotaFillWorkerLastLogAtByKey[key];
@@ -27,6 +29,55 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   String _nextSegmentRequestID(String docID, String segmentKey) =>
       '${DateTime.now().microsecondsSinceEpoch}|$docID|$segmentKey';
+
+  void abortShortSwipeBoundaryDoc(
+    String docID, {
+    String reason = 'short_swipe_boundary',
+  }) {
+    final normalized = HlsSegmentPolicy.normalizeDocId(docID);
+    if (normalized == null || normalized.isEmpty) return;
+
+    final removedQueued = _queue.where((job) => job.docID == normalized).length;
+    _queue.removeWhere((job) => job.docID == normalized);
+    final removedPending = _pendingFollowUpJobs.remove(normalized) != null;
+    _jobEnqueuedAt.remove(normalized);
+    _activeDocSources.remove(normalized);
+    _activeBankDocIDs.remove(normalized);
+
+    final hadActiveDownload = (_activeDocRefCounts[normalized] ?? 0) > 0;
+    if (hadActiveDownload && _activeDownloads > 0) {
+      _workerSub?.cancel();
+      _workerSub = null;
+      _worker?.stop();
+      _worker = null;
+      _activeDownloads = 0;
+      _activeDocRefCounts.clear();
+      _activeSegmentRequestIDs.clear();
+      _activeSegmentOwnerInfo.clear();
+      _activeSegmentTierInfo.clear();
+      _activeBankDownloads = 0;
+      _activeBankDocIDs.clear();
+    } else {
+      _activeDocRefCounts.remove(normalized);
+      final requestKeysToClear = _activeSegmentRequestIDs.entries
+          .where((entry) => entry.key.startsWith('$normalized|'))
+          .map((entry) => entry.key)
+          .toList(growable: false);
+      for (final requestKey in requestKeysToClear) {
+        _activeSegmentRequestIDs.remove(requestKey);
+        _activeSegmentOwnerInfo.remove(requestKey);
+        _activeSegmentTierInfo.remove(requestKey);
+      }
+    }
+
+    debugPrint(
+      '[ShortSwipeSegmentGuard] status=abort_downloads '
+      'doc=$normalized reason=$reason queued=$removedQueued '
+      'pending=$removedPending active=$hadActiveDownload',
+    );
+    _publishPrefetchHealthIfNeeded(force: true);
+    _processQueue();
+  }
 
   String? _prefetchSourceForDoc(String docID) {
     final activeSource = _activeDocSources[docID];
@@ -597,6 +648,13 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       final desiredReadySegments = job.maxSegments > 0
           ? job.maxSegments
           : _prefetchSchedulerTargetReadySegments;
+      final ownerInfoForPolicy =
+          describeTransferOwner(job.docID) ?? <String, dynamic>{};
+      final isShortPrefetchJob =
+          job.source == 'short' || ownerInfoForPolicy['owner'] == 'short';
+      final effectiveDesiredReadySegments = isShortPrefetchJob
+          ? math.min(desiredReadySegments, _shortPrefetchMaxReadySegments)
+          : desiredReadySegments;
       final quotaFillMode = job.source == 'quota' &&
           _shouldAllowQuotaFillWithCurrentFocus &&
           shouldUsePrefetchQuotaFillMode(
@@ -606,18 +664,26 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
             watchProgress: watchedProgress,
           );
       final effectiveQuotaReadySegments =
-          quotaFillMode ? 1 : desiredReadySegments;
+          quotaFillMode ? 1 : effectiveDesiredReadySegments;
       final startupBurstMode = shouldUseStartupBurstPrefetch(
         isFocusedDoc: _focusedDocID == job.docID,
         isCurrentDoc: _isCurrentPriorityDoc(job.docID),
         watchProgress: watchedProgress,
         cachedSegmentCount: entryForPolicy?.cachedSegmentCount ?? 0,
-        desiredReadySegments: desiredReadySegments,
+        desiredReadySegments: effectiveDesiredReadySegments,
         totalSegments: segmentUris.length,
       );
 
       final Iterable<String> toDownload;
-      if (quotaFillMode) {
+      if (isShortPrefetchJob) {
+        toDownload = _pickLeadingReadySegments(
+          docID: job.docID,
+          segmentUris: segmentUris,
+          variantDir: variantDir,
+          cacheManager: cacheManager,
+          desiredReadySegments: _shortPrefetchMaxReadySegments,
+        );
+      } else if (quotaFillMode) {
         toDownload = _pickQuotaFillPrioritySegments(
           docID: job.docID,
           segmentUris: segmentUris,
@@ -634,9 +700,19 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         );
         final int mobileCap =
             job.maxSegments > 0 ? job.maxSegments : mobileOrdered.length;
-        toDownload = mobileOrdered.take(mobileCap);
+        toDownload = mobileOrdered.take(
+          isShortPrefetchJob
+              ? math.min(mobileCap, _shortPrefetchMaxReadySegments)
+              : mobileCap,
+        );
       } else if (isUnwatched) {
-        toDownload = uncached.take(desiredReadySegments);
+        toDownload = _pickLeadingReadySegments(
+          docID: job.docID,
+          segmentUris: segmentUris,
+          variantDir: variantDir,
+          cacheManager: cacheManager,
+          desiredReadySegments: effectiveDesiredReadySegments,
+        );
       } else {
         final preferred = _pickWatchedPrioritySegments(
           docID: job.docID,
@@ -644,9 +720,13 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           variantDir: variantDir,
           cacheManager: cacheManager,
           watchProgress: watchedProgress,
-          desiredReadySegments: job.maxSegments > 0 ? job.maxSegments : null,
+          desiredReadySegments: isShortPrefetchJob
+              ? _shortPrefetchMaxReadySegments
+              : job.maxSegments > 0
+                  ? job.maxSegments
+                  : null,
         );
-        toDownload = preferred.take(1);
+        toDownload = preferred.take(_shortPrefetchMaxReadySegments);
       }
 
       final orderedDownloads = toDownload.toList(growable: false);
@@ -655,7 +735,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       if (quotaFillMode && _useMinimalQuotaFillMode) {
         debugPrint(
           '[ShortQuotaFill] status=minimal_mode doc=${job.docID} '
-          'desired=$desiredReadySegments effective=$effectiveQuotaReadySegments '
+          'desired=$effectiveDesiredReadySegments effective=$effectiveQuotaReadySegments '
           'activeFeed=$_hasActiveFeedPlaybackWindow activeShort=$_hasActiveShortPlaybackWindow '
           'activeProfile=$_hasActiveProfilePlaybackWindow',
         );
@@ -675,17 +755,20 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           (_focusedDocID == job.docID || _isCurrentPriorityDoc(job.docID));
       final seedNextSegmentLater = !startupBurstMode &&
           !quotaFillMode &&
+          !isShortPrefetchJob &&
           !shouldBurstVisibleShort &&
           (isUnwatched && !_mobileSeedMode);
       final dispatchLimit = seedNextSegmentLater
           ? 1
-          : quotaFillMode
-              ? 1
-              : startupBurstMode
-                  ? availableSlots < desiredReadySegments
-                      ? availableSlots
-                      : desiredReadySegments
-                  : availableSlots;
+          : isShortPrefetchJob
+              ? math.min(availableSlots, _shortPrefetchMaxReadySegments)
+              : quotaFillMode
+                  ? 1
+                  : startupBurstMode
+                      ? availableSlots < effectiveDesiredReadySegments
+                          ? availableSlots
+                          : effectiveDesiredReadySegments
+                      : availableSlots;
       final dispatchNow =
           orderedDownloads.take(dispatchLimit).toList(growable: false);
       final hasRemaining = orderedDownloads.length > dispatchNow.length;
@@ -708,6 +791,26 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final segmentCdnUrl =
             '$_prefetchSchedulerCdnOrigin/${variantDir.startsWith('/') ? variantDir.substring(1) : variantDir}$segUri';
         final segmentKey = '${variantDir.replaceFirst(hlsRoot, '')}$segUri';
+        final segmentOrdinal = _segmentOrdinalFromKey(segmentKey);
+        final ownerInfoAtDispatch =
+            describeTransferOwner(job.docID) ?? <String, dynamic>{};
+        final tierInfoAtDispatch =
+            classifyTransferDoc(job.docID) ?? <String, dynamic>{};
+        final cacheOriginAtDispatch =
+            (ownerInfoAtDispatch['owner'] ?? job.source).toString();
+        if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
+          docId: job.docID,
+          segmentKey: segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: cacheOriginAtDispatch,
+          queueLength: _queue.length,
+          activeDownloads: _activeDownloads,
+        )) {
+          _clearFollowUpJob(job.docID);
+          _queue.removeWhere((queuedJob) => queuedJob.docID == job.docID);
+          _publishPrefetchHealthIfNeeded(force: true);
+          continue;
+        }
         if (quotaFillMode) {
           final seedPosition = ensureShortManifestRepository()
                   .quotaSeedPositionLabelForDoc(job.docID) ??
@@ -736,14 +839,18 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         }
         _activeDownloads++;
         _resetWatchdog();
-        final ownerInfoAtDispatch =
-            describeTransferOwner(job.docID) ?? <String, dynamic>{};
-        final tierInfoAtDispatch =
-            classifyTransferDoc(job.docID) ?? <String, dynamic>{};
         _activeSegmentOwnerInfo[requestKey] =
             Map<String, dynamic>.from(ownerInfoAtDispatch);
         _activeSegmentTierInfo[requestKey] =
             Map<String, dynamic>.from(tierInfoAtDispatch);
+        ShortSwipeSegmentGuard.recordPrefetchDispatch(
+          docId: job.docID,
+          segmentKey: segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: cacheOriginAtDispatch,
+          queueLength: _queue.length,
+          activeDownloads: _activeDownloads,
+        );
         probe.recordSegmentStart(
           docId: job.docID,
           segmentKey: segmentKey,
@@ -843,6 +950,30 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
       if (cacheManager != null) {
         final cacheOrigin =
             (ownerInfoAtDispatch?['owner'] ?? 'unknown').toString();
+        final segmentOrdinal = _segmentOrdinalFromKey(result.segmentKey);
+        ShortSwipeSegmentGuard.recordPrefetchWrite(
+          docId: result.docID,
+          segmentKey: result.segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: cacheOrigin,
+          bytes: bytes.length,
+          queueLength: _queue.length,
+          activeDownloads: _activeDownloads,
+        );
+        if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
+          docId: result.docID,
+          segmentKey: result.segmentKey,
+          segmentOrdinal: segmentOrdinal,
+          cacheOrigin: cacheOrigin,
+          bytes: bytes.length,
+          queueLength: _queue.length,
+          activeDownloads: _activeDownloads,
+        )) {
+          _clearFollowUpJob(result.docID);
+          _publishPrefetchHealthIfNeeded();
+          _processQueue();
+          return;
+        }
         if (cacheOrigin == 'quota') {
           final seedPosition = ensureShortManifestRepository()
                   .quotaSeedPositionLabelForDoc(result.docID) ??

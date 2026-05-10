@@ -20,22 +20,14 @@ bool _shouldLogShortOnYukleme(String key) {
 }
 
 extension ShortControllerCachePart on ShortController {
-  static const int _androidActiveReadySegments =
-      StartupPreloadPolicy.activeReadySegments;
-  static const int _androidNeighborReadySegments =
-      StartupPreloadPolicy.neighborReadySegments;
-  static const int _iosActiveReadySegments =
-      StartupPreloadPolicy.activeReadySegments;
-  static const int _iosNeighborReadySegments =
-      StartupPreloadPolicy.neighborReadySegments;
+  static const int _shortActiveReadySegments = 1;
   static const int _startupFirstVideoWindowCount =
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeStartupCount =
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeAheadFirstSegmentCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
-  static const int _onYuklemeActiveReadySegments =
-      StartupPreloadPolicy.activeReadySegments;
+  static const int _onYuklemeActiveReadySegments = 1;
 
   bool get _usesTightCellularShortProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
@@ -64,7 +56,7 @@ extension ShortControllerCachePart on ShortController {
   int _onYuklemeReadySegmentsForOffset(int playableOffset) {
     if (_usesTightCellularShortProfile) {
       if (playableOffset <= 0) {
-        return StartupPreloadPolicy.activeReadySegments;
+        return 1;
       }
       final isOnCellular =
           NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
@@ -76,7 +68,7 @@ extension ShortControllerCachePart on ShortController {
       );
       return playableOffset <= limit ? 1 : 0;
     }
-    return StartupPreloadPolicy.readySegmentsForAheadOffset(playableOffset);
+    return 1;
   }
 
   void primeOnYuklemeWindow(
@@ -139,7 +131,7 @@ extension ShortControllerCachePart on ShortController {
     if (nextIndex < 0 || nextIndex >= shorts.length) return;
     _ensureReadySegmentsForIndex(
       nextIndex,
-      minimumSegmentCount: StartupPreloadPolicy.readySegmentsForAheadOffset(1),
+      minimumSegmentCount: 1,
     );
     debugPrint(
       '[ShortNextWarm] status=boost source=first_frame '
@@ -149,8 +141,7 @@ extension ShortControllerCachePart on ShortController {
 
   void _ensureReadySegmentsForIndex(
     int index, {
-    int minimumSegmentCount =
-        SegmentCacheRuntimeService.globalReadySegmentCount,
+    int minimumSegmentCount = 1,
   }) {
     if (index < 0 || index >= shorts.length) return;
     _seedCacheEntryForIndex(index);
@@ -200,28 +191,7 @@ extension ShortControllerCachePart on ShortController {
   }
 
   int _activeReadySegmentsForCurrentPlatform() {
-    final defaultCount = defaultTargetPlatform == TargetPlatform.android
-        ? _androidActiveReadySegments
-        : defaultTargetPlatform == TargetPlatform.iOS
-            ? _iosActiveReadySegments
-            : SegmentCacheRuntimeService.globalReadySegmentCount;
-    return PlaybackSurfacePolicy.shortActiveReadySegments(
-      platform: defaultTargetPlatform,
-      defaultCount: defaultCount,
-    );
-  }
-
-  int _neighborReadySegmentsForCurrentPlatform() {
-    final defaultCount = defaultTargetPlatform == TargetPlatform.android
-        ? _androidNeighborReadySegments
-        : defaultTargetPlatform == TargetPlatform.iOS
-            ? _iosNeighborReadySegments
-            : SegmentCacheRuntimeService.globalReadySegmentCount;
-    return PlaybackSurfacePolicy.shortNeighborReadySegments(
-      platform: defaultTargetPlatform,
-      useTightWarmProfile: _usesTightCellularShortProfile,
-      defaultCount: defaultCount,
-    );
+    return _shortActiveReadySegments;
   }
 
   bool _shouldKeepTrimmedShortAdapterWarm() {
@@ -312,9 +282,7 @@ extension ShortControllerCachePart on ShortController {
     final isImmediateForwardNeighbor = neighborIndex == safeActiveIndex + 1;
     _ensureReadySegmentsForIndex(
       neighborIndex,
-      minimumSegmentCount: isImmediateForwardNeighbor
-          ? StartupPreloadPolicy.readySegmentsForAheadOffset(1)
-          : _neighborReadySegmentsForCurrentPlatform(),
+      minimumSegmentCount: 1,
     );
 
     final activeAdapter = cache[safeActiveIndex];
@@ -365,7 +333,7 @@ extension ShortControllerCachePart on ShortController {
     for (final i in hotIndices) {
       _ensureReadySegmentsForIndex(
         i,
-        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+        minimumSegmentCount: 1,
       );
     }
 
@@ -541,19 +509,14 @@ extension ShortControllerCachePart on ShortController {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
       safeAnchor,
-      minimumSegmentCount: math.max(
-        minimumSegmentCount,
-        _activeReadySegmentsForCurrentPlatform(),
-      ),
+      minimumSegmentCount: 1,
     );
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      final minimumReadySegments =
-          StartupPreloadPolicy.readySegmentsForAheadOffset(offset);
       _ensureReadySegmentsForIndex(
         targetIndex,
-        minimumSegmentCount: minimumReadySegments,
+        minimumSegmentCount: 1,
       );
     }
     primeOnYuklemeWindow(
@@ -564,8 +527,7 @@ extension ShortControllerCachePart on ShortController {
 
   void primePlaybackWindowReadySegments(
     int anchorIndex, {
-    int minimumSegmentCount =
-        SegmentCacheRuntimeService.globalReadySegmentCount,
+    int minimumSegmentCount = 1,
     int aheadCount = 5,
     int hotBehindCount = 3,
     int warmBehindCount = 5,
@@ -573,19 +535,14 @@ extension ShortControllerCachePart on ShortController {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
       safeAnchor,
-      minimumSegmentCount: math.max(
-        minimumSegmentCount,
-        _activeReadySegmentsForCurrentPlatform(),
-      ),
+      minimumSegmentCount: 1,
     );
     for (int offset = 1; offset <= aheadCount; offset++) {
       final targetIndex = safeAnchor + offset;
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      final minimumReadySegments =
-          StartupPreloadPolicy.readySegmentsForAheadOffset(offset);
       _ensureReadySegmentsForIndex(
         targetIndex,
-        minimumSegmentCount: minimumReadySegments,
+        minimumSegmentCount: 1,
       );
     }
     primeOnYuklemeWindow(

@@ -626,6 +626,57 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
   }
 
+  void _recordShortSwipeSegmentBoundary(
+    int page, {
+    required String reason,
+  }) {
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final docId = _cachedShorts[page].docID.trim();
+    if (docId.isEmpty) return;
+    final adapter = controller.cache[page];
+    final value = adapter?.value;
+    final position = value?.position ?? Duration.zero;
+    final duration = value?.duration ?? Duration.zero;
+    final cacheManager = maybeFindSegmentCacheManager();
+    final entry = cacheManager?.getEntry(docId);
+    final totalSegmentCount = entry?.totalSegmentCount ?? 0;
+    final boundarySegment = ShortSwipeSegmentGuard.estimateBoundarySegment(
+      position: position,
+      duration: duration,
+      totalSegmentCount: totalSegmentCount,
+    );
+    final cachedOrdinals = (entry?.segments.keys ?? const <String>[])
+        .map(ShortSwipeSegmentGuard.segmentOrdinalFromKey)
+        .whereType<int>()
+        .toList(growable: false);
+    int? maxCachedSegment;
+    var cachedAfterBoundary = 0;
+    for (final ordinal in cachedOrdinals) {
+      if (maxCachedSegment == null || ordinal > maxCachedSegment) {
+        maxCachedSegment = ordinal;
+      }
+      if (boundarySegment != null && ordinal > boundarySegment) {
+        cachedAfterBoundary += 1;
+      }
+    }
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    ShortSwipeSegmentGuard.recordSwipeAway(
+      docId: docId,
+      page: page,
+      reason: reason,
+      position: position,
+      duration: duration,
+      progress: progress,
+      boundarySegmentOrdinal: boundarySegment,
+      cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+      cachedAfterBoundaryCount: cachedAfterBoundary,
+      maxCachedSegmentOrdinal: maxCachedSegment,
+      totalSegmentCount: totalSegmentCount,
+    );
+  }
+
   void _onPageChanged(int renderPage) {
     if (_cachedShorts.isEmpty) return;
     if (renderPage == _currentRenderPage) return;
@@ -677,6 +728,31 @@ extension ShortViewPlaybackPart on _ShortViewState {
         'isAdPage': isAdPage,
       },
     );
+
+    if (nextDocId.isNotEmpty) {
+      ShortSwipeSegmentGuard.clearForActiveDoc(
+        docId: nextDocId,
+        reason: 'short_page_active',
+      );
+    }
+    _syncShortExclusivePlaybackOwner(nextOrganicPage);
+    final movingForward = isAdPage || nextOrganicPage > previousOrganicPage;
+    if (movingForward) {
+      _recordShortSwipeSegmentBoundary(
+        previousOrganicPage,
+        reason: isAdPage ? 'page_changed_to_ad' : 'page_changed_forward',
+      );
+      if (previousOrganicPage >= 0 &&
+          previousOrganicPage < _cachedShorts.length) {
+        final previousDocId = _cachedShorts[previousOrganicPage].docID.trim();
+        if (previousDocId.isNotEmpty) {
+          maybeFindPrefetchScheduler()?.abortShortSwipeBoundaryDoc(
+            previousDocId,
+            reason: isAdPage ? 'page_changed_to_ad' : 'page_changed_forward',
+          );
+        }
+      }
+    }
 
     final oldVc = controller.cache[currentPage];
     if (oldVc != null) {
@@ -750,7 +826,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
         trigger: 'page_changed',
       ),
     );
-    _syncShortExclusivePlaybackOwner(nextOrganicPage);
     _pendingPageActivation = true;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
@@ -1222,7 +1297,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             docId,
-            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+            minimumSegmentCount: 1,
           );
         } catch (_) {}
       }
@@ -1289,7 +1364,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             docId,
-            minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+            minimumSegmentCount: 1,
           );
         } catch (_) {}
         final hadActiveAdapter = controller.cache[page] != null;
@@ -1344,15 +1419,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (controller.cache[neighborPage] != null) {
           return;
         }
-        final neighborReadySegments = neighborPage > activePage
-            ? StartupPreloadPolicy.readySegmentsForAheadOffset(
-                neighborPage - activePage,
-              )
-            : StartupPreloadPolicy.neighborReadySegments;
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             neighborDocId,
-            minimumSegmentCount: neighborReadySegments,
+            minimumSegmentCount: 1,
           );
         } catch (_) {}
         final hadNeighborAdapter = controller.cache[neighborPage] != null;
@@ -1507,7 +1577,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         if (shouldGate) {
           if (docId.isNotEmpty) {
             try {
-              _segmentCacheRuntimeService.ensureMinimumReadySegments(docId);
+              _segmentCacheRuntimeService.ensureMinimumReadySegments(
+                docId,
+                minimumSegmentCount: 1,
+              );
             } catch (_) {}
           }
           _autoplaySegmentGateStartedAt ??= DateTime.now();
