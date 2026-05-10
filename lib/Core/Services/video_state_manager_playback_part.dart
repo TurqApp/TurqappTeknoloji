@@ -80,15 +80,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return handle.adapter.preferWarmPoolPause;
     }
     if (allowedSurface == 'feed') {
-      if (defaultTargetPlatform == TargetPlatform.android) {
-        return false;
-      }
-      if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-      final value = handle.adapter.value;
-      return value.isPlaying ||
-          value.isBuffering ||
-          value.hasRenderedFirstFrame ||
-          value.position > Duration.zero;
+      return false;
     }
     return false;
   }
