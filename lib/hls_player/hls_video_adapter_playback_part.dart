@@ -307,6 +307,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       _pendingSeek = pos;
       return Future.value();
     }
+    _pendingSeek = null;
     final shouldClearCompleted = _value.isCompleted &&
         (_value.duration == Duration.zero || pos < _value.duration);
     if (shouldClearCompleted) {
@@ -387,6 +388,8 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _wantPause = false;
     if (position > Duration.zero) {
       _pendingSeek = position;
+    } else {
+      _pendingSeek = null;
     }
   }
 

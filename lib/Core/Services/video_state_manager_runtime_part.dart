@@ -151,6 +151,18 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       );
       return false;
     }
+    if (_consumeTransitionResumeReset(
+      docID,
+      handle,
+      source: 'resume_current_blocked_reset',
+    )) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=transition_reset doc=$docID '
+        'positionMs=${handle.position.inMilliseconds}',
+      );
+      return false;
+    }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
     final isInlineFeedStyleOwner = docID.startsWith('feed:') ||

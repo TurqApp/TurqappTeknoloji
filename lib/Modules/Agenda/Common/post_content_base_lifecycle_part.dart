@@ -357,15 +357,25 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _replayAdHideTimer?.cancel();
         _replayAdVisible = AdmobKare.hasRenderableBanner;
         _replayButtonVisible = !_replayAdVisible;
+        if (_replayButtonVisible) {
+          VideoStateManager.instance.markTransitionResumeReset(
+            playbackHandleKey,
+            reason: 'feed_replay_button_visible',
+          );
+        }
         _replayAdImpressionReceived = false;
         if (!isStandalonePostInstance) {
           unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
         }
         if (_replayAdVisible) {
-          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
+          _replayAdHideTimer = Timer(const Duration(seconds: 2), () {
             if (!mounted) return;
             _replayAdVisible = false;
             _replayButtonVisible = true;
+            VideoStateManager.instance.markTransitionResumeReset(
+              playbackHandleKey,
+              reason: 'feed_replay_button_visible_after_ad',
+            );
             _markPostContentDirty();
           });
         }

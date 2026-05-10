@@ -450,7 +450,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     final adapter = _videoAdapter;
     if (adapter == null) return;
-    _restoreSavedResumeSeekIfEligible(adapter, source: '$source:prestart');
+    if (!_shouldBypassSavedResumeSeekForReplayStart(source)) {
+      _restoreSavedResumeSeekIfEligible(adapter, source: '$source:prestart');
+    }
     if (_requiredAutoplaySegmentCount > 1) {
       try {
         _segmentCacheRuntimeService.ensureMinimumReadySegments(
@@ -640,6 +642,28 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   void pauseVideo() => _safePauseVideo();
 
+  bool _isReplayActivationRestartSource(String source) {
+    if (source.contains(':reentry_restart')) return false;
+    return source.startsWith('widget_should_play_changed') ||
+        source.startsWith('route_did_pop_next');
+  }
+
+  bool _shouldRestartReplayFromStartOnActivation({
+    required String source,
+  }) {
+    if (!_isReplayOverlayEnabled) return false;
+    if (!_isReplayActivationRestartSource(source)) return false;
+    if (_replayButtonVisible) return true;
+    return false;
+  }
+
+  bool _shouldBypassSavedResumeSeekForReplayStart(String source) {
+    return source.startsWith('replay_button') ||
+        source.contains(':activation_restart') ||
+        source.contains(':activation_start') ||
+        source.contains(':reentry_restart');
+  }
+
   Future<void> _restartCompletedPlaybackForAutoplay({
     required String source,
   }) async {
@@ -660,6 +684,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _replayAdHideTimer?.cancel();
     _manualPauseRequested = false;
     _hasAutoPlayed = false;
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     try {
       await adapter.setLooping(shouldLoopVideo);
       await adapter.seekTo(Duration.zero);
@@ -752,6 +777,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
     final adapter = _videoAdapter;
     if (adapter == null) {
+      final shouldResetReplayActivation =
+          _isReplayActivationRestartSource(source) && _replayButtonVisible;
+      if (shouldResetReplayActivation) {
+        _replayOverlayLatched = false;
+        _replayAdPrewarmed = false;
+        _replayAdVisible = false;
+        _replayButtonVisible = false;
+        _replayAdImpressionReceived = false;
+        _replayAdHideTimer?.cancel();
+        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+      }
       _recordPlaybackDispatch(
         'feed_card_init_requested',
         source: source,
@@ -760,12 +796,30 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
       _initVideoController();
       final initializedAdapter = _videoAdapter;
-      if (initializedAdapter != null) {
+      if (initializedAdapter != null && !shouldResetReplayActivation) {
         _restoreSavedResumeSeekIfEligible(
           initializedAdapter,
           source: '$source:init_requested',
         );
       }
+      return;
+    }
+
+    if (_shouldRestartReplayFromStartOnActivation(source: source)) {
+      debugPrint(
+        '[FeedReplayTrace] stage=activation_restart_from_zero '
+        'doc=${widget.model.docID} '
+        'source=$source '
+        'isCompleted=${adapter.value.isCompleted} '
+        'positionMs=${adapter.value.position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds} '
+        'replayOverlayLatched=$_replayOverlayLatched',
+      );
+      unawaited(
+        _restartCompletedPlaybackForAutoplay(
+          source: '$source:activation_restart',
+        ),
+      );
       return;
     }
 
@@ -888,6 +942,23 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         source: source,
         dispatchIssued: false,
         skipReason: 'surface_playback_blocked',
+      );
+      return;
+    }
+    if (_shouldRestartReplayFromStartOnActivation(source: source)) {
+      debugPrint(
+        '[FeedReplayTrace] stage=activation_start_from_zero '
+        'doc=${widget.model.docID} '
+        'source=$source '
+        'isCompleted=${adapter.value.isCompleted} '
+        'positionMs=${adapter.value.position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds} '
+        'replayOverlayLatched=$_replayOverlayLatched',
+      );
+      unawaited(
+        _restartCompletedPlaybackForAutoplay(
+          source: '$source:activation_start',
+        ),
       );
       return;
     }
@@ -1265,6 +1336,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _replayAdHideTimer?.cancel();
     _manualPauseRequested = false;
     _hasAutoPlayed = false;
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     await adapter.setLooping(shouldLoopVideo);
     await adapter.seekTo(Duration.zero);
     _startPlaybackWhenReady(source: 'replay_button');
