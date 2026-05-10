@@ -30,21 +30,35 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
 
   void _appendQuotaFillJobs(
     _ResolvedPrefetchQueue resolved,
-    SegmentCacheManager cacheManager,
-  ) {
+    SegmentCacheManager cacheManager, {
+    int? maxAddedJobs,
+  }) {
     if (resolved.docIDs.isEmpty) return;
     final queuedDocIds = _queue.map((job) => job.docID).toSet()
       ..addAll(_pendingFollowUpJobs.keys)
       ..addAll(_activeDocRefCounts.keys);
 
     var addedJobs = 0;
+    var skippedDuplicateJobs = 0;
+    var skippedReadySegments = 0;
+    String? firstAddedPosition;
+    String? lastAddedPosition;
     for (var index = 0; index < resolved.docIDs.length; index++) {
       final docID = resolved.docIDs[index];
-      if (!queuedDocIds.add(docID)) continue;
+      if (!queuedDocIds.add(docID)) {
+        skippedDuplicateJobs++;
+        continue;
+      }
       final entry = cacheManager.getEntry(docID);
-      if (entry != null && entry.isFullyCached) continue;
+      if (entry != null && entry.isFullyCached) {
+        skippedReadySegments++;
+        continue;
+      }
       const readySegments = 1;
-      if ((entry?.cachedSegmentCount ?? 0) >= readySegments) continue;
+      if ((entry?.cachedSegmentCount ?? 0) >= readySegments) {
+        skippedReadySegments++;
+        continue;
+      }
       if (!_shouldEnqueuePrefetchJob(readySegments)) continue;
       final slotOrderScore = (resolved.docIDs.length - index).toDouble();
       _queue.add(
@@ -59,13 +73,26 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _jobEnqueuedAt[docID] = DateTime.now();
       final quotaSeedPosition =
           ensureShortManifestRepository().quotaSeedPositionLabelForDoc(docID);
+      firstAddedPosition ??= quotaSeedPosition;
+      lastAddedPosition = quotaSeedPosition;
       debugPrint(
         '[ShortQuotaFill] status=queue_doc source=short_manifest_slots '
         'networkSeed=false doc=$docID readySegments=$readySegments '
         'queueOrder=$index seedPosition=${quotaSeedPosition ?? '-'}',
       );
       addedJobs++;
+      if (maxAddedJobs != null && addedJobs >= maxAddedJobs) break;
     }
+
+    debugPrint(
+      '[ShortQuotaFill] status=queue_summary source=short_manifest_slots '
+      'scanned=${resolved.docIDs.length} added=$addedJobs '
+      'skippedReady=$skippedReadySegments '
+      'skippedDuplicate=$skippedDuplicateJobs '
+      'maxAdded=${maxAddedJobs ?? 0} '
+      'firstAdded=${firstAddedPosition ?? '-'} '
+      'lastAdded=${lastAddedPosition ?? '-'}',
+    );
 
     if (addedJobs <= 0) return;
     _paused = false;
@@ -77,6 +104,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     List<PostsModel> posts,
     int currentIndex, {
     int? maxDocs,
+    int? maxAddedJobs,
   }) async {
     final cacheManager = _getCacheManager();
     if (cacheManager == null) return;
@@ -87,37 +115,11 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     );
     if (resolved == null) return;
     cacheManager.cachePostCards(resolved.posts);
-    _appendQuotaFillJobs(resolved, cacheManager);
-  }
-
-  Future<void> seedShortVisibleQuotaFirstSegmentsForPosts(
-    List<PostsModel> posts, {
-    required int currentIndex,
-    required String reason,
-  }) async {
-    if (posts.isEmpty) return;
-    final cacheManager = _getCacheManager();
-    if (cacheManager == null) return;
-    if (!_isQuotaFillNetworkEligible) return;
-    if (!_shouldAllowQuotaFillWithCurrentFocus) return;
-    final beforeBacklog = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
-    await _appendQuotaFillQueueForPosts(
-      posts,
-      currentIndex,
-      maxDocs: posts.length,
+    _appendQuotaFillJobs(
+      resolved,
+      cacheManager,
+      maxAddedJobs: maxAddedJobs,
     );
-    final afterBacklog = _queue.length +
-        _pendingFollowUpJobs.length +
-        _activeDocRefCounts.length;
-    debugPrint(
-      '[ShortQuotaFill] status=visible_queue_seed reason=$reason '
-      'count=${posts.length} currentIndex=$currentIndex '
-      'before=$beforeBacklog after=$afterBacklog '
-      'activeFeed=$_hasActiveFeedPlaybackWindow activeShort=$_hasActiveShortPlaybackWindow',
-    );
-    _processQueue();
   }
 
   Future<void> _ensureWifiQuotaFillPlan() async {
@@ -181,6 +183,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
           localCandidates,
           0,
           maxDocs: localCandidates.length,
+          maxAddedJobs: _prefetchSchedulerQuotaFillLowWatermark,
         );
         for (final post in localCandidates.take(2)) {
           boostDoc(

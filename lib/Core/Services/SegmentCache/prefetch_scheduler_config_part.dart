@@ -17,9 +17,7 @@ const int _prefetchSchedulerFeedAheadCount = 5;
 const int _prefetchSchedulerFeedBehindCount = 2;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
 const int _prefetchSchedulerFeedSoftWarmReadySegments = 1;
-const int _prefetchSchedulerQuotaFillBurstSegments = 1;
 const int _prefetchSchedulerQuotaFillBoostReadySegments = 1;
-const int _prefetchSchedulerQuotaFillPlanningBatchSize = 180;
 const int _prefetchSchedulerQuotaFillLowWatermark = 16;
 const double _prefetchSchedulerShortLandscapeAspectThreshold = 1.2;
 
