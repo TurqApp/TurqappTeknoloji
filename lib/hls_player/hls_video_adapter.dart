@@ -217,6 +217,9 @@ class HLSVideoAdapter extends ChangeNotifier {
   void queueSeekAndPlay(Duration position) =>
       _performQueueSeekAndPlay(position);
 
+  void suppressNextReattachResume({required String reason}) =>
+      _hls.suppressNextReattachResume(reason: reason);
+
   Widget buildPlayer({
     Key? key,
     double aspectRatio = 16 / 9,

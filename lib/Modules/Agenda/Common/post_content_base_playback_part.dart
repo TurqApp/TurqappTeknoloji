@@ -457,6 +457,27 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
       return;
     }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance &&
+        _usesFeedPlaybackPolicy) {
+      final modelIndex = _surfaceModelIndex();
+      final centeredIndex = _surfaceCurrentCenteredIndex();
+      if (modelIndex >= 0 &&
+          centeredIndex >= 0 &&
+          modelIndex != centeredIndex) {
+        _recordPlaybackDispatch(
+          'feed_card_start_skipped',
+          source: source,
+          dispatchIssued: false,
+          skipReason: 'ios_feed_not_centered',
+          metadata: <String, dynamic>{
+            'modelIndex': modelIndex,
+            'centeredIndex': centeredIndex,
+          },
+        );
+        return;
+      }
+    }
     final adapter = _videoAdapter;
     if (adapter == null) return;
     if (!_shouldBypassSavedResumeSeekForReplayStart(source)) {
@@ -568,6 +589,18 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          _isPrimaryFeedSurfaceInstance &&
+          _usesFeedPlaybackPolicy) {
+        v.suppressNextReattachResume(
+          reason: 'ios_feed_surface_loss_stop',
+        );
+        VideoStateManager.instance.markTransitionResumeReset(
+          playbackHandleKey,
+          reason: 'ios_feed_surface_loss_stop',
+        );
+        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+      }
       if (defaultTargetPlatform == TargetPlatform.android &&
           _isPrimaryFeedSurfaceInstance) {
         debugPrint(

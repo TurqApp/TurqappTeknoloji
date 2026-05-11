@@ -134,6 +134,13 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       );
       return false;
     }
+    if (_targetPlaybackDocID != null && _targetPlaybackDocID != docID) {
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_current_blocked '
+        'reason=target_mismatch doc=$docID target=$_targetPlaybackDocID',
+      );
+      return false;
+    }
     _targetPlaybackDocID = docID;
     _targetPlaybackUpdatedAt = DateTime.now();
     final handle = _allVideoControllers[docID];

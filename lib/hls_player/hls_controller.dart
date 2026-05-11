@@ -68,6 +68,7 @@ class HLSController {
   bool _preferResumePoster = false;
   double? _pendingReattachSeekSeconds;
   bool _pendingReattachShouldPlay = false;
+  bool _suppressNextReattachResume = false;
   int _rendererStallCount = 0;
   int _surfaceRebindCount = 0;
   bool _isDisposing = false;
@@ -227,7 +228,9 @@ class HLSController {
     final previousViewId = _viewId;
     final hadBoundView = previousViewId != null;
     final shouldPreserveResumeVisual = _shouldPreserveResumeVisual;
-    if (hadBoundView) {
+    final suppressReattachResume = _suppressNextReattachResume;
+    _suppressNextReattachResume = false;
+    if (hadBoundView && !suppressReattachResume) {
       final previousPosition =
           _currentPosition.isFinite ? _currentPosition : 0.0;
       final minReattachSeekSeconds =
@@ -243,6 +246,13 @@ class HLSController {
         _pendingReattachSeekSeconds = previousPosition;
         _pendingReattachShouldPlay = shouldResumePlay;
       }
+    } else if (hadBoundView && suppressReattachResume) {
+      _pendingReattachSeekSeconds = null;
+      _pendingReattachShouldPlay = false;
+      debugPrint(
+        '[HLSController][view=$previousViewId][video=${_telemetryVideoId ?? '-'}] '
+        'reattachResumeSuppressed position=$_currentPosition url=$_currentUrl',
+      );
     }
 
     if (previousViewId != null && previousViewId != viewId) {
@@ -263,6 +273,17 @@ class HLSController {
     _viewId = viewId;
     _eventChannel = EventChannel('turqapp.hls_player/events_$viewId');
     _listenToEvents();
+  }
+
+  void suppressNextReattachResume({required String reason}) {
+    _suppressNextReattachResume = true;
+    _pendingReattachSeekSeconds = null;
+    _pendingReattachShouldPlay = false;
+    debugPrint(
+      '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] '
+      'suppressNextReattachResume reason=$reason '
+      'position=$_currentPosition url=$_currentUrl',
+    );
   }
 
   Future<void> _silencePreviousView(int previousViewId) async {

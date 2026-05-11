@@ -120,6 +120,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     String docID,
     PlaybackHandle handle,
   ) {
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        docID.trim().startsWith('feed:')) {
+      if (handle is HLSAdapterPlaybackHandle) {
+        handle.adapter.suppressNextReattachResume(
+          reason: 'ios_feed_superseded_stop',
+        );
+      }
+      _markTransitionResumeReset(
+        docID,
+        reason: 'ios_feed_superseded_stop',
+      );
+    }
     _playbackExecutionService.quietHandle(
       handle,
       persistState: () => _saveVideoState(docID, handle),
@@ -365,6 +377,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           if (keepWarmDuringSurfaceSwitch) {
             shouldStopPlayback = false;
           }
+          if (defaultTargetPlatform == TargetPlatform.iOS &&
+              shouldStopPlayback &&
+              controllerSurface == 'feed' &&
+              allowedSurface == 'feed') {
+            if (handle is HLSAdapterPlaybackHandle) {
+              handle.adapter.suppressNextReattachResume(
+                reason: 'ios_feed_hidden_handle_stop',
+              );
+            }
+            _markTransitionResumeReset(
+              controllerKey,
+              reason: 'ios_feed_hidden_handle_stop',
+            );
+          }
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '
@@ -476,8 +502,36 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         ? Duration.zero
         : _videoStateManagerPlayResumeDelay;
     _pendingPlayTimer = Timer(resumeDelay, () {
-      if (requestSeq != _playRequestSeq) return;
-      if (_currentPlayingDocID != docID) return;
+      if (requestSeq != _playRequestSeq) {
+        if (kDebugMode && isIosFeedPlayback) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=pending_resume_skip '
+            'reason=stale_request doc=$docID attempt=$attempt '
+            'requestSeq=$requestSeq activeSeq=$_playRequestSeq',
+          );
+        }
+        return;
+      }
+      if (_currentPlayingDocID != docID || _targetPlaybackDocID != docID) {
+        if (kDebugMode && isIosFeedPlayback) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=pending_resume_skip '
+            'reason=owner_target_mismatch doc=$docID attempt=$attempt '
+            'current=${_currentPlayingDocID ?? ''} '
+            'target=${_targetPlaybackDocID ?? ''}',
+          );
+        }
+        return;
+      }
+      if (_hasTransitionResumeReset(docID)) {
+        if (kDebugMode && isIosFeedPlayback) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=pending_resume_skip '
+            'reason=transition_reset doc=$docID attempt=$attempt',
+          );
+        }
+        return;
+      }
       final handle = _allVideoControllers[docID];
       if (handle == null) {
         if (attempt >= _videoStateManagerMaxPendingPlayRetries) return;
@@ -597,8 +651,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       );
     }
 
-    _pauseAllExcept(docID);
     _markTargetPlaybackDoc(docID);
+    _pauseAllExcept(docID);
     _schedulePendingPlayResume(docID, requestSeq);
   }
 
@@ -617,8 +671,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
-    _pauseAllExcept(docID);
     _markTargetPlaybackDoc(docID);
+    _pauseAllExcept(docID);
     _schedulePendingPlayResume(docID, requestSeq);
   }
 
@@ -636,9 +690,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       effectiveHandle,
       source: 'request_play',
     );
+    _markTargetPlaybackDoc(docID);
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
-    _markTargetPlaybackDoc(docID);
     _schedulePendingPlayResume(docID, requestSeq);
   }
 

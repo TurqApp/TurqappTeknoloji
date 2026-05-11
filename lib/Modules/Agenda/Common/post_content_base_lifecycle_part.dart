@@ -445,6 +445,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             _isPrimaryFeedSurfaceInstance &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed &&
+            _surfaceModelIndex() == _surfaceCurrentCenteredIndex() &&
             (v.isPlaying || v.hasVisibleVideoFrame);
     if (shouldFinalizeIosFeedOwnerOnPlay &&
         _playbackRuntimeService.currentPlayingDocId != playbackHandleKey) {
