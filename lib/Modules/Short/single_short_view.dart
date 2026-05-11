@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
@@ -220,6 +221,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final bool _forceResumePosterOnReturn = false;
   bool _routeObserverSubscribed = false;
   bool _routePlaybackActive = true;
+  bool _refreshViewPostFrameScheduled = false;
   String? _suspendedFeedPlaybackHandleKey;
 
   String _playbackHandleKeyForDoc(String docId) =>
@@ -383,6 +385,17 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
 
   void _refreshView() {
     if (!mounted) return;
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      if (_refreshViewPostFrameScheduled) return;
+      _refreshViewPostFrameScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshViewPostFrameScheduled = false;
+        if (!mounted) return;
+        setState(() {});
+      });
+      return;
+    }
     setState(() {});
   }
 

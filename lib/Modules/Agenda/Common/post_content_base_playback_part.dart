@@ -589,6 +589,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _stopPlaybackForSurfaceLoss() {
     final v = _videoAdapter;
     if (v != null) {
+      if (_isPlaybackTransferredToSingleShort()) {
+        debugPrint(
+          '[PlaybackStopTrace] source=surface_loss_skip_transferred '
+          'doc=${widget.model.docID} '
+          'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+        );
+        return;
+      }
       if (defaultTargetPlatform == TargetPlatform.iOS &&
           _isPrimaryFeedSurfaceInstance &&
           _usesFeedPlaybackPolicy) {
@@ -644,6 +652,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (_isSurfacePlaybackAllowed) return false;
     if (!_usesFeedPlaybackPolicy) return false;
     if (!value.isPlaying && !value.isBuffering) return false;
+    if (_isPlaybackTransferredToSingleShort()) {
+      debugPrint(
+        '[SurfacePlaybackDecision] action=surface_block_skip_transferred '
+        'doc=${widget.model.docID} source=$source '
+        'surface=$_qaSurfaceName '
+        'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+      );
+      return false;
+    }
     debugPrint(
       '[SurfacePlaybackDecision] action=surface_block_session_reset '
       'doc=${widget.model.docID} source=$source '
@@ -657,6 +674,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     _playbackRuntimeService.requestStop(playbackHandleKey);
     _stopPlaybackForSurfaceLoss();
     return true;
+  }
+
+  bool _isPlaybackTransferredToSingleShort() {
+    if (!_usesFeedPlaybackPolicy) return false;
+    final currentOwner =
+        _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
+    if (!currentOwner.startsWith('single_short:')) return false;
+    final docId = widget.model.docID.trim();
+    if (docId.isEmpty) return false;
+    return currentOwner == 'single_short:$docId';
   }
 
   Future<void> _disposePlaybackForSurfaceLoss({

@@ -99,9 +99,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         final listForFullscreen =
                                             await _buildFullscreenStartList();
 
-                                        _prepareVideoFullscreenTransition();
-                                        _pauseFeedBeforeFullscreen();
                                         setPauseBlocked(true);
+                                        _prepareVideoFullscreenTransition();
                                         if (mounted) {
                                           _setFullscreenState(true);
                                         }
@@ -162,9 +161,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         final listForFullscreen =
                                             await _buildFullscreenStartList();
 
-                                        _prepareVideoFullscreenTransition();
-                                        _pauseFeedBeforeFullscreen();
                                         setPauseBlocked(true);
+                                        _prepareVideoFullscreenTransition();
                                         _setFullscreenState(true);
                                         final res =
                                             await Get.to(() => SingleShortView(

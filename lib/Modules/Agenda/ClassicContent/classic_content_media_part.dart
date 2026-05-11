@@ -208,9 +208,8 @@ extension _ClassicContentMediaPart on _ClassicContentState {
     final currentPos = await _resolveCurrentVideoPosition();
     final listForFullscreen = await _buildFullscreenStartList();
 
-    _prepareVideoFullscreenTransition();
-    _pauseFeedBeforeFullscreen();
     setPauseBlocked(true);
+    _prepareVideoFullscreenTransition();
     if (mounted) {
       _setFullscreen(true);
     }
