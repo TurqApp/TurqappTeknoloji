@@ -263,12 +263,12 @@ extension _ClassicContentQuotePart on _ClassicContentState {
 
   Widget _buildClassicActionRow(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, left: 15, right: 15),
+      padding: const EdgeInsets.only(top: 8, left: 7, right: 7),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildClassicQuoteActionSlot(
             commentButton(context),
-            offsetX: -5,
           ),
           _buildClassicQuoteActionSlot(
             likeButton(),
@@ -277,14 +277,13 @@ extension _ClassicContentQuotePart on _ClassicContentState {
             reshareButton(),
           ),
           _buildClassicQuoteActionSlot(
-            statButton(),
-          ),
-          _buildClassicQuoteActionSlot(
             saveButton(),
           ),
           _buildClassicQuoteActionSlot(
+            statButton(),
+          ),
+          _buildClassicQuoteActionSlot(
             sendButton(),
-            offsetX: 5,
           ),
         ],
       ),
@@ -295,11 +294,9 @@ extension _ClassicContentQuotePart on _ClassicContentState {
     Widget child, {
     double offsetX = 0,
   }) {
-    return Expanded(
-      child: Transform.translate(
-        offset: Offset(offsetX, 0),
-        child: Center(child: child),
-      ),
+    return Transform.translate(
+      offset: Offset(offsetX, 0),
+      child: child,
     );
   }
 
