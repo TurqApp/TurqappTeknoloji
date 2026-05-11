@@ -307,6 +307,19 @@ class _AdmobKareState extends State<AdmobKare> {
   bool get _usesStableAdSlot => _stableAdSlotKey.isNotEmpty;
   _StableAdSlotState? get _stableSlotState =>
       _usesStableAdSlot ? _stableSlots[_stableAdSlotKey] : null;
+  bool get _hasRenderableLiveAdAvailable =>
+      _canRenderAd(_bannerAd) ||
+      _isRenderableBanner(_stableSlotState?.ad) ||
+      hasRenderableBanner;
+
+  void _clearFallbackWhenLiveAdIsAvailable() {
+    if (!_hasRenderableLiveAdAvailable) {
+      return;
+    }
+    _fallbackGateTimer?.cancel();
+    _loadFailed = false;
+    _allowFallbackSurface = false;
+  }
 
   static Duration _globalCooldownRemaining() {
     final until = _globalCooldownUntil;
@@ -820,6 +833,12 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || _usePlaceholderOnly || !_isVisible) {
       return;
     }
+    if (_hasRenderableLiveAdAvailable) {
+      _clearFallbackWhenLiveAdIsAvailable();
+      if (mounted) {
+        setState(() {});
+      }
+    }
     if (_usesScrollCriticalPoolOnly && _waitingForFuturePool) {
       if (!_scrollCriticalLiveAdBindingPaused.value) {
         _waitingForFuturePool = false;
@@ -1099,11 +1118,14 @@ class _AdmobKareState extends State<AdmobKare> {
 
   void _armFallbackGate() {
     _fallbackGateTimer?.cancel();
-    if (_isDisposed || !_isVisible || _canRenderAd(_bannerAd)) {
+    if (_isDisposed || !_isVisible || _hasRenderableLiveAdAvailable) {
       return;
     }
     _fallbackGateTimer = Timer(_fallbackRevealDelay, () {
-      if (_isDisposed || !mounted || !_isVisible || _canRenderAd(_bannerAd)) {
+      if (_isDisposed ||
+          !mounted ||
+          !_isVisible ||
+          _hasRenderableLiveAdAvailable) {
         return;
       }
       setState(() {
@@ -1531,6 +1553,14 @@ class _AdmobKareState extends State<AdmobKare> {
       final preferManagedSuggestionSurface = _prefersManagedSuggestionSurface;
       final showManagedSuggestion = _usesManagedSuggestion &&
           (_suggestionSliderItems.isNotEmpty || preferManagedSuggestionSurface);
+      final hasRenderableLiveAdAvailable = _hasRenderableLiveAdAvailable;
+      if (hasRenderableLiveAdAvailable &&
+          (_allowFallbackSurface || _loadFailed)) {
+        scheduleMicrotask(() {
+          if (!mounted || _isDisposed) return;
+          setState(_clearFallbackWhenLiveAdIsAvailable);
+        });
+      }
       if (canRenderLiveAd) {
         _liveAdEverRendered = true;
         final bannerAd = ad!;
@@ -1585,7 +1615,13 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        if (_allowFallbackSurface || _loadFailed || liveAdBindingPaused) {
+        if (hasRenderableLiveAdAvailable) {
+          child = liveAdBindingPaused
+              ? _buildDeferredAdSlot()
+              : _buildPendingAdSlot();
+        } else if (_allowFallbackSurface ||
+            _loadFailed ||
+            liveAdBindingPaused) {
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {
@@ -2230,11 +2266,16 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _queueManagedSuggestionImpressionIfVisible() {
-    if (!_usesManagedSuggestion || !_isVisible || _canRenderAd(_bannerAd)) {
+    if (!_usesManagedSuggestion ||
+        !_isVisible ||
+        _hasRenderableLiveAdAvailable) {
       return;
     }
     scheduleMicrotask(() async {
-      if (!mounted || _isDisposed || !_isVisible || _canRenderAd(_bannerAd)) {
+      if (!mounted ||
+          _isDisposed ||
+          !_isVisible ||
+          _hasRenderableLiveAdAvailable) {
         return;
       }
       final item = _currentManagedSuggestionItem;
