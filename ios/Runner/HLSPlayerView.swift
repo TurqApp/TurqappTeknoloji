@@ -248,7 +248,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             return
         }
 
-        let shouldPreserveSnapshot = currentUrl == url && currentUrl != nil
+        let shouldPreserveSnapshot =
+            currentUrl == url &&
+            currentUrl != nil &&
+            player != nil &&
+            playerItem != nil &&
+            videoOutput != nil &&
+            didRenderFirstFrame
         let shouldHoldLastRenderedFrameDuringReload =
             !shouldPreserveSnapshot &&
             currentUrl != nil &&
@@ -525,6 +531,9 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         player?.pause()
         player?.replaceCurrentItem(with: nil)
         playerItem = nil
+        videoOutput = nil
+        didRenderFirstFrame = false
+        didStabilizeVisualLayer = false
 
         sendEvent(["event": "stopped"])
     }

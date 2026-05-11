@@ -359,7 +359,17 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   Future<void> _performSilenceAndStopPlayback() async {
     if (_disposed) return;
     final sourceStack = _debugStackSource(depth: 8);
-    await _performForceSilence();
+    _logPlaybackControlCommand('silence_before_stop');
+    _wantPlay = false;
+    _wantPause = true;
+    _pendingVolume = 0.0;
+    _hasPendingVolume = true;
+    _hls.cancelPendingResume();
+    try {
+      if (_viewReady) {
+        await _hls.setVolume(0.0);
+      }
+    } catch (_) {}
     await _performStopPlayback(
       preserveFrameSnapshot: false,
       sourceStack: sourceStack,

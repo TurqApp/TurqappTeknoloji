@@ -448,6 +448,13 @@ extension AgendaControllerFeedPart on AgendaController {
       if (resumed) {
         _lastPlaybackCommandDocId = playbackKey;
         _lastPlaybackCommandAt = now;
+        if (defaultTargetPlatform == TargetPlatform.iOS) {
+          _schedulePlaybackReassert(
+            index: index,
+            docId: post.docID,
+            manager: manager,
+          );
+        }
         return;
       }
     }
@@ -1012,7 +1019,9 @@ extension AgendaControllerFeedPart on AgendaController {
   }
 
   void primeInitialCenteredPost() {
-    if (pauseAll.value || playbackSuspended.value || !isPrimaryFeedRouteVisible) {
+    if (pauseAll.value ||
+        playbackSuspended.value ||
+        !isPrimaryFeedRouteVisible) {
       debugPrint(
         '[FeedPlaybackDecision] action=prime_skip reason=surface_not_ready '
         'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
