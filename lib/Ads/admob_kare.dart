@@ -335,7 +335,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   static String _resolveAdUnitId() {
-    const bool isTestMode = false;
+    const bool isTestMode = kDebugMode;
     final service = ensureAdmobUnitConfigService();
     final availableIds = service.squareAdUnitIdsForCurrentPlatform(
       isTestMode: isTestMode,
@@ -364,7 +364,7 @@ class _AdmobKareState extends State<AdmobKare> {
       error.message.contains('Too many recently failed requests');
 
   static List<String> _squareAdUnitIdsForCurrentPlatform() {
-    const bool isTestMode = false;
+    const bool isTestMode = kDebugMode;
     final service = ensureAdmobUnitConfigService();
     final ids = service.squareAdUnitIdsForCurrentPlatform(
       isTestMode: isTestMode,
