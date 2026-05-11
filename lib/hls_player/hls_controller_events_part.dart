@@ -412,6 +412,33 @@ extension HLSControllerEventsPart on HLSController {
     final seekAlreadyApplied = effectiveSeekSeconds != null &&
         effectiveSeekSeconds > 0.05 &&
         (currentPosition - effectiveSeekSeconds).abs() <= 0.18;
+    final restorePayload = <String, dynamic>{
+      'viewId': _viewId ?? -1,
+      'videoId': _telemetryVideoId ?? '',
+      'url': _currentUrl ?? '',
+      'seekSeconds': seekSeconds ?? -1,
+      'effectiveSeekSeconds': effectiveSeekSeconds ?? -1,
+      'resumePlay': resumePlay,
+      'shouldRestoreFromReattach': shouldRestoreFromReattach,
+      'currentPositionMs': (currentPosition * 1000).round(),
+      'hasStableVisualResume': hasStableVisualResume,
+      'seekAlreadyApplied': seekAlreadyApplied,
+      'state': _state.name,
+      'firstFrame': _hasRenderedFirstFrame,
+      'visibleFrame': _hasVisibleVideoFrame,
+      'awaitingFresh': _awaitingFreshFrameAfterReattach,
+    };
+    if (kDebugMode && !_suppressHlsSmokeLogs) {
+      debugPrint(
+        '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] '
+        'reattachRestoreDecision payload=$restorePayload',
+      );
+    }
+    recordQALabVideoEvent(
+      code: 'reattach_restore_decision',
+      message: 'reattach playback restore decision',
+      metadata: restorePayload,
+    );
     if (!shouldRestoreFromReattach) {
       if (resumePlay) {
         try {
@@ -420,7 +447,7 @@ extension HLSControllerEventsPart on HLSController {
       }
       return;
     }
-    if (hasStableVisualResume && seekAlreadyApplied) {
+    if (!resumePlay && hasStableVisualResume && seekAlreadyApplied) {
       return;
     }
     if (effectiveSeekSeconds != null &&
@@ -432,9 +459,6 @@ extension HLSControllerEventsPart on HLSController {
     }
     if (!resumePlay) return;
     if (_state == PlayerState.playing || _state == PlayerState.buffering) {
-      return;
-    }
-    if (hasStableVisualResume && seekAlreadyApplied) {
       return;
     }
     try {

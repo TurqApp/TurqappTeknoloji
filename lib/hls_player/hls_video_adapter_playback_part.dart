@@ -84,6 +84,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         pendingSeek != null &&
         pendingSeek > Duration.zero &&
         !(defaultTargetPlatform == TargetPlatform.iOS && _isFeedStyleSurface);
+    final shouldPreferRestartResumePoster =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isFeedStyleSurface &&
+            autoPlay &&
+            pendingSeek != null &&
+            pendingSeek > const Duration(milliseconds: 80);
 
     _pendingReloadOnReady = false;
     _isStopped = false;
@@ -98,6 +104,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         ' nativeAutoPlay=${shouldDeferAutoplayUntilSeek ? false : autoPlay}'
         ' deferUntilSeek=$shouldDeferAutoplayUntilSeek'
         ' pendingSeekMs=${pendingSeek?.inMilliseconds ?? -1}'
+        ' restartResumePoster=$shouldPreferRestartResumePoster'
         ' primaryFeedSurface=$_isPrimaryFeedSurface'
         ' feedStyleSurface=$_isFeedStyleSurface'
         ' viewReady=$_viewReady'
@@ -111,6 +118,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       fallbackUrl: _fallbackUrl,
       autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
       loop: loop,
+      preferResumePoster: shouldPreferRestartResumePoster ? true : null,
       debugSource: '$debugSource.restartLoad',
     );
     if (autoPlay) {

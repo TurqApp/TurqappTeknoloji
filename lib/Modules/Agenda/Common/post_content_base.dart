@@ -1211,6 +1211,11 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return false;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
+        value.awaitingFreshFrameAfterReattach &&
+        !value.hasVisibleVideoFrame) {
+      return false;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
           widget.shouldPlay &&
@@ -1282,14 +1287,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         ? 'hide'
         : (!widget.shouldPlay || !_isSurfacePlaybackAllowed)
             ? 'pinned_inactive'
-            : !value.hasRenderedFirstFrame
-                ? 'waiting_first_frame'
-                : value.isBuffering
-                    ? 'buffering'
-                    : !value.isPlaying &&
-                            value.position <= _stableFramePositionThreshold
-                        ? 'not_playing_before_threshold'
-                        : 'visible_decision_false';
+            : value.awaitingFreshFrameAfterReattach &&
+                    !value.hasVisibleVideoFrame
+                ? 'ios_reattach_waiting_fresh_frame'
+                : !value.hasRenderedFirstFrame
+                    ? 'waiting_first_frame'
+                    : value.isBuffering
+                        ? 'buffering'
+                        : !value.isPlaying &&
+                                value.position <= _stableFramePositionThreshold
+                            ? 'not_playing_before_threshold'
+                            : 'visible_decision_false';
     debugPrint(
       '[PosterOverlayDecision][${widget.model.docID}] source=$source '
       'surface=$_qaSurfaceName hide=$shouldHidePoster '

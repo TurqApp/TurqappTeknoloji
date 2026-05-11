@@ -285,6 +285,8 @@ class HLSController {
     String? fallbackUrl,
     bool autoPlay = true,
     bool loop = false,
+    bool? preferResumePoster,
+    bool? suppressPauseSnapshot,
     String debugSource = 'unspecified',
   }) {
     return HLSControllerPlaybackPart(this).loadVideoWithFallback(
@@ -292,6 +294,8 @@ class HLSController {
       fallbackUrl: fallbackUrl,
       autoPlay: autoPlay,
       loop: loop,
+      preferResumePoster: preferResumePoster,
+      suppressPauseSnapshot: suppressPauseSnapshot,
       debugSource: debugSource,
     );
   }
