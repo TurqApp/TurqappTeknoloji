@@ -370,8 +370,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         await _hls.setVolume(0.0);
       }
     } catch (_) {}
+    final shouldPreserveResumeSnapshot =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isFeedStyleSurface &&
+            (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame);
     await _performStopPlayback(
-      preserveFrameSnapshot: false,
+      preserveFrameSnapshot: shouldPreserveResumeSnapshot,
       sourceStack: sourceStack,
     );
   }
