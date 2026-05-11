@@ -168,9 +168,11 @@ extension HLSControllerEventsPart on HLSController {
                     : PlayerState.ready,
               );
             }
+            final shouldSynthesizeFirstFrameFromProgress = position > 0.05 &&
+                (defaultTargetPlatform == TargetPlatform.android ||
+                    _hasPlaybackIntent);
             if (!_hasRenderedFirstFrame &&
-                defaultTargetPlatform == TargetPlatform.android &&
-                position > 0.05) {
+                shouldSynthesizeFirstFrameFromProgress) {
               _lastFirstFrameAtEpochMs ??= _eventNowEpochMs();
               _markFirstFrameRendered();
               _recordResumePosterTiming(
@@ -225,9 +227,18 @@ extension HLSControllerEventsPart on HLSController {
               }
             } else if (phase == 'video_play') {
               _lastPosterLiftedAtEpochMs = phaseStartedAt;
+              if (event['didRenderFirstFrame'] == true || _hasPlaybackIntent) {
+                _lastFirstFrameAtEpochMs ??= _eventNowEpochMs();
+                _markFirstFrameRendered();
+              }
               if (!_hasVisibleVideoFrame) {
                 _hasVisibleVideoFrame = true;
                 _emitVisibleVideoFrame(true);
+              }
+              if (_hasPlaybackIntent &&
+                  _state != PlayerState.completed &&
+                  _state != PlayerState.playing) {
+                _updateState(PlayerState.playing);
               }
               _recordResumePosterTiming(
                 'video_play',

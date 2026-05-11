@@ -606,6 +606,9 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (hlsAdapterHandle != null &&
           !hlsAdapterHandle.value.hasRenderedFirstFrame &&
           !hlsAdapterHandle.value.hasVisibleVideoFrame &&
+          !hlsAdapterHandle.value.isPlaying &&
+          !hlsAdapterHandle.value.isBuffering &&
+          hlsAdapterHandle.value.position <= Duration.zero &&
           !hlsAdapterHandle.value.isCompleted &&
           attempt < _videoStateManagerMaxPendingPlayRetries) {
         if (kDebugMode) {

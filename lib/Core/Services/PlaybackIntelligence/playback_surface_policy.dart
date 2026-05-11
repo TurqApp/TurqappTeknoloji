@@ -23,7 +23,7 @@ class PlaybackSurfacePolicy {
     milliseconds: 2500,
   );
   static const Duration iosFeedResumePositionCushion = Duration(
-    milliseconds: 350,
+    milliseconds: 150,
   );
 
   static bool useTightAndroidWarmProfile({
