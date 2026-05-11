@@ -170,6 +170,13 @@ class _UserStoryContentState extends State<UserStoryContent>
     }
   }
 
+  String currentStoryIdForParent() {
+    if (storyIndex < 0 || storyIndex >= widget.user.stories.length) {
+      return '';
+    }
+    return widget.user.stories[storyIndex].id;
+  }
+
   @override
   void dispose() {
     _timer?.cancel();

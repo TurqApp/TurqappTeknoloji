@@ -57,6 +57,8 @@ class _StoryInteractionOptimizerRuntimePart {
     if (_service._pendingWrites.isEmpty || _service._isWriting) return;
 
     _service._isWriting = true;
+    var currentWrites = const <String, int>{};
+    var currentUsers = const <String>{};
     try {
       final uid = _service._userService.effectiveUserId;
       if (uid.isEmpty) {
@@ -64,8 +66,8 @@ class _StoryInteractionOptimizerRuntimePart {
         return;
       }
 
-      final currentWrites = Map<String, int>.from(_service._pendingWrites);
-      final currentUsers = Set<String>.from(_service._pendingUsers);
+      currentWrites = Map<String, int>.from(_service._pendingWrites);
+      currentUsers = Set<String>.from(_service._pendingUsers);
 
       _service._pendingWrites.clear();
       _service._pendingUsers.clear();
@@ -92,13 +94,10 @@ class _StoryInteractionOptimizerRuntimePart {
       debugPrint('Story batch write error: $e');
 
       try {
-        final retryWrites = Map<String, int>.from(_service._pendingWrites);
-        final retryUsers = Set<String>.from(_service._pendingUsers);
-
-        for (final entry in retryWrites.entries) {
+        for (final entry in currentWrites.entries) {
           _service._pendingWrites[entry.key] = entry.value;
         }
-        _service._pendingUsers.addAll(retryUsers);
+        _service._pendingUsers.addAll(currentUsers);
 
         Timer(const Duration(seconds: 2), _flushPendingWrites);
       } catch (retryError) {

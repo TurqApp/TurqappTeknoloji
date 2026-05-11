@@ -35,83 +35,13 @@ class StoryModel {
 
   /// Firestore dokümanından StoryModel’a dönüştürür
   factory StoryModel.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
-    final normalizedHlsVideoUrl = (data['hlsVideoUrl'] as String? ?? '').trim();
-    // elements dizisini Map’lerden StoryElement nesnelerine dönüştür
-    final elems =
-        (data['elements'] as List).cast<Map<String, dynamic>>().map((m) {
-      // Türü String’ten enum’a çevir
-      final typeStr = m['type'] as String;
-      final type = StoryElementType.values.firstWhere(
-        (e) => e.toString().split('.').last == typeStr,
-      );
-      // Pozisyon
-      final posMap = m['position'] as Map<String, dynamic>;
-      final pos = Offset(
-        (posMap['x'] as num).toDouble(),
-        (posMap['y'] as num).toDouble(),
-      );
-      return StoryElement(
-        type: type,
-        content:
-            type == StoryElementType.video && normalizedHlsVideoUrl.isNotEmpty
-                ? normalizedHlsVideoUrl
-                : m['content'] as String,
-        width: (m['width'] as num).toDouble(),
-        height: (m['height'] as num).toDouble(),
-        position: pos,
-        rotation: (m['rotation'] as num).toDouble(),
-        zIndex: m['zIndex'] as int,
-        isMuted: m['isMuted'] as bool,
-        fontSize: (m['fontSize'] as num).toDouble(),
-        aspectRatio: (m['aspectRatio'] as num?)?.toDouble() ??
-            1.0, // Default 1.0 if missing
-        textColor: (m['textColor'] as int?) ?? 0xFFFFFFFF,
-        textBgColor: (m['textBgColor'] as int?) ?? 0x66000000,
-        hasTextBg: (m['hasTextBg'] as bool?) ?? false,
-        textAlign: (m['textAlign'] as String?) ?? 'center',
-        fontWeight: (m['fontWeight'] as String?) ?? 'regular',
-        italic: (m['italic'] as bool?) ?? false,
-        underline: (m['underline'] as bool?) ?? false,
-        shadowBlur: (m['shadowBlur'] as num?)?.toDouble() ?? 2.0,
-        shadowOpacity: (m['shadowOpacity'] as num?)?.toDouble() ?? 0.6,
-        fontFamily: (m['fontFamily'] as String?) ?? 'MontserratMedium',
-        hasOutline: (m['hasOutline'] as bool?) ?? false,
-        outlineColor: (m['outlineColor'] as int?) ?? 0xFF000000,
-        stickerType: (m['stickerType'] as String?) ?? '',
-        stickerData: (m['stickerData'] as String?) ?? '',
-        mediaLookPreset: (m['mediaLookPreset'] as String?) ?? 'original',
-      );
-    }).toList();
-
-    // createdAt field'ının güvenli parsing'i
-    DateTime parseCreatedAt() {
-      final createdAtData = data['createdDate'];
-      if (createdAtData is Timestamp) {
-        return createdAtData.toDate();
-      } else if (createdAtData is int) {
-        return DateTime.fromMillisecondsSinceEpoch(createdAtData);
-      } else {
-        // Fallback - şimdiki zaman
-        return DateTime.now();
-      }
+    final data = Map<String, dynamic>.from(doc.data() ?? const {});
+    final createdDate = data['createdDate'];
+    if (createdDate is Timestamp) {
+      data['createdDate'] = createdDate.millisecondsSinceEpoch;
     }
-
-    return StoryModel(
-      id: doc.id,
-      userId: data['userId'] as String,
-      createdAt: parseCreatedAt(),
-      backgroundColor: Color(data['backgroundColor'] as int),
-      musicId: data['musicId'] as String? ?? "",
-      musicUrl: data['musicUrl'] as String? ?? "",
-      musicTitle: data['musicTitle'] as String? ?? "",
-      musicArtist: data['musicArtist'] as String? ?? "",
-      musicCoverUrl: data['musicCoverUrl'] as String? ?? "",
-      hlsVideoUrl: normalizedHlsVideoUrl,
-      shortId: data['shortId'] as String? ?? "",
-      shortUrl: data['shortUrl'] as String? ?? "",
-      elements: elems,
-    );
+    data['id'] = doc.id;
+    return StoryModel.fromCacheMap(data);
   }
 
   /// StoryModel’ı Firestore’a yazmak üzere Map’e çevirir
@@ -207,9 +137,10 @@ class StoryModel {
 
   factory StoryModel.fromCacheMap(Map<String, dynamic> data) {
     final normalizedHlsVideoUrl = (data['hlsVideoUrl'] ?? '').toString().trim();
-    final rawElements =
-        (data['elements'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-    final elems = rawElements.map((m) {
+    final rawElements = data['elements'];
+    final elementItems = rawElements is List ? rawElements : const [];
+    final elems = elementItems.whereType<Map>().map((raw) {
+      final m = raw.map((key, value) => MapEntry('$key', value));
       final typeStr = (m['type'] ?? 'text').toString();
       final type = StoryElementType.values.firstWhere(
         (e) => e.toString().split('.').last == typeStr,

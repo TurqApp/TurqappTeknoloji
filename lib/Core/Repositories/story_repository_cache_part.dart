@@ -16,6 +16,25 @@ extension StoryRepositoryCachePart on StoryRepository {
     return fallback;
   }
 
+  int _storyRowDiversityTopUpLimit(
+    QuerySnapshot<Map<String, dynamic>> snap, {
+    required int requestedLimit,
+  }) {
+    if (requestedLimit < 6 || requestedLimit >= 30) return requestedLimit;
+    if (snap.docs.length < requestedLimit) return requestedLimit;
+
+    final ownerIds = <String>{};
+    for (final doc in snap.docs) {
+      final ownerId = (doc.data()['userId'] ?? '').toString().trim();
+      if (ownerId.isNotEmpty) ownerIds.add(ownerId);
+    }
+    final desiredDiversity = requestedLimit < 5 ? requestedLimit : 5;
+    if (ownerIds.length >= desiredDiversity) return requestedLimit;
+
+    final widenedLimit = requestedLimit * 3;
+    return widenedLimit > 30 ? 30 : widenedLimit;
+  }
+
   Future<StoryFetchResult> _performFetchStoryUsers({
     required int limit,
     required bool cacheFirst,
@@ -24,6 +43,7 @@ extension StoryRepositoryCachePart on StoryRepository {
   }) async {
     QuerySnapshot<Map<String, dynamic>> snap;
     var cacheHit = false;
+    var snapFromServer = false;
 
     if (cacheFirst) {
       snap = await PerformanceService.traceOperation(
@@ -45,6 +65,7 @@ extension StoryRepositoryCachePart on StoryRepository {
               .limit(limit)
               .get(),
         );
+        snapFromServer = true;
       }
     } else {
       snap = await PerformanceService.traceOperation(
@@ -53,6 +74,22 @@ extension StoryRepositoryCachePart on StoryRepository {
             .collection('stories')
             .orderBy('createdDate', descending: true)
             .limit(limit)
+            .get(),
+      );
+      snapFromServer = true;
+    }
+
+    final topUpLimit = _storyRowDiversityTopUpLimit(
+      snap,
+      requestedLimit: limit,
+    );
+    if (snapFromServer && topUpLimit > limit) {
+      snap = await PerformanceService.traceOperation(
+        'story_load_diversity_top_up',
+        () => AppFirestore.instance
+            .collection('stories')
+            .orderBy('createdDate', descending: true)
+            .limit(topUpLimit)
             .get(),
       );
     }

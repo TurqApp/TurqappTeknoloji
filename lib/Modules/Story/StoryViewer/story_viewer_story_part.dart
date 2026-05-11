@@ -38,7 +38,17 @@ extension StoryViewerStoryPart on _StoryViewerState {
       final storyOwner = widget.storyOwnerUsers[currentPageIndex];
       if (storyOwner.userID == uid) return;
       if (storyOwner.stories.isNotEmpty) {
-        final currentStoryId = storyOwner.stories.first.id;
+        var currentStoryId = '';
+        try {
+          final dynamic state = _pageKeys[currentPageIndex]?.currentState;
+          final candidate = state?.currentStoryIdForParent();
+          if (candidate is String) {
+            currentStoryId = candidate.trim();
+          }
+        } catch (_) {}
+        if (currentStoryId.isEmpty) {
+          currentStoryId = storyOwner.stories.first.id;
+        }
         StoryRepository.ensure().addScreenshotEvent(
           currentStoryId,
           userId: uid,
