@@ -89,6 +89,7 @@ extension HLSControllerEventsPart on HLSController {
 
           case 'play':
             _lastPlayAtEpochMs = _eventNowEpochMs();
+            _hasPlaybackIntent = true;
             _recordResumePosterTiming('play');
             _updateState(PlayerState.playing);
             break;
@@ -130,7 +131,9 @@ extension HLSControllerEventsPart on HLSController {
               if (_telemetryVideoId != null) {
                 _telemetry.onBufferingEnd(_telemetryVideoId!);
               }
-              _updateState(PlayerState.playing);
+              _updateState(
+                _hasPlaybackIntent ? PlayerState.playing : PlayerState.ready,
+              );
             }
             break;
 
@@ -160,7 +163,9 @@ extension HLSControllerEventsPart on HLSController {
             }
             if (_state == PlayerState.loading || _state == PlayerState.idle) {
               _updateState(
-                position > 0 ? PlayerState.playing : PlayerState.ready,
+                position > 0 && _hasPlaybackIntent
+                    ? PlayerState.playing
+                    : PlayerState.ready,
               );
             }
             if (!_hasRenderedFirstFrame &&
@@ -178,6 +183,7 @@ extension HLSControllerEventsPart on HLSController {
             if (_telemetryVideoId != null) {
               _telemetry.onCompleted(_telemetryVideoId!);
             }
+            _hasPlaybackIntent = false;
             _updateState(PlayerState.completed);
             break;
 
@@ -289,6 +295,12 @@ extension HLSControllerEventsPart on HLSController {
                 },
               );
             }
+            _hasPlaybackIntent = false;
+            if (_state == PlayerState.completed || _isAtPlaybackEnd) {
+              _updateState(PlayerState.completed);
+            } else {
+              _updateState(PlayerState.idle);
+            }
             if (_hasRenderedFirstFrame) {
               _hasRenderedFirstFrame = false;
               _emitFirstFrame(false);
@@ -296,11 +308,6 @@ extension HLSControllerEventsPart on HLSController {
             if (_hasVisibleVideoFrame) {
               _hasVisibleVideoFrame = false;
               _emitVisibleVideoFrame(false);
-            }
-            if (_state == PlayerState.completed || _isAtPlaybackEnd) {
-              _updateState(PlayerState.completed);
-            } else {
-              _updateState(PlayerState.idle);
             }
             break;
 

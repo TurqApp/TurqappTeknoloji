@@ -49,6 +49,7 @@ extension HLSControllerPlaybackPart on HLSController {
         ((_pendingReattachShouldPlay) ||
             ((_pendingReattachSeekSeconds ?? 0.0) > 0.05));
     final sameVideoReload = _currentUrl == url && _shouldPreserveResumeVisual;
+    _hasPlaybackIntent = autoPlay;
     _currentUrl = url;
     _isLooping = loop;
     _resetVisualTimingMarkers();
@@ -101,6 +102,7 @@ extension HLSControllerPlaybackPart on HLSController {
 
   Future<void> play() async {
     if (_isInactive || _viewId == null) return;
+    _hasPlaybackIntent = true;
 
     try {
       await HLSController._methodChannel
@@ -113,6 +115,7 @@ extension HLSControllerPlaybackPart on HLSController {
   Future<void> pause() async {
     if (_isInactive || _viewId == null) return;
     cancelPendingResume();
+    _hasPlaybackIntent = false;
 
     try {
       await HLSController._methodChannel
@@ -171,6 +174,7 @@ extension HLSControllerPlaybackPart on HLSController {
   }) async {
     if (_isInactive || _viewId == null) return;
     cancelPendingResume();
+    _hasPlaybackIntent = false;
     try {
       await HLSController._methodChannel.invokeMethod('stopPlayback', {
         'viewId': _viewId,

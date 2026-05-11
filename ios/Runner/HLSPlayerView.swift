@@ -416,6 +416,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         isAutoPlay = autoPlay
         if !autoPlay {
             autoplayRequestWorkItem?.cancel()
+            didRequestInitialPlay = false
             return
         }
         didRequestInitialPlay = false
@@ -602,6 +603,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
                     self?.lastObservedTimeControlStatus = status
                     switch status {
                 case .playing:
+                        if self?.hasNativePlayIntent() != true {
+                            self?.log("timeControlStatus=playing_without_intent url=\(self?.currentUrl ?? "-")")
+                            player.pause()
+                            self?.logVisualCheckpoint("timeControlStatus:playing_without_intent_paused")
+                            return
+                        }
                         self?.log("timeControlStatus=playing url=\(self?.currentUrl ?? "-")")
                         self?.logVisualCheckpoint("timeControlStatus:playing")
                         if self?.didRenderFirstFrame == false {
@@ -681,6 +688,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         }
     }
 
+    private func hasNativePlayIntent() -> Bool {
+        let normalizedUrl = currentUrl ?? ""
+        let hasExplicitPlayIntent =
+            !normalizedUrl.isEmpty &&
+            lastExplicitPlayUrl == normalizedUrl &&
+            !(lastExplicitPauseUrl == normalizedUrl && lastExplicitPauseAt >= lastExplicitPlayAt)
+        return isAutoPlay || didRequestInitialPlay || hasExplicitPlayIntent
+    }
+
     private func requestAutoplayIfNeeded(force: Bool) {
         guard (isAutoPlay || force), let player = player else { return }
         if didRequestInitialPlay && !force { return }
@@ -741,12 +757,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     private func requestRecoveryAutoplayIfNeeded(source: String) {
         guard let player = player else { return }
-        let normalizedUrl = currentUrl ?? ""
-        let hasExplicitPlayIntent =
-            !normalizedUrl.isEmpty &&
-            lastExplicitPlayUrl == normalizedUrl &&
-            !(lastExplicitPauseUrl == normalizedUrl && lastExplicitPauseAt >= lastExplicitPlayAt)
-        guard isAutoPlay || hasExplicitPlayIntent || didRequestInitialPlay else {
+        guard hasNativePlayIntent() else {
             log("recoveryPlaySkipped source=\(source) reason=no_play_intent url=\(currentUrl ?? "-")")
             return
         }

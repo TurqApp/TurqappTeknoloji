@@ -69,6 +69,7 @@ class HLSController {
   double? _pendingReattachSeekSeconds;
   bool _pendingReattachShouldPlay = false;
   bool _suppressNextReattachResume = false;
+  bool _hasPlaybackIntent = false;
   int _rendererStallCount = 0;
   int _surfaceRebindCount = 0;
   bool _isDisposing = false;
@@ -155,6 +156,7 @@ class HLSController {
 
   Future<void> updateAutoplayIntent(bool autoPlay) async {
     if (_isInactive || _viewId == null) return;
+    _hasPlaybackIntent = autoPlay;
     try {
       await _methodChannel.invokeMethod('setAutoplayIntent', {
         'viewId': _viewId,
