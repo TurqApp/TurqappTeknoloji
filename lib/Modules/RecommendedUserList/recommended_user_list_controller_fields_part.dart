@@ -23,6 +23,8 @@ class _RecommendedUserListControllerState {
   DateTime? lastFollowingLoadTime;
   final Duration cacheValidDuration = const Duration(minutes: 10);
   final Duration followingCacheValidDuration = const Duration(minutes: 30);
+  final String recommendationSessionSeed =
+      DateTime.now().microsecondsSinceEpoch.toString();
 }
 
 extension RecommendedUserListControllerFieldsPart
@@ -59,4 +61,5 @@ extension RecommendedUserListControllerFieldsPart
   Duration get _cacheValidDuration => _state.cacheValidDuration;
   Duration get _followingCacheValidDuration =>
       _state.followingCacheValidDuration;
+  String get recommendationSessionSeed => _state.recommendationSessionSeed;
 }

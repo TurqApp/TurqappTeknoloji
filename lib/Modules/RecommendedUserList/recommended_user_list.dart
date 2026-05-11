@@ -137,9 +137,7 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
     int batch,
   ) {
     if (items.length < 2) return List<RecommendedUserModel>.from(items);
-    final now = DateTime.now();
-    final daySeed = now.year * 10000 + now.month * 100 + now.day;
-    final seed = 'recommended:$daySeed:$batch';
+    final seed = 'recommended:${controller.recommendationSessionSeed}:$batch';
     final ranked = List<RecommendedUserModel>.from(items);
     ranked.sort((left, right) {
       final leftScore = _stableHash('$seed:${left.userID}');
