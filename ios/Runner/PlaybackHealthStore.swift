@@ -92,6 +92,7 @@ final class PlaybackHealthStore {
         merged["overlayVisible"] = payload["overlayVisible"] as? Bool ?? false
         merged["preferResumePoster"] = payload["preferResumePoster"] as? Bool ?? false
         merged["didRenderFirstFrame"] = payload["didRenderFirstFrame"] as? Bool ?? false
+        merged["snapshotCaptureSource"] = payload["snapshotCaptureSource"] as? String ?? ""
         merged["url"] = payload["url"] as? String ?? ""
         merged["raw"] = "\(merged)"
         lastSnapshot = merged

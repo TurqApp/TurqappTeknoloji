@@ -79,6 +79,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private var preferStableStartupBuffer: Bool = false
     private var lastNativeVisualPhase: String?
     private var lastNativeVisualPhaseAtEpochMs: Int64 = 0
+    private var lastFrameSnapshotCaptureSource: String = ""
 
     private func log(_ message: String) {
         print("[HLSPlayerView] \(message)")
@@ -985,7 +986,12 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     }
 
     private func currentFrameSnapshot() -> UIImage? {
-        guard let output = videoOutput else { return nil }
+        lastFrameSnapshotCaptureSource = "none"
+        guard let output = videoOutput else {
+            lastFrameSnapshotCaptureSource = "missing_video_output"
+            log("snapshotCapture source=missing_video_output url=\(currentUrl ?? "-")")
+            return nil
+        }
 
         let candidateTimes: [CMTime] = [
             player?.currentTime() ?? .invalid,
@@ -997,11 +1003,15 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             if let pixelBuffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: &displayTime) {
                 let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
                 if let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) {
+                    lastFrameSnapshotCaptureSource = "pixel_buffer"
+                    log("snapshotCapture source=pixel_buffer url=\(currentUrl ?? "-")")
                     return UIImage(cgImage: cgImage)
                 }
             }
         }
 
+        lastFrameSnapshotCaptureSource = "layer_render"
+        log("snapshotCapture source=layer_render url=\(currentUrl ?? "-")")
         return fallbackViewSnapshot()
     }
 
@@ -1068,6 +1078,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             "overlayVisible": !_view.snapshotView.isHidden,
             "didRenderFirstFrame": didRenderFirstFrame,
             "preferResumePoster": preferResumePoster,
+            "snapshotCaptureSource": lastFrameSnapshotCaptureSource,
             "url": currentUrl ?? "",
         ]
         log("visualPhase phase=\(phase) source=\(source) overlayVisible=\(!_view.snapshotView.isHidden) url=\(currentUrl ?? "-")")

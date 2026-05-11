@@ -190,6 +190,9 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'visualPhaseDurationMs':
           _asInt(lastNativePlaybackSnapshot['visualPhaseDurationMs']),
       'overlayVisible': lastNativePlaybackSnapshot['overlayVisible'] == true,
+      'snapshotCaptureSource':
+          (lastNativePlaybackSnapshot['snapshotCaptureSource'] ?? '')
+              .toString(),
     };
     final hasRecoveredPlaybackAtSample = hasFirstFrame &&
         isPlaying &&

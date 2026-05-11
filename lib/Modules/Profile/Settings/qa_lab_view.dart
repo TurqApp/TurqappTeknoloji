@@ -264,7 +264,8 @@ class _QALabViewState extends State<QALabView> {
                         'nativeStalls=${item.runtime['nativePlaybackStallCount'] ?? 0} '
                         'visual=${item.runtime['nativeVisualPhase'] ?? '-'} '
                         'visualMs=${item.runtime['nativeVisualPhaseDurationMs'] ?? 0} '
-                        'overlay=${item.runtime['nativeOverlayVisible'] ?? false}' : ''}',
+                        'overlay=${item.runtime['nativeOverlayVisible'] ?? false} '
+                        'snapshot=${item.runtime['nativeSnapshotCaptureSource'] ?? '-'}' : ''}',
                   ),
                 ),
               ),

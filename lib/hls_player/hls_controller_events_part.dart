@@ -251,6 +251,8 @@ extension HLSControllerEventsPart on HLSController {
                 'overlayVisible': event['overlayVisible'] == true,
                 'didRenderFirstFrame': event['didRenderFirstFrame'] == true,
                 'preferResumePoster': event['preferResumePoster'] == true,
+                'snapshotCaptureSource':
+                    (event['snapshotCaptureSource'] ?? '').toString(),
               },
             );
             if (kDebugMode && !_suppressHlsSmokeLogs) {
@@ -261,6 +263,40 @@ extension HLSControllerEventsPart on HLSController {
             break;
 
           case 'stopped':
+            final hadVisualState =
+                _hasRenderedFirstFrame || _hasVisibleVideoFrame;
+            if (hadVisualState) {
+              if (kDebugMode && !_suppressHlsSmokeLogs) {
+                debugPrint(
+                  '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] '
+                  'stoppedClearVisualState firstFrame=$_hasRenderedFirstFrame '
+                  'visibleFrame=$_hasVisibleVideoFrame '
+                  'positionMs=${(_currentPosition * 1000).round()} '
+                  'url=$_currentUrl',
+                );
+              }
+              recordQALabVideoEvent(
+                code: 'playback_visual_reset_on_stopped',
+                message:
+                    'native playback stopped; cleared stale Flutter visual frame state',
+                metadata: <String, dynamic>{
+                  'viewId': _viewId ?? -1,
+                  'videoId': _telemetryVideoId ?? '',
+                  'url': _currentUrl ?? '',
+                  'hadRenderedFirstFrame': _hasRenderedFirstFrame,
+                  'hadVisibleVideoFrame': _hasVisibleVideoFrame,
+                  'positionMs': (_currentPosition * 1000).round(),
+                },
+              );
+            }
+            if (_hasRenderedFirstFrame) {
+              _hasRenderedFirstFrame = false;
+              _emitFirstFrame(false);
+            }
+            if (_hasVisibleVideoFrame) {
+              _hasVisibleVideoFrame = false;
+              _emitVisibleVideoFrame(false);
+            }
             if (_state == PlayerState.completed || _isAtPlaybackEnd) {
               _updateState(PlayerState.completed);
             } else {

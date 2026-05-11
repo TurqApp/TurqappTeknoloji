@@ -220,6 +220,10 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
       if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativeOverlayVisible':
             lastNativePlaybackSnapshot['overlayVisible'] == true,
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
+        'nativeSnapshotCaptureSource':
+            (lastNativePlaybackSnapshot['snapshotCaptureSource'] ?? '')
+                .toString(),
     };
   }
 }

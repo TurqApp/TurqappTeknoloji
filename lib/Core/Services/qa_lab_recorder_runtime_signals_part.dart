@@ -74,6 +74,8 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
         nestedSnapshot['preferResumePoster'],
         fallback: false,
       ),
+      'snapshotCaptureSource':
+          (nestedSnapshot['snapshotCaptureSource'] ?? '').toString(),
       'awaitingFullscreenRecovery': _runtimeSignalAsBool(
         nestedSnapshot['awaitingFullscreenRecovery'],
         fallback: false,
@@ -123,6 +125,7 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
         _asInt(previous['visualPhaseDurationMs']) ==
             _asInt(current['visualPhaseDurationMs']) &&
         previous['overlayVisible'] == current['overlayVisible'] &&
+        previous['snapshotCaptureSource'] == current['snapshotCaptureSource'] &&
         listEquals(previousErrors, currentErrors);
   }
 
