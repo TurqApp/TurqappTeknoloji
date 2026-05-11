@@ -357,6 +357,7 @@ extension EducationControllerPasajPart on EducationController {
 
   void onTabTap(int visibleIndex) {
     final actualIndex = actualIndexForVisible(visibleIndex);
+    _clearProgrammaticPasajPageTarget();
     selectedTab.value = actualIndex;
     pageController.jumpToPage(visibleIndex);
     _syncTabBarPosition(visibleIndex);
@@ -377,6 +378,10 @@ extension EducationControllerPasajPart on EducationController {
     }
 
     final visibleIndex = visibleIndexForActual(actualIndex);
+    _markProgrammaticPasajPageTarget(visibleIndex);
+    _startupPreferredTabId = normalized;
+    _didApplyStartupPreferredTab = true;
+    _lastExplicitPasajOpenAt = DateTime.now();
     selectedTab.value = actualIndex;
     if (pageController.hasClients) {
       pageController.jumpToPage(visibleIndex);
@@ -396,13 +401,52 @@ extension EducationControllerPasajPart on EducationController {
   }
 
   void onPageChanged(int visibleIndex) {
+    if (_shouldIgnoreProgrammaticPasajPageChange(visibleIndex)) {
+      return;
+    }
     final actualIndex = actualIndexForVisible(visibleIndex);
+    _clearProgrammaticPasajPageTarget();
     selectedTab.value = actualIndex;
     _syncTabBarPosition(visibleIndex);
     _restoreSearchForTab(actualIndex);
     resetActivePasajSurfaceToTop();
     _suppressBackgroundFeedMedia();
     _primeVisiblePasajSurface(actualIndex);
+  }
+
+  void _markProgrammaticPasajPageTarget(int visibleIndex) {
+    _programmaticPasajVisibleIndex = visibleIndex;
+    _programmaticPasajUntil =
+        DateTime.now().add(const Duration(milliseconds: 900));
+  }
+
+  void _clearProgrammaticPasajPageTarget() {
+    _programmaticPasajVisibleIndex = -1;
+    _programmaticPasajUntil = DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  bool _shouldIgnoreProgrammaticPasajPageChange(int visibleIndex) {
+    final targetVisibleIndex = _programmaticPasajVisibleIndex;
+    if (targetVisibleIndex < 0) {
+      return false;
+    }
+    if (DateTime.now().isAfter(_programmaticPasajUntil)) {
+      _clearProgrammaticPasajPageTarget();
+      return false;
+    }
+    if (visibleIndex == targetVisibleIndex) {
+      _clearProgrammaticPasajPageTarget();
+      return false;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pageController.hasClients) {
+        pageController.jumpToPage(targetVisibleIndex);
+      }
+    });
+    debugPrint(
+      '[EducationPasaj] ignored stale page change visible=$visibleIndex target=$targetVisibleIndex',
+    );
+    return true;
   }
 
   void _primeVisiblePasajSurface(int actualIndex) {
@@ -486,10 +530,14 @@ extension EducationControllerPasajPart on EducationController {
   Future<void> _loadStartupPreferredTabHint() async {
     final uid = CurrentUserService.instance.effectiveUserId.trim();
     if (uid.isEmpty) return;
+    final requestedAt = DateTime.now();
     try {
       final manifest = await ensureStartupSnapshotManifestStore().load(
         userId: uid,
       );
+      if (_lastExplicitPasajOpenAt.isAfter(requestedAt)) {
+        return;
+      }
       final tabId = (manifest?.extra['educationTabId'] ?? '').toString().trim();
       if (!pasajTabs.contains(tabId)) return;
       _startupPreferredTabId = tabId;

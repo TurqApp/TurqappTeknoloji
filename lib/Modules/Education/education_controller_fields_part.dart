@@ -20,6 +20,9 @@ class _EducationControllerState {
   final adminPasajVisibility = <String, bool>{};
   String? startupPreferredTabId;
   bool didApplyStartupPreferredTab = false;
+  int programmaticPasajVisibleIndex = -1;
+  DateTime programmaticPasajUntil = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime lastExplicitPasajOpenAt = DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 extension EducationControllerFieldsPart on EducationController {
@@ -54,5 +57,15 @@ extension EducationControllerFieldsPart on EducationController {
   bool get _didApplyStartupPreferredTab => _state.didApplyStartupPreferredTab;
   set _didApplyStartupPreferredTab(bool value) =>
       _state.didApplyStartupPreferredTab = value;
+  int get _programmaticPasajVisibleIndex =>
+      _state.programmaticPasajVisibleIndex;
+  set _programmaticPasajVisibleIndex(int value) =>
+      _state.programmaticPasajVisibleIndex = value;
+  DateTime get _programmaticPasajUntil => _state.programmaticPasajUntil;
+  set _programmaticPasajUntil(DateTime value) =>
+      _state.programmaticPasajUntil = value;
+  DateTime get _lastExplicitPasajOpenAt => _state.lastExplicitPasajOpenAt;
+  set _lastExplicitPasajOpenAt(DateTime value) =>
+      _state.lastExplicitPasajOpenAt = value;
   List<String> get titles => pasajTabs;
 }
