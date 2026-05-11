@@ -109,6 +109,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static Timer? _scrollCriticalLiveAdBindingResumeTimer;
   static final Map<String, DateTime> _unitCooldownUntilById =
       <String, DateTime>{};
+  static final Set<String> _loadingUnitIds = <String>{};
   static final Map<String, int> _managedSuggestionNextIndexByPlacement =
       <String, int>{};
   static final Random _suggestionRandom = Random();
@@ -116,6 +117,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
   static Timer? _deferredPoolTopUpTimer;
+  static Timer? _noFillWarmupRetryTimer;
   static int _globalFailureBurstCount = 0;
   static Future<void>? _sdkInitFuture;
   static bool _sdkInitialized = false;
@@ -151,6 +153,10 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _disposeDelay = Duration(milliseconds: 300);
   static const int _maxRetryCount = 4;
   static const Duration _cooldownRetryDelay = Duration(seconds: 30);
+  static const Duration _noFillUnitCooldown = Duration(seconds: 20);
+  static const Duration _noFillFastRetryDelay = Duration(milliseconds: 250);
+  static const Duration _noFillCooldownRetryPadding =
+      Duration(milliseconds: 150);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const Duration _feedScrollCriticalAttachDelay =
@@ -329,12 +335,61 @@ class _AdmobKareState extends State<AdmobKare> {
     for (int i = 0; i < availableIds.length; i++) {
       final candidate = service.nextSquareAdUnitId(isTestMode: isTestMode);
       fallbackCandidate ??= candidate;
-      if (_unitCooldownRemaining(candidate) == Duration.zero) {
+      if (_unitCooldownRemaining(candidate) == Duration.zero &&
+          !_loadingUnitIds.contains(candidate)) {
         return candidate;
       }
     }
     return fallbackCandidate ??
         service.nextSquareAdUnitId(isTestMode: isTestMode);
+  }
+
+  static bool _isNoFillError(LoadAdError error) => error.code == 3;
+
+  static bool _isRetryThrottledError(LoadAdError error) =>
+      error.code == 1 &&
+      error.message.contains('Too many recently failed requests');
+
+  static List<String> _squareAdUnitIdsForCurrentPlatform() {
+    const bool isTestMode = false;
+    final service = ensureAdmobUnitConfigService();
+    final ids = service.squareAdUnitIdsForCurrentPlatform(
+      isTestMode: isTestMode,
+    );
+    if (ids.isNotEmpty) {
+      return ids;
+    }
+    return <String>[service.nextSquareAdUnitId(isTestMode: isTestMode)];
+  }
+
+  static bool _hasAvailableSquareAdUnit() {
+    final ids = _squareAdUnitIdsForCurrentPlatform();
+    for (final id in ids) {
+      if (_unitCooldownRemaining(id) == Duration.zero &&
+          !_loadingUnitIds.contains(id)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static Duration _shortestSquareAdUnitCooldownRemaining() {
+    final ids = _squareAdUnitIdsForCurrentPlatform();
+    Duration? shortest;
+    for (final id in ids) {
+      final remaining = _unitCooldownRemaining(id);
+      if (remaining <= Duration.zero && !_loadingUnitIds.contains(id)) {
+        return Duration.zero;
+      }
+      final effectiveRemaining =
+          _loadingUnitIds.contains(id) && remaining <= Duration.zero
+              ? _noFillFastRetryDelay
+              : remaining;
+      if (shortest == null || effectiveRemaining < shortest) {
+        shortest = effectiveRemaining;
+      }
+    }
+    return shortest ?? _noFillUnitCooldown;
   }
 
   static Duration _unitCooldownRemaining(String adUnitId) {
@@ -354,13 +409,13 @@ class _AdmobKareState extends State<AdmobKare> {
     String adUnitId,
     LoadAdError error,
   ) {
-    if (error.code == 3) {
-      _unitCooldownUntilById[adUnitId] =
-          DateTime.now().add(const Duration(seconds: 20));
+    if (_isNoFillError(error)) {
+      _unitCooldownUntilById[adUnitId] = DateTime.now().add(
+        _noFillUnitCooldown,
+      );
       return;
     }
-    final isRetryThrottled = error.code == 1 &&
-        error.message.contains('Too many recently failed requests');
+    final isRetryThrottled = _isRetryThrottledError(error);
     if (isRetryThrottled) {
       _unitCooldownUntilById[adUnitId] =
           DateTime.now().add(_cooldownRetryDelay);
@@ -447,8 +502,35 @@ class _AdmobKareState extends State<AdmobKare> {
     });
   }
 
+  static void _scheduleNoFillWarmupRetry({
+    required Duration delay,
+    required String debugSource,
+  }) {
+    final activeTimer = _noFillWarmupRetryTimer;
+    if (activeTimer != null && activeTimer.isActive) {
+      return;
+    }
+    _noFillWarmupRetryTimer = Timer(delay, () {
+      _noFillWarmupRetryTimer = null;
+      unawaited(warmupPool(
+        targetCount: _poolTargetCount,
+        maxRequestCount: 1,
+        bypassMinInterval: true,
+        debugSource: debugSource,
+      ));
+    });
+  }
+
   static void _createAndLoadBannerForPool() {
     final adUnitId = _resolveAdUnitId();
+    if (_unitCooldownRemaining(adUnitId) > Duration.zero ||
+        _loadingUnitIds.contains(adUnitId)) {
+      _loadingCount = (_loadingCount - 1).clamp(0, 999);
+      _log(
+          'warmup skipped busy unit=$adUnitId platform=${Platform.operatingSystem}');
+      return;
+    }
+    _loadingUnitIds.add(adUnitId);
     final ad = BannerAd(
       adUnitId: adUnitId,
       size: AdSize.mediumRectangle,
@@ -456,6 +538,7 @@ class _AdmobKareState extends State<AdmobKare> {
       listener: BannerAdListener(
         onAdLoaded: (Ad loadedAd) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
+          _loadingUnitIds.remove(adUnitId);
           _globalFailureBurstCount = 0;
           _globalCooldownUntil = null;
           _unitCooldownUntilById.remove(adUnitId);
@@ -471,13 +554,17 @@ class _AdmobKareState extends State<AdmobKare> {
         },
         onAdFailedToLoad: (Ad failedAd, LoadAdError error) {
           _loadingCount = (_loadingCount - 1).clamp(0, 999);
-          final isRetryThrottled = error.code == 1 &&
-              error.message.contains('Too many recently failed requests');
-          _globalFailureBurstCount =
-              (_globalFailureBurstCount + 1).clamp(1, 99);
+          _loadingUnitIds.remove(adUnitId);
+          final isNoFill = _isNoFillError(error);
+          final isRetryThrottled = _isRetryThrottledError(error);
+          if (!isNoFill) {
+            _globalFailureBurstCount =
+                (_globalFailureBurstCount + 1).clamp(1, 99);
+          }
           _markUnitCooldown(adUnitId, error);
           if (isRetryThrottled ||
-              _globalFailureBurstCount >= _failureBurstBeforeCooldown) {
+              (!isNoFill &&
+                  _globalFailureBurstCount >= _failureBurstBeforeCooldown)) {
             _globalCooldownUntil = DateTime.now().add(_cooldownRetryDelay);
             _log(
                 'warmup cooldown in ${_cooldownRetryDelay.inMilliseconds}ms after code=${error.code} unit=$adUnitId platform=${Platform.operatingSystem}');
@@ -485,6 +572,23 @@ class _AdmobKareState extends State<AdmobKare> {
           _log(
               'warmup failed: code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
           failedAd.dispose();
+          if (isNoFill && _hasAvailableSquareAdUnit()) {
+            _log(
+                'warmup no fill; trying next unit in ${_noFillFastRetryDelay.inMilliseconds}ms after unit=$adUnitId platform=${Platform.operatingSystem}');
+            _scheduleNoFillWarmupRetry(
+              delay: _noFillFastRetryDelay,
+              debugSource: 'no_fill_next_unit',
+            );
+          } else if (isNoFill) {
+            final retryDelay = _shortestSquareAdUnitCooldownRemaining() +
+                _noFillCooldownRetryPadding;
+            _log(
+                'warmup no fill; all units cooling down retry in ${retryDelay.inMilliseconds}ms unit=$adUnitId platform=${Platform.operatingSystem}');
+            _scheduleNoFillWarmupRetry(
+              delay: retryDelay,
+              debugSource: 'no_fill_cooldown_retry',
+            );
+          }
         },
       ),
     );
@@ -663,7 +767,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _handleScrollCriticalAdBindingChanged,
     );
     if (_usePlaceholderOnly) return;
-    if (_usesScrollCriticalPoolOnly && !_prefersManagedSuggestionSurface) {
+    if (_usesScrollCriticalPoolOnly) {
       unawaited(warmupPool(
         targetCount: _poolTargetCount,
         maxRequestCount: _poolTopUpBatchCount,
@@ -716,9 +820,6 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || _usePlaceholderOnly || !_isVisible) {
       return;
     }
-    if (_prefersManagedSuggestionSurface) {
-      return;
-    }
     if (_usesScrollCriticalPoolOnly && _waitingForFuturePool) {
       if (!_scrollCriticalLiveAdBindingPaused.value) {
         _waitingForFuturePool = false;
@@ -754,9 +855,6 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || !_usesScrollCriticalPoolOnly) {
       return;
     }
-    if (_prefersManagedSuggestionSurface) {
-      return;
-    }
     if (_scrollCriticalLiveAdBindingPaused.value) {
       _scrollCriticalAttachDelayTimer?.cancel();
       _scrollCriticalAttachDelayTimer = null;
@@ -775,9 +873,6 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _scheduleScrollCriticalAttachAfterSettle() {
-    if (_prefersManagedSuggestionSurface) {
-      return;
-    }
     if (!_usesScrollCriticalPoolOnly) {
       _attachBannerOrLoad();
       return;
@@ -796,9 +891,6 @@ class _AdmobKareState extends State<AdmobKare> {
 
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
-      return;
-    }
-    if (_prefersManagedSuggestionSurface) {
       return;
     }
     if (_usesScrollCriticalPoolOnly &&
@@ -987,11 +1079,12 @@ class _AdmobKareState extends State<AdmobKare> {
   void _scheduleRetry({
     required Duration delay,
     bool resetRetryCount = false,
+    bool markLoadFailed = true,
   }) {
     _retryTimer?.cancel();
     if (mounted && !_isDisposed) {
       setState(() {
-        _loadFailed = true;
+        _loadFailed = markLoadFailed;
         _isAdLoaded = false;
       });
     }
@@ -1086,18 +1179,6 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     _stableHiddenDetachTimer?.cancel();
     _stableHiddenDetachTimer = null;
-    if (_prefersManagedSuggestionSurface) {
-      if (_usesManagedSuggestion) {
-        if (_suggestionSliderItems.isNotEmpty) {
-          _advanceManagedSuggestionIndex();
-        }
-        _queueManagedSuggestionImpressionIfVisible();
-      }
-      if (mounted && !_isDisposed) {
-        setState(() {});
-      }
-      return;
-    }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
       _advanceManagedSuggestionIndex();
       if (_canRenderAd(_bannerAd)) {
@@ -1211,10 +1292,12 @@ class _AdmobKareState extends State<AdmobKare> {
           final latencyMs = _qaRequestStartedAt == null
               ? 0
               : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
-          final isRetryThrottled = error.code == 1 &&
-              error.message.contains('Too many recently failed requests');
-          _globalFailureBurstCount =
-              (_globalFailureBurstCount + 1).clamp(1, 99);
+          final isNoFill = _isNoFillError(error);
+          final isRetryThrottled = _isRetryThrottledError(error);
+          if (!isNoFill) {
+            _globalFailureBurstCount =
+                (_globalFailureBurstCount + 1).clamp(1, 99);
+          }
           _markUnitCooldown(adUnitId, error);
           _log(
               'failed banner code=${error.code} domain=${error.domain} message=${error.message} unit=$adUnitId platform=${Platform.operatingSystem}');
@@ -1234,9 +1317,69 @@ class _AdmobKareState extends State<AdmobKare> {
           ad.dispose();
           _bannerAd = null;
           if (_isDisposed) return;
+          if (isNoFill) {
+            if (_hasAvailableSquareAdUnit()) {
+              _retryCount = 0;
+              _log(
+                  'no fill; trying next unit in ${_noFillFastRetryDelay.inMilliseconds}ms after unit=$adUnitId platform=${Platform.operatingSystem}');
+              recordQALabAdEvent(
+                stage: 'retry_scheduled',
+                placement: 'medium_rectangle',
+                metadata: <String, dynamic>{
+                  'adUnitId': adUnitId,
+                  'retryCount': _retryCount,
+                  'retryDelayMs': _noFillFastRetryDelay.inMilliseconds,
+                  'reason': 'no_fill_next_unit',
+                  'platform': Platform.operatingSystem,
+                },
+              );
+              if (mounted && !_isDisposed) {
+                setState(() {
+                  _loadFailed = false;
+                  _isAdLoaded = false;
+                  _allowFallbackSurface = false;
+                });
+              }
+              _scheduleRetry(
+                delay: _noFillFastRetryDelay,
+                markLoadFailed: false,
+              );
+              return;
+            }
+
+            final retryDelay = _shortestSquareAdUnitCooldownRemaining() +
+                _noFillCooldownRetryPadding;
+            _retryCount = 0;
+            _log(
+                'no fill; all units cooling down fallback shown retry in ${retryDelay.inMilliseconds}ms unit=$adUnitId platform=${Platform.operatingSystem}');
+            recordQALabAdEvent(
+              stage: 'retry_scheduled',
+              placement: 'medium_rectangle',
+              metadata: <String, dynamic>{
+                'adUnitId': adUnitId,
+                'retryCount': _retryCount,
+                'retryDelayMs': retryDelay.inMilliseconds,
+                'reason': 'no_fill_all_units_cooling_down',
+                'platform': Platform.operatingSystem,
+              },
+            );
+            if (mounted && !_isDisposed) {
+              setState(() {
+                _allowFallbackSurface = true;
+                _loadFailed = true;
+                _isAdLoaded = false;
+              });
+            }
+            _scheduleRetry(
+              delay: retryDelay,
+              resetRetryCount: true,
+            );
+            return;
+          }
           final shouldEnterCooldown = isRetryThrottled ||
-              _globalFailureBurstCount >= _failureBurstBeforeCooldown ||
-              _retryCount >= _maxRetryCount;
+              (!isNoFill &&
+                  _globalFailureBurstCount >= _failureBurstBeforeCooldown) ||
+              (!isNoFill && _retryCount >= _maxRetryCount);
           if (shouldEnterCooldown) {
             if (mounted && !_isDisposed) {
               setState(() {
@@ -1388,7 +1531,7 @@ class _AdmobKareState extends State<AdmobKare> {
       final preferManagedSuggestionSurface = _prefersManagedSuggestionSurface;
       final showManagedSuggestion = _usesManagedSuggestion &&
           (_suggestionSliderItems.isNotEmpty || preferManagedSuggestionSurface);
-      if (canRenderLiveAd && !preferManagedSuggestionSurface) {
+      if (canRenderLiveAd) {
         _liveAdEverRendered = true;
         final bannerAd = ad!;
 
@@ -1442,10 +1585,7 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        if (preferManagedSuggestionSurface ||
-            _allowFallbackSurface ||
-            _loadFailed ||
-            liveAdBindingPaused) {
+        if (_allowFallbackSurface || _loadFailed || liveAdBindingPaused) {
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {

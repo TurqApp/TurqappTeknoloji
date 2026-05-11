@@ -573,11 +573,11 @@ extension AgendaContentBodyPart on _AgendaContentState {
                       pullTowardSend: true,
                     ),
                     _buildActionSlot(
-                      statButton(),
+                      saveButton(),
                       pullTowardSend: true,
                     ),
                     _buildActionSlot(
-                      saveButton(),
+                      statButton(),
                       pullTowardSend: true,
                     ),
                     _buildActionSlot(sendButton()),

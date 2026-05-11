@@ -73,7 +73,7 @@ Future<void> main() async {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Text(
-              'Uygulama başlatılırken bir hata oluştu.\nLütfen tekrar deneyin.',
+              'İçerik şu anda hazırlanıyor.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.black87,
