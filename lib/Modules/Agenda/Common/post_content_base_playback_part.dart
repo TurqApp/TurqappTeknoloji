@@ -448,6 +448,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
       return;
     }
+    if (!widget.shouldPlay) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'should_play_false',
+      );
+      return;
+    }
     final adapter = _videoAdapter;
     if (adapter == null) return;
     if (!_shouldBypassSavedResumeSeekForReplayStart(source)) {
@@ -986,6 +995,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         source: source,
         dispatchIssued: false,
         skipReason: 'surface_playback_blocked',
+      );
+      return;
+    }
+    if (!widget.shouldPlay) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'should_play_false',
       );
       return;
     }

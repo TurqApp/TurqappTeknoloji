@@ -210,6 +210,16 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           _stopPlaybackForSurfaceLoss();
           return;
         }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
+            _isPrimaryFeedSurfaceInstance) {
+          debugPrint(
+            '[PlaybackStopTrace] source=ios_feed_should_play_false_stop '
+            'doc=${widget.model.docID} '
+            'positionMs=${_videoAdapter?.value.position.inMilliseconds ?? -1}',
+          );
+          _stopPlaybackForSurfaceLoss();
+          return;
+        }
         if (_shouldPreserveIosPrimaryFeedPlaybackForResumeTransition) {
           _safePauseVideo();
           return;
@@ -294,6 +304,21 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       source: 'video_update',
     );
     if (_enforceBlockedSurfacePlaybackStop(v, source: 'video_update')) {
+      return;
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance &&
+        !widget.shouldPlay &&
+        (v.isPlaying || v.isBuffering)) {
+      debugPrint(
+        '[PlaybackStopTrace] source=ios_feed_inactive_video_update_stop '
+        'doc=${widget.model.docID} '
+        'playing=${v.isPlaying} buffering=${v.isBuffering} '
+        'positionMs=${v.position.inMilliseconds} '
+        'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+      );
+      _playbackRuntimeService.requestStop(playbackHandleKey);
+      _stopPlaybackForSurfaceLoss();
       return;
     }
     _primeImmediateNextAfterPlaybackStart(v);
