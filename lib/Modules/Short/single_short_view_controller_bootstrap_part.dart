@@ -78,6 +78,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       if (usesInjectedInitialPlayback) {
         _requestExclusivePlayback(
           list[initial].docID,
+          adapter: widget.injectedController,
           minSpacing: Duration.zero,
         );
       }

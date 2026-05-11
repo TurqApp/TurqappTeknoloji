@@ -38,7 +38,7 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
             if (mounted && sameController && !ctrl.isDisposed) {
               ctrl.seekTo(Duration.zero);
               if (index >= 0 && index < shorts.length) {
-                _requestExclusivePlayback(shorts[index].docID);
+                _requestExclusivePlayback(shorts[index].docID, adapter: ctrl);
               }
               _completionTriggered[index] = false;
             }

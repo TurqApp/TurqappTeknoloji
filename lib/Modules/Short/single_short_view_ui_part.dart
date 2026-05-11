@@ -298,7 +298,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 isAudible: decision.shouldBeAudible,
                 hasStableFocus: true,
               );
-              _requestExclusivePlayback(shorts[idx].docID);
+              _requestExclusivePlayback(shorts[idx].docID, adapter: vp);
             }
           },
           videoPlayerController: vp,
@@ -397,6 +397,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                                     );
                                     _requestExclusivePlayback(
                                       shorts[idx].docID,
+                                      adapter: vp,
                                     );
                                   } catch (_) {}
                                 }

@@ -82,7 +82,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         try {
           await _playbackExecutionService.playAdapter(ctrl);
         } catch (_) {}
-        _requestExclusivePlayback(docId);
+        _requestExclusivePlayback(docId, adapter: ctrl);
         _applySingleShortPlaybackPresentation(currentPage, ctrl);
       },
     );
@@ -131,8 +131,63 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     });
   }
 
+  void _recordSingleShortPlaybackDispatch(
+    String event, {
+    required int index,
+    required String docId,
+    required String source,
+    Map<String, dynamic>? metadata,
+  }) {
+    debugPrint(
+      '[SingleShortPlayback] event=$event index=$index doc=$docId '
+      'source=$source metadata=${metadata ?? const <String, dynamic>{}}',
+    );
+  }
+
+  bool _shouldSuppressSingleShortPlaybackAttempt(
+    int index,
+    String docId, {
+    required String source,
+    Duration minSpacing = const Duration(milliseconds: 650),
+  }) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return false;
+    final token = '$index:$trimmed';
+    final lastToken = _lastSingleShortPlaybackAttemptToken;
+    final lastAt = _lastSingleShortPlaybackAttemptAt;
+    final now = DateTime.now();
+    if (lastToken == token &&
+        lastAt != null &&
+        now.difference(lastAt) < minSpacing) {
+      _recordSingleShortPlaybackDispatch(
+        'play_suppressed',
+        index: index,
+        docId: trimmed,
+        source: source,
+        metadata: <String, dynamic>{
+          'ageMs': now.difference(lastAt).inMilliseconds,
+        },
+      );
+      return true;
+    }
+    _lastSingleShortPlaybackAttemptToken = token;
+    _lastSingleShortPlaybackAttemptAt = now;
+    return false;
+  }
+
+  void _markSingleShortPlaybackAttempt(
+    int index,
+    String docId,
+  ) {
+    final trimmed = docId.trim();
+    if (trimmed.isEmpty) return;
+    _lastSingleShortPlaybackAttemptToken = '$index:$trimmed';
+    _lastSingleShortPlaybackAttemptAt = DateTime.now();
+  }
+
   void _requestExclusivePlayback(
     String docId, {
+    HLSVideoAdapter? adapter,
     Duration minSpacing = const Duration(milliseconds: 220),
   }) {
     final trimmed = docId.trim();
@@ -149,8 +204,434 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+      final shouldUseDirectOwnershipRequest = adapter != null &&
+          PlaybackSurfacePolicy.shouldUseDirectShortOwnershipRequest(
+            platform: defaultTargetPlatform,
+            isPlaying: adapter.value.isPlaying,
+            isBuffering: adapter.value.isBuffering,
+            hasRenderedFirstFrame: adapter.value.hasRenderedFirstFrame,
+            position: adapter.value.position,
+          );
+      if (shouldUseDirectOwnershipRequest) {
+        _playbackRuntimeService.requestPlay(
+          playbackHandleKey,
+          HLSAdapterPlaybackHandle(adapter),
+        );
+      } else {
+        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+      }
     } catch (_) {}
+  }
+
+  void _scheduleIosSingleShortAudibilityReassert(
+    int index,
+    HLSVideoAdapter ctrl, {
+    int attempt = 0,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    const maxAudibilityAttempts = 6;
+    final safeAttempt = attempt.clamp(0, maxAudibilityAttempts);
+    final delay = PlaybackSurfacePolicy.shortIosAudibilityReassertDelay(
+      attempt: safeAttempt,
+    );
+    Future<void>.delayed(delay, () async {
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+      final decision = _singleShortPlaybackDecisionFor(index, ctrl.value);
+      if (!decision.shouldBeAudible) return;
+      _applySingleShortPlaybackPresentation(index, ctrl);
+      var stillMuted = false;
+      try {
+        stillMuted = await ctrl.isMutedNative();
+      } catch (_) {}
+      final shouldKickPlayback = ctrl.value.hasRenderedFirstFrame &&
+          ctrl.value.position > Duration.zero &&
+          !ctrl.value.isPlaying &&
+          !ctrl.value.isBuffering;
+      final shouldRetrySoon = attempt < maxAudibilityAttempts &&
+          (!ctrl.value.hasRenderedFirstFrame ||
+              stillMuted ||
+              (ctrl.value.position > Duration.zero &&
+                  !ctrl.value.isPlaying &&
+                  !ctrl.value.isBuffering) ||
+              ctrl.value.position < const Duration(milliseconds: 2500));
+      final docId =
+          index >= 0 && index < shorts.length ? shorts[index].docID.trim() : '';
+      if (!stillMuted && !shouldKickPlayback) {
+        if (shouldRetrySoon) {
+          _scheduleIosSingleShortAudibilityReassert(
+            index,
+            ctrl,
+            attempt: attempt + 1,
+          );
+        }
+        return;
+      }
+      try {
+        final shouldRecoverFrozenPlayback = ctrl.value.hasRenderedFirstFrame &&
+            !ctrl.value.isCompleted &&
+            ctrl.value.position >= const Duration(milliseconds: 2500);
+        if (_shouldSuppressSingleShortPlaybackAttempt(
+          index,
+          docId,
+          source: 'ios_audibility_reassert',
+        )) {
+          return;
+        }
+        if (shouldRecoverFrozenPlayback) {
+          await ctrl.recoverFrozenPlayback();
+        } else {
+          await _playbackExecutionService.playAdapter(ctrl);
+        }
+      } catch (_) {}
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+      _applySingleShortPlaybackPresentation(index, ctrl);
+      if (docId.isNotEmpty) {
+        _requestExclusivePlayback(docId, adapter: ctrl);
+      }
+      if (attempt < maxAudibilityAttempts) {
+        _scheduleIosSingleShortAudibilityReassert(
+          index,
+          ctrl,
+          attempt: attempt + 1,
+        );
+      }
+    });
+  }
+
+  void _scheduleIosNativePlaybackGuard(
+    int index,
+    HLSVideoAdapter ctrl, {
+    int attempt = 0,
+  }) {
+    _iosNativePlaybackGuardTimer?.cancel();
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    final guardDelay = PlaybackSurfacePolicy.shortIosNativePlaybackGuardDelay(
+      attempt: attempt,
+    );
+    _iosNativePlaybackGuardTimer = Timer(guardDelay, () async {
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+
+      final beforePosition = ctrl.value.position;
+      Map<String, dynamic> beforeDiag = const <String, dynamic>{};
+      try {
+        beforeDiag = await ctrl.getPlaybackDiagnostics();
+      } catch (_) {}
+      final beforeSilenceMs =
+          (beforeDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+      final beforePlaying = (beforeDiag['isPlaying'] as bool?) ?? false;
+
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+
+      final afterPosition = ctrl.value.position;
+      Map<String, dynamic> afterDiag = const <String, dynamic>{};
+      try {
+        afterDiag = await ctrl.getPlaybackDiagnostics();
+      } catch (_) {}
+      final afterSilenceMs =
+          (afterDiag['rendererFrameSilenceMs'] as num?)?.toInt() ?? 0;
+      final afterPlaying = (afterDiag['isPlaying'] as bool?) ?? false;
+      final advancedMs =
+          afterPosition.inMilliseconds - beforePosition.inMilliseconds;
+      final likelyFrozen = ctrl.value.hasRenderedFirstFrame &&
+          afterPosition >= const Duration(milliseconds: 800) &&
+          advancedMs < 180 &&
+          afterSilenceMs >= 1500 &&
+          afterSilenceMs >= beforeSilenceMs &&
+          (beforePlaying || afterPlaying || !ctrl.value.isPlaying);
+      if (likelyFrozen) {
+        final docId = index >= 0 && index < shorts.length
+            ? shorts[index].docID.trim()
+            : '';
+        if (_shouldSuppressSingleShortPlaybackAttempt(
+          index,
+          docId,
+          source: 'ios_native_guard',
+        )) {
+          return;
+        }
+        final shouldRecoverFrozenPlayback =
+            afterPosition >= const Duration(milliseconds: 2500);
+        try {
+          if (shouldRecoverFrozenPlayback) {
+            await ctrl.recoverFrozenPlayback();
+          } else {
+            await _playbackExecutionService.playAdapter(ctrl);
+          }
+        } catch (_) {}
+        if (!mounted ||
+            index != currentPage ||
+            !_isSingleShortRoutePlaybackActive ||
+            ctrl.isDisposed) {
+          return;
+        }
+        _applySingleShortPlaybackPresentation(index, ctrl);
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId, adapter: ctrl);
+        }
+      }
+
+      final shouldRetryGuard = attempt < 2 &&
+          ctrl.value.hasRenderedFirstFrame &&
+          !ctrl.value.isCompleted &&
+          (ctrl.value.position < const Duration(milliseconds: 2500) ||
+              !ctrl.value.isPlaying);
+      if (shouldRetryGuard) {
+        _scheduleIosNativePlaybackGuard(
+          index,
+          ctrl,
+          attempt: attempt + 1,
+        );
+      }
+    });
+  }
+
+  void _schedulePlaybackWatchdog(int index, HLSVideoAdapter ctrl) {
+    _playbackWatchdogTimer?.cancel();
+    _playWatchdogRetries = 0;
+    _playbackWatchdogBaselinePosition = ctrl.value.position;
+    _armPlaybackWatchdog(
+      index,
+      ctrl,
+      defaultTargetPlatform == TargetPlatform.android
+          ? _SingleShortViewState._playWatchdogDelayAndroid
+          : _SingleShortViewState._playWatchdogDelayIOS,
+    );
+  }
+
+  void _armPlaybackWatchdog(
+    int index,
+    HLSVideoAdapter ctrl,
+    Duration delay,
+  ) {
+    _playbackWatchdogTimer?.cancel();
+    _playbackWatchdogTimer = Timer(delay, () async {
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+      final value = ctrl.value;
+      final hasProgressedPastBaseline = value.position >=
+          _playbackWatchdogBaselinePosition + const Duration(milliseconds: 220);
+      final hasStarted = value.isPlaying || hasProgressedPastBaseline;
+      if (hasStarted) return;
+      if (_playWatchdogRetries >= 2) return;
+      _playWatchdogRetries++;
+      final docId =
+          index >= 0 && index < shorts.length ? shorts[index].docID.trim() : '';
+      if (_shouldSuppressSingleShortPlaybackAttempt(
+        index,
+        docId,
+        source: 'watchdog',
+      )) {
+        _armPlaybackWatchdog(index, ctrl, delay);
+        return;
+      }
+      try {
+        _recordSingleShortPlaybackDispatch(
+          'watchdog_play_retry',
+          index: index,
+          docId: docId,
+          source: 'play_watchdog',
+          metadata: <String, dynamic>{'retry': _playWatchdogRetries},
+        );
+        _applySingleShortPlaybackPresentation(index, ctrl);
+        await _playbackExecutionService.playAdapter(ctrl);
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId, adapter: ctrl);
+          await _reassertSingleShortAudibility(index, ctrl);
+          _scheduleDelayedSingleShortAudibilityReassert(index, ctrl);
+          _applySingleShortPlaybackPresentation(index, ctrl);
+        }
+      } catch (_) {}
+      _armPlaybackWatchdog(index, ctrl, delay);
+    });
+  }
+
+  void _scheduleStallWatchdog(int index, HLSVideoAdapter ctrl) {
+    _stallWatchdogTimer?.cancel();
+    _stallWatchdogRetries = 0;
+    _stallWatchdogBufferingCycles = 0;
+    _stallWatchdogLastPosition = ctrl.value.position;
+    if (defaultTargetPlatform == TargetPlatform.android) return;
+    _armStallWatchdog(index, ctrl);
+  }
+
+  void _armStallWatchdog(int index, HLSVideoAdapter ctrl) {
+    _stallWatchdogTimer?.cancel();
+    _stallWatchdogTimer = Timer(const Duration(milliseconds: 900), () async {
+      if (!mounted ||
+          index != currentPage ||
+          !_isSingleShortRoutePlaybackActive ||
+          ctrl.isDisposed) {
+        return;
+      }
+      final value = ctrl.value;
+      if (!value.isInitialized || !value.hasRenderedFirstFrame) {
+        _stallWatchdogBufferingCycles = 0;
+        _stallWatchdogLastPosition = value.position;
+        _armStallWatchdog(index, ctrl);
+        return;
+      }
+      final progressed = value.position > _stallWatchdogLastPosition;
+      final prolongedBuffering = value.isBuffering &&
+          value.position >= const Duration(milliseconds: 800) &&
+          !progressed;
+      if (prolongedBuffering) {
+        _stallWatchdogBufferingCycles++;
+      } else {
+        _stallWatchdogBufferingCycles = 0;
+      }
+      final bufferingHealthy =
+          value.isBuffering && _stallWatchdogBufferingCycles < 2;
+      final healthy = progressed || bufferingHealthy || value.isCompleted;
+      _stallWatchdogLastPosition = value.position;
+      if (healthy) {
+        _stallWatchdogRetries = 0;
+        _armStallWatchdog(index, ctrl);
+        return;
+      }
+      final remaining = value.duration > Duration.zero
+          ? value.duration - value.position
+          : Duration.zero;
+      final shouldNudgeNearEndCompletion =
+          PlaybackSurfacePolicy.shouldNudgeShortNearEndCompletion(
+        platform: defaultTargetPlatform,
+        duration: value.duration,
+        remaining: remaining,
+        position: value.position,
+      );
+      if (shouldNudgeNearEndCompletion) {
+        try {
+          await ctrl.seekTo(value.duration);
+        } catch (_) {}
+        _armStallWatchdog(index, ctrl);
+        return;
+      }
+      final maxRetries = PlaybackSurfacePolicy.shortStallMaxRetries(
+        platform: defaultTargetPlatform,
+      );
+      if (_stallWatchdogRetries >= maxRetries) return;
+      _stallWatchdogRetries++;
+      final docId =
+          index >= 0 && index < shorts.length ? shorts[index].docID.trim() : '';
+      try {
+        final shouldRecoverFrozenPlayback =
+            PlaybackSurfacePolicy.shouldRecoverFrozenShortOnStall(
+          platform: defaultTargetPlatform,
+          hasRenderedFirstFrame: value.hasRenderedFirstFrame,
+          isCompleted: value.isCompleted,
+          stallRetryCount: _stallWatchdogRetries,
+          position: value.position,
+        );
+        _recordSingleShortPlaybackDispatch(
+          'stall_recovery_play',
+          index: index,
+          docId: docId,
+          source: 'stall_watchdog',
+          metadata: <String, dynamic>{
+            'retry': _stallWatchdogRetries,
+            'bufferingCycles': _stallWatchdogBufferingCycles,
+            'mode': shouldRecoverFrozenPlayback ? 'recover' : 'play',
+          },
+        );
+        _applySingleShortPlaybackPresentation(index, ctrl);
+        final shouldHardRestartShort =
+            PlaybackSurfacePolicy.shouldHardRestartShortAfterStall(
+          platform: defaultTargetPlatform,
+          stallRetryCount: _stallWatchdogRetries,
+          position: value.position,
+        );
+        if (shouldHardRestartShort) {
+          try {
+            await ctrl.seekTo(Duration.zero);
+          } catch (_) {}
+        }
+        if (shouldRecoverFrozenPlayback) {
+          await ctrl.recoverFrozenPlayback();
+        } else {
+          await _playbackExecutionService.playAdapter(ctrl);
+        }
+        if (docId.isNotEmpty) {
+          _requestExclusivePlayback(docId, adapter: ctrl);
+          _applySingleShortPlaybackPresentation(index, ctrl);
+        }
+      } catch (_) {}
+      _armStallWatchdog(index, ctrl);
+    });
+  }
+
+  void _recordSingleShortSwipeSegmentBoundary(
+    int index, {
+    required String reason,
+  }) {
+    if (index < 0 || index >= shorts.length) return;
+    final docId = shorts[index].docID.trim();
+    if (docId.isEmpty) return;
+    final adapter = _videoControllers[index];
+    final value = adapter?.value;
+    final position = value?.position ?? Duration.zero;
+    final duration = value?.duration ?? Duration.zero;
+    final cacheManager = maybeFindSegmentCacheManager();
+    final entry = cacheManager?.getEntry(docId);
+    final totalSegmentCount = entry?.totalSegmentCount ?? 0;
+    final boundarySegment = ShortSwipeSegmentGuard.estimateBoundarySegment(
+      position: position,
+      duration: duration,
+      totalSegmentCount: totalSegmentCount,
+    );
+    final cachedOrdinals = (entry?.segments.keys ?? const <String>[])
+        .map(ShortSwipeSegmentGuard.segmentOrdinalFromKey)
+        .whereType<int>()
+        .toList(growable: false);
+    int? maxCachedSegment;
+    var cachedAfterBoundary = 0;
+    for (final ordinal in cachedOrdinals) {
+      if (maxCachedSegment == null || ordinal > maxCachedSegment) {
+        maxCachedSegment = ordinal;
+      }
+      if (boundarySegment != null && ordinal > boundarySegment) {
+        cachedAfterBoundary += 1;
+      }
+    }
+    final progress = duration.inMilliseconds > 0
+        ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    ShortSwipeSegmentGuard.recordSwipeAway(
+      docId: docId,
+      page: index,
+      reason: reason,
+      position: position,
+      duration: duration,
+      progress: progress,
+      boundarySegmentOrdinal: boundarySegment,
+      cachedSegmentCount: entry?.cachedSegmentCount ?? 0,
+      cachedAfterBoundaryCount: cachedAfterBoundary,
+      maxCachedSegmentOrdinal: maxCachedSegment,
+      totalSegmentCount: totalSegmentCount,
+    );
   }
 
   Duration? _savedPlaybackPositionForSingleShort(

@@ -64,12 +64,19 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     );
     await _reassertSingleShortAudibility(index, ctrl);
     await _restoreSingleShortPlaybackStateIfNeeded(index, ctrl);
-    await _playbackExecutionService.playAdapter(ctrl);
-    _requestExclusivePlayback(shorts[index].docID);
+    if (!ctrl.value.isPlaying) {
+      _markSingleShortPlaybackAttempt(index, shorts[index].docID);
+      await _playbackExecutionService.playAdapter(ctrl);
+    }
+    _requestExclusivePlayback(shorts[index].docID, adapter: ctrl);
     _scheduleDelayedSingleShortAudibilityReassert(index, ctrl);
     _applySingleShortPlaybackPresentation(index, ctrl);
     if (index == currentPage) {
       _scheduleFullscreenPlaybackGuard(ctrl, shorts[index].docID);
+      _schedulePlaybackWatchdog(index, ctrl);
+      _scheduleStallWatchdog(index, ctrl);
+      _scheduleIosNativePlaybackGuard(index, ctrl);
+      _scheduleIosSingleShortAudibilityReassert(index, ctrl);
       _beginTelemetryForCurrentPage(ctrl);
     }
   }
@@ -109,6 +116,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   void _handlePageChanged(int page) {
     if (page == currentPage) return;
 
+    final previousPage = currentPage;
     final prev = _videoControllers[currentPage];
     if (prev != null) {
       try {
@@ -119,9 +127,27 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
     currentPage = page;
     showControls = true;
+    _playbackWatchdogTimer?.cancel();
+    _stallWatchdogTimer?.cancel();
+    _iosNativePlaybackGuardTimer?.cancel();
     _resetSingleShortAutoplaySegmentGate();
     _pageActivatedAt = DateTime.now();
     if (currentPage >= 0 && currentPage < shorts.length) {
+      if (page > previousPage) {
+        _recordSingleShortSwipeSegmentBoundary(
+          previousPage,
+          reason: 'fullscreen_page_changed_forward',
+        );
+        final previousDocId = previousPage >= 0 && previousPage < shorts.length
+            ? shorts[previousPage].docID.trim()
+            : '';
+        if (previousDocId.isNotEmpty) {
+          maybeFindPrefetchScheduler()?.abortShortSwipeBoundaryDoc(
+            previousDocId,
+            reason: 'fullscreen_page_changed_forward',
+          );
+        }
+      }
       try {
         _playbackRuntimeService.updateExclusiveModeDoc(
           _playbackHandleKeyForDoc(shorts[currentPage].docID),
@@ -256,7 +282,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
             hasStableFocus: false,
           );
           if (currentPage >= 0 && currentPage < shorts.length) {
-            _requestExclusivePlayback(shorts[currentPage].docID);
+            _requestExclusivePlayback(shorts[currentPage].docID, adapter: vp);
           }
         } catch (_) {}
       }

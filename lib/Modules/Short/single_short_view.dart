@@ -18,6 +18,8 @@ import '../../Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import '../../Core/Services/feed_diversity_memory_service.dart';
 import '../../Core/Services/playback_execution_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
+import '../../Core/Services/SegmentCache/cache_manager.dart';
+import '../../Core/Services/SegmentCache/short_swipe_segment_guard.dart';
 import '../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../Core/Services/short_render_coordinator.dart';
 import '../../Core/Services/video_telemetry_service.dart';
@@ -180,9 +182,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   static const Duration _progressPersistInterval = Duration(seconds: 2);
   static const double _progressPersistDelta = 0.10;
   static const Duration _autoplaySegmentGateTimeout =
-      Duration(milliseconds: 950);
+      Duration(milliseconds: 420);
   static const Duration _autoplaySegmentGatePollInterval =
-      Duration(milliseconds: 120);
+      Duration(milliseconds: 80);
+  static const Duration _playWatchdogDelayAndroid = Duration(milliseconds: 450);
+  static const Duration _playWatchdogDelayIOS = Duration(milliseconds: 900);
 
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
@@ -192,6 +196,9 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   List<PostsModel> _renderedShorts = <PostsModel>[];
   Timer? _engagementRescoreTimer;
   Timer? _fullscreenPlaybackGuardTimer;
+  Timer? _iosNativePlaybackGuardTimer;
+  Timer? _playbackWatchdogTimer;
+  Timer? _stallWatchdogTimer;
   Timer? _autoplaySegmentGateTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
@@ -202,8 +209,15 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   String? _activeTelemetryVideoId;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
+  String? _lastSingleShortPlaybackAttemptToken;
+  DateTime? _lastSingleShortPlaybackAttemptAt;
+  Duration _playbackWatchdogBaselinePosition = Duration.zero;
+  Duration _stallWatchdogLastPosition = Duration.zero;
+  int _playWatchdogRetries = 0;
+  int _stallWatchdogRetries = 0;
+  int _stallWatchdogBufferingCycles = 0;
   HLSVideoAdapter? _fullscreenReturnPreservedController;
-  bool _forceResumePosterOnReturn = false;
+  final bool _forceResumePosterOnReturn = false;
   bool _routeObserverSubscribed = false;
   bool _routePlaybackActive = true;
   String? _suspendedFeedPlaybackHandleKey;
