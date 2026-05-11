@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,7 +52,6 @@ Future<void> rotateStartupMotorSessionsOnAppLaunch({
     final key = 'startup_motor_cycle_$namespace';
     final previousIndex = effectivePrefs.getInt(key) ?? -1;
     final nextIndex = (previousIndex + 1) % motorCount;
-    await effectivePrefs.setInt(key, nextIndex);
     if (normalizedSalt.isNotEmpty) {
       _startupSurfaceDeviceSaltByNamespace[namespace] = normalizedSalt;
     }
@@ -59,6 +59,7 @@ Future<void> rotateStartupMotorSessionsOnAppLaunch({
       motorIndex: nextIndex,
       bandMinutes: bandMinutes,
     );
+    unawaited(effectivePrefs.setInt(key, nextIndex).catchError((_) => false));
   }
 }
 

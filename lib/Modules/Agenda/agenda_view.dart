@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/chat_navigation_service.dart';
 import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
+import 'package:turqappv2/Core/Services/feed_render_block_plan.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
@@ -44,6 +45,7 @@ part 'agenda_view_header_part.dart';
 
 class AgendaView extends StatelessWidget {
   AgendaView({super.key});
+  static bool _loggedFirstBuild = false;
   static bool _androidVisibilityTuned = false;
   static bool _feedEntryWarmQueued = false;
   static bool _primarySurfaceBootstrapQueued = false;
@@ -128,6 +130,10 @@ class AgendaView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!_loggedFirstBuild) {
+      _loggedFirstBuild = true;
+      debugPrint('[AgendaFirstPaint] stage=build');
+    }
     if (!_primarySurfaceBootstrapQueued) {
       _primarySurfaceBootstrapQueued = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -129,13 +129,19 @@ extension _SplashViewStartupPart on _SplashViewState {
     }
 
     final shardStore = ensureStartupSnapshotShardStore();
-    await _primeFeedStartupShard(
-      shardStore: shardStore,
-      userId: userId,
+    unawaited(
+      _primeFeedStartupShard(
+        shardStore: shardStore,
+        userId: userId,
+      ).catchError((_) {}),
     );
-    await shardStore.clear(
-      surface: 'short',
-      userId: userId,
+    unawaited(
+      shardStore
+          .clear(
+            surface: 'short',
+            userId: userId,
+          )
+          .catchError((_) {}),
     );
   }
 

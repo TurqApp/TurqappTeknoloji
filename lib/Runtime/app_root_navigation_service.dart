@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Modules/SignIn/sign_in_entry_warm_service.dart';
 import 'package:turqappv2/Modules/NavBar/nav_bar_view.dart';
@@ -13,7 +14,13 @@ class AppRootNavigationService {
 
   static Future<void> offAllToAuthenticatedHome() async {
     if (!_hasNavigationContext) return;
+    if (kDebugMode) {
+      debugPrint('[StartupNav] action=offAllToAuthenticatedHome_start');
+    }
     await Get.offAll(() => NavBarView());
+    if (kDebugMode) {
+      debugPrint('[StartupNav] action=offAllToAuthenticatedHome_end');
+    }
   }
 
   static Future<void> offToAuthenticatedHome() async {

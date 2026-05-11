@@ -168,7 +168,8 @@ extension _SplashViewWarmPart on _SplashViewState {
           _shouldPrioritizeEducationJobWarmups();
       final deferFeedSnapshotInspection =
           Platform.isAndroid && prioritizeHomeWarmups;
-      final deferShortCriticalWarmup = false;
+      final deferShortCriticalWarmup =
+          Platform.isAndroid && prioritizeHomeWarmups;
       final deferStoryCriticalSync =
           Platform.isAndroid && prioritizeHomeWarmups;
       final storyStartupWarmLimit = storyController == null
@@ -178,6 +179,29 @@ extension _SplashViewWarmPart on _SplashViewState {
               isFirstLaunch: isFirstLaunch,
             );
       Future<void>? earlyStoryWarmFuture;
+      Future<void> warmHomeShortSurface() async {
+        final shorts = ensureShortController();
+        await shorts
+            .prepareStartupSurface(
+              allowBackgroundRefresh: false,
+            )
+            .timeout(
+              Duration(seconds: onWiFi ? 4 : 2),
+              onTimeout: () {},
+            );
+        shorts.primeStartupReadyMagazine(
+          0,
+          count: _SplashViewState._mandatoryStartupVideoWarmCount,
+          minimumSegmentCount: 1,
+        );
+        await shorts.warmStartupFirstSegments(
+          0,
+          count: _SplashViewState._mandatoryStartupVideoWarmCount,
+          minimumSegmentCount: 1,
+        );
+        _primeShortVideoSegments(shorts);
+      }
+
       final criticalSlices = <Future<void> Function()>[];
 
       if (prioritizeHomeWarmups) {
@@ -202,13 +226,25 @@ extension _SplashViewWarmPart on _SplashViewState {
               unawaited(earlyStoryWarmFuture);
             }
             await _profileStartupWarmSlice('home_prepare_surface', () async {
-              final prepareFuture = agendaController
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: false,
-                    source: 'splash_home_prepare_surface',
-                  )
-                  .timeout(const Duration(seconds: 3), onTimeout: () {});
-              await prepareFuture;
+              final prepareFuture = agendaController.prepareStartupSurface(
+                allowBackgroundRefresh: false,
+                source: 'splash_home_prepare_surface',
+              );
+              if (Platform.isAndroid && ContentPolicy.isConnected) {
+                debugPrint(
+                  '[StartupWarm] status=defer_home_prepare_surface_until_after_nav',
+                );
+                unawaited(
+                  prepareFuture.then((_) {
+                    return _primeFeedStartupSegments(agendaController);
+                  }).catchError((_) {}),
+                );
+                return;
+              }
+              await prepareFuture.timeout(
+                const Duration(seconds: 3),
+                onTimeout: () {},
+              );
               await _primeFeedStartupSegments(agendaController);
             });
           });
@@ -228,26 +264,7 @@ extension _SplashViewWarmPart on _SplashViewState {
         if (!deferShortCriticalWarmup) {
           criticalSlices.add(() async {
             await _profileStartupWarmSlice('home_short_surface', () async {
-              final shorts = ensureShortController();
-              await shorts
-                  .prepareStartupSurface(
-                    allowBackgroundRefresh: false,
-                  )
-                  .timeout(
-                    Duration(seconds: onWiFi ? 4 : 2),
-                    onTimeout: () {},
-                  );
-              shorts.primeStartupReadyMagazine(
-                0,
-                count: _SplashViewState._mandatoryStartupVideoWarmCount,
-                minimumSegmentCount: 1,
-              );
-              await shorts.warmStartupFirstSegments(
-                0,
-                count: _SplashViewState._mandatoryStartupVideoWarmCount,
-                minimumSegmentCount: 1,
-              );
-              _primeShortVideoSegments(shorts);
+              await warmHomeShortSurface();
             });
           });
         }
@@ -355,6 +372,17 @@ extension _SplashViewWarmPart on _SplashViewState {
                 storyController,
                 limit: _SplashViewState._minStoryUsersForNav,
               );
+            });
+          });
+        }
+        if (deferShortCriticalWarmup) {
+          deferredSlices.add(() async {
+            await Future.delayed(
+              Duration(milliseconds: onWiFi ? 1200 : 800),
+            );
+            await _profileStartupWarmSlice('home_short_surface_deferred',
+                () async {
+              await warmHomeShortSurface();
             });
           });
         }
@@ -667,7 +695,11 @@ extension _SplashViewWarmPart on _SplashViewState {
       _ensureMinSplashDuration(),
     ]);
 
-    if (_shouldRequireFeedReadiness()) {
+    if (_shouldRequireFeedReadiness() && Platform.isAndroid) {
+      debugPrint(
+        '[StartupWarm] status=skip_short_readiness_before_nav_android_feed',
+      );
+    } else if (_shouldRequireFeedReadiness()) {
       await _waitForShortReadiness(
         timeout: const Duration(milliseconds: 900),
       );

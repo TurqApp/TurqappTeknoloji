@@ -57,31 +57,41 @@ extension _AgendaViewFeedPart on AgendaView {
         final filteredCount = filteredDisplay.length;
         final startupWarmPreloadActive =
             controller.startupRenderBootstrapHold &&
-                controller.startupWarmPreloadDocIdsRx.isNotEmpty;
+                controller.startupWarmPreloadDocIdsRx.isNotEmpty &&
+                renderDisplay.isEmpty;
 
         if (displayCount == 0 || startupWarmPreloadActive) {
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                header(),
-                const SizedBox(height: 18),
-                _feedLoadingSkeleton(context),
-                _feedLoadingSkeleton(context),
-                _feedLoadingSkeleton(context),
-                const SizedBox(height: 70),
-              ],
-            ),
+          debugPrint(
+            '[FeedInitialPaint] state=loading_list '
+            'displayCount=$displayCount filteredCount=$filteredCount '
+            'renderCount=${renderDisplay.length} '
+            'startupHold=${controller.startupRenderBootstrapHold} '
+            'preloadDocs=${controller.startupWarmPreloadDocIdsRx.length} '
+            'slotCount=${FeedRenderBlockPlan.renderSlotsPerBlock}',
           );
+          return _buildInitialFeedLoadingList(context);
         }
 
         if (filteredCount == 0) {
+          debugPrint(
+            '[FeedInitialPaint] state=empty_filtered '
+            'displayCount=$displayCount filteredCount=$filteredCount '
+            'renderCount=${renderDisplay.length}',
+          );
           final emptyText = controller.isCityMode
               ? 'feed.empty_city'.tr
               : 'feed.empty_following'.tr;
           return _buildEmptyFeedState(emptyText);
         }
 
+        if (displayCount > 0 && renderDisplay.isNotEmpty) {
+          debugPrint(
+            '[FeedInitialPaint] state=render_list '
+            'displayCount=$displayCount filteredCount=$filteredCount '
+            'renderCount=${renderDisplay.length} '
+            'startupHold=${controller.startupRenderBootstrapHold}',
+          );
+        }
         return ListView.builder(
           controller: controller.scrollController,
           physics: GetPlatform.isAndroid
@@ -106,6 +116,63 @@ extension _AgendaViewFeedPart on AgendaView {
           },
         );
       }),
+    );
+  }
+
+  Widget _buildInitialFeedLoadingList(BuildContext context) {
+    return ListView.builder(
+      physics: GetPlatform.isAndroid
+          ? const ClampingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            )
+          : const AlwaysScrollableScrollPhysics(),
+      cacheExtent: GetPlatform.isIOS ? 180.0 : 220.0,
+      padding: const EdgeInsets.only(
+        bottom: kBottomNavigationBarHeight + 16,
+      ),
+      itemCount: FeedRenderBlockPlan.renderSlotsPerBlock + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) return header();
+        final slotIndex = index - 1;
+        final slotType = FeedRenderBlockPlan.renderSlotPlan[slotIndex];
+        if (slotType == FeedRenderSlotType.post) {
+          return _feedLoadingSkeleton(context);
+        }
+        return _feedLoadingPromoSkeleton(context);
+      },
+    );
+  }
+
+  Widget _feedLoadingPromoSkeleton(BuildContext context) {
+    final isModernView =
+        CurrentUserService.instance.effectiveViewSelection == 1;
+    final padding = isModernView
+        ? const EdgeInsets.fromLTRB(48, 8, 5, 8)
+        : const EdgeInsets.fromLTRB(5, 8, 5, 10);
+    return Padding(
+      padding: padding,
+      child: Container(
+        height: 118,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDEDED),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFDCDCDC)),
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.42,
+              height: 11,
+              decoration: BoxDecoration(
+                color: const Color(0xFFD8D8D8),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

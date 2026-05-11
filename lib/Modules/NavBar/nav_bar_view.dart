@@ -37,6 +37,7 @@ part 'nav_bar_view_avatar_part.dart';
 
 class NavBarView extends StatelessWidget {
   final selection = 0;
+  static bool _loggedFirstBuild = false;
 
   NavBarView({super.key}) {
     _ensureControllersReady();
@@ -69,5 +70,11 @@ class NavBarView extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => _buildNavBarView(context);
+  Widget build(BuildContext context) {
+    if (kDebugMode && !_loggedFirstBuild) {
+      _loggedFirstBuild = true;
+      debugPrint('[NavFirstPaint] stage=build');
+    }
+    return _buildNavBarView(context);
+  }
 }

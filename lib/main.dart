@@ -10,7 +10,9 @@ import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
+import 'package:turqappv2/Core/Services/feed_manifest_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
@@ -99,19 +101,26 @@ Future<void> main() async {
   // FirebaseFunctions/FirebaseAuth Firebase initialize edilmeden
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
-  await firebaseBootstrapFuture.timeout(
-    _startupBootstrapWait,
-    onTimeout: () {
-      debugPrint('[bootstrap] startup timed out before runApp; continuing.');
-    },
+  unawaited(
+    firebaseBootstrapFuture.timeout(
+      _startupBootstrapWait,
+      onTimeout: () {
+        debugPrint('[bootstrap] startup timed out after runApp; continuing.');
+      },
+    ).catchError((_) {}),
   );
+  _scheduleFeedManifestWarmOnAppLaunch();
 
   // VideoStateManager uygulama boyunca hazır kalsın (route dispose döngüsünde düşmesin)
   VideoStateManager.instance;
   NetworkAwarenessService.ensure();
-  await ensureInitializedAppLanguageService();
 
   runApp(const MyApp());
+  unawaited(
+    ensureInitializedAppLanguageService()
+        .then((service) => Get.updateLocale(service.currentLocale))
+        .catchError((_) {}),
+  );
   scheduleQALabAutoOpenOnLaunch();
 
   _appLifecycleListener = AppLifecycleListener(
@@ -130,6 +139,38 @@ Future<void> main() async {
       systemNavigationBarContrastEnforced: false,
     ));
   });
+}
+
+void _scheduleFeedManifestWarmOnAppLaunch() {
+  unawaited(
+    firebaseBootstrapFuture.then((_) async {
+      if (Firebase.apps.isEmpty) {
+        debugPrint('[FeedManifestWarm] status=skip reason=firebase_not_ready');
+        return;
+      }
+      final startedAt = DateTime.now();
+      debugPrint(
+        '[FeedManifestWarm] status=start source=app_launch '
+        'slotBudget=${FeedManifestPolicy.startupSlotLoadBudget}',
+      );
+      try {
+        await ensureFeedManifestRepository().warmStartupWindow(
+          maxSlotsToLoad: FeedManifestPolicy.startupSlotLoadBudget,
+        );
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[FeedManifestWarm] status=done source=app_launch '
+          'elapsedMs=$elapsedMs',
+        );
+      } catch (error) {
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[FeedManifestWarm] status=fail source=app_launch '
+          'elapsedMs=$elapsedMs error=$error',
+        );
+      }
+    }).catchError((_) {}),
+  );
 }
 
 void _reportStartupFallbackError(FlutterErrorDetails details) {

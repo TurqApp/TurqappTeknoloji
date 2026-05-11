@@ -202,72 +202,83 @@ extension _AgendaViewHeaderPart on AgendaView {
   Widget _feedLoadingSkeleton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0F0F0),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD8D8D8)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECECEC),
-                  borderRadius: BorderRadius.circular(19),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
                   Container(
-                    width: 110,
-                    height: 10,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE9E9E9),
-                      borderRadius: BorderRadius.circular(999),
+                      color: const Color(0xFFD8D8D8),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 72,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F1F1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 124,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD2D2D2),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: 82,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCDCDC),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDADADA),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.62,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                height: 360,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E2E2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFD0D0D0)),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            height: 12,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: MediaQuery.of(context).size.width * 0.62,
-            height: 12,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F4),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            width: double.infinity,
-            height: 360,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(22),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

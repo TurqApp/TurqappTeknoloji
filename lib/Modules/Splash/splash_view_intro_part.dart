@@ -3,6 +3,7 @@ part of 'splash_view.dart';
 extension _SplashViewIntroPart on _SplashViewState {
   void _completeSplashIntroIfNeeded() {
     if (!_introCompleted.isCompleted) {
+      debugPrint('[SplashIntro] status=completed');
       _introCompleted.complete();
     }
   }

@@ -144,9 +144,8 @@ extension AgendaControllerRenderPart on AgendaController {
     bool ignoreStartupBootstrapHold = false,
     bool ignoreGrowthAppendHold = false,
   }) {
-    if (_startupRenderBootstrapHold && !ignoreStartupBootstrapHold) {
-      return;
-    }
+    final startupFirstPaintOnly =
+        _startupRenderBootstrapHold && !ignoreStartupBootstrapHold;
     if (_growthRenderAppendHold && !ignoreGrowthAppendHold) {
       return;
     }
@@ -161,6 +160,9 @@ extension AgendaControllerRenderPart on AgendaController {
     }
     final renderEntries = _feedRenderCoordinator.buildRenderEntries(
       filteredEntries: filteredFeedEntries.toList(growable: false),
+      maxRenderEntries: startupFirstPaintOnly
+          ? FeedRenderBlockPlan.renderSlotsPerBlock
+          : null,
       forceAdPromos: isFollowingMode || isCityMode,
     );
     final patch = _feedRenderCoordinator.buildPatch(
