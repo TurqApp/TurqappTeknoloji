@@ -13,6 +13,7 @@ class CommentComposerBar extends StatelessWidget {
     super.key,
     required this.textController,
     required this.focusNode,
+    required this.userId,
     required this.avatarUrl,
     required this.replyingToNickname,
     required this.selectedGifUrl,
@@ -25,6 +26,7 @@ class CommentComposerBar extends StatelessWidget {
 
   final TextEditingController textController;
   final FocusNode focusNode;
+  final String userId;
   final String avatarUrl;
   final String replyingToNickname;
   final String selectedGifUrl;
@@ -47,6 +49,7 @@ class CommentComposerBar extends StatelessWidget {
               width: 28,
               height: 28,
               child: CachedUserAvatar(
+                userId: userId,
                 imageUrl: avatarUrl,
                 radius: 14,
               ),
@@ -222,8 +225,7 @@ class CommentComposerBar extends StatelessWidget {
           ValueListenableBuilder<TextEditingValue>(
             valueListenable: textController,
             builder: (context, value, _) {
-              final showSendButton =
-                  value.text.trim().isNotEmpty ||
+              final showSendButton = value.text.trim().isNotEmpty ||
                   selectedGifUrl.trim().isNotEmpty;
               if (!showSendButton) {
                 return const SizedBox.shrink();

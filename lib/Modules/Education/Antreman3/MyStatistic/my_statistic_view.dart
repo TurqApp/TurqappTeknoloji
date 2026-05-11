@@ -93,6 +93,8 @@ class _MyStatisticViewState extends State<MyStatisticView> {
                                   width: 50,
                                   height: 50,
                                   child: CachedUserAvatar(
+                                    userId: currentUser?.userID ??
+                                        userService.effectiveUserId,
                                     imageUrl: avatarUrl,
                                     radius: 25,
                                   ),

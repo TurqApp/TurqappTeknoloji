@@ -77,6 +77,7 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
                 width: 36,
                 height: 36,
                 child: CachedUserAvatar(
+                  userId: comment.userID,
                   imageUrl: userImage,
                   radius: 18,
                 ),
@@ -306,6 +307,7 @@ extension _AntremanCommentsContentPart on _AntremanCommentsState {
             width: 30,
             height: 30,
             child: CachedUserAvatar(
+              userId: reply.userID,
               imageUrl: replyUserImage,
               radius: 15,
             ),

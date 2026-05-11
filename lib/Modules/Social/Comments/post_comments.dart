@@ -280,40 +280,46 @@ class _PostCommentsState extends State<PostComments> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Obx(
-        () => CommentComposerBar(
-          avatarUrl: user.avatarUrl,
-          textController: textEditingController,
-          focusNode: focusNode,
-          replyingToNickname: controller.replyingToNickname.value,
-          selectedGifUrl: controller.selectedGifUrl.value.trim(),
-          onTextChanged: (_) => setState(() {}),
-          onClearReply: () {
-            controller.clearReplyTarget();
-            textEditingController.clear();
-            setState(() {});
-          },
-          onPickGif: () async {
-            await controller.pickGif(context);
-            if (mounted) {
+        () {
+          final currentUser = user.currentUserRx.value;
+          final currentAvatarUrl =
+              (currentUser?.avatarUrl ?? user.avatarUrl).trim();
+          return CommentComposerBar(
+            userId: user.effectiveUserId,
+            avatarUrl: currentAvatarUrl,
+            textController: textEditingController,
+            focusNode: focusNode,
+            replyingToNickname: controller.replyingToNickname.value,
+            selectedGifUrl: controller.selectedGifUrl.value.trim(),
+            onTextChanged: (_) => setState(() {}),
+            onClearReply: () {
+              controller.clearReplyTarget();
+              textEditingController.clear();
               setState(() {});
-            }
-          },
-          onClearGif: () {
-            controller.clearSelectedGif();
-            setState(() {});
-          },
-          onSend: () {
-            controller.yorumYap(
-              context,
-              textEditingController.text,
-              onComplete: () {
-                textEditingController.clear();
+            },
+            onPickGif: () async {
+              await controller.pickGif(context);
+              if (mounted) {
                 setState(() {});
-              },
-            );
-            setState(() {});
-          },
-        ),
+              }
+            },
+            onClearGif: () {
+              controller.clearSelectedGif();
+              setState(() {});
+            },
+            onSend: () {
+              controller.yorumYap(
+                context,
+                textEditingController.text,
+                onComplete: () {
+                  textEditingController.clear();
+                  setState(() {});
+                },
+              );
+              setState(() {});
+            },
+          );
+        },
       ),
     );
   }

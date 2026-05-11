@@ -194,7 +194,10 @@ extension StoryMusicProfileViewContentPart on _StoryMusicProfileViewState {
                     child: SizedBox(
                       width: 28,
                       height: 28,
-                      child: _buildAvatar(entry.user.avatarUrl),
+                      child: _buildAvatar(
+                        entry.user.avatarUrl,
+                        userId: entry.user.userID,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -263,8 +266,12 @@ extension StoryMusicProfileViewContentPart on _StoryMusicProfileViewState {
     );
   }
 
-  Widget _buildAvatar(String avatarUrl) {
-    return CachedUserAvatar(imageUrl: avatarUrl, radius: 14);
+  Widget _buildAvatar(String avatarUrl, {String? userId}) {
+    return CachedUserAvatar(
+      userId: userId,
+      imageUrl: avatarUrl,
+      radius: 14,
+    );
   }
 
   String _timeAgo(DateTime dateTime) {

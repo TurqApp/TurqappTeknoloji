@@ -25,6 +25,7 @@ extension _MyStatisticViewContentPart on _MyStatisticViewState {
                     width: 50,
                     height: 50,
                     child: CachedUserAvatar(
+                      userId: _currentUid,
                       imageUrl: avatarUrl,
                       radius: 25,
                     ),

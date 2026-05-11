@@ -41,6 +41,7 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
                   width: imageSize,
                   height: imageSize,
                   child: CachedUserAvatar(
+                    userId: podiumUserID,
                     imageUrl: (user['avatarUrl'] ?? '').toString(),
                     radius: imageSize / 2,
                   ),
@@ -158,6 +159,7 @@ extension AntremanScoreWidgetsPart on _AntremanScoreState {
                           width: 38,
                           height: 38,
                           child: CachedUserAvatar(
+                            userId: user['userID']?.toString(),
                             imageUrl: (user['avatarUrl'] ?? '').toString(),
                             radius: 19,
                           ),

@@ -29,6 +29,7 @@ extension _AntremanCommentsInputPart on _AntremanCommentsState {
                   width: 30,
                   height: 30,
                   child: CachedUserAvatar(
+                    userId: controller.userID,
                     imageUrl: userImage,
                     radius: 15,
                   ),
