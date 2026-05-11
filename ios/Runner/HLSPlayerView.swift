@@ -1071,6 +1071,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             "url": currentUrl ?? "",
         ]
         log("visualPhase phase=\(phase) source=\(source) overlayVisible=\(!_view.snapshotView.isHidden) url=\(currentUrl ?? "-")")
+        PlaybackHealthStore.shared.updateVisualPhase(payload)
         sendEvent(payload)
     }
 

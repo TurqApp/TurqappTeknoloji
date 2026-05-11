@@ -150,6 +150,16 @@ class QALabMode {
     defaultValue: 2,
   );
 
+  static const int resumePosterStaleWarningMs = int.fromEnvironment(
+    'QA_LAB_RESUME_POSTER_STALE_WARNING_MS',
+    defaultValue: 2500,
+  );
+
+  static const int resumePosterStaleBlockingMs = int.fromEnvironment(
+    'QA_LAB_RESUME_POSTER_STALE_BLOCKING_MS',
+    defaultValue: 6000,
+  );
+
   static const int activeIssueLookbackSeconds = int.fromEnvironment(
     'QA_LAB_ACTIVE_ISSUE_LOOKBACK_SECONDS',
     defaultValue: 45,

@@ -88,7 +88,7 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     required DateTime referenceTime,
     required String route,
   }) {
-    if (surface != 'feed' && surface != 'short') {
+    if (surface != 'feed' && surface != 'short' && surface != 'profile') {
       return const <QALabPinpointFinding>[];
     }
     if (!_hasAuthenticatedUser(authProbe)) {
@@ -107,7 +107,12 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         _hasObservedSurfaceVideoSession(surfaceIssues);
     final isForegroundSurface = surface == 'feed'
         ? _isPrimaryFeedSelected(visibilitySnapshot, route: effectiveRoute)
-        : _isPrimaryShortSelected(visibilitySnapshot, route: effectiveRoute);
+        : surface == 'short'
+            ? _isPrimaryShortSelected(visibilitySnapshot, route: effectiveRoute)
+            : _isPrimaryProfileSelected(
+                visibilitySnapshot,
+                route: effectiveRoute,
+              );
     if (!isForegroundSurface) {
       return const <QALabPinpointFinding>[];
     }
@@ -128,7 +133,8 @@ extension QALabRecorderRuntimePart on QALabRecorder {
     if (count <= 0 && !isPlaybackExpected && errors.isEmpty) {
       return const <QALabPinpointFinding>[];
     }
-    if (surface == 'short' && !hasObservedSurfaceVideoSession) {
+    if ((surface == 'short' || surface == 'profile') &&
+        !hasObservedSurfaceVideoSession) {
       return const <QALabPinpointFinding>[];
     }
 
@@ -150,12 +156,17 @@ extension QALabRecorderRuntimePart on QALabRecorder {
         );
     final hasNearbySurfacePlaybackRecoverySignal =
         _hasSurfacePlaybackRecoverySignalNear(
-          surfaceIssues: surfaceIssues,
-          anchorTime: sampledAt,
-        );
+      surfaceIssues: surfaceIssues,
+      anchorTime: sampledAt,
+    );
     final suppressNativeWarmupSignals = _isSurfaceNativeWarmupGrace(
       surface: surface,
       route: effectiveRoute,
+      referenceTime: referenceTime,
+    );
+    final hasRecentUnresolvedLifecycleInterruption =
+        _hasRecentUnresolvedLifecycleInterruption(
+      surfaceIssues: surfaceIssues,
       referenceTime: referenceTime,
     );
     final snapshotContext = <String, dynamic>{
@@ -172,22 +183,52 @@ extension QALabRecorderRuntimePart on QALabRecorder {
       'lastKnownPlaybackTime': lastKnownPlaybackTime,
       'layerAttachCount':
           _asInt(lastNativePlaybackSnapshot['layerAttachCount']),
+      'visualPhase':
+          (lastNativePlaybackSnapshot['visualPhase'] ?? '').toString(),
+      'visualPhaseSource':
+          (lastNativePlaybackSnapshot['visualPhaseSource'] ?? '').toString(),
+      'visualPhaseDurationMs':
+          _asInt(lastNativePlaybackSnapshot['visualPhaseDurationMs']),
+      'overlayVisible': lastNativePlaybackSnapshot['overlayVisible'] == true,
     };
     final hasRecoveredPlaybackAtSample = hasFirstFrame &&
         isPlaying &&
         !isBuffering &&
         lastKnownPlaybackTime >= 0.25;
+    final visualPhase =
+        (lastNativePlaybackSnapshot['visualPhase'] ?? '').toString();
+    final visualPhaseDurationMs =
+        _asInt(lastNativePlaybackSnapshot['visualPhaseDurationMs']);
+    final overlayVisible = lastNativePlaybackSnapshot['overlayVisible'] == true;
+    if (visualPhase == 'resume_poster' &&
+        overlayVisible &&
+        !hasRecoveredPlaybackAtSample &&
+        visualPhaseDurationMs >= QALabMode.resumePosterStaleWarningMs &&
+        !suppressNativeWarmupSignals &&
+        !hasRecentFeedSurfaceLossVisualTransition &&
+        !hasRecentUnresolvedLifecycleInterruption) {
+      findings.add(
+        QALabPinpointFinding(
+          severity:
+              visualPhaseDurationMs >= QALabMode.resumePosterStaleBlockingMs
+                  ? QALabIssueSeverity.blocking
+                  : QALabIssueSeverity.warning,
+          code: '${surface}_resume_poster_stale',
+          message:
+              'Native playback health on $surface kept the resume poster visible without a stable video frame.',
+          route: route,
+          surface: surface,
+          timestamp: sampledAt,
+          context: snapshotContext,
+        ),
+      );
+    }
 
     const firstFrameCodes = <String>{
       'FIRST_FRAME_TIMEOUT',
       'READY_WITHOUT_FRAME',
       'PLAYBACK_NOT_STARTED',
     };
-    final hasRecentUnresolvedLifecycleInterruption =
-        _hasRecentUnresolvedLifecycleInterruption(
-      surfaceIssues: surfaceIssues,
-      referenceTime: referenceTime,
-    );
     final backgroundRecoveryPending =
         _nativePlaybackAwaitingBackgroundRecovery(lastNativePlaybackSnapshot);
     final suppressStartupFirstFrameTimeout = _isQALabAutostartWarmup(

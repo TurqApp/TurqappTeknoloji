@@ -187,6 +187,21 @@ extension QALabRecorderExportPart on QALabRecorder {
   }
 
   Future<File> exportSessionJson() async {
+    if (sessionId.value.isEmpty) {
+      startSession(trigger: 'export');
+    }
+    final exportSurface = lastSurface.value.isEmpty ? 'app' : lastSurface.value;
+    captureCheckpoint(
+      label: 'export_requested',
+      surface: exportSurface,
+      extra: const <String, dynamic>{'trigger': 'export'},
+      refreshWatchdogs: false,
+      emitSignals: false,
+    );
+    await sampleNativePlayback(
+      trigger: 'export',
+      surfaceHint: exportSurface,
+    );
     final directory = await getApplicationDocumentsDirectory();
     final qaDir = Directory('${directory.path}/qa_lab');
     if (!qaDir.existsSync()) {

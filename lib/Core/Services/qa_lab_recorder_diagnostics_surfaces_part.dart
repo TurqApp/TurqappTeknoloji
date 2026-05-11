@@ -191,26 +191,35 @@ extension QALabRecorderDiagnosticsSurfacesPart on QALabRecorder {
       'adLoadCount': adSummary.$2,
       'adFailureCount': adSummary.$3,
       'worstAdLoadMs': adSummary.$4,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackStatus':
             (lastNativePlaybackSnapshot['status'] ?? '').toString(),
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackErrorCount':
             _nativePlaybackErrors(lastNativePlaybackSnapshot).length,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackActive': lastNativePlaybackSnapshot['active'] == true,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackPlaying':
             lastNativePlaybackSnapshot['isPlaying'] == true,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackBuffering':
             lastNativePlaybackSnapshot['isBuffering'] == true,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackFirstFrame':
             lastNativePlaybackSnapshot['firstFrameRendered'] == true,
-      if (surface == 'feed' || surface == 'short')
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
         'nativePlaybackStallCount':
             _asInt(lastNativePlaybackSnapshot['stallCount']),
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
+        'nativeVisualPhase':
+            (lastNativePlaybackSnapshot['visualPhase'] ?? '').toString(),
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
+        'nativeVisualPhaseDurationMs':
+            _asInt(lastNativePlaybackSnapshot['visualPhaseDurationMs']),
+      if (surface == 'feed' || surface == 'short' || surface == 'profile')
+        'nativeOverlayVisible':
+            lastNativePlaybackSnapshot['overlayVisible'] == true,
     };
   }
 }

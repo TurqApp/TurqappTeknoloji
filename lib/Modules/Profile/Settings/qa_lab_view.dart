@@ -255,13 +255,16 @@ class _QALabViewState extends State<QALabView> {
                     'ads=${item.runtime['adRequestCount'] ?? 0}/${item.runtime['adLoadCount'] ?? 0} '
                     'adFails=${item.runtime['adFailureCount'] ?? 0} '
                     'worstAd=${item.runtime['worstAdLoadMs'] ?? 0}ms'
-                    '${item.surface == 'feed' || item.surface == 'short' ? '\n'
+                    '${item.surface == 'feed' || item.surface == 'short' || item.surface == 'profile' ? '\n'
                         'nativeStatus=${item.runtime['nativePlaybackStatus'] ?? '-'} '
                         'nativeErrors=${item.runtime['nativePlaybackErrorCount'] ?? 0} '
                         'nativePlaying=${item.runtime['nativePlaybackPlaying'] ?? false} '
                         'nativeBuffering=${item.runtime['nativePlaybackBuffering'] ?? false} '
                         'nativeFirstFrame=${item.runtime['nativePlaybackFirstFrame'] ?? false} '
-                        'nativeStalls=${item.runtime['nativePlaybackStallCount'] ?? 0}' : ''}',
+                        'nativeStalls=${item.runtime['nativePlaybackStallCount'] ?? 0} '
+                        'visual=${item.runtime['nativeVisualPhase'] ?? '-'} '
+                        'visualMs=${item.runtime['nativeVisualPhaseDurationMs'] ?? 0} '
+                        'overlay=${item.runtime['nativeOverlayVisible'] ?? false}' : ''}',
                   ),
                 ),
               ),

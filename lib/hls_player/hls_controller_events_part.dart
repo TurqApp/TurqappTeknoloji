@@ -235,6 +235,24 @@ extension HLSControllerEventsPart on HLSController {
               _hasVisibleVideoFrame = false;
               _emitVisibleVideoFrame(false);
             }
+            recordQALabVideoEvent(
+              code: 'playback_visual_$phase',
+              message: 'native playback visual phase changed to $phase',
+              metadata: <String, dynamic>{
+                'viewId': _viewId ?? -1,
+                'videoId': _telemetryVideoId ?? '',
+                'url': _currentUrl ?? '',
+                'phase': phase,
+                'phaseSource': phaseSource,
+                'previousPhase': event['previousPhase'] ?? '',
+                'previousDurationMs':
+                    (event['previousDurationMs'] as num?)?.toInt() ?? -1,
+                'phaseStartedAtEpochMs': phaseStartedAt,
+                'overlayVisible': event['overlayVisible'] == true,
+                'didRenderFirstFrame': event['didRenderFirstFrame'] == true,
+                'preferResumePoster': event['preferResumePoster'] == true,
+              },
+            );
             if (kDebugMode && !_suppressHlsSmokeLogs) {
               debugPrint(
                 '[HLSController][view=$_viewId][video=${_telemetryVideoId ?? '-'}] visualPhase payload=$event url=$_currentUrl',

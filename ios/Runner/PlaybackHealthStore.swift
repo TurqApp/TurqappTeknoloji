@@ -79,6 +79,24 @@ final class PlaybackHealthStore {
         }
     }
 
+    func updateVisualPhase(_ payload: [String: Any]) {
+        var merged = lastSnapshot
+        let now = Int64(Date().timeIntervalSince1970 * 1000.0)
+        let phaseStartedAt = payload["phaseStartedAtEpochMs"] as? Int64 ?? now
+        merged["supported"] = true
+        merged["active"] = true
+        merged["visualPhase"] = payload["phase"] as? String ?? ""
+        merged["visualPhaseSource"] = payload["source"] as? String ?? ""
+        merged["visualPhaseStartedAtEpochMs"] = phaseStartedAt
+        merged["visualPhaseDurationMs"] = max(Int64(0), now - phaseStartedAt)
+        merged["overlayVisible"] = payload["overlayVisible"] as? Bool ?? false
+        merged["preferResumePoster"] = payload["preferResumePoster"] as? Bool ?? false
+        merged["didRenderFirstFrame"] = payload["didRenderFirstFrame"] as? Bool ?? false
+        merged["url"] = payload["url"] as? String ?? ""
+        merged["raw"] = "\(merged)"
+        lastSnapshot = merged
+    }
+
     func clear(monitor: PlaybackHealthMonitor? = nil) {
         if let monitor, let activeMonitor, activeMonitor !== monitor {
             return

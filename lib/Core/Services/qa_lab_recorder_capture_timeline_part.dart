@@ -26,6 +26,14 @@ extension QALabRecorderCaptureTimelinePart on QALabRecorder {
     final severity = code.contains('error') || code.contains('timeout')
         ? QALabIssueSeverity.error
         : QALabIssueSeverity.info;
+    if (code.startsWith('playback_visual_') || code == 'resume_poster_timing') {
+      _recordTimelineEvent(
+        category: 'video',
+        code: code,
+        surface: surface,
+        metadata: metadata,
+      );
+    }
     recordIssue(
       source: QALabIssueSource.video,
       code: code,

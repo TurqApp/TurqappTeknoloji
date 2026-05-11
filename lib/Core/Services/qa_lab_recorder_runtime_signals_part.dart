@@ -60,6 +60,20 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
       'layerAttachCount': _asInt(nestedSnapshot['layerAttachCount']),
       'lastKnownPlaybackTime':
           _asDouble(nestedSnapshot['lastKnownPlaybackTime']),
+      'visualPhase': (nestedSnapshot['visualPhase'] ?? '').toString(),
+      'visualPhaseSource':
+          (nestedSnapshot['visualPhaseSource'] ?? '').toString(),
+      'visualPhaseStartedAtEpochMs':
+          _asInt(nestedSnapshot['visualPhaseStartedAtEpochMs']),
+      'visualPhaseDurationMs': _asInt(nestedSnapshot['visualPhaseDurationMs']),
+      'overlayVisible': _runtimeSignalAsBool(
+        nestedSnapshot['overlayVisible'],
+        fallback: false,
+      ),
+      'preferResumePoster': _runtimeSignalAsBool(
+        nestedSnapshot['preferResumePoster'],
+        fallback: false,
+      ),
       'awaitingFullscreenRecovery': _runtimeSignalAsBool(
         nestedSnapshot['awaitingFullscreenRecovery'],
         fallback: false,
@@ -102,6 +116,13 @@ extension QALabRecorderRuntimeSignalsPart on QALabRecorder {
             _asInt(current['layerAttachCount']) &&
         _asDouble(previous['lastKnownPlaybackTime']) ==
             _asDouble(current['lastKnownPlaybackTime']) &&
+        previous['visualPhase'] == current['visualPhase'] &&
+        previous['visualPhaseSource'] == current['visualPhaseSource'] &&
+        _asInt(previous['visualPhaseStartedAtEpochMs']) ==
+            _asInt(current['visualPhaseStartedAtEpochMs']) &&
+        _asInt(previous['visualPhaseDurationMs']) ==
+            _asInt(current['visualPhaseDurationMs']) &&
+        previous['overlayVisible'] == current['overlayVisible'] &&
         listEquals(previousErrors, currentErrors);
   }
 

@@ -139,6 +139,43 @@ extension QALabRecorderRuntimeNavigationPart on QALabRecorder {
         !registered('profile');
   }
 
+  bool _isPrimaryProfileSelected(
+    Map<String, dynamic> snapshot, {
+    String route = '',
+  }) {
+    final normalizedRoute = route.trim().toLowerCase();
+    final usesDirectProfileRoute = normalizedRoute.contains('profile') ||
+        normalizedRoute == '/profile' ||
+        normalizedRoute == 'profile';
+    final usesPrimaryNavRoute = normalizedRoute.isEmpty ||
+        normalizedRoute == '/' ||
+        normalizedRoute == '/navbar' ||
+        normalizedRoute == 'navbar' ||
+        normalizedRoute == '/navbarview' ||
+        normalizedRoute == 'navbarview';
+    if (!usesPrimaryNavRoute && !usesDirectProfileRoute) {
+      return false;
+    }
+    if (usesDirectProfileRoute) {
+      return true;
+    }
+    final primaryNavSurface = _inferPrimaryNavSurface(snapshot);
+    if (primaryNavSurface.isNotEmpty) {
+      return primaryNavSurface == 'profile';
+    }
+
+    bool registered(String key) =>
+        (snapshot[key] as Map<String, dynamic>? ??
+            const <String, dynamic>{})['registered'] ==
+        true;
+
+    return registered('profile') &&
+        !registered('feed') &&
+        !registered('explore') &&
+        !registered('short') &&
+        !registered('education');
+  }
+
   Map<String, dynamic> _resolveVisibilitySnapshot(
     Map<String, dynamic> fallback, {
     required String surface,
@@ -149,8 +186,7 @@ extension QALabRecorderRuntimeNavigationPart on QALabRecorder {
     final currentSurface =
         current[surface] as Map<String, dynamic>? ?? const <String, dynamic>{};
     final currentRoute = (current['currentRoute'] ?? '').toString().trim();
-    final hasLiveContext =
-        currentNavBar['registered'] == true ||
+    final hasLiveContext = currentNavBar['registered'] == true ||
         currentSurface['registered'] == true ||
         currentRoute.isNotEmpty;
     return hasLiveContext ? current : fallback;
