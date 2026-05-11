@@ -33,6 +33,50 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     return savedPosition - cushion;
   }
 
+  void _syncLiveResumePositionSample(HLSVideoValue value) {
+    if (!_usesFeedPlaybackPolicy) return;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    if (!value.isInitialized || value.isCompleted) return;
+    if (value.position <= PostContentBaseState._stableFramePositionThreshold) {
+      return;
+    }
+    final lastPosition = _lastResumePositionSample;
+    if (lastPosition != null &&
+        (value.position - lastPosition).inMilliseconds.abs() < 120) {
+      return;
+    }
+    final now = DateTime.now();
+    final lastSampleAt = _lastResumePositionSampleAt;
+    if (lastSampleAt != null &&
+        now.difference(lastSampleAt) <
+            PostContentBaseState._resumePositionSampleInterval) {
+      return;
+    }
+
+    _lastResumePositionSample = value.position;
+    _lastResumePositionSampleAt = now;
+    _playbackRuntimeService.updatePlaybackPosition(
+      playbackHandleKey,
+      value.position,
+    );
+
+    final lastLogged = _lastLoggedResumePositionSample;
+    final shouldLog = lastLogged == null ||
+        (value.position - lastLogged).inMilliseconds.abs() >= 1000;
+    if (shouldLog) {
+      _lastLoggedResumePositionSample = value.position;
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_position_sample '
+        'doc=${widget.model.docID} key=$playbackHandleKey '
+        'positionMs=${value.position.inMilliseconds} '
+        'playing=${value.isPlaying} buffering=${value.isBuffering} '
+        'firstFrame=${value.hasRenderedFirstFrame} '
+        'visibleFrame=${value.hasVisibleVideoFrame} '
+        'shouldPlay=${widget.shouldPlay}',
+      );
+    }
+  }
+
   void _armSavedResumeRecoveryGuard() {
     _savedResumeRecoveryGuardUntil =
         DateTime.now().add(const Duration(milliseconds: 4200));

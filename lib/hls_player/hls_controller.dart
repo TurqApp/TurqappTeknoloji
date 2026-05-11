@@ -336,6 +336,12 @@ class HLSController {
     return HLSControllerPlaybackPart(this).seekTo(seconds);
   }
 
+  Future<void> clearFrameSnapshot({
+    String reason = 'unspecified',
+  }) {
+    return HLSControllerPlaybackPart(this).clearFrameSnapshot(reason: reason);
+  }
+
   Future<void> setMuted(bool muted) {
     return HLSControllerPlaybackPart(this).setMuted(muted);
   }

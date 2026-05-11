@@ -182,6 +182,40 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     return _playWithAudioFocus();
   }
 
+  Future<void> _performClearFrameSnapshot({
+    required String reason,
+  }) async {
+    if (_disposed) return;
+    if (kDebugMode) {
+      debugPrint(
+        '[HLSAdapterSnapshot]'
+        ' action=clear'
+        ' reason=$reason'
+        ' video=${_hls.telemetryVideoIdForDiagnostics ?? '-'}'
+        ' positionMs=${_value.position.inMilliseconds}'
+        ' firstFrame=${_value.hasRenderedFirstFrame}'
+        ' visibleFrame=${_value.hasVisibleVideoFrame}'
+        ' url=${_hls.currentUrl ?? url}',
+      );
+    }
+    await _hls.clearFrameSnapshot(reason: reason);
+    _value = HLSVideoValue(
+      isInitialized: _value.isInitialized,
+      isPlaying: _value.isPlaying,
+      isBuffering: _value.isBuffering,
+      isCompleted: _value.isCompleted,
+      hasRenderedFirstFrame: false,
+      hasVisibleVideoFrame: false,
+      awaitingFreshFrameAfterReattach: false,
+      position: _value.position,
+      duration: _value.duration,
+      size: _value.size,
+      aspectRatio: _value.aspectRatio,
+      buffered: _value.buffered,
+    );
+    _notifyAdapterListeners();
+  }
+
   Future<void> _performPlayWithAudioFocus() async {
     if (_disposed) return;
     if (coordinateAudioFocus) {

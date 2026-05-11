@@ -398,6 +398,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         }
     }
 
+    func clearFrameSnapshot(reason: String) {
+        log("clearFrameSnapshot reason=\(reason) url=\(currentUrl ?? "-")")
+        clearFrameSnapshot()
+    }
+
     func setMuted(_ muted: Bool) {
         player?.isMuted = muted
     }

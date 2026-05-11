@@ -194,6 +194,11 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   Future<void> seekTo(Duration pos) => _performSeekTo(pos);
 
+  Future<void> clearFrameSnapshot({
+    String reason = 'unspecified',
+  }) =>
+      _performClearFrameSnapshot(reason: reason);
+
   /// Network/decoder durdur, adapter hayatta kalsın.
   /// Tekrar play() çağrılırsa otomatik reload olur.
   Future<void> stopPlayback() => _performStopPlayback();

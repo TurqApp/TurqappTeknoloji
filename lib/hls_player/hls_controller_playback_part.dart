@@ -141,6 +141,37 @@ extension HLSControllerPlaybackPart on HLSController {
     }
   }
 
+  Future<void> clearFrameSnapshot({
+    String reason = 'unspecified',
+  }) async {
+    if (_isInactive || _viewId == null) return;
+
+    _resetVisualTimingMarkers();
+    _awaitingFreshFrameAfterReattach = false;
+    if (_hasRenderedFirstFrame) {
+      _hasRenderedFirstFrame = false;
+      _emitFirstFrame(false);
+    }
+    if (_hasVisibleVideoFrame) {
+      _hasVisibleVideoFrame = false;
+      _emitVisibleVideoFrame(false);
+    }
+
+    try {
+      await HLSController._methodChannel.invokeMethod('clearFrameSnapshot', {
+        'viewId': _viewId,
+        'reason': reason,
+      });
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[HLSControllerSnapshot] action=clear_failed '
+          'view=$_viewId reason=$reason error=${e.message}',
+        );
+      }
+    }
+  }
+
   Future<void> setMuted(bool muted) async {
     if (_isInactive || _viewId == null) return;
 

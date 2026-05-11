@@ -180,6 +180,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   DateTime? _savedResumeRecoveryGuardUntil;
   DateTime? _lastIosPrimaryFeedRecoveryAt;
   DateTime? _autoplaySegmentGateStartedAt;
+  DateTime? _lastResumePositionSampleAt;
+  Duration? _lastResumePositionSample;
+  Duration? _lastLoggedResumePositionSample;
   bool _autoplaySegmentGateTimedOut = false;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
@@ -201,6 +204,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 2500);
   static const Duration _androidSavedResumeSeekCooldown =
       Duration(milliseconds: 2500);
+  static const Duration _resumePositionSampleInterval =
+      Duration(milliseconds: 250);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();

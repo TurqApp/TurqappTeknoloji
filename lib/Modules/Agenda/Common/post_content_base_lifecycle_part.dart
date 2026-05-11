@@ -296,6 +296,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_enforceBlockedSurfacePlaybackStop(v, source: 'video_update')) {
       return;
     }
+    _syncLiveResumePositionSample(v);
     _primeImmediateNextAfterPlaybackStart(v);
     if (defaultTargetPlatform == TargetPlatform.android &&
         _isPrimaryFeedSurfaceInstance &&
