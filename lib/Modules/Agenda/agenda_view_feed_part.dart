@@ -397,6 +397,7 @@ extension _AgendaViewFeedPart on AgendaView {
                   suggestionPlacementId: 'feed',
                   adSlotId: 'feed-ad-$slotNumber',
                   disposeImmediatelyWhenHidden: true,
+                  preferManagedSuggestionSurface: true,
                 ),
               ),
               if (!isModernView) ...[

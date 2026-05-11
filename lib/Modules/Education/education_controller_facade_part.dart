@@ -19,6 +19,8 @@ extension EducationControllerFacadePart on EducationController {
 
   void resetVisibleSearchOnReturn() => _performResetVisibleSearchOnReturn();
 
+  bool openPasajTabId(String tabId) => _performOpenPasajTabId(tabId);
+
   String? currentPasajTabId() {
     final currentIndex = selectedTab.value;
     if (currentIndex < 0 || currentIndex >= titles.length) {

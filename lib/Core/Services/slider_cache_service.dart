@@ -18,6 +18,8 @@ class SliderResolvedItem {
     required this.uniqueViewCount,
     required this.isRemote,
     required this.isDefault,
+    this.targetPlacementId = '',
+    this.targetTabId = '',
   });
 
   final String itemId;
@@ -29,6 +31,8 @@ class SliderResolvedItem {
   final int uniqueViewCount;
   final bool isRemote;
   final bool isDefault;
+  final String targetPlacementId;
+  final String targetTabId;
 
   static int _asInt(dynamic value, {int fallback = 0}) {
     if (value is num) return value.toInt();
@@ -76,6 +80,8 @@ class SliderResolvedItem {
       'uniqueViewCount': uniqueViewCount,
       'isRemote': isRemote,
       'isDefault': isDefault,
+      'targetPlacementId': targetPlacementId,
+      'targetTabId': targetTabId,
     };
   }
 
@@ -90,6 +96,8 @@ class SliderResolvedItem {
       uniqueViewCount: _asInt(map['uniqueViewCount']),
       isRemote: _asBool(map['isRemote']),
       isDefault: _asBool(map['isDefault']),
+      targetPlacementId: (map['targetPlacementId'] ?? '').toString(),
+      targetTabId: (map['targetTabId'] ?? '').toString(),
     );
   }
 }
@@ -145,6 +153,8 @@ class SliderCacheService {
             uniqueViewCount: item.uniqueViewCount,
             isRemote: item.isRemote,
             isDefault: item.isDefault,
+            targetPlacementId: item.targetPlacementId,
+            targetTabId: item.targetTabId,
           ),
         )
         .toList(growable: false);
@@ -378,6 +388,18 @@ class SliderCacheService {
       final order = SliderResolvedItem._asInt(doc.data()['order']);
       final url = (doc.data()['imageUrl'] ?? '').toString().trim();
       if (url.isEmpty) continue;
+      final targetPlacementId = _readFirstString(doc.data(), const [
+        'targetPlacementId',
+        'suggestionPlacementId',
+        'placementId',
+        'pasajPlacementId',
+      ]);
+      final targetTabId = _readFirstString(doc.data(), const [
+        'targetTabId',
+        'pasajTabId',
+        'tabId',
+        'educationTabId',
+      ]);
       final startDateMs = _readDateMs(doc.data()['startDate']);
       final endDateMs = _readDateMs(doc.data()['endDate']);
       final startsLater = startDateMs > 0 && startDateMs > nowMs;
@@ -396,6 +418,8 @@ class SliderCacheService {
             SliderResolvedItem._asInt(doc.data()['uniqueViewCount']),
         isRemote: true,
         isDefault: false,
+        targetPlacementId: targetPlacementId,
+        targetTabId: targetTabId,
       );
       if (order < defaults.length) {
         remoteByOrder[order] = item;
@@ -489,5 +513,16 @@ class SliderCacheService {
       if (date != null) return date.millisecondsSinceEpoch;
     }
     return 0;
+  }
+
+  String _readFirstString(
+    Map<String, dynamic> data,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = (data[key] ?? '').toString().trim();
+      if (value.isNotEmpty) return value;
+    }
+    return '';
   }
 }

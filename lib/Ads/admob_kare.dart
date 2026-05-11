@@ -11,6 +11,9 @@ import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.da
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/slider_cache_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Modules/Education/education_controller.dart';
+import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
+import 'package:turqappv2/Runtime/primary_tab_router.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 class AdmobKare extends StatefulWidget {
@@ -26,6 +29,7 @@ class AdmobKare extends StatefulWidget {
     this.suggestionPlacementId,
     this.adSlotId,
     this.disposeImmediatelyWhenHidden = false,
+    this.preferManagedSuggestionSurface = false,
   });
 
   final bool showChrome;
@@ -38,6 +42,7 @@ class AdmobKare extends StatefulWidget {
   final String? suggestionPlacementId;
   final String? adSlotId;
   final bool disposeImmediatelyWhenHidden;
+  final bool preferManagedSuggestionSurface;
 
   static Future<void> warmupPool({
     int targetCount = _AdmobKareState._poolTargetCount,
@@ -290,6 +295,8 @@ class _AdmobKareState extends State<AdmobKare> {
 
   bool get _requiresStableFeedVisibilityForLoad => _usesFeedFamilyAdBehavior;
   bool get _usesScrollCriticalPoolOnly => _usesFeedFamilyAdBehavior;
+  bool get _prefersManagedSuggestionSurface =>
+      widget.preferManagedSuggestionSurface && _usesManagedSuggestion;
   String get _stableAdSlotKey => widget.adSlotId?.trim() ?? '';
   bool get _usesStableAdSlot => _stableAdSlotKey.isNotEmpty;
   _StableAdSlotState? get _stableSlotState =>
@@ -309,7 +316,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   static String _resolveAdUnitId() {
-    final bool isTestMode = kDebugMode;
+    const bool isTestMode = false;
     final service = ensureAdmobUnitConfigService();
     final availableIds = service.squareAdUnitIdsForCurrentPlatform(
       isTestMode: isTestMode,
@@ -656,7 +663,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _handleScrollCriticalAdBindingChanged,
     );
     if (_usePlaceholderOnly) return;
-    if (_usesScrollCriticalPoolOnly) {
+    if (_usesScrollCriticalPoolOnly && !_prefersManagedSuggestionSurface) {
       unawaited(warmupPool(
         targetCount: _poolTargetCount,
         maxRequestCount: _poolTopUpBatchCount,
@@ -709,6 +716,9 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || _usePlaceholderOnly || !_isVisible) {
       return;
     }
+    if (_prefersManagedSuggestionSurface) {
+      return;
+    }
     if (_usesScrollCriticalPoolOnly && _waitingForFuturePool) {
       if (!_scrollCriticalLiveAdBindingPaused.value) {
         _waitingForFuturePool = false;
@@ -744,6 +754,9 @@ class _AdmobKareState extends State<AdmobKare> {
     if (_isDisposed || !_usesScrollCriticalPoolOnly) {
       return;
     }
+    if (_prefersManagedSuggestionSurface) {
+      return;
+    }
     if (_scrollCriticalLiveAdBindingPaused.value) {
       _scrollCriticalAttachDelayTimer?.cancel();
       _scrollCriticalAttachDelayTimer = null;
@@ -762,6 +775,9 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   void _scheduleScrollCriticalAttachAfterSettle() {
+    if (_prefersManagedSuggestionSurface) {
+      return;
+    }
     if (!_usesScrollCriticalPoolOnly) {
       _attachBannerOrLoad();
       return;
@@ -780,6 +796,9 @@ class _AdmobKareState extends State<AdmobKare> {
 
   void _attachBannerOrLoad() {
     if (!_canStartOrRetryLoad()) {
+      return;
+    }
+    if (_prefersManagedSuggestionSurface) {
       return;
     }
     if (_usesScrollCriticalPoolOnly &&
@@ -1067,6 +1086,18 @@ class _AdmobKareState extends State<AdmobKare> {
     }
     _stableHiddenDetachTimer?.cancel();
     _stableHiddenDetachTimer = null;
+    if (_prefersManagedSuggestionSurface) {
+      if (_usesManagedSuggestion) {
+        if (_suggestionSliderItems.isNotEmpty) {
+          _advanceManagedSuggestionIndex();
+        }
+        _queueManagedSuggestionImpressionIfVisible();
+      }
+      if (mounted && !_isDisposed) {
+        setState(() {});
+      }
+      return;
+    }
     if (_usesManagedSuggestion && _suggestionSliderItems.isNotEmpty) {
       _advanceManagedSuggestionIndex();
       if (_canRenderAd(_bannerAd)) {
@@ -1354,9 +1385,10 @@ class _AdmobKareState extends State<AdmobKare> {
       final canRenderLiveAd = hasRenderableAd &&
           (shouldPreserveVisibleLiveAd ||
               (!_loadFailed && !liveAdBindingPaused));
-      final showManagedSuggestion =
-          _usesManagedSuggestion && _suggestionSliderItems.isNotEmpty;
-      if (canRenderLiveAd) {
+      final preferManagedSuggestionSurface = _prefersManagedSuggestionSurface;
+      final showManagedSuggestion = _usesManagedSuggestion &&
+          (_suggestionSliderItems.isNotEmpty || preferManagedSuggestionSurface);
+      if (canRenderLiveAd && !preferManagedSuggestionSurface) {
         _liveAdEverRendered = true;
         final bannerAd = ad!;
 
@@ -1410,7 +1442,10 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        if (_allowFallbackSurface || _loadFailed || liveAdBindingPaused) {
+        if (preferManagedSuggestionSurface ||
+            _allowFallbackSurface ||
+            _loadFailed ||
+            liveAdBindingPaused) {
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {
@@ -1718,6 +1753,8 @@ class _AdmobKareState extends State<AdmobKare> {
     Map<String, TurqAppSuggestionConfig> configs,
   ) {
     final available = TurqAppSuggestionPlacements.entries
+        .where((placement) =>
+            _pasajTabIdForSuggestionPlacement(placement.id).isNotEmpty)
         .map(
           (placement) =>
               configs[placement.id] ??
@@ -1772,8 +1809,179 @@ class _AdmobKareState extends State<AdmobKare> {
     return 'Şimdi keşfet';
   }
 
+  String _pasajTabIdForSuggestionPlacement(String placementId) {
+    switch (placementId) {
+      case 'market':
+        return PasajTabIds.market;
+      case 'job':
+        return PasajTabIds.jobFinder;
+      case 'scholarship':
+        return PasajTabIds.scholarships;
+      case 'answer_key':
+        return PasajTabIds.answerKey;
+      case 'practice_exam':
+        return PasajTabIds.onlineExam;
+      case 'tutoring':
+        return PasajTabIds.tutoring;
+    }
+    return '';
+  }
+
+  String _pasajTabIdFromSuggestionText(String value) {
+    final text = value
+        .toLowerCase()
+        .replaceAll('ı', 'i')
+        .replaceAll('İ', 'i')
+        .replaceAll('%c3%b6', 'o')
+        .replaceAll('%c4%b1', 'i')
+        .replaceAll('%c5%9f', 's');
+    if (text.contains('online_sinav') ||
+        text.contains('online-sinav') ||
+        text.contains('online sinav') ||
+        text.contains('online_exam') ||
+        text.contains('online-exam')) {
+      return PasajTabIds.onlineExam;
+    }
+    if (text.contains('deneme') ||
+        text.contains('cikmis') ||
+        text.contains('practice_exams') ||
+        text.contains('previous_questions')) {
+      return PasajTabIds.practiceExams;
+    }
+    if (text.contains('cevap') ||
+        text.contains('answer_key') ||
+        text.contains('answer-key') ||
+        text.contains('optical')) {
+      return PasajTabIds.answerKey;
+    }
+    if (text.contains('burs') || text.contains('scholarship')) {
+      return PasajTabIds.scholarships;
+    }
+    if (text.contains('is_bul') ||
+        text.contains('is-bul') ||
+        text.contains('isveren') ||
+        text.contains('job')) {
+      return PasajTabIds.jobFinder;
+    }
+    if (text.contains('ozel_ders') ||
+        text.contains('ozel-ders') ||
+        text.contains('tutoring')) {
+      return PasajTabIds.tutoring;
+    }
+    if (text.contains('market') || text.contains('pazar')) {
+      return PasajTabIds.market;
+    }
+    return '';
+  }
+
+  String _normalizePasajTabId(String value) {
+    final normalized = value.trim();
+    if (pasajTabs.contains(normalized)) {
+      return normalized;
+    }
+    final legacy = pasajLegacyTitleToId(normalized);
+    if (pasajTabs.contains(legacy)) {
+      return legacy;
+    }
+    return _pasajTabIdFromSuggestionText(normalized);
+  }
+
+  String _pasajTabIdForManagedSuggestionItem(SliderResolvedItem? item) {
+    if (item == null) {
+      return '';
+    }
+    final explicitTab = _normalizePasajTabId(item.targetTabId);
+    if (explicitTab.isNotEmpty) {
+      return explicitTab;
+    }
+    final placementTab =
+        _pasajTabIdForSuggestionPlacement(item.targetPlacementId);
+    if (placementTab.isNotEmpty) {
+      return placementTab;
+    }
+    return _pasajTabIdFromSuggestionText('${item.itemId} ${item.source}');
+  }
+
+  void _openSuggestionPasajTab({
+    required String placementId,
+    required String tabId,
+  }) {
+    final targetTabId = _normalizePasajTabId(tabId);
+    if (targetTabId.isEmpty) return;
+
+    final placementTabId = _pasajTabIdForSuggestionPlacement(placementId);
+    final resolvedPlacementId =
+        placementTabId == targetTabId ? placementId : 'item_target';
+
+    final openedEducation = const PrimaryTabRouter().openEducation();
+    final education = ensureEducationController(permanent: true);
+
+    void openTarget([int attemptsLeft = 8]) {
+      final openedTab = education.openPasajTabId(targetTabId);
+      _log(
+        'suggestion tap placement=$resolvedPlacementId sourcePlacement=$placementId tab=$targetTabId '
+        'openedEducation=$openedEducation openedTab=$openedTab '
+        'attemptsLeft=$attemptsLeft',
+      );
+      if (openedTab || attemptsLeft <= 0) return;
+      Future<void>.delayed(const Duration(milliseconds: 80), () {
+        openTarget(attemptsLeft - 1);
+      });
+    }
+
+    openTarget();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      openTarget();
+      Future<void>.delayed(const Duration(milliseconds: 120), openTarget);
+    });
+  }
+
+  Widget _wrapSuggestionPasajTap({
+    required String placementId,
+    required String tabId,
+    required Widget child,
+  }) {
+    final targetTabId = _normalizePasajTabId(tabId);
+    if (targetTabId.isEmpty) return child;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openSuggestionPasajTab(
+        placementId: placementId,
+        tabId: targetTabId,
+      ),
+      child: child,
+    );
+  }
+
+  String _tapTabIdForSuggestionSlot({required bool hasSlider}) {
+    if (hasSlider) {
+      final itemTabId =
+          _pasajTabIdForManagedSuggestionItem(_currentManagedSuggestionItem);
+      if (itemTabId.isNotEmpty) {
+        return itemTabId;
+      }
+    }
+    final primaryPlacementId = hasSlider
+        ? _currentSuggestionConfig.placementId
+        : _currentFallbackSuggestionConfig.placementId;
+    final primaryTabId = _pasajTabIdForSuggestionPlacement(primaryPlacementId);
+    if (primaryTabId.isNotEmpty) {
+      return primaryTabId;
+    }
+    return _pasajTabIdForSuggestionPlacement(
+      _currentFallbackSuggestionConfig.placementId,
+    );
+  }
+
   Widget _buildManagedSuggestionSlot() {
     final hasSlider = _suggestionSliderItems.isNotEmpty;
+    final tapTabId = _tapTabIdForSuggestionSlot(
+      hasSlider: hasSlider,
+    );
+    final tapPlacementId = hasSlider
+        ? _currentSuggestionConfig.placementId
+        : _currentFallbackSuggestionConfig.placementId;
     final slotBody = SizedBox(
       height: _promoSlotHeight,
       child: _buildPromoFrame(
@@ -1782,18 +1990,23 @@ class _AdmobKareState extends State<AdmobKare> {
             : _buildPromoFallbackSurface(),
       ),
     );
+    final tappableSlotBody = _wrapSuggestionPasajTap(
+      placementId: tapPlacementId,
+      tabId: tapTabId,
+      child: slotBody,
+    );
 
     if (!widget.showChrome) {
-      return slotBody;
+      return tappableSlotBody;
     }
 
     return Padding(
       padding: widget.contentPadding,
       child: widget.promoFallbackOffsetX == 0
-          ? slotBody
+          ? tappableSlotBody
           : Transform.translate(
               offset: Offset(widget.promoFallbackOffsetX, 0),
-              child: slotBody,
+              child: tappableSlotBody,
             ),
     );
   }

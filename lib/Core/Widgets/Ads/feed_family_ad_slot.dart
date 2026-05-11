@@ -55,6 +55,7 @@ class FeedFamilyAdSlot extends StatelessWidget {
             suggestionPlacementId: normalizedPlacement,
             adSlotId: '$normalizedSurface-ad-$normalizedSlot',
             disposeImmediatelyWhenHidden: true,
+            preferManagedSuggestionSurface: normalizedPlacement == 'feed',
           ),
         ),
         if (!isModernView && trailingClassicDivider) ...[

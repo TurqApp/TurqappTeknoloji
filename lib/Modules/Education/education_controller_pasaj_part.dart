@@ -366,6 +366,35 @@ extension EducationControllerPasajPart on EducationController {
     _primeVisiblePasajSurface(actualIndex);
   }
 
+  bool _performOpenPasajTabId(String tabId) {
+    final normalized = tabId.trim();
+    if (normalized.isEmpty || !pasajTabs.contains(normalized)) {
+      return false;
+    }
+    final actualIndex = titles.indexOf(normalized);
+    if (actualIndex < 0 || !visibleTabIndexes.contains(actualIndex)) {
+      return false;
+    }
+
+    final visibleIndex = visibleIndexForActual(actualIndex);
+    selectedTab.value = actualIndex;
+    if (pageController.hasClients) {
+      pageController.jumpToPage(visibleIndex);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (pageController.hasClients) {
+          pageController.jumpToPage(visibleIndex);
+        }
+      });
+    }
+    _syncTabBarPosition(visibleIndex);
+    _restoreSearchForTab(actualIndex);
+    resetActivePasajSurfaceToTop();
+    _suppressBackgroundFeedMedia();
+    _primeVisiblePasajSurface(actualIndex);
+    return true;
+  }
+
   void onPageChanged(int visibleIndex) {
     final actualIndex = actualIndexForVisible(visibleIndex);
     selectedTab.value = actualIndex;
