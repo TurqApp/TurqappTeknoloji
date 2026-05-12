@@ -71,11 +71,15 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     _hlsStateSub = _hlsController.onStateChanged.listen((state) {
       if (!mounted) return;
 
-      if (state == PlayerState.ready) {
+      if (state == PlayerState.ready || state == PlayerState.playing) {
         if (!_hlsReady) {
           setState(() {
             _hlsReady = true;
           });
+          debugPrint(
+            '[StoryVideoVisual] action=ready_from_state '
+            'state=$state story=${widget.storyId} mediaDoc=$_mediaDocId',
+          );
           _onHLSReady(_hlsController.duration);
         }
       } else if (state == PlayerState.completed) {
@@ -86,6 +90,17 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       if (!mounted) return;
       final durationSeconds = _hlsController.duration;
       if (!durationSeconds.isFinite || durationSeconds <= 0) return;
+      if (!_hlsReady && position.inMilliseconds > 0) {
+        setState(() {
+          _hlsReady = true;
+        });
+        debugPrint(
+          '[StoryVideoVisual] action=ready_from_position '
+          'story=${widget.storyId} mediaDoc=$_mediaDocId '
+          'positionMs=${position.inMilliseconds} '
+          'durationMs=${(durationSeconds * 1000).round()}',
+        );
+      }
       if (!_notifiedStarted) {
         if (!_loggedPositionStartFallback) {
           _loggedPositionStartFallback = true;
