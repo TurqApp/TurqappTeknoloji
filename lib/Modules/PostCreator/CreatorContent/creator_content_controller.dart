@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 import 'package:turqappv2/Models/hashtag_model.dart';

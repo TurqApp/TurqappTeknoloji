@@ -538,7 +538,85 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       return;
     }
 
-    await _processPickedVideo(result.file);
+    final prepared = await _preparePickedPostCameraVideo(result.file);
+    if (prepared == null) return;
+    await _processPickedVideo(prepared);
+  }
+
+  Future<File?> _preparePickedPostCameraVideo(File videoFile) async {
+    final durationOk = await _validatePickedPostCameraVideoDuration(videoFile);
+    if (!durationOk) return null;
+
+    final originalBytes = await videoFile.length();
+    File output = videoFile;
+    try {
+      final compressed = await VideoCompress.compressVideo(
+        videoFile.path,
+        quality: VideoQuality.Res1280x720Quality,
+        includeAudio: true,
+        deleteOrigin: false,
+      );
+      if (compressed?.file != null) {
+        final compressedFile = compressed!.file!;
+        final compressedBytes = await compressedFile.length();
+        if (compressedBytes < originalBytes) {
+          output = compressedFile;
+        }
+        debugPrint(
+          '[CreatorCameraVideo] camera_720p_compress '
+          'original=${UploadConstants.formatBytes(originalBytes)} '
+          'compressed=${UploadConstants.formatBytes(compressedBytes)} '
+          'usedCompressed=${output.path == compressedFile.path}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[CreatorCameraVideo] camera_720p_compress_failed error=$e');
+    }
+
+    final validation = await UploadValidationService.validateVideo(output);
+    if (!validation.isValid) {
+      final finalBytes = await output.length();
+      debugPrint(
+        '[CreatorCameraVideo] rejected_after_compress '
+        'size=${UploadConstants.formatBytes(finalBytes)} '
+        'error=${validation.errorMessage}',
+      );
+      UploadValidationService.showValidationError(validation.errorMessage!);
+      return null;
+    }
+
+    return output;
+  }
+
+  Future<bool> _validatePickedPostCameraVideoDuration(File videoFile) async {
+    final controller = VideoPlayerController.file(videoFile);
+    try {
+      await controller.initialize();
+      final durationSeconds = controller.value.duration.inSeconds;
+      final maxSeconds =
+          await UploadValidationService.currentMaxVideoLengthSecondsAsync();
+      if (durationSeconds > maxSeconds) {
+        debugPrint(
+          '[CreatorCameraVideo] rejected_duration '
+          'max=${maxSeconds}s current=${durationSeconds}s',
+        );
+        UploadValidationService.showValidationError(
+          'upload_validation.video_duration_too_long'.trParams({
+            'max': '$maxSeconds',
+            'current': '$durationSeconds',
+          }),
+        );
+        return false;
+      }
+      return true;
+    } catch (e) {
+      UploadValidationService.showValidationError(
+        'upload_validation.video_analysis_failed'.trParams({'error': '$e'}),
+      );
+      return false;
+    } finally {
+      await controller.dispose();
+    }
   }
 
   void _performEnforceImageCap() {
