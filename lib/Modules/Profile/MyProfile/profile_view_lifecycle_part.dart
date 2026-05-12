@@ -52,6 +52,10 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       _refreshProfileSupplementalMetaIfActive(force: false);
     });
     _marketUserWorker = ever(userService.currentUserRx, (_) {
+      _updateViewState(() {
+        _marketItems = const <MarketItemModel>[];
+        _marketLoadedOnce = false;
+      });
       _refreshProfileSurfaceMetaIfActive(force: false);
     });
     final nav = maybeFindNavBarController();
@@ -163,12 +167,14 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
         force: force,
       );
       _updateViewState(() {
+        _marketLoadedOnce = true;
         _marketItems = items
             .where((item) => item.status != 'archived')
             .toList(growable: false);
       });
     } catch (_) {
       _updateViewState(() {
+        _marketLoadedOnce = true;
         _marketItems = const <MarketItemModel>[];
       });
     } finally {

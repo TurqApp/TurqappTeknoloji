@@ -139,6 +139,7 @@ class _SocialProfileState extends State<SocialProfile> {
       MarketSnapshotRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
+  bool _marketLoadedOnce = false;
 
   ScrollController get _currentScrollController =>
       _scrollControllerForSelection(controller.postSelection.value);

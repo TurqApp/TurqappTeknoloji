@@ -187,6 +187,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
         force: force,
       );
       _updateSocialProfileState(() {
+        _marketLoadedOnce = true;
         _marketItems = items
             .where((item) => item.status != 'archived')
             .toList(growable: false);
@@ -196,6 +197,7 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       });
     } catch (_) {
       _updateSocialProfileState(() {
+        _marketLoadedOnce = true;
         _marketItems = const <MarketItemModel>[];
         if (controller.totalMarket.value < 0) {
           controller.totalMarket.value = 0;

@@ -308,6 +308,7 @@ extension _SocialProfileSectionsActionsPart on _SocialProfileState {
 
   Widget buildMarkets(BuildContext context) {
     if (!_marketLoading &&
+        !_marketLoadedOnce &&
         _marketItems.isEmpty &&
         widget.userID.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

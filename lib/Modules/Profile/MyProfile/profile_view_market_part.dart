@@ -3,6 +3,7 @@ part of 'profile_view.dart';
 extension _ProfileViewMarketPart on _ProfileViewState {
   Widget buildMarkets(BuildContext context) {
     if (!_marketLoading &&
+        !_marketLoadedOnce &&
         _marketItems.isEmpty &&
         _myUserId.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

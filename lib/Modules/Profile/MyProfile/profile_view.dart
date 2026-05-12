@@ -107,6 +107,7 @@ class _ProfileViewState extends State<ProfileView> {
       MarketSnapshotRepository.ensure();
   List<MarketItemModel> _marketItems = const <MarketItemModel>[];
   bool _marketLoading = false;
+  bool _marketLoadedOnce = false;
   bool _scrollProbeScheduled = false;
   Timer? _scrollSettleDebounce;
   bool _ownsController = false;
