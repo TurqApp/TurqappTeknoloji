@@ -77,9 +77,14 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
   }
 
   String _buildProfileLink({String? nicknameSlug}) {
-    final nickname = nicknameSlug ?? _currentNicknameSlug();
+    final nickname =
+        nicknameSlug ?? normalizeProfileSlug(headerNickname.value);
     if (nickname.isNotEmpty) {
       return buildTurqAppProfileUrl(nickname);
+    }
+    final currentNickname = _currentNicknameSlug();
+    if (currentNickname.isNotEmpty) {
+      return buildTurqAppProfileUrl(currentNickname);
     }
     final uid = userService.effectiveUserId;
     if (uid.isNotEmpty) {
@@ -129,12 +134,12 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
 
   Future<void> shareProfile() async {
     await ShareActionGuard.run(() async {
-      String link = _buildProfileLink();
+      final nickname = await _resolveNicknameSlug();
+      String link = _buildProfileLink(nicknameSlug: nickname);
       if (link.trim().isEmpty) {
         link = _fallbackProfileLink();
       }
       profileLink.value = link;
-      final nickname = await _resolveNicknameSlug();
       await ShareLinkService.shareUrl(
         url: link,
         title: nickname.isNotEmpty ? '@$nickname - TurqApp' : 'TurqApp',
