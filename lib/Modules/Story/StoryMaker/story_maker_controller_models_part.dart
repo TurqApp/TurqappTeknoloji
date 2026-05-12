@@ -37,6 +37,8 @@ class StoryElement {
   String stickerData;
   String mediaLookPreset;
   String posterUrl;
+  int videoDurationSeconds;
+  int videoTrimStartSeconds;
   Offset? initialFocalPoint;
   Offset? initialPosition;
   double? initialWidth;
@@ -72,6 +74,8 @@ class StoryElement {
     this.stickerData = '',
     this.mediaLookPreset = 'original',
     this.posterUrl = '',
+    this.videoDurationSeconds = 0,
+    this.videoTrimStartSeconds = 0,
     this.initialFocalPoint,
     this.initialPosition,
     this.initialWidth,

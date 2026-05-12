@@ -9,7 +9,9 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
   void _normalizeLayerOrdering() {
     final media = elements.where(_isBackgroundMediaElement).toList()
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
-    final overlays = elements.where((e) => !_isBackgroundMediaElement(e)).toList()
+    final overlays = elements
+        .where((e) => !_isBackgroundMediaElement(e))
+        .toList()
       ..sort((a, b) => a.zIndex.compareTo(b.zIndex));
 
     var nextZ = 0;
@@ -71,6 +73,9 @@ extension StoryMakerControllerElementsPart on StoryMakerController {
               stickerType: e.stickerType,
               stickerData: e.stickerData,
               mediaLookPreset: e.mediaLookPreset,
+              posterUrl: e.posterUrl,
+              videoDurationSeconds: e.videoDurationSeconds,
+              videoTrimStartSeconds: e.videoTrimStartSeconds,
             ))
         .toList();
 

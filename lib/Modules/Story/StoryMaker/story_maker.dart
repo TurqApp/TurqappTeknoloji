@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/icon_buttons.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
+import 'package:turqappv2/Core/upload_constants.dart';
 import 'story_maker_controller.dart';
 import 'story_sticker_sheet.dart';
 import 'story_video.dart';
@@ -97,6 +98,7 @@ class _StoryMakerState extends State<StoryMaker> {
           children: [
             topBar(),
             Expanded(child: playground()),
+            videoTrimTools(),
             mediaLookTools(),
             bottomTools(context),
           ],

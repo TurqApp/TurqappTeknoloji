@@ -270,7 +270,10 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           final ts = DateTime.now().millisecondsSinceEpoch;
           if (e.type == StoryElementType.video) {
             hasLocalVideoUpload = true;
-            file = await _prepareStoryVideoForPublish(file);
+            file = await _prepareStoryVideoForPublish(
+              file,
+              trimStartSeconds: e.videoTrimStartSeconds,
+            );
             final fileSize = await file.length();
             if (!_isStoryVideoSizeValid(fileSize)) {
               _showStoryVideoSizeError(fileSize);

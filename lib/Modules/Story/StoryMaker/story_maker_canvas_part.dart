@@ -1,6 +1,84 @@
 part of 'story_maker.dart';
 
 extension _StoryMakerCanvasPart on _StoryMakerState {
+  Widget videoTrimTools() {
+    return Obx(() {
+      final media = controller.currentBackgroundMediaElement;
+      if (media == null || media.type != StoryElementType.video) {
+        return const SizedBox.shrink();
+      }
+      final duration = media.videoDurationSeconds;
+      final maxDuration = UploadConstants.maxStoryVideoLengthSeconds;
+      if (duration <= maxDuration) return const SizedBox.shrink();
+
+      final maxStart = duration - maxDuration;
+      final start = media.videoTrimStartSeconds.clamp(0, maxStart).toInt();
+      final end = start + maxDuration;
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(15, 0, 15, 8),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  CupertinoIcons.scissors,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                const Spacer(),
+                Text(
+                  '${_formatTrimTime(start)} - ${_formatTrimTime(end)}',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontFamily: 'MontserratMedium',
+                  ),
+                ),
+              ],
+            ),
+            SliderTheme(
+              data: SliderTheme.of(Get.context!).copyWith(
+                trackHeight: 3,
+                activeTrackColor: Colors.white,
+                inactiveTrackColor: Colors.white24,
+                thumbColor: Colors.white,
+                overlayColor: Colors.white24,
+              ),
+              child: RangeSlider(
+                min: 0,
+                max: duration.toDouble(),
+                values: RangeValues(start.toDouble(), end.toDouble()),
+                onChanged: (values) {
+                  final movedStart =
+                      (values.start - start).abs() > (values.end - end).abs();
+                  final nextStart = movedStart
+                      ? values.start
+                      : values.end - maxDuration.toDouble();
+                  controller.setCurrentVideoTrimStart(nextStart);
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
+  String _formatTrimTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remaining = seconds % 60;
+    return '$minutes:${remaining.toString().padLeft(2, '0')}';
+  }
+
   Widget mediaLookTools() {
     return Obx(() {
       final media = controller.currentBackgroundMediaElement;
@@ -291,6 +369,11 @@ extension _StoryMakerCanvasPart on _StoryMakerState {
                 path: e.content,
                 isMuted: e.isMuted,
                 posterUrl: e.posterUrl,
+                trimStartSeconds: e.videoTrimStartSeconds,
+                maxPlaybackSeconds: e.videoDurationSeconds >
+                        UploadConstants.maxStoryVideoLengthSeconds
+                    ? UploadConstants.maxStoryVideoLengthSeconds
+                    : 0,
               ),
             ),
             Positioned(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -9,12 +10,16 @@ class StoryVideo extends StatefulWidget {
   final String path;
   final bool isMuted;
   final String posterUrl;
+  final int trimStartSeconds;
+  final int maxPlaybackSeconds;
 
   const StoryVideo({
     super.key,
     required this.path,
     this.isMuted = false,
     this.posterUrl = '',
+    this.trimStartSeconds = 0,
+    this.maxPlaybackSeconds = 0,
   });
 
   @override
@@ -24,6 +29,7 @@ class StoryVideo extends StatefulWidget {
 class _StoryVideoState extends State<StoryVideo> {
   late VideoPlayerController _vidCtrl;
   bool _failed = false;
+  bool _seekingToTrimStart = false;
 
   bool _isRemoteUrl(String value) {
     final uri = Uri.tryParse(value.trim());
@@ -38,11 +44,13 @@ class _StoryVideoState extends State<StoryVideo> {
     _vidCtrl = _isRemoteUrl(widget.path)
         ? VideoPlayerController.networkUrl(Uri.parse(widget.path))
         : VideoPlayerController.file(File(widget.path))
-      ..initialize().then((_) {
+      ..initialize().then((_) async {
         if (!mounted) return;
         AudioFocusCoordinator.instance.registerPreviewPlayer(_vidCtrl);
         _vidCtrl.setLooping(true);
         _vidCtrl.setVolume(widget.isMuted ? 0 : 1);
+        _vidCtrl.addListener(_enforceTrimWindow);
+        await _seekToTrimStart();
         if (widget.isMuted) {
           _vidCtrl.play();
         } else {
@@ -68,13 +76,41 @@ class _StoryVideoState extends State<StoryVideo> {
         AudioFocusCoordinator.instance.requestPreviewPlay(_vidCtrl);
       }
     }
+    if (old.trimStartSeconds != widget.trimStartSeconds &&
+        _vidCtrl.value.isInitialized) {
+      unawaited(_seekToTrimStart());
+    }
   }
 
   @override
   void dispose() {
+    _vidCtrl.removeListener(_enforceTrimWindow);
     AudioFocusCoordinator.instance.unregisterPreviewPlayer(_vidCtrl);
     _vidCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _seekToTrimStart() async {
+    final start = widget.trimStartSeconds;
+    if (start <= 0 || !_vidCtrl.value.isInitialized) return;
+    _seekingToTrimStart = true;
+    try {
+      await _vidCtrl.seekTo(Duration(seconds: start));
+    } finally {
+      _seekingToTrimStart = false;
+    }
+  }
+
+  void _enforceTrimWindow() {
+    if (_seekingToTrimStart ||
+        !_vidCtrl.value.isInitialized ||
+        widget.maxPlaybackSeconds <= 0) {
+      return;
+    }
+    final endSeconds = widget.trimStartSeconds + widget.maxPlaybackSeconds;
+    if (_vidCtrl.value.position.inSeconds >= endSeconds) {
+      unawaited(_seekToTrimStart());
+    }
   }
 
   @override

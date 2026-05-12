@@ -115,6 +115,18 @@ extension StoryMakerControllerRuntimePart on StoryMakerController {
     target.mediaLookPreset = preset;
     elements.refresh();
   }
+
+  void setCurrentVideoTrimStart(double value) {
+    final target = currentBackgroundMediaElement;
+    if (target == null || target.type != StoryElementType.video) return;
+    final maxStart = target.videoDurationSeconds -
+        UploadConstants.maxStoryVideoLengthSeconds;
+    if (maxStart <= 0) return;
+    final next = value.round().clamp(0, maxStart).toInt();
+    if (target.videoTrimStartSeconds == next) return;
+    target.videoTrimStartSeconds = next;
+    elements.refresh();
+  }
 }
 
 double _storyMakerAvailablePlaygroundHeight(

@@ -218,6 +218,7 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       return;
     }
     final videoSize = tempController.value.size;
+    final durationSeconds = tempController.value.duration.inSeconds;
 
     final screenW = Get.width;
     final screenH = Get.height;
@@ -252,7 +253,10 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       isMuted: false,
       aspectRatio: aspectRatio,
       mediaLookPreset: 'original',
+      videoDurationSeconds: durationSeconds,
+      videoTrimStartSeconds: 0,
     );
+    elements.removeWhere((e) => e.type == StoryElementType.video);
     elements.add(element);
 
     _normalizeLayerOrdering();
@@ -262,6 +266,7 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       '[StoryMakerVideoPick] visual_ready '
       'path=${videoFile.path.split('/').last} '
       'mode=direct_video '
+      'duration=${durationSeconds}s '
       'aspect=${aspectRatio.toStringAsFixed(4)}',
     );
 
@@ -331,30 +336,54 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     }
   }
 
-  Future<File> _prepareStoryVideoForPublish(File videoFile) async {
-    var output = await _trimStoryVideoToLimitIfNeeded(videoFile);
+  Future<File> _prepareStoryVideoForPublish(
+    File videoFile, {
+    int trimStartSeconds = 0,
+  }) async {
+    var output = await _trimStoryVideoToLimitIfNeeded(
+      videoFile,
+      startSeconds: trimStartSeconds,
+    );
     output = await _compressStoryVideoToSizeIfNeeded(output);
     return output;
   }
 
-  Future<File> _trimStoryVideoToLimitIfNeeded(File videoFile) async {
-    final durationSeconds = await _readStoryVideoDurationSeconds(videoFile);
+  Future<File> _trimStoryVideoToLimitIfNeeded(
+    File videoFile, {
+    int startSeconds = 0,
+  }) async {
+    final playerDurationSeconds =
+        await _readStoryVideoDurationSeconds(videoFile);
+    final nativeDurationSeconds =
+        await _readStoryVideoNativeDurationSeconds(videoFile);
+    final durationSeconds = nativeDurationSeconds > 0
+        ? nativeDurationSeconds
+        : playerDurationSeconds;
     final maxSeconds = UploadConstants.maxStoryVideoLengthSeconds;
-    if (durationSeconds <= 0 || durationSeconds <= maxSeconds) {
+    final maxStart = max(0, durationSeconds - maxSeconds);
+    final safeStart = startSeconds.clamp(0, maxStart).toInt();
+    if (durationSeconds <= 0 ||
+        (durationSeconds <= maxSeconds && safeStart == 0)) {
       return videoFile;
     }
+    final trimDuration = min(maxSeconds, durationSeconds - safeStart);
+    if (trimDuration <= 0) return videoFile;
+    final trimEndSeconds = max(0, durationSeconds - safeStart - trimDuration);
 
     try {
       debugPrint(
         '[StoryMakerVideoTrim] start path=${videoFile.path.split('/').last} '
-        'duration=${durationSeconds}s max=${maxSeconds}s',
+        'duration=${durationSeconds}s player=${playerDurationSeconds}s '
+        'native=${nativeDurationSeconds}s requestedStart=${startSeconds}s '
+        'start=${safeStart}s '
+        'target=${trimDuration}s trimEnd=${trimEndSeconds}s max=${maxSeconds}s',
       );
       final info = await VideoCompress.compressVideo(
         videoFile.path,
         quality: VideoQuality.DefaultQuality,
         deleteOrigin: false,
-        startTime: 0,
-        duration: maxSeconds,
+        startTime: safeStart,
+        duration: trimEndSeconds,
         includeAudio: true,
       );
       final outputPath = (info?.path ?? '').trim();
@@ -376,6 +405,18 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     }
   }
 
+  Future<int> _readStoryVideoNativeDurationSeconds(File videoFile) async {
+    try {
+      final info = await VideoCompress.getMediaInfo(videoFile.path);
+      final durationMs = info.duration ?? 0;
+      if (durationMs <= 0) return 0;
+      return max(1, (durationMs / 1000).floor());
+    } catch (e) {
+      debugPrint('[StoryMakerVideoTrim] native duration read failed: $e');
+      return 0;
+    }
+  }
+
   Future<File> _compressStoryVideoToSizeIfNeeded(File videoFile) async {
     final maxBytes = UploadConstants.maxStoryVideoSizeBytes;
     if (await videoFile.length() <= maxBytes) return videoFile;
@@ -391,21 +432,16 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     var bestSize = await videoFile.length();
     final durationSeconds = await _readStoryVideoDurationSeconds(videoFile);
     final minAcceptableBytes = _minAcceptableStoryVideoBytes(durationSeconds);
-    final compressDuration = durationSeconds > 0
-        ? min(durationSeconds, UploadConstants.maxStoryVideoLengthSeconds)
-        : UploadConstants.maxStoryVideoLengthSeconds;
     for (final quality in qualities) {
       try {
         debugPrint(
           '[StoryMakerVideoCompress] start quality=$quality '
-          'size=${UploadConstants.formatBytes(bestSize)}',
+          'duration=${durationSeconds}s size=${UploadConstants.formatBytes(bestSize)}',
         );
         final info = await VideoCompress.compressVideo(
           videoFile.path,
           quality: quality,
           deleteOrigin: false,
-          startTime: 0,
-          duration: compressDuration,
           includeAudio: true,
         );
         final outputPath = (info?.path ?? '').trim();

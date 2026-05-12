@@ -324,6 +324,40 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
         && request.resource.data.reactions is map;
     }
+    function canOwnerCompleteStoryHlsShell(storyId) {
+      return isAuth()
+        && !resource.data.keys().hasAny(['userId'])
+        && resource.data.keys().hasOnly([
+          'hlsStatus', 'hlsVideoUrl'
+        ])
+        && (
+          !resource.data.keys().hasAny(['hlsVideoUrl'])
+          || (
+            resource.data.hlsVideoUrl is string
+            && resource.data.hlsVideoUrl.matches('.*stories/' + request.auth.uid + '/' + storyId + '/.*')
+          )
+        )
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'createdDate',
+          'backgroundColor',
+          'musicId',
+          'musicUrl',
+          'musicTitle',
+          'musicArtist',
+          'musicCoverUrl',
+          'elements',
+          'deleted',
+          'deletedAt',
+          'scheduledAt',
+          'deleteReason',
+          'hlsStatus',
+          'hlsVideoUrl',
+          'reactions'
+        ]);
+    }
     function canOwnerUpdateStoryDocument() {
       return isAuth()
         && resource.data.userId == request.auth.uid
@@ -2866,7 +2900,9 @@ service cloud.firestore {
     match /stories/{storyId} {
       allow read: if isAuth();
       allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      allow update: if canOwnerUpdateStoryDocument() || canClientUpdateStoryReactions();
+      allow update: if canOwnerUpdateStoryDocument()
+        || canClientUpdateStoryReactions()
+        || canOwnerCompleteStoryHlsShell(storyId);
       allow delete: if isAuth() && resource.data.userId == request.auth.uid;
 
       match /likes/{likeId} {
