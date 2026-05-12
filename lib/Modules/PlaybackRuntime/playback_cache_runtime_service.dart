@@ -319,6 +319,8 @@ class SegmentCacheRuntimeService {
     String docId, {
     required double progress,
     double? positionSeconds,
+    int? firstSegmentSeconds,
+    int? nextSegmentSeconds,
   }) {
     final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
     if (normalizedDocId == null) return null;
@@ -327,9 +329,29 @@ class SegmentCacheRuntimeService {
     final totalSegmentCount = entry.totalSegmentCount;
     if (totalSegmentCount <= 0) return null;
     if (positionSeconds != null) {
+      if (firstSegmentSeconds != null || nextSegmentSeconds != null) {
+        return HlsSegmentPolicy.estimateCurrentSegmentWithDurations(
+          positionSeconds: positionSeconds,
+          totalSegments: totalSegmentCount,
+          firstSegmentSeconds:
+              firstSegmentSeconds ?? HlsSegmentPolicy.firstSegmentSeconds,
+          nextSegmentSeconds:
+              nextSegmentSeconds ?? HlsSegmentPolicy.nextSegmentSeconds,
+        );
+      }
       return HlsSegmentPolicy.estimateCurrentSegment(
         positionSeconds: positionSeconds,
         totalSegments: totalSegmentCount,
+      );
+    }
+    if (firstSegmentSeconds != null || nextSegmentSeconds != null) {
+      return HlsSegmentPolicy.estimateCurrentSegmentFromProgressWithDurations(
+        progress: progress.clamp(0.0, 1.0),
+        totalSegments: totalSegmentCount,
+        firstSegmentSeconds:
+            firstSegmentSeconds ?? HlsSegmentPolicy.firstSegmentSeconds,
+        nextSegmentSeconds:
+            nextSegmentSeconds ?? HlsSegmentPolicy.nextSegmentSeconds,
       );
     }
     return _estimateCurrentSegment(
@@ -428,6 +450,8 @@ class SegmentCacheRuntimeService {
     int lookAheadSegments = globalWatchLookAheadSegments,
     double? positionSeconds,
     int? maxReadySegments,
+    int? firstSegmentSeconds,
+    int? nextSegmentSeconds,
   }) {
     final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
     if (normalizedDocId == null) return;
@@ -440,14 +464,32 @@ class SegmentCacheRuntimeService {
     if (totalSegmentCount <= 1) return;
 
     final currentSegment = positionSeconds != null
-        ? HlsSegmentPolicy.estimateCurrentSegment(
-            positionSeconds: positionSeconds,
-            totalSegments: totalSegmentCount,
-          )
-        : _estimateCurrentSegment(
-            progress: normalized,
-            totalSegments: totalSegmentCount,
-          );
+        ? (firstSegmentSeconds != null || nextSegmentSeconds != null
+            ? HlsSegmentPolicy.estimateCurrentSegmentWithDurations(
+                positionSeconds: positionSeconds,
+                totalSegments: totalSegmentCount,
+                firstSegmentSeconds:
+                    firstSegmentSeconds ?? HlsSegmentPolicy.firstSegmentSeconds,
+                nextSegmentSeconds:
+                    nextSegmentSeconds ?? HlsSegmentPolicy.nextSegmentSeconds,
+              )
+            : HlsSegmentPolicy.estimateCurrentSegment(
+                positionSeconds: positionSeconds,
+                totalSegments: totalSegmentCount,
+              ))
+        : (firstSegmentSeconds != null || nextSegmentSeconds != null
+            ? HlsSegmentPolicy.estimateCurrentSegmentFromProgressWithDurations(
+                progress: normalized,
+                totalSegments: totalSegmentCount,
+                firstSegmentSeconds:
+                    firstSegmentSeconds ?? HlsSegmentPolicy.firstSegmentSeconds,
+                nextSegmentSeconds:
+                    nextSegmentSeconds ?? HlsSegmentPolicy.nextSegmentSeconds,
+              )
+            : _estimateCurrentSegment(
+                progress: normalized,
+                totalSegments: totalSegmentCount,
+              ));
     final maxReady = maxReadySegments;
     var targetReadySegments =
         (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);

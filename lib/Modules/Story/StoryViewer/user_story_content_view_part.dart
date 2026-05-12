@@ -133,9 +133,8 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                           'vid_${displayElement.content}_${currentStory.id}'),
                                       storyId: currentStory.id,
                                       element: displayElement,
-                                      maxDuration:
-                                          _UserStoryContentState
-                                              ._storyVideoPlaybackHardCap,
+                                      maxDuration: _UserStoryContentState
+                                          ._storyVideoPlaybackHardCap,
                                       paused: _isHoldPaused,
                                       onStarted: (Duration actualDuration) {
                                         final effective = actualDuration >
@@ -364,7 +363,15 @@ extension UserStoryContentViewPart on _UserStoryContentState {
               userId: currentUser.userID,
               imageUrl: currentUser.avatarUrl,
               radius: 16.5,
-              placeholder: const SizedBox.expand(),
+              placeholder: const SizedBox.square(
+                dimension: 33,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Color(0xFF2A2A2A),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
               errorWidget: const DefaultAvatar(radius: 16.5),
             ),
           ),

@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_cache_path.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -182,6 +183,12 @@ class _UserStoryContentState extends State<UserStoryContent>
 
   @override
   void dispose() {
+    if (storyIndex >= 0 && storyIndex < widget.user.stories.length) {
+      unawaited(_stopStoryVideoForTransition(
+        widget.user.stories[storyIndex],
+        reason: 'story_content_dispose',
+      ));
+    }
     _timer?.cancel();
     _musicStateSubscription?.cancel();
     _musicStartFallbackTimer?.cancel();

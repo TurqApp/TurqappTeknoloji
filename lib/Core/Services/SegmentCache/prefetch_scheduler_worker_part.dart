@@ -684,6 +684,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
+          hlsRoot: hlsRoot,
           cacheManager: cacheManager,
           desiredReadySegments: _shortPrefetchMaxReadySegments,
         );
@@ -692,6 +693,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
+          hlsRoot: hlsRoot,
           cacheManager: cacheManager,
           desiredReadySegments: effectiveQuotaReadySegments,
         );
@@ -700,6 +702,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
+          hlsRoot: hlsRoot,
           cacheManager: cacheManager,
         );
         final int mobileCap =
@@ -714,6 +717,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
+          hlsRoot: hlsRoot,
           cacheManager: cacheManager,
           desiredReadySegments: effectiveDesiredReadySegments,
         );
@@ -722,6 +726,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           docID: job.docID,
           segmentUris: segmentUris,
           variantDir: variantDir,
+          hlsRoot: hlsRoot,
           cacheManager: cacheManager,
           watchProgress: watchedProgress,
           desiredReadySegments: isShortPrefetchJob

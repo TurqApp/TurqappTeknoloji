@@ -27,6 +27,65 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     return null;
   }
 
+  String _storyMediaDocId(StoryModel story) {
+    final video = _firstPlayableVideoElement(story);
+    return hlsDocIdFromUrlOrPath(video?.content ?? '') ?? story.id.trim();
+  }
+
+  Future<void> _stopStoryVideoForTransition(
+    StoryModel story, {
+    required String reason,
+  }) async {
+    final storyId = story.id.trim();
+    final mediaDocId = _storyMediaDocId(story).trim();
+    if (storyId.isEmpty && mediaDocId.isEmpty) return;
+    debugPrint(
+      '[StoryPlaybackStop] action=transition_start reason=$reason '
+      'story=${storyId.isEmpty ? '-' : storyId} '
+      'mediaDoc=${mediaDocId.isEmpty ? '-' : mediaDocId}',
+    );
+
+    var stoppedMountedVideo = false;
+    try {
+      if (storyId.isNotEmpty) {
+        stoppedMountedVideo =
+            await StoryVideoPlaybackRegistry.stop(storyId, reason: reason);
+      }
+      if (!stoppedMountedVideo &&
+          mediaDocId.isNotEmpty &&
+          mediaDocId != storyId) {
+        await StoryVideoPlaybackRegistry.stop(mediaDocId, reason: reason);
+      }
+    } catch (_) {}
+
+    try {
+      final prefetch = maybeFindPrefetchScheduler();
+      if (prefetch != null) {
+        if (storyId.isNotEmpty) {
+          prefetch.abortShortSwipeBoundaryDoc(storyId, reason: reason);
+        }
+        if (mediaDocId.isNotEmpty && mediaDocId != storyId) {
+          prefetch.abortShortSwipeBoundaryDoc(mediaDocId, reason: reason);
+        }
+      }
+    } catch (_) {}
+
+    try {
+      if (storyId.isNotEmpty) {
+        releaseExternalOnDemandFetchForDoc(storyId);
+      }
+      if (mediaDocId.isNotEmpty && mediaDocId != storyId) {
+        releaseExternalOnDemandFetchForDoc(mediaDocId);
+      }
+    } catch (_) {}
+
+    debugPrint(
+      '[StoryPlaybackStop] action=transition_done reason=$reason '
+      'story=${storyId.isEmpty ? '-' : storyId} '
+      'mediaDoc=${mediaDocId.isEmpty ? '-' : mediaDocId}',
+    );
+  }
+
   List<StoryModel> _videoStoriesForCurrentUser() {
     return widget.user.stories
         .where(_storyHasPlayableVideo)
@@ -37,7 +96,8 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     if (videoStories.isEmpty) return 0;
     for (var order = 0; order < videoStories.length; order++) {
       final story = videoStories[order];
-      final sourceIndex = widget.user.stories.indexWhere((s) => s.id == story.id);
+      final sourceIndex =
+          widget.user.stories.indexWhere((s) => s.id == story.id);
       if (sourceIndex >= storyIndex) {
         return order;
       }
@@ -135,8 +195,8 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     final currentOrder = _resolveCurrentVideoStoryOrder(videoStories);
     final currentBatchStart =
         (currentOrder ~/ _storyPriorityBatchSize) * _storyPriorityBatchSize;
-    final currentBatchCount =
-        (videoStories.length - currentBatchStart).clamp(0, _storyPriorityBatchSize);
+    final currentBatchCount = (videoStories.length - currentBatchStart)
+        .clamp(0, _storyPriorityBatchSize);
     if (currentBatchCount <= 0) return;
 
     _scheduleStoryVideoWarmupFromOrder(
@@ -178,8 +238,8 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     if (nextBatchStart >= videoStories.length) return;
     if (!_promotedStorySecondSegmentBatchStarts.add(nextBatchStart)) return;
 
-    final nextBatchCount =
-        (videoStories.length - nextBatchStart).clamp(0, _storyPriorityBatchSize);
+    final nextBatchCount = (videoStories.length - nextBatchStart)
+        .clamp(0, _storyPriorityBatchSize);
     if (nextBatchCount <= 0) return;
     _scheduleStoryVideoWarmupFromOrder(
       startOrder: nextBatchStart,
@@ -479,6 +539,10 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
   }
 
   void _nextStory({bool auto = false}) async {
+    final previousStory =
+        storyIndex >= 0 && storyIndex < widget.user.stories.length
+            ? widget.user.stories[storyIndex]
+            : null;
     await _audioPlayer.stop(); // story değişince müzik durdur
     _musicStateSubscription?.cancel();
 
@@ -487,6 +551,12 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
 
       // Mevcut hikayeyi izlendi olarak işaretle (ara güncelleme)
       _markCurrentStoryAsSeen();
+      if (previousStory != null) {
+        await _stopStoryVideoForTransition(
+          previousStory,
+          reason: auto ? 'story_auto_next' : 'story_tap_next',
+        );
+      }
 
       setState(() {
         storyIndex = newIndex;
@@ -499,17 +569,33 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {
+      if (previousStory != null) {
+        await _stopStoryVideoForTransition(
+          previousStory,
+          reason: auto ? 'story_auto_finish' : 'story_tap_finish',
+        );
+      }
       _timer?.cancel();
       widget.onUserStoryFinished?.call();
     }
   }
 
   void _prevStory() async {
+    final previousStory =
+        storyIndex >= 0 && storyIndex < widget.user.stories.length
+            ? widget.user.stories[storyIndex]
+            : null;
     await _audioPlayer.stop(); // story değişince müzik durdur
     _musicStateSubscription?.cancel();
 
     if (storyIndex > 0) {
       final newIndex = storyIndex - 1;
+      if (previousStory != null) {
+        await _stopStoryVideoForTransition(
+          previousStory,
+          reason: 'story_tap_prev',
+        );
+      }
 
       setState(() {
         storyIndex = newIndex;
@@ -522,6 +608,12 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {
+      if (previousStory != null) {
+        await _stopStoryVideoForTransition(
+          previousStory,
+          reason: 'story_prev_user',
+        );
+      }
       widget.onPrevUserRequested?.call();
     }
   }
@@ -555,6 +647,25 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
         },
       );
     } catch (_) {}
+  }
+
+  Future<void> stopPlaybackFromParent({
+    String reason = 'story_page_transition',
+  }) async {
+    if (!mounted) return;
+    _timer?.cancel();
+    _musicStartFallbackTimer?.cancel();
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
+    _musicStateSubscription?.cancel();
+    if (storyIndex < 0 || storyIndex >= widget.user.stories.length) {
+      return;
+    }
+    await _stopStoryVideoForTransition(
+      widget.user.stories[storyIndex],
+      reason: reason,
+    );
   }
 
   // Page-level swipe handled in StoryViewer

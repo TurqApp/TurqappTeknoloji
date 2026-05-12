@@ -4,11 +4,43 @@ import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_cache_path.dart';
+import 'package:turqappv2/Core/Services/SegmentCache/hls_segment_policy.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'package:turqappv2/hls_player/hls_player_module.dart'; // ✅ HLS PLAYER
 import '../StoryMaker/story_maker_controller.dart';
 import 'package:turqappv2/main.dart';
+
+typedef StoryVideoStopCallback = Future<void> Function(String reason);
+
+class StoryVideoPlaybackRegistry {
+  StoryVideoPlaybackRegistry._();
+
+  static final Map<String, StoryVideoStopCallback> _stopCallbacks =
+      <String, StoryVideoStopCallback>{};
+
+  static void register(String key, StoryVideoStopCallback callback) {
+    final normalized = key.trim();
+    if (normalized.isEmpty) return;
+    _stopCallbacks[normalized] = callback;
+  }
+
+  static void unregister(String key, StoryVideoStopCallback callback) {
+    final normalized = key.trim();
+    if (normalized.isEmpty) return;
+    if (!identical(_stopCallbacks[normalized], callback)) return;
+    _stopCallbacks.remove(normalized);
+  }
+
+  static Future<bool> stop(String key, {required String reason}) async {
+    final normalized = key.trim();
+    if (normalized.isEmpty) return false;
+    final callback = _stopCallbacks[normalized];
+    if (callback == null) return false;
+    await callback(reason);
+    return true;
+  }
+}
 
 class StoryVideoWidget extends StatefulWidget {
   final String storyId;
@@ -49,6 +81,9 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   double? _offscreenResumePositionSeconds;
   String? _claimedFetchDocId;
   bool _loggedPositionStartFallback = false;
+  bool _stoppingForOffscreen = false;
+  int? _lastLoggedReadySegmentTarget;
+  late final StoryVideoStopCallback _externalStopCallback = _handleExternalStop;
 
   bool get _effectivePaused => widget.paused || _routePaused;
   String get _mediaDocId => _mediaDocIdFor(widget);
@@ -65,6 +100,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   void initState() {
     super.initState();
     _seedStoryCacheEntry();
+    _registerStopCallbacks();
     _syncFetchOwnership();
     // ✅ HLS Player event listener
     _hlsStateSub = _hlsController.onStateChanged.listen((state) {
@@ -124,10 +160,36 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       if (progress <= 0) return;
       widget.onProgress?.call(progress);
       try {
+        final currentSegment =
+            _segmentCacheRuntimeService.estimateCurrentSegmentForDoc(
+          widget.storyId,
+          progress: progress,
+          positionSeconds: positionSeconds,
+          firstSegmentSeconds: HlsSegmentPolicy.storyFirstSegmentSeconds,
+          nextSegmentSeconds: HlsSegmentPolicy.storyNextSegmentSeconds,
+        );
+        if (currentSegment != null) {
+          final targetReadySegments = currentSegment + 1;
+          if (_lastLoggedReadySegmentTarget != targetReadySegments) {
+            _lastLoggedReadySegmentTarget = targetReadySegments;
+            debugPrint(
+              '[StorySegmentWarm] action=ensure_next story=${widget.storyId} '
+              'mediaDoc=$_mediaDocId currentSegment=$currentSegment '
+              'targetReadySegments=$targetReadySegments '
+              'segmentFirstSec=${HlsSegmentPolicy.storyFirstSegmentSeconds} '
+              'segmentNextSec=${HlsSegmentPolicy.storyNextSegmentSeconds} '
+              'positionMs=${position.inMilliseconds} '
+              'progress=${progress.toStringAsFixed(3)}',
+            );
+          }
+        }
         _segmentCacheRuntimeService.ensureNextSegmentReady(
           widget.storyId,
           progress,
+          lookAheadSegments: 1,
           positionSeconds: positionSeconds,
+          firstSegmentSeconds: HlsSegmentPolicy.storyFirstSegmentSeconds,
+          nextSegmentSeconds: HlsSegmentPolicy.storyNextSegmentSeconds,
         );
       } catch (_) {}
       try {
@@ -157,6 +219,29 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     debugPrint(
       '[StoryVideoFetch] action=claim story=${widget.storyId} mediaDoc=$resolvedDocId',
     );
+  }
+
+  void _registerStopCallbacks() {
+    StoryVideoPlaybackRegistry.register(widget.storyId, _externalStopCallback);
+    StoryVideoPlaybackRegistry.register(_mediaDocId, _externalStopCallback);
+  }
+
+  void _unregisterStopCallbacks({
+    String? storyId,
+    String? mediaDocId,
+  }) {
+    StoryVideoPlaybackRegistry.unregister(
+      storyId ?? widget.storyId,
+      _externalStopCallback,
+    );
+    StoryVideoPlaybackRegistry.unregister(
+      mediaDocId ?? _mediaDocId,
+      _externalStopCallback,
+    );
+  }
+
+  Future<void> _handleExternalStop(String reason) {
+    return _stopForOffscreen(reason: reason);
   }
 
   void _releaseFetchOwnership([String? docId]) {
@@ -215,17 +300,38 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     _emitEnded();
   }
 
-  Future<void> _stopForOffscreen() async {
-    _releaseFetchOwnership();
-    _offscreenResumePositionSeconds = _hlsController.currentPosition;
-    if (_hlsReady && mounted) {
-      setState(() {
+  Future<void> _stopForOffscreen({
+    String reason = 'offscreen',
+    bool preserveFrameSnapshot = false,
+  }) async {
+    if (_stoppingForOffscreen) return;
+    _stoppingForOffscreen = true;
+    try {
+      _releaseFetchOwnership();
+      _offscreenResumePositionSeconds = _hlsController.currentPosition;
+      if (_hlsReady && mounted) {
+        setState(() {
+          _hlsReady = false;
+        });
+      } else {
         _hlsReady = false;
-      });
-    } else {
-      _hlsReady = false;
+      }
+      debugPrint(
+        '[StoryPlaybackStop] action=stop_start story=${widget.storyId} '
+        'mediaDoc=$_mediaDocId reason=$reason '
+        'positionMs=${(_offscreenResumePositionSeconds ?? 0) * 1000 ~/ 1} '
+        'preserveFrameSnapshot=$preserveFrameSnapshot',
+      );
+      await _hlsController.stopPlayback(
+        preserveFrameSnapshot: preserveFrameSnapshot,
+      );
+      debugPrint(
+        '[StoryPlaybackStop] action=stop_done story=${widget.storyId} '
+        'mediaDoc=$_mediaDocId reason=$reason',
+      );
+    } finally {
+      _stoppingForOffscreen = false;
     }
-    await _hlsController.stopPlayback();
   }
 
   Future<void> _restartAfterOffscreen() async {
@@ -260,6 +366,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     routeObserver.unsubscribe(this);
     _hlsStateSub?.cancel();
     _hlsPositionSub?.cancel();
+    _unregisterStopCallbacks();
     _releaseFetchOwnership();
     _hlsController.dispose();
     _maxTimer?.cancel();
@@ -272,10 +379,16 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     if (oldWidget.element.content != widget.element.content ||
         oldWidget.storyId != widget.storyId) {
       final oldMediaDocId = _mediaDocIdFor(oldWidget);
+      _unregisterStopCallbacks(
+        storyId: oldWidget.storyId,
+        mediaDocId: oldMediaDocId,
+      );
       if (oldMediaDocId != _mediaDocId) {
         _releaseFetchOwnership(oldMediaDocId);
       }
       _seedStoryCacheEntry();
+      _lastLoggedReadySegmentTarget = null;
+      _registerStopCallbacks();
     }
     if (oldWidget.element.isMuted != widget.element.isMuted) {
       _hlsController.setMuted(widget.element.isMuted);
@@ -293,7 +406,10 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   @override
   void didPushNext() {
     _routePaused = true;
-    unawaited(_stopForOffscreen());
+    unawaited(_stopForOffscreen(
+      reason: 'route_push_next',
+      preserveFrameSnapshot: false,
+    ));
   }
 
   @override
@@ -306,7 +422,10 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   }
 
   void pause() {
-    unawaited(_stopForOffscreen());
+    unawaited(_stopForOffscreen(
+      reason: 'pause_api',
+      preserveFrameSnapshot: false,
+    ));
   }
 
   @override

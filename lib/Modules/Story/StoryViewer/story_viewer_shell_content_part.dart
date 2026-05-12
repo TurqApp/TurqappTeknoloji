@@ -144,15 +144,24 @@ extension StoryViewerShellContentPart on _StoryViewerState {
     });
   }
 
-  void _goToAdjacentUser(int targetIndex, {int durationMs = 300}) {
+  Future<void> _goToAdjacentUser(int targetIndex,
+      {int durationMs = 300}) async {
     if (targetIndex < 0) {
+      await _stopCurrentUserStoryPlayback(reason: 'story_page_back');
       Get.back();
       return;
     }
     if (targetIndex >= widget.storyOwnerUsers.length) {
+      await _stopCurrentUserStoryPlayback(reason: 'story_page_finish');
       _refreshStoryRowAndExit();
       return;
     }
+
+    await _stopCurrentUserStoryPlayback(
+      reason: targetIndex > currentPageIndex
+          ? 'story_user_swipe_next'
+          : 'story_user_swipe_prev',
+    );
 
     if (targetIndex > currentPageIndex) {
       pageController.nextPage(
@@ -165,6 +174,14 @@ extension StoryViewerShellContentPart on _StoryViewerState {
         curve: Curves.easeInOut,
       );
     }
+  }
+
+  Future<void> _stopCurrentUserStoryPlayback({required String reason}) async {
+    try {
+      final dynamic state = _pageKeys[currentPageIndex]?.currentState;
+      if (state == null) return;
+      await state.stopPlaybackFromParent(reason: reason);
+    } catch (_) {}
   }
 
   void _animateBack() {

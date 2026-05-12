@@ -6,6 +6,8 @@ import 'package:turqappv2/Core/Repositories/config_repository.dart';
 class HlsSegmentPolicy {
   static const int _defaultFirstSegmentSeconds = 2;
   static const int _defaultNextSegmentSeconds = 6;
+  static const int storyFirstSegmentSeconds = 2;
+  static const int storyNextSegmentSeconds = 3;
   static const Duration _configTtl = Duration(minutes: 30);
   static const int playbackWarmMaxSegmentOrdinal = 2;
 
@@ -87,12 +89,32 @@ class HlsSegmentPolicy {
     required double positionSeconds,
     required int totalSegments,
   }) {
+    return estimateCurrentSegmentWithDurations(
+      positionSeconds: positionSeconds,
+      totalSegments: totalSegments,
+      firstSegmentSeconds: firstSegmentSeconds,
+      nextSegmentSeconds: nextSegmentSeconds,
+    );
+  }
+
+  static int estimateCurrentSegmentWithDurations({
+    required double positionSeconds,
+    required int totalSegments,
+    required int firstSegmentSeconds,
+    required int nextSegmentSeconds,
+  }) {
     if (totalSegments <= 1) return 1;
     final position = positionSeconds.isFinite
         ? positionSeconds.clamp(0.0, double.infinity)
         : 0.0;
-    final first = firstSegmentSeconds.toDouble();
-    final next = nextSegmentSeconds.toDouble();
+    final first = (firstSegmentSeconds < 1
+            ? _defaultFirstSegmentSeconds
+            : firstSegmentSeconds)
+        .toDouble();
+    final next = (nextSegmentSeconds < 1
+            ? _defaultNextSegmentSeconds
+            : nextSegmentSeconds)
+        .toDouble();
     if (position < first) {
       return 1;
     }
@@ -104,13 +126,34 @@ class HlsSegmentPolicy {
     required double progress,
     required int totalSegments,
   }) {
+    return estimateCurrentSegmentFromProgressWithDurations(
+      progress: progress,
+      totalSegments: totalSegments,
+      firstSegmentSeconds: firstSegmentSeconds,
+      nextSegmentSeconds: nextSegmentSeconds,
+    );
+  }
+
+  static int estimateCurrentSegmentFromProgressWithDurations({
+    required double progress,
+    required int totalSegments,
+    required int firstSegmentSeconds,
+    required int nextSegmentSeconds,
+  }) {
     if (totalSegments <= 1) return 1;
     final normalized = progress.clamp(0.0, 1.0);
-    final approximateTotalSeconds =
-        firstSegmentSeconds + (nextSegmentSeconds * (totalSegments - 1));
-    return estimateCurrentSegment(
+    final first = firstSegmentSeconds < 1
+        ? _defaultFirstSegmentSeconds
+        : firstSegmentSeconds;
+    final next = nextSegmentSeconds < 1
+        ? _defaultNextSegmentSeconds
+        : nextSegmentSeconds;
+    final approximateTotalSeconds = first + (next * (totalSegments - 1));
+    return estimateCurrentSegmentWithDurations(
       positionSeconds: normalized * approximateTotalSeconds,
       totalSegments: totalSegments,
+      firstSegmentSeconds: first,
+      nextSegmentSeconds: next,
     );
   }
 
