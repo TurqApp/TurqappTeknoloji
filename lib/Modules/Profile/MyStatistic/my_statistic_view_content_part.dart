@@ -3,10 +3,26 @@ part of 'my_statistic_view.dart';
 extension _MyStatisticViewContentPart on _MyStatisticViewState {
   Widget _buildMyStatisticContent() {
     final currentUser = userService.currentUserRx.value;
-    final avatarUrl = currentUser?.avatarUrl ?? '';
-    final firstName = currentUser?.firstName ?? '';
-    final lastName = currentUser?.lastName ?? '';
-    final nickname = currentUser?.nickname ?? '';
+    final avatarUrl = userService.avatarUrl.trim().isNotEmpty
+        ? userService.avatarUrl.trim()
+        : (currentUser?.avatarUrl ?? '').trim();
+    final firstName = (currentUser?.firstName.trim().isNotEmpty == true)
+        ? currentUser!.firstName.trim()
+        : userService.firstName.trim();
+    final lastName = (currentUser?.lastName.trim().isNotEmpty == true)
+        ? currentUser!.lastName.trim()
+        : userService.lastName.trim();
+    final rawNickname = (currentUser?.nickname.trim().isNotEmpty == true)
+        ? currentUser!.nickname.trim()
+        : userService.nickname.trim();
+    final nickname = rawNickname.replaceFirst(RegExp(r'^@+'), '').trim();
+    final fullName = [firstName, lastName]
+        .where((part) => part.trim().isNotEmpty)
+        .join(' ')
+        .trim();
+    final displayName = fullName.isNotEmpty
+        ? fullName
+        : (nickname.isNotEmpty ? '@$nickname' : 'app.name'.tr);
 
     return Column(
       children: [
@@ -38,14 +54,19 @@ extension _MyStatisticViewContentPart on _MyStatisticViewState {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            "$firstName $lastName",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                                fontFamily: "MontserratBold",
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 4),
                           RozetContent(
                             size: 15,
                             userID: _currentUid,
@@ -53,14 +74,17 @@ extension _MyStatisticViewContentPart on _MyStatisticViewState {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        nickname,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontFamily: "MontserratMedium",
+                      if (nickname.isNotEmpty && fullName.isNotEmpty)
+                        Text(
+                          '@$nickname',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontFamily: "MontserratMedium",
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),

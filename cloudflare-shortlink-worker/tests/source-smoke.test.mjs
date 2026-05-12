@@ -12,6 +12,7 @@ const source = fs.readFileSync(sourcePath, "utf8");
 test("worker source contains route parser for all short link kinds", () => {
   assert.match(source, /function parseRoute\(pathname: string\)/);
   assert.match(source, /\(p\|s\|u\|e\|i\|m\)/);
+  assert.match(source, /return \{ kind: "u", id: userMatch\[1\] \}/);
   assert.match(source, /type LinkType = "p" \| "s" \| "u" \| "e" \| "i" \| "m"/);
 });
 

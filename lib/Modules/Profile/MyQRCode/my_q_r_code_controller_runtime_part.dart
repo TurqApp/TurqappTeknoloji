@@ -13,8 +13,71 @@ MyQRCodeController? maybeFindMyQRCodeController({String? tag}) =>
         : null;
 
 extension MyQRCodeControllerRuntimeX on MyQRCodeController {
-  String _buildProfileLink() {
-    final nickname = normalizeProfileSlug(userService.nickname);
+  void _syncHeaderNickname(String nickname) {
+    headerNickname.value = nickname.isNotEmpty ? '@$nickname' : '';
+    debugPrint(
+      '[MyQRCode] header_nickname '
+      'rawService=${userService.nickname.trim()} '
+      'rawCurrent=${userService.currentUserRx.value?.nickname.trim() ?? ''} '
+      'rawAuthDisplay=${userService.authDisplayName.trim()} '
+      'resolved=${headerNickname.value}',
+    );
+  }
+
+  String _currentNicknameSlug() {
+    final currentNickname =
+        userService.currentUserRx.value?.nickname.trim() ?? '';
+    final fallbackNickname = userService.nickname.trim();
+    final raw = currentNickname.isNotEmpty ? currentNickname : fallbackNickname;
+    return normalizeProfileSlug(raw);
+  }
+
+  Future<String> _resolveNicknameSlug() async {
+    final local = _currentNicknameSlug();
+    if (local.isNotEmpty) return local;
+    final authDisplay = normalizeProfileSlug(userService.authDisplayName);
+    if (authDisplay.isNotEmpty) return authDisplay;
+    final uid = userService.effectiveUserId;
+    if (uid.isEmpty) return '';
+    var summary = await _userSummaryResolver.resolve(uid, preferCache: true);
+    var nickname = normalizeProfileSlug(
+      summary?.nickname.trim().isNotEmpty == true
+          ? summary!.nickname
+          : (summary?.username ?? ''),
+    );
+    if (nickname.isNotEmpty) return nickname;
+    summary = await _userSummaryResolver.resolve(
+      uid,
+      preferCache: false,
+      forceServer: true,
+    );
+    nickname = normalizeProfileSlug(
+      summary?.nickname.trim().isNotEmpty == true
+          ? summary!.nickname
+          : (summary?.username ?? ''),
+    );
+    return nickname;
+  }
+
+  Future<String> _resolveProfileImageUrl() async {
+    final local = userService.avatarUrl.trim();
+    if (local.isNotEmpty) return local;
+    final uid = userService.effectiveUserId;
+    if (uid.isEmpty) return '';
+    var summary = await _userSummaryResolver.resolve(uid, preferCache: true);
+    var avatarUrl = (summary?.avatarUrl ?? '').trim();
+    if (avatarUrl.isNotEmpty) return avatarUrl;
+    summary = await _userSummaryResolver.resolve(
+      uid,
+      preferCache: false,
+      forceServer: true,
+    );
+    avatarUrl = (summary?.avatarUrl ?? '').trim();
+    return avatarUrl;
+  }
+
+  String _buildProfileLink({String? nicknameSlug}) {
+    final nickname = nicknameSlug ?? _currentNicknameSlug();
     if (nickname.isNotEmpty) {
       return buildTurqAppProfileUrl(nickname);
     }
@@ -30,19 +93,25 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
   }
 
   Future<void> _handleOnInit() async {
-    final link = _buildProfileLink();
+    final nickname = await _resolveNicknameSlug();
+    _syncHeaderNickname(nickname);
+    final link = _buildProfileLink(nicknameSlug: nickname);
     profileLink.value = link;
     final uid = userService.effectiveUserId;
-    final nickname = normalizeProfileSlug(userService.nickname);
     if (uid.isEmpty || nickname.isEmpty) return;
+    final imageUrl = await _resolveProfileImageUrl();
     try {
-      await _shortLinkService.upsertUser(
+      final result = await _shortLinkService.upsertUser(
         userId: uid,
         slug: nickname,
         title: '@$nickname - TurqApp',
         desc: 'qr.profile_desc'.tr,
-        imageUrl: userService.avatarUrl,
+        imageUrl: imageUrl,
       );
+      final url = (result['url'] ?? '').toString().trim();
+      if (url.isNotEmpty) {
+        profileLink.value = url;
+      }
     } catch (_) {}
   }
 
@@ -65,9 +134,10 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
         link = _fallbackProfileLink();
       }
       profileLink.value = link;
+      final nickname = await _resolveNicknameSlug();
       await ShareLinkService.shareUrl(
         url: link,
-        title: '@${userService.nickname} - TurqApp',
+        title: nickname.isNotEmpty ? '@$nickname - TurqApp' : 'TurqApp',
         subject: 'qr.profile_subject'.tr,
       );
     });

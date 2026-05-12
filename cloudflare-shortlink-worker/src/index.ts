@@ -77,6 +77,11 @@ export default {
 
     const route = parseRoute(path);
     if (!route) {
+      if (url.hostname === "turqapp.com") {
+        const redirectUrl = new URL(request.url);
+        redirectUrl.hostname = "www.turqapp.com";
+        return Response.redirect(redirectUrl.toString(), 302);
+      }
       return new Response("Not found", { status: 404 });
     }
 
@@ -250,8 +255,11 @@ async function proxyOgImage(request: Request, url: URL, env: Env): Promise<Respo
 
 function parseRoute(pathname: string): { kind: LinkType; id: string } | null {
   const match = pathname.match(/^\/(p|s|u|e|i|m)\/([A-Za-z0-9._-]{2,80})$/);
-  if (!match) return null;
-  return { kind: match[1] as LinkType, id: match[2] };
+  if (match) return { kind: match[1] as LinkType, id: match[2] };
+
+  const userMatch = pathname.match(/^\/([A-Za-z0-9._-]{2,80})$/);
+  if (!userMatch) return null;
+  return { kind: "u", id: userMatch[1] };
 }
 
 function buildDeepLink(appScheme: string, kind: LinkType, id: string): string {

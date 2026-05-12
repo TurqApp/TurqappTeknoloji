@@ -3,6 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2026-02-25"
 
 routes = [
+  { pattern = "turqapp.com/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/p/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/s/*", zone_name = "turqapp.com" },
   { pattern = "turqapp.com/u/*", zone_name = "turqapp.com" },

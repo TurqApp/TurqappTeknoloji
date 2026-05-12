@@ -74,11 +74,7 @@ class _MyQRCodeState extends State<MyQRCode> {
                     ),
                   ),
                   Obx(() {
-                    final nickname =
-                        userService.currentUserRx.value?.nickname.trim() ??
-                            userService.nickname.trim();
-                    final headerTitle =
-                        nickname.isNotEmpty ? '@$nickname' : '@';
+                    final headerTitle = controller.headerNickname.value;
                     return Text(
                       headerTitle,
                       style: TextStyle(

@@ -82,7 +82,7 @@ class _MyStatisticViewState extends State<MyStatisticView> {
                   BackButtons(text: 'statistics.title'.tr),
                   if (controller.isLoading.value)
                     const SizedBox(
-                      height: 72,
+                      height: 80,
                       child: AppStateView.loading(title: ''),
                     ),
                   Padding(
