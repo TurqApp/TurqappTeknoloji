@@ -12,8 +12,8 @@ import 'package:turqappv2/Core/NotifyReader/notify_reader_route_decision.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
 import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/Services/app_firebase_messaging.dart';
+import 'package:turqappv2/Core/root_navigator_key.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import '../main.dart'; // navigatorKey için
 import 'package:turqappv2/Core/Repositories/notifications_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';

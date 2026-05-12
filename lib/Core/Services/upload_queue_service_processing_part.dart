@@ -299,7 +299,7 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
           final effectiveVideoFile = checkedVideoFile ?? rawVideoFile;
 
           final videoSize = await effectiveVideoFile.length();
-          if (videoSize > _maxVideoBytesForStorageRule) {
+          if (videoSize > await _resolveMaxVideoBytesForStorageRule()) {
             upload.status = UploadStatus.failed;
             upload.errorMessage = 'upload_queue.video_too_large'.tr;
             await AppFirestore.instance

@@ -3,6 +3,7 @@ import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image/image.dart' as img;
+import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Core/Services/media_compression_service.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
@@ -58,7 +59,7 @@ dynamic _cloneValidationMetadataValue(dynamic value) {
 
 class UploadValidationService {
   static bool get _hasBadge =>
-      CurrentUserService.instance.rozet.trim().isNotEmpty;
+      rozetPermissionLevel(CurrentUserService.instance.rozet) > 0;
 
   static int get currentMaxVideoSizeBytes => _hasBadge
       ? UploadConstants.maxBadgedVideoSizeBytes
@@ -70,6 +71,26 @@ class UploadValidationService {
   static int get currentMaxVideoLengthSeconds => _hasBadge
       ? UploadConstants.maxBadgedVideoLengthSeconds
       : UploadConstants.maxRegularVideoLengthSeconds;
+
+  static Future<bool> hasBadgeForUpload() async =>
+      rozetPermissionLevel(await getCurrentUserRozet()) > 0;
+
+  static Future<int> currentMaxVideoSizeBytesAsync() async {
+    final hasBadge = await hasBadgeForUpload();
+    return hasBadge
+        ? UploadConstants.maxBadgedVideoSizeBytes
+        : UploadConstants.maxRegularVideoSizeBytes;
+  }
+
+  static Future<String> currentMaxVideoSizeTextAsync() async =>
+      UploadConstants.formatBytes(await currentMaxVideoSizeBytesAsync());
+
+  static Future<int> currentMaxVideoLengthSecondsAsync() async {
+    final hasBadge = await hasBadgeForUpload();
+    return hasBadge
+        ? UploadConstants.maxBadgedVideoLengthSeconds
+        : UploadConstants.maxRegularVideoLengthSeconds;
+  }
 
   /// Validate individual image file
   static Future<ValidationResult> validateImage(File imageFile) =>

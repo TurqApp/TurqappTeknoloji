@@ -36,10 +36,19 @@ Future<ValidationResult> _performValidateImage(File imageFile) async {
 Future<ValidationResult> _performValidateVideo(File videoFile) async {
   try {
     final fileSize = await videoFile.length();
-    if (fileSize > UploadValidationService.currentMaxVideoSizeBytes) {
+    final maxVideoSizeBytes =
+        await UploadValidationService.currentMaxVideoSizeBytesAsync();
+    final maxVideoSizeText =
+        UploadConstants.formatBytes(maxVideoSizeBytes);
+    if (fileSize > maxVideoSizeBytes) {
+      debugPrint(
+        '[UploadValidation] video_size_too_large '
+        'rozet=${CurrentUserService.instance.rozet} '
+        'max=$maxVideoSizeText current=${UploadConstants.formatBytes(fileSize)}',
+      );
       return ValidationResult.error(
           'upload_validation.video_size_too_large'.trParams({
-        'max': UploadValidationService.currentMaxVideoSizeText,
+        'max': maxVideoSizeText,
         'current': UploadConstants.formatBytes(fileSize),
       }));
     }
@@ -64,7 +73,7 @@ Future<ValidationResult> _performValidateVideo(File videoFile) async {
     await controller.dispose();
 
     final maxVideoLengthSeconds =
-        UploadValidationService.currentMaxVideoLengthSeconds;
+        await UploadValidationService.currentMaxVideoLengthSecondsAsync();
     if (duration.inSeconds > maxVideoLengthSeconds) {
       return ValidationResult.error(
           'upload_validation.video_duration_too_long'.trParams({
@@ -230,9 +239,11 @@ ValidationResult _performValidateTextLength(
 
 void _performShowValidationError(String message) {
   AppSnackbar(
-    'upload_validation.error_title'.tr,
+    '',
     message,
     backgroundColor: Colors.red.withValues(alpha: 0.8),
+    duration: const Duration(seconds: 4),
+    maxLines: 2,
   );
 }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/root_navigator_key.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 
 part 'app_snackbar_view_part.dart';
@@ -11,6 +12,8 @@ part 'app_snackbar_text_part.dart';
 String? _lastSnackbarSignature;
 DateTime? _lastSnackbarAt;
 const Duration _snackbarDedupWindow = Duration(milliseconds: 1200);
+const Duration _snackbarOverlayRetryDelay = Duration(milliseconds: 120);
+const int _snackbarOverlayMaxRetry = 25;
 OverlayEntry? _activeSnackbarEntry;
 Timer? _activeSnackbarTimer;
 _AppSnackbarRequest? _pendingSnackbarRequest;
@@ -57,6 +60,7 @@ class _AppSnackbarRequest {
   final _AppSnackbarPalette palette;
   final TextStyle titleStyle;
   final TextStyle messageStyle;
+  final int maxLines;
 
   const _AppSnackbarRequest({
     required this.title,
@@ -70,5 +74,6 @@ class _AppSnackbarRequest {
     required this.palette,
     required this.titleStyle,
     required this.messageStyle,
+    required this.maxLines,
   });
 }

@@ -1,7 +1,7 @@
 part of 'upload_queue_service.dart';
 
-int get _maxVideoBytesForStorageRule =>
-    UploadValidationService.currentMaxVideoSizeBytes;
+Future<int> _resolveMaxVideoBytesForStorageRule() =>
+    UploadValidationService.currentMaxVideoSizeBytesAsync();
 
 const Duration _recentDuplicateWindow = Duration(minutes: 15);
 const String _queueKeyPrefix = 'upload_queue';

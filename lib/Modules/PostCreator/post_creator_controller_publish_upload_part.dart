@@ -274,7 +274,7 @@ extension PostCreatorControllerPublishUploadPart on PostCreatorController {
                 throw Exception('Uygunsuz video tespit edildi');
               }
               final videoSize = await post.video!.length();
-              if (videoSize > _maxVideoBytesForStorageRule) {
+              if (videoSize > await _resolveMaxVideoBytesForStorageRule()) {
                 throw Exception('VIDEO_NOT_REDUCED_UNDER_LIMIT');
               }
               final videoRef = AppFirebaseStorage.instance

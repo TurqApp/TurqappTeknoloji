@@ -1,7 +1,7 @@
 part of 'post_creator_controller.dart';
 
-int get _maxVideoBytesForStorageRule =>
-    UploadValidationService.currentMaxVideoSizeBytes;
+Future<int> _resolveMaxVideoBytesForStorageRule() =>
+    UploadValidationService.currentMaxVideoSizeBytesAsync();
 const int _maxScheduledWindowDays = 90;
 int _lastModerationSnackbarAtMs = 0;
 

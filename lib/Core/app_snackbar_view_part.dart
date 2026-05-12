@@ -12,6 +12,7 @@ void AppSnackbar(
   Color? colorText,
   TextStyle? titleStyle,
   TextStyle? messageStyle,
+  int? maxLines,
 }) {
   final normalizedTitle = _normalizeSnackbarText(title);
   final normalizedMessage = _normalizeSnackbarText(message);
@@ -65,6 +66,7 @@ void AppSnackbar(
       palette: palette,
       titleStyle: mergedTitleStyle,
       messageStyle: mergedMessageStyle,
+      maxLines: maxLines ?? 1,
     ),
   );
 }
@@ -82,14 +84,13 @@ void _queueAppSnackbar(_AppSnackbarRequest request) {
   });
 }
 
-void _showAppSnackbarOverlay(_AppSnackbarRequest request) {
-  final context = Get.overlayContext ?? Get.context;
-  if (context == null) {
-    debugPrint('[AppSnackbar] skipped: overlay context is not ready.');
-    return;
-  }
-  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+void _showAppSnackbarOverlay(
+  _AppSnackbarRequest request, {
+  int attempt = 0,
+}) {
+  final overlay = _resolveSnackbarOverlay();
   if (overlay == null) {
+    if (_scheduleSnackbarOverlayRetry(request, attempt)) return;
     debugPrint('[AppSnackbar] skipped: overlay is not available.');
     return;
   }
@@ -128,6 +129,38 @@ void _showAppSnackbarOverlay(_AppSnackbarRequest request) {
     request.duration,
     () => _removeActiveAppSnackbar(serial: serial),
   );
+}
+
+OverlayState? _resolveSnackbarOverlay() {
+  final rootOverlay = navigatorKey.currentState?.overlay;
+  if (rootOverlay != null) return rootOverlay;
+
+  final getNavigatorOverlay = Get.key.currentState?.overlay;
+  if (getNavigatorOverlay != null) return getNavigatorOverlay;
+
+  for (final context in <BuildContext?>[
+    Get.overlayContext,
+    Get.key.currentContext,
+    Get.context,
+  ]) {
+    if (context == null) continue;
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay != null) return overlay;
+  }
+
+  return null;
+}
+
+bool _scheduleSnackbarOverlayRetry(
+  _AppSnackbarRequest request,
+  int attempt,
+) {
+  if (attempt >= _snackbarOverlayMaxRetry) return false;
+  Timer(
+    _snackbarOverlayRetryDelay,
+    () => _showAppSnackbarOverlay(request, attempt: attempt + 1),
+  );
+  return true;
 }
 
 Widget _buildAppSnackbarContent(_AppSnackbarRequest request) {
@@ -179,7 +212,7 @@ Widget _buildAppSnackbarContent(_AppSnackbarRequest request) {
                     ),
                 ],
               ),
-              maxLines: 1,
+              maxLines: request.maxLines,
               overflow: TextOverflow.ellipsis,
             ),
           ),

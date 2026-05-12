@@ -2143,7 +2143,7 @@ class AppTranslations extends Translations {
         'upload_validation.image_analysis_failed':
             'Fotoğraf analiz edilemedi: @error',
         'upload_validation.video_size_too_large':
-            'Video boyutu çok büyük! Maksimum @max olabilir. Mevcut boyut: @current',
+            'Video maksimum @max ve 360 sn olabilir. Mevcut boyut: @current',
         'upload_validation.video_duration_too_long':
             'Video süresi çok uzun! Maksimum @max saniye olabilir. Mevcut süre: @current saniye',
         'upload_validation.video_analysis_failed':
