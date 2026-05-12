@@ -98,76 +98,108 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                   unawaited(_resumeCurrentStoryPlayback());
                 },
                 child: _waitingForMusic
-                    ? const Center(child: CupertinoActivityIndicator())
-                    : Stack(
-                        // Key ekleyerek Stack'in yeniden render olmasını sağla
-                        key: ValueKey(
-                            'story_stack_${currentStory.id}_$storyIndex'),
-                        children: [
-                          ...mediaLayer.map((element) {
-                            switch (element.type) {
-                              case StoryElementType.image:
-                                return StoryImageWidget(
-                                  key: ValueKey(
-                                      'img_${element.content}_${currentStory.id}'),
-                                  element: element,
+                    ? const SizedBox.expand()
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final viewportSize = Size(
+                            constraints.maxWidth,
+                            constraints.maxHeight,
+                          );
+                          final recenterAndroidMedia =
+                              Platform.isAndroid && mediaLayer.length == 1;
+
+                          return Stack(
+                            // Key ekleyerek Stack'in yeniden render olmasını sağla
+                            key: ValueKey(
+                                'story_stack_${currentStory.id}_$storyIndex'),
+                            children: [
+                              ...mediaLayer.map((element) {
+                                final displayElement =
+                                    _androidMediaDisplayElement(
+                                  element,
+                                  currentStory.id,
+                                  viewportSize,
+                                  enabled: recenterAndroidMedia,
                                 );
-                              case StoryElementType.video:
-                                return StoryVideoWidget(
-                                  key: ValueKey(
-                                      'vid_${element.content}_${currentStory.id}'),
-                                  storyId: currentStory.id,
-                                  element: element,
-                                  maxDuration: const Duration(seconds: 60),
-                                  paused: _isHoldPaused,
-                                  onStarted: (Duration actualDuration) {
-                                    final effective = actualDuration >
-                                            const Duration(seconds: 60)
-                                        ? const Duration(seconds: 60)
-                                        : actualDuration;
-                                    if (_waitingForVideo) {
-                                      setState(() {
-                                        progress = 0.0;
-                                        progressMaxDuration = effective;
-                                        _waitingForVideo = false;
-                                      });
-                                      _startProgress();
-                                    }
-                                  },
-                                  onEnded: () {
-                                    _nextStory(auto: true);
-                                  },
-                                );
-                              default:
-                                return const SizedBox.shrink();
-                            }
-                          }),
-                          ...overlayLayer.map((element) {
-                            switch (element.type) {
-                              case StoryElementType.gif:
-                                return StoryGifWidget(
-                                  key: ValueKey(
-                                      'gif_${element.content}_${currentStory.id}'),
-                                  element: element,
-                                );
-                              case StoryElementType.text:
-                                return StoryTextWidget(
-                                  key: ValueKey(
-                                      'txt_${element.content}_${currentStory.id}'),
-                                  element: element,
-                                );
-                              case StoryElementType.sticker:
-                                return StoryTextWidget(
-                                  key: ValueKey(
-                                      'sticker_${element.content}_${currentStory.id}'),
-                                  element: element,
-                                );
-                              default:
-                                return const SizedBox.shrink();
-                            }
-                          }),
-                          // Instagram-style: pause sadece progress bar'ı durdurur, görsel overlay yok
-                        ],
+                                switch (displayElement.type) {
+                                  case StoryElementType.image:
+                                    return StoryImageWidget(
+                                      key: ValueKey(
+                                          'img_${displayElement.content}_${currentStory.id}'),
+                                      element: displayElement,
+                                    );
+                                  case StoryElementType.video:
+                                    return StoryVideoWidget(
+                                      key: ValueKey(
+                                          'vid_${displayElement.content}_${currentStory.id}'),
+                                      storyId: currentStory.id,
+                                      element: displayElement,
+                                      maxDuration: const Duration(seconds: 60),
+                                      paused: _isHoldPaused,
+                                      onStarted: (Duration actualDuration) {
+                                        final effective = actualDuration >
+                                                const Duration(seconds: 60)
+                                            ? const Duration(seconds: 60)
+                                            : actualDuration;
+                                        if (_waitingForVideo) {
+                                          _timer?.cancel();
+                                          setState(() {
+                                            progress = 0.0;
+                                            progressMaxDuration = effective;
+                                            _waitingForVideo = false;
+                                          });
+                                        }
+                                      },
+                                      onProgress: (double value) {
+                                        if (!mounted || _waitingForVideo) {
+                                          return;
+                                        }
+                                        final next =
+                                            value.clamp(0.0, 1.0).toDouble();
+                                        if ((next - progress).abs() < 0.003 &&
+                                            next < 1.0) {
+                                          return;
+                                        }
+                                        setState(() {
+                                          progress = next;
+                                        });
+                                      },
+                                      onEnded: () {
+                                        _nextStory(auto: true);
+                                      },
+                                    );
+                                  default:
+                                    return const SizedBox.shrink();
+                                }
+                              }),
+                              ...overlayLayer.map((element) {
+                                switch (element.type) {
+                                  case StoryElementType.gif:
+                                    return StoryGifWidget(
+                                      key: ValueKey(
+                                          'gif_${element.content}_${currentStory.id}'),
+                                      element: element,
+                                    );
+                                  case StoryElementType.text:
+                                    return StoryTextWidget(
+                                      key: ValueKey(
+                                          'txt_${element.content}_${currentStory.id}'),
+                                      element: element,
+                                    );
+                                  case StoryElementType.sticker:
+                                    return StoryTextWidget(
+                                      key: ValueKey(
+                                          'sticker_${element.content}_${currentStory.id}'),
+                                      element: element,
+                                    );
+                                  default:
+                                    return const SizedBox.shrink();
+                                }
+                              }),
+                              // Instagram-style: pause sadece progress bar'ı durdurur, görsel overlay yok
+                            ],
+                          );
+                        },
                       ),
               ),
             ),
@@ -176,6 +208,90 @@ extension UserStoryContentViewPart on _UserStoryContentState {
         if (currentStory.userId == _currentUid) myToolBar() else otherToolBar()
       ],
     );
+  }
+
+  StoryElement _androidMediaDisplayElement(
+    StoryElement element,
+    String storyId,
+    Size viewportSize, {
+    required bool enabled,
+  }) {
+    if (!enabled || viewportSize.width <= 0 || viewportSize.height <= 0) {
+      return element;
+    }
+
+    final mediaAspect = _safeStoryMediaAspectRatio(element);
+    final viewportAspect = viewportSize.width / viewportSize.height;
+    final double width;
+    final double height;
+    if (mediaAspect > viewportAspect) {
+      width = viewportSize.width;
+      height = width / mediaAspect;
+    } else {
+      height = viewportSize.height;
+      width = height * mediaAspect;
+    }
+    final position = Offset(
+      (viewportSize.width - width) / 2,
+      (viewportSize.height - height) / 2,
+    );
+
+    final logKey = '$storyId:${element.id}:${viewportSize.width.round()}x'
+        '${viewportSize.height.round()}';
+    if (_loggedSharedPostLayoutKeys.add(logKey)) {
+      debugPrint(
+        '[StoryMediaLayout] platform=android story=$storyId '
+        'type=${element.type.name} viewport=${viewportSize.width.toStringAsFixed(1)}x'
+        '${viewportSize.height.toStringAsFixed(1)} '
+        'saved=${element.position.dx.toStringAsFixed(1)},'
+        '${element.position.dy.toStringAsFixed(1)} '
+        '${element.width.toStringAsFixed(1)}x${element.height.toStringAsFixed(1)} '
+        'display=${position.dx.toStringAsFixed(1)},'
+        '${position.dy.toStringAsFixed(1)} '
+        '${width.toStringAsFixed(1)}x${height.toStringAsFixed(1)} '
+        'aspect=${mediaAspect.toStringAsFixed(4)}',
+      );
+    }
+
+    return StoryElement(
+      id: element.id,
+      type: element.type,
+      content: element.content,
+      width: width,
+      height: height,
+      position: position,
+      rotation: element.rotation,
+      zIndex: element.zIndex,
+      isMuted: element.isMuted,
+      fontSize: element.fontSize,
+      aspectRatio: mediaAspect,
+      textColor: element.textColor,
+      textBgColor: element.textBgColor,
+      hasTextBg: element.hasTextBg,
+      textAlign: element.textAlign,
+      fontWeight: element.fontWeight,
+      italic: element.italic,
+      underline: element.underline,
+      shadowBlur: element.shadowBlur,
+      shadowOpacity: element.shadowOpacity,
+      fontFamily: element.fontFamily,
+      hasOutline: element.hasOutline,
+      outlineColor: element.outlineColor,
+      stickerType: element.stickerType,
+      stickerData: element.stickerData,
+      mediaLookPreset: element.mediaLookPreset,
+      posterUrl: element.posterUrl,
+    );
+  }
+
+  double _safeStoryMediaAspectRatio(StoryElement element) {
+    if (element.aspectRatio.isFinite && element.aspectRatio > 0) {
+      return element.aspectRatio;
+    }
+    if (element.width > 0 && element.height > 0) {
+      return element.width / element.height;
+    }
+    return 9 / 16;
   }
 
   Widget _buildProgressBar(double value) {

@@ -30,15 +30,7 @@ class StoryImageWidget extends StatelessWidget {
           fadeOutDuration: const Duration(milliseconds: 100),
           imageUrl: element.content,
           fit: BoxFit.contain, // Cover yerine contain - aspect ratio korunur
-          placeholder: (context, url) => Container(
-            color: Colors.grey.withValues(alpha: 0.3),
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
-          ),
+          placeholder: (context, url) => const SizedBox.expand(),
           errorWidget: (context, url, error) => Container(
             color: Colors.grey.withValues(alpha: 0.3),
             child: const Icon(Icons.error, color: Colors.white),
@@ -71,23 +63,7 @@ class StoryGifWidget extends StatelessWidget {
             fadeInDuration: Duration.zero,
             fadeOutDuration: Duration.zero,
             placeholderFadeInDuration: Duration.zero,
-            placeholder: (context, _) {
-              return Container(
-                color: Colors.grey.withValues(alpha: 0.3),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                      SizedBox(height: 8),
-                      Text("chat.gif".tr,
-                          style: TextStyle(color: Colors.white, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              );
-            },
+            placeholder: (context, _) => const SizedBox.expand(),
             errorWidget: (context, url, error) => Container(
               color: Colors.grey.withValues(alpha: 0.3),
               child: Center(

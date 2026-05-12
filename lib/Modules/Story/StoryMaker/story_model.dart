@@ -85,6 +85,7 @@ class StoryModel {
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
                 'mediaLookPreset': e.mediaLookPreset,
+                'posterUrl': e.posterUrl,
               },
             )
             .toList(),
@@ -130,6 +131,7 @@ class StoryModel {
                 'stickerType': e.stickerType,
                 'stickerData': e.stickerData,
                 'mediaLookPreset': e.mediaLookPreset,
+                'posterUrl': e.posterUrl,
               },
             )
             .toList(),
@@ -137,6 +139,7 @@ class StoryModel {
 
   factory StoryModel.fromCacheMap(Map<String, dynamic> data) {
     final normalizedHlsVideoUrl = (data['hlsVideoUrl'] ?? '').toString().trim();
+    final storyPosterUrl = _extractStoryPosterUrl(data);
     final rawElements = data['elements'];
     final elementItems = rawElements is List ? rawElements : const [];
     final elems = elementItems.whereType<Map>().map((raw) {
@@ -181,6 +184,9 @@ class StoryModel {
         stickerType: (m['stickerType'] ?? '').toString(),
         stickerData: (m['stickerData'] ?? '').toString(),
         mediaLookPreset: (m['mediaLookPreset'] ?? 'original').toString(),
+        posterUrl: _extractStoryPosterUrl(m).isNotEmpty
+            ? _extractStoryPosterUrl(m)
+            : (type == StoryElementType.video ? storyPosterUrl : ''),
       );
     }).toList();
 
@@ -203,4 +209,35 @@ class StoryModel {
       elements: elems,
     );
   }
+}
+
+String _extractStoryPosterUrl(Map<dynamic, dynamic> data) {
+  final direct = (data['posterUrl'] ??
+          data['thumbnail'] ??
+          data['thumbnailUrl'] ??
+          data['thumbUrl'] ??
+          data['previewUrl'] ??
+          data['coverUrl'] ??
+          data['imageUrl'] ??
+          '')
+      .toString()
+      .trim();
+  if (_looksLikeStoryPosterUrl(direct)) return direct;
+
+  final elements = data['elements'];
+  if (elements is List) {
+    for (final raw in elements) {
+      if (raw is! Map) continue;
+      final nested = _extractStoryPosterUrl(raw);
+      if (nested.isNotEmpty) return nested;
+    }
+  }
+  return '';
+}
+
+bool _looksLikeStoryPosterUrl(String url) {
+  final lower = url.toLowerCase();
+  if (!lower.startsWith('http')) return false;
+  if (lower.contains('.m3u8') || lower.contains('.mp4')) return false;
+  return true;
 }

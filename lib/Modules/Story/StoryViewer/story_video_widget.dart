@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_cache_path.dart';
-import 'package:turqappv2/Core/Services/SegmentCache/hls_proxy_server.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/PlaybackRuntime/playback_cache_runtime_service.dart';
 import 'package:turqappv2/hls_player/hls_player_module.dart'; // ✅ HLS PLAYER
@@ -14,6 +15,7 @@ class StoryVideoWidget extends StatefulWidget {
   final String storyId;
   final StoryElement element;
   final Function(Duration actualDuration) onStarted;
+  final ValueChanged<double>? onProgress;
   final VoidCallback onEnded;
   final Duration maxDuration;
   final bool paused;
@@ -23,6 +25,7 @@ class StoryVideoWidget extends StatefulWidget {
     required this.storyId,
     required this.element,
     required this.onStarted,
+    this.onProgress,
     required this.onEnded,
     required this.maxDuration,
     this.paused = false,
@@ -45,14 +48,18 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   StreamSubscription? _hlsStateSub;
   StreamSubscription<Duration>? _hlsPositionSub;
   double? _offscreenResumePositionSeconds;
-  bool _fetchOwnershipClaimed = false;
+  String? _claimedFetchDocId;
+  bool _loggedPositionStartFallback = false;
 
   bool get _effectivePaused => widget.paused || _routePaused;
+  String get _mediaDocId => _mediaDocIdFor(widget);
+
+  String _mediaDocIdFor(StoryVideoWidget widget) {
+    return hlsDocIdFromUrlOrPath(widget.element.content) ?? widget.storyId;
+  }
+
   String get _playbackUrl {
-    final canonicalUrl = canonicalizeHlsCdnUrl(widget.element.content);
-    final proxy = maybeFindHlsProxyServer();
-    if (proxy == null) return canonicalUrl;
-    return proxy.resolveUrl(canonicalUrl);
+    return canonicalizeHlsCdnUrl(widget.element.content);
   }
 
   @override
@@ -79,9 +86,29 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       if (!mounted) return;
       final durationSeconds = _hlsController.duration;
       if (!durationSeconds.isFinite || durationSeconds <= 0) return;
+      if (!_notifiedStarted) {
+        if (!_loggedPositionStartFallback) {
+          _loggedPositionStartFallback = true;
+          debugPrint(
+            '[StoryVideoProgress] action=start_from_position '
+            'story=${widget.storyId} mediaDoc=$_mediaDocId '
+            'positionMs=${position.inMilliseconds} '
+            'durationMs=${(durationSeconds * 1000).round()}',
+          );
+        }
+        _notifyStarted(
+          Duration(milliseconds: (durationSeconds * 1000).toInt()),
+        );
+      }
       final positionSeconds = position.inMilliseconds / 1000.0;
-      final progress = (positionSeconds / durationSeconds).clamp(0.0, 1.0);
+      final effectiveDurationSeconds =
+          durationSeconds > widget.maxDuration.inMilliseconds / 1000.0
+              ? widget.maxDuration.inMilliseconds / 1000.0
+              : durationSeconds;
+      final progress =
+          (positionSeconds / effectiveDurationSeconds).clamp(0.0, 1.0);
       if (progress <= 0) return;
+      widget.onProgress?.call(progress);
       try {
         _segmentCacheRuntimeService.ensureNextSegmentReady(
           widget.storyId,
@@ -102,20 +129,32 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     try {
       final cache = maybeFindSegmentCacheManager();
       if (cache == null || !cache.isReady) return;
-      cache.cacheHlsEntry(widget.storyId, widget.element.content);
+      cache.cacheHlsEntry(_mediaDocId, widget.element.content);
     } catch (_) {}
   }
 
-  void _claimFetchOwnership([String? storyId]) {
-    if (_fetchOwnershipClaimed) return;
-    claimExternalOnDemandFetchForDoc(storyId ?? widget.storyId);
-    _fetchOwnershipClaimed = true;
+  void _claimFetchOwnership([String? docId]) {
+    final resolvedDocId = (docId ?? _mediaDocId).trim();
+    if (resolvedDocId.isEmpty) return;
+    if (_claimedFetchDocId == resolvedDocId) return;
+    _releaseFetchOwnership();
+    claimExternalOnDemandFetchForDoc(resolvedDocId);
+    _claimedFetchDocId = resolvedDocId;
+    debugPrint(
+      '[StoryVideoFetch] action=claim story=${widget.storyId} mediaDoc=$resolvedDocId',
+    );
   }
 
-  void _releaseFetchOwnership([String? storyId]) {
-    if (!_fetchOwnershipClaimed) return;
-    releaseExternalOnDemandFetchForDoc(storyId ?? widget.storyId);
-    _fetchOwnershipClaimed = false;
+  void _releaseFetchOwnership([String? docId]) {
+    final resolvedDocId = (docId ?? _claimedFetchDocId)?.trim();
+    if (resolvedDocId == null || resolvedDocId.isEmpty) return;
+    releaseExternalOnDemandFetchForDoc(resolvedDocId);
+    if (_claimedFetchDocId == resolvedDocId) {
+      _claimedFetchDocId = null;
+    }
+    debugPrint(
+      '[StoryVideoFetch] action=release story=${widget.storyId} mediaDoc=$resolvedDocId',
+    );
   }
 
   void _syncFetchOwnership() {
@@ -218,8 +257,9 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.element.content != widget.element.content ||
         oldWidget.storyId != widget.storyId) {
-      if (oldWidget.storyId != widget.storyId) {
-        _releaseFetchOwnership(oldWidget.storyId);
+      final oldMediaDocId = _mediaDocIdFor(oldWidget);
+      if (oldMediaDocId != _mediaDocId) {
+        _releaseFetchOwnership(oldMediaDocId);
       }
       _seedStoryCacheEntry();
     }
@@ -267,10 +307,19 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
           loop: false,
           showControls: false,
           aspectRatio: widget.element.width / widget.element.height,
+          useAspectRatio: !Platform.isAndroid,
         ),
-        if (!_hlsReady)
-          const Center(
-            child: CupertinoActivityIndicator(color: Colors.grey),
+        if (!_hlsReady && widget.element.posterUrl.trim().isNotEmpty)
+          Positioned.fill(
+            child: CachedNetworkImage(
+              cacheManager: TurqImageCacheManager.instance,
+              imageUrl: widget.element.posterUrl.trim(),
+              fit: BoxFit.cover,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
+              placeholder: (context, url) => const SizedBox.expand(),
+              errorWidget: (context, url, error) => const SizedBox.expand(),
+            ),
           ),
       ],
     );

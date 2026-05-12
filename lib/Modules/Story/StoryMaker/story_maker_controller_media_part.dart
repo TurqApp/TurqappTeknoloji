@@ -212,6 +212,10 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       UploadValidationService.showValidationError(validation.errorMessage!);
       return;
     }
+    if (!_isStoryVideoDurationValid(validation.metadata)) {
+      _showStoryVideoDurationError(validation.metadata);
+      return;
+    }
     final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
     if (nsfwVideo.isNSFW) {
       AppSnackbar(
@@ -265,6 +269,25 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
 
     _normalizeLayerOrdering();
     _saveState();
+  }
+
+  bool _isStoryVideoDurationValid(Map<String, dynamic>? metadata) {
+    final duration = metadata?['duration'];
+    final durationSeconds = duration is num ? duration.toInt() : 0;
+    return durationSeconds <= UploadConstants.maxStoryVideoLengthSeconds;
+  }
+
+  void _showStoryVideoDurationError(Map<String, dynamic>? metadata) {
+    final duration = metadata?['duration'];
+    final durationSeconds = duration is num ? duration.toInt() : 0;
+    AppSnackbar(
+      'common.error'.tr,
+      'upload_validation.video_duration_too_long'.trParams({
+        'max': '${UploadConstants.maxStoryVideoLengthSeconds}',
+        'current': '$durationSeconds',
+      }),
+      backgroundColor: Colors.red.withValues(alpha: 0.7),
+    );
   }
 
   void selectMusic() async {

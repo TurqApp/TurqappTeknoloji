@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -106,6 +107,7 @@ class _UserStoryContentState extends State<UserStoryContent>
   Timer? _musicStartFallbackTimer;
   Timer? _storyPriorityPlanTimer;
   final Set<int> _promotedStorySecondSegmentBatchStarts = <int>{};
+  final Set<String> _loggedSharedPostLayoutKeys = <String>{};
 
   String get _currentUid => CurrentUserService.instance.effectiveUserId;
 

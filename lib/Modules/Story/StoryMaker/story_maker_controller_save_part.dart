@@ -273,6 +273,10 @@ extension StoryMakerControllerSavePart on StoryMakerController {
               );
               return;
             }
+            if (!_isStoryVideoDurationValid(validation.metadata)) {
+              _showStoryVideoDurationError(validation.metadata);
+              return;
+            }
             final ext = path.extension(file.path);
             final ref = AppFirebaseStorage.instance.ref(
               'stories/$resolvedUid/$storyId/$ts$ext',
