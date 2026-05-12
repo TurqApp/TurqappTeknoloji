@@ -730,12 +730,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
-                                agendaController.isMuted.toggle();
-                                final vc = videoController;
-                                if (vc != null && vc.value.isInitialized) {
-                                  vc.setVolume(
-                                      agendaController.isMuted.value ? 0 : 1);
-                                }
+                                agendaController.toggleFeedMuted(
+                                  source: 'classic_card_button',
+                                );
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(7),

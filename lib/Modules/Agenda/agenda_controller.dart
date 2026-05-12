@@ -92,6 +92,22 @@ class AgendaController extends _AgendaControllerBase {
   set lastCenteredIndex(int? value) => _state.lastCenteredIndex = value;
   RxBool get isMuted => _state.isMuted;
   RxBool get pauseAll => _state.pauseAll;
+
+  void setFeedMuted(bool muted, {required String source}) {
+    isMuted.value = muted;
+    final handleCount = VideoStateManager.instance.setFeedVolume(
+      muted ? 0.0 : 1.0,
+      reason: source,
+    );
+    debugPrint(
+      '[FeedMute] action=set_global source=$source muted=$muted '
+      'handles=$handleCount',
+    );
+  }
+
+  void toggleFeedMuted({required String source}) {
+    setFeedMuted(!isMuted.value, source: source);
+  }
 }
 
 AgendaController? maybeFindAgendaController() {

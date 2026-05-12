@@ -517,8 +517,11 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           },
                                         ),
                                         GestureDetector(
-                                          onTap:
-                                              agendaController.isMuted.toggle,
+                                          onTap: () {
+                                            agendaController.toggleFeedMuted(
+                                              source: 'agenda_card_button',
+                                            );
+                                          },
                                           child: Container(
                                             padding: const EdgeInsets.all(7),
                                             decoration: const BoxDecoration(

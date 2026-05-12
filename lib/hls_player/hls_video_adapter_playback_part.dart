@@ -300,6 +300,16 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     _hasPendingVolume = true;
     if (_viewReady) {
       return (() async {
+        if (kDebugMode &&
+            (requestedVolume <= 0.001 || requestedVolume >= 0.999)) {
+          debugPrint(
+            '[FeedMute] action=adapter_set_volume volume=$requestedVolume '
+            'primaryFeed=$_isPrimaryFeedSurface feedStyle=$_isFeedStyleSurface '
+            'viewReady=$_viewReady initialized=${_value.isInitialized} '
+            'playing=${_value.isPlaying} positionMs=${_value.position.inMilliseconds} '
+            'url=$_effectiveUrl',
+          );
+        }
         await _hls.setVolume(requestedVolume);
         var stillMuted = false;
         final isIOS = defaultTargetPlatform == TargetPlatform.iOS;

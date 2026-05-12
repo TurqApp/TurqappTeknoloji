@@ -116,6 +116,25 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pruneExternalOnDemandFetchClaims(docID);
   }
 
+  int _setRegisteredHandleVolume({
+    required double volume,
+    required bool Function(String key) where,
+    required String reason,
+  }) {
+    final entries = _allVideoControllers.entries
+        .where((entry) => where(entry.key.trim()))
+        .toList(growable: false);
+    for (final entry in entries) {
+      unawaited(entry.value.setVolume(volume));
+    }
+    debugPrint(
+      '[FeedMute] action=apply_registered_volume reason=$reason '
+      'volume=$volume handles=${entries.length} '
+      'current=${_currentPlayingDocID ?? ''}',
+    );
+    return entries.length;
+  }
+
   void _silenceSupersededHandle(
     String docID,
     PlaybackHandle handle,
@@ -980,6 +999,13 @@ extension VideoStateManagerFacadePart on VideoStateManager {
 
   void pauseAllVideos({bool force = false}) =>
       VideoStateManagerPlaybackPart(this)._pauseAllVideos(force: force);
+
+  int setFeedVolume(double volume, {required String reason}) =>
+      VideoStateManagerPlaybackPart(this)._setRegisteredHandleVolume(
+        volume: volume,
+        where: (key) => key.startsWith('feed:'),
+        reason: reason,
+      );
 
   void enterExclusiveMode(String docID) =>
       VideoStateManagerPlaybackPart(this)._enterExclusiveMode(docID);

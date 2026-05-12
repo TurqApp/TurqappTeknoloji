@@ -858,6 +858,19 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   double _resolvedPlaybackVolume() {
     final value = _videoAdapter?.value ?? const HLSVideoValue();
     final decision = _playbackLifecycleDecision(value);
+    final globalFeedMuted =
+        !isStandalonePostInstance && agendaController.isMuted.value;
+    if (globalFeedMuted) {
+      if (kDebugMode && _lastAppliedPlaybackVolume != 0.0) {
+        debugPrint(
+          '[FeedMute] action=resolve_force_mute key=$playbackHandleKey '
+          'doc=${widget.model.docID} shouldPlay=${widget.shouldPlay} '
+          'surfaceAllowed=$_isSurfacePlaybackAllowed '
+          'lifecycleAudible=${decision.shouldBeAudible}',
+        );
+      }
+      return 0.0;
+    }
     if (decision.shouldBeAudible) {
       return 1.0;
     }
@@ -887,6 +900,15 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _playbackExecutionService.applyPresentation(
         adapter,
         shouldBeAudible: volume > 0.0,
+      );
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedMute] action=card_apply key=$playbackHandleKey '
+        'doc=${widget.model.docID} globalMuted='
+        '${!isStandalonePostInstance && agendaController.isMuted.value} '
+        'volume=$volume shouldPlay=${widget.shouldPlay} '
+        'surfaceAllowed=$_isSurfacePlaybackAllowed',
       );
     }
     _syncRuntimeHints(isAudible: volume > 0.0);
