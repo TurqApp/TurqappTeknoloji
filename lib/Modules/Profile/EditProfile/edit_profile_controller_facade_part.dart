@@ -25,8 +25,10 @@ extension EditProfileControllerFacadePart on EditProfileController {
   String get defaultAvatarUrl => kDefaultAvatarUrl;
 
   bool get hasCustomProfilePhoto {
-    final avatarUrl = userService.currentUser?.avatarUrl ?? '';
-    return !isDefaultAvatarUrl(avatarUrl);
+    final resolvedAvatarUrl = avatarUrl.value.trim().isNotEmpty
+        ? avatarUrl.value
+        : userService.avatarUrl;
+    return !isDefaultAvatarUrl(resolvedAvatarUrl);
   }
 
   Future<void> fetchAndSetUserData() => _fetchAndSetUserDataImpl();

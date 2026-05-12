@@ -349,16 +349,18 @@ extension UserStoryContentViewPart on _UserStoryContentState {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () async {
-              await _pauseCurrentStoryPlayback();
-              const ProfileNavigationService()
-                  .openSocialProfile(currentUser.userID)
-                  .then((_) {
-                if (mounted) {
-                  unawaited(_resumeCurrentStoryPlayback());
-                }
-              });
-            },
+            onTap: currentUser.userID == _currentUid
+                ? null
+                : () async {
+                    await _pauseCurrentStoryPlayback();
+                    const ProfileNavigationService()
+                        .openSocialProfile(currentUser.userID)
+                        .then((_) {
+                      if (mounted) {
+                        unawaited(_resumeCurrentStoryPlayback());
+                      }
+                    });
+                  },
             child: CachedUserAvatar(
               userId: currentUser.userID,
               imageUrl: currentUser.avatarUrl,
@@ -386,16 +388,18 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                   child: Row(
                     children: [
                       GestureDetector(
-                        onTap: () async {
-                          await _pauseCurrentStoryPlayback();
-                          const ProfileNavigationService()
-                              .openSocialProfile(currentUser.userID)
-                              .then((_) {
-                            if (mounted) {
-                              unawaited(_resumeCurrentStoryPlayback());
-                            }
-                          });
-                        },
+                        onTap: currentUser.userID == _currentUid
+                            ? null
+                            : () async {
+                                await _pauseCurrentStoryPlayback();
+                                const ProfileNavigationService()
+                                    .openSocialProfile(currentUser.userID)
+                                    .then((_) {
+                                  if (mounted) {
+                                    unawaited(_resumeCurrentStoryPlayback());
+                                  }
+                                });
+                              },
                         child: Text(
                           currentUser.nickname,
                           // Sadece burada maxLines yok!

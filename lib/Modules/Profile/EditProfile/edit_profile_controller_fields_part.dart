@@ -8,6 +8,8 @@ class _EditProfileControllerState {
   final isCropping = false.obs;
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
+  final nickname = ''.obs;
+  final avatarUrl = ''.obs;
   final email = ''.obs;
   final phoneNumber = ''.obs;
   StreamSubscription<Map<String, dynamic>?>? userSub;
@@ -21,6 +23,8 @@ extension EditProfileControllerFieldsPart on EditProfileController {
   RxBool get isCropping => _state.isCropping;
   TextEditingController get firstNameController => _state.firstNameController;
   TextEditingController get lastNameController => _state.lastNameController;
+  RxString get nickname => _state.nickname;
+  RxString get avatarUrl => _state.avatarUrl;
   RxString get email => _state.email;
   RxString get phoneNumber => _state.phoneNumber;
   StreamSubscription<Map<String, dynamic>?>? get _userSub => _state.userSub;

@@ -41,7 +41,10 @@ extension _EditProfileHeaderPart on _EditProfileState {
                 Obx(() {
                   final preview = controller.croppedImage.value;
                   currentUserService.currentUserRx.value;
-                  final resolvedAvatarUrl = currentUserService.avatarUrl;
+                  final controllerAvatarUrl = controller.avatarUrl.value.trim();
+                  final resolvedAvatarUrl = controllerAvatarUrl.isNotEmpty
+                      ? controllerAvatarUrl
+                      : currentUserService.avatarUrl;
 
                   return ClipOval(
                     child: SizedBox(
@@ -137,9 +140,14 @@ extension _EditProfileHeaderPart on _EditProfileState {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Obx(() {
-            final nickname =
-                currentUserService.currentUserRx.value?.nickname.trim() ??
-                    _nickname.trim();
+            final serviceNickname =
+                currentUserService.currentUserRx.value?.nickname.trim() ?? '';
+            final controllerNickname = controller.nickname.value.trim();
+            final nickname = serviceNickname.isNotEmpty
+                ? serviceNickname
+                : (controllerNickname.isNotEmpty
+                    ? controllerNickname
+                    : _nickname.trim());
             return GestureDetector(
               onTap: () {
                 Get.to(() => EditorNickname());
