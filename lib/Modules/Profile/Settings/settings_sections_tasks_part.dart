@@ -124,17 +124,22 @@ extension _SettingsViewSectionsTasksPart on _SettingsViewState {
                 .timeout(const Duration(seconds: 2))
                 .catchError((_) {}),
           );
-          try {
-            await ensureAccountCenterService().markSessionState(
-              uid: currentUser,
-              isSessionValid: false,
-            );
-          } catch (_) {}
+          unawaited(
+            ensureAccountCenterService()
+                .markSessionState(
+                  uid: currentUser,
+                  isSessionValid: false,
+                )
+                .timeout(const Duration(seconds: 2))
+                .catchError((_) {}),
+          );
         }
 
         try {
           await const SessionExitCoordinator().exitToSignIn(
             reason: SessionExitReason.manualLogout,
+            awaitClearLocalSession: false,
+            awaitSignOutAuth: false,
           );
         } catch (e) {
           print("Sign out failed: $e");
