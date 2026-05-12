@@ -1154,6 +1154,50 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
         final pendingClaimAfterResume =
             _playbackRuntimeService.hasPendingPlayFor(playbackHandleKey);
+        final shouldClaimFeedOwnerMismatch =
+            defaultTargetPlatform == TargetPlatform.iOS &&
+                _usesFeedPlaybackPolicy &&
+                widget.shouldPlay &&
+                _isSurfacePlaybackAllowed &&
+                currentOwnerAfterResume.startsWith('feed:') &&
+                currentOwnerAfterResume != playbackHandleKey;
+        if (shouldClaimFeedOwnerMismatch) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=owner_mismatch_reclaim '
+            'doc=${widget.model.docID} source=$source '
+            'from=$currentOwnerAfterResume to=$playbackHandleKey '
+            'playing=${adapter.value.isPlaying} '
+            'buffering=${adapter.value.isBuffering} '
+            'firstFrame=${adapter.value.hasRenderedFirstFrame} '
+            'positionMs=${adapter.value.position.inMilliseconds}',
+          );
+          _recordPlaybackDispatch(
+            'feed_card_owner_mismatch_reclaim',
+            source: source,
+            metadata: <String, dynamic>{
+              'from': currentOwnerAfterResume,
+              'to': playbackHandleKey,
+              'positionMs': adapter.value.position.inMilliseconds,
+              'playing': adapter.value.isPlaying,
+              'buffering': adapter.value.isBuffering,
+              'firstFrame': adapter.value.hasRenderedFirstFrame,
+            },
+          );
+          _hasAutoPlayed = true;
+          _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+          _applyPlaybackVolume();
+          _applyPreferredBufferDurationProfile(source: source);
+          _syncRuntimeHints(
+            isAudible: _resolvedPlaybackVolume() > 0.0,
+            hasStableFocus: true,
+          );
+          _trackPlaybackIntent();
+          try {
+            _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+            _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
+          } catch (_) {}
+          return;
+        }
         final shouldBootstrapInitialFeedClaim =
             _canBootstrapPrimaryFeedOwnershipClaim &&
                 !pendingClaimAfterResume &&
