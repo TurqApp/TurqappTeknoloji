@@ -10,7 +10,9 @@ class UploadConstants {
   static const int maxImagesPerPost = 4;
   static const int maxVideosPerPost = 1;
 
-  static const int maxVideoLengthSeconds = 1800;
+  static const int maxRegularVideoLengthSeconds = 6 * 60;
+  static const int maxBadgedVideoLengthSeconds = 6 * 60;
+  static const int maxVideoLengthSeconds = maxBadgedVideoLengthSeconds;
   static const int maxStoryVideoSizeBytes = 30 * 1024 * 1024;
   static const int maxStoryVideoLengthSeconds = 90;
 

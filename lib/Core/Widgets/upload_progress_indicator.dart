@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../Services/upload_validation_service.dart';
 import '../upload_constants.dart';
 
 class UploadProgressIndicator extends StatelessWidget {
@@ -178,8 +179,9 @@ class UploadLimitInfo extends StatelessWidget {
           _buildLimitRow(
             'upload.videos_label'.tr,
             'upload.videos_limit'.trParams({
-              'size': UploadConstants.getMaxVideoSizeText(),
-              'seconds': '${UploadConstants.maxVideoLengthSeconds}',
+              'size': UploadValidationService.currentMaxVideoSizeText,
+              'seconds':
+                  '${UploadValidationService.currentMaxVideoLengthSeconds}',
             }),
           ),
           _buildLimitRow(

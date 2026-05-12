@@ -63,10 +63,12 @@ Future<ValidationResult> _performValidateVideo(File videoFile) async {
 
     await controller.dispose();
 
-    if (duration.inSeconds > UploadConstants.maxVideoLengthSeconds) {
+    final maxVideoLengthSeconds =
+        UploadValidationService.currentMaxVideoLengthSeconds;
+    if (duration.inSeconds > maxVideoLengthSeconds) {
       return ValidationResult.error(
           'upload_validation.video_duration_too_long'.trParams({
-        'max': '${UploadConstants.maxVideoLengthSeconds}',
+        'max': '$maxVideoLengthSeconds',
         'current': '${duration.inSeconds}',
       }));
     }

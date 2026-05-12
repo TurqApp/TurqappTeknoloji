@@ -104,19 +104,10 @@ class OptimizedNSFWService {
     try {
       final userService = maybeFindCurrentUserService();
       if (userService == null) return _NsfwPolicy.strict;
-      final normalizedRozet = normalizeRozetValue(userService.rozet);
-      switch (normalizedRozet) {
-        case 'gri':
-        case 'turkuaz':
-        case 'sari':
-          return _NsfwPolicy.extraSoft;
-        case 'mavi':
-        case 'siyah':
-        case 'kirmizi':
-          return _NsfwPolicy.soft;
-        default:
-          return userService.isVerified ? _NsfwPolicy.soft : _NsfwPolicy.strict;
+      if (rozetPermissionLevel(userService.rozet) > 0) {
+        return _NsfwPolicy.extraSoft;
       }
+      return userService.isVerified ? _NsfwPolicy.soft : _NsfwPolicy.strict;
     } catch (_) {
       return _NsfwPolicy.strict;
     }

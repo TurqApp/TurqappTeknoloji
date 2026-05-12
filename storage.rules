@@ -47,6 +47,25 @@ service firebase.storage {
     function fitsSizeLimit(bytes) {
       return request.resource == null || request.resource.size < bytes;
     }
+    function currentUserHasUploadBadge() {
+      return isAuth()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rozet is string
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rozet != ""
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rozet != "none"
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rozet != "no_badge"
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.rozet != "rozetsiz";
+    }
+    function fitsPostMediaSizeLimit() {
+      return (
+          currentUserHasUploadBadge()
+          && fitsSizeLimit(45 * 1024 * 1024)
+        )
+        || (
+          !currentUserHasUploadBadge()
+          && fitsSizeLimit(35 * 1024 * 1024)
+        );
+    }
     function canWriteJobMedia(jobId) {
       return isAuth()
         && (
@@ -140,7 +159,7 @@ service firebase.storage {
       allow write: if fileName != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
-                   && fitsSizeLimit(35 * 1024 * 1024); // 35MB video limit
+                   && fitsPostMediaSizeLimit();
     }
     // Post nested media folders (images/, videos/, thumbnails/, ...)
     match /Posts/{postId}/{folder}/{allPaths=**} {
@@ -148,7 +167,7 @@ service firebase.storage {
       allow write: if folder != "hls"
                    && (canWritePostMedia(postId)
                        || hasMatchingUploaderMetadata())
-                   && fitsSizeLimit(35 * 1024 * 1024);
+                   && fitsPostMediaSizeLimit();
     }
 
     // Story media (legacy uppercase + current lowercase)

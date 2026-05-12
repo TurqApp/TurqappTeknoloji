@@ -67,6 +67,10 @@ class UploadValidationService {
   static String get currentMaxVideoSizeText =>
       UploadConstants.formatBytes(currentMaxVideoSizeBytes);
 
+  static int get currentMaxVideoLengthSeconds => _hasBadge
+      ? UploadConstants.maxBadgedVideoLengthSeconds
+      : UploadConstants.maxRegularVideoLengthSeconds;
+
   /// Validate individual image file
   static Future<ValidationResult> validateImage(File imageFile) =>
       _performValidateImage(imageFile);
