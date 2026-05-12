@@ -28,7 +28,7 @@ extension _SettingsViewShellHelpersPart on _SettingsViewState {
           children: [
             usePasajIcon
                 ? SvgPicture.asset(
-                    "assets/icons/sinav.svg",
+                    "assets/icons/app_market.svg",
                     height: 25,
                     colorFilter:
                         const ColorFilter.mode(Colors.black, BlendMode.srcIn),

@@ -275,7 +275,7 @@ extension _NavBarViewShellContentPart on NavBarView {
       'assets/icons/house',
       'assets/icons/search',
       'assets/icons/play',
-      if (hasEducation) 'assets/icons/sinav',
+      if (hasEducation) 'assets/icons/app_market',
       'profile_dynamic',
     ];
 

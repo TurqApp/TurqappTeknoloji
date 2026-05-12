@@ -118,7 +118,7 @@ class _PasajToggleTile extends StatelessWidget {
                 child: Row(
                   children: [
                     SvgPicture.asset(
-                      "assets/icons/sinav.svg",
+                      "assets/icons/app_market.svg",
                       height: 22,
                       colorFilter: const ColorFilter.mode(
                         Colors.black,
