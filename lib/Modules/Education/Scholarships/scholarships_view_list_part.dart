@@ -286,9 +286,11 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
       children.add(
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: AdmobKare(
-            key: ValueKey('scholarship-ad-$slot'),
-            suggestionPlacementId: 'scholarship',
+          child: Center(
+            child: AdmobKare(
+              key: ValueKey('scholarship-ad-$slot'),
+              suggestionPlacementId: 'scholarship',
+            ),
           ),
         ),
       );
