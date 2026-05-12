@@ -20,6 +20,15 @@ const List<String> pasajTabs = [
   PasajTabIds.tutoring,
 ];
 
+const Set<String> defaultVisiblePasajTabs = {
+  PasajTabIds.market,
+  PasajTabIds.scholarships,
+};
+
+List<String> defaultHiddenPasajTabs() => pasajTabs
+    .where((tabId) => !defaultVisiblePasajTabs.contains(tabId))
+    .toList(growable: false);
+
 String pasajLegacyTitleToId(String value) {
   switch (value) {
     case 'Market':

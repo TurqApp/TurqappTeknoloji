@@ -42,6 +42,8 @@ class _ProfileScrollState {
 }
 
 class _ProfileHeaderState {
+  final postCount = (-1).obs;
+  final likeCount = (-1).obs;
   final followerCount = 0.obs;
   final followingCount = 0.obs;
   final listingCount = 0.obs;
@@ -170,6 +172,8 @@ extension ProfileControllerFieldsPart on ProfileController {
       _scrollState.scrollControllers;
   RxBool get showPfImage => _scrollState.showPfImage;
 
+  RxInt get postCount => _headerState.postCount;
+  RxInt get likeCount => _headerState.likeCount;
   RxInt get followerCount => _headerState.followerCount;
   RxInt get followingCount => _headerState.followingCount;
   RxInt get listingCount => _headerState.listingCount;

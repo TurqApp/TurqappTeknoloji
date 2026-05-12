@@ -358,6 +358,7 @@ class CurrentUserSyncRole {
         : (currentStats.isNotEmpty
             ? currentStats
             : await readSubdocCached('stats', 'summary'));
+    final publicProfile = await _readPublicIdentityData(uid);
 
     void mergeOverride(Map<String, dynamic> source) {
       source.forEach((k, v) {
@@ -413,6 +414,14 @@ class CurrentUserSyncRole {
       }
     }
 
+    void preferPublicString(String key) {
+      if (hasNonEmptyString(merged[key])) return;
+      final value = publicProfile[key];
+      if (hasNonEmptyString(value)) {
+        merged[key] = value;
+      }
+    }
+
     void preferRootScalar(String key) {
       if (!rootData.containsKey(key)) return;
       final value = rootData[key];
@@ -440,6 +449,25 @@ class CurrentUserSyncRole {
       'token',
     ]) {
       preferRootString(key);
+    }
+    for (final key in const [
+      'avatarUrl',
+      'profileImage',
+      'profileImageUrl',
+      'photoUrl',
+      'imageUrl',
+      'image',
+      'nickname',
+      'nickName',
+      'username',
+      'userName',
+      'usernameLower',
+      'displayName',
+      'bio',
+      'rozet',
+      'badge',
+    ]) {
+      preferPublicString(key);
     }
     for (final key in const [
       'avatarUrl',
@@ -590,6 +618,55 @@ class CurrentUserSyncRole {
     }
 
     return cloneMap(merged);
+  }
+
+  Future<Map<String, dynamic>> _readPublicIdentityData(String uid) async {
+    if (uid.trim().isEmpty) return const <String, dynamic>{};
+    try {
+      final raw = await UserRepository.ensure().getPublicUserRaw(
+        uid,
+        preferCache: false,
+        forceServer: true,
+      );
+      if (raw == null || raw.isEmpty) return const <String, dynamic>{};
+
+      final merged = <String, dynamic>{};
+      final profile = raw['profile'];
+      if (profile is Map) {
+        merged.addAll(profile.map((key, value) => MapEntry('$key', value)));
+      }
+      final publicProfile = raw['publicProfile'];
+      if (publicProfile is Map) {
+        merged.addAll(
+          publicProfile.map((key, value) => MapEntry('$key', value)),
+        );
+      }
+      merged.addAll(raw);
+
+      if (kDebugMode) {
+        final publicNickname = (merged['nickname'] ??
+                merged['username'] ??
+                merged['userName'] ??
+                merged['displayName'] ??
+                '')
+            .toString()
+            .trim();
+        debugPrint(
+          '[CurrentUserIdentity] publicIdentity uid=$uid '
+          'nicknameEmpty=${publicNickname.isEmpty} '
+          'avatarEmpty=${resolveAvatarUrl(merged).trim().isEmpty}',
+        );
+      }
+      return merged;
+    } catch (e, st) {
+      CurrentUserCacheStore(service).logSilently('publicIdentity.$uid', e, st);
+      if (kDebugMode) {
+        debugPrint(
+          '[CurrentUserIdentity] publicIdentityFailed uid=$uid error=$e',
+        );
+      }
+      return const <String, dynamic>{};
+    }
   }
 
   Future<void> stopFirebaseSync() async {

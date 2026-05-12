@@ -12,9 +12,17 @@ extension ProfileControllerRuntimePart on ProfileController {
     _counterSub = _userRepository.watchUserRaw(uid).listen((snapshot) {
       final data = snapshot;
       if (data != null) {
+        final nextPosts = (data['counterOfPosts'] as num?)?.toInt();
+        final nextLikes = (data['counterOfLikes'] as num?)?.toInt();
         final nextFollowers = (data['counterOfFollowers'] as num?)?.toInt();
         final nextFollowings = (data['counterOfFollowings'] as num?)?.toInt();
         final nextListings = (data['counterOfListings'] as num?)?.toInt();
+        if (nextPosts != null) {
+          postCount.value = nextPosts;
+        }
+        if (nextLikes != null) {
+          likeCount.value = nextLikes;
+        }
         if (nextFollowers != null) {
           followerCount.value = nextFollowers;
         }
@@ -73,6 +81,8 @@ extension ProfileControllerRuntimePart on ProfileController {
       followerCount.value = 0;
       followingCount.value = 0;
       listingCount.value = 0;
+      postCount.value = -1;
+      likeCount.value = -1;
       lastPostDoc = null;
       lastPostDocPhotos = null;
       lastPostDocVideos = null;
@@ -102,10 +112,18 @@ extension ProfileControllerRuntimePart on ProfileController {
         uid,
         preferCache: true,
       );
+      final nextPosts = (data?['counterOfPosts'] as num?)?.toInt();
+      final nextLikes = (data?['counterOfLikes'] as num?)?.toInt();
       final nextFollowers = (data?['counterOfFollowers'] as num?)?.toInt();
       final nextFollowings = (data?['counterOfFollowings'] as num?)?.toInt();
       final nextListings = (data?['counterOfListings'] as num?)?.toInt();
 
+      if (nextPosts != null) {
+        postCount.value = nextPosts;
+      }
+      if (nextLikes != null) {
+        likeCount.value = nextLikes;
+      }
       if (nextFollowers != null) {
         followerCount.value = nextFollowers;
       }

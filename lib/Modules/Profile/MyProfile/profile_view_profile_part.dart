@@ -78,16 +78,21 @@ extension _ProfileViewProfilePart on _ProfileViewState {
     return _myAdres.trim();
   }
 
-  int get _myTotalPosts =>
-      _reactiveCurrentUser?.counterOfPosts ?? userService.counterOfPosts;
+  int get _myTotalPosts {
+    final reactive = controller.postCount.value;
+    if (reactive >= 0) return reactive;
+    return _reactiveCurrentUser?.counterOfPosts ?? userService.counterOfPosts;
+  }
 
-  int get _myTotalLikes =>
-      _reactiveCurrentUser?.counterOfLikes ?? userService.counterOfLikes;
+  int get _myTotalLikes {
+    final reactive = controller.likeCount.value;
+    if (reactive >= 0) return reactive;
+    return _reactiveCurrentUser?.counterOfLikes ?? userService.counterOfLikes;
+  }
 
-  int get _myTotalMarket =>
-      controller.listingCount.value > 0
-          ? controller.listingCount.value
-          : _marketItems.where((item) => item.status != 'archived').length;
+  int get _myTotalMarket => controller.listingCount.value > 0
+      ? controller.listingCount.value
+      : _marketItems.where((item) => item.status != 'archived').length;
 
   bool get _hasMyStories =>
       _myUserId.isNotEmpty &&

@@ -65,9 +65,17 @@ extension ProfileControllerHeaderPart on ProfileController {
     final profile = (data['profile'] is Map)
         ? Map<String, dynamic>.from(data['profile'] as Map)
         : const <String, dynamic>{};
+    final nextPostCount = (data['counterOfPosts'] as num?)?.toInt();
+    final nextLikeCount = (data['counterOfLikes'] as num?)?.toInt();
     final nextFollowerCount = (data['counterOfFollowers'] as num?)?.toInt();
     final nextFollowingCount = (data['counterOfFollowings'] as num?)?.toInt();
     final nextListingCount = (data['counterOfListings'] as num?)?.toInt();
+    if (nextPostCount != null) {
+      postCount.value = nextPostCount;
+    }
+    if (nextLikeCount != null) {
+      likeCount.value = nextLikeCount;
+    }
     if (nextFollowerCount != null) {
       followerCount.value = nextFollowerCount;
     }

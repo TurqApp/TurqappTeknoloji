@@ -40,6 +40,8 @@ extension _EditProfileHeaderPart on _EditProfileState {
               children: [
                 Obx(() {
                   final preview = controller.croppedImage.value;
+                  currentUserService.currentUserRx.value;
+                  final resolvedAvatarUrl = currentUserService.avatarUrl;
 
                   return ClipOval(
                     child: SizedBox(
@@ -47,10 +49,10 @@ extension _EditProfileHeaderPart on _EditProfileState {
                       height: (Get.width * 0.31).clamp(96.0, 120.0),
                       child: preview != null
                           ? Image.memory(preview, fit: BoxFit.cover)
-                          : (_avatarUrl.isNotEmpty
+                          : (resolvedAvatarUrl.isNotEmpty
                               ? CachedNetworkImage(
                                   memCacheHeight: 400,
-                                  imageUrl: _avatarUrl,
+                                  imageUrl: resolvedAvatarUrl,
                                   fit: BoxFit.cover,
                                 )
                               : const Center(
@@ -134,34 +136,39 @@ extension _EditProfileHeaderPart on _EditProfileState {
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: GestureDetector(
-            onTap: () {
-              Get.to(() => EditorNickname());
-            },
-            child: _buildInfoTile(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '@$_nickname',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontFamily: 'MontserratMedium',
+          child: Obx(() {
+            final nickname =
+                currentUserService.currentUserRx.value?.nickname.trim() ??
+                    _nickname.trim();
+            return GestureDetector(
+              onTap: () {
+                Get.to(() => EditorNickname());
+              },
+              child: _buildInfoTile(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      nickname.isEmpty ? '@' : '@$nickname',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontFamily: 'MontserratMedium',
+                      ),
                     ),
-                  ),
-                  Text(
-                    'common.change'.tr,
-                    style: const TextStyle(
-                      color: Colors.blueAccent,
-                      fontSize: 15,
-                      fontFamily: 'MontserratMedium',
+                    Text(
+                      'common.change'.tr,
+                      style: const TextStyle(
+                        color: Colors.blueAccent,
+                        fontSize: 15,
+                        fontFamily: 'MontserratMedium',
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }),
         ),
         Padding(
           padding: const EdgeInsets.only(bottom: 12),

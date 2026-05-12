@@ -15,7 +15,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
   });
 
-  test('defaults education visibility to enabled for guest scope', () async {
+  test('defaults education visibility and first-install pasaj tabs', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final controller = SettingsController();
 
@@ -24,6 +24,21 @@ void main() {
 
     expect(controller.educationScreenIsOn.value, isTrue);
     expect(controller.pasajOrder, pasajTabs);
+    expect(controller.pasajVisibility[PasajTabIds.market], isTrue);
+    expect(controller.pasajVisibility[PasajTabIds.scholarships], isTrue);
+    expect(controller.pasajVisibility[PasajTabIds.jobFinder], isFalse);
+    expect(controller.pasajVisibility[PasajTabIds.questionBank], isFalse);
+  });
+
+  test('keeps existing pasaj users without hidden preferences fully visible',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      scoped('pasajOrderVersion'): 4,
+    });
+    final controller = SettingsController();
+
+    await controller.loadPasajPreferences();
+
     expect(
         controller.pasajVisibility.values.every((visible) => visible), isTrue);
   });

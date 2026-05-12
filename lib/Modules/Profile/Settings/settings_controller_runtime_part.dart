@@ -44,8 +44,11 @@ extension SettingsControllerRuntimePart on SettingsController {
       );
     }
 
-    final storedHidden =
-        await preferences.getStringList(_pasajVisibilityKey) ?? const [];
+    final storedHiddenRaw = await preferences.getStringList(
+      _pasajVisibilityKey,
+    );
+    final storedHidden = storedHiddenRaw ??
+        (storedVersion == 0 ? defaultHiddenPasajTabs() : const []);
     final normalizedHidden = storedHidden
         .map(pasajLegacyTitleToId)
         .where(pasajTabs.contains)
@@ -53,6 +56,9 @@ extension SettingsControllerRuntimePart on SettingsController {
     pasajVisibility.assignAll({
       for (final title in pasajTabs) title: !normalizedHidden.contains(title),
     });
+    if (storedHiddenRaw == null && storedVersion == 0) {
+      await _persistPasajPrefs();
+    }
   }
 
   Future<void> setPasajTabVisibility(String title, bool isVisible) async {
@@ -97,10 +103,14 @@ Future<Map<String, bool>> loadPasajVisibilitySnapshot() async {
   }
 
   final preferences = ensureLocalPreferenceRepository();
-  final hidden = (await preferences.getStringList(
-            userScopedKey(_settingsPasajVisibilityKeyPrefix),
-          ) ??
-          const <String>[])
+  final version = await preferences
+          .getInt(userScopedKey(_settingsPasajOrderVersionKeyPrefix)) ??
+      0;
+  final storedHidden = await preferences.getStringList(
+    userScopedKey(_settingsPasajVisibilityKeyPrefix),
+  );
+  final hidden = (storedHidden ??
+          (version == 0 ? defaultHiddenPasajTabs() : const <String>[]))
       .map(pasajLegacyTitleToId)
       .where(pasajTabs.contains)
       .toSet();
