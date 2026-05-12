@@ -108,7 +108,7 @@ extension NotificationServiceMessagePart on NotificationService {
         await showNotification(msg);
       }
     });
-    FirebaseMessaging.onMessageOpenedApp.listen((msg) {
+    _openedAppSub ??= FirebaseMessaging.onMessageOpenedApp.listen((msg) {
       _handleData(msg.data);
     });
     _messaging.getInitialMessage().then((msg) {

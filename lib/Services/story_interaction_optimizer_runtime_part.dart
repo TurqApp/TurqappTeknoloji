@@ -81,6 +81,7 @@ class _StoryInteractionOptimizerRuntimePart {
           {
             'storyId': entry.key,
             'readDate': entry.value,
+            'lastSeenAt': entry.value,
             'updatedDate': DateTime.now().millisecondsSinceEpoch,
           },
           SetOptions(merge: true),
@@ -99,7 +100,9 @@ class _StoryInteractionOptimizerRuntimePart {
         }
         _service._pendingUsers.addAll(currentUsers);
 
-        Timer(const Duration(seconds: 2), _flushPendingWrites);
+        _service._writeTimer?.cancel();
+        _service._writeTimer =
+            Timer(const Duration(seconds: 2), _flushPendingWrites);
       } catch (retryError) {
         debugPrint('Story retry preparation error: $retryError');
       }

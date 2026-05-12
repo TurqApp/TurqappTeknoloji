@@ -56,6 +56,7 @@ class NotificationService {
   StreamSubscription<String>? _tokenRefreshSub;
   StreamSubscription<User?>? _authStateSub;
   StreamSubscription<RemoteMessage>? _foregroundMessageSub;
+  StreamSubscription<RemoteMessage>? _openedAppSub;
   bool _isHandlingTap = false;
 
   static const String _fcmTokenKeyPrefix = 'fcm_token';
@@ -107,9 +108,11 @@ class NotificationService {
     await _tokenRefreshSub?.cancel();
     await _authStateSub?.cancel();
     await _foregroundMessageSub?.cancel();
+    await _openedAppSub?.cancel();
     _tokenRefreshSub = null;
     _authStateSub = null;
     _foregroundMessageSub = null;
+    _openedAppSub = null;
     _initializingFuture = null;
     _initialized = false;
   }

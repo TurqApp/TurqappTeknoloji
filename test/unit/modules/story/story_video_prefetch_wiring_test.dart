@@ -4,14 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('story viewer and widget keep video prefetch hooks in place', () async {
+    final root = Directory.current.path;
     final viewerSource = await File(
-      '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Story/StoryViewer/story_viewer_story_part.dart',
+      '$root/lib/Modules/Story/StoryViewer/story_viewer_story_part.dart',
     ).readAsString();
     final storyContentSource = await File(
-      '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Story/StoryViewer/user_story_content_playback_part.dart',
+      '$root/lib/Modules/Story/StoryViewer/user_story_content_playback_part.dart',
     ).readAsString();
     final storyVideoSource = await File(
-      '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Story/StoryViewer/story_video_widget.dart',
+      '$root/lib/Modules/Story/StoryViewer/story_video_widget.dart',
     ).readAsString();
 
     expect(viewerSource, contains('cacheHlsEntry('));
@@ -26,6 +27,6 @@ void main() {
       storyVideoSource,
       contains('releaseExternalOnDemandFetchForDoc('),
     );
-    expect(storyVideoSource, contains('resolveUrl('));
+    expect(storyVideoSource, contains('canonicalizeHlsCdnUrl('));
   });
 }
