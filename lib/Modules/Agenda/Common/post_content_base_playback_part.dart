@@ -33,6 +33,50 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     return savedPosition - cushion;
   }
 
+  void _syncLiveResumePositionSample(HLSVideoValue value) {
+    if (!_usesFeedPlaybackPolicy) return;
+    if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    if (!value.isInitialized || value.isCompleted) return;
+    if (value.position <= PostContentBaseState._stableFramePositionThreshold) {
+      return;
+    }
+    final lastPosition = _lastResumePositionSample;
+    if (lastPosition != null &&
+        (value.position - lastPosition).inMilliseconds.abs() < 120) {
+      return;
+    }
+    final now = DateTime.now();
+    final lastSampleAt = _lastResumePositionSampleAt;
+    if (lastSampleAt != null &&
+        now.difference(lastSampleAt) <
+            PostContentBaseState._resumePositionSampleInterval) {
+      return;
+    }
+
+    _lastResumePositionSample = value.position;
+    _lastResumePositionSampleAt = now;
+    _playbackRuntimeService.updatePlaybackPosition(
+      playbackHandleKey,
+      value.position,
+    );
+
+    final lastLogged = _lastLoggedResumePositionSample;
+    final shouldLog = lastLogged == null ||
+        (value.position - lastLogged).inMilliseconds.abs() >= 1000;
+    if (shouldLog) {
+      _lastLoggedResumePositionSample = value.position;
+      debugPrint(
+        '[FeedPlaybackProof] stage=resume_position_sample '
+        'doc=${widget.model.docID} key=$playbackHandleKey '
+        'positionMs=${value.position.inMilliseconds} '
+        'playing=${value.isPlaying} buffering=${value.isBuffering} '
+        'firstFrame=${value.hasRenderedFirstFrame} '
+        'visibleFrame=${value.hasVisibleVideoFrame} '
+        'shouldPlay=${widget.shouldPlay}',
+      );
+    }
+  }
+
   void _armSavedResumeRecoveryGuard() {
     _savedResumeRecoveryGuardUntil =
         DateTime.now().add(const Duration(milliseconds: 4200));
@@ -1188,6 +1232,50 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
             _playbackRuntimeService.currentPlayingDocId?.trim() ?? '';
         final pendingClaimAfterResume =
             _playbackRuntimeService.hasPendingPlayFor(playbackHandleKey);
+        final shouldClaimFeedOwnerMismatch =
+            defaultTargetPlatform == TargetPlatform.iOS &&
+                _usesFeedPlaybackPolicy &&
+                widget.shouldPlay &&
+                _isSurfacePlaybackAllowed &&
+                currentOwnerAfterResume.startsWith('feed:') &&
+                currentOwnerAfterResume != playbackHandleKey;
+        if (shouldClaimFeedOwnerMismatch) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=owner_mismatch_reclaim '
+            'doc=${widget.model.docID} source=$source '
+            'from=$currentOwnerAfterResume to=$playbackHandleKey '
+            'playing=${adapter.value.isPlaying} '
+            'buffering=${adapter.value.isBuffering} '
+            'firstFrame=${adapter.value.hasRenderedFirstFrame} '
+            'positionMs=${adapter.value.position.inMilliseconds}',
+          );
+          _recordPlaybackDispatch(
+            'feed_card_owner_mismatch_reclaim',
+            source: source,
+            metadata: <String, dynamic>{
+              'from': currentOwnerAfterResume,
+              'to': playbackHandleKey,
+              'positionMs': adapter.value.position.inMilliseconds,
+              'playing': adapter.value.isPlaying,
+              'buffering': adapter.value.isBuffering,
+              'firstFrame': adapter.value.hasRenderedFirstFrame,
+            },
+          );
+          _hasAutoPlayed = true;
+          _playbackRuntimeService.playOnlyThis(playbackHandleKey);
+          _applyPlaybackVolume();
+          _applyPreferredBufferDurationProfile(source: source);
+          _syncRuntimeHints(
+            isAudible: _resolvedPlaybackVolume() > 0.0,
+            hasStableFocus: true,
+          );
+          _trackPlaybackIntent();
+          try {
+            _segmentCacheRuntimeService.markPlaying(widget.model.docID);
+            _segmentCacheRuntimeService.markServedInFeed(widget.model.docID);
+          } catch (_) {}
+          return;
+        }
         final shouldBootstrapInitialFeedClaim =
             _canBootstrapPrimaryFeedOwnershipClaim &&
                 !pendingClaimAfterResume &&

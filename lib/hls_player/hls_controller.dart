@@ -308,6 +308,8 @@ class HLSController {
     String? fallbackUrl,
     bool autoPlay = true,
     bool loop = false,
+    bool? preferResumePoster,
+    bool? suppressPauseSnapshot,
     String debugSource = 'unspecified',
   }) {
     return HLSControllerPlaybackPart(this).loadVideoWithFallback(
@@ -315,6 +317,8 @@ class HLSController {
       fallbackUrl: fallbackUrl,
       autoPlay: autoPlay,
       loop: loop,
+      preferResumePoster: preferResumePoster,
+      suppressPauseSnapshot: suppressPauseSnapshot,
       debugSource: debugSource,
     );
   }
@@ -353,6 +357,12 @@ class HLSController {
 
   Future<void> seekTo(double seconds) {
     return HLSControllerPlaybackPart(this).seekTo(seconds);
+  }
+
+  Future<void> clearFrameSnapshot({
+    String reason = 'unspecified',
+  }) {
+    return HLSControllerPlaybackPart(this).clearFrameSnapshot(reason: reason);
   }
 
   Future<void> setMuted(bool muted) {

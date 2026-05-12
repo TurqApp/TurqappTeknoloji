@@ -68,6 +68,9 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         case "seek":
             handleSeek(args: args, viewId: viewId, result: result)
 
+        case "clearFrameSnapshot":
+            handleClearFrameSnapshot(args: args, viewId: viewId, result: result)
+
         case "setMuted":
             handleSetMuted(args: args, viewId: viewId, result: result)
 
@@ -190,6 +193,21 @@ public class HLSPlayerPlugin: NSObject, FlutterPlugin {
         }
 
         playerView.seek(to: seconds)
+        result(nil)
+    }
+
+    private func handleClearFrameSnapshot(args: [String: Any], viewId: Int64, result: FlutterResult) {
+        guard let playerView = playerViews[viewId] else {
+            result(FlutterError(
+                code: "NO_PLAYER",
+                message: "Player view not found",
+                details: nil
+            ))
+            return
+        }
+
+        let reason = args["reason"] as? String ?? "unspecified"
+        playerView.clearFrameSnapshot(reason: reason)
         result(nil)
     }
 

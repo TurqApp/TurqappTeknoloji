@@ -169,10 +169,41 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       '[FeedResumeReset] action=consume key=$key source=$source '
       'positionMs=${handle.position.inMilliseconds} initialized=${handle.isInitialized}',
     );
-    if (handle.isInitialized) {
-      unawaited(handle.seekTo(Duration.zero));
-    }
     return true;
+  }
+
+  Future<void> _seekTransitionResumeResetToZero(
+    String docID,
+    PlaybackHandle handle, {
+    required String source,
+  }) async {
+    if (!handle.isInitialized) return;
+    try {
+      if (handle.isPlaying) {
+        await handle.pause();
+      }
+      await handle.seekTo(Duration.zero);
+      if (handle is HLSAdapterPlaybackHandle) {
+        await handle.adapter.clearFrameSnapshot(
+          reason: 'transition_resume_reset:$source',
+        );
+      } else if (handle is HLSPlaybackHandle) {
+        await handle.controller.clearFrameSnapshot(
+          reason: 'transition_resume_reset:$source',
+        );
+      }
+      _videoStates.remove(docID);
+      debugPrint(
+        '[FeedResumeReset] action=seek_zero_complete key=$docID '
+        'source=$source positionMs=${handle.position.inMilliseconds} '
+        'playing=${handle.isPlaying}',
+      );
+    } catch (error) {
+      debugPrint(
+        '[FeedResumeReset] action=seek_zero_failed key=$docID '
+        'source=$source error=$error',
+      );
+    }
   }
 
   void _saveVideoState(String docID, PlaybackHandle handle) {
@@ -270,14 +301,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _updatePosition(String docID, Duration position) {
+    if (position < Duration.zero) return;
     final state = _videoStates[docID];
-    if (state != null) {
-      _videoStates[docID] = VideoState(
-        position: position,
-        isPlaying: state.isPlaying,
-        lastUpdated: DateTime.now(),
-      );
-    }
+    final handle = _allVideoControllers[docID];
+    _videoStates[docID] = VideoState(
+      position: position,
+      isPlaying: state?.isPlaying ?? handle?.isPlaying ?? false,
+      lastUpdated: DateTime.now(),
+    );
   }
 
   void _registerPlaybackHandle(String docID, PlaybackHandle handle) {
@@ -647,11 +678,27 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return;
     }
     if (current != null) {
-      _consumeTransitionResumeReset(
+      final consumedTransitionReset = _consumeTransitionResumeReset(
         docID,
         current,
         source: 'play_only_this',
       );
+      if (consumedTransitionReset) {
+        _pauseAllExcept(docID);
+        _markTargetPlaybackDoc(docID);
+        unawaited(
+          _seekTransitionResumeResetToZero(
+            docID,
+            current,
+            source: 'play_only_this',
+          ).then((_) {
+            if (_playRequestSeq != requestSeq) return;
+            if (_targetPlaybackDocID != docID) return;
+            _schedulePendingPlayResume(docID, requestSeq);
+          }),
+        );
+        return;
+      }
     }
 
     _markTargetPlaybackDoc(docID);
@@ -666,7 +713,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
     final handle = _allVideoControllers[docID];
     if (handle == null || !handle.isInitialized) return;
-    _consumeTransitionResumeReset(
+    final consumedTransitionReset = _consumeTransitionResumeReset(
       docID,
       handle,
       source: 'reassert_only_this',
@@ -676,6 +723,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final int requestSeq = _playRequestSeq;
     _markTargetPlaybackDoc(docID);
     _pauseAllExcept(docID);
+    if (consumedTransitionReset) {
+      unawaited(
+        _seekTransitionResumeResetToZero(
+          docID,
+          handle,
+          source: 'reassert_only_this',
+        ).then((_) {
+          if (_playRequestSeq != requestSeq) return;
+          if (_targetPlaybackDocID != docID) return;
+          _schedulePendingPlayResume(docID, requestSeq);
+        }),
+      );
+      return;
+    }
     _schedulePendingPlayResume(docID, requestSeq);
   }
 
@@ -688,7 +749,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
             ? previous
             : handle;
     _allVideoControllers[docID] = effectiveHandle;
-    _consumeTransitionResumeReset(
+    final consumedTransitionReset = _consumeTransitionResumeReset(
       docID,
       effectiveHandle,
       source: 'request_play',
@@ -696,6 +757,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _markTargetPlaybackDoc(docID);
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
+    if (consumedTransitionReset) {
+      unawaited(
+        _seekTransitionResumeResetToZero(
+          docID,
+          effectiveHandle,
+          source: 'request_play',
+        ).then((_) {
+          if (_playRequestSeq != requestSeq) return;
+          if (_targetPlaybackDocID != docID) return;
+          _schedulePendingPlayResume(docID, requestSeq);
+        }),
+      );
+      return;
+    }
     _schedulePendingPlayResume(docID, requestSeq);
   }
 

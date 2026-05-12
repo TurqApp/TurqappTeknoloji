@@ -122,6 +122,10 @@ class PlaybackRuntimeService {
     _manager.saveVideoState(docId, handle);
   }
 
+  void updatePlaybackPosition(String docId, Duration position) {
+    _manager.updatePosition(docId, position);
+  }
+
   VideoState? getSavedPlaybackState(String docId) {
     return _manager.getVideoState(docId);
   }

@@ -84,6 +84,12 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         pendingSeek != null &&
         pendingSeek > Duration.zero &&
         !(defaultTargetPlatform == TargetPlatform.iOS && _isFeedStyleSurface);
+    final shouldPreferRestartResumePoster =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isFeedStyleSurface &&
+            autoPlay &&
+            pendingSeek != null &&
+            pendingSeek > const Duration(milliseconds: 80);
 
     _pendingReloadOnReady = false;
     _isStopped = false;
@@ -98,6 +104,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         ' nativeAutoPlay=${shouldDeferAutoplayUntilSeek ? false : autoPlay}'
         ' deferUntilSeek=$shouldDeferAutoplayUntilSeek'
         ' pendingSeekMs=${pendingSeek?.inMilliseconds ?? -1}'
+        ' restartResumePoster=$shouldPreferRestartResumePoster'
         ' primaryFeedSurface=$_isPrimaryFeedSurface'
         ' feedStyleSurface=$_isFeedStyleSurface'
         ' viewReady=$_viewReady'
@@ -111,6 +118,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       fallbackUrl: _fallbackUrl,
       autoPlay: shouldDeferAutoplayUntilSeek ? false : autoPlay,
       loop: loop,
+      preferResumePoster: shouldPreferRestartResumePoster ? true : null,
       debugSource: '$debugSource.restartLoad',
     );
     if (autoPlay) {
@@ -172,6 +180,40 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
   Future<void> _performPlay() {
     if (_disposed) return Future.value();
     return _playWithAudioFocus();
+  }
+
+  Future<void> _performClearFrameSnapshot({
+    required String reason,
+  }) async {
+    if (_disposed) return;
+    if (kDebugMode) {
+      debugPrint(
+        '[HLSAdapterSnapshot]'
+        ' action=clear'
+        ' reason=$reason'
+        ' video=${_hls.telemetryVideoIdForDiagnostics ?? '-'}'
+        ' positionMs=${_value.position.inMilliseconds}'
+        ' firstFrame=${_value.hasRenderedFirstFrame}'
+        ' visibleFrame=${_value.hasVisibleVideoFrame}'
+        ' url=${_hls.currentUrl ?? url}',
+      );
+    }
+    await _hls.clearFrameSnapshot(reason: reason);
+    _value = HLSVideoValue(
+      isInitialized: _value.isInitialized,
+      isPlaying: _value.isPlaying,
+      isBuffering: _value.isBuffering,
+      isCompleted: _value.isCompleted,
+      hasRenderedFirstFrame: false,
+      hasVisibleVideoFrame: false,
+      awaitingFreshFrameAfterReattach: false,
+      position: _value.position,
+      duration: _value.duration,
+      size: _value.size,
+      aspectRatio: _value.aspectRatio,
+      buffered: _value.buffered,
+    );
+    _notifyAdapterListeners();
   }
 
   Future<void> _performPlayWithAudioFocus() async {

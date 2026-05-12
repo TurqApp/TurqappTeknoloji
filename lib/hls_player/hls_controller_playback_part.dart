@@ -6,6 +6,8 @@ extension HLSControllerPlaybackPart on HLSController {
     String? fallbackUrl,
     bool autoPlay = true,
     bool loop = false,
+    bool? preferResumePoster,
+    bool? suppressPauseSnapshot,
     String debugSource = 'unspecified',
   }) async {
     _fallbackUrl = fallbackUrl;
@@ -14,6 +16,8 @@ extension HLSControllerPlaybackPart on HLSController {
       url,
       autoPlay: autoPlay,
       loop: loop,
+      preferResumePoster: preferResumePoster,
+      suppressPauseSnapshot: suppressPauseSnapshot,
       debugSource: debugSource,
     );
   }
@@ -137,6 +141,37 @@ extension HLSControllerPlaybackPart on HLSController {
       _emitPosition(Duration(milliseconds: (seconds * 1000).toInt()));
     } on PlatformException catch (e) {
       _handleError('Failed to seek: ${e.message}');
+    }
+  }
+
+  Future<void> clearFrameSnapshot({
+    String reason = 'unspecified',
+  }) async {
+    if (_isInactive || _viewId == null) return;
+
+    _resetVisualTimingMarkers();
+    _awaitingFreshFrameAfterReattach = false;
+    if (_hasRenderedFirstFrame) {
+      _hasRenderedFirstFrame = false;
+      _emitFirstFrame(false);
+    }
+    if (_hasVisibleVideoFrame) {
+      _hasVisibleVideoFrame = false;
+      _emitVisibleVideoFrame(false);
+    }
+
+    try {
+      await HLSController._methodChannel.invokeMethod('clearFrameSnapshot', {
+        'viewId': _viewId,
+        'reason': reason,
+      });
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        debugPrint(
+          '[HLSControllerSnapshot] action=clear_failed '
+          'view=$_viewId reason=$reason error=${e.message}',
+        );
+      }
     }
   }
 

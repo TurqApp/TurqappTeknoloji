@@ -163,6 +163,13 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       handle,
       source: 'resume_current_blocked_reset',
     )) {
+      unawaited(
+        _seekTransitionResumeResetToZero(
+          docID,
+          handle,
+          source: 'resume_current_blocked_reset',
+        ),
+      );
       debugPrint(
         '[FeedPlaybackProof] stage=resume_current_blocked '
         'reason=transition_reset doc=$docID '
