@@ -2203,7 +2203,7 @@ service cloud.firestore {
       return isAuth()
         && request.query.limit != null
         && request.query.limit <= 500
-        && (request.query.offset == null || request.query.offset == 0);
+        && canUseAdminPushBypass();
     }
     function userRootServerManagedKeys() {
       return [
@@ -2248,7 +2248,7 @@ service cloud.firestore {
     // ──────────────────────────────────────────────
     match /users/{uid} {
       allow get: if isOwner(uid) || canReadUsersRootPrivate();
-      allow list: if false;
+      allow list: if canListUsersRoot();
       allow create: if isOwner(uid);
       // Kullanıcı kendi profilini güncelleyebilir; ancak moderasyon, rol ve
       // sayaç alanlarını client değiştiremez.
@@ -2275,7 +2275,9 @@ service cloud.firestore {
       match /notifications/{notifId} {
         allow read: if isOwner(uid);
         allow create: if canCreateNotification(uid) && isValidNotificationPayload(uid);
-        allow update, delete: if isOwner(uid);
+        allow update: if isOwner(uid)
+          || (canUseAdminPushBypass() && isValidNotificationPayload(uid));
+        allow delete: if isOwner(uid);
       }
 
       match /marketOffersSent/{offerId} {

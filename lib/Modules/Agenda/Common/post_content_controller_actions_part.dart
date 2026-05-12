@@ -348,6 +348,7 @@ extension PostContentControllerActionsPart on PostContentController {
 
   Future<void> sendAdminPushForPost() async {
     if (!canSendAdminPush) return;
+    if (_adminPushSending) return;
 
     final currentUid = _currentUid;
     if (currentUid.isEmpty) return;
@@ -357,6 +358,7 @@ extension PostContentControllerActionsPart on PostContentController {
     final body = pushCopy.body;
     final imageUrl = _pushPreviewImageUrl();
 
+    _adminPushSending = true;
     try {
       final written = await _adminPushRepository.sendPostPush(
         postId: model.docID,
@@ -388,6 +390,8 @@ extension PostContentControllerActionsPart on PostContentController {
       AppSnackbar('common.error'.tr, 'post.push_failed'.tr);
     } catch (e) {
       AppSnackbar('common.error'.tr, 'post.push_failed'.tr);
+    } finally {
+      _adminPushSending = false;
     }
   }
 

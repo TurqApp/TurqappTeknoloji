@@ -41,6 +41,7 @@ class _PhotoShortsControllerState {
   final silindi = false.obs;
   final silindiOpacity = 1.0.obs;
   final yenidenPaylasildiMi = false.obs;
+  bool adminPushSending = false;
 }
 
 extension PhotoShortsContentControllerFieldsPart
@@ -49,6 +50,8 @@ extension PhotoShortsContentControllerFieldsPart
   set model(PostsModel value) => _state.model = value;
   UserSummaryResolver get _userSummaryResolver => _state.userSummaryResolver;
   bool get canSendAdminPush => AdminAccessService.isKnownAdminSync();
+  bool get _adminPushSending => _state.adminPushSending;
+  set _adminPushSending(bool value) => _state.adminPushSending = value;
   AgendaController get agendaController => _state.agendaController;
   PostCountManager get countManager => _state.countManager;
   PostInteractionService get _interactionService =>

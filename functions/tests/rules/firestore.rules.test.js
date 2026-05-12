@@ -14,6 +14,7 @@ let doc;
 let deleteDoc;
 let getDoc;
 let getDocs;
+let limit;
 let query;
 let setDoc;
 let updateDoc;
@@ -30,6 +31,7 @@ test.before(async () => {
     deleteDoc,
     getDoc,
     getDocs,
+    limit,
     query,
     setDoc,
     updateDoc,
@@ -100,6 +102,25 @@ test("users collection blocks authenticated list queries for non-admin clients",
   const actorCtx = testEnv.authenticatedContext("list-actor");
   await assertFails(
     actorCtx.firestore().collection("users").limit(10).get(),
+  );
+});
+
+test("users collection allows bounded list queries for admin push senders", async () => {
+  const adminUid = "admin-push-sender";
+  const targetUid = "admin-push-target";
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `users/${targetUid}`), {
+      nickname: "target",
+      fcmToken: "token-1",
+      isDeleted: false,
+      isBanned: false,
+    });
+  });
+
+  const adminCtx = testEnv.authenticatedContext(adminUid, { admin: true });
+  await assertSucceeds(
+    getDocs(query(collection(adminCtx.firestore(), "users"), limit(350))),
   );
 });
 
@@ -1245,6 +1266,41 @@ test("notifications allow canonical actor payload for target inbox", async () =>
         isRead: false,
       },
     ),
+  );
+});
+
+test("notifications allow admin push sender to refresh an existing inbox doc", async () => {
+  const adminUid = "admin-notif-sender";
+  const targetUid = "admin-notif-target";
+  const notifPath = `users/${targetUid}/notifications/admin_post_post_1`;
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), notifPath), {
+      type: "posts",
+      fromUserID: adminUid,
+      postID: "post-1",
+      adminPush: true,
+      hideInAppInbox: true,
+      timeStamp: Date.now() - 1000,
+      read: false,
+      title: "Old",
+      body: "Old body",
+    });
+  });
+
+  const adminCtx = testEnv.authenticatedContext(adminUid, { admin: true });
+  await assertSucceeds(
+    setDoc(doc(adminCtx.firestore(), notifPath), {
+      type: "posts",
+      fromUserID: adminUid,
+      postID: "post-1",
+      adminPush: true,
+      hideInAppInbox: true,
+      timeStamp: Date.now(),
+      read: false,
+      title: "New",
+      body: "New body",
+    }),
   );
 });
 

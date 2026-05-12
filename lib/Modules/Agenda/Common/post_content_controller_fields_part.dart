@@ -28,6 +28,7 @@ class _PostContentControllerState {
         identityResolveStartedAt = DateTime.now();
 
   bool canSendAdminPush;
+  bool adminPushSending = false;
   final likes = <String>[].obs;
   final unLikes = <String>[].obs;
   final saved = false.obs;
@@ -74,6 +75,9 @@ extension PostContentControllerFieldsPart on PostContentController {
   bool get _canSendAdminPush => _controllerState.canSendAdminPush;
   set _canSendAdminPush(bool value) =>
       _controllerState.canSendAdminPush = value;
+  bool get _adminPushSending => _controllerState.adminPushSending;
+  set _adminPushSending(bool value) =>
+      _controllerState.adminPushSending = value;
   RxList<String> get likes => _controllerState.likes;
   RxList<String> get unLikes => _controllerState.unLikes;
   RxBool get saved => _controllerState.saved;

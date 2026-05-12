@@ -119,6 +119,7 @@ class _AdminPushViewState extends State<AdminPushView> {
   }
 
   Future<void> _sendPush() async {
+    if (_sending) return;
     if (!_canManagePush) {
       AppSnackbar(
         'admin.push.permission_title'.tr,

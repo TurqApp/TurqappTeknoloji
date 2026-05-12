@@ -145,6 +145,7 @@ extension PhotoShortContentControllerSocialPart
 
   Future<void> sendAdminPushForPost() async {
     if (!canSendAdminPush) return;
+    if (_adminPushSending) return;
 
     final currentUid = _currentUserId;
     if (currentUid.isEmpty) return;
@@ -154,6 +155,7 @@ extension PhotoShortContentControllerSocialPart
     final body = pushCopy.body;
     final imageUrl = _pushPreviewImageUrl();
 
+    _adminPushSending = true;
     try {
       final written = await _adminPushRepository.sendPostPush(
         postId: model.docID,
@@ -185,6 +187,8 @@ extension PhotoShortContentControllerSocialPart
       AppSnackbar('common.error'.tr, 'admin_push.failed_body'.tr);
     } catch (e) {
       AppSnackbar('common.error'.tr, 'admin_push.failed_body'.tr);
+    } finally {
+      _adminPushSending = false;
     }
   }
 }

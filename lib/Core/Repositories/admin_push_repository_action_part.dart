@@ -9,6 +9,15 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
     return AdminPushRepository._defaultPushImageUrl;
   }
 
+  String _adminPostNotificationDocIdImpl(String postId) {
+    final safePostId = postId
+        .trim()
+        .replaceAll(RegExp(r'[^A-Za-z0-9_-]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_');
+    if (safePostId.isEmpty) return '';
+    return 'admin_post_$safePostId';
+  }
+
   Future<void> _deleteReportImpl(String reportId) async {
     if (reportId.isEmpty) return;
     await _reportsRef.doc(reportId).delete();
@@ -115,6 +124,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
         : 'admin';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final resolvedImageUrl = _resolvePushImageUrlImpl(imageUrl);
+    final notificationDocId = _adminPostNotificationDocIdImpl(postId);
     const batchSize = 400;
     var written = 0;
 
@@ -137,6 +147,7 @@ extension AdminPushRepositoryActionPart on AdminPushRepository {
             'title': title,
             'body': body,
           },
+          docId: notificationDocId.isEmpty ? null : notificationDocId,
         );
         written++;
       }

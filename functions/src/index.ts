@@ -811,7 +811,12 @@ export const onUserNotificationCreate = functions.firestore
       });
     } catch (e: any) {
       const code = String(e?.errorInfo?.code || e?.code || "");
-      if (code === "messaging/registration-token-not-registered") {
+      const shouldClearToken = [
+        "messaging/registration-token-not-registered",
+        "messaging/invalid-registration-token",
+        "messaging/mismatched-credential",
+      ].includes(code);
+      if (shouldClearToken) {
         try {
           const uid = context.params.uid as string;
           const userData =
