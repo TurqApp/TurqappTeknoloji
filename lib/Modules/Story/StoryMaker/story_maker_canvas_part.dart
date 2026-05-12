@@ -287,7 +287,11 @@ extension _StoryMakerCanvasPart on _StoryMakerState {
         return Stack(
           children: [
             Positioned.fill(
-              child: StoryVideo(path: e.content, isMuted: e.isMuted),
+              child: StoryVideo(
+                path: e.content,
+                isMuted: e.isMuted,
+                posterUrl: e.posterUrl,
+              ),
             ),
             Positioned(
               top: 20,

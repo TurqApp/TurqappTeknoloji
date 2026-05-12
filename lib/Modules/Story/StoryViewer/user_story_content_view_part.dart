@@ -134,12 +134,16 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                           'vid_${displayElement.content}_${currentStory.id}'),
                                       storyId: currentStory.id,
                                       element: displayElement,
-                                      maxDuration: const Duration(seconds: 60),
+                                      maxDuration:
+                                          _UserStoryContentState
+                                              ._storyVideoPlaybackHardCap,
                                       paused: _isHoldPaused,
                                       onStarted: (Duration actualDuration) {
                                         final effective = actualDuration >
-                                                const Duration(seconds: 60)
-                                            ? const Duration(seconds: 60)
+                                                _UserStoryContentState
+                                                    ._storyVideoPlaybackHardCap
+                                            ? _UserStoryContentState
+                                                ._storyVideoPlaybackHardCap
                                             : actualDuration;
                                         if (_waitingForVideo) {
                                           _timer?.cancel();

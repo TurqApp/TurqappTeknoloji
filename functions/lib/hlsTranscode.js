@@ -192,11 +192,14 @@ exports.onVideoUpload = functions
     const tempDir = path.join(os.tmpdir(), `hls_${target.id}`);
     try {
         // Segment konfigürasyonu oku
-        // B2: segment1 (ilk segment) varsayılanı 2→1 → daha hızlı TTFF
-        // Not: adminConfig/hlsSegment.segment1 override edebilir (0 deploy gerek yok)
-        const configSnap = await db.doc("adminConfig/hlsSegment").get();
-        const segment1 = clampSegment(configSnap.data()?.segment1, 1); // B2: 2→1
-        const segment2 = clampSegment(configSnap.data()?.segment2, 2);
+        // Story HLS: first segment 2s, sonrası 3s. Post defaults unchanged.
+        // Not: adminConfig/hlsSegment.segment1/segment2 override edebilir.
+        const segmentConfigPath = target.type === "story" ? "adminConfig/storyHlsSegment" : "adminConfig/hlsSegment";
+        const configSnap = await db.doc(segmentConfigPath).get();
+        const defaultSegment1 = target.type === "story" ? 2 : 1;
+        const defaultSegment2 = target.type === "story" ? 3 : 2;
+        const segment1 = clampSegment(configSnap.data()?.segment1, defaultSegment1);
+        const segment2 = clampSegment(configSnap.data()?.segment2, defaultSegment2);
         console.log(`[HLS] Segment config: first=${segment1}s, rest=${segment2}s`);
         // Temp dizini oluştur
         fs.mkdirSync(tempDir, { recursive: true });

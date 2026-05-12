@@ -65,6 +65,7 @@ class UserStoryContent extends StatefulWidget {
 
 class _UserStoryContentState extends State<UserStoryContent>
     with TickerProviderStateMixin {
+  static const Duration _storyVideoPlaybackHardCap = Duration(hours: 2);
   int storyIndex = 0;
   double progress = 0.0;
   Timer? _timer;

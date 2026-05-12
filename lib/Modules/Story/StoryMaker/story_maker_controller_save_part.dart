@@ -246,24 +246,36 @@ extension StoryMakerControllerSavePart on StoryMakerController {
       }
 
       final List<Map<String, dynamic>> serialized = [];
+      var hasLocalVideoUpload = false;
       for (final e in elementsCopy) {
         String url = e.content;
+        String posterUrl = e.posterUrl.trim();
         final uri = Uri.tryParse(e.content.trim());
         final isRemoteSource = uri != null &&
             (uri.scheme == 'http' || uri.scheme == 'https') &&
             uri.hasAuthority;
         if (isRemoteSource) {
           url = CdnUrlBuilder.toCdnUrl(e.content.trim());
+          if (e.type == StoryElementType.video && posterUrl.isNotEmpty) {
+            posterUrl = CdnUrlBuilder.toCdnUrl(posterUrl);
+          }
         } else if (e.type == StoryElementType.image ||
             e.type == StoryElementType.video ||
             e.type == StoryElementType.drawing) {
-          final file = File(e.content);
+          var file = File(e.content);
           if (!file.existsSync()) {
             debugPrint("Story media source missing");
             continue;
           }
           final ts = DateTime.now().millisecondsSinceEpoch;
           if (e.type == StoryElementType.video) {
+            hasLocalVideoUpload = true;
+            file = await _prepareStoryVideoForPublish(file);
+            final fileSize = await file.length();
+            if (!_isStoryVideoSizeValid(fileSize)) {
+              _showStoryVideoSizeError(fileSize);
+              return;
+            }
             final validation =
                 await UploadValidationService.validateVideo(file);
             if (!validation.isValid) {
@@ -276,6 +288,31 @@ extension StoryMakerControllerSavePart on StoryMakerController {
             if (!_isStoryVideoDurationValid(validation.metadata)) {
               _showStoryVideoDurationError(validation.metadata);
               return;
+            }
+            if (posterUrl.isEmpty) {
+              posterUrl = await _generateStoryVideoPosterPath(file);
+            }
+            if (posterUrl.isNotEmpty) {
+              final posterUri = Uri.tryParse(posterUrl);
+              final isRemotePoster = posterUri != null &&
+                  (posterUri.scheme == 'http' || posterUri.scheme == 'https') &&
+                  posterUri.hasAuthority;
+              if (isRemotePoster) {
+                posterUrl = CdnUrlBuilder.toCdnUrl(posterUrl);
+              } else {
+                final posterFile = File(posterUrl);
+                if (posterFile.existsSync()) {
+                  final downloadUrl = await _uploadStoryImageWithAuthRetry(
+                    file: posterFile,
+                    currentUserService: currentUserService,
+                    storagePathWithoutExt:
+                        'stories/$resolvedUid/$storyId/${ts}_poster',
+                  );
+                  posterUrl = CdnUrlBuilder.toCdnUrl(downloadUrl);
+                } else {
+                  posterUrl = '';
+                }
+              }
             }
             final ext = path.extension(file.path);
             final ref = AppFirebaseStorage.instance.ref(
@@ -326,6 +363,7 @@ extension StoryMakerControllerSavePart on StoryMakerController {
           'stickerType': e.stickerType,
           'stickerData': e.stickerData,
           'mediaLookPreset': e.mediaLookPreset,
+          'posterUrl': posterUrl,
         });
       }
 
@@ -371,6 +409,9 @@ extension StoryMakerControllerSavePart on StoryMakerController {
         'deleted': scheduledAt != null,
         'deletedAt': 0,
       };
+      if (hasLocalVideoUpload) {
+        storyData['hlsStatus'] = 'processing';
+      }
       if (scheduledAt != null) {
         storyData['scheduledAt'] = scheduledAt.millisecondsSinceEpoch;
         storyData['deleteReason'] = 'scheduled';

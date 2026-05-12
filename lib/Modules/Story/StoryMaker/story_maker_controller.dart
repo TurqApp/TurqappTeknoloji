@@ -10,6 +10,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Repositories/story_repository.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
@@ -26,7 +27,9 @@ import 'package:turqappv2/Models/music_model.dart';
 import 'package:turqappv2/Modules/SpotifySelector/spotify_selector.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 
 import 'drawing_screen.dart';
 

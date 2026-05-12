@@ -207,27 +207,16 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     if (picked == null) return;
 
     final videoFile = File(picked.path);
-    final validation = await UploadValidationService.validateVideo(videoFile);
-    if (!validation.isValid) {
-      UploadValidationService.showValidationError(validation.errorMessage!);
-      return;
-    }
-    if (!_isStoryVideoDurationValid(validation.metadata)) {
-      _showStoryVideoDurationError(validation.metadata);
-      return;
-    }
-    final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
-    if (nsfwVideo.isNSFW) {
-      AppSnackbar(
-        'post_creator.upload_failed_title'.tr,
-        'post_creator.upload_failed_body'.tr,
-        backgroundColor: Colors.red.withValues(alpha: 0.7),
+    final tempController = VideoPlayerController.file(videoFile);
+    try {
+      await tempController.initialize();
+    } catch (e) {
+      await tempController.dispose();
+      UploadValidationService.showValidationError(
+        'upload_validation.video_analysis_failed'.trParams({'error': '$e'}),
       );
       return;
     }
-
-    final tempController = VideoPlayerController.file(videoFile);
-    await tempController.initialize();
     final videoSize = tempController.value.size;
 
     final screenW = Get.width;
@@ -252,23 +241,58 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     await tempController.dispose();
 
     final aspectRatio = double.parse(videoAspectRatio.toStringAsFixed(4));
-    elements.add(
-      StoryElement(
-        type: StoryElementType.video,
-        content: picked.path,
-        width: width,
-        height: height,
-        position: Offset(dx, dy),
-        rotation: 0,
-        zIndex: ++_zIndexCounter,
-        isMuted: false,
-        aspectRatio: aspectRatio,
-        mediaLookPreset: 'original',
-      ),
+    final element = StoryElement(
+      type: StoryElementType.video,
+      content: videoFile.path,
+      width: width,
+      height: height,
+      position: Offset(dx, dy),
+      rotation: 0,
+      zIndex: ++_zIndexCounter,
+      isMuted: false,
+      aspectRatio: aspectRatio,
+      mediaLookPreset: 'original',
     );
+    elements.add(element);
 
     _normalizeLayerOrdering();
     _saveState();
+
+    debugPrint(
+      '[StoryMakerVideoPick] visual_ready '
+      'path=${videoFile.path.split('/').last} '
+      'mode=direct_video '
+      'aspect=${aspectRatio.toStringAsFixed(4)}',
+    );
+
+    final nsfwVideo = await OptimizedNSFWService.checkVideo(videoFile);
+    if (nsfwVideo.isNSFW) {
+      elements.removeWhere((e) => e.id == element.id);
+      elements.refresh();
+      _saveState();
+      AppSnackbar(
+        'post_creator.upload_failed_title'.tr,
+        'post_creator.upload_failed_body'.tr,
+        backgroundColor: Colors.red.withValues(alpha: 0.7),
+      );
+    }
+  }
+
+  bool _isStoryVideoSizeValid(int fileSize) {
+    return fileSize <= UploadConstants.maxStoryVideoSizeBytes;
+  }
+
+  void _showStoryVideoSizeError(int fileSize) {
+    AppSnackbar(
+      'common.error'.tr,
+      'upload_validation.video_size_too_large'.trParams({
+        'max': UploadConstants.formatBytes(
+          UploadConstants.maxStoryVideoSizeBytes,
+        ),
+        'current': UploadConstants.formatBytes(fileSize),
+      }),
+      backgroundColor: Colors.red.withValues(alpha: 0.7),
+    );
   }
 
   bool _isStoryVideoDurationValid(Map<String, dynamic>? metadata) {
@@ -288,6 +312,155 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
       }),
       backgroundColor: Colors.red.withValues(alpha: 0.7),
     );
+  }
+
+  Future<String> _generateStoryVideoPosterPath(File videoFile) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final path = await vt.VideoThumbnail.thumbnailFile(
+        video: videoFile.path,
+        thumbnailPath: tempDir.path,
+        imageFormat: vt.ImageFormat.JPEG,
+        maxWidth: 720,
+        quality: 82,
+      );
+      return path?.trim() ?? '';
+    } catch (e) {
+      debugPrint('[StoryMakerVideoPoster] failed: $e');
+      return '';
+    }
+  }
+
+  Future<File> _prepareStoryVideoForPublish(File videoFile) async {
+    var output = await _trimStoryVideoToLimitIfNeeded(videoFile);
+    output = await _compressStoryVideoToSizeIfNeeded(output);
+    return output;
+  }
+
+  Future<File> _trimStoryVideoToLimitIfNeeded(File videoFile) async {
+    final durationSeconds = await _readStoryVideoDurationSeconds(videoFile);
+    final maxSeconds = UploadConstants.maxStoryVideoLengthSeconds;
+    if (durationSeconds <= 0 || durationSeconds <= maxSeconds) {
+      return videoFile;
+    }
+
+    try {
+      debugPrint(
+        '[StoryMakerVideoTrim] start path=${videoFile.path.split('/').last} '
+        'duration=${durationSeconds}s max=${maxSeconds}s',
+      );
+      final info = await VideoCompress.compressVideo(
+        videoFile.path,
+        quality: VideoQuality.DefaultQuality,
+        deleteOrigin: false,
+        startTime: 0,
+        duration: maxSeconds,
+        includeAudio: true,
+      );
+      final outputPath = (info?.path ?? '').trim();
+      if (outputPath.isEmpty) return videoFile;
+      final outputFile = File(outputPath);
+      if (!outputFile.existsSync()) return videoFile;
+
+      final trimmedDurationSeconds =
+          await _readStoryVideoDurationSeconds(outputFile);
+      debugPrint(
+        '[StoryMakerVideoTrim] done '
+        'duration=${trimmedDurationSeconds}s '
+        'size=${UploadConstants.formatBytes(await outputFile.length())}',
+      );
+      return outputFile;
+    } catch (e) {
+      debugPrint('[StoryMakerVideoTrim] failed: $e');
+      return videoFile;
+    }
+  }
+
+  Future<File> _compressStoryVideoToSizeIfNeeded(File videoFile) async {
+    final maxBytes = UploadConstants.maxStoryVideoSizeBytes;
+    if (await videoFile.length() <= maxBytes) return videoFile;
+
+    final qualities = <VideoQuality>[
+      VideoQuality.HighestQuality,
+      VideoQuality.Res1280x720Quality,
+      VideoQuality.MediumQuality,
+      VideoQuality.LowQuality,
+    ];
+
+    var bestFile = videoFile;
+    var bestSize = await videoFile.length();
+    final durationSeconds = await _readStoryVideoDurationSeconds(videoFile);
+    final minAcceptableBytes = _minAcceptableStoryVideoBytes(durationSeconds);
+    final compressDuration = durationSeconds > 0
+        ? min(durationSeconds, UploadConstants.maxStoryVideoLengthSeconds)
+        : UploadConstants.maxStoryVideoLengthSeconds;
+    for (final quality in qualities) {
+      try {
+        debugPrint(
+          '[StoryMakerVideoCompress] start quality=$quality '
+          'size=${UploadConstants.formatBytes(bestSize)}',
+        );
+        final info = await VideoCompress.compressVideo(
+          videoFile.path,
+          quality: quality,
+          deleteOrigin: false,
+          startTime: 0,
+          duration: compressDuration,
+          includeAudio: true,
+        );
+        final outputPath = (info?.path ?? '').trim();
+        if (outputPath.isEmpty) continue;
+        final outputFile = File(outputPath);
+        if (!outputFile.existsSync()) continue;
+        final outputSize = await outputFile.length();
+        debugPrint(
+          '[StoryMakerVideoCompress] done quality=$quality '
+          'size=${UploadConstants.formatBytes(outputSize)}',
+        );
+        if (outputSize < minAcceptableBytes) {
+          debugPrint(
+            '[StoryMakerVideoCompress] rejected_too_small quality=$quality '
+            'size=${UploadConstants.formatBytes(outputSize)} '
+            'min=${UploadConstants.formatBytes(minAcceptableBytes)}',
+          );
+          continue;
+        }
+        if (outputSize < bestSize) {
+          bestFile = outputFile;
+          bestSize = outputSize;
+        }
+        if (outputSize <= maxBytes) return outputFile;
+      } catch (e) {
+        debugPrint(
+            '[StoryMakerVideoCompress] failed quality=$quality error=$e');
+      }
+    }
+
+    return bestFile;
+  }
+
+  int _minAcceptableStoryVideoBytes(int durationSeconds) {
+    final seconds = min(
+      durationSeconds > 0
+          ? durationSeconds
+          : UploadConstants.maxStoryVideoLengthSeconds,
+      UploadConstants.maxStoryVideoLengthSeconds,
+    ).clamp(1, UploadConstants.maxStoryVideoLengthSeconds);
+    return max(2 * 1024 * 1024, seconds * 45 * 1024);
+  }
+
+  Future<int> _readStoryVideoDurationSeconds(File videoFile) async {
+    VideoPlayerController? controller;
+    try {
+      controller = VideoPlayerController.file(videoFile);
+      await controller.initialize();
+      return controller.value.duration.inSeconds;
+    } catch (e) {
+      debugPrint('[StoryMakerVideoTrim] duration read failed: $e');
+      return 0;
+    } finally {
+      await controller?.dispose();
+    }
   }
 
   void selectMusic() async {

@@ -14,7 +14,7 @@ extension StoryRepositoryFoundationPart on StoryRepository {
     await AppFirestore.instance
         .collection('stories')
         .doc(normalizedStoryId)
-        .set(storyData);
+        .set(storyData, SetOptions(merge: true));
   }
 
   UserProfileCacheService _resolveUserCache() {

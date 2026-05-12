@@ -16,6 +16,11 @@ extension StoryRepositoryCachePart on StoryRepository {
     return fallback;
   }
 
+  bool _storyRowVideoIsNotReady(Map<String, dynamic> data) {
+    final hlsStatus = (data['hlsStatus'] ?? '').toString().trim().toLowerCase();
+    return hlsStatus == 'processing' || hlsStatus == 'failed';
+  }
+
   int _storyRowDiversityTopUpLimit(
     QuerySnapshot<Map<String, dynamic>> snap, {
     required int requestedLimit,
@@ -102,6 +107,7 @@ extension StoryRepositoryCachePart on StoryRepository {
       try {
         final data = doc.data();
         if (_storyRowCacheAsBool(data['deleted'])) continue;
+        if (_storyRowVideoIsNotReady(data)) continue;
         final story = StoryModel.fromDoc(doc);
         if (story.createdAt.isBefore(expiry)) continue;
         userStories.putIfAbsent(story.userId, () => <StoryModel>[]);
@@ -377,6 +383,7 @@ extension StoryRepositoryCachePart on StoryRepository {
         try {
           final data = doc.data();
           if (_storyRowCacheAsBool(data['deleted'])) continue;
+          if (_storyRowVideoIsNotReady(data)) continue;
           final story = StoryModel.fromDoc(doc);
           stories[story.id] = story;
         } catch (_) {}
@@ -414,6 +421,9 @@ extension StoryRepositoryCachePart on StoryRepository {
           try {
             final data = doc.data();
             if (_storyRowCacheAsBool(data['deleted'])) {
+              return null;
+            }
+            if (_storyRowVideoIsNotReady(data)) {
               return null;
             }
             return StoryModel.fromDoc(doc);
@@ -482,7 +492,9 @@ extension StoryRepositoryCachePart on StoryRepository {
     final stories = snap.docs
         .where(
           (doc) =>
-              includeDeleted || !_storyRowCacheAsBool(doc.data()['deleted']),
+              includeDeleted ||
+              (!_storyRowCacheAsBool(doc.data()['deleted']) &&
+                  !_storyRowVideoIsNotReady(doc.data())),
         )
         .map(StoryModel.fromDoc)
         .where(
