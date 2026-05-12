@@ -97,99 +97,107 @@ class _FloodListingState extends State<FloodListing> {
         ),
         body: SafeArea(
           bottom: false,
-          child: Obx(() {
-            final centeredIndex = controller.centeredIndex.value;
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              if (details.velocity.pixelsPerSecond.dx <= 500) return;
+              _handleBack();
+            },
+            child: Obx(() {
+              final centeredIndex = controller.centeredIndex.value;
 
-            return Stack(
-              children: [
-                ListView.builder(
-                  controller: controller.scrollController,
-                  padding: const EdgeInsets.only(top: _headerHeight),
-                  itemCount: controller.floods.length + 1,
-                  itemBuilder: (context, index) {
-                    final tailSpace = _tailSpaceHeight();
-                    if (index == controller.floods.length) {
-                      return SizedBox(height: tailSpace);
-                    }
+              return Stack(
+                children: [
+                  ListView.builder(
+                    controller: controller.scrollController,
+                    padding: const EdgeInsets.only(top: _headerHeight),
+                    itemCount: controller.floods.length + 1,
+                    itemBuilder: (context, index) {
+                      final tailSpace = _tailSpaceHeight();
+                      if (index == controller.floods.length) {
+                        return SizedBox(height: tailSpace);
+                      }
 
-                    final model = controller.floods[index];
-                    final isCentered = centeredIndex == index;
-                    final shouldPlay =
-                        FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-                      isCentered: isCentered,
-                    );
-                    if (shouldPlay) {
-                      debugPrint(
-                        '[FloodSeries] status=should_play index=$index doc=${model.docID}',
+                      final model = controller.floods[index];
+                      final isCentered = centeredIndex == index;
+                      final shouldPlay =
+                          FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+                        isCentered: isCentered,
                       );
-                    }
-                    final isLastItem = index == controller.floods.length - 1;
+                      if (shouldPlay) {
+                        debugPrint(
+                          '[FloodSeries] status=should_play index=$index doc=${model.docID}',
+                        );
+                      }
+                      final isLastItem = index == controller.floods.length - 1;
 
-                    final contentWidget = PostViewTracker(
-                      post: model,
-                      child: AgendaContent(
-                        key: ValueKey('flood-${model.docID}'),
-                        model: model,
-                        isPreview: true,
-                        instanceTag: controller.floodInstanceTag(model.docID),
-                        shouldPlay: shouldPlay,
-                        suppressFloodBadge: true,
-                      ),
-                    );
+                      final contentWidget = PostViewTracker(
+                        post: model,
+                        child: AgendaContent(
+                          key: ValueKey('flood-${model.docID}'),
+                          model: model,
+                          isPreview: true,
+                          instanceTag: controller.floodInstanceTag(model.docID),
+                          shouldPlay: shouldPlay,
+                          suppressFloodBadge: true,
+                          floodHostSurface: widget.hostSurface,
+                        ),
+                      );
 
-                    final children = <Widget>[];
+                      final children = <Widget>[];
 
-                    children.add(
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left: _chainLeftOffset(),
-                              top: 0,
-                              bottom: isLastItem ? null : 0,
-                              height: isLastItem ? 44 : null,
-                              child: Container(
-                                width: _chainLineWidth,
-                                decoration: BoxDecoration(
-                                  color: _chainLineColor,
-                                  borderRadius: BorderRadius.circular(999),
+                      children.add(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                left: _chainLeftOffset(),
+                                top: 0,
+                                bottom: isLastItem ? null : 0,
+                                height: isLastItem ? 44 : null,
+                                child: Container(
+                                  width: _chainLineWidth,
+                                  decoration: BoxDecoration(
+                                    color: _chainLineColor,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
                                 ),
                               ),
-                            ),
-                            contentWidget,
-                          ],
-                        ),
-                      ),
-                    );
-
-                    if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(index)) {
-                      final slot =
-                          FeedFamilyAdSlot.slotNumberForPostIndex(index);
-                      children.add(
-                        FeedFamilyAdSlot(
-                          surfaceId: 'flood-detail-${widget.mainModel.docID}',
-                          slotNumber: slot,
-                          placementId: 'feed',
+                              contentWidget,
+                            ],
+                          ),
                         ),
                       );
-                    }
 
-                    return Column(children: children);
-                  },
-                ),
-                Positioned(
-                  top: 8,
-                  left: 12,
-                  child: AppBackButton(
-                    onTap: _handleBack,
-                    icon: Icons.arrow_back_ios_new,
-                    iconSize: 18,
+                      if (FeedFamilyAdSlot.shouldInsertAfterPostIndex(index)) {
+                        final slot =
+                            FeedFamilyAdSlot.slotNumberForPostIndex(index);
+                        children.add(
+                          FeedFamilyAdSlot(
+                            surfaceId: 'flood-detail-${widget.mainModel.docID}',
+                            slotNumber: slot,
+                            placementId: 'feed',
+                          ),
+                        );
+                      }
+
+                      return Column(children: children);
+                    },
                   ),
-                ),
-              ],
-            );
-          }),
+                  Positioned(
+                    top: 8,
+                    left: 12,
+                    child: AppBackButton(
+                      onTap: _handleBack,
+                      icon: Icons.arrow_back_ios_new,
+                      iconSize: 18,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
         ),
       ),
     );

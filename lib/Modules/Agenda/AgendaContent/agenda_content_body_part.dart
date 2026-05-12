@@ -3,6 +3,17 @@ part of 'agenda_content.dart';
 extension AgendaContentBodyPart on _AgendaContentState {
   double get _feedCaptionFontSize => _agendaPostCaptionFontSize;
 
+  bool _shouldReturnFloodChildToExploreSeries(Object? result) {
+    return widget.floodHostSurface == FloodListingHostSurface.exploreSeries &&
+        result is Map &&
+        result['returnToExploreSeries'] == true;
+  }
+
+  void _returnFloodChildToExploreSeries() {
+    maybeFindExploreController()?.preserveTabOnNextReturn(2);
+    Navigator.of(context).pop();
+  }
+
   Widget mainbody() {
     final hasHeaderSubline =
         widget.model.konum != "" || widget.model.metin.trim().isNotEmpty;
@@ -111,6 +122,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   initialPosition: currentPos,
                                                   injectedController:
                                                       videoController,
+                                                  returnToExploreSeriesOnExit:
+                                                      widget.floodHostSurface ==
+                                                          FloodListingHostSurface
+                                                              .exploreSeries,
                                                 ));
                                         setPauseBlocked(false);
                                         if (mounted) {
@@ -118,6 +133,11 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         }
 
                                         if (!mounted) return;
+                                        if (_shouldReturnFloodChildToExploreSeries(
+                                            res)) {
+                                          _returnFloodChildToExploreSeries();
+                                          return;
+                                        }
 
                                         final modelIndex = agendaController
                                             .agendaList
@@ -171,11 +191,20 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   initialPosition: currentPos,
                                                   injectedController:
                                                       videoController,
+                                                  returnToExploreSeriesOnExit:
+                                                      widget.floodHostSurface ==
+                                                          FloodListingHostSurface
+                                                              .exploreSeries,
                                                 ));
                                         setPauseBlocked(false);
                                         _setFullscreenState(false);
 
                                         if (!mounted) return;
+                                        if (_shouldReturnFloodChildToExploreSeries(
+                                            res)) {
+                                          _returnFloodChildToExploreSeries();
+                                          return;
+                                        }
 
                                         final modelIndex = agendaController
                                             .agendaList

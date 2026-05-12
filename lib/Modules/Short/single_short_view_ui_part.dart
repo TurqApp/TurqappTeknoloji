@@ -481,6 +481,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
     return {
       'docID': docID,
       'positionMs': pos.inMilliseconds,
+      'returnToExploreSeries': widget.returnToExploreSeriesOnExit,
     };
   }
 

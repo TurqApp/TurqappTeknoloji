@@ -149,12 +149,15 @@ class SingleShortView extends StatefulWidget {
   /// startModel için halihazırda initialize edilmiş controller (anında başlatma)
   final HLSVideoAdapter? injectedController;
 
+  final bool returnToExploreSeriesOnExit;
+
   const SingleShortView({
     super.key,
     this.startModel,
     this.startList,
     this.initialPosition,
     this.injectedController,
+    this.returnToExploreSeriesOnExit = false,
   });
 
   @override
