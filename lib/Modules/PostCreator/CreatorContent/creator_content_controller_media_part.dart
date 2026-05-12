@@ -548,29 +548,57 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
     if (!durationOk) return null;
 
     final originalBytes = await videoFile.length();
-    File output = videoFile;
-    try {
-      final compressed = await VideoCompress.compressVideo(
-        videoFile.path,
-        quality: VideoQuality.Res1280x720Quality,
-        includeAudio: true,
-        deleteOrigin: false,
+    final maxBytes =
+        await UploadValidationService.currentMaxVideoSizeBytesAsync();
+    if (originalBytes <= maxBytes) {
+      debugPrint(
+        '[CreatorCameraVideo] camera_compress_skip '
+        'reason=within_limit '
+        'size=${UploadConstants.formatBytes(originalBytes)} '
+        'max=${UploadConstants.formatBytes(maxBytes)}',
       );
-      if (compressed?.file != null) {
-        final compressedFile = compressed!.file!;
-        final compressedBytes = await compressedFile.length();
-        if (compressedBytes < originalBytes) {
-          output = compressedFile;
+      return videoFile;
+    }
+
+    File output = videoFile;
+    final qualities = <VideoQuality>[
+      VideoQuality.Res1280x720Quality,
+      VideoQuality.MediumQuality,
+      VideoQuality.LowQuality,
+    ];
+    for (final quality in qualities) {
+      try {
+        final compressed = await VideoCompress.compressVideo(
+          videoFile.path,
+          quality: quality,
+          includeAudio: true,
+          deleteOrigin: false,
+        );
+        if (compressed?.file != null) {
+          final compressedFile = compressed!.file!;
+          final compressedBytes = await compressedFile.length();
+          if (compressedBytes < await output.length()) {
+            output = compressedFile;
+          }
+          debugPrint(
+            '[CreatorCameraVideo] camera_compress_pass '
+            'quality=$quality '
+            'original=${UploadConstants.formatBytes(originalBytes)} '
+            'compressed=${UploadConstants.formatBytes(compressedBytes)} '
+            'best=${UploadConstants.formatBytes(await output.length())} '
+            'usedCompressed=${output.path == compressedFile.path}',
+          );
+          if (compressedBytes <= maxBytes) {
+            output = compressedFile;
+            break;
+          }
         }
+      } catch (e) {
         debugPrint(
-          '[CreatorCameraVideo] camera_720p_compress '
-          'original=${UploadConstants.formatBytes(originalBytes)} '
-          'compressed=${UploadConstants.formatBytes(compressedBytes)} '
-          'usedCompressed=${output.path == compressedFile.path}',
+          '[CreatorCameraVideo] camera_compress_failed '
+          'quality=$quality error=$e',
         );
       }
-    } catch (e) {
-      debugPrint('[CreatorCameraVideo] camera_720p_compress_failed error=$e');
     }
 
     final validation = await UploadValidationService.validateVideo(output);

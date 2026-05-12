@@ -12,7 +12,8 @@ extension ChatControllerMediaPart on ChatController {
       );
       final frame = await codec.getNextFrame();
       final image = frame.image;
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final byteData =
+          await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       image.dispose();
       if (byteData == null) return null;
       final bytes = byteData.buffer.asUint8List();
@@ -391,42 +392,70 @@ extension ChatControllerMediaPart on ChatController {
     if (!durationOk) return null;
 
     final originalBytes = await videoFile.length();
-    File output = videoFile;
-    try {
-      final compressed = await VideoCompress.compressVideo(
-        videoFile.path,
-        quality: VideoQuality.Res1280x720Quality,
-        includeAudio: true,
-        deleteOrigin: false,
+    final maxBytes = UploadConstants.maxChatCameraVideoSizeBytes;
+    if (originalBytes <= maxBytes) {
+      debugPrint(
+        '[ChatVideoPick] camera_compress_skip '
+        'source=$source '
+        'reason=within_limit '
+        'size=${UploadConstants.formatBytes(originalBytes)} '
+        'max=${UploadConstants.formatBytes(maxBytes)}',
       );
-      if (compressed?.file != null) {
-        final compressedFile = compressed!.file!;
-        final compressedBytes = await compressedFile.length();
-        if (compressedBytes < originalBytes) {
-          output = compressedFile;
+      return videoFile;
+    }
+
+    File output = videoFile;
+    final qualities = <VideoQuality>[
+      VideoQuality.Res1280x720Quality,
+      VideoQuality.MediumQuality,
+      VideoQuality.LowQuality,
+    ];
+    for (final quality in qualities) {
+      try {
+        final compressed = await VideoCompress.compressVideo(
+          videoFile.path,
+          quality: quality,
+          includeAudio: true,
+          deleteOrigin: false,
+        );
+        if (compressed?.file != null) {
+          final compressedFile = compressed!.file!;
+          final compressedBytes = await compressedFile.length();
+          if (compressedBytes < await output.length()) {
+            output = compressedFile;
+          }
+          debugPrint(
+            '[ChatVideoPick] camera_compress_pass '
+            'source=$source '
+            'quality=$quality '
+            'original=${UploadConstants.formatBytes(originalBytes)} '
+            'compressed=${UploadConstants.formatBytes(compressedBytes)} '
+            'best=${UploadConstants.formatBytes(await output.length())} '
+            'usedCompressed=${output.path == compressedFile.path}',
+          );
+          if (compressedBytes <= maxBytes) {
+            output = compressedFile;
+            break;
+          }
         }
+      } catch (e) {
         debugPrint(
-          '[ChatVideoPick] camera_720p_compress '
-          'source=$source '
-          'original=${UploadConstants.formatBytes(originalBytes)} '
-          'compressed=${UploadConstants.formatBytes(compressedBytes)} '
-          'usedCompressed=${output.path == compressedFile.path}',
+          '[ChatVideoPick] camera_compress_failed '
+          'source=$source quality=$quality error=$e',
         );
       }
-    } catch (e) {
-      debugPrint('[ChatVideoPick] camera_720p_compress_failed source=$source error=$e');
     }
 
     final finalBytes = await output.length();
-    if (finalBytes > UploadConstants.maxChatCameraVideoSizeBytes) {
+    if (finalBytes > maxBytes) {
       debugPrint(
         '[ChatVideoPick] rejected_camera_size '
         'source=$source '
-        'max=${UploadConstants.formatBytes(UploadConstants.maxChatCameraVideoSizeBytes)} '
+        'max=${UploadConstants.formatBytes(maxBytes)} '
         'current=${UploadConstants.formatBytes(finalBytes)}',
       );
       _showChatVideoLimitError(
-        maxBytes: UploadConstants.maxChatCameraVideoSizeBytes,
+        maxBytes: maxBytes,
         currentSize: finalBytes,
       );
       _recordMediaFailure('camera_video_size_too_large');
