@@ -14,7 +14,10 @@ class UploadConstants {
   static const int maxBadgedVideoLengthSeconds = 6 * 60;
   static const int maxVideoLengthSeconds = maxBadgedVideoLengthSeconds;
   static const int maxStoryVideoSizeBytes = 30 * 1024 * 1024;
-  static const int maxStoryVideoLengthSeconds = 90;
+  static const int maxStoryVideoLengthSeconds = 60;
+  static const int maxChatVideoSizeBytes = 30 * 1024 * 1024;
+  static const int maxChatCameraVideoSizeBytes = 40 * 1024 * 1024;
+  static const int maxChatVideoLengthSeconds = 60;
 
   static const int maxImageWidth = 4096;
   static const int maxImageHeight = 4096;

@@ -271,6 +271,9 @@ extension ChatControllerMediaPart on ChatController {
     }
     final harnessVideo = IntegrationMediaTestHarness.takeGalleryVideo();
     if (harnessVideo != null) {
+      if (!await _validatePickedChatVideo(harnessVideo, source: 'harness')) {
+        return;
+      }
       images.clear();
       pendingVideo.value = harnessVideo;
       selection.value = 1;
@@ -284,8 +287,12 @@ extension ChatControllerMediaPart on ChatController {
       _recordMediaFailure('picker_empty');
       return;
     }
+    final videoFile = File(pickedFile.path);
+    if (!await _validatePickedChatVideo(videoFile, source: 'gallery')) {
+      return;
+    }
     images.clear();
-    pendingVideo.value = File(pickedFile.path);
+    pendingVideo.value = videoFile;
     selection.value = 1;
   }
 
@@ -301,22 +308,19 @@ extension ChatControllerMediaPart on ChatController {
       return;
     }
     if (harnessVideo != null) {
+      final prepared = await _preparePickedChatCameraVideo(
+        harnessVideo,
+        source: 'camera_harness',
+      );
+      if (prepared == null) {
+        return;
+      }
       images.clear();
-      pendingVideo.value = harnessVideo;
+      pendingVideo.value = prepared;
       selection.value = 1;
       return;
     }
-    final XFile? pickedFile = await picker.pickVideo(
-      source: ImageSource.camera,
-      maxDuration: const Duration(minutes: 1),
-    );
-    if (pickedFile == null) {
-      _recordMediaFailure('picker_empty');
-      return;
-    }
-    images.clear();
-    pendingVideo.value = File(pickedFile.path);
-    selection.value = 1;
+    await openCustomCameraCapture();
   }
 
   Future<void> openCustomCameraCapture() async {
@@ -364,9 +368,140 @@ extension ChatControllerMediaPart on ChatController {
       return;
     }
 
+    final prepared = await _preparePickedChatCameraVideo(
+      result.file,
+      source: 'custom_camera',
+    );
+    if (prepared == null) {
+      return;
+    }
     images.clear();
-    pendingVideo.value = result.file;
+    pendingVideo.value = prepared;
     selection.value = 1;
+  }
+
+  Future<File?> _preparePickedChatCameraVideo(
+    File videoFile, {
+    required String source,
+  }) async {
+    final durationOk = await _validatePickedChatVideoDuration(
+      videoFile,
+      source: source,
+    );
+    if (!durationOk) return null;
+
+    final originalBytes = await videoFile.length();
+    File output = videoFile;
+    try {
+      final compressed = await VideoCompress.compressVideo(
+        videoFile.path,
+        quality: VideoQuality.Res1280x720Quality,
+        includeAudio: true,
+        deleteOrigin: false,
+      );
+      if (compressed?.file != null) {
+        final compressedFile = compressed!.file!;
+        final compressedBytes = await compressedFile.length();
+        if (compressedBytes < originalBytes) {
+          output = compressedFile;
+        }
+        debugPrint(
+          '[ChatVideoPick] camera_720p_compress '
+          'source=$source '
+          'original=${UploadConstants.formatBytes(originalBytes)} '
+          'compressed=${UploadConstants.formatBytes(compressedBytes)} '
+          'usedCompressed=${output.path == compressedFile.path}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[ChatVideoPick] camera_720p_compress_failed source=$source error=$e');
+    }
+
+    final finalBytes = await output.length();
+    if (finalBytes > UploadConstants.maxChatCameraVideoSizeBytes) {
+      debugPrint(
+        '[ChatVideoPick] rejected_camera_size '
+        'source=$source '
+        'max=${UploadConstants.formatBytes(UploadConstants.maxChatCameraVideoSizeBytes)} '
+        'current=${UploadConstants.formatBytes(finalBytes)}',
+      );
+      _showChatVideoLimitError(
+        maxBytes: UploadConstants.maxChatCameraVideoSizeBytes,
+        currentSize: finalBytes,
+      );
+      _recordMediaFailure('camera_video_size_too_large');
+      return null;
+    }
+
+    return output;
+  }
+
+  Future<bool> _validatePickedChatVideo(
+    File videoFile, {
+    required String source,
+  }) async {
+    final fileSize = await videoFile.length();
+    if (fileSize > UploadConstants.maxChatVideoSizeBytes) {
+      debugPrint(
+        '[ChatVideoPick] rejected_size '
+        'source=$source '
+        'path=${videoFile.path.split('/').last} '
+        'max=${UploadConstants.formatBytes(UploadConstants.maxChatVideoSizeBytes)} '
+        'current=${UploadConstants.formatBytes(fileSize)}',
+      );
+      _showChatVideoLimitError(currentSize: fileSize);
+      _recordMediaFailure('video_size_too_large');
+      return false;
+    }
+
+    return _validatePickedChatVideoDuration(videoFile, source: source);
+  }
+
+  Future<bool> _validatePickedChatVideoDuration(
+    File videoFile, {
+    required String source,
+  }) async {
+    final controller = VideoPlayerController.file(videoFile);
+    try {
+      await controller.initialize();
+      final durationSeconds = controller.value.duration.inSeconds;
+      if (durationSeconds > UploadConstants.maxChatVideoLengthSeconds) {
+        debugPrint(
+          '[ChatVideoPick] rejected_duration '
+          'source=$source '
+          'path=${videoFile.path.split('/').last} '
+          'max=${UploadConstants.maxChatVideoLengthSeconds}s '
+          'current=${durationSeconds}s',
+        );
+        _showChatVideoLimitError(currentDurationSeconds: durationSeconds);
+        _recordMediaFailure('video_duration_too_long');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      _recordMediaFailure('video_analysis_failed', detail: '$e');
+      UploadValidationService.showValidationError(
+        'upload_validation.video_analysis_failed'.trParams({'error': '$e'}),
+      );
+      return false;
+    } finally {
+      await controller.dispose();
+    }
+  }
+
+  void _showChatVideoLimitError({
+    int? maxBytes,
+    int? currentSize,
+    int? currentDurationSeconds,
+  }) {
+    final suffix = currentSize != null
+        ? 'Mevcut boyut: ${UploadConstants.formatBytes(currentSize)}'
+        : 'Mevcut süre: ${currentDurationSeconds ?? 0} sn';
+    UploadValidationService.showValidationError(
+      'Video maksimum ${UploadConstants.formatBytes(maxBytes ?? UploadConstants.maxChatVideoSizeBytes)} '
+      've ${UploadConstants.maxChatVideoLengthSeconds} sn olabilir. '
+      '$suffix',
+    );
   }
 
   Future<void> uploadPendingVideoToStorage() async {

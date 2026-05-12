@@ -207,6 +207,18 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     if (picked == null) return;
 
     final videoFile = File(picked.path);
+    final fileSize = await videoFile.length();
+    if (!_isStoryVideoSizeValid(fileSize)) {
+      debugPrint(
+        '[StoryMakerVideoPick] rejected_size '
+        'path=${videoFile.path.split('/').last} '
+        'max=${UploadConstants.formatBytes(UploadConstants.maxStoryVideoSizeBytes)} '
+        'current=${UploadConstants.formatBytes(fileSize)}',
+      );
+      _showStoryVideoSizeError(fileSize);
+      return;
+    }
+
     final tempController = VideoPlayerController.file(videoFile);
     try {
       await tempController.initialize();
@@ -219,6 +231,19 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
     }
     final videoSize = tempController.value.size;
     final durationSeconds = tempController.value.duration.inSeconds;
+    if (durationSeconds > UploadConstants.maxStoryVideoLengthSeconds) {
+      debugPrint(
+        '[StoryMakerVideoPick] rejected_duration '
+        'path=${videoFile.path.split('/').last} '
+        'max=${UploadConstants.maxStoryVideoLengthSeconds}s '
+        'current=${durationSeconds}s',
+      );
+      await tempController.dispose();
+      _showStoryVideoDurationError(<String, dynamic>{
+        'duration': durationSeconds,
+      });
+      return;
+    }
 
     final screenW = Get.width;
     final screenH = Get.height;
@@ -288,15 +313,10 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
   }
 
   void _showStoryVideoSizeError(int fileSize) {
-    AppSnackbar(
-      'common.error'.tr,
-      'upload_validation.video_size_too_large'.trParams({
-        'max': UploadConstants.formatBytes(
-          UploadConstants.maxStoryVideoSizeBytes,
-        ),
-        'current': UploadConstants.formatBytes(fileSize),
-      }),
-      backgroundColor: Colors.red.withValues(alpha: 0.7),
+    UploadValidationService.showValidationError(
+      'Video maksimum ${UploadConstants.formatBytes(UploadConstants.maxStoryVideoSizeBytes)} '
+      've ${UploadConstants.maxStoryVideoLengthSeconds} sn olabilir. '
+      'Mevcut boyut: ${UploadConstants.formatBytes(fileSize)}',
     );
   }
 
@@ -309,13 +329,10 @@ extension StoryMakerControllerMediaPart on StoryMakerController {
   void _showStoryVideoDurationError(Map<String, dynamic>? metadata) {
     final duration = metadata?['duration'];
     final durationSeconds = duration is num ? duration.toInt() : 0;
-    AppSnackbar(
-      'common.error'.tr,
-      'upload_validation.video_duration_too_long'.trParams({
-        'max': '${UploadConstants.maxStoryVideoLengthSeconds}',
-        'current': '$durationSeconds',
-      }),
-      backgroundColor: Colors.red.withValues(alpha: 0.7),
+    UploadValidationService.showValidationError(
+      'Video maksimum ${UploadConstants.formatBytes(UploadConstants.maxStoryVideoSizeBytes)} '
+      've ${UploadConstants.maxStoryVideoLengthSeconds} sn olabilir. '
+      'Mevcut süre: $durationSeconds sn',
     );
   }
 
