@@ -105,8 +105,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                             constraints.maxWidth,
                             constraints.maxHeight,
                           );
-                          final recenterAndroidMedia =
-                              Platform.isAndroid && mediaLayer.length == 1;
+                          final normalizeSingleMedia = mediaLayer.length == 1;
 
                           return Stack(
                             // Key ekleyerek Stack'in yeniden render olmasını sağla
@@ -115,11 +114,11 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                             children: [
                               ...mediaLayer.map((element) {
                                 final displayElement =
-                                    _androidMediaDisplayElement(
+                                    _normalizedMediaDisplayElement(
                                   element,
                                   currentStory.id,
                                   viewportSize,
-                                  enabled: recenterAndroidMedia,
+                                  enabled: normalizeSingleMedia,
                                 );
                                 switch (displayElement.type) {
                                   case StoryElementType.image:
@@ -214,7 +213,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
     );
   }
 
-  StoryElement _androidMediaDisplayElement(
+  StoryElement _normalizedMediaDisplayElement(
     StoryElement element,
     String storyId,
     Size viewportSize, {
@@ -243,8 +242,13 @@ extension UserStoryContentViewPart on _UserStoryContentState {
     final logKey = '$storyId:${element.id}:${viewportSize.width.round()}x'
         '${viewportSize.height.round()}';
     if (_loggedSharedPostLayoutKeys.add(logKey)) {
+      final platformLabel = Platform.isIOS
+          ? 'ios'
+          : Platform.isAndroid
+              ? 'android'
+              : 'other';
       debugPrint(
-        '[StoryMediaLayout] platform=android story=$storyId '
+        '[StoryMediaLayout] platform=$platformLabel story=$storyId '
         'type=${element.type.name} viewport=${viewportSize.width.toStringAsFixed(1)}x'
         '${viewportSize.height.toStringAsFixed(1)} '
         'saved=${element.position.dx.toStringAsFixed(1)},'

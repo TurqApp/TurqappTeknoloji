@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -322,7 +321,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
           loop: false,
           showControls: false,
           aspectRatio: widget.element.width / widget.element.height,
-          useAspectRatio: !Platform.isAndroid,
+          useAspectRatio: false,
         ),
         if (!_hlsReady && widget.element.posterUrl.trim().isNotEmpty)
           Positioned.fill(
