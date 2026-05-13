@@ -115,6 +115,7 @@ extension StoryRowControllerLoadPart on StoryRowController {
         fetchedUsers: tempList,
         currentUid: myUid,
         currentUserStory: myStoryUser,
+        followingIds: result.followingIds,
         isAllSeen: allSeen,
       );
       await _primeVisibleAvatarHints(orderedUsers);

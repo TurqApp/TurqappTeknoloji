@@ -30,21 +30,23 @@ class StoryRowApplicationService {
     required List<StoryUserModel> fetchedUsers,
     required String currentUid,
     required StoryUserModel? currentUserStory,
+    required Set<String> followingIds,
     required bool Function(StoryUserModel user) isAllSeen,
   }) {
     final tempList = List<StoryUserModel>.from(fetchedUsers);
     tempList.removeWhere((user) => user.userID == currentUid);
 
+    int compareStoryUsers(StoryUserModel a, StoryUserModel b) {
+      final aFollowing = followingIds.contains(a.userID);
+      final bFollowing = followingIds.contains(b.userID);
+      if (aFollowing != bFollowing) return aFollowing ? -1 : 1;
+      return b.stories.first.createdAt.compareTo(a.stories.first.createdAt);
+    }
+
     final unseen = tempList.where((user) => !isAllSeen(user)).toList()
-      ..sort(
-        (a, b) =>
-            b.stories.first.createdAt.compareTo(a.stories.first.createdAt),
-      );
+      ..sort(compareStoryUsers);
     final seen = tempList.where((user) => isAllSeen(user)).toList()
-      ..sort(
-        (a, b) =>
-            b.stories.first.createdAt.compareTo(a.stories.first.createdAt),
-      );
+      ..sort(compareStoryUsers);
 
     return <StoryUserModel>[
       if (currentUserStory != null) currentUserStory,

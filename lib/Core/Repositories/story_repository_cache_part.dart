@@ -216,7 +216,11 @@ extension StoryRepositoryCachePart on StoryRepository {
     }
     recordQALabCacheFirstEvent(cachePayload);
 
-    return StoryFetchResult(users: users, cacheHit: cacheHit);
+    return StoryFetchResult(
+      users: users,
+      cacheHit: cacheHit,
+      followingIds: followingIds,
+    );
   }
 
   Future<void> _performSaveStoryRowCache(

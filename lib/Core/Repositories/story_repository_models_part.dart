@@ -30,10 +30,13 @@ class StoryFetchResult {
   StoryFetchResult({
     required List<StoryUserModel> users,
     required this.cacheHit,
-  }) : users = _cloneStoryFetchUsers(users);
+    Set<String> followingIds = const <String>{},
+  })  : users = _cloneStoryFetchUsers(users),
+        followingIds = Set<String>.from(followingIds);
 
   final List<StoryUserModel> users;
   final bool cacheHit;
+  final Set<String> followingIds;
 }
 
 class StoryEngagementSnapshot {
