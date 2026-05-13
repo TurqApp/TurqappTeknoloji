@@ -1663,37 +1663,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
   Widget buildFeedReplayOverlay(HLSVideoValue value) {
     if (!_isReplayOverlayEnabled) return const SizedBox.shrink();
-    if (!_replayOverlayLatched && !_replayAdVisible && !_replayButtonVisible) {
+    final showAdPanel = _replayAdVisible;
+    if (!_replayOverlayLatched || !showAdPanel) {
       return const SizedBox.shrink();
     }
-    final showReplayButton = _replayButtonVisible;
-    final showAdPanel = _replayAdVisible;
     const headerClearance = 72.0;
-    final replayButton = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => unawaited(replayVideoFromStart()),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 30,
-          vertical: 17,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.black54,
-          borderRadius: BorderRadius.circular(34),
-        ),
-        child: const Text(
-          'Tekrar izle',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontFamily: 'MontserratSemiBold',
-            height: 1.0,
-          ),
-        ),
-      ),
-    );
     return Positioned.fill(
       child: Column(
         children: [
@@ -1701,9 +1675,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: showReplayButton && !showAdPanel
-                  ? () => unawaited(replayVideoFromStart())
-                  : () {},
+              onTap: () {},
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1726,9 +1698,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                               onImpression: _onReplayAdImpression,
                             ),
                           ),
-                        if (showAdPanel && showReplayButton)
-                          const SizedBox(height: 16),
-                        if (showReplayButton) replayButton,
                       ],
                     ),
                   ),

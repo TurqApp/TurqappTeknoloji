@@ -403,15 +403,30 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _replayOverlayLatched = true;
         _replayAdHideTimer?.cancel();
         _replayAdVisible = AdmobKare.hasRenderableBanner;
-        _replayButtonVisible = !_replayAdVisible;
+        _replayButtonVisible = false;
         if (_replayAdVisible) {
+          debugPrint(
+            '[FeedReplayTrace] stage=completed_ad_visible '
+            'doc=${widget.model.docID} '
+            'positionMs=${v.position.inMilliseconds} '
+            'durationMs=${v.duration.inMilliseconds} '
+            'delayMs=3000',
+          );
           VideoStateManager.instance.markTransitionResumeReset(
             playbackHandleKey,
             reason: 'feed_replay_completed_ad_visible',
           );
         } else {
-          _prepareCompletedReplayForUserReplay(
-            reason: 'feed_replay_button_visible',
+          debugPrint(
+            '[FeedReplayTrace] stage=completed_no_ad_autoreplay '
+            'doc=${widget.model.docID} '
+            'positionMs=${v.position.inMilliseconds} '
+            'durationMs=${v.duration.inMilliseconds}',
+          );
+          unawaited(
+            _restartCompletedPlaybackForAutoplay(
+              source: 'feed_replay_completed_no_ad',
+            ),
           );
         }
         _replayAdImpressionReceived = false;
@@ -419,12 +434,18 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
         }
         if (_replayAdVisible) {
-          _replayAdHideTimer = Timer(const Duration(seconds: 2), () {
+          _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
             if (!mounted) return;
             _replayAdVisible = false;
-            _replayButtonVisible = true;
-            _prepareCompletedReplayForUserReplay(
-              reason: 'feed_replay_button_visible_after_ad',
+            _replayButtonVisible = false;
+            debugPrint(
+              '[FeedReplayTrace] stage=completed_ad_autoreplay_after_delay '
+              'doc=${widget.model.docID} delayMs=3000',
+            );
+            unawaited(
+              _restartCompletedPlaybackForAutoplay(
+                source: 'feed_replay_completed_ad_after_3s',
+              ),
             );
             _markPostContentDirty();
           });
