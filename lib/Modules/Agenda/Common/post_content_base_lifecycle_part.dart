@@ -351,23 +351,76 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _applyPlaybackVolume();
     final remaining =
         v.duration > Duration.zero ? v.duration - v.position : null;
-    const replayAdWarmupLead = Duration(seconds: 2);
-    final replayAdWarmupTarget = PlaybackSurfacePolicy.replayAdWarmupTarget(
-      platform: defaultTargetPlatform,
-      defaultTarget: 3,
-    );
+    final replayRestartSettlingAtEnd = _replayRestartPendingZero &&
+        remaining != null &&
+        v.position > PostContentBaseState._stableFramePositionThreshold &&
+        remaining <= const Duration(milliseconds: 500);
+    if (_replayRestartPendingZero &&
+        v.position <= PostContentBaseState._stableFramePositionThreshold) {
+      debugPrint(
+        '[FeedReplayTrace] stage=restart_zero_confirmed '
+        'doc=${widget.model.docID} '
+        'positionMs=${v.position.inMilliseconds} '
+        'durationMs=${v.duration.inMilliseconds}',
+      );
+    } else if (replayRestartSettlingAtEnd) {
+      debugPrint(
+        '[FeedReplayTrace] stage=ignore_stale_end_while_restarting '
+        'doc=${widget.model.docID} '
+        'positionMs=${v.position.inMilliseconds} '
+        'durationMs=${v.duration.inMilliseconds}',
+      );
+      final adapter = _videoAdapter;
+      if (adapter != null && !_replayRestartZeroReassertInFlight) {
+        _replayRestartZeroReassertInFlight = true;
+        unawaited(() async {
+          try {
+            final zeroed = await _seekReplayRestartToZero(
+              adapter,
+              source: 'video_update:stale_end_reassert',
+              maxAttempts: 2,
+            );
+            if (!mounted || _videoAdapter != adapter) return;
+            if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+            if (zeroed) {
+              _startPlaybackWhenReady(
+                source: 'video_update:stale_end_reassert:reentry_restart',
+              );
+            }
+          } finally {
+            if (mounted) {
+              _replayRestartZeroReassertInFlight = false;
+            }
+          }
+        }());
+      }
+      return;
+    } else if (_replayRestartPendingZero) {
+      _replayRestartPendingZero = false;
+      debugPrint(
+        '[FeedReplayTrace] stage=restart_progress_confirmed '
+        'doc=${widget.model.docID} '
+        'positionMs=${v.position.inMilliseconds} '
+        'durationMs=${v.duration.inMilliseconds}',
+      );
+    }
 
     if (_isReplayOverlayEnabled &&
-        !_replayAdPrewarmed &&
+        !replayRestartSettlingAtEnd &&
+        !_replayAdTailChecked &&
         remaining != null &&
-        remaining <= replayAdWarmupLead &&
+        remaining <= const Duration(seconds: 1) &&
         remaining > Duration.zero) {
-      _replayAdPrewarmed = true;
-      unawaited(AdmobKare.warmupPool(
-        targetCount: replayAdWarmupTarget,
-        maxRequestCount: replayAdWarmupTarget,
-        debugSource: 'feed_replay_warmup',
-      ));
+      _replayAdTailChecked = true;
+      _replayAdAvailableAtTail = AdmobKare.hasRenderableBanner;
+      debugPrint(
+        '[FeedReplayTrace] stage=tail_ad_snapshot '
+        'doc=${widget.model.docID} '
+        'available=$_replayAdAvailableAtTail '
+        'positionMs=${v.position.inMilliseconds} '
+        'durationMs=${v.duration.inMilliseconds} '
+        'remainingMs=${remaining.inMilliseconds}',
+      );
     }
 
     final reachedPlaybackEnd = v.isCompleted ||
@@ -375,7 +428,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             v.position > Duration.zero &&
             v.duration - v.position <= const Duration(milliseconds: 120));
 
-    if (_isReplayOverlayEnabled && reachedPlaybackEnd) {
+    if (_isReplayOverlayEnabled &&
+        !replayRestartSettlingAtEnd &&
+        reachedPlaybackEnd) {
       final shouldAutorestartCompletedPlayback = widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           !_manualPauseRequested &&
@@ -413,7 +468,18 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         );
         _replayOverlayLatched = true;
         _replayAdHideTimer?.cancel();
-        _replayAdVisible = AdmobKare.hasRenderableBanner;
+        if (!_replayAdTailChecked) {
+          _replayAdTailChecked = true;
+          _replayAdAvailableAtTail = AdmobKare.hasRenderableBanner;
+          debugPrint(
+            '[FeedReplayTrace] stage=tail_ad_snapshot_late '
+            'doc=${widget.model.docID} '
+            'available=$_replayAdAvailableAtTail '
+            'positionMs=${v.position.inMilliseconds} '
+            'durationMs=${v.duration.inMilliseconds}',
+          );
+        }
+        _replayAdVisible = _replayAdAvailableAtTail;
         _replayButtonVisible = false;
         if (_replayAdVisible) {
           debugPrint(
@@ -441,13 +507,6 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           );
         }
         _replayAdImpressionReceived = false;
-        if (!isStandalonePostInstance) {
-          unawaited(AdmobKare.warmupPool(
-            targetCount: replayAdWarmupTarget,
-            maxRequestCount: replayAdWarmupTarget,
-            debugSource: 'feed_replay_after_completion',
-          ));
-        }
         if (_replayAdVisible) {
           _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
             if (!mounted) return;
@@ -481,7 +540,8 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         'shouldPlay=${widget.shouldPlay}',
       );
       _replayOverlayLatched = false;
-      _replayAdPrewarmed = false;
+      _replayAdTailChecked = false;
+      _replayAdAvailableAtTail = false;
       _replayAdVisible = false;
       _replayButtonVisible = false;
       _replayAdImpressionReceived = false;

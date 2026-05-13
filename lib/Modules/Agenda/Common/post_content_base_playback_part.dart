@@ -827,58 +827,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     return _replayOverlayLatched || _replayAdVisible || _replayButtonVisible;
   }
 
-  void _prepareCompletedReplayForUserReplay({
-    required String reason,
-  }) {
-    VideoStateManager.instance.markTransitionResumeReset(
-      playbackHandleKey,
-      reason: reason,
-    );
-    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
-    _lastQueuedSavedResumePosition = null;
-    _lastQueuedSavedResumeAt = null;
-    _savedResumeRecoveryGuardUntil = null;
-
-    final adapter = _videoAdapter;
-    if (adapter == null || !adapter.value.isInitialized) {
-      debugPrint(
-        '[FeedResumeReset] action=replay_prepare_deferred '
-        'key=$playbackHandleKey reason=$reason adapterReady=false',
-      );
-      return;
-    }
-    if (!adapter.value.isCompleted &&
-        adapter.value.position <=
-            PostContentBaseState._stableFramePositionThreshold) {
-      debugPrint(
-        '[FeedResumeReset] action=replay_prepare_already_zero '
-        'key=$playbackHandleKey reason=$reason '
-        'positionMs=${adapter.value.position.inMilliseconds}',
-      );
-      return;
-    }
-    unawaited(() async {
-      try {
-        if (adapter.value.isPlaying) {
-          await adapter.pause();
-        }
-        await adapter.seekTo(Duration.zero);
-        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
-        debugPrint(
-          '[FeedResumeReset] action=replay_prepare_zero_complete '
-          'key=$playbackHandleKey reason=$reason '
-          'positionMs=${adapter.value.position.inMilliseconds} '
-          'replayButton=$_replayButtonVisible adVisible=$_replayAdVisible',
-        );
-      } catch (error) {
-        debugPrint(
-          '[FeedResumeReset] action=replay_prepare_zero_failed '
-          'key=$playbackHandleKey reason=$reason error=$error',
-        );
-      }
-    }());
-  }
-
   Future<void> _restartCompletedPlaybackForAutoplay({
     required String source,
   }) async {
@@ -892,17 +840,24 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       dispatchIssued: false,
     );
     _replayOverlayLatched = false;
-    _replayAdPrewarmed = false;
+    _replayAdTailChecked = false;
+    _replayAdAvailableAtTail = false;
     _replayAdVisible = false;
     _replayButtonVisible = false;
     _replayAdImpressionReceived = false;
     _replayAdHideTimer?.cancel();
+    _replayRestartPendingZero = true;
     _manualPauseRequested = false;
     _hasAutoPlayed = false;
     _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+    var zeroed = false;
     try {
       await adapter.setLooping(shouldLoopVideo);
-      await adapter.seekTo(Duration.zero);
+      zeroed = await _seekReplayRestartToZero(
+        adapter,
+        source: source,
+        maxAttempts: 3,
+      );
     } catch (_) {
       // Surface may be mid-refresh; autoplay re-entry should fail silently.
     } finally {
@@ -910,7 +865,46 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     if (!mounted || _videoAdapter != adapter) return;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
+    if (!zeroed) {
+      debugPrint(
+        '[FeedReplayTrace] stage=restart_zero_failed_defer_play '
+        'doc=${widget.model.docID} source=$source '
+        'positionMs=${adapter.value.position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds}',
+      );
+      return;
+    }
     _startPlaybackWhenReady(source: '$source:reentry_restart');
+  }
+
+  Future<bool> _seekReplayRestartToZero(
+    HLSVideoAdapter adapter, {
+    required String source,
+    required int maxAttempts,
+  }) async {
+    for (var attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      await adapter.seekTo(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 90));
+      if (!mounted || _videoAdapter != adapter) return false;
+      final position = adapter.value.position;
+      if (position <= PostContentBaseState._stableFramePositionThreshold) {
+        debugPrint(
+          '[FeedReplayTrace] stage=restart_zero_seek_confirmed '
+          'doc=${widget.model.docID} source=$source '
+          'attempt=$attempt positionMs=${position.inMilliseconds} '
+          'durationMs=${adapter.value.duration.inMilliseconds}',
+        );
+        return true;
+      }
+      debugPrint(
+        '[FeedReplayTrace] stage=restart_zero_seek_retry '
+        'doc=${widget.model.docID} source=$source '
+        'attempt=$attempt positionMs=${position.inMilliseconds} '
+        'durationMs=${adapter.value.duration.inMilliseconds}',
+      );
+    }
+    return adapter.value.position <=
+        PostContentBaseState._stableFramePositionThreshold;
   }
 
   double _resolvedPlaybackVolume() {
@@ -1643,7 +1637,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       dispatchIssued: false,
     );
     _replayOverlayLatched = false;
-    _replayAdPrewarmed = false;
+    _replayAdTailChecked = false;
+    _replayAdAvailableAtTail = false;
+    _replayRestartPendingZero = false;
     _replayAdVisible = false;
     _replayButtonVisible = false;
     _replayAdImpressionReceived = false;

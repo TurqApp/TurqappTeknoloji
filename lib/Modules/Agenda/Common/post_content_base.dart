@@ -146,11 +146,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool _skipNextPause = false;
   bool _blockPause = false;
   bool _replayOverlayLatched = false;
-  bool _replayAdPrewarmed = false;
+  bool _replayAdTailChecked = false;
+  bool _replayAdAvailableAtTail = false;
   bool _replayAdVisible = false;
   bool _replayButtonVisible = false;
   bool _replayAdImpressionReceived = false;
   bool _autoplayReplayInFlight = false;
+  bool _replayRestartPendingZero = false;
+  bool _replayRestartZeroReassertInFlight = false;
   bool _surfaceKeepAliveDebounceActive = false;
   String? _lastPlaybackVisualWarning;
   DateTime? _lastPlaybackVisualWarningAt;
