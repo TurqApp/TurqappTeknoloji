@@ -7,10 +7,9 @@ const Duration _interstitialLoadTimeout = Duration(seconds: 4);
 const Duration _interstitialLifecycleTimeout = Duration(seconds: 15);
 
 /// Tam ekran interstitial reklam gösterir
-/// Debug modda otomatik olarak test reklamları kullanır
-/// Production modda gerçek reklamları kullanır
+/// AdMob birimlerini build modundan bağımsız production listeden seçer.
 Future<bool> showUnskippableInterstitialAd() async {
-  final bool isTestMode = kDebugMode;
+  const bool isTestMode = false;
   final config = ensureAdmobUnitConfigService();
   final availableIds = config.interstitialAdUnitIdsForCurrentPlatform(
     isTestMode: isTestMode,
@@ -25,7 +24,7 @@ Future<bool> showUnskippableInterstitialAd() async {
     }
     if (kDebugMode) {
       print(
-        '${isTestMode ? '🧪' : '🚀'} InterstitialAd: ${isTestMode ? 'Test' : 'Production'} mode - Loading ad: $adUnitId',
+        '🚀 InterstitialAd: Production mode - Loading ad: $adUnitId',
       );
     }
     final didShow = await _loadAndShowInterstitialAd(adUnitId);

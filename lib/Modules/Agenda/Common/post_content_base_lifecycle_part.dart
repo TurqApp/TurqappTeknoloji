@@ -363,10 +363,19 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         remaining <= replayAdWarmupLead &&
         remaining > Duration.zero) {
       _replayAdPrewarmed = true;
-      unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+      unawaited(AdmobKare.warmupPool(
+        targetCount: replayAdWarmupTarget,
+        maxRequestCount: replayAdWarmupTarget,
+        debugSource: 'feed_replay_warmup',
+      ));
     }
 
-    if (_isReplayOverlayEnabled && v.isCompleted) {
+    final reachedPlaybackEnd = v.isCompleted ||
+        (v.duration > Duration.zero &&
+            v.position > Duration.zero &&
+            v.duration - v.position <= const Duration(milliseconds: 120));
+
+    if (_isReplayOverlayEnabled && reachedPlaybackEnd) {
       final shouldAutorestartCompletedPlayback = widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           !_manualPauseRequested &&
@@ -376,6 +385,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           '[FeedReplayTrace] stage=completed_visible_autorestart '
           'doc=${widget.model.docID} '
           'isCompleted=${v.isCompleted} '
+          'nearEnd=$reachedPlaybackEnd '
           'isPlaying=${v.isPlaying} '
           'positionMs=${v.position.inMilliseconds} '
           'durationMs=${v.duration.inMilliseconds} '
@@ -394,6 +404,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           '[FeedReplayTrace] stage=latch_completed '
           'doc=${widget.model.docID} '
           'isCompleted=${v.isCompleted} '
+          'nearEnd=$reachedPlaybackEnd '
           'isPlaying=${v.isPlaying} '
           'positionMs=${v.position.inMilliseconds} '
           'durationMs=${v.duration.inMilliseconds} '
@@ -431,7 +442,11 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         _replayAdImpressionReceived = false;
         if (!isStandalonePostInstance) {
-          unawaited(AdmobKare.warmupPool(targetCount: replayAdWarmupTarget));
+          unawaited(AdmobKare.warmupPool(
+            targetCount: replayAdWarmupTarget,
+            maxRequestCount: replayAdWarmupTarget,
+            debugSource: 'feed_replay_after_completion',
+          ));
         }
         if (_replayAdVisible) {
           _replayAdHideTimer = Timer(const Duration(seconds: 3), () {
