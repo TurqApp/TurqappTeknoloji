@@ -10,9 +10,9 @@ abstract final class PasajTabIds {
 }
 
 const List<String> pasajTabs = [
+  PasajTabIds.scholarships,
   PasajTabIds.market,
   PasajTabIds.jobFinder,
-  PasajTabIds.scholarships,
   PasajTabIds.questionBank,
   PasajTabIds.practiceExams,
   PasajTabIds.onlineExam,
