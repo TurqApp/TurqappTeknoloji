@@ -27,10 +27,7 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
         final nextIndex = currentPage + 1;
         if (nextIndex < shorts.length) {
           if (pageController.hasClients) {
-            pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
+            unawaited(_requestSingleShortAutoAdvancePageChange(nextIndex));
           }
         } else {
           Future.delayed(const Duration(milliseconds: 100), () {

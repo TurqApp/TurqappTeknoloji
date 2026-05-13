@@ -3,6 +3,117 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewHelpersPart on _SingleShortViewState {
+  void _logSingleShortAdSlots(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[SingleShortAdSlots] $message');
+  }
+
+  void _rebuildSingleShortRenderPlan() {
+    _singleShortAdRenderable = AdmobKare.hasRenderableBanner;
+    _renderPlan = buildShortAdRenderPlan(
+      shorts.toList(growable: false),
+      adReady: _singleShortAdRenderable,
+    );
+    _currentRenderPage = _renderPlan.renderIndexForOrganicIndex(currentPage);
+    _logSingleShortAdSlots(
+      'render_plan posts=${shorts.length} '
+      'adReady=$_singleShortAdRenderable entries=${_renderPlan.length} '
+      'currentPage=$currentPage renderPage=$_currentRenderPage '
+      'state=${AdmobKare.debugState}',
+    );
+  }
+
+  int _renderIndexForSingleShortOrganicIndex(int organicIndex) {
+    if (_renderPlan.length == 0 || _renderPlan.length < shorts.length) {
+      _rebuildSingleShortRenderPlan();
+    }
+    return _renderPlan.renderIndexForOrganicIndex(organicIndex);
+  }
+
+  int? _organicIndexForSingleShortRenderIndex(int renderIndex) {
+    if (_renderPlan.length == 0 || _renderPlan.length < shorts.length) {
+      _rebuildSingleShortRenderPlan();
+    }
+    return _renderPlan.organicIndexForRenderIndex(renderIndex);
+  }
+
+  void _ensureSingleShortAdWarmupFromBuild() {
+    if (_didRequestSingleShortAdWarmupFromBuild) return;
+    _didRequestSingleShortAdWarmupFromBuild = true;
+    _logSingleShortAdSlots(
+      'warmup_request source=fullscreen_build state=${AdmobKare.debugState}',
+    );
+    unawaited(() async {
+      await AdmobKare.warmupPool(
+        targetCount: 4,
+        maxRequestCount: 2,
+        bypassMinInterval: true,
+      );
+      if (!mounted) return;
+      _logSingleShortAdSlots(
+        'warmup_complete source=fullscreen_build '
+        'adReady=${AdmobKare.hasRenderableBanner} state=${AdmobKare.debugState}',
+      );
+    }());
+  }
+
+  void _scheduleSingleShortAdAutoAdvance(int renderPage) {
+    _singleShortAdAutoAdvanceTimer?.cancel();
+    final nextRenderPage = renderPage + 1;
+    if (nextRenderPage >= _renderPlan.length) return;
+    final nextOrganicPage =
+        _organicIndexForSingleShortRenderIndex(nextRenderPage);
+    if (nextOrganicPage == null) return;
+    _singleShortAdAutoAdvanceTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted ||
+          !_isSingleShortRoutePlaybackActive ||
+          !_isSingleShortAdPageActive ||
+          _currentRenderPage != renderPage ||
+          !pageController.hasClients) {
+        return;
+      }
+      try {
+        pageController.animateToPage(
+          nextRenderPage,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      } catch (_) {
+        try {
+          pageController.jumpToPage(nextRenderPage);
+        } catch (_) {}
+      }
+    });
+  }
+
+  void _cancelSingleShortAdAutoAdvance() {
+    _singleShortAdAutoAdvanceTimer?.cancel();
+    _singleShortAdAutoAdvanceTimer = null;
+  }
+
+  Future<void> _requestSingleShortAutoAdvancePageChange(
+    int nextOrganicIndex,
+  ) async {
+    if (!pageController.hasClients) return;
+    final targetRenderPage =
+        _renderIndexForSingleShortOrganicIndex(nextOrganicIndex);
+    final page = pageController.page;
+    final alreadyAtTarget = currentPage == nextOrganicIndex ||
+        (page != null && (page - targetRenderPage).abs() < 0.01);
+    if (alreadyAtTarget) return;
+    try {
+      await pageController.animateToPage(
+        targetRenderPage,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInOut,
+      );
+    } catch (_) {
+      try {
+        pageController.jumpToPage(targetRenderPage);
+      } catch (_) {}
+    }
+  }
+
   void _suspendInjectedFeedPlaybackHandle(String docId) {
     final injected = widget.injectedController;
     if (injected == null || injected.isDisposed) return;

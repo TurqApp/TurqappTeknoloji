@@ -15,6 +15,7 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
     );
     if (update.patch.isEmpty) {
       _renderedShorts = List<PostsModel>.from(list);
+      _rebuildSingleShortRenderPlan();
       return;
     }
 
@@ -37,6 +38,9 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
       }
       _renderedShorts = const <PostsModel>[];
       currentPage = 0;
+      _renderPlan = const ShortAdRenderPlan.empty();
+      _currentRenderPage = 0;
+      _isSingleShortAdPageActive = false;
       _refreshView();
       return;
     }
@@ -79,6 +83,9 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
 
     currentPage = update.remappedIndex.clamp(0, list.length - 1);
     _renderedShorts = List<PostsModel>.from(list);
+    _rebuildSingleShortRenderPlan();
+    _currentRenderPage = _renderIndexForSingleShortOrganicIndex(currentPage);
+    _isSingleShortAdPageActive = false;
 
     if (list.isNotEmpty && currentPage >= 0 && currentPage < list.length) {
       try {
@@ -103,7 +110,7 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !pageController.hasClients) return;
       try {
-        pageController.jumpToPage(currentPage);
+        pageController.jumpToPage(_currentRenderPage);
       } catch (_) {}
     });
 

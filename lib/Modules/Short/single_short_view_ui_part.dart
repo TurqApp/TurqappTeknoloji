@@ -25,15 +25,79 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                 child: CupertinoActivityIndicator(color: Colors.white),
               );
             }
+            _ensureSingleShortAdWarmupFromBuild();
+            if (_renderPlan.length == 0 || _renderPlan.length < shorts.length) {
+              _rebuildSingleShortRenderPlan();
+            }
+            final list = _renderPlan.entries;
             return PageView.builder(
               controller: pageController,
               scrollDirection: Axis.vertical,
-              physics: const MomentumPageScrollPhysics(),
-              itemCount: shorts.length,
+              physics: const PageScrollPhysics(),
+              itemCount: list.length,
               onPageChanged: _handlePageChanged,
-              itemBuilder: (_, idx) => _buildShortPage(idx),
+              itemBuilder: (_, idx) {
+                final item = list[idx];
+                if (item.isAd) {
+                  return KeyedSubtree(
+                    key: ValueKey('single-short-ad-page-${item.adOrdinal}'),
+                    child: _buildSingleShortAdPage(
+                      context,
+                      item.adOrdinal ?? 0,
+                    ),
+                  );
+                }
+                return _buildShortPage(item.organicIndex!);
+              },
             );
           }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSingleShortAdPage(BuildContext context, int adOrdinal) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(color: Colors.black),
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: AdmobKare(
+                    key: ValueKey('single-short-admob-$adOrdinal'),
+                    contentPadding: EdgeInsets.zero,
+                    forceSingleLinePromoChips: true,
+                    suggestionPlacementId: 'feed',
+                    adSlotId: 'short-ad-$adOrdinal',
+                    onImpression: () {
+                      if (kDebugMode) {
+                        debugPrint(
+                          '[SingleShortAdSlots] impression adOrdinal=$adOrdinal',
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 20,
+              top: 20,
+              child: AppBackButton(
+                icon: CupertinoIcons.arrow_left,
+                key: const ValueKey(IntegrationTestKeys.actionShortBack),
+                iconColor: Colors.white,
+                surfaceColor: const Color(0x50000000),
+                onTap: () async {
+                  await _pauseAndPop();
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

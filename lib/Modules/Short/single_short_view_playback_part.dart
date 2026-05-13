@@ -113,10 +113,41 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     }
   }
 
-  void _handlePageChanged(int page) {
-    if (page == currentPage) return;
+  void _handlePageChanged(int renderPage) {
+    if (_renderPlan.length == 0 || _renderPlan.length < shorts.length) {
+      _rebuildSingleShortRenderPlan();
+    }
+    final entry = renderPage >= 0 && renderPage < _renderPlan.entries.length
+        ? _renderPlan.entries[renderPage]
+        : null;
+    if (entry == null) return;
+    if (entry.isAd) {
+      if (_isSingleShortAdPageActive && renderPage == _currentRenderPage) {
+        return;
+      }
+      _currentRenderPage = renderPage;
+      _isSingleShortAdPageActive = true;
+      showControls = false;
+      _playbackWatchdogTimer?.cancel();
+      _stallWatchdogTimer?.cancel();
+      _iosNativePlaybackGuardTimer?.cancel();
+      _resetSingleShortAutoplaySegmentGate();
+      unawaited(_endActiveTelemetrySession());
+      unawaited(_pauseAllControllers());
+      _scheduleSingleShortAdAutoAdvance(renderPage);
+      setState(() {});
+      return;
+    }
+
+    final page = entry.organicIndex!;
+    if (page == currentPage &&
+        renderPage == _currentRenderPage &&
+        !_isSingleShortAdPageActive) {
+      return;
+    }
 
     final previousPage = currentPage;
+    _cancelSingleShortAdAutoAdvance();
     final prev = _videoControllers[currentPage];
     if (prev != null) {
       try {
@@ -126,6 +157,8 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     unawaited(_endActiveTelemetrySession());
 
     currentPage = page;
+    _currentRenderPage = renderPage;
+    _isSingleShortAdPageActive = false;
     showControls = true;
     _playbackWatchdogTimer?.cancel();
     _stallWatchdogTimer?.cancel();
@@ -206,7 +239,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     unawaited(_endActiveTelemetrySession());
     _fullscreenPlaybackGuardTimer?.cancel();
     _autoplaySegmentGateTimer?.cancel();
+    _singleShortAdAutoAdvanceTimer?.cancel();
     _fullscreenPlaybackGuardTimer = null;
+    _singleShortAdAutoAdvanceTimer = null;
     _fullscreenReturnPreservedController = null;
     _clearAllControllers();
     try {

@@ -5,8 +5,40 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     final len = shorts.length;
     final start = center.clamp(0, len - 1);
     final end = (center + 5).clamp(0, len - 1);
+    _primeSingleShortPlaybackWindowReadySegments(center);
     for (var i = start; i <= end; i++) {
       _ensureController(i);
+    }
+  }
+
+  void _primeSingleShortPlaybackWindowReadySegments(
+    int anchorIndex, {
+    int aheadCount = StartupPreloadPolicy.aheadFirstSegmentCount,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    for (var offset = 0; offset <= aheadCount; offset++) {
+      final index = safeAnchor + offset;
+      if (index < 0 || index >= shorts.length) break;
+      final post = shorts[index];
+      final docId = post.docID.trim();
+      final playbackUrl = post.playbackUrl.trim();
+      if (docId.isEmpty || playbackUrl.isEmpty) continue;
+      try {
+        final cacheManager = maybeFindSegmentCacheManager();
+        if (cacheManager != null && cacheManager.isReady) {
+          cacheManager.cachePostCards(<PostsModel>[post]);
+          cacheManager.cacheHlsEntry(docId, playbackUrl);
+        }
+      } catch (_) {}
+      try {
+        _segmentCacheRuntimeService.ensureMinimumReadySegments(
+          docId,
+          minimumSegmentCount: offset == 0
+              ? StartupPreloadPolicy.activeReadySegments
+              : StartupPreloadPolicy.neighborReadySegments,
+        );
+      } catch (_) {}
     }
   }
 
@@ -43,6 +75,9 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       initial = 0;
     }
     currentPage = initial;
+    _rebuildSingleShortRenderPlan();
+    _currentRenderPage = _renderIndexForSingleShortOrganicIndex(initial);
+    _isSingleShortAdPageActive = false;
     _pageActivatedAt = DateTime.now();
     _initialIndexForSeek = initial;
     if (widget.injectedController != null &&
@@ -88,7 +123,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (pageController.hasClients) {
-        pageController.jumpToPage(initial);
+        pageController.jumpToPage(_currentRenderPage);
       }
     });
     if (list.isNotEmpty) {

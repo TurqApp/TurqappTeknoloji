@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
@@ -16,6 +17,7 @@ import '../../Models/posts_model.dart';
 import '../../Core/Services/global_video_adapter_pool.dart';
 import '../../Core/Services/playback_handle.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
+import '../../Core/Services/PlaybackIntelligence/startup_preload_policy.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import '../../Core/Services/feed_diversity_memory_service.dart';
 import '../../Core/Services/playback_execution_service.dart';
@@ -31,6 +33,7 @@ import 'short_content.dart';
 import '../NavBar/nav_bar_controller.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
 import '../PlaybackRuntime/playback_cache_runtime_service.dart';
+import 'short_ad_render_plan.dart';
 
 part 'single_short_view_helpers_part.dart';
 part 'single_short_view_controller_part.dart';
@@ -197,6 +200,11 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   final Map<int, HLSVideoAdapter> _videoControllers = {};
   final Map<int, VoidCallback> _completionListeners = <int, VoidCallback>{};
   final Set<String> _prefetchedFullscreenPosterDocIds = <String>{};
+  ShortAdRenderPlan _renderPlan = const ShortAdRenderPlan.empty();
+  int _currentRenderPage = 0;
+  bool _singleShortAdRenderable = false;
+  bool _isSingleShortAdPageActive = false;
+  bool _didRequestSingleShortAdWarmupFromBuild = false;
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
   List<PostsModel> _renderedShorts = <PostsModel>[];
@@ -206,6 +214,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   Timer? _playbackWatchdogTimer;
   Timer? _stallWatchdogTimer;
   Timer? _autoplaySegmentGateTimer;
+  Timer? _singleShortAdAutoAdvanceTimer;
   DateTime? _lastProgressPersistAt;
   double _lastPersistedProgress = 0.0;
   DateTime? _autoplaySegmentGateStartedAt;
