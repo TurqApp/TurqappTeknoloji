@@ -123,6 +123,7 @@ class ExoPlayerView(
     private var lastSurfaceWidth = 0
     private var lastSurfaceHeight = 0
     private var stableSurfacePasses = 0
+    private var lastFullscreenVisualGateSignal = ""
     private var isBufferingDispatched = false
     private var lastVideoFrameAtMs = 0L
     private var firstVideoFrameAtMs = 0L
@@ -351,7 +352,11 @@ class ExoPlayerView(
         playerView = (LayoutInflater.from(context)
             .inflate(layoutRes, container, false) as PlayerView).apply {
             useController = false
-            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            resizeMode = if (forceFullscreen) {
+                AspectRatioFrameLayout.RESIZE_MODE_FILL
+            } else {
+                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            }
             setShowBuffering(PlayerView.SHOW_BUFFERING_NEVER)
             setShutterBackgroundColor(Color.TRANSPARENT)
             setBackgroundColor(Color.TRANSPARENT)
@@ -394,11 +399,15 @@ class ExoPlayerView(
 
             if (stableSurfacePasses >= 2) {
                 hasStableSurfaceLayout = true
+                logFullscreenVisualGate("surface_layout_stable")
                 scheduleSurfaceReveal()
+            } else if (forceFullscreen) {
+                logFullscreenVisualGate("surface_layout_wait")
             }
         }
         container.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
+                logFullscreenVisualGate("container_attached")
                 player?.let { existing ->
                     if (playerView.player !== existing) {
                         playerView.player = existing
@@ -410,6 +419,7 @@ class ExoPlayerView(
             }
 
             override fun onViewDetachedFromWindow(v: View) {
+                logFullscreenVisualGate("container_detached")
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 if (shouldTreatSurfaceDetachAsTransient()) {
@@ -756,6 +766,10 @@ class ExoPlayerView(
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 hasVideoSize = videoSize.width > 0 && videoSize.height > 0
+                logFullscreenVisualGate(
+                    "video_size",
+                    "video=${videoSize.width}x${videoSize.height} unappliedRotation=${videoSize.unappliedRotationDegrees}"
+                )
                 scheduleSurfaceReveal()
             }
 
@@ -770,6 +784,10 @@ class ExoPlayerView(
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
+                logFullscreenVisualGate(
+                    "rendered_first_frame",
+                    "alreadyShowing=$alreadyShowingStableFrame resumeOverlay=$resumeOverlayVisible"
+                )
                 if (!alreadyShowingStableFrame) {
                     if (forceFullscreen) {
                         revealSurface(immediate = true)
@@ -1471,7 +1489,34 @@ class ExoPlayerView(
         }
     }
 
+    private fun logFullscreenVisualGate(source: String, extra: String = "") {
+        if (!forceFullscreen) return
+        val surface = playerView.videoSurfaceView
+        val positionMs = try {
+            player?.currentPosition ?: -1L
+        } catch (_: Throwable) {
+            -1L
+        }
+        val signal =
+            "source=$source surface=${surface?.javaClass?.simpleName ?: "none"} " +
+                "surface=${surface?.width ?: -1}x${surface?.height ?: -1} " +
+                "player=${playerView.width}x${playerView.height} " +
+                "container=${container.width}x${container.height} " +
+                "alpha=${playerView.alpha} first=$didRenderFirstFrame " +
+                "videoSize=$hasVideoSize stableLayout=$hasStableSurfaceLayout " +
+                "passes=$stableSurfacePasses ready=$isPlayerReady " +
+                "playing=${player?.isPlaying == true} loading=${player?.isLoading == true} " +
+                "posMs=$positionMs url=${currentUrl ?: ""} $extra"
+        if (signal == lastFullscreenVisualGateSignal) return
+        lastFullscreenVisualGateSignal = signal
+        Log.d("TurqVisualGate", signal)
+    }
+
     private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
+        logFullscreenVisualGate(
+            "surface_visibility_reset",
+            "preserveLastFrame=$preserveLastFrame"
+        )
         if (!shouldUseResumeVisualChoreography()) {
             runOnMainBlocking {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -1513,6 +1558,10 @@ class ExoPlayerView(
             didRenderFirstFrame || (hasVideoSize && isPlayerReady)
         }
         if (!canReveal) {
+            logFullscreenVisualGate(
+                "surface_reveal_wait",
+                "needsFresh=$needsFreshFrame playbackStarted=$playbackStarted"
+            )
             return
         }
         handler.post {
@@ -1530,12 +1579,20 @@ class ExoPlayerView(
                 hasStableSurfaceLayout -> 32L
                 else -> 120L
             }
+            logFullscreenVisualGate(
+                "surface_reveal_schedule",
+                "needsFresh=$needsFreshFrame playbackStarted=$playbackStarted delayMs=$revealDelayMs"
+            )
             handler.postDelayed(revealRunnable, revealDelayMs)
         }
     }
 
     private fun revealSurface(immediate: Boolean = false) {
         runOnMain {
+            logFullscreenVisualGate(
+                "surface_reveal_run",
+                "immediate=$immediate beforeAlpha=${playerView.alpha}"
+            )
             pendingRevealRunnable = null
             if (playerView.alpha < 1f) {
                 if (immediate || forceFullscreen || preferResumePoster) {

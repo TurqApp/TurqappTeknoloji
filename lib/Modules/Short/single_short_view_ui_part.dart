@@ -3,6 +3,35 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewUiPart on _SingleShortViewState {
+  void _logSingleShortVisualGate({
+    required String source,
+    required int index,
+    required HLSVideoValue value,
+    required PlaybackLifecycleDecision decision,
+    required bool hasVisibleVideoFrame,
+    required bool holdAndroidPosterAtStart,
+    required bool shouldHidePoster,
+  }) {
+    if (index != currentPage || index < 0 || index >= shorts.length) return;
+    final docId = shorts[index].docID.trim();
+    final signalKey = 'hide=$shouldHidePoster raw=${decision.shouldHidePoster} '
+        'hold=$holdAndroidPosterAtStart '
+        'first=${value.hasRenderedFirstFrame} '
+        'visible=${value.hasVisibleVideoFrame} '
+        'stable=$hasVisibleVideoFrame '
+        'fresh=${value.awaitingFreshFrameAfterReattach} '
+        'play=${value.isPlaying} buffer=${value.isBuffering} '
+        'phase=${decision.phase}';
+    if (_lastVisualGateSignal[docId] == signalKey) return;
+    _lastVisualGateSignal[docId] = signalKey;
+    debugPrint(
+      '[SingleShortVisualGate] source=$source index=$index doc=$docId '
+      '$signalKey posMs=${value.position.inMilliseconds} '
+      'durMs=${value.duration.inMilliseconds} '
+      'routeActive=$_routePlaybackActive currentPage=$currentPage',
+    );
+  }
+
   Widget _buildSingleShortView(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -96,6 +125,15 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                     injected.value.position < const Duration(milliseconds: 180);
             final shouldHidePoster =
                 decision.shouldHidePoster && !holdAndroidPosterAtStart;
+            _logSingleShortVisualGate(
+              source: 'injected_overlay',
+              index: idx,
+              value: v,
+              decision: decision,
+              hasVisibleVideoFrame: hasVisibleVideoFrame,
+              holdAndroidPosterAtStart: holdAndroidPosterAtStart,
+              shouldHidePoster: shouldHidePoster,
+            );
             final thumb = shorts[idx].aspectRatio >= 0.8
                 ? Align(
                     alignment: Alignment.center,
@@ -203,6 +241,15 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                           vp.value.position < const Duration(milliseconds: 180);
                   final shouldHidePoster =
                       decision.shouldHidePoster && !holdAndroidPosterAtStart;
+                  _logSingleShortVisualGate(
+                    source: 'managed_overlay',
+                    index: idx,
+                    value: v,
+                    decision: decision,
+                    hasVisibleVideoFrame: hasVisibleVideoFrame,
+                    holdAndroidPosterAtStart: holdAndroidPosterAtStart,
+                    shouldHidePoster: shouldHidePoster,
+                  );
                   final overlay = shorts[idx].aspectRatio >= 0.8
                       ? Align(
                           alignment: Alignment.center,

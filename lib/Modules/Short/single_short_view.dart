@@ -221,6 +221,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   int _stallWatchdogRetries = 0;
   int _stallWatchdogBufferingCycles = 0;
   HLSVideoAdapter? _fullscreenReturnPreservedController;
+  final Map<String, String> _lastVisualGateSignal = <String, String>{};
   final bool _forceResumePosterOnReturn = false;
   bool _routeObserverSubscribed = false;
   bool _routePlaybackActive = true;
@@ -260,8 +261,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final isActivePage = page == currentPage;
     final allowEarlyStableVisual =
         defaultTargetPlatform != TargetPlatform.android;
-    final hasVisibleVideoFrame =
-        _hasStableSingleShortVisualFrame(page, value);
+    final hasVisibleVideoFrame = _hasStableSingleShortVisualFrame(page, value);
     final allowStableVisualWithoutPosition =
         allowEarlyStableVisual || hasVisibleVideoFrame;
     return _playbackRuntimeService.evaluateLifecycle(
