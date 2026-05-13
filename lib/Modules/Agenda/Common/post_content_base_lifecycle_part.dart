@@ -273,6 +273,24 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidPopNext() {
+    if (!widget.shouldPlay &&
+        _isPrimaryFeedSurfaceInstance &&
+        agendaController.playbackSuspended.value &&
+        agendaController.isPrimaryFeedRouteVisible) {
+      final nav = maybeFindNavBarController();
+      final canReleaseOverlay = nav == null ||
+          (nav.selectedIndex.value == 0 && !nav.mediaOverlayActive);
+      debugPrint(
+        '[FeedOverlayResume] source=route_did_pop_next '
+        'doc=${widget.model.docID} shouldPlay=${widget.shouldPlay} '
+        'suspended=${agendaController.playbackSuspended.value} '
+        'route=${Get.currentRoute} nav=${nav?.selectedIndex.value ?? -1} '
+        'canRelease=$canReleaseOverlay',
+      );
+      if (canReleaseOverlay) {
+        agendaController.resumePlaybackAfterOverlay();
+      }
+    }
     if (!widget.shouldPlay) return;
     _recordPlaybackVisualWarning(
       _videoAdapter?.value ?? const HLSVideoValue(),
