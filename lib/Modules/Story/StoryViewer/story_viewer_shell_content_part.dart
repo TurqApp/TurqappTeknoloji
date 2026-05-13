@@ -45,6 +45,10 @@ extension StoryViewerShellContentPart on _StoryViewerState {
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: widget.storyOwnerUsers.length,
                   onPageChanged: (index) {
+                    if (index == currentPageIndex) {
+                      _prefetchNext(index);
+                      return;
+                    }
                     _updateViewState(() {
                       currentPageIndex = index;
                     });
@@ -114,9 +118,9 @@ extension StoryViewerShellContentPart on _StoryViewerState {
 
     if (pass) {
       if (dx < 0) {
-        _goToAdjacentUser(currentPageIndex + 1, durationMs: 320);
+        _goToAdjacentUser(currentPageIndex + 1);
       } else {
-        _goToAdjacentUser(currentPageIndex - 1, durationMs: 320);
+        _goToAdjacentUser(currentPageIndex - 1);
       }
     }
 
@@ -145,7 +149,7 @@ extension StoryViewerShellContentPart on _StoryViewerState {
   }
 
   Future<void> _goToAdjacentUser(int targetIndex,
-      {int durationMs = 300}) async {
+      {int durationMs = 0}) async {
     if (targetIndex < 0) {
       await _stopCurrentUserStoryPlayback(reason: 'story_page_back');
       Get.back();
@@ -157,18 +161,29 @@ extension StoryViewerShellContentPart on _StoryViewerState {
       return;
     }
 
-    await _stopCurrentUserStoryPlayback(
-      reason: targetIndex > currentPageIndex
-          ? 'story_user_swipe_next'
-          : 'story_user_swipe_prev',
-    );
+    final sourceIndex = currentPageIndex;
+    final reason = targetIndex > sourceIndex
+        ? 'story_user_swipe_next'
+        : 'story_user_swipe_prev';
 
-    if (targetIndex > currentPageIndex) {
+    unawaited(_stopUserStoryPlaybackAt(sourceIndex, reason: reason));
+    unawaited(_prefetchNext(targetIndex));
+
+    if (durationMs <= 0) {
+      _updateViewState(() {
+        currentPageIndex = targetIndex;
+      });
+      debugPrint(
+        '[StoryTransition] action=instant_delegate from=$sourceIndex '
+        'to=$targetIndex reason=$reason',
+      );
+      pageController.jumpToPage(targetIndex);
+    } else if (targetIndex > sourceIndex) {
       pageController.nextPage(
         duration: Duration(milliseconds: durationMs),
         curve: Curves.easeInOut,
       );
-    } else if (targetIndex < currentPageIndex) {
+    } else if (targetIndex < sourceIndex) {
       pageController.previousPage(
         duration: Duration(milliseconds: durationMs),
         curve: Curves.easeInOut,
@@ -177,8 +192,15 @@ extension StoryViewerShellContentPart on _StoryViewerState {
   }
 
   Future<void> _stopCurrentUserStoryPlayback({required String reason}) async {
+    await _stopUserStoryPlaybackAt(currentPageIndex, reason: reason);
+  }
+
+  Future<void> _stopUserStoryPlaybackAt(
+    int pageIndex, {
+    required String reason,
+  }) async {
     try {
-      final dynamic state = _pageKeys[currentPageIndex]?.currentState;
+      final dynamic state = _pageKeys[pageIndex]?.currentState;
       if (state == null) return;
       await state.stopPlaybackFromParent(reason: reason);
     } catch (_) {}
