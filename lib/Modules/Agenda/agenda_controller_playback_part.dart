@@ -199,21 +199,48 @@ extension AgendaControllerPlaybackPart on AgendaController {
       if (lockedIndex >= 0 &&
           lockedIndex < agendaList.length &&
           _canAutoplayVideoPost(agendaList[lockedIndex])) {
-        debugPrint(
-          '[FeedPlaybackDecision] action=retain_startup_lock '
-          'locked=$lockedIndex doc=$lockedDocId centered=${centeredIndex.value}',
-        );
-        final centeredChanged = centeredIndex.value != lockedIndex;
-        if (centeredChanged) {
-          centeredIndex.value = lockedIndex;
-          _notifyPlaybackRowUpdates(lockedIndex);
+        final lockedFraction = _visibleFractions[lockedIndex] ?? 0.0;
+        var dominantVisibleIndex = -1;
+        var dominantVisibleFraction = 0.0;
+        _visibleFractions.forEach((index, fraction) {
+          if (index < 0 || index >= agendaList.length) return;
+          if (!_canAutoplayVideoPost(agendaList[index])) return;
+          if (fraction > dominantVisibleFraction) {
+            dominantVisibleIndex = index;
+            dominantVisibleFraction = fraction;
+          }
+        });
+        final lockMovedOffscreen = dominantVisibleIndex >= 0 &&
+            dominantVisibleIndex != lockedIndex &&
+            dominantVisibleFraction >= playThreshold &&
+            lockedFraction < stopThreshold;
+        if (lockMovedOffscreen) {
+          debugPrint(
+            '[FeedPlaybackDecision] action=release_startup_lock '
+            'locked=$lockedIndex dominant=$dominantVisibleIndex '
+            'lockedFraction=${lockedFraction.toStringAsFixed(3)} '
+            'dominantFraction=${dominantVisibleFraction.toStringAsFixed(3)}',
+          );
+          _startupLockedFeedDocId = null;
+          _startupPlaybackLockedAt = null;
+          _feedRefreshPlaybackLockedAt = null;
+        } else {
+          debugPrint(
+            '[FeedPlaybackDecision] action=retain_startup_lock '
+            'locked=$lockedIndex doc=$lockedDocId centered=${centeredIndex.value}',
+          );
+          final centeredChanged = centeredIndex.value != lockedIndex;
+          if (centeredChanged) {
+            centeredIndex.value = lockedIndex;
+            _notifyPlaybackRowUpdates(lockedIndex);
+          }
+          lastCenteredIndex = lockedIndex;
+          if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
+            _ensureFeedPlaybackForIndex(lockedIndex);
+          }
+          _trackPlaybackWindow();
+          return;
         }
-        lastCenteredIndex = lockedIndex;
-        if (!centeredChanged && !_isPlaybackTargetCurrent(lockedIndex)) {
-          _ensureFeedPlaybackForIndex(lockedIndex);
-        }
-        _trackPlaybackWindow();
-        return;
       }
     }
     final current = centeredIndex.value;
