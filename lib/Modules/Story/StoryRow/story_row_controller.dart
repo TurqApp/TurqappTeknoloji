@@ -12,6 +12,7 @@ import '../../../Core/Services/user_profile_cache_service.dart';
 import '../../../Core/Utils/avatar_url.dart';
 import '../../../Core/Utils/nickname_utils.dart';
 import '../../../Services/current_user_service.dart';
+import '../../../Services/story_interaction_optimizer.dart';
 import '../../../Services/user_analytics_service.dart';
 import '../StoryMaker/story_model.dart';
 import 'story_row_application_service.dart';

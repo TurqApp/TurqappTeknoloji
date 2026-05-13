@@ -16,6 +16,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
 
   Future<void> _refreshStoryRowAndExit() async {
     try {
+      await ensureStoryInteractionOptimizer().forceFlush();
       await refreshStoryRowGlobally();
       print('🔄 Story row refreshed after viewing stories');
     } catch (_) {
@@ -27,7 +28,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
   void _onPrevUserRequested(int currentIndex) {
     final isFirstUser = currentIndex == 0;
     if (isFirstUser) {
-      Get.back();
+      _refreshStoryRowAndExit();
       return;
     }
     _goToAdjacentUser(currentIndex - 1);

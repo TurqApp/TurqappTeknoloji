@@ -529,6 +529,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     });
 
     final currentStory = widget.user.stories[storyIndex];
+    _markCurrentStoryAsSeen(source: 'story_visible');
     _updateStoryPrefetchPriorityContext();
     _scheduleStorySegmentPriorityPlanForCurrentPosition();
     _promoteNextStorySegmentBatchIfNeeded();
@@ -665,7 +666,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       final newIndex = storyIndex + 1;
 
       // Mevcut hikayeyi izlendi olarak işaretle (ara güncelleme)
-      _markCurrentStoryAsSeen();
+      _markCurrentStoryAsSeen(source: auto ? 'auto_next' : 'tap_next');
 
       setState(() {
         storyIndex = newIndex;
@@ -732,12 +733,15 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
   }
 
   /// Mevcut hikayeyi optimize edilmiş sistemle işaretle
-  void _markCurrentStoryAsSeen() {
+  void _markCurrentStoryAsSeen({String source = 'unknown'}) {
     if (storyIndex < widget.user.stories.length) {
       final currentStory = widget.user.stories[storyIndex];
       final userID = widget.user.userID;
 
-      // Optimize edilmiş debounced marking (500ms batch)
+      debugPrint(
+        '[StorySeen] action=visible source=$source owner=$userID '
+        'story=${currentStory.id} index=$storyIndex',
+      );
       ensureStoryInteractionOptimizer().markStoryViewed(userID, currentStory.id,
           currentStory.createdAt.millisecondsSinceEpoch);
     }

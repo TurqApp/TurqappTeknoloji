@@ -530,7 +530,7 @@ extension UserStoryContentViewPart on _UserStoryContentState {
             ),
           ),
           IconButton(
-            onPressed: () => Get.back(),
+            onPressed: widget.onCloseRequested ?? () => Get.back(),
             icon: Icon(
               CupertinoIcons.clear,
               size: 25,

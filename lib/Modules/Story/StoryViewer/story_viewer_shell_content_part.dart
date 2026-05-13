@@ -78,6 +78,7 @@ extension StoryViewerShellContentPart on _StoryViewerState {
       onPrevUserRequested: () => _onPrevUserRequested(pageIndex),
       onSwipeNextUser: () => _goToAdjacentUser(pageIndex + 1),
       onSwipePrevUser: () => _goToAdjacentUser(pageIndex - 1),
+      onCloseRequested: () => unawaited(_refreshStoryRowAndExit()),
     );
   }
 
@@ -86,7 +87,7 @@ extension StoryViewerShellContentPart on _StoryViewerState {
     final deltaY = _dragOffsetY;
     if (deltaY > dismissDeltaPx ||
         (deltaY > (dismissDeltaPx / 2) && velocity > dismissVelocityPx)) {
-      Get.back();
+      _refreshStoryRowAndExit();
       return;
     }
 
@@ -152,7 +153,7 @@ extension StoryViewerShellContentPart on _StoryViewerState {
       {int durationMs = 0}) async {
     if (targetIndex < 0) {
       await _stopCurrentUserStoryPlayback(reason: 'story_page_back');
-      Get.back();
+      _refreshStoryRowAndExit();
       return;
     }
     if (targetIndex >= widget.storyOwnerUsers.length) {

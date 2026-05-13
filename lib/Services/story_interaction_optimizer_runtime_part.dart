@@ -37,20 +37,45 @@ class _StoryInteractionOptimizerRuntimePart {
     int storyTime,
   ) async {
     try {
-      _service.localStoryCache[storyOwnerId] = true;
-      _service.localTimeCache[storyOwnerId] = storyTime;
+      final previousTime = _service.localTimeCache[storyOwnerId] ?? 0;
+      final effectiveStoryTime =
+          storyTime > previousTime ? storyTime : previousTime;
+      _scheduleLocalSeenCacheUpdate(storyOwnerId, effectiveStoryTime);
 
-      _service._pendingWrites[storyOwnerId] = storyTime;
+      final pendingTime = _service._pendingWrites[storyOwnerId] ?? 0;
+      _service._pendingWrites[storyOwnerId] =
+          effectiveStoryTime > pendingTime ? effectiveStoryTime : pendingTime;
       _service._pendingUsers.add(storyOwnerId);
 
       _service._writeTimer?.cancel();
       _service._writeTimer =
           Timer(const Duration(milliseconds: 500), _flushPendingWrites);
+      debugPrint(
+        '[StorySeen] action=mark owner=$storyOwnerId story=$storyId '
+        'storyTime=$storyTime effectiveTime=$effectiveStoryTime',
+      );
     } catch (e) {
       debugPrint('markStoryViewed error: $e');
-      _service.localStoryCache[storyOwnerId] = true;
-      _service.localTimeCache[storyOwnerId] = storyTime;
+      _scheduleLocalSeenCacheUpdate(storyOwnerId, storyTime);
     }
+  }
+
+  void _scheduleLocalSeenCacheUpdate(String storyOwnerId, int storyTime) {
+    void apply() {
+      _service.localStoryCache[storyOwnerId] = true;
+      final previousTime = _service.localTimeCache[storyOwnerId] ?? 0;
+      _service.localTimeCache[storyOwnerId] =
+          storyTime > previousTime ? storyTime : previousTime;
+    }
+
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle ||
+        phase == SchedulerPhase.postFrameCallbacks) {
+      apply();
+      return;
+    }
+
+    SchedulerBinding.instance.addPostFrameCallback((_) => apply());
   }
 
   Future<void> _flushPendingWrites() async {

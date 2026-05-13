@@ -96,6 +96,10 @@ extension StoryRowControllerLoadPart on StoryRowController {
 
       bool allSeen(StoryUserModel u) {
         if (u.stories.isEmpty) return true;
+        final optimizer = maybeFindStoryInteractionOptimizer();
+        if (optimizer?.areAllStoriesSeenCached(u.userID, u.stories) == true) {
+          return true;
+        }
         if (!userService.hasReadStory(u.userID)) {
           return false;
         }

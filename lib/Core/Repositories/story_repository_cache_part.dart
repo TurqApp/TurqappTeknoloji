@@ -25,8 +25,8 @@ extension StoryRepositoryCachePart on StoryRepository {
     QuerySnapshot<Map<String, dynamic>> snap, {
     required int requestedLimit,
   }) {
-    if (requestedLimit < 6 || requestedLimit >= 30) return requestedLimit;
-    if (snap.docs.length < requestedLimit) return requestedLimit;
+    const discoveryCandidateFloor = 30;
+    if (requestedLimit >= discoveryCandidateFloor) return requestedLimit;
 
     final ownerIds = <String>{};
     for (final doc in snap.docs) {
@@ -34,10 +34,13 @@ extension StoryRepositoryCachePart on StoryRepository {
       if (ownerId.isNotEmpty) ownerIds.add(ownerId);
     }
     final desiredDiversity = requestedLimit < 5 ? requestedLimit : 5;
-    if (ownerIds.length >= desiredDiversity) return requestedLimit;
+    if (ownerIds.length >= desiredDiversity) {
+      return discoveryCandidateFloor;
+    }
 
     final widenedLimit = requestedLimit * 3;
-    return widenedLimit > 30 ? 30 : widenedLimit;
+    if (widenedLimit > discoveryCandidateFloor) return widenedLimit;
+    return discoveryCandidateFloor;
   }
 
   Future<StoryFetchResult> _performFetchStoryUsers({
@@ -48,7 +51,6 @@ extension StoryRepositoryCachePart on StoryRepository {
   }) async {
     QuerySnapshot<Map<String, dynamic>> snap;
     var cacheHit = false;
-    var snapFromServer = false;
 
     if (cacheFirst) {
       snap = await PerformanceService.traceOperation(
@@ -70,7 +72,6 @@ extension StoryRepositoryCachePart on StoryRepository {
               .limit(limit)
               .get(),
         );
-        snapFromServer = true;
       }
     } else {
       snap = await PerformanceService.traceOperation(
@@ -81,14 +82,13 @@ extension StoryRepositoryCachePart on StoryRepository {
             .limit(limit)
             .get(),
       );
-      snapFromServer = true;
     }
 
     final topUpLimit = _storyRowDiversityTopUpLimit(
       snap,
       requestedLimit: limit,
     );
-    if (snapFromServer && topUpLimit > limit) {
+    if (topUpLimit > limit) {
       snap = await PerformanceService.traceOperation(
         'story_load_diversity_top_up',
         () => AppFirestore.instance
@@ -125,6 +125,9 @@ extension StoryRepositoryCachePart on StoryRepository {
             'username': embeddedUsername,
             'firstName': (data['firstName'] ?? '').toString(),
             'lastName': (data['lastName'] ?? '').toString(),
+            'rozet': (data['rozet'] ?? data['badge'] ?? '').toString(),
+            'isApproved': _storyRowCacheAsBool(data['isApproved']),
+            'isDeleted': _storyRowCacheAsBool(data['isDeleted']),
             'isPrivate': _storyRowCacheAsBool(data['isPrivate']),
           };
         }
@@ -132,15 +135,14 @@ extension StoryRepositoryCachePart on StoryRepository {
     }
 
     final userIds = userStories.keys.toList(growable: false);
-    final profileCacheOnly = cacheFirst && cacheHit;
     final userDataMap = await _userCache.getProfiles(
       userIds,
       preferCache: true,
-      cacheOnly: profileCacheOnly,
+      cacheOnly: false,
     );
     final missingUserIds =
         userIds.where((id) => userDataMap[id] == null).toList(growable: false);
-    if (missingUserIds.isNotEmpty && !profileCacheOnly) {
+    if (missingUserIds.isNotEmpty) {
       userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
     }
 

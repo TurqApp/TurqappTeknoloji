@@ -50,6 +50,7 @@ class UserStoryContent extends StatefulWidget {
   final VoidCallback? onPrevUserRequested;
   final VoidCallback? onSwipeNextUser;
   final VoidCallback? onSwipePrevUser;
+  final VoidCallback? onCloseRequested;
   final int initialStoryIndex;
 
   const UserStoryContent({
@@ -58,6 +59,7 @@ class UserStoryContent extends StatefulWidget {
     this.onPrevUserRequested,
     this.onSwipeNextUser,
     this.onSwipePrevUser,
+    this.onCloseRequested,
     this.initialStoryIndex = 0,
     super.key,
   });
