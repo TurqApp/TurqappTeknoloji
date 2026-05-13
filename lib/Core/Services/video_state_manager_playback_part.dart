@@ -85,6 +85,64 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return false;
   }
 
+  void _beginFeedRefreshHandoff({
+    required Duration keepWarmFor,
+    required String reason,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    final until = DateTime.now().add(keepWarmFor);
+    final previous = _feedRefreshHandoffUntil;
+    if (previous == null || previous.isBefore(until)) {
+      _feedRefreshHandoffUntil = until;
+    }
+    debugPrint(
+      '[FeedRefreshHandoff] action=begin reason=$reason '
+      'keepWarmMs=${keepWarmFor.inMilliseconds} '
+      'current=${_currentPlayingDocID ?? ''} target=${_targetPlaybackDocID ?? ''}',
+    );
+  }
+
+  bool _isFeedRefreshHandoffActive() {
+    final until = _feedRefreshHandoffUntil;
+    if (until == null) return false;
+    if (DateTime.now().isBefore(until)) return true;
+    _feedRefreshHandoffUntil = null;
+    return false;
+  }
+
+  bool _shouldMarkIosFeedHiddenHandleReset(HLSAdapterPlaybackHandle handle) {
+    final value = handle.adapter.value;
+    if (value.isCompleted) return true;
+    final duration = value.duration;
+    if (duration <= Duration.zero) return false;
+    final remaining = duration - value.position;
+    return value.position >= const Duration(seconds: 1) &&
+        remaining <= const Duration(milliseconds: 700);
+  }
+
+  bool _isTransitionResumeResetExpired(String key) {
+    final reason = _transitionResumeResetReasons[key] ?? '';
+    if (reason.startsWith('feed_replay')) return false;
+    final markedAt = _transitionResumeResetMarkedAt[key];
+    if (markedAt == null) return false;
+    return DateTime.now().difference(markedAt) >
+        const Duration(milliseconds: 3500);
+  }
+
+  bool _pruneExpiredTransitionResumeReset(String key, String source) {
+    if (!_transitionResumeResetKeys.contains(key)) return true;
+    if (!_isTransitionResumeResetExpired(key)) return false;
+    final reason = _transitionResumeResetReasons[key] ?? '';
+    _transitionResumeResetKeys.remove(key);
+    _transitionResumeResetMarkedAt.remove(key);
+    _transitionResumeResetReasons.remove(key);
+    debugPrint(
+      '[FeedResumeReset] action=expire key=$key source=$source '
+      'reason=$reason',
+    );
+    return true;
+  }
+
   void _pruneExternalOnDemandFetchClaims(String? activeDocID) {
     final normalizedActiveDocID = HlsSegmentPolicy.normalizeDocId(activeDocID);
     if (normalizedActiveDocID == null || normalizedActiveDocID.isEmpty) {
@@ -165,6 +223,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     final key = docID.trim();
     if (key.isEmpty) return;
     _transitionResumeResetKeys.add(key);
+    _transitionResumeResetMarkedAt[key] = DateTime.now();
+    _transitionResumeResetReasons[key] = reason;
     _videoStates.remove(key);
     debugPrint(
       '[FeedResumeReset] action=mark key=$key reason=$reason '
@@ -173,7 +233,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   bool _hasTransitionResumeReset(String docID) {
-    return _transitionResumeResetKeys.contains(docID.trim());
+    final key = docID.trim();
+    if (key.isEmpty) return false;
+    if (_pruneExpiredTransitionResumeReset(key, 'has')) return false;
+    return _transitionResumeResetKeys.contains(key);
   }
 
   bool _consumeTransitionResumeReset(
@@ -182,11 +245,16 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     required String source,
   }) {
     final key = docID.trim();
+    if (key.isEmpty) return false;
+    if (_pruneExpiredTransitionResumeReset(key, source)) return false;
     if (!_transitionResumeResetKeys.remove(key)) return false;
+    final reason = _transitionResumeResetReasons.remove(key) ?? '';
+    _transitionResumeResetMarkedAt.remove(key);
     _videoStates.remove(key);
     debugPrint(
       '[FeedResumeReset] action=consume key=$key source=$source '
-      'positionMs=${handle.position.inMilliseconds} initialized=${handle.isInitialized}',
+      'reason=$reason positionMs=${handle.position.inMilliseconds} '
+      'initialized=${handle.isInitialized}',
     );
     return true;
   }
@@ -432,7 +500,16 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
                     controllerKey,
                     handle,
                   );
+          final keepWarmDuringRefreshHandoff =
+              defaultTargetPlatform == TargetPlatform.iOS &&
+                  allowedSurface == 'feed' &&
+                  controllerSurface == 'feed' &&
+                  handle is HLSAdapterPlaybackHandle &&
+                  _isFeedRefreshHandoffActive();
           if (keepWarmDuringSurfaceSwitch) {
+            shouldStopPlayback = false;
+          }
+          if (keepWarmDuringRefreshHandoff) {
             shouldStopPlayback = false;
           }
           if (defaultTargetPlatform == TargetPlatform.iOS &&
@@ -443,11 +520,26 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               handle.adapter.suppressNextReattachResume(
                 reason: 'ios_feed_hidden_handle_stop',
               );
+              if (_shouldMarkIosFeedHiddenHandleReset(handle)) {
+                _markTransitionResumeReset(
+                  controllerKey,
+                  reason: 'ios_feed_hidden_handle_stop',
+                );
+              } else {
+                debugPrint(
+                  '[FeedResumeReset] action=skip_mark '
+                  'key=$controllerKey reason=ios_feed_hidden_handle_stop '
+                  'positionMs=${handle.adapter.value.position.inMilliseconds} '
+                  'durationMs=${handle.adapter.value.duration.inMilliseconds} '
+                  'completed=${handle.adapter.value.isCompleted}',
+                );
+              }
+            } else {
+              _markTransitionResumeReset(
+                controllerKey,
+                reason: 'ios_feed_hidden_handle_stop',
+              );
             }
-            _markTransitionResumeReset(
-              controllerKey,
-              reason: 'ios_feed_hidden_handle_stop',
-            );
           }
           if (handle is HLSAdapterPlaybackHandle) {
             debugPrint(
@@ -457,6 +549,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               'buffering=${handle.adapter.value.isBuffering} '
               'preferWarm=${handle.adapter.preferWarmPoolPause} '
               'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
+              'refreshHandoff=$keepWarmDuringRefreshHandoff '
               'stopPlayback=$shouldStopPlayback',
             );
             if (controllerSurface == 'feed' || allowedSurface == 'feed') {
@@ -466,6 +559,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
                 'surface=$controllerSurface allowedSurface=$allowedSurface '
                 'stopPlayback=$shouldStopPlayback '
                 'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
+                'refreshHandoff=$keepWarmDuringRefreshHandoff '
                 'preferWarm=${handle.adapter.preferWarmPoolPause} '
                 'playing=${handle.isPlaying} '
                 'buffering=${handle.adapter.value.isBuffering} '
@@ -946,6 +1040,15 @@ extension VideoStateManagerFacadePart on VideoStateManager {
   }) =>
       VideoStateManagerPlaybackPart(this)
           ._markTransitionResumeReset(docID, reason: reason);
+
+  void beginFeedRefreshHandoff({
+    required Duration keepWarmFor,
+    required String reason,
+  }) =>
+      VideoStateManagerPlaybackPart(this)._beginFeedRefreshHandoff(
+        keepWarmFor: keepWarmFor,
+        reason: reason,
+      );
 
   void clearAllStates() =>
       VideoStateManagerPlaybackPart(this)._clearAllStates();

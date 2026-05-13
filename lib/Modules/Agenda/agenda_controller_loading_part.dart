@@ -584,6 +584,10 @@ extension AgendaControllerLoadingPart on AgendaController {
         'source=$source targetIndex=$targetIndex targetDocId=${targetPost.docID} '
         'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
       );
+      VideoStateManager.instance.beginFeedRefreshHandoff(
+        keepWarmFor: const Duration(milliseconds: 1400),
+        reason: source,
+      );
       _ensureFeedPlaybackForIndex(targetIndex);
       if (PlaybackSurfacePolicy.shouldScheduleFeedRefreshPlaybackReassert(
         platform: defaultTargetPlatform,

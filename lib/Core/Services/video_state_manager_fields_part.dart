@@ -8,9 +8,13 @@ class _VideoStateManagerState {
   Map<String, PlaybackHandle> allVideoControllers = <String, PlaybackHandle>{};
   Map<String, int> externalOnDemandFetchClaims = <String, int>{};
   final Set<String> transitionResumeResetKeys = <String>{};
+  final Map<String, DateTime> transitionResumeResetMarkedAt =
+      <String, DateTime>{};
+  final Map<String, String> transitionResumeResetReasons = <String, String>{};
   String? currentPlayingDocID;
   String? targetPlaybackDocID;
   DateTime? targetPlaybackUpdatedAt;
+  DateTime? feedRefreshHandoffUntil;
   bool exclusiveMode = false;
   String? exclusiveDocID;
   Timer? pendingPlayTimer;
@@ -33,6 +37,12 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
   Set<String> get _transitionResumeResetKeys =>
       _state.transitionResumeResetKeys;
 
+  Map<String, DateTime> get _transitionResumeResetMarkedAt =>
+      _state.transitionResumeResetMarkedAt;
+
+  Map<String, String> get _transitionResumeResetReasons =>
+      _state.transitionResumeResetReasons;
+
   String? get _currentPlayingDocID => _state.currentPlayingDocID;
   set _currentPlayingDocID(String? value) => _state.currentPlayingDocID = value;
 
@@ -42,6 +52,10 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
   DateTime? get _targetPlaybackUpdatedAt => _state.targetPlaybackUpdatedAt;
   set _targetPlaybackUpdatedAt(DateTime? value) =>
       _state.targetPlaybackUpdatedAt = value;
+
+  DateTime? get _feedRefreshHandoffUntil => _state.feedRefreshHandoffUntil;
+  set _feedRefreshHandoffUntil(DateTime? value) =>
+      _state.feedRefreshHandoffUntil = value;
 
   bool get _exclusiveMode => _state.exclusiveMode;
   set _exclusiveMode(bool value) => _state.exclusiveMode = value;
