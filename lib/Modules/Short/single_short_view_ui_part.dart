@@ -87,9 +87,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
               return const SizedBox.shrink();
             }
             final hasVisibleVideoFrame =
-                defaultTargetPlatform != TargetPlatform.android
-                    ? injected.value.hasRenderedFirstFrame
-                    : injected.value.hasVisibleVideoFrame;
+                _hasStableSingleShortVisualFrame(idx, injected.value);
             final holdAndroidPosterAtStart =
                 defaultTargetPlatform == TargetPlatform.android &&
                     decision.shouldHidePoster &&
@@ -196,9 +194,7 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                     return const SizedBox.shrink();
                   }
                   final hasVisibleVideoFrame =
-                      defaultTargetPlatform != TargetPlatform.android
-                          ? vp.value.hasRenderedFirstFrame
-                          : vp.value.hasVisibleVideoFrame;
+                      _hasStableSingleShortVisualFrame(idx, vp.value);
                   final holdAndroidPosterAtStart =
                       defaultTargetPlatform == TargetPlatform.android &&
                           decision.shouldHidePoster &&

@@ -260,9 +260,8 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final isActivePage = page == currentPage;
     final allowEarlyStableVisual =
         defaultTargetPlatform != TargetPlatform.android;
-    final hasVisibleVideoFrame = allowEarlyStableVisual
-        ? value.hasRenderedFirstFrame
-        : value.hasVisibleVideoFrame;
+    final hasVisibleVideoFrame =
+        _hasStableSingleShortVisualFrame(page, value);
     final allowStableVisualWithoutPosition =
         allowEarlyStableVisual || hasVisibleVideoFrame;
     return _playbackRuntimeService.evaluateLifecycle(
@@ -288,6 +287,18 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
         allowRenderedFirstFrameAsStableVisual: allowStableVisualWithoutPosition,
       ),
     );
+  }
+
+  bool _hasStableSingleShortVisualFrame(int page, HLSVideoValue value) {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return value.hasRenderedFirstFrame;
+    }
+    if (value.hasVisibleVideoFrame) return true;
+    return _isSingleShortRoutePlaybackActive &&
+        page == currentPage &&
+        value.isPlaying &&
+        value.hasRenderedFirstFrame &&
+        value.position >= const Duration(milliseconds: 180);
   }
 
   void _applySingleShortPlaybackPresentation(
