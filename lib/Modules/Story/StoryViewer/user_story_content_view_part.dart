@@ -137,6 +137,10 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                           ._storyVideoPlaybackHardCap,
                                       paused: _isHoldPaused,
                                       onStarted: (Duration actualDuration) {
+                                        _clearStoryTransitionCover(
+                                          currentStory.id,
+                                          reason: 'video_started',
+                                        );
                                         final effective = actualDuration >
                                                 _UserStoryContentState
                                                     ._storyVideoPlaybackHardCap
@@ -174,6 +178,21 @@ extension UserStoryContentViewPart on _UserStoryContentState {
                                     return const SizedBox.shrink();
                                 }
                               }),
+                              if (_storyTransitionCoverStoryId ==
+                                  currentStory.id)
+                                ...mediaLayer.take(1).map((element) {
+                                  final displayElement =
+                                      _normalizedMediaDisplayElement(
+                                    element,
+                                    currentStory.id,
+                                    viewportSize,
+                                    enabled: normalizeSingleMedia,
+                                  );
+                                  return _buildStoryTransitionCover(
+                                    displayElement,
+                                    currentStory.id,
+                                  );
+                                }),
                               ...overlayLayer.map((element) {
                                 switch (element.type) {
                                   case StoryElementType.gif:
@@ -209,6 +228,41 @@ extension UserStoryContentViewPart on _UserStoryContentState {
         ),
         if (currentStory.userId == _currentUid) myToolBar() else otherToolBar()
       ],
+    );
+  }
+
+  Widget _buildStoryTransitionCover(StoryElement element, String storyId) {
+    final String imageUrl;
+    if (element.type == StoryElementType.video) {
+      imageUrl = element.posterUrl.trim();
+    } else if (element.type == StoryElementType.image ||
+        element.type == StoryElementType.gif) {
+      imageUrl = element.content.trim();
+    } else {
+      return const SizedBox.shrink();
+    }
+    if (imageUrl.isEmpty) return const SizedBox.shrink();
+
+    return Positioned(
+      left: element.position.dx,
+      top: element.position.dy,
+      width: element.width,
+      height: element.height,
+      child: IgnorePointer(
+        child: Transform.rotate(
+          angle: element.rotation,
+          child: CachedNetworkImage(
+            cacheManager: TurqImageCacheManager.instance,
+            imageUrl: imageUrl,
+            fit: BoxFit.contain,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            placeholderFadeInDuration: Duration.zero,
+            placeholder: (context, url) => const SizedBox.expand(),
+            errorWidget: (context, url, error) => const SizedBox.expand(),
+          ),
+        ),
+      ),
     );
   }
 

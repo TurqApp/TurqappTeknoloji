@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
@@ -14,6 +15,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/hls_cache_path.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
@@ -108,6 +110,7 @@ class _UserStoryContentState extends State<UserStoryContent>
   late UserStoryContentController controller;
   Timer? _musicStartFallbackTimer;
   Timer? _storyPriorityPlanTimer;
+  String? _storyTransitionCoverStoryId;
   final Set<int> _promotedStorySecondSegmentBatchStarts = <int>{};
   final Set<String> _loggedSharedPostLayoutKeys = <String>{};
 
@@ -123,6 +126,7 @@ class _UserStoryContentState extends State<UserStoryContent>
             widget.initialStoryIndex < widget.user.stories.length)
         ? widget.initialStoryIndex
         : 0;
+    _primeStoryTransitionCover(storyIndex, reason: 'initial_story');
     _initializeController();
     _startStoryPriorityPlanTicker();
     _musicStateSubscription = _audioPlayer.onPlayerStateChanged.listen((state) {

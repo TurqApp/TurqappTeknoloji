@@ -1,6 +1,9 @@
 part of 'story_viewer.dart';
 
 extension StoryViewerStoryPart on _StoryViewerState {
+  static const int _storyOwnerLookAheadCount = 5;
+  static const int _storyOwnerInitialReadySegments = 1;
+
   void _onUserStoryFinished(int currentIndex) {
     _markUserAsFullyViewed(currentIndex);
     final isLastUser = currentIndex == widget.storyOwnerUsers.length - 1;
@@ -63,7 +66,7 @@ extension StoryViewerStoryPart on _StoryViewerState {
       final prefetch = maybeFindPrefetchScheduler();
       final queuedVideoStoryDocIds = <String>[];
       final isWifi = await ConnectivityHelper.isWifi();
-      final count = isWifi ? 3 : 1;
+      const count = _storyOwnerLookAheadCount;
       for (int i = 1; i <= count; i++) {
         final next = index + i;
         if (next >= widget.storyOwnerUsers.length) break;
@@ -88,6 +91,18 @@ extension StoryViewerStoryPart on _StoryViewerState {
             cacheManager.cacheHlsEntry(storyId, playbackUrl);
             queuedVideoStoryDocIds.add(storyId);
           }
+        }
+        final firstVideoPosterUrl = firstVideo?.posterUrl.trim() ?? '';
+        if (firstVideoPosterUrl.isNotEmpty) {
+          unawaited(
+            TurqImageCacheManager.instance
+                .getSingleFile(firstVideoPosterUrl)
+                .then((file) {
+              if (!context.mounted) return Future<void>.value();
+              final provider = FileImage(File(file.path));
+              return precacheImage(provider, context);
+            }).catchError((_) {}),
+          );
         }
         final firstImage = firstStory.elements.firstWhere(
           (e) =>
@@ -115,9 +130,16 @@ extension StoryViewerStoryPart on _StoryViewerState {
         for (final docId in queuedVideoStoryDocIds) {
           prefetch.boostDoc(
             docId,
-            readySegments: SegmentCacheRuntimeService.globalReadySegmentCount,
+            readySegments: _storyOwnerInitialReadySegments,
           );
         }
+        debugPrint(
+          '[StoryOwnerWarm] action=queue_next_users currentIndex=$index '
+          'network=${isWifi ? 'wifi' : 'non_wifi'} lookAhead=$count '
+          'queuedVideos=${queuedVideoStoryDocIds.length} '
+          'readySegments=$_storyOwnerInitialReadySegments '
+          'docs=${queuedVideoStoryDocIds.take(count).join(',')}',
+        );
       }
     } catch (_) {}
   }

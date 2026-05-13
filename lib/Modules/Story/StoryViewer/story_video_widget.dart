@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
@@ -100,6 +101,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
   void initState() {
     super.initState();
     _seedStoryCacheEntry();
+    _precachePoster();
     _registerStopCallbacks();
     _syncFetchOwnership();
     // ✅ HLS Player event listener
@@ -387,6 +389,7 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
         _releaseFetchOwnership(oldMediaDocId);
       }
       _seedStoryCacheEntry();
+      _precachePoster();
       _lastLoggedReadySegmentTarget = null;
       _registerStopCallbacks();
     }
@@ -401,6 +404,18 @@ class _StoryVideoWidgetState extends State<StoryVideoWidget> with RouteAware {
       }
     }
     _syncFetchOwnership();
+  }
+
+  void _precachePoster() {
+    final posterUrl = widget.element.posterUrl.trim();
+    if (posterUrl.isEmpty) return;
+    unawaited(
+      TurqImageCacheManager.instance.getSingleFile(posterUrl).then((file) {
+        if (!mounted) return Future<void>.value();
+        final provider = FileImage(File(file.path));
+        return precacheImage(provider, context);
+      }).catchError((_) {}),
+    );
   }
 
   @override

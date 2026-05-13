@@ -4,6 +4,9 @@ part of 'user_story_content.dart';
 
 extension UserStoryContentPlaybackPart on _UserStoryContentState {
   static const int _storyPriorityBatchSize = 5;
+  static const int _storyInitialVideoWindowSize = 5;
+  static const int _storyInitialReadySegments = 1;
+  static const int _storyActiveBatchReadySegments = 2;
   static const int _storyNextBatchPromotionTriggerOffset = 2;
   static const Duration _storyPriorityPlanTick = Duration(milliseconds: 900);
 
@@ -118,6 +121,53 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     cacheManager.cacheHlsEntry(storyId, playbackUrl);
   }
 
+  String _firstStoryVisualCoverUrl(StoryModel story) {
+    for (final element in story.elements) {
+      if (element.type == StoryElementType.video) {
+        final posterUrl = element.posterUrl.trim();
+        if (posterUrl.isNotEmpty) return posterUrl;
+      } else if (element.type == StoryElementType.image ||
+          element.type == StoryElementType.gif) {
+        final imageUrl = element.content.trim();
+        if (imageUrl.isNotEmpty) return imageUrl;
+      }
+    }
+    return '';
+  }
+
+  void _precacheStoryVisualCover(StoryModel story, {required String reason}) {
+    final storyId = story.id.trim();
+    final imageUrl = _firstStoryVisualCoverUrl(story);
+    if (storyId.isEmpty || imageUrl.isEmpty) return;
+    debugPrint(
+      '[StoryVisualCover] action=precache_queued reason=$reason '
+      'story=$storyId',
+    );
+    unawaited(
+      TurqImageCacheManager.instance.getSingleFile(imageUrl).then((file) {
+        if (!mounted) return Future<void>.value();
+        return precacheImage(FileImage(File(file.path)), context);
+      }).catchError((_) {}),
+    );
+  }
+
+  void _precacheStoryVisualCoversFromIndex({
+    required int startIndex,
+    required int count,
+    required String reason,
+  }) {
+    if (widget.user.stories.isEmpty || count <= 0) return;
+    final safeStart = startIndex.clamp(0, widget.user.stories.length - 1);
+    final endExclusive =
+        (safeStart + count).clamp(0, widget.user.stories.length);
+    for (var index = safeStart; index < endExclusive; index++) {
+      _precacheStoryVisualCover(
+        widget.user.stories[index],
+        reason: '$reason:index_$index',
+      );
+    }
+  }
+
   void _updateStoryPrefetchPriorityContext([List<StoryModel>? seededStories]) {
     try {
       final prefetch = maybeFindPrefetchScheduler();
@@ -143,6 +193,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     required int startOrder,
     required int readySegments,
     int? windowCount,
+    String reason = 'story_priority',
   }) {
     final videoStories = _videoStoriesForCurrentUser();
     if (videoStories.isEmpty) return;
@@ -153,6 +204,12 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     _updateStoryPrefetchPriorityContext(videoStories);
     final endExclusive = (startOrder + (windowCount ?? videoStories.length))
         .clamp(0, videoStories.length);
+    if (endExclusive <= startOrder) return;
+    debugPrint(
+      '[StoryUserWarm] action=schedule reason=$reason '
+      'startOrder=$startOrder endOrder=${endExclusive - 1} '
+      'readySegments=$readySegments count=${endExclusive - startOrder}',
+    );
     for (var order = startOrder; order < endExclusive; order++) {
       final story = videoStories[order];
       final storyId = story.id.trim();
@@ -187,12 +244,25 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
   }
 
   void _scheduleStorySegmentPriorityPlanForCurrentPosition() {
+    _precacheStoryVisualCoversFromIndex(
+      startIndex: storyIndex,
+      count: _storyInitialVideoWindowSize,
+      reason: 'entry_visual_window',
+    );
+
     final videoStories = _videoStoriesForCurrentUser();
     if (videoStories.isEmpty) return;
     _resetStorySegmentPriorityPlan();
     _updateStoryPrefetchPriorityContext(videoStories);
 
     final currentOrder = _resolveCurrentVideoStoryOrder(videoStories);
+    _scheduleStoryVideoWarmupFromOrder(
+      startOrder: 0,
+      readySegments: _storyInitialReadySegments,
+      windowCount: _storyInitialVideoWindowSize,
+      reason: 'entry_first_five',
+    );
+
     final currentBatchStart =
         (currentOrder ~/ _storyPriorityBatchSize) * _storyPriorityBatchSize;
     final currentBatchCount = (videoStories.length - currentBatchStart)
@@ -201,16 +271,18 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
 
     _scheduleStoryVideoWarmupFromOrder(
       startOrder: currentBatchStart,
-      readySegments: 2,
+      readySegments: _storyActiveBatchReadySegments,
       windowCount: currentBatchCount,
+      reason: 'active_batch',
     );
     _promotedStorySecondSegmentBatchStarts.add(currentBatchStart);
 
     if (currentBatchStart > 0) {
       _scheduleStoryVideoWarmupFromOrder(
         startOrder: 0,
-        readySegments: 1,
+        readySegments: _storyInitialReadySegments,
         windowCount: currentBatchStart,
+        reason: 'leading_context',
       );
     }
 
@@ -218,8 +290,9 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     if (trailingStart < videoStories.length) {
       _scheduleStoryVideoWarmupFromOrder(
         startOrder: trailingStart,
-        readySegments: 1,
+        readySegments: _storyInitialReadySegments,
         windowCount: videoStories.length - trailingStart,
+        reason: 'trailing_context',
       );
     }
   }
@@ -243,8 +316,9 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     if (nextBatchCount <= 0) return;
     _scheduleStoryVideoWarmupFromOrder(
       startOrder: nextBatchStart,
-      readySegments: 2,
+      readySegments: _storyActiveBatchReadySegments,
       windowCount: nextBatchCount,
+      reason: 'next_batch_promote',
     );
   }
 
@@ -280,8 +354,9 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       if (_promotedStorySecondSegmentBatchStarts.add(batchStart)) {
         _scheduleStoryVideoWarmupFromOrder(
           startOrder: batchStart,
-          readySegments: 2,
+          readySegments: _storyActiveBatchReadySegments,
           windowCount: batchCount,
+          reason: 'second_segment_sweep',
         );
       }
       return;
@@ -295,6 +370,45 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
     });
   }
 
+  void _primeStoryTransitionCover(int index, {required String reason}) {
+    if (index < 0 || index >= widget.user.stories.length) {
+      _storyTransitionCoverStoryId = null;
+      return;
+    }
+    final story = widget.user.stories[index];
+    _precacheStoryVisualCover(story, reason: 'prime_$reason');
+    var hasCover = false;
+    for (final element in story.elements) {
+      if (element.type == StoryElementType.video) {
+        if (element.posterUrl.trim().isNotEmpty) {
+          hasCover = true;
+          break;
+        }
+      } else if (element.type == StoryElementType.image ||
+          element.type == StoryElementType.gif) {
+        if (element.content.trim().isNotEmpty) {
+          hasCover = true;
+          break;
+        }
+      }
+    }
+    _storyTransitionCoverStoryId = hasCover ? story.id : null;
+    debugPrint(
+      '[StoryVisualCover] action=prime reason=$reason index=$index '
+      'story=${story.id} hasCover=$hasCover',
+    );
+  }
+
+  void _clearStoryTransitionCover(String storyId, {required String reason}) {
+    if (_storyTransitionCoverStoryId != storyId) return;
+    setState(() {
+      _storyTransitionCoverStoryId = null;
+    });
+    debugPrint(
+      '[StoryVisualCover] action=clear reason=$reason story=$storyId',
+    );
+  }
+
   void _prefetchNextStoryVideoWithinCurrentUser() {
     try {
       _updateStoryPrefetchPriorityContext();
@@ -302,6 +416,7 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
       if (nextIndex < 0 || nextIndex >= widget.user.stories.length) return;
 
       final nextStory = widget.user.stories[nextIndex];
+      _precacheStoryVisualCover(nextStory, reason: 'next_story');
       StoryElement? nextVideo;
       for (final element in nextStory.elements) {
         if (element.type == StoryElementType.video &&
@@ -551,21 +666,20 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
 
       // Mevcut hikayeyi izlendi olarak işaretle (ara güncelleme)
       _markCurrentStoryAsSeen();
-      if (previousStory != null) {
-        await _stopStoryVideoForTransition(
-          previousStory,
-          reason: auto ? 'story_auto_next' : 'story_tap_next',
-        );
-      }
 
       setState(() {
         storyIndex = newIndex;
         progress = 0.0; // Progress'i sıfırla
+        _primeStoryTransitionCover(newIndex, reason: 'next_story');
       });
 
       _updateController(); // Controller'ı güncelle
-      await Future.delayed(const Duration(
-          milliseconds: 50)); // UI güncellemesi için kısa bekleme
+      if (previousStory != null) {
+        unawaited(_stopStoryVideoForTransition(
+          previousStory,
+          reason: auto ? 'story_auto_next' : 'story_tap_next',
+        ));
+      }
       _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {
@@ -590,21 +704,20 @@ extension UserStoryContentPlaybackPart on _UserStoryContentState {
 
     if (storyIndex > 0) {
       final newIndex = storyIndex - 1;
-      if (previousStory != null) {
-        await _stopStoryVideoForTransition(
-          previousStory,
-          reason: 'story_tap_prev',
-        );
-      }
 
       setState(() {
         storyIndex = newIndex;
         progress = 0.0; // Progress'i sıfırla
+        _primeStoryTransitionCover(newIndex, reason: 'prev_story');
       });
 
       _updateController(); // Controller'ı güncelle
-      await Future.delayed(const Duration(
-          milliseconds: 50)); // UI güncellemesi için kısa bekleme
+      if (previousStory != null) {
+        unawaited(_stopStoryVideoForTransition(
+          previousStory,
+          reason: 'story_tap_prev',
+        ));
+      }
       _promoteNextStorySegmentBatchIfNeeded();
       _startOrWait();
     } else {

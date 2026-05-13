@@ -26,8 +26,9 @@ class StoryImageWidget extends StatelessWidget {
         angle: element.rotation,
         child: CachedNetworkImage(
           cacheManager: TurqImageCacheManager.instance,
-          fadeInDuration: const Duration(milliseconds: 200),
-          fadeOutDuration: const Duration(milliseconds: 100),
+          fadeInDuration: Duration.zero,
+          fadeOutDuration: Duration.zero,
+          placeholderFadeInDuration: Duration.zero,
           imageUrl: element.content,
           fit: BoxFit.contain, // Cover yerine contain - aspect ratio korunur
           placeholder: (context, url) => const SizedBox.expand(),
