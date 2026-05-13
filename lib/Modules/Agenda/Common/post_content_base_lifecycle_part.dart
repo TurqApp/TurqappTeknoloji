@@ -386,9 +386,13 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _replayAdHideTimer?.cancel();
         _replayAdVisible = AdmobKare.hasRenderableBanner;
         _replayButtonVisible = !_replayAdVisible;
-        if (_replayButtonVisible) {
+        if (_replayAdVisible) {
           VideoStateManager.instance.markTransitionResumeReset(
             playbackHandleKey,
+            reason: 'feed_replay_completed_ad_visible',
+          );
+        } else {
+          _prepareCompletedReplayForUserReplay(
             reason: 'feed_replay_button_visible',
           );
         }
@@ -401,8 +405,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             if (!mounted) return;
             _replayAdVisible = false;
             _replayButtonVisible = true;
-            VideoStateManager.instance.markTransitionResumeReset(
-              playbackHandleKey,
+            _prepareCompletedReplayForUserReplay(
               reason: 'feed_replay_button_visible_after_ad',
             );
             _markPostContentDirty();

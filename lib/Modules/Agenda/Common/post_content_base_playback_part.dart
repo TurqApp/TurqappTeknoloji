@@ -821,6 +821,64 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         source.contains(':reentry_restart');
   }
 
+  bool _isReplayOverlayHoldingPlayback(String source) {
+    if (!_isReplayOverlayEnabled) return false;
+    if (source.startsWith('replay_button')) return false;
+    return _replayOverlayLatched || _replayAdVisible || _replayButtonVisible;
+  }
+
+  void _prepareCompletedReplayForUserReplay({
+    required String reason,
+  }) {
+    VideoStateManager.instance.markTransitionResumeReset(
+      playbackHandleKey,
+      reason: reason,
+    );
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+    _lastQueuedSavedResumePosition = null;
+    _lastQueuedSavedResumeAt = null;
+    _savedResumeRecoveryGuardUntil = null;
+
+    final adapter = _videoAdapter;
+    if (adapter == null || !adapter.value.isInitialized) {
+      debugPrint(
+        '[FeedResumeReset] action=replay_prepare_deferred '
+        'key=$playbackHandleKey reason=$reason adapterReady=false',
+      );
+      return;
+    }
+    if (!adapter.value.isCompleted &&
+        adapter.value.position <=
+            PostContentBaseState._stableFramePositionThreshold) {
+      debugPrint(
+        '[FeedResumeReset] action=replay_prepare_already_zero '
+        'key=$playbackHandleKey reason=$reason '
+        'positionMs=${adapter.value.position.inMilliseconds}',
+      );
+      return;
+    }
+    unawaited(() async {
+      try {
+        if (adapter.value.isPlaying) {
+          await adapter.pause();
+        }
+        await adapter.seekTo(Duration.zero);
+        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+        debugPrint(
+          '[FeedResumeReset] action=replay_prepare_zero_complete '
+          'key=$playbackHandleKey reason=$reason '
+          'positionMs=${adapter.value.position.inMilliseconds} '
+          'replayButton=$_replayButtonVisible adVisible=$_replayAdVisible',
+        );
+      } catch (error) {
+        debugPrint(
+          '[FeedResumeReset] action=replay_prepare_zero_failed '
+          'key=$playbackHandleKey reason=$reason error=$error',
+        );
+      }
+    }());
+  }
+
   Future<void> _restartCompletedPlaybackForAutoplay({
     required String source,
   }) async {
@@ -956,15 +1014,8 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
 
     final adapter = _videoAdapter;
     if (adapter == null) {
-      final shouldResetReplayActivation =
-          _isReplayActivationRestartSource(source) && _replayButtonVisible;
-      if (shouldResetReplayActivation) {
-        _replayOverlayLatched = false;
-        _replayAdPrewarmed = false;
-        _replayAdVisible = false;
-        _replayButtonVisible = false;
-        _replayAdImpressionReceived = false;
-        _replayAdHideTimer?.cancel();
+      final shouldHoldReplayOverlay = _isReplayOverlayHoldingPlayback(source);
+      if (shouldHoldReplayOverlay) {
         _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
       }
       _recordPlaybackDispatch(
@@ -975,12 +1026,28 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       );
       _initVideoController();
       final initializedAdapter = _videoAdapter;
-      if (initializedAdapter != null && !shouldResetReplayActivation) {
+      if (initializedAdapter != null && !shouldHoldReplayOverlay) {
         _restoreSavedResumeSeekIfEligible(
           initializedAdapter,
           source: '$source:init_requested',
         );
       }
+      return;
+    }
+
+    if (_isReplayOverlayHoldingPlayback(source)) {
+      _recordPlaybackDispatch(
+        'feed_card_resume_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'replay_overlay_waiting_for_user',
+        metadata: <String, dynamic>{
+          'positionMs': adapter.value.position.inMilliseconds,
+          'replayButton': _replayButtonVisible,
+          'adVisible': _replayAdVisible,
+        },
+      );
+      _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
       return;
     }
 
@@ -1131,6 +1198,21 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         dispatchIssued: false,
         skipReason: 'should_play_false',
       );
+      return;
+    }
+    if (_isReplayOverlayHoldingPlayback(source)) {
+      _recordPlaybackDispatch(
+        'feed_card_start_skipped',
+        source: source,
+        dispatchIssued: false,
+        skipReason: 'replay_overlay_waiting_for_user',
+        metadata: <String, dynamic>{
+          'positionMs': adapter.value.position.inMilliseconds,
+          'replayButton': _replayButtonVisible,
+          'adVisible': _replayAdVisible,
+        },
+      );
+      _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
       return;
     }
     if (_shouldRestartReplayFromStartOnActivation(source: source)) {

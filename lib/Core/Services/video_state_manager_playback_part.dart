@@ -321,6 +321,14 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
   void _updatePosition(String docID, Duration position) {
     if (position < Duration.zero) return;
+    if (_hasTransitionResumeReset(docID)) {
+      _videoStates.remove(docID);
+      debugPrint(
+        '[FeedResumeReset] action=suppress_position_update key=$docID '
+        'positionMs=${position.inMilliseconds}',
+      );
+      return;
+    }
     final state = _videoStates[docID];
     final handle = _allVideoControllers[docID];
     _videoStates[docID] = VideoState(
