@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/post_repository.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import '../../main.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -195,6 +196,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   /// index → VideoPlayerController
   final Map<int, HLSVideoAdapter> _videoControllers = {};
   final Map<int, VoidCallback> _completionListeners = <int, VoidCallback>{};
+  final Set<String> _prefetchedFullscreenPosterDocIds = <String>{};
   int? _initialIndexForSeek; // initialPosition seek uygulanacak index
   final Set<int> _externallyOwned = <int>{}; // dispose etmeyeceğimiz indexler
   List<PostsModel> _renderedShorts = <PostsModel>[];
@@ -260,8 +262,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
     final isActivePage = page == currentPage;
     final allowEarlyStableVisual =
         defaultTargetPlatform != TargetPlatform.android;
-    final hasVisibleVideoFrame =
-        _hasStableSingleShortVisualFrame(page, value);
+    final hasVisibleVideoFrame = _hasStableSingleShortVisualFrame(page, value);
     final allowStableVisualWithoutPosition =
         allowEarlyStableVisual || hasVisibleVideoFrame;
     return _playbackRuntimeService.evaluateLifecycle(

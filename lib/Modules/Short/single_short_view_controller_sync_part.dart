@@ -92,6 +92,11 @@ extension SingleShortViewControllerSyncPart on _SingleShortViewState {
       _ensureController(currentPage);
     }
     _preloadRange(currentPage);
+    _warmFullscreenPosterWindowAround(
+      currentPage,
+      behindCount: 1,
+      aheadCount: 5,
+    );
     _disposeOutsideRange(currentPage);
     _primePlaybackForIndex(currentPage);
 

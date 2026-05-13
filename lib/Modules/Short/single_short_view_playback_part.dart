@@ -155,13 +155,6 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       } catch (_) {}
     }
 
-    for (final entry in _videoControllers.entries) {
-      if (entry.key == currentPage) continue;
-      try {
-        _releasePlayback(entry.value);
-      } catch (_) {}
-    }
-
     _completionTriggered[page] = false;
 
     if (_initialIndexForSeek != null && page != _initialIndexForSeek) {
@@ -192,6 +185,11 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       }
     }
     _preloadRange(currentPage);
+    _warmFullscreenPosterWindowAround(
+      currentPage,
+      behindCount: 1,
+      aheadCount: 5,
+    );
     _disposeOutsideRange(currentPage);
     setState(() {});
   }

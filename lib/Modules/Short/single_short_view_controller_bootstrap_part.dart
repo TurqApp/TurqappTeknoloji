@@ -3,7 +3,7 @@ part of 'single_short_view.dart';
 extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
   void _preloadRange(int center) {
     final len = shorts.length;
-    final start = (center - 1).clamp(0, len - 1);
+    final start = center.clamp(0, len - 1);
     final end = (center + 5).clamp(0, len - 1);
     for (var i = start; i <= end; i++) {
       _ensureController(i);
@@ -92,6 +92,11 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       }
     });
     if (list.isNotEmpty) {
+      _warmFullscreenPosterWindowAround(
+        initial,
+        behindCount: 0,
+        aheadCount: 5,
+      );
       if (usesInjectedInitialPlayback) {
         Future<void>.delayed(const Duration(milliseconds: 900), () {
           if (!mounted) return;

@@ -905,11 +905,10 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       ),
       child: SizedBox.expand(),
     );
-    final resolvedUrl = (overrideUrl ?? post.thumbnail).trim();
-    final candidates = <String>[
-      if (resolvedUrl.isNotEmpty) resolvedUrl,
-      ...post.preferredVideoPosterUrls,
-    ];
+    final candidates = _fullscreenPosterWarmUrlsForPost(
+      post,
+      overrideUrl: overrideUrl,
+    );
     if (candidates.isEmpty) {
       return fallback;
     }
@@ -924,6 +923,57 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       fallback: fallback,
       eagerPrecache: true,
     );
+  }
+
+  List<String> _fullscreenPosterWarmUrlsForPost(
+    PostsModel post, {
+    String? overrideUrl,
+  }) {
+    final urls = <String>[];
+
+    void addUrl(String rawUrl) {
+      final normalized = CdnUrlBuilder.toCdnUrl(rawUrl.trim());
+      if (normalized.isEmpty || urls.contains(normalized)) return;
+      urls.add(normalized);
+    }
+
+    addUrl(overrideUrl ?? post.thumbnail);
+    addUrl(post.thumbnail);
+    for (final posterUrl in post.preferredVideoPosterUrls) {
+      addUrl(posterUrl);
+    }
+    for (final imageUrl in post.img) {
+      addUrl(imageUrl);
+    }
+    for (final cdnUrl
+        in CdnUrlBuilder.buildThumbnailUrlCandidates(post.docID)) {
+      addUrl(cdnUrl);
+    }
+    return urls;
+  }
+
+  void _warmFullscreenPosterWindowAround(
+    int anchorIndex, {
+    int behindCount = 1,
+    int aheadCount = 5,
+  }) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final start = (safeAnchor - behindCount).clamp(0, shorts.length - 1);
+    final endExclusive = (safeAnchor + aheadCount + 1).clamp(
+      0,
+      shorts.length,
+    );
+    for (int i = start; i < endExclusive; i++) {
+      final post = shorts[i];
+      final docId = post.docID.trim();
+      if (docId.isEmpty || !_prefetchedFullscreenPosterDocIds.add(docId)) {
+        continue;
+      }
+      for (final url in _fullscreenPosterWarmUrlsForPost(post)) {
+        TurqImageCacheManager.warmUrl(url).ignore();
+      }
+    }
   }
 
   Future<void> _ensureInjectedInitialPlayback(

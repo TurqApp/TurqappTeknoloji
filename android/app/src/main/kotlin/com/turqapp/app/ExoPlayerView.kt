@@ -94,14 +94,6 @@ class ExoPlayerView(
                     MeasureSpec.makeMeasureSpec(targetWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(targetHeight, MeasureSpec.EXACTLY)
                 )
-                if (targetWidth != specWidth || targetHeight != specHeight) {
-                    Log.d(
-                        "TurqVisualGate",
-                        "source=fullscreen_measure root=${root.width}x${root.height} " +
-                            "spec=${specWidth}x$specHeight display=${displayWidth} " +
-                            "target=${targetWidth}x$targetHeight"
-                    )
-                }
                 return
             }
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -129,12 +121,7 @@ class ExoPlayerView(
     private var didRenderFirstFrame = false
     private var isPlayerReady = false
     private var hasVideoSize = false
-    private var hasStableSurfaceLayout = false
     private var pendingRevealRunnable: Runnable? = null
-    private var lastSurfaceWidth = 0
-    private var lastSurfaceHeight = 0
-    private var stableSurfacePasses = 0
-    private var lastFullscreenVisualGateSignal = ""
     private var fullscreenVideoAspectRatio = 0f
     private var isBufferingDispatched = false
     private var lastVideoFrameAtMs = 0L
@@ -352,12 +339,6 @@ class ExoPlayerView(
         val ready =
             surface.width + tolerancePx >= expectedWidth &&
                 surface.height + tolerancePx >= expectedHeight
-        if (!ready) {
-            logFullscreenVisualGate(
-                "surface_zoom_wait",
-                "expected=${expectedWidth}x$expectedHeight aspect=$aspect"
-            )
-        }
         return ready
     }
 
@@ -441,39 +422,13 @@ class ExoPlayerView(
             visibility = View.GONE
         }
         container.addView(resumeFrameOverlay)
-        playerView.videoSurfaceView?.addOnLayoutChangeListener { _, left, top, right, bottom, _, _, _, _ ->
-            val width = (right - left).coerceAtLeast(0)
-            val height = (bottom - top).coerceAtLeast(0)
-            if (width == 0 || height == 0) {
-                stableSurfacePasses = 0
-                hasStableSurfaceLayout = false
-                logFullscreenVisualGate("surface_layout_zero")
-                return@addOnLayoutChangeListener
-            }
-
-            if (width == lastSurfaceWidth && height == lastSurfaceHeight) {
-                stableSurfacePasses += 1
-            } else {
-                lastSurfaceWidth = width
-                lastSurfaceHeight = height
-                stableSurfacePasses = 1
-                hasStableSurfaceLayout = false
-            }
-
-            if (stableSurfacePasses >= 2) {
-                hasStableSurfaceLayout = true
-                logFullscreenVisualGate("surface_layout_stable")
+        playerView.videoSurfaceView?.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (forceFullscreen && didRenderFirstFrame) {
                 scheduleSurfaceReveal()
-            } else {
-                logFullscreenVisualGate("surface_layout_wait")
-                if (forceFullscreen && didRenderFirstFrame) {
-                    scheduleSurfaceReveal()
-                }
             }
         }
         container.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
-                logFullscreenVisualGate("container_attached")
                 player?.let { existing ->
                     if (playerView.player !== existing) {
                         playerView.player = existing
@@ -485,7 +440,6 @@ class ExoPlayerView(
             }
 
             override fun onViewDetachedFromWindow(v: View) {
-                logFullscreenVisualGate("container_detached")
                 // Scroll sırasında geçici detach durumunda sadece pause et.
                 // playerView.player = null yapmak son frame'i düşürüp siyah ekran üretir.
                 if (shouldTreatSurfaceDetachAsTransient()) {
@@ -686,10 +640,6 @@ class ExoPlayerView(
         didRenderFirstFrame = false
         isPlayerReady = false
         hasVideoSize = false
-        hasStableSurfaceLayout = false
-        lastSurfaceWidth = 0
-        lastSurfaceHeight = 0
-        stableSurfacePasses = 0
         isBufferingDispatched = false
         lastVideoFrameAtMs = 0L
         firstVideoFrameAtMs = 0L
@@ -833,10 +783,6 @@ class ExoPlayerView(
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 hasVideoSize = videoSize.width > 0 && videoSize.height > 0
                 updateFullscreenVideoAspectRatio(videoSize)
-                logFullscreenVisualGate(
-                    "video_size",
-                    "video=${videoSize.width}x${videoSize.height} unappliedRotation=${videoSize.unappliedRotationDegrees}"
-                )
                 scheduleSurfaceReveal()
             }
 
@@ -851,10 +797,6 @@ class ExoPlayerView(
                 if (firstVideoFrameAtMs == 0L) {
                     firstVideoFrameAtMs = lastVideoFrameAtMs
                 }
-                logFullscreenVisualGate(
-                    "rendered_first_frame",
-                    "alreadyShowing=$alreadyShowingStableFrame resumeOverlay=$resumeOverlayVisible"
-                )
                 if (!alreadyShowingStableFrame) {
                     if (forceFullscreen && isFullscreenZoomSurfaceReady()) {
                         revealSurface(immediate = true)
@@ -1155,7 +1097,6 @@ class ExoPlayerView(
             "didRenderFirstFrame" to didRenderFirstFrame,
             "isPlayerReady" to isPlayerReady,
             "hasVideoSize" to hasVideoSize,
-            "hasStableSurfaceLayout" to hasStableSurfaceLayout,
             "isSoftHeld" to isSoftHeld,
             "stallRecoveries" to stallRecoveries,
             "bufferingEvents" to bufferingEvents,
@@ -1558,35 +1499,7 @@ class ExoPlayerView(
         }
     }
 
-    private fun logFullscreenVisualGate(source: String, extra: String = "") {
-        if (!forceFullscreen) return
-        val surface = playerView.videoSurfaceView
-        val positionMs = try {
-            player?.currentPosition ?: -1L
-        } catch (_: Throwable) {
-            -1L
-        }
-        val signal =
-            "source=$source surface=${surface?.javaClass?.simpleName ?: "none"} " +
-                "surface=${surface?.width ?: -1}x${surface?.height ?: -1} " +
-                "player=${playerView.width}x${playerView.height} " +
-                "container=${container.width}x${container.height} " +
-                "root=${container.rootView?.width ?: -1}x${container.rootView?.height ?: -1} " +
-                "alpha=${playerView.alpha} first=$didRenderFirstFrame " +
-                "videoSize=$hasVideoSize stableLayout=$hasStableSurfaceLayout " +
-                "passes=$stableSurfacePasses ready=$isPlayerReady " +
-                "playing=${player?.isPlaying == true} loading=${player?.isLoading == true} " +
-                "posMs=$positionMs url=${currentUrl ?: ""} $extra"
-        if (signal == lastFullscreenVisualGateSignal) return
-        lastFullscreenVisualGateSignal = signal
-        Log.d("TurqVisualGate", signal)
-    }
-
     private fun resetSurfaceVisibility(preserveLastFrame: Boolean = false) {
-        logFullscreenVisualGate(
-            "surface_visibility_reset",
-            "preserveLastFrame=$preserveLastFrame"
-        )
         if (!shouldUseResumeVisualChoreography()) {
             runOnMainBlocking {
                 pendingRevealRunnable?.let(handler::removeCallbacks)
@@ -1630,10 +1543,6 @@ class ExoPlayerView(
             didRenderFirstFrame || (hasVideoSize && isPlayerReady)
         } && isFullscreenZoomSurfaceReady()
         if (!canReveal) {
-            logFullscreenVisualGate(
-                "surface_reveal_wait",
-                "needsFresh=$needsFreshFrame playbackStarted=$playbackStarted"
-            )
             return
         }
         handler.post {
@@ -1648,23 +1557,14 @@ class ExoPlayerView(
                 forceFullscreen && !preferResumePoster -> 0L
                 preferResumePoster && didRenderFirstFrame -> 0L
                 didRenderFirstFrame -> 0L
-                hasStableSurfaceLayout -> 32L
                 else -> 120L
             }
-            logFullscreenVisualGate(
-                "surface_reveal_schedule",
-                "needsFresh=$needsFreshFrame playbackStarted=$playbackStarted delayMs=$revealDelayMs"
-            )
             handler.postDelayed(revealRunnable, revealDelayMs)
         }
     }
 
     private fun revealSurface(immediate: Boolean = false) {
         runOnMain {
-            logFullscreenVisualGate(
-                "surface_reveal_run",
-                "immediate=$immediate beforeAlpha=${playerView.alpha}"
-            )
             pendingRevealRunnable = null
             if (playerView.alpha < 1f) {
                 if (immediate || forceFullscreen || preferResumePoster) {

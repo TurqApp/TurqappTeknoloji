@@ -116,7 +116,6 @@ class _ClassicContentState extends State<ClassicContent>
     with
         PostContentBaseState<ClassicContent>,
         AutomaticKeepAliveClientMixin<ClassicContent> {
-  final PostRepository _postRepository = PostRepository.ensure();
   static const PostActionStyle _actionStyle = PostActionStyle(
     iconSize: 22,
     textStyle: TextStyle(
@@ -176,8 +175,7 @@ class _ClassicContentState extends State<ClassicContent>
   double get _classicPostCaptionFontSize =>
       _classicHeaderCaptionFontSize(AppTypography.postCaption.fontSize ?? 14);
 
-  double get _classicPostAttributionFontSize =>
-      _classicHeaderCaptionFontSize(
+  double get _classicPostAttributionFontSize => _classicHeaderCaptionFontSize(
         AppTypography.postAttribution.fontSize ?? 11,
       );
 

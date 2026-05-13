@@ -89,23 +89,11 @@ extension _AgendaContentMediaPart on _AgendaContentState {
       return [widget.model];
     }
 
-    final ids = candidates.map((p) => p.docID).toSet().toList();
-    final freshById = await PostRepository.ensure().fetchPostCardsByIds(
-      ids,
-      preferCache: true,
+    final tapped = candidates.firstWhere(
+      (p) => p.docID == widget.model.docID,
+      orElse: () => widget.model,
     );
-
-    final refreshed = candidates
-        .map((p) => freshById[p.docID] ?? p)
-        .where((p) =>
-            p.deletedPost == false &&
-            p.arsiv == false &&
-            p.gizlendi == false &&
-            p.hasPlayableVideo)
-        .toList();
-
-    final tapped = freshById[widget.model.docID] ?? widget.model;
-    final rest = refreshed.where((p) => p.docID != tapped.docID).toList()
+    final rest = candidates.where((p) => p.docID != tapped.docID).toList()
       ..shuffle();
 
     return [tapped, ...rest];
