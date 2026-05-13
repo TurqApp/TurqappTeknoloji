@@ -709,6 +709,11 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       final adapterValue = hlsAdapterHandle?.value;
       final hlsHandleAlreadyActivating = adapterValue != null &&
           (adapterValue.isPlaying || adapterValue.isBuffering);
+      final hlsActivatingWithoutFrame = adapterValue != null &&
+          hlsHandleAlreadyActivating &&
+          !adapterValue.hasRenderedFirstFrame &&
+          !adapterValue.hasVisibleVideoFrame &&
+          !adapterValue.isCompleted;
       final hlsActivationStalledBeforeFirstFrame = adapterValue != null &&
           !adapterValue.hasRenderedFirstFrame &&
           !adapterValue.hasVisibleVideoFrame &&
@@ -728,9 +733,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
                   !adapterValue.isPlaying &&
                   !adapterValue.isBuffering &&
                   !adapterValue.isCompleted);
+      final shouldForceResumeForActivatingHlsStall =
+          hlsActivatingWithoutFrame && attempt >= 2;
+      final shouldNudgeActivatingHlsSeek =
+          defaultTargetPlatform == TargetPlatform.android &&
+              docID.startsWith('feed:') &&
+              shouldForceResumeForActivatingHlsStall &&
+              adapterValue.position > Duration.zero &&
+              attempt == 4;
       if (!handle.isPlaying &&
-          (!hasMeaningfulProgress || shouldForceResumeForHlsStall) &&
-          !hlsHandleAlreadyActivating) {
+          (!hasMeaningfulProgress ||
+              shouldForceResumeForHlsStall ||
+              shouldForceResumeForActivatingHlsStall) &&
+          (!hlsHandleAlreadyActivating ||
+              shouldForceResumeForActivatingHlsStall)) {
         if (kDebugMode && hlsAdapterHandle != null) {
           debugPrint(
             '[FeedPlaybackProof] stage=pending_resume_play '
@@ -739,10 +755,32 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
             'firstFrame=${adapterValue?.hasRenderedFirstFrame ?? false} '
             'visibleFrame=${adapterValue?.hasVisibleVideoFrame ?? false} '
             'stalledBeforeFirstFrame=$hlsActivationStalledBeforeFirstFrame '
-            'stalledAfterVisualReady=$hlsActivationStalledAfterVisualReady',
+            'stalledAfterVisualReady=$hlsActivationStalledAfterVisualReady '
+            'forceActivatingStall=$shouldForceResumeForActivatingHlsStall',
           );
         }
-        _playbackExecutionService.resumeHandle(handle);
+        if (shouldNudgeActivatingHlsSeek) {
+          final nudgePosition = adapterValue.position;
+          if (kDebugMode) {
+            debugPrint(
+              '[FeedPlaybackProof] stage=pending_resume_seek_nudge '
+              'doc=$docID attempt=$attempt '
+              'positionMs=${nudgePosition.inMilliseconds}',
+            );
+          }
+          unawaited(
+            handle.seekTo(nudgePosition).then((_) {
+              if (requestSeq != _playRequestSeq) return;
+              if (_currentPlayingDocID != docID ||
+                  _targetPlaybackDocID != docID) {
+                return;
+              }
+              _playbackExecutionService.resumeHandle(handle);
+            }),
+          );
+        } else {
+          _playbackExecutionService.resumeHandle(handle);
+        }
       } else if (kDebugMode && hlsAdapterHandle != null) {
         debugPrint(
           '[FeedPlaybackProof] stage=pending_resume_skip '
@@ -752,15 +790,18 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           'firstFrame=${adapterValue?.hasRenderedFirstFrame ?? false} '
           'visibleFrame=${adapterValue?.hasVisibleVideoFrame ?? false} '
           'activating=$hlsHandleAlreadyActivating '
-          'force=$shouldForceResumeForHlsStall',
+          'force=$shouldForceResumeForHlsStall '
+          'activatingNoFrame=$hlsActivatingWithoutFrame',
         );
       }
       if (hlsAdapterHandle != null &&
-          !hlsAdapterHandle.value.hasRenderedFirstFrame &&
-          !hlsAdapterHandle.value.hasVisibleVideoFrame &&
-          !hlsAdapterHandle.value.isPlaying &&
-          !hlsAdapterHandle.value.isBuffering &&
-          hlsAdapterHandle.value.position <= Duration.zero &&
+          (((!hlsAdapterHandle.value.hasRenderedFirstFrame &&
+                      !hlsAdapterHandle.value.hasVisibleVideoFrame &&
+                      !hlsAdapterHandle.value.isPlaying &&
+                      !hlsAdapterHandle.value.isBuffering &&
+                      hlsAdapterHandle.value.position <= Duration.zero) ||
+                  hlsActivatingWithoutFrame) &&
+              !hlsAdapterHandle.value.isCompleted) &&
           !hlsAdapterHandle.value.isCompleted &&
           attempt < _videoStateManagerMaxPendingPlayRetries) {
         if (kDebugMode) {

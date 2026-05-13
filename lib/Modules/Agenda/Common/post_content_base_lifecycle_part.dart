@@ -431,6 +431,28 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_isReplayOverlayEnabled &&
         !replayRestartSettlingAtEnd &&
         reachedPlaybackEnd) {
+      if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) {
+        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+        _replayOverlayLatched = false;
+        _replayAdTailChecked = false;
+        _replayAdAvailableAtTail = false;
+        _replayAdVisible = false;
+        _replayButtonVisible = false;
+        _replayAdImpressionReceived = false;
+        _replayAdHideTimer?.cancel();
+        debugPrint(
+          '[FeedReplayTrace] stage=ignore_completed_inactive '
+          'doc=${widget.model.docID} '
+          'isCompleted=${v.isCompleted} '
+          'nearEnd=$reachedPlaybackEnd '
+          'isPlaying=${v.isPlaying} '
+          'positionMs=${v.position.inMilliseconds} '
+          'durationMs=${v.duration.inMilliseconds} '
+          'shouldPlay=${widget.shouldPlay} '
+          'surfaceAllowed=$_isSurfacePlaybackAllowed',
+        );
+        return;
+      }
       final shouldAutorestartCompletedPlayback = widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           !_manualPauseRequested &&

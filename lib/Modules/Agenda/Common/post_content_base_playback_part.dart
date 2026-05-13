@@ -37,6 +37,29 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (!_usesFeedPlaybackPolicy) return;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
     if (!value.isInitialized || value.isCompleted) return;
+    final remaining = value.duration > Duration.zero
+        ? value.duration - value.position
+        : Duration.zero;
+    final isReplayResetWindow = _isReplayOverlayEnabled &&
+        (_replayRestartPendingZero ||
+            _autoplayReplayInFlight ||
+            _replayOverlayLatched ||
+            _replayAdVisible ||
+            (remaining > Duration.zero &&
+                remaining <= const Duration(milliseconds: 500)));
+    if (isReplayResetWindow) {
+      _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+      debugPrint(
+        '[FeedReplayTrace] stage=skip_resume_sample_replay_reset '
+        'doc=${widget.model.docID} '
+        'positionMs=${value.position.inMilliseconds} '
+        'durationMs=${value.duration.inMilliseconds} '
+        'pendingZero=$_replayRestartPendingZero '
+        'adVisible=$_replayAdVisible '
+        'overlayLatched=$_replayOverlayLatched',
+      );
+      return;
+    }
     if (value.position <= PostContentBaseState._stableFramePositionThreshold) {
       return;
     }
