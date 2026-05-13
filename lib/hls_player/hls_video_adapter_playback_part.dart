@@ -146,14 +146,35 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performRecoverFrozenPlayback({
     required bool preservePosition,
+    required bool forcePreservePosition,
+    required bool playAfterSeek,
   }) async {
     if (_disposed) return;
     final shouldPreservePosition = preservePosition &&
-        !(defaultTargetPlatform == TargetPlatform.android &&
-            preferWarmPoolPause);
+        (forcePreservePosition ||
+            !(defaultTargetPlatform == TargetPlatform.android &&
+                preferWarmPoolPause));
     final resumeAt = shouldPreservePosition ? _value.position : Duration.zero;
     await _performStopPlayback(preserveFrameSnapshot: false);
     await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!shouldPreservePosition) {
+      _pendingSeek = null;
+      _value = HLSVideoValue(
+        isInitialized: _value.isInitialized,
+        isPlaying: false,
+        isBuffering: _viewReady,
+        isCompleted: false,
+        hasRenderedFirstFrame: false,
+        hasVisibleVideoFrame: false,
+        awaitingFreshFrameAfterReattach: false,
+        position: Duration.zero,
+        duration: _value.duration,
+        size: _value.size,
+        aspectRatio: _value.aspectRatio,
+        buffered: const [],
+      );
+      _notifyAdapterListeners();
+    }
     if (resumeAt > Duration.zero) {
       _pendingSeek = resumeAt;
     }
@@ -165,7 +186,7 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
       await _hls.loadVideoWithFallback(
         url,
         fallbackUrl: _fallbackUrl,
-        autoPlay: true,
+        autoPlay: !playAfterSeek,
         loop: loop,
         debugSource: 'adapter.recoverFrozen.directLoad',
       );

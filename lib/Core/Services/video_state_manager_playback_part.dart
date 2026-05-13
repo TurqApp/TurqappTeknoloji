@@ -12,6 +12,87 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return null;
   }
 
+  bool _isAndroidFeedStyleResumeKey(String docID) {
+    if (defaultTargetPlatform != TargetPlatform.android) return false;
+    final trimmed = docID.trim();
+    return trimmed.startsWith('feed:') ||
+        trimmed.startsWith('social_post_') ||
+        trimmed.startsWith('social_reshare_');
+  }
+
+  bool _isAndroidFeedResumeRecoverActive(String docID) {
+    final key = docID.trim();
+    if (key.isEmpty) return false;
+    final until = _androidFeedResumeRecoverUntil[key];
+    if (until == null) return false;
+    if (DateTime.now().isBefore(until)) return true;
+    _androidFeedResumeRecoverUntil.remove(key);
+    return false;
+  }
+
+  void _markAndroidFeedResumeRecover(
+    String docID, {
+    required int requestSeq,
+    required int attempt,
+    required Duration position,
+  }) {
+    if (!_isAndroidFeedStyleResumeKey(docID)) return;
+    _androidFeedResumeRecoverUntil[docID.trim()] = DateTime.now().add(
+      const Duration(milliseconds: 1800),
+    );
+    debugPrint(
+      '[FeedPlaybackProof] stage=pending_resume_recover_lock '
+      'doc=$docID attempt=$attempt requestSeq=$requestSeq '
+      'positionMs=${position.inMilliseconds}',
+    );
+  }
+
+  void _clearAndroidFeedResumeRecover(String docID, String reason) {
+    final key = docID.trim();
+    if (key.isEmpty) return;
+    if (_androidFeedResumeRecoverUntil.remove(key) == null) return;
+    debugPrint(
+      '[FeedPlaybackProof] stage=pending_resume_recover_unlock '
+      'doc=$docID reason=$reason',
+    );
+  }
+
+  bool _suppressDuplicateAndroidFeedResumeRequest(
+    String docID, {
+    required String source,
+  }) {
+    if (!_isAndroidFeedResumeRecoverActive(docID)) return false;
+    if (_currentPlayingDocID != docID || _targetPlaybackDocID != docID) {
+      return false;
+    }
+    debugPrint(
+      '[FeedPlaybackProof] stage=pending_resume_recover_suppress '
+      'source=$source doc=$docID requestSeq=$_playRequestSeq',
+    );
+    return true;
+  }
+
+  String? _activeOtherAndroidFeedResumeKey(String docID) {
+    if (!_isAndroidFeedStyleResumeKey(docID)) return null;
+    final currentHandle = _allVideoControllers[docID];
+    for (final entry in _allVideoControllers.entries) {
+      final key = entry.key.trim();
+      if (key == docID) continue;
+      if (!_isAndroidFeedStyleResumeKey(key)) continue;
+      final handle = entry.value;
+      if (currentHandle != null &&
+          targetsSamePlaybackResource(currentHandle, handle)) {
+        continue;
+      }
+      if (handle is! HLSAdapterPlaybackHandle) continue;
+      final value = handle.adapter.value;
+      if (value.isPlaying && !value.isCompleted) {
+        return key;
+      }
+    }
+    return null;
+  }
+
   bool _shouldStopPlaybackForHiddenHandle(String controllerKey) {
     if (defaultTargetPlatform != TargetPlatform.android) {
       return true;
@@ -650,6 +731,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pendingPlayTimer?.cancel();
     final isIosFeedPlayback = defaultTargetPlatform == TargetPlatform.iOS &&
         docID.startsWith('feed:');
+    final isAndroidFeedStylePlayback = _isAndroidFeedStyleResumeKey(docID);
     final resumeDelay = isIosFeedPlayback && attempt == 0
         ? Duration.zero
         : _videoStateManagerPlayResumeDelay;
@@ -735,12 +817,21 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
                   !adapterValue.isCompleted);
       final shouldForceResumeForActivatingHlsStall =
           hlsActivatingWithoutFrame && attempt >= 2;
-      final shouldNudgeActivatingHlsSeek =
-          defaultTargetPlatform == TargetPlatform.android &&
-              docID.startsWith('feed:') &&
+      final shouldNudgeActivatingHlsSeek = isAndroidFeedStylePlayback &&
+          shouldForceResumeForActivatingHlsStall &&
+          adapterValue.position > Duration.zero &&
+          attempt == 4;
+      final shouldRecoverActivatingHlsReload = isAndroidFeedStylePlayback &&
+          hlsAdapterHandle != null &&
+          shouldForceResumeForActivatingHlsStall &&
+          attempt == 5;
+      final shouldRestartAndroidFeedResumeFromZero =
+          isAndroidFeedStylePlayback &&
+              hlsAdapterHandle != null &&
               shouldForceResumeForActivatingHlsStall &&
               adapterValue.position > Duration.zero &&
-              attempt == 4;
+              attempt == 8;
+      var issuedRecoveringReload = false;
       if (!handle.isPlaying &&
           (!hasMeaningfulProgress ||
               shouldForceResumeForHlsStall ||
@@ -778,6 +869,119 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               _playbackExecutionService.resumeHandle(handle);
             }),
           );
+        } else if (shouldRestartAndroidFeedResumeFromZero) {
+          issuedRecoveringReload = true;
+          _clearAndroidFeedResumeRecover(docID, 'restart_zero');
+          _videoStates.remove(docID);
+          if (kDebugMode) {
+            debugPrint(
+              '[FeedPlaybackProof] stage=pending_resume_restart_zero '
+              'doc=$docID attempt=$attempt '
+              'stalledPositionMs=${adapterValue.position.inMilliseconds}',
+            );
+          }
+          unawaited(
+            hlsAdapterHandle
+                .recoverFrozenPlayback(
+              preservePosition: false,
+              playAfterSeek: false,
+            )
+                .then((_) {
+              if (requestSeq != _playRequestSeq) return;
+              if (_currentPlayingDocID != docID ||
+                  _targetPlaybackDocID != docID) {
+                return;
+              }
+              _playbackExecutionService.resumeHandle(handle);
+              Future<void>.delayed(const Duration(milliseconds: 400), () {
+                if (requestSeq != _playRequestSeq) return;
+                if (_currentPlayingDocID != docID ||
+                    _targetPlaybackDocID != docID) {
+                  return;
+                }
+                final latest = _allVideoControllers[docID];
+                final latestAdapter = latest is HLSAdapterPlaybackHandle
+                    ? latest.adapter.value
+                    : null;
+                final recovered = latestAdapter == null ||
+                    latestAdapter.isPlaying ||
+                    latestAdapter.hasRenderedFirstFrame ||
+                    latestAdapter.hasVisibleVideoFrame;
+                if (recovered) return;
+                _schedulePendingPlayResume(
+                  docID,
+                  requestSeq,
+                  attempt: attempt + 1,
+                );
+              });
+            }),
+          );
+        } else if (shouldRecoverActivatingHlsReload) {
+          issuedRecoveringReload = true;
+          final recoverPosition = adapterValue.position;
+          _markAndroidFeedResumeRecover(
+            docID,
+            requestSeq: requestSeq,
+            attempt: attempt,
+            position: recoverPosition,
+          );
+          if (kDebugMode) {
+            debugPrint(
+              '[FeedPlaybackProof] stage=pending_resume_recover_reload '
+              'doc=$docID attempt=$attempt '
+              'positionMs=${recoverPosition.inMilliseconds}',
+            );
+          }
+          unawaited(
+            hlsAdapterHandle
+                .recoverFrozenPlayback(
+              preservePosition: true,
+              forcePreservePosition: true,
+              playAfterSeek: true,
+            )
+                .then((_) {
+              if (requestSeq != _playRequestSeq) return;
+              if (_currentPlayingDocID != docID ||
+                  _targetPlaybackDocID != docID) {
+                return;
+              }
+              _playbackExecutionService.resumeHandle(handle);
+              Future<void>.delayed(const Duration(milliseconds: 650), () {
+                if (requestSeq != _playRequestSeq) return;
+                if (_currentPlayingDocID != docID ||
+                    _targetPlaybackDocID != docID) {
+                  _clearAndroidFeedResumeRecover(docID, 'target_changed');
+                  return;
+                }
+                final latest = _allVideoControllers[docID];
+                final latestAdapter = latest is HLSAdapterPlaybackHandle
+                    ? latest.adapter.value
+                    : null;
+                final recovered = latestAdapter == null ||
+                    latestAdapter.isPlaying ||
+                    latestAdapter.hasRenderedFirstFrame ||
+                    latestAdapter.hasVisibleVideoFrame;
+                if (recovered) {
+                  _clearAndroidFeedResumeRecover(docID, 'visual_ready');
+                  return;
+                }
+                final otherPlaying = _activeOtherAndroidFeedResumeKey(docID);
+                if (otherPlaying != null) {
+                  debugPrint(
+                    '[FeedPlaybackProof] stage=pending_resume_stale_abort '
+                    'doc=$docID other=$otherPlaying requestSeq=$requestSeq',
+                  );
+                  _clearAndroidFeedResumeRecover(docID, 'other_feed_playing');
+                  return;
+                }
+                _schedulePendingPlayResume(
+                  docID,
+                  requestSeq,
+                  attempt: attempt + 1,
+                );
+              });
+            }),
+          );
         } else {
           _playbackExecutionService.resumeHandle(handle);
         }
@@ -795,6 +999,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
         );
       }
       if (hlsAdapterHandle != null &&
+          !issuedRecoveringReload &&
           (((!hlsAdapterHandle.value.hasRenderedFirstFrame &&
                       !hlsAdapterHandle.value.hasVisibleVideoFrame &&
                       !hlsAdapterHandle.value.isPlaying &&
@@ -804,6 +1009,15 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               !hlsAdapterHandle.value.isCompleted) &&
           !hlsAdapterHandle.value.isCompleted &&
           attempt < _videoStateManagerMaxPendingPlayRetries) {
+        final otherPlaying = _activeOtherAndroidFeedResumeKey(docID);
+        if (otherPlaying != null) {
+          debugPrint(
+            '[FeedPlaybackProof] stage=pending_resume_stale_abort '
+            'doc=$docID other=$otherPlaying attempt=$attempt',
+          );
+          _clearAndroidFeedResumeRecover(docID, 'other_feed_playing');
+          return;
+        }
         if (kDebugMode) {
           debugPrint(
             '[FeedPlaybackProof] stage=pending_resume_retry '
@@ -823,6 +1037,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _playOnlyThis(String docID) {
+    if (_suppressDuplicateAndroidFeedResumeRequest(
+      docID,
+      source: 'play_only_this',
+    )) {
+      return;
+    }
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
 
@@ -869,6 +1089,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _reassertOnlyThis(String docID) {
+    if (_suppressDuplicateAndroidFeedResumeRequest(
+      docID,
+      source: 'reassert_only_this',
+    )) {
+      return;
+    }
     if (_exclusiveMode && _exclusiveDocID != null && _exclusiveDocID != docID) {
       return;
     }
@@ -903,6 +1129,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }
 
   void _requestPlayVideo(String docID, PlaybackHandle handle) {
+    if (_suppressDuplicateAndroidFeedResumeRequest(
+      docID,
+      source: 'request_play',
+    )) {
+      return;
+    }
     _playRequestSeq++;
     final int requestSeq = _playRequestSeq;
     final previous = _allVideoControllers[docID];

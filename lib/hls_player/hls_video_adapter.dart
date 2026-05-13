@@ -126,9 +126,13 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   Future<void> recoverFrozenPlayback({
     bool preservePosition = true,
+    bool forcePreservePosition = false,
+    bool playAfterSeek = false,
   }) =>
       _performRecoverFrozenPlayback(
         preservePosition: preservePosition,
+        forcePreservePosition: forcePreservePosition,
+        playAfterSeek: playAfterSeek,
       );
 
   HLSVideoAdapter({
