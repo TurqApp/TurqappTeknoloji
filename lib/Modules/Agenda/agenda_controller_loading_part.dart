@@ -2795,8 +2795,33 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (consumedDocIds.isEmpty && consumedFloodRootIds.isEmpty) {
       return items;
     }
+    final preservedDocIds = <String>{};
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      void preservePlaybackKey(String? key) {
+        final trimmed = key?.trim() ?? '';
+        if (!trimmed.startsWith('feed:')) return;
+        final docId = trimmed.substring('feed:'.length).trim();
+        if (docId.isNotEmpty) preservedDocIds.add(docId);
+      }
+
+      void preserveIndex(int? index) {
+        if (index == null || index < 0 || index >= agendaList.length) return;
+        final docId = agendaList[index].docID.trim();
+        if (docId.isNotEmpty) preservedDocIds.add(docId);
+      }
+
+      preservePlaybackKey(VideoStateManager.instance.currentPlayingDocID);
+      preservePlaybackKey(VideoStateManager.instance.targetPlaybackDocID);
+      preserveIndex(centeredIndex.value);
+      preserveIndex(lastCenteredIndex);
+      final pendingDocId = _pendingCenteredDocId?.trim() ?? '';
+      if (pendingDocId.isNotEmpty) preservedDocIds.add(pendingDocId);
+    }
     return items.where((post) {
       final docId = post.docID.trim();
+      if (preservedDocIds.contains(docId)) {
+        return true;
+      }
       if (docId.isNotEmpty && consumedDocIds.contains(docId)) {
         return false;
       }
