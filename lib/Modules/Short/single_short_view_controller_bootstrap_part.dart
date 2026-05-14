@@ -132,16 +132,7 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
         behindCount: 0,
         aheadCount: 5,
       );
-      if (usesInjectedInitialPlayback) {
-        Future<void>.delayed(const Duration(milliseconds: 900), () {
-          if (!mounted) return;
-          if (currentPage != initial) return;
-          if (list.isEmpty || initial < 0 || initial >= list.length) return;
-          _preloadRange(initial);
-        });
-      } else {
-        _preloadRange(initial);
-      }
+      _preloadRange(initial);
     }
     _renderedShorts = List<PostsModel>.from(list);
   }
