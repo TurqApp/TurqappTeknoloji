@@ -90,11 +90,12 @@ class NotificationService {
       _bgRegistered = true;
     }
     try {
-      await _requestPermission();
       await _configureForegroundPresentation();
       await setupFlutterNotifications();
       _bindTokenSyncListeners();
-      await _syncCurrentToken();
+      if (_canUseNotifications(await _messaging.getNotificationSettings())) {
+        await _syncCurrentToken();
+      }
       _setupMessageHandlers();
       _initialized = true;
     } finally {

@@ -66,19 +66,8 @@ extension _SocialProfileHeaderActionsPart on _SocialProfileState {
 
   Future<void> _onPostNotificationPressed() async {
     if (controller.postNotificationsLoading.value) return;
-    final messaging = AppFirebaseMessaging.instance;
-    var settings = await messaging.getNotificationSettings();
-    if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
-      settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
-    }
     final canNotify =
-        settings.authorizationStatus == AuthorizationStatus.authorized ||
-            settings.authorizationStatus == AuthorizationStatus.provisional;
+        await NotificationService.instance.ensureUserNotificationPermission();
     if (!canNotify) {
       await _showPostNotificationPermissionDialog();
       return;

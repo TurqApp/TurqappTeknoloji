@@ -10,10 +10,12 @@ extension _PermissionDetailActionsPart on _PermissionDetailViewState {
       final mustOpenSettings =
           _status.isPermanentlyDenied || _status.isRestricted;
       if (canDirectRequest && !_enabled && !mustOpenSettings) {
-        final next = await IntegrationPermissionTestHarness.request(
-          widget.item.permission,
-          permissionId: _permissionId(widget.item.permission),
-        );
+        final next = widget.item.permission == Permission.notification
+            ? await _requestNotificationPermission()
+            : await IntegrationPermissionTestHarness.request(
+                widget.item.permission,
+                permissionId: _permissionId(widget.item.permission),
+              );
         _updatePermissionDetailState(() => _status = next);
       } else {
         final shouldOpen = await _confirmOpenSettings();
@@ -24,6 +26,11 @@ extension _PermissionDetailActionsPart on _PermissionDetailViewState {
     } finally {
       _updatePermissionDetailState(() => _busy = false);
     }
+  }
+
+  Future<PermissionStatus> _requestNotificationPermission() async {
+    await NotificationService.instance.ensureUserNotificationPermission();
+    return Permission.notification.status;
   }
 
   Future<bool> _confirmOpenSettings() async {

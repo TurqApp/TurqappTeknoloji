@@ -69,7 +69,7 @@ extension MessageContentBodyParts on MessageContent {
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: controller.addContact,
+          onTap: GetPlatform.isIOS ? null : controller.addContact,
           onTapDown: _captureTapDown,
           onLongPressStart: _openMenuFromLongPressStart,
           child: Container(
@@ -110,25 +110,26 @@ extension MessageContentBodyParts on MessageContent {
                       SizedBox(
                         height: 3,
                       ),
-                      TextButton(
-                        onPressed: () {
-                          controller.addContact();
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero, // İç boşluk yok
-                          minimumSize: Size(0, 0), // Minimum boyut 0
-                          tapTargetSize: MaterialTapTargetSize
-                              .shrinkWrap, // Tıklama alanını küçült
-                        ),
-                        child: Text(
-                          "Rehbere Ekle",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 13,
-                            fontFamily: "Montserrat",
+                      if (!GetPlatform.isIOS)
+                        TextButton(
+                          onPressed: () {
+                            controller.addContact();
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero, // İç boşluk yok
+                            minimumSize: Size(0, 0), // Minimum boyut 0
+                            tapTargetSize: MaterialTapTargetSize
+                                .shrinkWrap, // Tıklama alanını küçült
+                          ),
+                          child: Text(
+                            "Rehbere Ekle",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 13,
+                              fontFamily: "Montserrat",
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   )
                 ],

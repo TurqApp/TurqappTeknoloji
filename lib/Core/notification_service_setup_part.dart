@@ -49,13 +49,34 @@ extension NotificationServiceSetupPart on NotificationService {
     }
   }
 
-  Future<void> _requestPermission() async {
-    await _messaging.requestPermission(
+  Future<bool> ensureUserNotificationPermission() async {
+    await setupFlutterNotifications();
+    var settings = await _messaging.getNotificationSettings();
+    if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
+      settings = await _requestPermission();
+    }
+    if (!_canUseNotifications(settings)) {
+      return false;
+    }
+    await _configureForegroundPresentation();
+    _bindTokenSyncListeners();
+    await _syncCurrentToken();
+    _setupMessageHandlers();
+    return true;
+  }
+
+  Future<NotificationSettings> _requestPermission() {
+    return _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
       provisional: false,
     );
+  }
+
+  bool _canUseNotifications(NotificationSettings settings) {
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
   }
 
   Future<void> _configureForegroundPresentation() async {

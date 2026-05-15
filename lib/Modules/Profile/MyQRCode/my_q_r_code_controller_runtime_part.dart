@@ -77,8 +77,7 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
   }
 
   String _buildProfileLink({String? nicknameSlug}) {
-    final nickname =
-        nicknameSlug ?? normalizeProfileSlug(headerNickname.value);
+    final nickname = nicknameSlug ?? normalizeProfileSlug(headerNickname.value);
     if (nickname.isNotEmpty) {
       return buildTurqAppProfileUrl(nickname);
     }
@@ -156,11 +155,11 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
   }
 
   Future<void> downloadQRCode() async {
-    final isAndroid13OrAbove = Platform.isAndroid;
-
     PermissionStatus status;
 
-    if (isAndroid13OrAbove) {
+    if (Platform.isIOS) {
+      status = await Permission.photosAddOnly.request();
+    } else if (Platform.isAndroid) {
       status = await Permission.photos.request();
     } else {
       status = await Permission.storage.request();

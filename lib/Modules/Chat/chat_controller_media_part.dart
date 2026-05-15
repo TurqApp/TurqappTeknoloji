@@ -768,6 +768,9 @@ extension ChatControllerMediaPart on ChatController {
   }
 
   Future<void> selectContact() async {
+    if (Platform.isIOS) {
+      return;
+    }
     if (!await FlutterContacts.requestPermission()) {
       return;
     }

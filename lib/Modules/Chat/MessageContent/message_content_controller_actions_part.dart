@@ -162,6 +162,9 @@ extension MessageContentControllerActionsPart on MessageContentController {
   }
 
   Future<void> addContact() async {
+    if (Platform.isIOS) {
+      return;
+    }
     await ContactAdd.addContact(
       Contact(
         firstname: model.kisiAdSoyad,

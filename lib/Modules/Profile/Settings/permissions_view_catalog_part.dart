@@ -48,15 +48,16 @@ extension _PermissionsViewCatalogPart on _PermissionsViewState {
           helpSheetBody2: 'permissions.item.camera.help_sheet_body2'.tr,
           helpSheetLinkText: 'permissions.item.camera.help_sheet_link'.tr,
         ),
-        _PermissionItem(
-          title: 'permissions.item.contacts.title'.tr,
-          permission: Permission.contacts,
-          accessText: 'permissions.item.contacts.access'.tr,
-          helpText: 'permissions.item.contacts.help_text'.tr,
-          helpSheetTitle: 'permissions.item.contacts.help_sheet_title'.tr,
-          helpSheetBody: 'permissions.item.contacts.help_sheet_body'.tr,
-          helpSheetLinkText: 'permissions.item.contacts.help_sheet_link'.tr,
-        ),
+        if (!GetPlatform.isIOS)
+          _PermissionItem(
+            title: 'permissions.item.contacts.title'.tr,
+            permission: Permission.contacts,
+            accessText: 'permissions.item.contacts.access'.tr,
+            helpText: 'permissions.item.contacts.help_text'.tr,
+            helpSheetTitle: 'permissions.item.contacts.help_sheet_title'.tr,
+            helpSheetBody: 'permissions.item.contacts.help_sheet_body'.tr,
+            helpSheetLinkText: 'permissions.item.contacts.help_sheet_link'.tr,
+          ),
         _PermissionItem(
           title: 'permissions.item.location.title'.tr,
           permission: Permission.locationWhenInUse,
