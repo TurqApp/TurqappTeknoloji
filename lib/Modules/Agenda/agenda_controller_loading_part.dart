@@ -2525,6 +2525,7 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   Future<void> refreshAgenda({
     bool forceNewLaunchSession = false,
+    bool preservePlaybackTarget = true,
   }) async {
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
@@ -2580,6 +2581,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       await _refreshAgendaFromLiveSource(
         refreshEpoch: refreshEpoch,
         forceNewLaunchSession: forceNewLaunchSession,
+        preservePlaybackTarget: preservePlaybackTarget,
       );
       _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
@@ -2601,9 +2603,17 @@ extension AgendaControllerLoadingPart on AgendaController {
     return refreshAgenda(forceNewLaunchSession: true);
   }
 
+  Future<void> refreshAgendaFromTabReturn() {
+    return refreshAgenda(
+      forceNewLaunchSession: true,
+      preservePlaybackTarget: false,
+    );
+  }
+
   Future<void> _refreshAgendaFromLiveSource({
     required int refreshEpoch,
     bool forceNewLaunchSession = false,
+    bool preservePlaybackTarget = true,
   }) async {
     if (isLoading.value) return;
 
@@ -2677,22 +2687,25 @@ extension AgendaControllerLoadingPart on AgendaController {
               liveItemsPreplanned: page.itemsPreplanned,
             );
       final filteredMergedAgenda = _filterConsumedAgendaPosts(mergedAgenda);
-      final currentCenteredDocId = (() {
-        final currentCentered = centeredIndex.value;
-        if (currentCentered >= 0 && currentCentered < previousAgenda.length) {
-          final docId = previousAgenda[currentCentered].docID.trim();
-          if (docId.isNotEmpty) return docId;
-        }
-        final lastCentered = lastCenteredIndex;
-        if (lastCentered != null &&
-            lastCentered >= 0 &&
-            lastCentered < previousAgenda.length) {
-          final docId = previousAgenda[lastCentered].docID.trim();
-          if (docId.isNotEmpty) return docId;
-        }
-        final pendingDocId = _pendingCenteredDocId?.trim() ?? '';
-        return pendingDocId.isEmpty ? null : pendingDocId;
-      })();
+      final currentCenteredDocId = preservePlaybackTarget
+          ? (() {
+              final currentCentered = centeredIndex.value;
+              if (currentCentered >= 0 &&
+                  currentCentered < previousAgenda.length) {
+                final docId = previousAgenda[currentCentered].docID.trim();
+                if (docId.isNotEmpty) return docId;
+              }
+              final lastCentered = lastCenteredIndex;
+              if (lastCentered != null &&
+                  lastCentered >= 0 &&
+                  lastCentered < previousAgenda.length) {
+                final docId = previousAgenda[lastCentered].docID.trim();
+                if (docId.isNotEmpty) return docId;
+              }
+              final pendingDocId = _pendingCenteredDocId?.trim() ?? '';
+              return pendingDocId.isEmpty ? null : pendingDocId;
+            })()
+          : null;
       final preservedRefreshTargetIndex = currentCenteredDocId == null
           ? -1
           : filteredMergedAgenda.indexWhere(
@@ -2751,7 +2764,8 @@ extension AgendaControllerLoadingPart on AgendaController {
           'preservedIndex=$preservedRefreshTargetIndex '
           'fallbackIndex=$fallbackRefreshTargetIndex '
           'targetIndex=$refreshTargetIndex '
-          'targetDocId=${refreshTargetDocId ?? ''}',
+          'targetDocId=${refreshTargetDocId ?? ''} '
+          'preservePlaybackTarget=$preservePlaybackTarget',
         );
         _pendingCenteredDocId = refreshTargetDocId;
         _startupLockedFeedDocId = refreshTargetDocId;

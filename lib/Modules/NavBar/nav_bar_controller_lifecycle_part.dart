@@ -248,7 +248,7 @@ extension _NavBarControllerLifecyclePart on NavBarController {
           profileIndex: tabLayout.profileIndex,
         );
         if (index == 0) {
-          _resumeFeedIfNeededImpl();
+          _refreshFeedForTabReturnImpl(previousIndex: previous);
         }
       });
     }
@@ -302,6 +302,32 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     try {
       maybeFindAgendaController()?.resumePlaybackAfterOverlay();
     } catch (_) {}
+  }
+
+  void _refreshFeedForTabReturnImpl({required int previousIndex}) {
+    if (mediaOverlayActive) return;
+    final agenda = maybeFindAgendaController();
+    if (agenda == null) {
+      _resumeFeedIfNeededImpl();
+      return;
+    }
+    debugPrint(
+      '[FeedTabReturnRefresh] status=start previous=$previousIndex target=0',
+    );
+    unawaited(
+      agenda.refreshAgendaFromTabReturn().then((_) {
+        _resumeFeedIfNeededImpl();
+        debugPrint(
+          '[FeedTabReturnRefresh] status=done previous=$previousIndex target=0',
+        );
+      }).catchError((Object error) {
+        _resumeFeedIfNeededImpl();
+        debugPrint(
+          '[FeedTabReturnRefresh] status=error previous=$previousIndex '
+          'target=0 error=$error',
+        );
+      }),
+    );
   }
 
   bool _hasFeedPlaybackOwnerImpl() {
