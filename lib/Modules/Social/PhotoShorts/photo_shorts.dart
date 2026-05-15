@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_short_content.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts_controller.dart';
+import 'package:turqappv2/main.dart';
 
 class PhotoShorts extends StatefulWidget {
   final List<PostsModel> fetchedList;
@@ -24,6 +25,7 @@ class _PhotoShortsState extends State<PhotoShorts> {
   @override
   void initState() {
     super.initState();
+    setFilteredSystemNavigationSurface(true);
     _controllerTag = 'PhotoShorts_${identityHashCode(this)}';
     _ownsController =
         maybeFindPhotoShortsController(tag: _controllerTag) == null;
@@ -50,6 +52,7 @@ class _PhotoShortsState extends State<PhotoShorts> {
 
   @override
   void dispose() {
+    setFilteredSystemNavigationSurface(false);
     pageController.dispose();
     if (_ownsController &&
         identical(

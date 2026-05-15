@@ -354,11 +354,13 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   @override
   void initState() {
     super.initState();
+    setFilteredSystemNavigationSurface(true);
     _initializeSingleShortView();
   }
 
   @override
   void dispose() {
+    setFilteredSystemNavigationSurface(false);
     _disposeSingleShortView();
     super.dispose();
   }

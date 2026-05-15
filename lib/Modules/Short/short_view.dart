@@ -581,6 +581,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   @override
   void initState() {
     super.initState();
+    setFilteredSystemNavigationSurface(true);
     controller.setShortRouteVisible(true);
     unawaited(
         UserAnalyticsService.instance.trackFeatureUsage('short_view_open'));
@@ -720,6 +721,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   @override
   void dispose() {
+    setFilteredSystemNavigationSurface(false);
     controller.setShortRouteVisible(false);
     _scrollDebounce?.cancel();
     _playDebounce?.cancel();

@@ -35,7 +35,10 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
 const String _appCheckDebugToken =
     String.fromEnvironment('TURQ_APP_CHECK_DEBUG_TOKEN');
-const Color _systemNavigationSurfaceColor = Color(0xFFF7F7F7);
+const Color _systemNavigationSurfaceColor = Color(0xE0FFFFFF);
+const Color _filteredSystemNavigationSurfaceColor = Color(0x66000000);
+final ValueNotifier<bool> _useFilteredSystemNavigationSurface =
+    ValueNotifier<bool>(false);
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -134,13 +137,38 @@ Future<void> main() async {
   // Ilk frame sonrasi yalnizca sistem UI ayarlari.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: _systemNavigationSurfaceColor,
-      systemNavigationBarIconBrightness: Brightness.dark,
-      systemNavigationBarContrastEnforced: false,
-    ));
+    setFilteredSystemNavigationSurface(
+      _useFilteredSystemNavigationSurface.value,
+    );
   });
+}
+
+bool _isFilteredSystemNavigationRoute(String route) {
+  final normalized = route.toLowerCase();
+  return normalized.contains('shortview') ||
+      normalized.contains('singleshortview') ||
+      normalized.contains('photoshorts');
+}
+
+SystemUiOverlayStyle _systemOverlayStyleForVideoSurface(bool filtered) {
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: filtered ? Brightness.light : Brightness.dark,
+    statusBarBrightness: filtered ? Brightness.dark : Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness:
+        filtered ? Brightness.light : Brightness.dark,
+    systemNavigationBarContrastEnforced: false,
+  );
+}
+
+void setFilteredSystemNavigationSurface(bool filtered) {
+  if (_useFilteredSystemNavigationSurface.value != filtered) {
+    _useFilteredSystemNavigationSurface.value = filtered;
+  }
+  SystemChrome.setSystemUIOverlayStyle(
+    _systemOverlayStyleForVideoSurface(filtered),
+  );
 }
 
 void _scheduleFeedManifestWarmOnAppLaunch() {
@@ -354,6 +382,9 @@ class MyApp extends StatelessWidget {
         if (routing == null) return;
         final current = routing.current;
         final previous = routing.previous;
+        final useFilteredSystemNavigation =
+            _isFilteredSystemNavigationRoute(current);
+        setFilteredSystemNavigationSurface(useFilteredSystemNavigation);
         if (current == previous) return;
         recordQALabRouteChange(
           current: current,
@@ -500,17 +531,10 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
         ),
-        appBarTheme: const AppBarTheme(
+        appBarTheme: AppBarTheme(
           centerTitle: false,
           titleSpacing: 8,
-          systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
-            statusBarBrightness: Brightness.light,
-            systemNavigationBarColor: _systemNavigationSurfaceColor,
-            systemNavigationBarIconBrightness: Brightness.dark,
-            systemNavigationBarContrastEnforced: false,
-          ),
+          systemOverlayStyle: _systemOverlayStyleForVideoSurface(false),
         ),
       ),
       builder: (ctx, child) {
@@ -528,51 +552,79 @@ class MyApp extends StatelessWidget {
             padding: adjustedPadding,
             viewPadding: adjustedViewPadding,
           ),
-          child: AnnotatedRegion<SystemUiOverlayStyle>(
-            value: const SystemUiOverlayStyle(
-              statusBarColor: Colors.transparent,
-              statusBarIconBrightness: Brightness.dark,
-              statusBarBrightness: Brightness.light,
-              systemNavigationBarColor: _systemNavigationSurfaceColor,
-              systemNavigationBarIconBrightness: Brightness.dark,
-              systemNavigationBarContrastEnforced: false,
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      height: adjustedViewPadding.top,
-                      color: Colors.white,
-                    ),
-                  ),
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _useFilteredSystemNavigationSurface,
+            builder: (context, useFilteredSystemNavigation, _) {
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: _systemOverlayStyleForVideoSurface(
+                  useFilteredSystemNavigation,
                 ),
-                GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  },
-                  child: child ?? const SplashView(),
-                ),
-                if (mq.viewPadding.bottom > 0)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: mq.viewPadding.bottom,
-                    child: const IgnorePointer(
-                      child: ColoredBox(color: _systemNavigationSurfaceColor),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          height: adjustedViewPadding.top,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
-            ),
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                      child: child ?? const SplashView(),
+                    ),
+                    if (mq.viewPadding.bottom > 0)
+                      _SystemNavigationSurface(
+                        height: mq.viewPadding.bottom,
+                        filtered: useFilteredSystemNavigation,
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         );
       },
       home: const SplashView(),
+    );
+  }
+}
+
+class _SystemNavigationSurface extends StatelessWidget {
+  const _SystemNavigationSurface({
+    required this.height,
+    required this.filtered,
+  });
+
+  final double height;
+  final bool filtered;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = filtered
+        ? _filteredSystemNavigationSurfaceColor
+        : _systemNavigationSurfaceColor;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      height: height,
+      child: IgnorePointer(
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: ColoredBox(
+              color: color,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

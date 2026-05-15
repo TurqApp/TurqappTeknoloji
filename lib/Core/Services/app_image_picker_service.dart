@@ -32,12 +32,6 @@ class AppImagePickerService {
   }
 
   static Future<File?> pickSingleImage(BuildContext context) async {
-    if (Platform.isAndroid) {
-      final photoStatus = await Permission.photos.request();
-      if (photoStatus.isDenied || photoStatus.isPermanentlyDenied) {
-        return null;
-      }
-    }
     final picked = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
