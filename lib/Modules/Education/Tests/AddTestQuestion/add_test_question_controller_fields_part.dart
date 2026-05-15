@@ -18,7 +18,6 @@ class _AddTestQuestionControllerState {
   final selection = 5.obs;
   final selections = ['A'].obs;
   final isLoading = true.obs;
-  final picker = ImagePicker();
   final testRepository = ensureTestRepository();
 }
 
@@ -33,6 +32,5 @@ extension AddTestQuestionControllerFieldsPart on AddTestQuestionController {
   RxInt get selection => _state.selection;
   RxList<String> get selections => _state.selections;
   RxBool get isLoading => _state.isLoading;
-  ImagePicker get picker => _state.picker;
   TestRepository get _testRepository => _state.testRepository;
 }

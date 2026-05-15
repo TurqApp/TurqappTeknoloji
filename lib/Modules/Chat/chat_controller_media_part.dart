@@ -141,14 +141,17 @@ extension ChatControllerMediaPart on ChatController {
       selection.value = 1;
       return;
     }
-    final XFile? pickedFile =
-        await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-    if (pickedFile == null) {
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final file = await AppImagePickerService.pickSingleImage(
+      ctx,
+      source: ImageSource.camera,
+    );
+    if (file == null) {
       _recordMediaFailure('picker_empty');
       return;
     }
 
-    final file = File(pickedFile.path);
     final r = await OptimizedNSFWService.checkImage(file);
     if (r.isNSFW) {
       _recordMediaFailure('nsfw_camera_image');
@@ -280,15 +283,17 @@ extension ChatControllerMediaPart on ChatController {
       selection.value = 1;
       return;
     }
-    final XFile? pickedFile = await picker.pickVideo(
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final videoFile = await AppImagePickerService.pickSingleVideoFromSource(
+      ctx,
       source: ImageSource.gallery,
       maxDuration: const Duration(minutes: 3),
     );
-    if (pickedFile == null) {
+    if (videoFile == null) {
       _recordMediaFailure('picker_empty');
       return;
     }
-    final videoFile = File(pickedFile.path);
     if (!await _validatePickedChatVideo(videoFile, source: 'gallery')) {
       return;
     }
@@ -340,6 +345,10 @@ extension ChatControllerMediaPart on ChatController {
       images.value = [harnessCapture];
       pendingVideo.value = null;
       selection.value = 1;
+      return;
+    }
+    if (!await AppImagePickerService.ensureCameraVideoPermission()) {
+      _recordMediaFailure('camera_denied');
       return;
     }
     final result = await Get.to<ChatCameraCaptureResult>(

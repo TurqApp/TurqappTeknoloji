@@ -23,6 +23,9 @@ class AppImagePickerService {
     BuildContext context, {
     required int maxAssets,
   }) async {
+    if (!await ensurePhotoPermission()) {
+      return <File>[];
+    }
     final picked = await _picker.pickMultiImage(
       imageQuality: 85,
       limit: maxAssets,
@@ -31,9 +34,17 @@ class AppImagePickerService {
     return picked.map((x) => File(x.path)).toList();
   }
 
-  static Future<File?> pickSingleImage(BuildContext context) async {
+  static Future<File?> pickSingleImage(
+    BuildContext context, {
+    ImageSource source = ImageSource.gallery,
+  }) async {
+    if (source == ImageSource.camera) {
+      if (!await ensureCameraPermission()) return null;
+    } else if (!await ensurePhotoPermission()) {
+      return null;
+    }
     final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 85,
     );
     if (picked == null) return null;
@@ -65,15 +76,94 @@ class AppImagePickerService {
     return File(picked.path);
   }
 
+  static Future<File?> pickSingleVideoFromSource(
+    BuildContext context, {
+    required ImageSource source,
+    Duration? maxDuration,
+  }) async {
+    if (source == ImageSource.camera) {
+      if (!await ensureCameraVideoPermission()) return null;
+    } else if (!await _ensureVideoPermission()) {
+      return null;
+    }
+    final picked = await _picker.pickVideo(
+      source: source,
+      maxDuration: maxDuration,
+    );
+    if (picked == null) return null;
+    return File(picked.path);
+  }
+
+  static Future<bool> ensureCameraVideoPermission() async {
+    if (!await ensureCameraPermission()) return false;
+    return ensureMicrophonePermission();
+  }
+
+  static Future<bool> ensureCameraPermission() =>
+      _ensurePermission(Permission.camera, permissionId: 'camera');
+
+  static Future<bool> ensureMicrophonePermission() =>
+      _ensurePermission(Permission.microphone, permissionId: 'microphone');
+
+  static Future<bool> ensurePhotoPermission() async {
+    if (Platform.isAndroid) {
+      final photoStatus =
+          await _requestPermission(Permission.photos, permissionId: 'photos');
+      if (_isAllowed(photoStatus)) return true;
+
+      final storageStatus =
+          await _requestPermission(Permission.storage, permissionId: 'storage');
+      return _isAllowed(storageStatus);
+    }
+
+    if (Platform.isIOS) {
+      return _ensurePermission(Permission.photos, permissionId: 'photos');
+    }
+
+    return true;
+  }
+
   static Future<bool> _ensureVideoPermission() async {
+    if (Platform.isIOS) {
+      return _ensurePermission(Permission.photos, permissionId: 'photos');
+    }
     if (!Platform.isAndroid) return true;
 
-    final videoStatus = await Permission.videos.request();
-    if (videoStatus.isGranted || videoStatus.isLimited) {
+    final videoStatus =
+        await _requestPermission(Permission.videos, permissionId: 'videos');
+    if (_isAllowed(videoStatus)) {
       return true;
     }
 
-    final photoStatus = await Permission.photos.request();
-    return photoStatus.isGranted || photoStatus.isLimited;
+    final photoStatus =
+        await _requestPermission(Permission.photos, permissionId: 'photos');
+    if (_isAllowed(photoStatus)) return true;
+
+    final storageStatus =
+        await _requestPermission(Permission.storage, permissionId: 'storage');
+    return _isAllowed(storageStatus);
   }
+
+  static Future<bool> _ensurePermission(
+    Permission permission, {
+    required String permissionId,
+  }) async {
+    final status = await permission.status;
+    if (_isAllowed(status)) return true;
+    final requested = await _requestPermission(
+      permission,
+      permissionId: permissionId,
+    );
+    return _isAllowed(requested);
+  }
+
+  static Future<PermissionStatus> _requestPermission(
+    Permission permission, {
+    required String permissionId,
+  }) {
+    return permission.request();
+  }
+
+  static bool _isAllowed(PermissionStatus status) =>
+      status.isGranted || status.isLimited;
 }

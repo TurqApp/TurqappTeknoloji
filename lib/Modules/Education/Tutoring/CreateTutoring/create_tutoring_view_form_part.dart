@@ -10,11 +10,10 @@ extension CreateTutoringViewFormPart on _CreateTutoringViewState {
     if (source == ImageSource.gallery) {
       file = await AppImagePickerService.pickSingleImage(context);
     } else {
-      final picked = await ImagePicker().pickImage(
+      file = await AppImagePickerService.pickSingleImage(
+        context,
         source: ImageSource.camera,
-        imageQuality: 85,
       );
-      if (picked != null) file = File(picked.path);
     }
     if (file == null) return;
 

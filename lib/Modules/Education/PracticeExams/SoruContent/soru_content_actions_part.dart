@@ -14,10 +14,15 @@ extension SoruContentActionsPart on _SoruContentState {
   }
 
   Future<void> _pickImageFromCamera() async {
-    final pickedFile = await _picker.pickImage(source: ImageSource.camera);
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final pickedFile = await AppImagePickerService.pickSingleImage(
+      ctx,
+      source: ImageSource.camera,
+    );
     if (pickedFile != null) {
       _updateSoruContentState(() {
-        selectedImage = File(pickedFile.path);
+        selectedImage = pickedFile;
       });
     }
   }

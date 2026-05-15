@@ -303,10 +303,14 @@ extension AntremanCommentsControllerActionsPart on AntremanCommentsController {
 
   Future<void> pickImageFromCamera() async {
     try {
-      final image = await picker.pickImage(source: ImageSource.camera);
-      if (image == null) return;
+      final ctx = Get.context;
+      if (ctx == null) return;
+      final file = await AppImagePickerService.pickSingleImage(
+        ctx,
+        source: ImageSource.camera,
+      );
+      if (file == null) return;
 
-      final file = File(image.path);
       final result = await OptimizedNSFWService.checkImage(file);
       if (result.isNSFW) {
         AppSnackbar(

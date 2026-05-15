@@ -3,7 +3,6 @@ part of 'creator_content_controller.dart';
 class _CreatorContentControllerState {
   final topTagsRepository = ensureTopTagsRepository();
   final textEdit = TextEditingController();
-  final picker = ImagePicker();
   final cropController = CropController();
   final selectedImages = <File>[].obs;
   final selectedVideo = Rx<File?>(null);
@@ -38,7 +37,6 @@ class _CreatorContentControllerState {
 extension CreatorContentControllerFieldsPart on CreatorContentController {
   TopTagsRepository get _topTagsRepository => _state.topTagsRepository;
   TextEditingController get textEdit => _state.textEdit;
-  ImagePicker get picker => _state.picker;
   CropController get cropController => _state.cropController;
   RxList<File> get selectedImages => _state.selectedImages;
   Rx<File?> get selectedVideo => _state.selectedVideo;

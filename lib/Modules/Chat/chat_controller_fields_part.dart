@@ -35,7 +35,6 @@ class _ChatControllerState {
   final focus = FocusNode();
   bool didAutoFocusOnce = false;
   final currentPage = 0.obs;
-  final picker = ImagePicker();
   final images = <File>[].obs;
   final pendingVideo = Rx<File?>(null);
   final selectedGifUrl = ''.obs;
@@ -109,7 +108,6 @@ extension ChatControllerFieldsPart on ChatController {
   bool get didAutoFocusOnce => _state.didAutoFocusOnce;
   set didAutoFocusOnce(bool value) => _state.didAutoFocusOnce = value;
   RxInt get currentPage => _state.currentPage;
-  ImagePicker get picker => _state.picker;
   RxList<File> get images => _state.images;
   Rx<File?> get pendingVideo => _state.pendingVideo;
   RxString get selectedGifUrl => _state.selectedGifUrl;

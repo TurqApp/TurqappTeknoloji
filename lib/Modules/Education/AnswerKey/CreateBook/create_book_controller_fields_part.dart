@@ -19,7 +19,6 @@ class _CreateBookControllerState {
   final sinavTuru = ''.obs;
   final imageFile = Rxn<File>();
   final showIndicator = false.obs;
-  final picker = ImagePicker();
 }
 
 extension CreateBookControllerFieldsPart on CreateBookController {
@@ -36,5 +35,4 @@ extension CreateBookControllerFieldsPart on CreateBookController {
   RxString get sinavTuru => _state.sinavTuru;
   Rxn<File> get imageFile => _state.imageFile;
   RxBool get showIndicator => _state.showIndicator;
-  ImagePicker get picker => _state.picker;
 }

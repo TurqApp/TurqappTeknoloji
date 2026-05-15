@@ -11,8 +11,9 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
       if (ctx == null) return;
       file = await AppImagePickerService.pickSingleImage(ctx);
     } else {
-      final picked = await picker.pickImage(source: source, imageQuality: 85);
-      if (picked != null) file = File(picked.path);
+      final ctx = Get.context;
+      if (ctx == null) return;
+      file = await AppImagePickerService.pickSingleImage(ctx, source: source);
     }
     if (file == null) return;
     selectedImage.value = file;

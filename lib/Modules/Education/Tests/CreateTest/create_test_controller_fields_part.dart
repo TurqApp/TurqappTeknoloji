@@ -11,7 +11,6 @@ class _CreateTestControllerState {
   final RxBool check = false.obs;
   final Rx<File?> imageFile = Rx<File?>(null);
   final RxString foundImage = ''.obs;
-  final ImagePicker picker = ImagePicker();
   final RxString appStore = ''.obs;
   final RxString googlePlay = ''.obs;
   final RxInt testID = DateTime.now().millisecondsSinceEpoch.obs;
@@ -34,7 +33,6 @@ extension CreateTestControllerFieldsPart on CreateTestController {
   RxBool get check => _state.check;
   Rx<File?> get imageFile => _state.imageFile;
   RxString get foundImage => _state.foundImage;
-  ImagePicker get picker => _state.picker;
   RxString get appStore => _state.appStore;
   RxString get googlePlay => _state.googlePlay;
   RxInt get testID => _state.testID;

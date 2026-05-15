@@ -36,7 +36,6 @@ class SoruContent extends StatefulWidget {
 
 class _SoruContentState extends State<SoruContent> {
   File? selectedImage;
-  final ImagePicker _picker = ImagePicker();
   final PracticeExamRepository _practiceExamRepository =
       ensurePracticeExamRepository();
   String dogruCevap = "";

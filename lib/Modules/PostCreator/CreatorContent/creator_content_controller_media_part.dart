@@ -202,13 +202,13 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   Future<void> _performPickImageFromCamera({
     required ImageSource source,
   }) async {
-    final picked = await picker.pickImage(
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final file = await AppImagePickerService.pickSingleImage(
+      ctx,
       source: source,
-      imageQuality: UploadConstants.defaultImageQuality,
     );
-    if (picked == null) return;
-
-    final file = File(picked.path);
+    if (file == null) return;
     await _processPickedImage(file);
   }
 
@@ -346,9 +346,14 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
       await _processPickedVideo(files.first);
       return;
     } else {
-      final picked = await picker.pickVideo(source: source);
-      if (picked == null) return;
-      await _processPickedVideo(File(picked.path));
+      final ctx = Get.context;
+      if (ctx == null) return;
+      final file = await AppImagePickerService.pickSingleVideoFromSource(
+        ctx,
+        source: source,
+      );
+      if (file == null) return;
+      await _processPickedVideo(file);
     }
   }
 

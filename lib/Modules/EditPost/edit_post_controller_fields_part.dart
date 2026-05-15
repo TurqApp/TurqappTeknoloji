@@ -11,7 +11,6 @@ class _EditPostControllerState {
   final RxString thumbnail = ''.obs;
   final RxBool waitingVideo = false.obs;
   final RxBool bekle = false.obs;
-  final ImagePicker picker = ImagePicker();
   final RxList<File> selectedImages = <File>[].obs;
   bool newVideoSelected = false;
   bool videoRemoved = false;
@@ -28,7 +27,6 @@ extension EditPostControllerFieldsPart on EditPostController {
   RxString get thumbnail => _state.thumbnail;
   RxBool get waitingVideo => _state.waitingVideo;
   RxBool get bekle => _state.bekle;
-  ImagePicker get picker => _state.picker;
   RxList<File> get selectedImages => _state.selectedImages;
 
   bool get _newVideoSelected => _state.newVideoSelected;

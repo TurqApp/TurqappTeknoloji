@@ -2,7 +2,6 @@ part of 'edit_profile_controller.dart';
 
 class _EditProfileControllerState {
   final cropController = CropController();
-  final picker = ImagePicker();
   final selectedImage = Rx<File?>(null);
   final croppedImage = Rx<Uint8List?>(null);
   final isCropping = false.obs;
@@ -17,7 +16,6 @@ class _EditProfileControllerState {
 
 extension EditProfileControllerFieldsPart on EditProfileController {
   CropController get cropController => _state.cropController;
-  ImagePicker get picker => _state.picker;
   Rx<File?> get selectedImage => _state.selectedImage;
   Rx<Uint8List?> get croppedImage => _state.croppedImage;
   RxBool get isCropping => _state.isCropping;

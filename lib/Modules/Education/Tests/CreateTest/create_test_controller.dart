@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:nsfw_detector_flutter/nsfw_detector_flutter.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Repositories/test_repository.dart';

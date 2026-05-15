@@ -7,7 +7,9 @@ extension _PermissionDetailActionsPart on _PermissionDetailViewState {
     try {
       final canDirectRequest =
           _status.isDenied || _status.isLimited || _status.isProvisional;
-      if (!_usesDeviceSettingStyle && canDirectRequest && !_enabled) {
+      final mustOpenSettings =
+          _status.isPermanentlyDenied || _status.isRestricted;
+      if (canDirectRequest && !_enabled && !mustOpenSettings) {
         final next = await IntegrationPermissionTestHarness.request(
           widget.item.permission,
           permissionId: _permissionId(widget.item.permission),
@@ -56,9 +58,6 @@ extension _PermissionDetailActionsPart on _PermissionDetailViewState {
   }
 
   String get _buttonText {
-    if (_usesDeviceSettingStyle) {
-      return 'permissions.dialog.update_device_settings'.tr;
-    }
     final canDirectRequest =
         _status.isDenied || _status.isLimited || _status.isProvisional;
     if (!_enabled && canDirectRequest) return 'permissions.enable'.tr;

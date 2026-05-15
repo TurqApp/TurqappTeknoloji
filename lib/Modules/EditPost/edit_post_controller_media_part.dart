@@ -20,9 +20,13 @@ extension EditPostControllerMediaPart on EditPostController {
       file = await AppImagePickerService.pickSingleVideo(ctx);
       if (file == null) return;
     } else {
-      final picked = await picker.pickVideo(source: source);
-      if (picked == null) return;
-      file = File(picked.path);
+      final ctx = Get.context;
+      if (ctx == null) return;
+      file = await AppImagePickerService.pickSingleVideoFromSource(
+        ctx,
+        source: source,
+      );
+      if (file == null) return;
     }
 
     selectedImages.clear();
@@ -119,12 +123,16 @@ extension EditPostControllerMediaPart on EditPostController {
   }
 
   Future<void> pickImageCamera({required ImageSource source}) async {
-    final picked = await picker.pickImage(source: source, imageQuality: 85);
-    if (picked == null) return;
+    final ctx = Get.context;
+    if (ctx == null) return;
+    final file = await AppImagePickerService.pickSingleImage(
+      ctx,
+      source: source,
+    );
+    if (file == null) return;
 
     isPlaying.value = false;
 
-    final file = File(picked.path);
     final result = await OptimizedNSFWService.checkImage(file);
     if (result.isNSFW) {
       AppSnackbar(

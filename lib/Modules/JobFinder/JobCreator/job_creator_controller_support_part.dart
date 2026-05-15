@@ -36,7 +36,6 @@ class _JobCreatorChoiceLists {
 
 class _JobCreatorMediaState {
   final cropController = CropController();
-  final picker = ImagePicker();
   final Rx<File?> selectedImage = Rx<File?>(null);
   final Rx<Uint8List?> croppedImage = Rx<Uint8List?>(null);
 }
@@ -52,7 +51,6 @@ extension _JobCreatorControllerSupportX on JobCreatorController {
   List<String> get calismaGunleriList => _choices.calismaGunleriList;
   List<String> get yanHaklarList => _choices.yanHaklarList;
   CropController get cropController => _mediaState.cropController;
-  ImagePicker get picker => _mediaState.picker;
   Rx<File?> get selectedImage => _mediaState.selectedImage;
   bool get _ownsLoader => _runtimeState.ownsLoader;
   set _ownsLoader(bool value) => _runtimeState.ownsLoader = value;

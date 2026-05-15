@@ -20,7 +20,6 @@ class _AntremanCommentsControllerState {
   final RxBool isTextFieldNotEmpty = false.obs;
   final RxBool isLoading = true.obs;
   final Rx<File?> selectedImage = Rx<File?>(null);
-  final ImagePicker picker = ImagePicker();
 }
 
 extension AntremanCommentsControllerFieldsPart on AntremanCommentsController {
@@ -41,5 +40,4 @@ extension AntremanCommentsControllerFieldsPart on AntremanCommentsController {
   RxBool get isTextFieldNotEmpty => _state.isTextFieldNotEmpty;
   RxBool get isLoading => _state.isLoading;
   Rx<File?> get selectedImage => _state.selectedImage;
-  ImagePicker get picker => _state.picker;
 }
