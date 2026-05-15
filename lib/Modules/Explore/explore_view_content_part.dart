@@ -179,46 +179,6 @@ extension _ExploreViewContentPart on _ExploreViewState {
     });
   }
 
-  Widget _buildScrollToTopButton() {
-    return Obx(() {
-      return controller.showScrollToTop.value
-          ? Positioned(
-              bottom: 80,
-              right: 20,
-              child: GestureDetector(
-                onTap: () {
-                  controller.floodsScroll.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                  controller.scrollController.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                  controller.exploreScroll.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                  controller.photoScroll.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                  controller.videoScroll.animateTo(
-                    0,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                },
-                child: RoadToTop(),
-              ),
-            )
-          : const SizedBox();
-    });
-  }
 }
 
 class _IntegrationSmokeSearchHeader extends StatelessWidget {

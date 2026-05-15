@@ -25,7 +25,6 @@ extension _SocialProfileContentPart on _SocialProfileState {
                 ),
               ),
               if (controller.showPfImage.value) _buildProfileImageOverlay(),
-              if (controller.showScrollToTop.value) _buildScrollToTopButton(),
             ],
           );
         }),
@@ -291,22 +290,4 @@ extension _SocialProfileContentPart on _SocialProfileState {
     );
   }
 
-  Widget _buildScrollToTopButton() {
-    return Positioned(
-      right: 15,
-      bottom: 20,
-      child: GestureDetector(
-        onTap: () {
-          final scrollController = _currentScrollController;
-          if (!scrollController.hasClients) return;
-          scrollController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOut,
-          );
-        },
-        child: const RoadToTop(),
-      ),
-    );
-  }
 }

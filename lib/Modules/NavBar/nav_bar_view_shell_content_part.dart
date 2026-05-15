@@ -276,6 +276,12 @@ extension _NavBarViewShellContentPart on NavBarView {
     final navBarBottomPadding = GetPlatform.isAndroid
         ? systemNavigationInset
         : math.max(0.0, math.max(8.0, systemNavigationInset) - 20);
+    final hasAndroidSystemNavigationBar =
+        GetPlatform.isAndroid && systemNavigationInset > 0;
+    final tabBarSurfaceColor = hasAndroidSystemNavigationBar
+        ? Colors.white
+        : tabBarNavigationSurfaceColor;
+    final tabBarBlurSigma = hasAndroidSystemNavigationBar ? 0.0 : 18.0;
     final icons = [
       'assets/icons/house',
       'assets/icons/search',
@@ -303,11 +309,14 @@ extension _NavBarViewShellContentPart on NavBarView {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                filter: ImageFilter.blur(
+                  sigmaX: tabBarBlurSigma,
+                  sigmaY: tabBarBlurSigma,
+                ),
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: tabBarNavigationSurfaceColor,
+                    color: tabBarSurfaceColor,
                     border: Border.all(
                       color: Colors.black.withValues(alpha: 0.06),
                     ),

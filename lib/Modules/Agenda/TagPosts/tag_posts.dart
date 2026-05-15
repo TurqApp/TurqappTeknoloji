@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../Core/Buttons/back_buttons.dart';
-import '../../../Core/Helpers/RoadToTop/road_to_top.dart';
 import '../AgendaContent/agenda_content.dart';
 import 'tag_posts_controller.dart';
 
@@ -147,21 +146,6 @@ class _TagPostsState extends State<TagPosts> {
                         ),
                       );
                     },
-                  ),
-                ),
-              if (list.isNotEmpty)
-                Positioned(
-                  bottom: 20,
-                  right: 20,
-                  child: GestureDetector(
-                    onTap: () {
-                      scrollController.animateTo(
-                        0,
-                        duration: const Duration(milliseconds: 500),
-                        curve: Curves.easeOut,
-                      );
-                    },
-                    child: RoadToTop(),
                   ),
                 ),
             ],

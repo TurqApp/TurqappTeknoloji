@@ -8,10 +8,7 @@ extension ExploreControllerRuntime on ExploreController {
     _bindRecentSearchUsers();
     _bindFollowingListener();
     exploreScroll.addListener(() {
-      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
-        source: 'explore_posts',
-        offset: exploreScroll.offset,
-      );
+      _syncNavBarVisibilityForScroll('explore_posts', exploreScroll);
       if (exploreScroll.position.pixels >=
           exploreScroll.position.maxScrollExtent - 200) {
         fetchExplorePosts();
@@ -21,10 +18,7 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     videoScroll.addListener(() {
-      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
-        source: 'explore_videos',
-        offset: videoScroll.offset,
-      );
+      _syncNavBarVisibilityForScroll('explore_videos', videoScroll);
       if (videoScroll.position.pixels >=
           videoScroll.position.maxScrollExtent - 200) {
         fetchVideo();
@@ -34,10 +28,7 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     photoScroll.addListener(() {
-      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
-        source: 'explore_photos',
-        offset: photoScroll.offset,
-      );
+      _syncNavBarVisibilityForScroll('explore_photos', photoScroll);
       if (photoScroll.position.pixels >=
           photoScroll.position.maxScrollExtent - 200) {
         fetchPhoto();
@@ -47,10 +38,7 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     floodsScroll.addListener(() {
-      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
-        source: 'explore_floods',
-        offset: floodsScroll.offset,
-      );
+      _syncNavBarVisibilityForScroll('explore_floods', floodsScroll);
       _updateFloodVisibleIndex();
       _syncScrollToTopVisibility(floodsScroll.offset);
     });
@@ -73,6 +61,19 @@ extension ExploreControllerRuntime on ExploreController {
 
   void _handleResetSurfaceForTabTransition() =>
       _performResetSurfaceForTabTransition();
+
+  void _syncNavBarVisibilityForScroll(
+    String source,
+    ScrollController controller,
+  ) {
+    if (!controller.hasClients || !controller.position.hasContentDimensions) {
+      return;
+    }
+    maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+      source: source,
+      offset: controller.position.pixels,
+    );
+  }
 
   void _handleOnClose() {
     _currentUserWorker?.dispose();

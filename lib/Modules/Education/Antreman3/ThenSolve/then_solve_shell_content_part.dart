@@ -77,10 +77,6 @@ extension _ThenSolveShellContentPart on ThenSolve {
                   ),
                 ],
               ),
-              ScrollTotopButton(
-                scrollController: _scrollController,
-                visibilityThreshold: 350,
-              ),
             ],
           ),
         ),

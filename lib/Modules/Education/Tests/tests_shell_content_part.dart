@@ -78,10 +78,6 @@ extension _TestsShellContentPart on _TestsState {
 
   List<Widget> _buildOverlays(BuildContext context) {
     return [
-      ScrollTotopButton(
-        scrollController: _scrollController,
-        visibilityThreshold: 350,
-      ),
       Obx(
         () => Positioned(
           bottom: 20,

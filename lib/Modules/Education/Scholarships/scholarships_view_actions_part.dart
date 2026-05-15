@@ -535,13 +535,6 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     );
   }
 
-  Widget _buildScrollToTopButton() {
-    return ScrollTotopButton(
-      scrollController: _scrollController,
-      visibilityThreshold: 350,
-    );
-  }
-
   Widget _buildActionButton(BuildContext context) {
     return Obx(
       () => Positioned(

@@ -348,23 +348,20 @@ extension EducationViewBodyPart on EducationView {
         return const SizedBox.shrink();
       }
 
-      final scrollController = _activeScrollController();
       final showMenu = _showMenuByScrollOffset();
       final menuItems = _menuItemsForActiveTab(context);
       final tabBarVisible = maybeFindNavBarController()?.showBar.value ?? true;
       final searchActive =
           controller.isKeyboardOpen.value || controller.isSearchMode.value;
+      final systemNavigationInset = MediaQuery.of(context).viewPadding.bottom;
+      final navAwareBottom = systemNavigationInset + 72;
+      final menuBottom = navAwareBottom > 82 ? navAwareBottom : 82.0;
 
       return Stack(
         children: [
-          if (scrollController != null)
-            ScrollTotopButton(
-              scrollController: scrollController,
-              visibilityThreshold: 350,
-            ),
           if (showMenu && tabBarVisible && !searchActive)
             Positioned(
-              bottom: 20,
+              bottom: menuBottom,
               right: 20,
               child: ActionButton(
                 context: context,
@@ -373,7 +370,7 @@ extension EducationViewBodyPart on EducationView {
                   _tabIdForIndex(controller.selectedTab.value),
                 ),
                 size: 56,
-                lift: 62,
+                lift: 0,
                 backgroundColor: Colors.green,
                 iconColor: Colors.white,
                 permissionScope: switch (

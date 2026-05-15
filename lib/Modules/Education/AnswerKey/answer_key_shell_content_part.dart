@@ -74,10 +74,6 @@ extension AnswerKeyShellContentPart on AnswerKey {
 
   List<Widget> _buildOverlays(BuildContext context) {
     return [
-      ScrollTotopButton(
-        scrollController: _scrollController,
-        visibilityThreshold: 350,
-      ),
       Obx(
         () => Positioned(
           bottom: 20,

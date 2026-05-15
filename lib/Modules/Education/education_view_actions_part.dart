@@ -221,47 +221,26 @@ extension EducationViewActionsPart on EducationView {
     );
   }
 
-  ScrollController? _activeScrollController() {
-    switch (_tabIdForIndex(controller.selectedTab.value)) {
-      case PasajTabIds.scholarships:
-        return maybeFindScholarshipsController()?.scrollController;
-      case PasajTabIds.practiceExams:
-        return maybeFindCikmisSorularController()?.scrollController;
-      case PasajTabIds.onlineExam:
-        return maybeFindDenemeSinavlariController()?.scrollController;
-      case PasajTabIds.answerKey:
-        return maybeFindAnswerKeyController()?.scrollController;
-      case PasajTabIds.tutoring:
-        return maybeFindTutoringController()?.scrollController;
-      case PasajTabIds.market:
-        return maybeFindMarketController()?.scrollController;
-      case PasajTabIds.jobFinder:
-        return maybeFindJobFinderController()?.scrollController;
-      default:
-        return null;
-    }
-  }
-
   bool _showMenuByScrollOffset() {
     switch (_tabIdForIndex(controller.selectedTab.value)) {
       case PasajTabIds.scholarships:
         return (maybeFindScholarshipsController()?.scrollOffset.value ?? 0) <=
-            350;
+            250;
       case PasajTabIds.practiceExams:
         return (maybeFindCikmisSorularController()?.scrollOffset.value ?? 0) <=
-            350;
+            250;
       case PasajTabIds.onlineExam:
         return (maybeFindDenemeSinavlariController()?.scrollOffset.value ??
                 0) <=
-            350;
+            250;
       case PasajTabIds.answerKey:
-        return (maybeFindAnswerKeyController()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindAnswerKeyController()?.scrollOffset.value ?? 0) <= 250;
       case PasajTabIds.tutoring:
-        return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindTutoringController()?.scrollOffset.value ?? 0) <= 250;
       case PasajTabIds.market:
-        return (maybeFindMarketController()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindMarketController()?.scrollOffset.value ?? 0) <= 250;
       case PasajTabIds.jobFinder:
-        return (maybeFindJobFinderController()?.scrollOffset.value ?? 0) <= 350;
+        return (maybeFindJobFinderController()?.scrollOffset.value ?? 0) <= 250;
       default:
         return true;
     }

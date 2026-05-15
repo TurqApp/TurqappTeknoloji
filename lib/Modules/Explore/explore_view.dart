@@ -18,7 +18,6 @@ import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/texts.dart';
 import 'package:turqappv2/Modules/Short/single_short_view.dart';
-import '../../Core/Helpers/RoadToTop/road_to_top.dart';
 import '../Agenda/TagPosts/tag_media_widgets.dart';
 import '../Agenda/TagPosts/tag_posts.dart';
 import '../Agenda/FloodListing/flood_listing.dart';
@@ -130,7 +129,6 @@ class _ExploreViewState extends State<ExploreView> {
                 _buildExploreOrSearchBody(context),
               ],
             ),
-            _buildScrollToTopButton(),
             IgnorePointer(
               ignoring: true,
               child: Align(

@@ -26,10 +26,6 @@ extension AntremanScoreContentPart on _AntremanScoreState {
                 ),
               ],
             ),
-            ScrollTotopButton(
-              scrollController: _scrollController,
-              visibilityThreshold: 350,
-            ),
           ],
         ),
       ),

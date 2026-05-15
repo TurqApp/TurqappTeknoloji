@@ -6,7 +6,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
-import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/Helpers/scholarship_rich_text.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -91,7 +90,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
               _buildBody(),
             ],
           ),
-          if (widget.showEmbeddedControls) _buildScrollToTopButton(),
           if (widget.showEmbeddedControls) _buildActionButton(context),
         ],
       );
@@ -114,7 +112,6 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
                   _buildBody(),
                 ],
               ),
-              _buildScrollToTopButton(),
               _buildActionButton(context),
             ],
           ),

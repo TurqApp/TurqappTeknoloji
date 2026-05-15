@@ -32,10 +32,6 @@ extension QuestionContentShellLayoutPart on QuestionContent {
                   ),
                 ],
               ),
-              ScrollTotopButton(
-                scrollController: _scrollController,
-                visibilityThreshold: 500,
-              ),
             ],
           ),
         ),

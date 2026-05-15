@@ -233,6 +233,13 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     }
 
     selectedIndex.value = index;
+    if (index != previous && showBar.value != true) {
+      showBar.value = true;
+      debugPrint(
+        '[NavBarVisibility] source=tab_change show=true '
+        'from=$previous target=$index',
+      );
+    }
     unawaited(_persistSelectedIndex(index));
     unawaited(_persistStartupRouteHint(index));
 

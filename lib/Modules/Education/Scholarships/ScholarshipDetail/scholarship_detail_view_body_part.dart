@@ -371,10 +371,6 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                   right: 0,
                   child: LinearProgressIndicator(minHeight: 2),
                 ),
-              ScrollTotopButton(
-                scrollController: detailScrollController,
-                visibilityThreshold: 200,
-              ),
             ],
           ),
         ),

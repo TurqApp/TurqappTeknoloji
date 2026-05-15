@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
-import 'package:turqappv2/Core/Buttons/scroll_to_top_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Services/practice_exam_navigation_service.dart';
@@ -53,11 +52,6 @@ class DenemeSinavlari extends StatelessWidget {
                 ? _buildSchoolAlertSheet(context)
                 : const SizedBox.shrink(),
           ),
-          if (showEmbeddedControls)
-            ScrollTotopButton(
-              scrollController: _scrollController,
-              visibilityThreshold: 350,
-            ),
           if (showEmbeddedControls) _buildFloatingAction(context),
         ],
       );
@@ -78,10 +72,6 @@ class DenemeSinavlari extends StatelessWidget {
               () => controller.showOkulAlert.value
                   ? _buildSchoolAlertSheet(context)
                   : const SizedBox.shrink(),
-            ),
-            ScrollTotopButton(
-              scrollController: _scrollController,
-              visibilityThreshold: 350,
             ),
             _buildFloatingAction(context),
           ],

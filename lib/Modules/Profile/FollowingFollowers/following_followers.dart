@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
-import 'package:turqappv2/Core/Helpers/RoadToTop/road_to_top.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
@@ -134,23 +133,6 @@ class _FollowingFollowersState extends State<FollowingFollowers> {
                 ),
               ],
             ),
-            Positioned(
-              bottom: 20,
-              right: 20,
-              child: GestureDetector(
-                onTap: () {
-                  final activeController = _currentPage == 0
-                      ? _followersScrollController
-                      : _followingScrollController;
-                  activeController.animateTo(
-                    0,
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.bounceIn,
-                  );
-                },
-                child: RoadToTop(),
-              ),
-            )
           ],
         ),
       ),

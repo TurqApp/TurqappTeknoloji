@@ -108,7 +108,7 @@ class _NavBarControllerSupportPart {
     required String source,
     required double offset,
   }) {
-    if (_controller._isDisposed || _controller.mediaOverlayActive) return;
+    if (_controller._isDisposed) return;
     final normalizedSource = source.trim();
     if (normalizedSource.isEmpty) return;
     final safeOffset = offset.isFinite ? offset.clamp(0.0, double.infinity) : 0;
@@ -127,6 +127,12 @@ class _NavBarControllerSupportPart {
 
     if (_controller.showBar.value != shouldShow) {
       _controller.showBar.value = shouldShow;
+      debugPrint(
+        '[NavBarVisibility] source=$normalizedSource show=$shouldShow '
+        'offset=${safeOffset.toStringAsFixed(1)} '
+        'last=${lastOffset.toStringAsFixed(1)} '
+        'overlay=${_controller.mediaOverlayActive}',
+      );
     }
     _controller._navBarScrollOffsets[normalizedSource] = safeOffset.toDouble();
   }

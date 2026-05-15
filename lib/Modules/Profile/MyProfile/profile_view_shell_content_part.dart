@@ -28,18 +28,6 @@ extension _ProfileViewShellContentPart on _ProfileViewState {
               ],
             ),
             Obx(
-              () => controller.showScrollToTop.value
-                  ? Positioned(
-                      bottom: 90,
-                      right: 20,
-                      child: GestureDetector(
-                        onTap: controller.animateCurrentSelectionToTop,
-                        child: RoadToTop(),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-            Obx(
               () => controller.showPfImage.value
                   ? _buildProfileImageOverlay()
                   : const SizedBox.shrink(),

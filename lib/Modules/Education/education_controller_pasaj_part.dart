@@ -325,10 +325,12 @@ extension EducationControllerPasajPart on EducationController {
     if (now.difference(_lastNavToggleAt).inMilliseconds < 120) return;
     _lastNavToggleAt = now;
 
-    nav.updateVisibilityFromPrimaryScroll(
-      source: 'pasaj_${selectedTab.value}',
-      offset: offset,
-    );
+    if (!nav.showBar.value) {
+      nav.showBar.value = true;
+      debugPrint(
+        '[NavBarVisibility] source=pasaj_${selectedTab.value} show=true fixed=true',
+      );
+    }
   }
 
   bool handleEducationBoundarySwipe(ScrollNotification notification) {
