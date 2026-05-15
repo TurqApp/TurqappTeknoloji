@@ -161,6 +161,9 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
       status = await Permission.photosAddOnly.request();
     } else if (Platform.isAndroid) {
       status = await Permission.photos.request();
+      if (!status.isGranted) {
+        status = await Permission.storage.request();
+      }
     } else {
       status = await Permission.storage.request();
     }
