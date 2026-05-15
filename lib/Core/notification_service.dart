@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/NotifyReader/notify_reader_route_decision.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';

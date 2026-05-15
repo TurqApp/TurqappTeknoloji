@@ -51,6 +51,22 @@ extension NotificationServiceSetupPart on NotificationService {
 
   Future<bool> ensureUserNotificationPermission() async {
     await setupFlutterNotifications();
+    if (!kIsWeb && Platform.isAndroid) {
+      var permission = await Permission.notification.status;
+      if (permission.isPermanentlyDenied || permission.isRestricted) {
+        await openAppSettings();
+        return false;
+      }
+      if (!permission.isGranted) {
+        permission = await Permission.notification.request();
+        if (!permission.isGranted) {
+          if (permission.isPermanentlyDenied || permission.isRestricted) {
+            await openAppSettings();
+          }
+          return false;
+        }
+      }
+    }
     var settings = await _messaging.getNotificationSettings();
     if (settings.authorizationStatus == AuthorizationStatus.notDetermined) {
       settings = await _requestPermission();

@@ -5,16 +5,29 @@ extension LocationShareControllerRuntimePart on LocationShareController {
     _determinePosition();
   }
 
-  Future<void> _determinePosition() async {
+  Future<bool> _ensureLocationPermission() async {
     var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.deniedForever) {
+      await Geolocator.openAppSettings();
+      return false;
+    }
+    if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+        return false;
+      }
       if (permission != LocationPermission.always &&
           permission != LocationPermission.whileInUse) {
-        return;
+        return false;
       }
     }
+
+    return true;
+  }
+
+  Future<void> _determinePosition() async {
+    if (!await _ensureLocationPermission()) return;
 
     final position = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
@@ -72,6 +85,8 @@ extension LocationShareControllerRuntimePart on LocationShareController {
 
   Future<void> moveToCurrentLocation() async {
     try {
+      if (!await _ensureLocationPermission()) return;
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings:
             const LocationSettings(accuracy: LocationAccuracy.high),

@@ -105,6 +105,26 @@ class AppImagePickerService {
   static Future<bool> ensureMicrophonePermission() =>
       _ensurePermission(Permission.microphone, permissionId: 'microphone');
 
+  static Future<bool> ensureGallerySavePermission() async {
+    if (Platform.isIOS) {
+      return _ensurePermission(
+        Permission.photosAddOnly,
+        permissionId: 'photosAddOnly',
+      );
+    }
+    if (Platform.isAndroid) {
+      final photoStatus =
+          await _requestPermission(Permission.photos, permissionId: 'photos');
+      if (_isAllowed(photoStatus)) return true;
+
+      final storageStatus =
+          await _requestPermission(Permission.storage, permissionId: 'storage');
+      return _isAllowed(storageStatus);
+    }
+
+    return _ensurePermission(Permission.storage, permissionId: 'storage');
+  }
+
   static Future<bool> ensurePhotoPermission() async {
     if (Platform.isAndroid) {
       final photoStatus =
@@ -160,7 +180,12 @@ class AppImagePickerService {
   static Future<PermissionStatus> _requestPermission(
     Permission permission, {
     required String permissionId,
-  }) {
+  }) async {
+    final current = await permission.status;
+    if (current.isPermanentlyDenied || current.isRestricted) {
+      await openAppSettings();
+      return current;
+    }
     return permission.request();
   }
 

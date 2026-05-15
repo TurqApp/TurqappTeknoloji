@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/sizes.dart';
 import 'package:turqappv2/Core/Helpers/QRCode/qr_scanner_controller.dart';
@@ -18,6 +19,8 @@ class _QrScannerViewState extends State<QrScannerView> {
   late final String _controllerTag;
   late final QrScannerController controller;
   bool _ownsController = false;
+  bool _cameraPermissionChecked = false;
+  bool _cameraPermissionGranted = false;
 
   @override
   void initState() {
@@ -31,6 +34,7 @@ class _QrScannerViewState extends State<QrScannerView> {
       controller = QrScannerController.ensure(tag: _controllerTag);
       _ownsController = true;
     }
+    _ensureCameraPermission();
   }
 
   @override
@@ -43,6 +47,15 @@ class _QrScannerViewState extends State<QrScannerView> {
       Get.delete<QrScannerController>(tag: _controllerTag);
     }
     super.dispose();
+  }
+
+  Future<void> _ensureCameraPermission() async {
+    final granted = await AppImagePickerService.ensureCameraPermission();
+    if (!mounted) return;
+    setState(() {
+      _cameraPermissionChecked = true;
+      _cameraPermissionGranted = granted;
+    });
   }
 
   @override
@@ -80,19 +93,21 @@ class _QrScannerViewState extends State<QrScannerView> {
           child: SizedBox(
             width: 350,
             height: 350,
-            child: MobileScanner(
-              onDetect: (capture) {
-                final barcode = capture.barcodes.first;
-                final code = barcode.rawValue;
-                if (code != null && code.isNotEmpty) {
-                  controller.onDetect(code);
-                }
-                if (code.toString().length == 28) {
-                  const ProfileNavigationService()
-                      .openSocialProfile(code.toString());
-                }
-              },
-            ),
+            child: _cameraPermissionChecked && _cameraPermissionGranted
+                ? MobileScanner(
+                    onDetect: (capture) {
+                      final barcode = capture.barcodes.first;
+                      final code = barcode.rawValue;
+                      if (code != null && code.isNotEmpty) {
+                        controller.onDetect(code);
+                      }
+                      if (code.toString().length == 28) {
+                        const ProfileNavigationService()
+                            .openSocialProfile(code.toString());
+                      }
+                    },
+                  )
+                : const ColoredBox(color: Colors.black),
           ),
         ),
         Padding(

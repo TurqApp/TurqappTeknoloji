@@ -532,6 +532,9 @@ extension CreatorContentControllerMediaPart on CreatorContentController {
   }
 
   Future<void> _performOpenCustomCameraCapture() async {
+    if (!await AppImagePickerService.ensureCameraVideoPermission()) {
+      return;
+    }
     final result = await Get.to<ChatCameraCaptureResult>(
       () => const ChatCameraCaptureView(),
       transition: Transition.fadeIn,

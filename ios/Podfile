@@ -64,6 +64,35 @@ post_install do |installer|
       end
       config.build_settings['OTHER_CFLAGS'] = other_cflags
 
+      permission_definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+      permission_definitions = [permission_definitions] unless permission_definitions.is_a?(Array)
+      enabled_permissions = [
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_MICROPHONE=1',
+        'PERMISSION_PHOTOS=1',
+        'PERMISSION_PHOTOS_ADD_ONLY=1',
+        'PERMISSION_LOCATION_WHENINUSE=1',
+        'PERMISSION_NOTIFICATIONS=1',
+        'PERMISSION_CONTACTS=0',
+        'PERMISSION_LOCATION=0',
+        'PERMISSION_LOCATION_ALWAYS=0',
+        'PERMISSION_MEDIA_LIBRARY=0',
+        'PERMISSION_EVENTS=0',
+        'PERMISSION_REMINDERS=0',
+        'PERMISSION_SPEECH_RECOGNIZER=0',
+        'PERMISSION_SENSORS=0',
+        'PERMISSION_BLUETOOTH=0',
+        'PERMISSION_CRITICAL_ALERTS=0',
+      ]
+      permission_prefixes = enabled_permissions.map { |definition| definition.split('=').first }
+      permission_definitions = permission_definitions.reject do |definition|
+        permission_prefixes.any? { |prefix| definition.start_with?("#{prefix}=") }
+      end
+      enabled_permissions.each do |definition|
+        permission_definitions << definition unless permission_definitions.include?(definition)
+      end
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = permission_definitions
+
       if target.name == 'sqflite_darwin'
         # sqflite_darwin Swift/ObjC import zinciri için module açık olmalı.
         config.build_settings['DEFINES_MODULE'] = 'YES'

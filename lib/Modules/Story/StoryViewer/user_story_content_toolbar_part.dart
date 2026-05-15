@@ -132,6 +132,14 @@ extension UserStoryContentToolbarPart on _UserStoryContentState {
               _buildMyStoryActionButton(
                 icon: CupertinoIcons.arrow_down_to_line,
                 onTap: () async {
+                  if (!await AppImagePickerService
+                      .ensureGallerySavePermission()) {
+                    AppSnackbar(
+                      'qr.permission_required'.tr,
+                      'qr.gallery_permission_body'.tr,
+                    );
+                    return;
+                  }
                   try {
                     _timer?.cancel();
                     final boundary = _repaintKey.currentContext

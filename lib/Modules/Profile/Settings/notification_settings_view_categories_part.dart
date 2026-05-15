@@ -161,6 +161,9 @@ class _NotificationCategoryViewState extends State<_NotificationCategoryView> {
   }
 
   Future<void> _setValue(String path, bool value) async {
+    if (value) {
+      await _ensureDeviceNotificationPermission();
+    }
     final next = NotificationPreferencesService.mergeWithDefaults(_prefs);
     final segments = path.split('.');
     Map<String, dynamic> current = next;
@@ -182,6 +185,15 @@ class _NotificationCategoryViewState extends State<_NotificationCategoryView> {
       _prefs = next;
     });
     await NotificationPreferencesService.setValue(path, value);
+  }
+
+  Future<bool> _ensureDeviceNotificationPermission() async {
+    final allowed =
+        await NotificationService.instance.ensureUserNotificationPermission();
+    if (!allowed) {
+      await openAppSettings();
+    }
+    return allowed;
   }
 
   @override

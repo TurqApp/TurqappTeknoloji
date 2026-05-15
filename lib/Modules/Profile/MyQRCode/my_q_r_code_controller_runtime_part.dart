@@ -155,20 +155,7 @@ extension MyQRCodeControllerRuntimeX on MyQRCodeController {
   }
 
   Future<void> downloadQRCode() async {
-    PermissionStatus status;
-
-    if (Platform.isIOS) {
-      status = await Permission.photosAddOnly.request();
-    } else if (Platform.isAndroid) {
-      status = await Permission.photos.request();
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-      }
-    } else {
-      status = await Permission.storage.request();
-    }
-
-    if (!status.isGranted) {
+    if (!await AppImagePickerService.ensureGallerySavePermission()) {
       AppSnackbar(
         'qr.permission_required'.tr,
         'qr.gallery_permission_body'.tr,

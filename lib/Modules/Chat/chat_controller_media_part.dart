@@ -660,8 +660,9 @@ extension ChatControllerMediaPart on ChatController {
       }
       final harnessPermission =
           IntegrationMediaTestHarness.takeVoicePermission();
-      final hasPermission =
-          harnessPermission ?? await _audioRecorder.hasPermission();
+      final hasPermission = harnessPermission ??
+          (await AppImagePickerService.ensureMicrophonePermission() &&
+              await _audioRecorder.hasPermission());
       if (!hasPermission) {
         _recordMediaFailure('microphone_denied');
         AppSnackbar(
@@ -769,6 +770,11 @@ extension ChatControllerMediaPart on ChatController {
 
   Future<void> selectContact() async {
     if (Platform.isIOS) {
+      return;
+    }
+    final contactStatus = await Permission.contacts.status;
+    if (contactStatus.isPermanentlyDenied || contactStatus.isRestricted) {
+      await openAppSettings();
       return;
     }
     if (!await FlutterContacts.requestPermission()) {

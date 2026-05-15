@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
@@ -124,7 +125,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 ),
                 const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: openAppSettings,
+                  onTap: _ensureDeviceNotificationPermission,
                   child: Text(
                     'notifications.device_settings'.tr,
                     style: const TextStyle(
@@ -153,6 +154,9 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   }
 
   Future<void> _setValue(String path, bool value) async {
+    if (value && _shouldRequestDevicePermissionFor(path)) {
+      await _ensureDeviceNotificationPermission();
+    }
     final next = NotificationPreferencesService.mergeWithDefaults(_prefs);
     _writePath(next, path, value);
     _updateViewState(() {
@@ -187,6 +191,18 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       current = current[segment];
     }
     return current == true;
+  }
+
+  bool _shouldRequestDevicePermissionFor(String path) =>
+      path != 'pauseAll' && path != 'sleepMode';
+
+  Future<bool> _ensureDeviceNotificationPermission() async {
+    final allowed =
+        await NotificationService.instance.ensureUserNotificationPermission();
+    if (!allowed) {
+      await openAppSettings();
+    }
+    return allowed;
   }
 
   @override
