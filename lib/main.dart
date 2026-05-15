@@ -38,7 +38,7 @@ const String _appCheckDebugToken =
 const Color _systemNavigationSurfaceColor = Color(0xE0FFFFFF);
 const Color _filteredSystemNavigationSurfaceColor = Color(0x66000000);
 final ValueNotifier<bool> _useFilteredSystemNavigationSurface =
-    ValueNotifier<bool>(false);
+    ValueNotifier<bool>(true);
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -145,6 +145,9 @@ Future<void> main() async {
 
 bool _isFilteredSystemNavigationRoute(String route) {
   final normalized = route.toLowerCase();
+  if (normalized.isEmpty || normalized == '/' || normalized.contains('splash')) {
+    return true;
+  }
   return normalized.contains('shortview') ||
       normalized.contains('singleshortview') ||
       normalized.contains('photoshorts');

@@ -271,6 +271,11 @@ extension _NavBarViewShellContentPart on NavBarView {
     required bool showBar,
   }) {
     final hasEducation = settingController.educationScreenIsOn.value;
+    final media = MediaQuery.of(context);
+    final systemNavigationInset = media.viewPadding.bottom;
+    final navBarBottomPadding = GetPlatform.isAndroid
+        ? systemNavigationInset
+        : math.max(0.0, math.max(8.0, systemNavigationInset) - 20);
     final icons = [
       'assets/icons/house',
       'assets/icons/search',
@@ -293,11 +298,7 @@ extension _NavBarViewShellContentPart on NavBarView {
               12,
               0,
               12,
-              math.max(
-                0.0,
-                math.max(8.0, MediaQuery.of(context).viewPadding.bottom) -
-                    (GetPlatform.isIOS ? 20 : 10),
-              ),
+              navBarBottomPadding,
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
@@ -355,32 +356,36 @@ extension _NavBarViewShellContentPart on NavBarView {
     );
 
     return Expanded(
-      child: Center(
-        child: Semantics(
-          label: navKey,
-          button: true,
-          selected: isSelected,
-          child: ExcludeFocus(
-            excluding: IntegrationTestMode.enabled,
+      child: Semantics(
+        label: navKey,
+        button: true,
+        selected: isSelected,
+        child: ExcludeFocus(
+          excluding: IntegrationTestMode.enabled,
+          child: SizedBox.expand(
             child: TextButton(
               key: ValueKey(navKey),
               style: ButtonStyle(
                 overlayColor: WidgetStateProperty.all(Colors.transparent),
                 padding: WidgetStateProperty.all(EdgeInsets.zero),
+                minimumSize: WidgetStateProperty.all(Size.zero),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               onPressed: () => _handleNavTap(context, index: index),
-              child: iconPath == 'profile_dynamic'
-                  ? _buildProfileNavIcon(isSelected: isSelected)
-                  : SvgPicture.asset(
-                      '$iconPath${isSelected ? '_fill.svg' : '.svg'}',
-                      height: index <= 1 ? 25 : 28,
-                      colorFilter: ColorFilter.mode(
-                        isSelected
-                            ? Colors.black
-                            : Colors.black.withValues(alpha: 0.5),
-                        BlendMode.srcIn,
+              child: Center(
+                child: iconPath == 'profile_dynamic'
+                    ? _buildProfileNavIcon(isSelected: isSelected)
+                    : SvgPicture.asset(
+                        '$iconPath${isSelected ? '_fill.svg' : '.svg'}',
+                        height: index <= 1 ? 25 : 28,
+                        colorFilter: ColorFilter.mode(
+                          isSelected
+                              ? Colors.black
+                              : Colors.black.withValues(alpha: 0.5),
+                          BlendMode.srcIn,
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         ),
