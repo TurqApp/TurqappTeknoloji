@@ -187,7 +187,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   DateTime? _lastResumePositionSampleAt;
   Duration? _lastResumePositionSample;
   Duration? _lastLoggedResumePositionSample;
-  Duration? _lastPosterProgressSample;
   String? _lastDistantBehindResumeResetKey;
   bool _distantBehindResumeWasReset = false;
   bool _autoplaySegmentGateTimedOut = false;
@@ -213,8 +212,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 2500);
   static const Duration _resumePositionSampleInterval =
       Duration(milliseconds: 250);
-  static const Duration _iosPosterProgressFallbackThreshold =
-      Duration(milliseconds: 100);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -1279,10 +1276,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       final hasProgressedVisibleFallback = value.hasRenderedFirstFrame &&
           value.isPlaying &&
           !value.isBuffering &&
-          _hasProgressedForPosterFallback(
-            value.position,
-            threshold: _iosPosterProgressFallbackThreshold,
-          );
+          value.position > const Duration(milliseconds: 250);
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
           (value.hasVisibleVideoFrame || hasProgressedVisibleFallback) &&
           widget.shouldPlay &&
@@ -1307,19 +1301,6 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
     ).shouldHidePoster;
-  }
-
-  bool _hasProgressedForPosterFallback(
-    Duration position, {
-    required Duration threshold,
-  }) {
-    final previous = _lastPosterProgressSample;
-    if (previous == null || position < previous) {
-      _lastPosterProgressSample = position;
-      return false;
-    }
-    _lastPosterProgressSample = position;
-    return position >= threshold && position > previous;
   }
 
   bool shouldShowStartupPlaybackPlaceholder(
