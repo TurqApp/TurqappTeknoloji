@@ -554,7 +554,7 @@ class MyApp extends StatelessWidget {
                 },
                 child: child ?? const SplashView(),
               ),
-              if (systemNavigationHeight > 0)
+              if (GetPlatform.isAndroid && systemNavigationHeight > 0)
                 _SystemNavigationSurfaceHost(height: systemNavigationHeight),
             ],
           ),
