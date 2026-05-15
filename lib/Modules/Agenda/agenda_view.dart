@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
+import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Modules/InAppNotifications/notification_post_types.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../../Models/posts_model.dart';

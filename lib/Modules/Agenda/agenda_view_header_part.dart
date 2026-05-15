@@ -368,7 +368,10 @@ class _DeferredNotificationInboxActionsState
             } catch (_) {}
           });
         },
-        onNotificationsTap: () {
+        onNotificationsTap: () async {
+          final canNotify = await NotificationService.instance
+              .ensureUserNotificationPermission();
+          if (!canNotify) return;
           _notificationsController ??= InAppNotificationsController.ensure();
           final prevIndex = widget.agendaController.lastCenteredIndex;
           widget.agendaController.lastCenteredIndex = prevIndex;
