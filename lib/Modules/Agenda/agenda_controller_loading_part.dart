@@ -1015,10 +1015,13 @@ extension AgendaControllerLoadingPart on AgendaController {
 
   void _applyRefreshMergedAgenda({
     required List<PostsModel> mergedAgenda,
+    bool resetStartupRenderStages = true,
   }) {
     _cancelStartupWarmPlayerPreload();
     _prefetchedThumbnailPostCount = 0;
-    _resetStartupRenderStages();
+    if (resetStartupRenderStages) {
+      _resetStartupRenderStages();
+    }
     _prefetchedThumbnailDocIds.clear();
     publicReshareEvents.clear();
     feedReshareEntries.clear();
@@ -2725,8 +2728,22 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
       _feedRefreshInFlight = true;
+      _startupRenderBootstrapHold = true;
+      _activateStartupRenderStages(
+        reason: 'refresh_cold_start',
+      );
+      await _warmInitialFeedVisuals(filteredMergedAgenda);
+      await _primeInitialVisibleCardImageHints(filteredMergedAgenda);
       _applyRefreshMergedAgenda(
         mergedAgenda: filteredMergedAgenda,
+        resetStartupRenderStages: false,
+      );
+      if (GetPlatform.isAndroid) {
+        _applyStartupRenderStagesNow();
+      }
+      _scheduleStartupWarmPlayerPreload(
+        filteredMergedAgenda,
+        reason: 'refresh_cold_start',
       );
       if (refreshEpoch == _feedMutationEpoch) {
         debugPrint(
