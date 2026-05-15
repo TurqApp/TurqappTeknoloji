@@ -1458,22 +1458,10 @@ extension AgendaControllerFeedPart on AgendaController {
         'centered=${centeredIndex.value}',
       );
     }
-    bool shouldShowNavBar;
-
-    if (currentOffset <= 0) {
-      shouldShowNavBar = true;
-    } else {
-      if (currentOffset > lastOffset) {
-        shouldShowNavBar = false;
-      } else if (currentOffset < lastOffset) {
-        shouldShowNavBar = true;
-      } else {
-        shouldShowNavBar = navBarController.showBar.value;
-      }
-    }
-    if (navBarController.showBar.value != shouldShowNavBar) {
-      navBarController.showBar.value = shouldShowNavBar;
-    }
+    navBarController.updateVisibilityFromPrimaryScroll(
+      source: 'feed',
+      offset: currentOffset,
+    );
     lastOffset = currentOffset;
 
     final centered = centeredIndex.value;
@@ -1529,7 +1517,7 @@ extension AgendaControllerFeedPart on AgendaController {
     }
     _maybeScheduleConnectedFeedReservoirForViewedCount(viewedCount);
 
-    final shouldShowFab = currentOffset <= 1000;
+    final shouldShowFab = currentOffset <= 250;
     if (showFAB.value != shouldShowFab) {
       showFAB.value = shouldShowFab;
     }

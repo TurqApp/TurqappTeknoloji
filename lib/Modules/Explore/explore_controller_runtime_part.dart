@@ -8,6 +8,10 @@ extension ExploreControllerRuntime on ExploreController {
     _bindRecentSearchUsers();
     _bindFollowingListener();
     exploreScroll.addListener(() {
+      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+        source: 'explore_posts',
+        offset: exploreScroll.offset,
+      );
       if (exploreScroll.position.pixels >=
           exploreScroll.position.maxScrollExtent - 200) {
         fetchExplorePosts();
@@ -17,6 +21,10 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     videoScroll.addListener(() {
+      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+        source: 'explore_videos',
+        offset: videoScroll.offset,
+      );
       if (videoScroll.position.pixels >=
           videoScroll.position.maxScrollExtent - 200) {
         fetchVideo();
@@ -26,6 +34,10 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     photoScroll.addListener(() {
+      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+        source: 'explore_photos',
+        offset: photoScroll.offset,
+      );
       if (photoScroll.position.pixels >=
           photoScroll.position.maxScrollExtent - 200) {
         fetchPhoto();
@@ -35,6 +47,10 @@ extension ExploreControllerRuntime on ExploreController {
     });
 
     floodsScroll.addListener(() {
+      maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+        source: 'explore_floods',
+        offset: floodsScroll.offset,
+      );
       _updateFloodVisibleIndex();
       _syncScrollToTopVisibility(floodsScroll.offset);
     });

@@ -434,13 +434,15 @@ extension _AgendaViewFeedPart on AgendaView {
     );
   }
 
-  Widget _buildCreateFab() {
+  Widget _buildCreateFab(BuildContext context) {
     return Obx(() {
       if (!controller.showFAB.value) {
         return const SizedBox.shrink();
       }
+      final systemNavigationInset = MediaQuery.of(context).viewPadding.bottom;
+      final navAwareBottom = systemNavigationInset + 72;
       return Positioned(
-        bottom: 82,
+        bottom: navAwareBottom > 82 ? navAwareBottom : 82,
         right: 20,
         child: FeedCreateFab(
           onTap: () {

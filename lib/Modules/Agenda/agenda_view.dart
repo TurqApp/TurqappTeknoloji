@@ -178,7 +178,7 @@ class AgendaView extends StatelessWidget {
             ),
           ),
           _buildStartupWarmPreloadLayer(),
-          _buildCreateFab(),
+          _buildCreateFab(context),
           Positioned(
             top: 0,
             left: 0,

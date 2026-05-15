@@ -4,6 +4,7 @@ class _NavBarControllerState {
   final selectedIndex = 0.obs;
   final showBar = true.obs;
   final mediaOverlayDepth = 0.obs;
+  final Map<String, double> navBarScrollOffsets = <String, double>{};
   final Set<int> mountedPrimaryTabStackIndexes = <int>{0};
   ShortController? shortCtrl;
   final fullText = 'TurqApp';
@@ -39,6 +40,7 @@ extension NavBarControllerFieldsPart on NavBarController {
   RxInt get selectedIndex => _state.selectedIndex;
   RxBool get showBar => _state.showBar;
   RxInt get _mediaOverlayDepth => _state.mediaOverlayDepth;
+  Map<String, double> get _navBarScrollOffsets => _state.navBarScrollOffsets;
   ShortController get shortCtrl => _state.shortCtrl ??= ensureShortController();
   String get fullText => _state.fullText;
   Rx<AnimationController> get typingController => _state.typingController;

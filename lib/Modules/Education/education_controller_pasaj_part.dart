@@ -317,7 +317,7 @@ extension EducationControllerPasajPart on EducationController {
     );
   }
 
-  void onVerticalScrollDirection(ScrollDirection direction) {
+  void onVerticalScrollDirection(ScrollDirection direction, double offset) {
     final nav = maybeFindNavBarController();
     if (nav == null || direction == ScrollDirection.idle) return;
 
@@ -325,11 +325,10 @@ extension EducationControllerPasajPart on EducationController {
     if (now.difference(_lastNavToggleAt).inMilliseconds < 120) return;
     _lastNavToggleAt = now;
 
-    if (direction == ScrollDirection.reverse) {
-      nav.showBar.value = false;
-    } else if (direction == ScrollDirection.forward) {
-      nav.showBar.value = true;
-    }
+    nav.updateVisibilityFromPrimaryScroll(
+      source: 'pasaj_${selectedTab.value}',
+      offset: offset,
+    );
   }
 
   bool handleEducationBoundarySwipe(ScrollNotification notification) {

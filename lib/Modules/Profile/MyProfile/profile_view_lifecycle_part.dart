@@ -216,6 +216,10 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
     final position = controller.currentScrollPosition;
     if (position == null) return;
     final currentOffset = position.pixels;
+    maybeFindNavBarController()?.updateVisibilityFromPrimaryScroll(
+      source: 'profile_${controller.postSelection.value}',
+      offset: currentOffset,
+    );
     final scrollDelta =
         (currentOffset - controller.lastObservedScrollOffset).abs();
     final startupLockActive =

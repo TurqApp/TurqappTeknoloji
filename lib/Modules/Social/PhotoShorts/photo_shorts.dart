@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Models/posts_model.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_short_content.dart';
 import 'package:turqappv2/Modules/Social/PhotoShorts/photo_shorts_controller.dart';
-import 'package:turqappv2/main.dart';
+import 'package:turqappv2/Runtime/system_navigation_surface_controller.dart';
 
 class PhotoShorts extends StatefulWidget {
   final List<PostsModel> fetchedList;

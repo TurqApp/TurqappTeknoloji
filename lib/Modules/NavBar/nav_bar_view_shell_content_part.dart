@@ -307,7 +307,7 @@ extension _NavBarViewShellContentPart on NavBarView {
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.88),
+                    color: tabBarNavigationSurfaceColor,
                     border: Border.all(
                       color: Colors.black.withValues(alpha: 0.06),
                     ),

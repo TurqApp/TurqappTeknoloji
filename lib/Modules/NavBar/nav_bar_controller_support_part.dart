@@ -11,6 +11,24 @@ extension _NavBarControllerSupportFacadePart on NavBarController {
 
   Future<void> _persistStartupRouteHint(int index) =>
       _NavBarControllerSupportPart(this).persistStartupRouteHint(index);
+
+  void _updateVisibilityFromPrimaryScrollImpl({
+    required String source,
+    required double offset,
+  }) =>
+      _NavBarControllerSupportPart(this).updateVisibilityFromPrimaryScroll(
+        source: source,
+        offset: offset,
+      );
+
+  void _resetVisibilityScrollAnchorImpl({
+    required String source,
+    required double offset,
+  }) =>
+      _NavBarControllerSupportPart(this).resetVisibilityScrollAnchor(
+        source: source,
+        offset: offset,
+      );
 }
 
 class _PrimaryTabLayout {
@@ -84,6 +102,46 @@ class _NavBarControllerSupportPart {
         },
       );
     } catch (_) {}
+  }
+
+  void updateVisibilityFromPrimaryScroll({
+    required String source,
+    required double offset,
+  }) {
+    if (_controller._isDisposed || _controller.mediaOverlayActive) return;
+    final normalizedSource = source.trim();
+    if (normalizedSource.isEmpty) return;
+    final safeOffset = offset.isFinite ? offset.clamp(0.0, double.infinity) : 0;
+    final lastOffset =
+        _controller._navBarScrollOffsets[normalizedSource] ?? safeOffset;
+    const deadZone = 2.0;
+
+    var shouldShow = _controller.showBar.value;
+    if (safeOffset <= 0) {
+      shouldShow = true;
+    } else if (safeOffset - lastOffset > deadZone) {
+      shouldShow = false;
+    } else if (lastOffset - safeOffset > deadZone) {
+      shouldShow = true;
+    }
+
+    if (_controller.showBar.value != shouldShow) {
+      _controller.showBar.value = shouldShow;
+    }
+    _controller._navBarScrollOffsets[normalizedSource] = safeOffset.toDouble();
+  }
+
+  void resetVisibilityScrollAnchor({
+    required String source,
+    required double offset,
+  }) {
+    final normalizedSource = source.trim();
+    if (normalizedSource.isEmpty) return;
+    final safeOffset = offset.isFinite ? offset.clamp(0.0, double.infinity) : 0;
+    _controller._navBarScrollOffsets[normalizedSource] = safeOffset.toDouble();
+    if (safeOffset <= 0 && _controller.showBar.value != true) {
+      _controller.showBar.value = true;
+    }
   }
 
   String routeHintForIndex(int index) {

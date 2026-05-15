@@ -56,11 +56,10 @@ extension TopTagsControllerScrollPart on _TopTagsControllerBase {
   void _onScroll() {
     final currentOffset = scrollController.offset;
 
-    if (currentOffset > 1000) {
-      navbar.showBar.value = currentOffset < _lastOffset;
-    } else {
-      navbar.showBar.value = true;
-    }
+    navbar.updateVisibilityFromPrimaryScroll(
+      source: 'top_tags',
+      offset: currentOffset,
+    );
     _lastOffset = currentOffset;
 
     if (scrollController.position.pixels >=

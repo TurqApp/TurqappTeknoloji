@@ -11,7 +11,8 @@ NavBarController ensureNavBarController() => _ensureNavBarController();
 NavBarController? maybeFindNavBarController() => _maybeFindNavBarController();
 
 NavBarController _ensureNavBarController() =>
-    _maybeFindNavBarController() ?? Get.put(NavBarController(), permanent: true);
+    _maybeFindNavBarController() ??
+    Get.put(NavBarController(), permanent: true);
 
 NavBarController? _maybeFindNavBarController() =>
     Get.isRegistered<NavBarController>() ? Get.find<NavBarController>() : null;
@@ -28,4 +29,16 @@ extension NavBarControllerFacadePart on NavBarController {
   void pushMediaOverlayLock() => _pushMediaOverlayLockImpl();
 
   void popMediaOverlayLock() => _popMediaOverlayLockImpl();
+
+  void updateVisibilityFromPrimaryScroll({
+    required String source,
+    required double offset,
+  }) =>
+      _updateVisibilityFromPrimaryScrollImpl(source: source, offset: offset);
+
+  void resetVisibilityScrollAnchor({
+    required String source,
+    double offset = 0,
+  }) =>
+      _resetVisibilityScrollAnchorImpl(source: source, offset: offset);
 }

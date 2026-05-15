@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Services/CacheFirst/startup_snapshot_shard_store.
 import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Modules/Agenda/AgendaContent/agenda_content_controller.dart';
 import 'package:turqappv2/Modules/Agenda/TopTags/top_tags_repository.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Core/Services/ContentPolicy/content_policy.dart';
 import 'package:turqappv2/Core/Services/IndexPool/index_pool_store.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/storage_budget_manager.dart';

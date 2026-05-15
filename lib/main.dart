@@ -22,6 +22,7 @@ import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/root_navigator_key.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
+import 'package:turqappv2/Runtime/system_navigation_surface_controller.dart';
 import 'package:turqappv2/Themes/app_fonts.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -35,10 +36,6 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
 const String _appCheckDebugToken =
     String.fromEnvironment('TURQ_APP_CHECK_DEBUG_TOKEN');
-const Color _systemNavigationSurfaceColor = Color(0xE0FFFFFF);
-const Color _filteredSystemNavigationSurfaceColor = Color(0x66000000);
-final ValueNotifier<bool> _useFilteredSystemNavigationSurface =
-    ValueNotifier<bool>(true);
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -138,43 +135,21 @@ Future<void> main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     setFilteredSystemNavigationSurface(
-      _useFilteredSystemNavigationSurface.value,
+      useFilteredSystemNavigationSurface.value,
     );
   });
 }
 
 bool _isFilteredSystemNavigationRoute(String route) {
   final normalized = route.toLowerCase();
-  if (normalized.isEmpty || normalized == '/' || normalized.contains('splash')) {
+  if (normalized.isEmpty ||
+      normalized == '/' ||
+      normalized.contains('splash')) {
     return true;
   }
   return normalized.contains('shortview') ||
       normalized.contains('singleshortview') ||
       normalized.contains('photoshorts');
-}
-
-SystemUiOverlayStyle _systemOverlayStyleForVideoSurface(bool filtered) {
-  final navigationColor =
-      filtered ? Colors.black : _systemNavigationSurfaceColor;
-  return SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: filtered ? Brightness.light : Brightness.dark,
-    statusBarBrightness: filtered ? Brightness.dark : Brightness.light,
-    systemNavigationBarColor: navigationColor,
-    systemNavigationBarDividerColor: navigationColor,
-    systemNavigationBarIconBrightness:
-        filtered ? Brightness.light : Brightness.dark,
-    systemNavigationBarContrastEnforced: false,
-  );
-}
-
-void setFilteredSystemNavigationSurface(bool filtered) {
-  if (_useFilteredSystemNavigationSurface.value != filtered) {
-    _useFilteredSystemNavigationSurface.value = filtered;
-  }
-  SystemChrome.setSystemUIOverlayStyle(
-    _systemOverlayStyleForVideoSurface(filtered),
-  );
 }
 
 void _scheduleFeedManifestWarmOnAppLaunch() {
@@ -540,7 +515,7 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
           centerTitle: false,
           titleSpacing: 8,
-          systemOverlayStyle: _systemOverlayStyleForVideoSurface(false),
+          systemOverlayStyle: systemOverlayStyleForNavigationSurface(false),
         ),
       ),
       builder: (ctx, child) {
@@ -553,8 +528,7 @@ class MyApp extends StatelessWidget {
         final adjustedViewPadding = mq.viewPadding.copyWith(
           top: mq.viewPadding.top + topGap,
         );
-        final systemNavigationHeight =
-            GetPlatform.isAndroid ? mq.padding.bottom : mq.viewPadding.bottom;
+        final systemNavigationHeight = mq.viewPadding.bottom;
         return MediaQuery(
           data: mq.copyWith(
             padding: adjustedPadding,
@@ -599,7 +573,7 @@ class _SystemNavigationSurfaceHost extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
-      valueListenable: _useFilteredSystemNavigationSurface,
+      valueListenable: useFilteredSystemNavigationSurface,
       builder: (context, filtered, _) {
         return _SystemNavigationSurface(
           height: height,
@@ -622,15 +596,15 @@ class _SystemNavigationSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = filtered
-        ? _filteredSystemNavigationSurfaceColor
-        : _systemNavigationSurfaceColor;
+        ? filteredSystemNavigationSurfaceColor
+        : systemNavigationSurfaceColor;
     return Positioned(
       left: 0,
       right: 0,
       bottom: 0,
       height: height,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: _systemOverlayStyleForVideoSurface(filtered),
+        value: systemOverlayStyleForNavigationSurface(filtered),
         child: IgnorePointer(
           child: ClipRect(
             child: BackdropFilter(

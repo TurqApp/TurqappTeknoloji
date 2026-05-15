@@ -273,7 +273,10 @@ extension EducationViewBodyPart on EducationView {
         onNotification: (notification) {
           if (notification is UserScrollNotification &&
               notification.metrics.axis == Axis.vertical) {
-            controller.onVerticalScrollDirection(notification.direction);
+            controller.onVerticalScrollDirection(
+              notification.direction,
+              notification.metrics.pixels,
+            );
           }
           return controller.handleEducationBoundarySwipe(notification);
         },
