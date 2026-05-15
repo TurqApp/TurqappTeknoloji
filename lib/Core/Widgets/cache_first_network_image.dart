@@ -17,6 +17,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
   final int? memCacheHeight;
   final bool downloadBeforeRender;
   final bool eagerPrecache;
+  final bool retryExhaustedCandidates;
   final String Function(Iterable<String> urls)?
       rememberedResolvedFilePathForUrls;
   final void Function(String url, String filePath)? rememberResolvedFile;
@@ -32,6 +33,7 @@ class CacheFirstNetworkImage extends StatefulWidget {
     this.memCacheHeight,
     this.downloadBeforeRender = false,
     this.eagerPrecache = false,
+    this.retryExhaustedCandidates = false,
     this.rememberedResolvedFilePathForUrls,
     this.rememberResolvedFile,
   });
@@ -48,10 +50,12 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   bool _exhaustedCandidates = false;
   bool _advanceScheduled = false;
   bool _networkFetchInFlight = false;
+  Timer? _exhaustedRetryTimer;
   String _lastRememberRequestedUrl = '';
   String _lastPrecacheRequestedUrl = '';
   String _lastPrecacheRequestedFilePath = '';
   final Set<String> _attemptedNetworkUrls = <String>{};
+  static const Duration _exhaustedRetryDelay = Duration(seconds: 2);
 
   @override
   void initState() {
@@ -102,6 +106,12 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       setState(() {});
     }
     unawaited(_resolveLocalFile(candidates));
+  }
+
+  @override
+  void dispose() {
+    _exhaustedRetryTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _resolveLocalFile(List<String> urls) async {
@@ -193,6 +203,24 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
         _exhaustedCandidates = true;
         _advanceScheduled = false;
       });
+    });
+  }
+
+  void _scheduleExhaustedRetry() {
+    if (_exhaustedRetryTimer?.isActive ?? false) return;
+    _exhaustedRetryTimer = Timer(_exhaustedRetryDelay, () {
+      if (!mounted) return;
+      final candidates = _normalizedCandidates();
+      if (candidates.isEmpty) return;
+      setState(() {
+        _activeIndex = 0;
+        _activeImageUrl = candidates.first;
+        _exhaustedCandidates = false;
+        _advanceScheduled = false;
+        _networkFetchInFlight = false;
+        _attemptedNetworkUrls.clear();
+      });
+      unawaited(_resolveLocalFile(candidates));
     });
   }
 
@@ -316,6 +344,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     }
 
     if (_exhaustedCandidates) {
+      if (widget.retryExhaustedCandidates) {
+        _scheduleExhaustedRetry();
+      }
       return widget.fallback;
     }
 

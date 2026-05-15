@@ -113,6 +113,7 @@ extension ShortViewUiPart on _ShortViewState {
         fit: BoxFit.cover,
         fallback: _buildShortPosterFallback(),
         eagerPrecache: true,
+        retryExhaustedCandidates: true,
       ),
     );
   }

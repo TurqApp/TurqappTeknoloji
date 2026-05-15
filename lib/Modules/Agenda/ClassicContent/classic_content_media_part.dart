@@ -36,6 +36,7 @@ extension _ClassicContentMediaPart on _ClassicContentState {
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
             eagerPrecache: true,
+            retryExhaustedCandidates: true,
           )
         : fallback;
     if (aspectRatio == null) return image;

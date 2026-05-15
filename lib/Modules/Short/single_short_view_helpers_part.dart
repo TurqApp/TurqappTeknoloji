@@ -1033,6 +1033,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
       fit: BoxFit.cover,
       fallback: fallback,
       eagerPrecache: true,
+      retryExhaustedCandidates: true,
     );
   }
 

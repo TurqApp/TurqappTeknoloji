@@ -147,6 +147,25 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     if (!shouldUsePlatformResumeSeek) return false;
     if (!_controllerOwnsInlinePlayback) return false;
     if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
+      if (_distantBehindResumeWasReset &&
+          widget.shouldPlay &&
+          _isSurfacePlaybackAllowed) {
+        _distantBehindResumeWasReset = false;
+        adapter.queueSeekAndPlay(Duration.zero);
+        _lastQueuedSavedResumePosition = Duration.zero;
+        _lastQueuedSavedResumeAt = DateTime.now();
+        _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+        _recordPlaybackDispatch(
+          'feed_card_restore_saved_seek_reset_zero',
+          source: source,
+          dispatchIssued: false,
+          metadata: <String, dynamic>{
+            'previousPositionMs': adapter.value.position.inMilliseconds,
+            'reason': 'distant_behind_resume_reset',
+          },
+        );
+        return true;
+      }
       return false;
     }
 
@@ -1458,13 +1477,31 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                     (!adapter.value.isInitialized &&
                         adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final savedPosition = _normalizeFeedResumePosition(
-              _resolveSavedResumePosition(adapter));
-          final shouldUseSavedResumeSeek =
+          final resetDistantBehindResume = _distantBehindResumeWasReset;
+          if (resetDistantBehindResume) {
+            _distantBehindResumeWasReset = false;
+            adapter.queueSeekAndPlay(Duration.zero);
+            _lastQueuedSavedResumePosition = Duration.zero;
+            _lastQueuedSavedResumeAt = DateTime.now();
+            _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+            _recordPlaybackDispatch(
+              'feed_card_adapter_restart_reset_zero',
+              source: source,
+              metadata: <String, dynamic>{
+                'reason': 'distant_behind_resume_reset',
+              },
+            );
+          }
+          final savedPosition = resetDistantBehindResume
+              ? Duration.zero
+              : _normalizeFeedResumePosition(
+                  _resolveSavedResumePosition(adapter),
+                );
+          final shouldUseSavedResumeSeek = !resetDistantBehindResume &&
               !_shouldBypassSavedResumeHintForPrimaryFeed(
-            adapter.value,
-            source: source,
-          );
+                adapter.value,
+                source: source,
+              );
           final shouldQueueSavedSeek = shouldUseSavedResumeSeek &&
               _shouldQueueSavedResumeSeek(savedPosition);
           if (shouldQueueSavedSeek) {

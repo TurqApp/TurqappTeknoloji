@@ -108,6 +108,12 @@ class _AudioFocusCoordinatorRuntimePart {
       }
       try {
         if (defaultTargetPlatform == TargetPlatform.iOS &&
+            p.isFeedStyleSurface &&
+            (p.isStopped || !p.value.isPlaying)) {
+          await p.setVolume(0.0);
+          continue;
+        }
+        if (defaultTargetPlatform == TargetPlatform.iOS &&
             p.preferWarmPoolPause &&
             !p.value.isPlaying) {
           await p.setVolume(0.0);

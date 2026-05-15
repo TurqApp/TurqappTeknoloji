@@ -38,6 +38,7 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 4;
 const int _feedWarmWindowBehindCount = 2;
+const int _feedResumeBehindRetainCount = 3;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
@@ -186,6 +187,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   DateTime? _lastResumePositionSampleAt;
   Duration? _lastResumePositionSample;
   Duration? _lastLoggedResumePositionSample;
+  Duration? _lastPosterProgressSample;
+  String? _lastDistantBehindResumeResetKey;
+  bool _distantBehindResumeWasReset = false;
   bool _autoplaySegmentGateTimedOut = false;
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
@@ -209,6 +213,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       Duration(milliseconds: 2500);
   static const Duration _resumePositionSampleInterval =
       Duration(milliseconds: 250);
+  static const Duration _iosPosterProgressFallbackThreshold =
+      Duration(milliseconds: 100);
 
   AgendaController _resolveAgendaController() {
     return ensureAgendaController();
@@ -1171,6 +1177,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     String? source,
   }) {
+    if (_resetDistantBehindFeedResumeStateIfNeeded(
+      value,
+      source: source ?? 'resume_hint',
+    )) {
+      return true;
+    }
     final modelIndex = agendaController.agendaList.indexWhere(
       (p) => p.docID == widget.model.docID,
     );
@@ -1184,6 +1196,45 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       isStartupCacheOriginVideo: isStartupCacheOriginVideo,
       modelIndex: modelIndex,
     );
+  }
+
+  bool _resetDistantBehindFeedResumeStateIfNeeded(
+    HLSVideoValue value, {
+    required String source,
+  }) {
+    if (!_usesFeedPlaybackPolicy || isStandalonePostInstance) return false;
+    final modelIndex = _surfaceModelIndex();
+    final centeredIndex = _surfaceSafeCenteredIndex();
+    if (modelIndex < 0 || centeredIndex < 0) return false;
+    final distanceFromCenter = modelIndex - centeredIndex;
+    if (distanceFromCenter >= -_feedResumeBehindRetainCount) {
+      return false;
+    }
+
+    final resetKey = '$playbackHandleKey:$centeredIndex';
+    if (_lastDistantBehindResumeResetKey == resetKey) {
+      _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+      return true;
+    }
+    _lastDistantBehindResumeResetKey = resetKey;
+    _distantBehindResumeWasReset = true;
+    _lastResumePositionSample = null;
+    _lastResumePositionSampleAt = null;
+    _lastLoggedResumePositionSample = null;
+    _lastQueuedSavedResumePosition = null;
+    _lastQueuedSavedResumeAt = null;
+    _savedResumeRecoveryGuardUntil = null;
+    _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+    debugPrint(
+      '[FeedResumeWindow] action=reset_distant_behind '
+      'doc=${widget.model.docID} key=$playbackHandleKey '
+      'source=$source modelIndex=$modelIndex centered=$centeredIndex '
+      'distance=$distanceFromCenter retainedBehind=$_feedResumeBehindRetainCount '
+      'positionMs=${value.position.inMilliseconds} '
+      'firstFrame=${value.hasRenderedFirstFrame} '
+      'visibleFrame=${value.hasVisibleVideoFrame}',
+    );
+    return true;
   }
 
   bool _isExplicitResumeRecoveryContext(
@@ -1225,7 +1276,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
+      final hasProgressedVisibleFallback = value.hasRenderedFirstFrame &&
+          value.isPlaying &&
+          !value.isBuffering &&
+          _hasProgressedForPosterFallback(
+            value.position,
+            threshold: _iosPosterProgressFallbackThreshold,
+          );
       final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
+          (value.hasVisibleVideoFrame || hasProgressedVisibleFallback) &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           (value.isPlaying || value.position > visualReadyPositionThreshold);
@@ -1248,6 +1307,19 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       value,
       visualReadyPositionThreshold: visualReadyPositionThreshold,
     ).shouldHidePoster;
+  }
+
+  bool _hasProgressedForPosterFallback(
+    Duration position, {
+    required Duration threshold,
+  }) {
+    final previous = _lastPosterProgressSample;
+    if (previous == null || position < previous) {
+      _lastPosterProgressSample = position;
+      return false;
+    }
+    _lastPosterProgressSample = position;
+    return position >= threshold && position > previous;
   }
 
   bool shouldShowStartupPlaybackPlaceholder(
@@ -1300,12 +1372,17 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
                 ? 'ios_reattach_waiting_fresh_frame'
                 : !value.hasRenderedFirstFrame
                     ? 'waiting_first_frame'
-                    : value.isBuffering
-                        ? 'buffering'
-                        : !value.isPlaying &&
-                                value.position <= _stableFramePositionThreshold
-                            ? 'not_playing_before_threshold'
-                            : 'visible_decision_false';
+                    : defaultTargetPlatform == TargetPlatform.iOS &&
+                            _isFeedStyleInlineSurfaceInstance &&
+                            !value.hasVisibleVideoFrame
+                        ? 'ios_waiting_visible_or_progress'
+                        : value.isBuffering
+                            ? 'buffering'
+                            : !value.isPlaying &&
+                                    value.position <=
+                                        _stableFramePositionThreshold
+                                ? 'not_playing_before_threshold'
+                                : 'visible_decision_false';
     debugPrint(
       '[PosterOverlayDecision][${widget.model.docID}] source=$source '
       'surface=$_qaSurfaceName hide=$shouldHidePoster '

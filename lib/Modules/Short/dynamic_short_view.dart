@@ -155,6 +155,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
       fit: BoxFit.cover,
       fallback: fallback,
       eagerPrecache: true,
+      retryExhaustedCandidates: true,
     );
     if (modelAr > 1.2) {
       return Center(

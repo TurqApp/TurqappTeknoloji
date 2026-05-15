@@ -36,6 +36,7 @@ extension _AgendaContentMediaPart on _AgendaContentState {
             memCacheWidth: _feedCacheWidth,
             memCacheHeight: cacheHeight,
             eagerPrecache: true,
+            retryExhaustedCandidates: true,
           )
         : fallback;
     if (aspectRatio == null) return image;

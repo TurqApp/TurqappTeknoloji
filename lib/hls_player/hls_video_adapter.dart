@@ -100,6 +100,7 @@ class HLSVideoAdapter extends ChangeNotifier {
   /// Network/decoder durdurulmuş mu? (stopPlayback çağrıldı)
   bool get isStopped => _isStopped;
   bool get preferWarmPoolPause => _preferWarmPoolPause;
+  bool get isFeedStyleSurface => _isFeedStyleSurface;
 
   // Pending command queue
   bool _wantPlay = false;
