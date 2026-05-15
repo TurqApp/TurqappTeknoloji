@@ -893,8 +893,7 @@ extension AgendaControllerFeedPart on AgendaController {
     );
   }
 
-  bool get _isOnCellularFeedWarmProfile =>
-      NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
+  bool get _isOnCellularFeedWarmProfile => false;
 
   void _prefetchCurrentPoster() {
     if (agendaList.isEmpty) return;

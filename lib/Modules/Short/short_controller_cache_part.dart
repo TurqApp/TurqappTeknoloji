@@ -34,9 +34,10 @@ extension ShortControllerCachePart on ShortController {
   bool get _usesTightCellularShortProfile =>
       StartupPreloadPolicy.useTightCellularWarmProfile(
         isAndroid: defaultTargetPlatform == TargetPlatform.android,
-        isOnCellular:
-            NetworkAwarenessService.maybeFind()?.isOnCellular ?? false,
+        isOnCellular: _isOnDisconnectedCellular,
       );
+
+  bool get _isOnDisconnectedCellular => false;
 
   bool get _shouldPreferDirectCdnOnShorts =>
       PlaybackSurfacePolicy.preferDirectCdnForShort(
@@ -60,8 +61,7 @@ extension ShortControllerCachePart on ShortController {
       if (playableOffset <= 0) {
         return _onYuklemeActiveReadySegments;
       }
-      final isOnCellular =
-          NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
+      final isOnCellular = _isOnDisconnectedCellular;
       final limit =
           PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
         platform: defaultTargetPlatform,

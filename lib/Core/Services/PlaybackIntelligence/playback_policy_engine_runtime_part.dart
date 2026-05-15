@@ -11,8 +11,8 @@ PlaybackPolicySnapshot _snapshotPlaybackPolicy({
   return resolvePlaybackPolicySnapshot(
     PlaybackPolicyContext(
       isConnected: network?.isConnected ?? false,
-      isOnWiFi: network?.isOnWiFi ?? false,
-      isOnCellular: network?.isOnCellular ?? false,
+      isOnWiFi: network?.isConnected ?? false,
+      isOnCellular: false,
       pauseOnCellular: network?.settings.pauseOnCellular ?? false,
       cellularDataMode:
           network?.settings.cellularDataMode ?? DataUsageMode.normal,
@@ -46,35 +46,17 @@ PlaybackPolicySnapshot _resolvePlaybackPolicy(
     );
   }
 
-  if (context.isOnWiFi) {
-    return PlaybackPolicySnapshot(
-      mode:
-          context.isBootstrap ? PlaybackMode.bootstrap : PlaybackMode.wifiFill,
-      policyTag: context.isBootstrap ? 'bootstrap_wifi' : 'wifi_fill',
-      reason: context.isBootstrap ? 'startup_connected_wifi' : 'wifi_available',
-      allowBackgroundPrefetch: true,
-      allowOnDemandSegmentFetch: true,
-      allowPlaylistFetch: true,
-      cacheOnlyMode: false,
-      enableMobileSeedMode: false,
-      startupWindowSegments: 2,
-      aheadWindowSegments: context.isBootstrap ? 1 : 2,
-      maxConcurrentPrefetch: 4,
-      budgetProfile: budgetProfile,
-    );
-  }
-
   return PlaybackPolicySnapshot(
-    mode: PlaybackMode.cellularGuard,
-    policyTag: 'cellular_wifi_equivalent',
-    reason: 'cellular_connected_wifi_equivalent',
+    mode: context.isBootstrap ? PlaybackMode.bootstrap : PlaybackMode.wifiFill,
+    policyTag: context.isBootstrap ? 'bootstrap_wifi' : 'wifi_fill',
+    reason: context.isBootstrap ? 'startup_connected_wifi' : 'wifi_available',
     allowBackgroundPrefetch: true,
     allowOnDemandSegmentFetch: true,
     allowPlaylistFetch: true,
     cacheOnlyMode: false,
     enableMobileSeedMode: false,
     startupWindowSegments: 2,
-    aheadWindowSegments: 2,
+    aheadWindowSegments: context.isBootstrap ? 1 : 2,
     maxConcurrentPrefetch: 4,
     budgetProfile: budgetProfile,
   );

@@ -779,7 +779,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         basePriority: priority,
         currentIndex: currentIndex,
         targetIndex: targetIndex,
-        isOnWiFi: _isOnWiFi,
+        isOnWiFi: _usesWifiPlaybackNetworkBehavior,
         mobileSeedMode: _mobileSeedMode,
         feedReadyRatio: _lastFeedReadyRatio,
         watchProgress: watchProgress,
@@ -799,18 +799,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     required List<String> docIDs,
     required SegmentCacheManager cacheManager,
   }) {
-    if (!_isOnWiFi) return false;
-    if (!_restrictToFocusedDoc) return false;
-    final focusedDocId = _focusedDocID?.trim() ?? '';
-    if (focusedDocId.isEmpty) return false;
-    final policy = maybeFindPlaybackPolicyEngine();
-    if (policy == null) return false;
-    return policy
-        .snapshot(
-          visibleReadyCount: _lastFeedReadyCount,
-          visibleWindowCount: _lastFeedWindowCount,
-        )
-        .enableMobileSeedMode;
+    return false;
   }
 
   int _resolvedReadySegmentTarget({

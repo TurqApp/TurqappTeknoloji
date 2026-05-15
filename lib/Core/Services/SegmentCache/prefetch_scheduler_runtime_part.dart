@@ -169,20 +169,22 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
 
   bool get _isOnCellular => CacheNetworkPolicy.isOnCellular;
 
+  bool get _usesWifiPlaybackNetworkBehavior =>
+      CacheNetworkPolicy.usesWifiPlaybackBehavior;
+
   bool get _allowMobileQuotaFill => false;
 
   bool get _isSurfacePrefetchNetworkEligible =>
       shouldAllowSurfacePrefetchNetwork(
-        isOnWiFi: _isOnWiFi,
-        isOnCellular: _isOnCellular,
+        isOnWiFi: _usesWifiPlaybackNetworkBehavior,
+        isOnCellular: false,
         canPrefetch: CacheNetworkPolicy.canPrefetch,
         canFetchOnDemand: CacheNetworkPolicy.canFetchOnDemand,
         canFetchPlaylist: CacheNetworkPolicy.canFetchPlaylist,
         cacheOnlyMode: CacheNetworkPolicy.cacheOnlyMode,
       );
 
-  bool get _usesWifiSurfaceWarmSettings =>
-      _isOnWiFi || (_isOnCellular && _isSurfacePrefetchNetworkEligible);
+  bool get _usesWifiSurfaceWarmSettings => _usesWifiPlaybackNetworkBehavior;
 
   int get _breadthCount {
     final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;

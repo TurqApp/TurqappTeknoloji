@@ -5,19 +5,19 @@ import '../network_awareness_service.dart';
 /// NetworkAwarenessService'i sarmalayarak cache-specific kararlar verir.
 ///
 /// Politika:
-/// - Wi-Fi: prefetch + on-demand CDN fetch
-/// - Cellular: arka plan prefetch kapalı, on-demand segment fetch açık
+/// - Connected network: prefetch + on-demand CDN fetch
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
   static PlaybackPolicyEngine? get _engine => maybeFindPlaybackPolicyEngine();
 
-  /// Wi-Fi'de mi? Prefetch sadece Wi-Fi'de çalışır.
+  /// Playback cache davranisi icin her bagli ag Wi-Fi gibi davranir.
+  /// Kota ve data usage tarafinda actual cellular bilgisi ayrica korunur.
   static bool get canPrefetch {
     final engine = _engine;
     if (engine != null) {
       return engine.snapshot().allowBackgroundPrefetch;
     }
-    return NetworkAwarenessService.maybeFind()?.isOnWiFi ?? false;
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
   static PlaybackPolicySnapshot? get currentSnapshot {
@@ -26,10 +26,17 @@ class CacheNetworkPolicy {
     return engine.snapshot();
   }
 
+  static bool get usesWifiPlaybackBehavior {
+    final engine = _engine;
+    if (engine != null) {
+      final snapshot = engine.snapshot();
+      return snapshot.allowBackgroundPrefetch && !snapshot.cacheOnlyMode;
+    }
+    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
+  }
+
   /// On-demand CDN fetch izni.
-  /// Wi-Fi'de her zaman true.
-  /// Cellular'da sadece oynatma anındaki cache-miss segmentleri için true.
-  /// (Arka plan prefetch yine canPrefetch ile Wi-Fi'a bağlıdır.)
+  /// Her bagli agda oynatma akisini Wi-Fi gibi kilitsiz tut.
   static bool get canFetchOnDemand {
     final engine = _engine;
     if (engine != null) {
@@ -40,18 +47,10 @@ class CacheNetworkPolicy {
       // Fail-open: policy servisleri geç yüklenirse oynatma kilitlenmesin.
       return true;
     }
-    if (net.isOnWiFi) return true;
-
-    // Mobilde oynatma akışını kilitlememek için on-demand segment'e izin ver.
-    if (net.isOnCellular) {
-      return net.isConnected;
-    }
-    // Bağlantı var ama tip net çözümlenemiyorsa oynatmayı bloklama.
     return net.isConnected;
   }
 
-  /// Playlist fetch izni — playlist'ler küçük olduğu için cellular'da da izin ver.
-  /// Segment fetch'ten farklı: m3u8 birkaç KB, segment onlarca MB olabilir.
+  /// Playlist fetch izni.
   static bool get canFetchPlaylist {
     final engine = _engine;
     if (engine != null) {
@@ -60,7 +59,7 @@ class CacheNetworkPolicy {
     return NetworkAwarenessService.maybeFind()?.isConnected ?? true;
   }
 
-  /// Cache-only mod: offline veya kullanici mobil veride durdurduysa segment CDN fetch yapma.
+  /// Cache-only mod sadece offline icin.
   static bool get cacheOnlyMode {
     final engine = _engine;
     if (engine != null) {
@@ -69,10 +68,6 @@ class CacheNetworkPolicy {
     final net = NetworkAwarenessService.maybeFind();
     if (net == null) return true;
     if (!net.isConnected) return true;
-    if (net.isOnWiFi) return false;
-    if (net.isOnCellular) {
-      return net.settings.pauseOnCellular;
-    }
     return false;
   }
 
@@ -95,9 +90,6 @@ class CacheNetworkPolicy {
       }
       if (snapshot.cacheOnlyMode) {
         return 'Cache-only mode - segment not cached';
-      }
-      if (snapshot.mode == PlaybackMode.cellularGuard) {
-        return 'Cellular guard blocked segment fetch';
       }
       return 'Playback policy blocked segment fetch';
     }

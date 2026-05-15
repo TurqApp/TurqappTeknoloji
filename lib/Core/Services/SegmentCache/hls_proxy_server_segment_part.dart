@@ -136,7 +136,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     }
     final requestedDocId = HlsSegmentPolicy.normalizeDocId(docID);
     if (requestedDocId == null || requestedDocId.isEmpty) {
-      return !CacheNetworkPolicy.isOnCellular;
+      return true;
     }
     return VideoStateManager.instance.allowsOnDemandSegmentFetchFor(
       requestedDocId,
@@ -208,9 +208,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     if (!_canFetchSegmentOnDemandForDoc(docID)) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
-        ..write(CacheNetworkPolicy.isOnCellular
-            ? 'On-demand segment fetch blocked for non-owner playback'
-            : CacheNetworkPolicy.segmentFetchBlockedReason)
+        ..write(CacheNetworkPolicy.segmentFetchBlockedReason)
         ..close();
       return;
     }

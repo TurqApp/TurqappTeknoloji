@@ -34,6 +34,8 @@ class ContentPolicy {
     return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
+  static bool get _usesWifiContentBehavior => isConnected;
+
   static SurfacePolicy _surfacePolicy(ContentScreenKind screen) {
     switch (screen) {
       case ContentScreenKind.feed:
@@ -50,7 +52,8 @@ class ContentPolicy {
   }
 
   static bool allowBackgroundRefresh(ContentScreenKind screen) {
-    return _surfacePolicy(screen).allowBackgroundRefresh(onWiFi: isOnWiFi);
+    return _surfacePolicy(screen)
+        .allowBackgroundRefresh(onWiFi: _usesWifiContentBehavior);
   }
 
   static bool shouldBootstrapNetwork(
@@ -59,12 +62,13 @@ class ContentPolicy {
   }) {
     return _surfacePolicy(screen).shouldBootstrapNetwork(
       isConnected: isConnected,
-      onWiFi: isOnWiFi,
+      onWiFi: _usesWifiContentBehavior,
       hasLocalContent: hasLocalContent,
     );
   }
 
   static int initialPoolLimit(ContentScreenKind screen) {
-    return _surfacePolicy(screen).initialPoolLimitFor(onWiFi: isOnWiFi);
+    return _surfacePolicy(screen)
+        .initialPoolLimitFor(onWiFi: _usesWifiContentBehavior);
   }
 }
