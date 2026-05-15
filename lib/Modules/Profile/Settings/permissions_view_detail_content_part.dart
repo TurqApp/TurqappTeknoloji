@@ -3,6 +3,8 @@ part of 'permissions_view.dart';
 extension _PermissionDetailContentPart on _PermissionDetailViewState {
   Widget _buildPermissionDetailScaffold(BuildContext context) {
     final permissionId = _permissionId(widget.item.permission);
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final bottomActionPadding = bottomInset > 0 ? bottomInset + 12.0 : 20.0;
     return Scaffold(
       key: ValueKey<String>(
         IntegrationTestKeys.screenPermissionDetail(permissionId),
@@ -14,7 +16,12 @@ extension _PermissionDetailContentPart on _PermissionDetailViewState {
             BackButtons(text: widget.item.title),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  12,
+                  16,
+                  bottomActionPadding,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
