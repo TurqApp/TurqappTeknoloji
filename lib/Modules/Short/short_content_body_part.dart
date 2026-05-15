@@ -13,7 +13,7 @@ extension ShortsContentBodyPart on _ShortsContentState {
   EdgeInsets _actionSurfaceOuterPadding(BuildContext context) {
     final viewBottom = MediaQuery.of(context).viewPadding.bottom;
     final safeBase = viewBottom > 8.0 ? viewBottom : 8.0;
-    final adjustment = GetPlatform.isIOS ? 20.0 : 10.0;
+    final adjustment = GetPlatform.isIOS ? 20.0 : 0.0;
     final bottomInset = safeBase > adjustment ? safeBase - adjustment : 0.0;
     return EdgeInsets.fromLTRB(12, 0, 12, bottomInset);
   }

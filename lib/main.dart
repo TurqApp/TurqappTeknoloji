@@ -154,11 +154,14 @@ bool _isFilteredSystemNavigationRoute(String route) {
 }
 
 SystemUiOverlayStyle _systemOverlayStyleForVideoSurface(bool filtered) {
+  final navigationColor =
+      filtered ? Colors.black : _systemNavigationSurfaceColor;
   return SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: filtered ? Brightness.light : Brightness.dark,
     statusBarBrightness: filtered ? Brightness.dark : Brightness.light,
-    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarColor: navigationColor,
+    systemNavigationBarDividerColor: navigationColor,
     systemNavigationBarIconBrightness:
         filtered ? Brightness.light : Brightness.dark,
     systemNavigationBarContrastEnforced: false,
@@ -550,51 +553,59 @@ class MyApp extends StatelessWidget {
         final adjustedViewPadding = mq.viewPadding.copyWith(
           top: mq.viewPadding.top + topGap,
         );
+        final systemNavigationHeight =
+            GetPlatform.isAndroid ? mq.padding.bottom : mq.viewPadding.bottom;
         return MediaQuery(
           data: mq.copyWith(
             padding: adjustedPadding,
             viewPadding: adjustedViewPadding,
           ),
-          child: ValueListenableBuilder<bool>(
-            valueListenable: _useFilteredSystemNavigationSurface,
-            builder: (context, useFilteredSystemNavigation, _) {
-              return AnnotatedRegion<SystemUiOverlayStyle>(
-                value: _systemOverlayStyleForVideoSurface(
-                  useFilteredSystemNavigation,
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Container(
+                    height: adjustedViewPadding.top,
+                    color: Colors.white,
+                  ),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: Container(
-                          height: adjustedViewPadding.top,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: () {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                      child: child ?? const SplashView(),
-                    ),
-                    if (mq.viewPadding.bottom > 0)
-                      _SystemNavigationSurface(
-                        height: mq.viewPadding.bottom,
-                        filtered: useFilteredSystemNavigation,
-                      ),
-                  ],
-                ),
-              );
-            },
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                child: child ?? const SplashView(),
+              ),
+              if (systemNavigationHeight > 0)
+                _SystemNavigationSurfaceHost(height: systemNavigationHeight),
+            ],
           ),
         );
       },
       home: const SplashView(),
+    );
+  }
+}
+
+class _SystemNavigationSurfaceHost extends StatelessWidget {
+  const _SystemNavigationSurfaceHost({required this.height});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _useFilteredSystemNavigationSurface,
+      builder: (context, filtered, _) {
+        return _SystemNavigationSurface(
+          height: height,
+          filtered: filtered,
+        );
+      },
     );
   }
 }
@@ -618,12 +629,15 @@ class _SystemNavigationSurface extends StatelessWidget {
       right: 0,
       bottom: 0,
       height: height,
-      child: IgnorePointer(
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: ColoredBox(
-              color: color,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: _systemOverlayStyleForVideoSurface(filtered),
+        child: IgnorePointer(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: ColoredBox(
+                color: color,
+              ),
             ),
           ),
         ),
