@@ -277,7 +277,7 @@ extension _NavBarViewShellContentPart on NavBarView {
         ? systemNavigationInset
         : math.max(0.0, math.max(8.0, systemNavigationInset) - 20);
     final hasAndroidSystemNavigationBar =
-        GetPlatform.isAndroid && systemNavigationInset > 0;
+        GetPlatform.isAndroid && systemNavigationInset >= 32;
     final tabBarSurfaceColor = hasAndroidSystemNavigationBar
         ? Colors.white
         : tabBarNavigationSurfaceColor;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 const Color systemNavigationSurfaceColor = Color(0xE6FFFFFF);
-const Color tabBarNavigationSurfaceColor = systemNavigationSurfaceColor;
+const Color tabBarNavigationSurfaceColor = Color(0xD9FFFFFF);
 const Color filteredSystemNavigationSurfaceColor = Color(0x66000000);
 
 final ValueNotifier<bool> useFilteredSystemNavigationSurface =
