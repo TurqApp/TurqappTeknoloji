@@ -35,6 +35,7 @@ final RouteObserver<ModalRoute<void>> routeObserver =
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
 const String _appCheckDebugToken =
     String.fromEnvironment('TURQ_APP_CHECK_DEBUG_TOKEN');
+const Color _systemNavigationSurfaceColor = Color(0xFFF7F7F7);
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -135,7 +136,8 @@ Future<void> main() async {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarColor: _systemNavigationSurfaceColor,
+      systemNavigationBarIconBrightness: Brightness.dark,
       systemNavigationBarContrastEnforced: false,
     ));
   });
@@ -505,7 +507,7 @@ class MyApp extends StatelessWidget {
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,
             statusBarBrightness: Brightness.light,
-            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarColor: _systemNavigationSurfaceColor,
             systemNavigationBarIconBrightness: Brightness.dark,
             systemNavigationBarContrastEnforced: false,
           ),
@@ -531,7 +533,7 @@ class MyApp extends StatelessWidget {
               statusBarColor: Colors.transparent,
               statusBarIconBrightness: Brightness.dark,
               statusBarBrightness: Brightness.light,
-              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarColor: _systemNavigationSurfaceColor,
               systemNavigationBarIconBrightness: Brightness.dark,
               systemNavigationBarContrastEnforced: false,
             ),
@@ -555,6 +557,16 @@ class MyApp extends StatelessWidget {
                   },
                   child: child ?? const SplashView(),
                 ),
+                if (mq.viewPadding.bottom > 0)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: mq.viewPadding.bottom,
+                    child: const IgnorePointer(
+                      child: ColoredBox(color: _systemNavigationSurfaceColor),
+                    ),
+                  ),
               ],
             ),
           ),
