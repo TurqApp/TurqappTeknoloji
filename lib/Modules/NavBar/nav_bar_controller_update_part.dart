@@ -100,7 +100,10 @@ extension _NavBarControllerUpdatePart on NavBarController {
       );
 
       if (versionTooLow || buildTooLow) {
-        _showUpdateDialogImpl();
+        _showUpdateDialogImpl(
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+        );
       }
     } catch (_) {}
   }
@@ -153,96 +156,125 @@ extension _NavBarControllerUpdatePart on NavBarController {
     return false;
   }
 
-  void _showUpdateDialogImpl() {
+  String _appUpdatePromptCountKeyImpl({
+    required String requiredVersion,
+    required int requiredBuild,
+  }) {
+    final platform = Platform.isIOS ? 'ios' : 'android';
+    return '$_appVersionPromptCountKeyPrefix:$platform:'
+        '${requiredVersion.isEmpty ? 'any' : requiredVersion}:$requiredBuild';
+  }
+
+  void _showUpdateDialogImpl({
+    required String requiredVersion,
+    required int requiredBuild,
+  }) {
     if (_isForceUpdateVisible) return;
     _isForceUpdateVisible = true;
-    Get.bottomSheet(
-      isDismissible: false,
-      enableDrag: false,
-      barrierColor: Colors.black54,
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+    unawaited(() async {
+      final preferences = ensureLocalPreferenceRepository();
+      final countKey = _appUpdatePromptCountKeyImpl(
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+      );
+      final showCount = (await preferences.getInt(countKey) ?? 0) + 1;
+      await preferences.setInt(countKey, showCount);
+      final forceUpdate = showCount >= 5;
+      debugPrint(
+        '[AppUpdateCheck] action=show_update_sheet count=$showCount '
+        'force=$forceUpdate key=$countKey',
+      );
+      await Get.bottomSheet<void>(
+        isDismissible: !forceUpdate,
+        enableDrag: !forceUpdate,
+        barrierColor: Colors.black54,
+        Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    "assets/logo/logo.webp",
-                    color: Colors.black,
-                    height: 80,
-                    width: 80,
+                const SizedBox(height: 22),
+                Text(
+                  _updateTitle,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: "MontserratBold",
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _updateBody,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    fontFamily: "MontserratMedium",
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                30.ph,
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _launchStore,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'app_update.cta'.tr,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontFamily: "MontserratMedium",
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                if (!forceUpdate) ...[
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: Get.back<void>,
+                    child: const Text(
+                      'Sonra',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontFamily: "MontserratMedium",
+                        color: Colors.black54,
+                      ),
+                    ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _updateTitle,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: "MontserratBold",
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _updateBody,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                  fontFamily: "MontserratMedium",
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              30.ph,
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _launchStore,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'app_update.cta'.tr,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontFamily: "MontserratMedium",
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-            ],
+                const SizedBox(height: 12),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+      _isForceUpdateVisible = false;
+    }());
   }
 
   void _scheduleRatingPromptImpl(Duration delay) {
