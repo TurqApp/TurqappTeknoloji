@@ -267,9 +267,7 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool isPrimaryFeedSurface,
   }) {
-    return (platform == TargetPlatform.android ||
-            platform == TargetPlatform.iOS) &&
-        isPrimaryFeedSurface;
+    return false;
   }
 
   static int feedPlaybackBoostLookAhead({

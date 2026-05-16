@@ -1696,6 +1696,10 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       source: 'replay_button',
       dispatchIssued: false,
     );
+    debugPrint(
+      '[FeedReplayTrace] stage=manual_replay_start '
+      'doc=${widget.model.docID}',
+    );
     _replayOverlayLatched = false;
     _replayAdTailChecked = false;
     _replayAdAvailableAtTail = false;

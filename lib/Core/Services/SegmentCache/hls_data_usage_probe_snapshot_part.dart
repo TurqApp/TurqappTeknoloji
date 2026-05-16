@@ -223,6 +223,40 @@ extension HlsDataUsageProbeSnapshotPart on HlsDataUsageProbe {
     }
     _mobileBytesKpiSignature = signature;
 
+    if (kDebugMode) {
+      final topDocSummary = usage.topDocs.take(5).map((doc) {
+        final shortId =
+            doc.docId.length > 8 ? doc.docId.substring(0, 8) : doc.docId;
+        return '$shortId:${doc.downloadedMb.toStringAsFixed(2)}MB/'
+            '${doc.downloadedSegments}s/'
+            'repeat=${doc.repeatedSegmentDownloads}';
+      }).join(',');
+      debugPrint(
+        '[HlsUsageSnapshot] label=${usage.label} '
+        'network=${usage.networkType} '
+        'elapsedSec=${usage.elapsed.inSeconds} '
+        'downloadedMB=${(usage.downloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'visibleMB=${(usage.visibleDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'backgroundMB=${(usage.backgroundDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'prefetchMB=${(usage.prefetchDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'playbackMB=${(usage.playbackDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'cellularMB=${(usage.cellularDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'cellularBackgroundMB=${(usage.cellularBackgroundDownloadedBytes / (1024 * 1024)).toStringAsFixed(2)} '
+        'segments=${usage.segmentDownloads} '
+        'backgroundSegments=${usage.backgroundSegmentDownloads} '
+        'prefetchSegments=${usage.prefetchSegmentDownloads} '
+        'repeatedSegments=${usage.repeatedSegmentDownloads} '
+        'cacheHits=${usage.segmentCacheHits} '
+        'uniqueDocs=${usage.uniqueDocsDownloaded} '
+        'peakConcurrent=${usage.peakConcurrentDownloads} '
+        'peakParallelDocs=${usage.peakParallelDocDownloads} '
+        'peakOffscreenParallel=${usage.peakOffscreenParallelDownloads} '
+        'mbPerMinute=${usage.mbPerMinute.toStringAsFixed(2)} '
+        'backgroundMbPerMinute=${usage.backgroundMbPerMinute.toStringAsFixed(2)} '
+        'topDocs=$topDocSummary',
+      );
+    }
+
     playbackKpi.track(
       PlaybackKpiEventType.mobileBytesPerMinute,
       {

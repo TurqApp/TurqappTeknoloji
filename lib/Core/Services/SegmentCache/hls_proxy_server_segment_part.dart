@@ -214,12 +214,16 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     }
 
     final cdnUrl = '$_hlsProxyServerCdnOrigin$path';
+    var ownsSegmentFetch = false;
+    var servedFromInflight = false;
     try {
       final existing = _segmentFetchInFlight[path];
       final Uint8List bytes;
       if (existing != null) {
+        servedFromInflight = true;
         bytes = await existing;
       } else {
+        ownsSegmentFetch = true;
         if (docID != null) {
           final segmentKey = _extractSegmentKey(path, docID);
           if (segmentKey != null) {
@@ -245,11 +249,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         }
         final future = _fetchSegmentFromCDN(cdnUrl);
         _segmentFetchInFlight[path] = future;
-        try {
-          bytes = await future;
-        } finally {
-          _segmentFetchInFlight.remove(path);
-        }
+        bytes = await future;
       }
 
       await probe.maybeApplyDebugDelay(
@@ -270,8 +270,12 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         await _respondStalePlaybackSegment(request);
         return;
       }
-      metrics?.recordMiss(bytes.length);
-      _trackDownloadBytes(bytes.length);
+      if (servedFromInflight) {
+        metrics?.recordHit(bytes.length);
+      } else {
+        metrics?.recordMiss(bytes.length);
+        _trackDownloadBytes(bytes.length);
+      }
 
       if (docID != null && cacheManager != null) {
         final segmentKey = _extractSegmentKey(path, docID);
@@ -281,23 +285,24 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             segmentKey: segmentKey,
             bytes: bytes.length,
             source: HlsTrafficSource.playback,
-            cacheHit: false,
+            cacheHit: servedFromInflight,
+            cacheOriginOverride: servedFromInflight ? 'inflight_reuse' : null,
           );
           _logPlaybackSegmentServe(
             docId: docID,
             segmentKey: segmentKey,
-            cacheHit: false,
+            cacheHit: servedFromInflight,
             bytes: bytes.length,
-            path: path,
+            path: servedFromInflight ? 'inflight:$path' : path,
           );
-          unawaited(
-            cacheManager.writeSegment(
+          if (!servedFromInflight) {
+            await cacheManager.writeSegment(
               docID,
               segmentKey,
               bytes,
               cacheOrigin: 'playback',
-            ),
-          );
+            );
+          }
         }
       }
 
@@ -329,6 +334,10 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         ..statusCode = HttpStatus.badGateway
         ..write('CDN fetch failed')
         ..close();
+    } finally {
+      if (ownsSegmentFetch) {
+        _segmentFetchInFlight.remove(path);
+      }
     }
   }
 
