@@ -117,7 +117,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
   static Timer? _deferredPoolTopUpTimer;
-  static Timer? _noFillWarmupRetryTimer;
+  static Timer? _poolWarmupRetryTimer;
   static int _globalFailureBurstCount = 0;
   static Future<void>? _sdkInitFuture;
   static bool _sdkInitialized = false;
@@ -159,7 +159,7 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _noFillCooldownRetryPadding =
       Duration(milliseconds: 150);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
-  static const Duration _fallbackPoolPollInterval = Duration(seconds: 1);
+  static const Duration _fallbackPoolPollInterval = Duration(milliseconds: 250);
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const Duration _feedScrollCriticalAttachDelay =
       Duration(milliseconds: 30);
@@ -173,7 +173,6 @@ class _AdmobKareState extends State<AdmobKare> {
     'astrodsp',
     'camera.astrodsp.com',
   };
-  final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
   TurqAppSuggestionConfig? _fallbackSuggestionConfig;
@@ -239,6 +238,12 @@ class _AdmobKareState extends State<AdmobKare> {
         .replaceAll('&#39;', "'")
         .replaceAll('&apos;', "'")
         .replaceAll('&amp;', '&');
+  }
+
+  static bool _isBlockedManagedSliderSource(String source) {
+    final decoded = _decodeManagedSliderImageSource(source).toLowerCase();
+    if (decoded.trim().isEmpty) return false;
+    return _blockedAdResponseFragments.any(decoded.contains);
   }
 
   static void _markBlockedCreativeCooldown(String adUnitId) {
@@ -443,9 +448,20 @@ class _AdmobKareState extends State<AdmobKare> {
       }
       if (_usesScrollCriticalPoolOnly) {
         _waitingForFuturePool = true;
-        _schedulePoolTopUp(
-          maxRequestCount: 1,
-        );
+        if (_hasAvailableSquareAdUnit()) {
+          unawaited(warmupPool(
+            targetCount: _poolTargetCount,
+            maxRequestCount: 1,
+            bypassMinInterval: true,
+            debugSource: 'fallback_pool_poll',
+          ));
+        } else {
+          _schedulePoolWarmupRetry(
+            delay: _shortestSquareAdUnitCooldownRemaining() +
+                _noFillCooldownRetryPadding,
+            debugSource: 'fallback_pool_poll_cooldown',
+          );
+        }
         return;
       }
       if (!_isAdLoaded && _bannerAd == null) {
@@ -628,13 +644,15 @@ class _AdmobKareState extends State<AdmobKare> {
     Duration delay = Duration.zero,
     int targetCount = _poolTargetCount,
     int maxRequestCount = _poolTopUpBatchCount,
+    bool bypassMinInterval = false,
+    String debugSource = 'pool_top_up',
   }) {
     if (delay <= Duration.zero) {
       unawaited(warmupPool(
         targetCount: targetCount,
         maxRequestCount: maxRequestCount,
-        bypassMinInterval: false,
-        debugSource: 'pool_top_up',
+        bypassMinInterval: bypassMinInterval,
+        debugSource: debugSource,
       ));
       return;
     }
@@ -647,22 +665,28 @@ class _AdmobKareState extends State<AdmobKare> {
       unawaited(warmupPool(
         targetCount: targetCount,
         maxRequestCount: maxRequestCount,
-        bypassMinInterval: false,
-        debugSource: 'deferred_pool_top_up',
+        bypassMinInterval: bypassMinInterval,
+        debugSource: debugSource == 'pool_top_up'
+            ? 'deferred_pool_top_up'
+            : debugSource,
       ));
     });
   }
 
-  static void _scheduleNoFillWarmupRetry({
+  static void _schedulePoolWarmupRetry({
     required Duration delay,
     required String debugSource,
   }) {
-    final activeTimer = _noFillWarmupRetryTimer;
+    final activeTimer = _poolWarmupRetryTimer;
     if (activeTimer != null && activeTimer.isActive) {
       return;
     }
-    _noFillWarmupRetryTimer = Timer(delay, () {
-      _noFillWarmupRetryTimer = null;
+    _log(
+      'pool cycle retry scheduled source=$debugSource '
+      'delayMs=${delay.inMilliseconds} state=$debugState',
+    );
+    _poolWarmupRetryTimer = Timer(delay, () {
+      _poolWarmupRetryTimer = null;
       unawaited(warmupPool(
         targetCount: _poolTargetCount,
         maxRequestCount: 1,
@@ -701,7 +725,7 @@ class _AdmobKareState extends State<AdmobKare> {
               adUnitId: adUnitId,
               source: 'pool_warmup',
             );
-            _scheduleNoFillWarmupRetry(
+            _schedulePoolWarmupRetry(
               delay: _noFillFastRetryDelay,
               debugSource: 'blocked_creative_next_unit',
             );
@@ -711,6 +735,13 @@ class _AdmobKareState extends State<AdmobKare> {
             _readyPool.add(loadedAd as BannerAd);
             _trimReadyPoolToLimit();
             _notifySharedAdAvailabilityChanged();
+            if (_readyPool.length + _loadingCount < _poolTargetCount &&
+                _hasAvailableSquareAdUnit()) {
+              _schedulePoolWarmupRetry(
+                delay: _noFillFastRetryDelay,
+                debugSource: 'pool_fill_after_load',
+              );
+            }
           } else {
             loadedAd.dispose();
           }
@@ -738,7 +769,7 @@ class _AdmobKareState extends State<AdmobKare> {
           if (isNoFill && _hasAvailableSquareAdUnit()) {
             _log(
                 'warmup no fill; trying next unit in ${_noFillFastRetryDelay.inMilliseconds}ms after unit=$adUnitId platform=${Platform.operatingSystem}');
-            _scheduleNoFillWarmupRetry(
+            _schedulePoolWarmupRetry(
               delay: _noFillFastRetryDelay,
               debugSource: 'no_fill_next_unit',
             );
@@ -747,7 +778,7 @@ class _AdmobKareState extends State<AdmobKare> {
                 _noFillCooldownRetryPadding;
             _log(
                 'warmup no fill; all units cooling down retry in ${retryDelay.inMilliseconds}ms unit=$adUnitId platform=${Platform.operatingSystem}');
-            _scheduleNoFillWarmupRetry(
+            _schedulePoolWarmupRetry(
               delay: retryDelay,
               debugSource: 'no_fill_cooldown_retry',
             );
@@ -1115,11 +1146,12 @@ class _AdmobKareState extends State<AdmobKare> {
       _notifySharedAdAvailabilityChanged();
       if (_supportsSharedPool) {
         if (_readyPool.length <= _poolLowWaterMark) {
-          _schedulePoolTopUp(
-            delay: _usesScrollCriticalPoolOnly
-                ? const Duration(seconds: 4)
-                : Duration.zero,
-          );
+          unawaited(warmupPool(
+            targetCount: _poolTargetCount,
+            maxRequestCount: 1,
+            bypassMinInterval: true,
+            debugSource: 'pool_top_up_after_take',
+          ));
         }
       }
       if (mounted && !_isDisposed) {
@@ -1201,47 +1233,12 @@ class _AdmobKareState extends State<AdmobKare> {
     setState(() {
       _suggestionConfig = config;
       _fallbackSuggestionConfig = fallbackConfig;
-    });
-
-    final snapshot = await _sliderCacheService.readSnapshot(config.sliderId);
-    if (!mounted || _isDisposed) return;
-    if (snapshot.hasItems) {
-      setState(() {
-        _suggestionSliderItems = snapshot.resolvedItems;
-      });
-      _ensureVisibleSuggestionIndexInRange();
-      unawaited(_sliderCacheService.warmImages(snapshot.items));
-    }
-
-    unawaited(_refreshManagedSuggestionSlider(config.sliderId));
-  }
-
-  Future<void> _refreshManagedSuggestionSlider(String sliderId) async {
-    try {
-      final remote = await _sliderCacheService.refreshAndCacheItems(sliderId);
-      if (!mounted || _isDisposed) return;
-      setState(() {
-        _suggestionSliderItems = remote;
-      });
-      _ensureVisibleSuggestionIndexInRange();
-      if (_suggestionSliderItems.isEmpty && _isVisible) {
-        _attachBannerOrLoad();
-      } else {
-        _queueManagedSuggestionImpressionIfVisible();
-      }
-    } catch (_) {}
-  }
-
-  void _ensureVisibleSuggestionIndexInRange() {
-    final items = _suggestionSliderItems;
-    if (items.isEmpty) {
+      // Ad fallback never renders remote slider creatives; Google remains first,
+      // and the safe TurqApp card is the only fallback surface.
+      _suggestionSliderItems = const <SliderResolvedItem>[];
       _visibleSuggestionIndex = 0;
       _lastReportedManagedItemId = '';
-      return;
-    }
-    if (_visibleSuggestionIndex >= items.length) {
-      _visibleSuggestionIndex = 0;
-    }
+    });
   }
 
   void _advanceManagedSuggestionIndex() {
@@ -1490,6 +1487,8 @@ class _AdmobKareState extends State<AdmobKare> {
             _schedulePoolTopUp(
               delay: _noFillFastRetryDelay,
               maxRequestCount: 1,
+              bypassMinInterval: true,
+              debugSource: 'blocked_inline_next_unit',
             );
             return;
           }
@@ -1508,7 +1507,9 @@ class _AdmobKareState extends State<AdmobKare> {
           _notifySharedAdAvailabilityChanged();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
-              bypassMinInterval: false,
+              maxRequestCount: 1,
+              bypassMinInterval: true,
+              debugSource: 'pool_top_up_after_inline_load',
             ));
           }
         },
@@ -2429,6 +2430,8 @@ class _AdmobKareState extends State<AdmobKare> {
   Widget _buildManagedSliderItem(String source) {
     final imageSource = _normalizedManagedSliderImageSource(source);
     if (imageSource.isEmpty ||
+        _isBlockedManagedSliderSource(source) ||
+        _isBlockedManagedSliderSource(imageSource) ||
         imageSource.contains('<') ||
         imageSource.contains('>')) {
       _log(
