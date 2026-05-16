@@ -8,6 +8,10 @@ extension _NavBarControllerUpdatePart on NavBarController {
     return int.tryParse((value ?? '').toString()) ?? fallback;
   }
 
+  int _parseBuildNumberImpl(String value) {
+    return int.tryParse(value.trim()) ?? 0;
+  }
+
   Future<void> _loadAppVersionConfigImpl({bool forceRefresh = false}) async {
     final repo = ensureConfigRepository();
     final doc = await repo.getAdminConfigDoc(
@@ -23,8 +27,19 @@ extension _NavBarControllerUpdatePart on NavBarController {
 
     if (doc == null) return;
 
+    _appUpdateCheckEnabled = doc['updateCheckEnabled'] != false;
     _androidMinVersion = (doc['androidMinVersion'] ?? '').toString().trim();
     _iosMinVersion = (doc['iosMinVersion'] ?? '').toString().trim();
+    _androidMinBuild = _asConfigInt(
+      doc['androidMinBuild'] ??
+          doc['androidMinBuildNumber'] ??
+          doc['androidMinVersionCode'],
+      0,
+    );
+    _iosMinBuild = _asConfigInt(
+      doc['iosMinBuild'] ?? doc['iosMinBuildNumber'],
+      0,
+    );
 
     final updateTitle = (doc['updateTitle'] ?? '').toString().trim();
     final updateBody = (doc['updateBody'] ?? '').toString().trim();
@@ -58,25 +73,47 @@ extension _NavBarControllerUpdatePart on NavBarController {
 
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
+      final currentBuild = _parseBuildNumberImpl(packageInfo.buildNumber);
       await _loadAppVersionConfigImpl(forceRefresh: true);
+      if (!_appUpdateCheckEnabled) return;
 
       var requiredVersion = '';
+      var requiredBuild = 0;
       if (Platform.isAndroid) {
         requiredVersion = _androidMinVersion;
+        requiredBuild = _androidMinBuild;
       } else if (Platform.isIOS) {
         requiredVersion = _iosMinVersion;
+        requiredBuild = _iosMinBuild;
       }
 
-      if (requiredVersion.isNotEmpty &&
-          _isVersionLowerImpl(currentVersion, requiredVersion)) {
+      final versionTooLow = requiredVersion.isNotEmpty &&
+          _isVersionLowerImpl(currentVersion, requiredVersion);
+      final buildTooLow =
+          requiredBuild > 0 && currentBuild > 0 && currentBuild < requiredBuild;
+
+      debugPrint(
+        '[AppUpdateCheck] platform=${Platform.isAndroid ? 'android' : 'ios'} '
+        'current=$currentVersion+$currentBuild '
+        'required=$requiredVersion+$requiredBuild '
+        'versionTooLow=$versionTooLow buildTooLow=$buildTooLow',
+      );
+
+      if (versionTooLow || buildTooLow) {
         _showUpdateDialogImpl();
       }
     } catch (_) {}
   }
 
   bool _isVersionLowerImpl(String currentVersion, String requiredVersion) {
-    final current = currentVersion.split('.').map(int.parse).toList();
-    final required = requiredVersion.split('.').map(int.parse).toList();
+    final current = currentVersion
+        .split('.')
+        .map((part) => int.tryParse(part) ?? 0)
+        .toList();
+    final required = requiredVersion
+        .split('.')
+        .map((part) => int.tryParse(part) ?? 0)
+        .toList();
 
     for (var i = 0; i < 3; i++) {
       final currentPart = i < current.length ? current[i] : 0;
@@ -87,6 +124,17 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }
 
     return false;
+  }
+
+  void _startAppUpdateCheckLoopImpl() {
+    _appUpdateCheckTimer?.cancel();
+    if (kDebugMode || IntegrationTestMode.suppressPeriodicSideEffects) {
+      return;
+    }
+    _appUpdateCheckTimer = Timer.periodic(const Duration(minutes: 10), (_) {
+      if (_isDisposed || _isForceUpdateVisible) return;
+      unawaited(_checkAppVersionImpl());
+    });
   }
 
   void _showUpdateDialogImpl() {

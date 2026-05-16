@@ -180,9 +180,13 @@ extension _NavBarControllerLifecyclePart on NavBarController {
       return;
     }
 
+    if (state == AppLifecycleState.resumed &&
+        !IntegrationTestMode.suppressPeriodicSideEffects) {
+      unawaited(_checkAppVersionImpl());
+    }
+
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
       if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(_checkAppVersionImpl());
         _scheduleRatingPromptImpl(const Duration(seconds: 12));
       }
       _resumeFeedIfNeededImpl();

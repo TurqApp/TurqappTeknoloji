@@ -18,8 +18,11 @@ class _NavBarControllerState {
   bool isDisposed = false;
   bool isForceUpdateVisible = false;
   bool ratingSheetShownThisSession = false;
+  bool appUpdateCheckEnabled = true;
   String androidMinVersion = '';
   String iosMinVersion = '';
+  int androidMinBuild = 0;
+  int iosMinBuild = 0;
   String updateTitle = 'app_update.title'.tr;
   String updateBody = 'app_update.body'.tr;
   String? androidStoreUrlOverride;
@@ -31,6 +34,7 @@ class _NavBarControllerState {
   Timer? backgroundCacheTimer;
   Timer? uploadIndicatorTimer;
   Timer? ratingPromptTimer;
+  Timer? appUpdateCheckTimer;
   Timer? feedResumeRetryTimer;
   Timer? shortSurfacePrimeTimer;
   int feedResumeRetryEpoch = 0;
@@ -63,10 +67,17 @@ extension NavBarControllerFieldsPart on NavBarController {
   bool get _ratingSheetShownThisSession => _state.ratingSheetShownThisSession;
   set _ratingSheetShownThisSession(bool value) =>
       _state.ratingSheetShownThisSession = value;
+  bool get _appUpdateCheckEnabled => _state.appUpdateCheckEnabled;
+  set _appUpdateCheckEnabled(bool value) =>
+      _state.appUpdateCheckEnabled = value;
   String get _androidMinVersion => _state.androidMinVersion;
   set _androidMinVersion(String value) => _state.androidMinVersion = value;
   String get _iosMinVersion => _state.iosMinVersion;
   set _iosMinVersion(String value) => _state.iosMinVersion = value;
+  int get _androidMinBuild => _state.androidMinBuild;
+  set _androidMinBuild(int value) => _state.androidMinBuild = value;
+  int get _iosMinBuild => _state.iosMinBuild;
+  set _iosMinBuild(int value) => _state.iosMinBuild = value;
   String get _updateTitle => _state.updateTitle;
   set _updateTitle(String value) => _state.updateTitle = value;
   String get _updateBody => _state.updateBody;
@@ -95,6 +106,8 @@ extension NavBarControllerFieldsPart on NavBarController {
       _state.uploadIndicatorTimer = value;
   Timer? get _ratingPromptTimer => _state.ratingPromptTimer;
   set _ratingPromptTimer(Timer? value) => _state.ratingPromptTimer = value;
+  Timer? get _appUpdateCheckTimer => _state.appUpdateCheckTimer;
+  set _appUpdateCheckTimer(Timer? value) => _state.appUpdateCheckTimer = value;
   Timer? get _feedResumeRetryTimer => _state.feedResumeRetryTimer;
   set _feedResumeRetryTimer(Timer? value) =>
       _state.feedResumeRetryTimer = value;

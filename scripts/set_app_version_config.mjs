@@ -15,6 +15,7 @@ function readArg(name, fallback = '') {
 }
 
 function readBoolArg(name, fallback) {
+  if (args.includes(`--${name}`)) return true;
   const raw = readArg(name, '');
   if (!raw) return fallback;
   return raw.toLowerCase() == 'true';
@@ -39,8 +40,11 @@ if (!admin.apps.length) {
 }
 
 const payload = {
+  updateCheckEnabled: readBoolArg('update-enabled', true),
   androidMinVersion: readArg('android-min', '1.1.4'),
   iosMinVersion: readArg('ios-min', '1.1.4'),
+  androidMinBuild: readIntArg('android-build', 0),
+  iosMinBuild: readIntArg('ios-build', 0),
   updateTitle: readArg('update-title', 'Yeni Güncelleme Mevcut'),
   updateBody: readArg(
     'update-body',
@@ -80,6 +84,8 @@ async function main() {
     const verifiedPayload = {
       androidMinVersion: requireNonEmptyString(data, 'androidMinVersion'),
       iosMinVersion: requireNonEmptyString(data, 'iosMinVersion'),
+      androidMinBuild: Number.parseInt(`${data.androidMinBuild ?? 0}`, 10) || 0,
+      iosMinBuild: Number.parseInt(`${data.iosMinBuild ?? 0}`, 10) || 0,
       androidStoreUrl: requireNonEmptyString(data, 'androidStoreUrl'),
       iosStoreUrl: requireNonEmptyString(data, 'iosStoreUrl'),
       updateTitle: requireNonEmptyString(data, 'updateTitle'),
