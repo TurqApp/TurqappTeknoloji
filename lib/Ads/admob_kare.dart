@@ -142,6 +142,7 @@ class _AdmobKareState extends State<AdmobKare> {
   int _retryCount = 0;
   Timer? _retryTimer;
   Timer? _fallbackGateTimer;
+  Timer? _fallbackPoolPollTimer;
   Timer? _stableHiddenDetachTimer;
   Timer? _visibilityLoadDebounceTimer;
   Timer? _scrollCriticalAttachDelayTimer;
@@ -158,14 +159,20 @@ class _AdmobKareState extends State<AdmobKare> {
   static const Duration _noFillCooldownRetryPadding =
       Duration(milliseconds: 150);
   static const Duration _fallbackRevealDelay = Duration(milliseconds: 1200);
+  static const Duration _fallbackPoolPollInterval = Duration(seconds: 1);
   static const Duration _feedVisibilityLoadDelay = Duration(milliseconds: 650);
   static const Duration _feedScrollCriticalAttachDelay =
       Duration(milliseconds: 30);
   static const Duration _scrollCriticalLiveAdBindingResumeDelay = Duration.zero;
   static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
+  static const Duration _blockedCreativeUnitCooldown = Duration(seconds: 20);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
   static const double _feedVisibilityLoadThreshold = 0.72;
+  static const Set<String> _blockedAdResponseFragments = <String>{
+    'astrodsp',
+    'camera.astrodsp.com',
+  };
   final SliderCacheService _sliderCacheService = SliderCacheService();
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
@@ -205,6 +212,43 @@ class _AdmobKareState extends State<AdmobKare> {
         'sourceId=${meta['adSourceId']} '
         'instance=${meta['adSourceInstanceName']} '
         'instanceId=${meta['adSourceInstanceId']}';
+  }
+
+  static bool _isBlockedAdCreative(Ad ad) {
+    final meta = _adResponseMetadata(ad);
+    final searchable =
+        meta.values.map((value) => value.toString().toLowerCase()).join(' ');
+    return _blockedAdResponseFragments.any(searchable.contains);
+  }
+
+  static void _markBlockedCreativeCooldown(String adUnitId) {
+    _unitCooldownUntilById[adUnitId] =
+        DateTime.now().add(_blockedCreativeUnitCooldown);
+  }
+
+  static void _disposeBlockedCreative(
+    Ad ad, {
+    required String adUnitId,
+    required String source,
+  }) {
+    _markBlockedCreativeCooldown(adUnitId);
+    _log(
+      'blocked creative source=$source unit=$adUnitId '
+      'platform=${Platform.operatingSystem} ${_adResponseLogSummary(ad)}',
+    );
+    recordQALabAdEvent(
+      stage: 'blocked_creative',
+      placement: 'medium_rectangle',
+      metadata: <String, dynamic>{
+        'adUnitId': adUnitId,
+        'source': source,
+        'platform': Platform.operatingSystem,
+        ..._adResponseMetadata(ad),
+      },
+    );
+    try {
+      ad.dispose();
+    } catch (_) {}
   }
 
   static void _notifySharedAdAvailabilityChanged() {
@@ -303,13 +347,14 @@ class _AdmobKareState extends State<AdmobKare> {
   static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
   static bool get hasReadyBanner => _readyPool.isNotEmpty;
-  static bool get hasRenderableBanner =>
-      _readyPool.any((ad) => ad.responseInfo != null);
+  static bool get hasRenderableBanner => _readyPool
+      .any((ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad));
   static Map<String, Object> get debugState => <String, Object>{
         'sdkInitialized': _sdkInitialized,
         'readyPoolCount': _readyPool.length,
-        'renderablePoolCount':
-            _readyPool.where((ad) => ad.responseInfo != null).length,
+        'renderablePoolCount': _readyPool
+            .where((ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad))
+            .length,
         'loadingCount': _loadingCount,
         'cooldownActive': _globalCooldownRemaining() > Duration.zero,
       };
@@ -344,8 +389,54 @@ class _AdmobKareState extends State<AdmobKare> {
       return;
     }
     _fallbackGateTimer?.cancel();
+    _stopFallbackPoolPolling();
     _loadFailed = false;
     _allowFallbackSurface = false;
+  }
+
+  void _startFallbackPoolPolling() {
+    if (_isDisposed ||
+        !_isVisible ||
+        _fallbackPoolPollTimer?.isActive == true) {
+      return;
+    }
+    _log(
+      'fallback pool polling started placement=$_managedSuggestionPlacementId '
+      'slot=$_stableAdSlotKey intervalMs=${_fallbackPoolPollInterval.inMilliseconds}',
+    );
+    _fallbackPoolPollTimer = Timer.periodic(_fallbackPoolPollInterval, (_) {
+      if (_isDisposed || !mounted || !_isVisible) {
+        _stopFallbackPoolPolling();
+        return;
+      }
+      if (_hasRenderableLiveAdAvailable) {
+        _log(
+          'fallback pool polling found live ad placement=$_managedSuggestionPlacementId '
+          'slot=$_stableAdSlotKey state=$debugState',
+        );
+        _clearFallbackWhenLiveAdIsAvailable();
+        _attachBannerOrLoad();
+        if (mounted && !_isDisposed) {
+          setState(() {});
+        }
+        return;
+      }
+      if (_usesScrollCriticalPoolOnly) {
+        _waitingForFuturePool = true;
+        _schedulePoolTopUp(
+          maxRequestCount: 1,
+        );
+        return;
+      }
+      if (!_isAdLoaded && _bannerAd == null) {
+        _attachBannerOrLoad();
+      }
+    });
+  }
+
+  void _stopFallbackPoolPolling() {
+    _fallbackPoolPollTimer?.cancel();
+    _fallbackPoolPollTimer = null;
   }
 
   static Duration _globalCooldownRemaining() {
@@ -584,6 +675,18 @@ class _AdmobKareState extends State<AdmobKare> {
           _unitCooldownUntilById.remove(adUnitId);
           _log(
               'warmup loaded unit=$adUnitId platform=${Platform.operatingSystem} ${_adResponseLogSummary(loadedAd)}');
+          if (_isBlockedAdCreative(loadedAd)) {
+            _disposeBlockedCreative(
+              loadedAd,
+              adUnitId: adUnitId,
+              source: 'pool_warmup',
+            );
+            _scheduleNoFillWarmupRetry(
+              delay: _noFillFastRetryDelay,
+              debugSource: 'blocked_creative_next_unit',
+            );
+            return;
+          }
           if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
             _trimReadyPoolToLimit();
@@ -638,21 +741,32 @@ class _AdmobKareState extends State<AdmobKare> {
 
   BannerAd? _takePreloadedBanner() {
     if (!_supportsSharedPool) return null;
-    if (_readyPool.isEmpty) return null;
-    final renderableIndex =
-        _readyPool.indexWhere((ad) => ad.responseInfo != null);
-    if (renderableIndex >= 0) {
-      return _readyPool.removeAt(renderableIndex);
+    while (_readyPool.isNotEmpty) {
+      final renderableIndex = _readyPool.indexWhere(
+        (ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad),
+      );
+      final index = renderableIndex >= 0 ? renderableIndex : 0;
+      final ad = _readyPool.removeAt(index);
+      if (_isBlockedAdCreative(ad)) {
+        _disposeBlockedCreative(
+          ad,
+          adUnitId: ad.adUnitId,
+          source: 'pool_take',
+        );
+        continue;
+      }
+      return ad;
     }
-    return _readyPool.removeAt(0);
+    return null;
   }
 
   bool _canRenderAd(BannerAd? ad) {
     if (!_isAdLoaded || ad == null) return false;
-    return ad.responseInfo != null;
+    return ad.responseInfo != null && !_isBlockedAdCreative(ad);
   }
 
-  bool _isRenderableBanner(BannerAd? ad) => ad?.responseInfo != null;
+  bool _isRenderableBanner(BannerAd? ad) =>
+      ad != null && ad.responseInfo != null && !_isBlockedAdCreative(ad);
 
   _StableAdSlotState _ensureStableSlotState() {
     final slotId = _stableAdSlotKey;
@@ -669,7 +783,7 @@ class _AdmobKareState extends State<AdmobKare> {
       return false;
     }
     final slot = _stableSlotState;
-    if (slot == null || !slot.hasRenderableAd) {
+    if (slot == null || !_isRenderableBanner(slot.ad)) {
       return false;
     }
     final owner = identityHashCode(this);
@@ -684,6 +798,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _loadFailed = false;
       _allowFallbackSurface = false;
       _waitingForFuturePool = false;
+      _stopFallbackPoolPolling();
       _impressionReported = slot.impressionReported;
       slot.ownerHash = owner;
       slot.mark(_StableAdSlotPhase.bound);
@@ -694,6 +809,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _loadFailed = false;
     _allowFallbackSurface = false;
     _waitingForFuturePool = false;
+    _stopFallbackPoolPolling();
     _impressionReported = slot.impressionReported;
     slot.ownerHash = owner;
     slot.mark(_StableAdSlotPhase.bound);
@@ -842,6 +958,7 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     }
     _fallbackGateTimer?.cancel();
+    _stopFallbackPoolPolling();
     _allowFallbackSurface = false;
     _suggestionConfig = null;
     _waitingForFuturePool = false;
@@ -965,6 +1082,7 @@ class _AdmobKareState extends State<AdmobKare> {
       _isAdLoaded = true;
       _loadFailed = false;
       _allowFallbackSurface = false;
+      _stopFallbackPoolPolling();
       _impressionReported = false;
       _liveAdEverRendered = false;
       _bindAdToStableSlot(pooled);
@@ -1158,6 +1276,7 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _allowFallbackSurface = true;
       });
+      _startFallbackPoolPolling();
     });
   }
 
@@ -1221,6 +1340,7 @@ class _AdmobKareState extends State<AdmobKare> {
     if (!_isVisible) {
       _retryTimer?.cancel();
       _fallbackGateTimer?.cancel();
+      _stopFallbackPoolPolling();
       _visibilityLoadDebounceTimer?.cancel();
       _waitingForFuturePool = false;
       _releaseBannerForHiddenPage();
@@ -1318,6 +1438,31 @@ class _AdmobKareState extends State<AdmobKare> {
               ...responseMetadata,
             },
           );
+          if (_isBlockedAdCreative(ad)) {
+            _disposeBlockedCreative(
+              ad,
+              adUnitId: adUnitId,
+              source: 'inline_load',
+            );
+            _bannerAd = null;
+            if (mounted && !_isDisposed) {
+              setState(() {
+                _isAdLoaded = false;
+                _loadFailed = false;
+                _allowFallbackSurface = false;
+              });
+            }
+            _armFallbackGate();
+            _scheduleRetry(
+              delay: _noFillFastRetryDelay,
+              markLoadFailed: false,
+            );
+            _schedulePoolTopUp(
+              delay: _noFillFastRetryDelay,
+              maxRequestCount: 1,
+            );
+            return;
+          }
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
@@ -1329,6 +1474,7 @@ class _AdmobKareState extends State<AdmobKare> {
             _bindAdToStableSlot(ad);
           }
           _fallbackGateTimer?.cancel();
+          _stopFallbackPoolPolling();
           _notifySharedAdAvailabilityChanged();
           if (_supportsSharedPool) {
             unawaited(warmupPool(
@@ -1524,6 +1670,7 @@ class _AdmobKareState extends State<AdmobKare> {
     );
     _retryTimer?.cancel();
     _fallbackGateTimer?.cancel();
+    _stopFallbackPoolPolling();
     _stableHiddenDetachTimer?.cancel();
     _visibilityLoadDebounceTimer?.cancel();
     _scrollCriticalAttachDelayTimer?.cancel();
@@ -1650,6 +1797,9 @@ class _AdmobKareState extends State<AdmobKare> {
         } else if (_allowFallbackSurface ||
             _loadFailed ||
             liveAdBindingPaused) {
+          if (_allowFallbackSurface || _loadFailed) {
+            scheduleMicrotask(_startFallbackPoolPolling);
+          }
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {
@@ -1663,6 +1813,7 @@ class _AdmobKareState extends State<AdmobKare> {
         } else if (!_allowFallbackSurface && !_loadFailed) {
           child = _buildPendingAdSlot();
         } else {
+          scheduleMicrotask(_startFallbackPoolPolling);
           final fallbackSurface = SizedBox(
             height: _promoSlotHeight,
             child: _buildPromoFrame(
@@ -1731,9 +1882,7 @@ class _AdmobKareState extends State<AdmobKare> {
       child: SizedBox(
         height: _promoSlotHeight,
         child: _buildPromoFrame(
-          child: const Center(
-            child: CupertinoActivityIndicator(),
-          ),
+          child: const SizedBox.expand(),
         ),
       ),
     );
@@ -2106,6 +2255,19 @@ class _AdmobKareState extends State<AdmobKare> {
     return _pasajTabIdFromSuggestionText('${item.itemId} ${item.source}');
   }
 
+  String _normalizedManagedSliderImageSource(String source) {
+    final trimmed = source.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    final imageTagMatch = RegExp(
+      r'''<\s*img[^>]*\bsrc\s*=\s*["']?([^"'\s>]+)''',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    final rawSource = imageTagMatch?.group(1)?.trim() ?? trimmed;
+    return rawSource.replaceAll('&amp;', '&');
+  }
+
   void _openSuggestionPasajTab({
     required String placementId,
     required String tabId,
@@ -2235,9 +2397,13 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildManagedSliderItem(String source) {
-    if (source.startsWith('http')) {
+    final imageSource = _normalizedManagedSliderImageSource(source);
+    if (imageSource.isEmpty || imageSource.contains('<')) {
+      return _buildPromoFallbackCard();
+    }
+    if (imageSource.startsWith('http')) {
       return CachedNetworkImage(
-        imageUrl: source,
+        imageUrl: imageSource,
         cacheManager: TurqImageCacheManager.instance,
         fit: BoxFit.cover,
         width: double.infinity,
@@ -2246,7 +2412,7 @@ class _AdmobKareState extends State<AdmobKare> {
       );
     }
     return Image.asset(
-      source,
+      imageSource,
       fit: BoxFit.cover,
       width: double.infinity,
       errorBuilder: (context, _, __) => _buildPromoFallbackCard(),
