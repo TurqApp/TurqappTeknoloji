@@ -21,8 +21,9 @@ const List<String> pasajTabs = [
 ];
 
 const Set<String> defaultVisiblePasajTabs = {
-  PasajTabIds.market,
   PasajTabIds.scholarships,
+  PasajTabIds.market,
+  PasajTabIds.jobFinder,
 };
 
 List<String> defaultHiddenPasajTabs() => pasajTabs

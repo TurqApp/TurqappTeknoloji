@@ -180,6 +180,33 @@ class _AdmobKareState extends State<AdmobKare> {
     debugPrint('[AdmobKare] $message');
   }
 
+  static Map<String, dynamic> _adResponseMetadata(Ad ad) {
+    final responseInfo = ad.responseInfo;
+    final loaded = responseInfo?.loadedAdapterResponseInfo;
+    return <String, dynamic>{
+      'responseId': responseInfo?.responseId ?? '',
+      'mediationAdapterClassName':
+          responseInfo?.mediationAdapterClassName ?? '',
+      'adapterClassName': loaded?.adapterClassName ?? '',
+      'adSourceName': loaded?.adSourceName ?? '',
+      'adSourceId': loaded?.adSourceId ?? '',
+      'adSourceInstanceName': loaded?.adSourceInstanceName ?? '',
+      'adSourceInstanceId': loaded?.adSourceInstanceId ?? '',
+      'adapterLatencyMs': loaded?.latencyMillis ?? 0,
+    };
+  }
+
+  static String _adResponseLogSummary(Ad ad) {
+    final meta = _adResponseMetadata(ad);
+    return 'responseId=${meta['responseId']} '
+        'mediation=${meta['mediationAdapterClassName']} '
+        'adapter=${meta['adapterClassName']} '
+        'source=${meta['adSourceName']} '
+        'sourceId=${meta['adSourceId']} '
+        'instance=${meta['adSourceInstanceName']} '
+        'instanceId=${meta['adSourceInstanceId']}';
+  }
+
   static void _notifySharedAdAvailabilityChanged() {
     _sharedAdAvailabilityRevision.value =
         _sharedAdAvailabilityRevision.value + 1;
@@ -556,7 +583,7 @@ class _AdmobKareState extends State<AdmobKare> {
           _globalCooldownUntil = null;
           _unitCooldownUntilById.remove(adUnitId);
           _log(
-              'warmup loaded: ${loadedAd.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
+              'warmup loaded unit=$adUnitId platform=${Platform.operatingSystem} ${_adResponseLogSummary(loadedAd)}');
           if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
             _trimReadyPoolToLimit();
@@ -1278,18 +1305,17 @@ class _AdmobKareState extends State<AdmobKare> {
           final latencyMs = _qaRequestStartedAt == null
               ? 0
               : DateTime.now().difference(_qaRequestStartedAt!).inMilliseconds;
+          final responseMetadata = _adResponseMetadata(ad);
           _log(
-              'loaded banner source=${ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ?? 'unknown'} unit=$adUnitId platform=${Platform.operatingSystem}');
+              'loaded banner unit=$adUnitId platform=${Platform.operatingSystem} ${_adResponseLogSummary(ad)}');
           recordQALabAdEvent(
             stage: 'loaded',
             placement: 'medium_rectangle',
             metadata: <String, dynamic>{
               'adUnitId': adUnitId,
               'latencyMs': latencyMs,
-              'source':
-                  ad.responseInfo?.loadedAdapterResponseInfo?.adSourceName ??
-                      'unknown',
               'platform': Platform.operatingSystem,
+              ...responseMetadata,
             },
           );
           if (mounted && !_isDisposed) {
@@ -1461,14 +1487,16 @@ class _AdmobKareState extends State<AdmobKare> {
               'closed banner unit=$adUnitId platform=${Platform.operatingSystem}');
         },
         onAdImpression: (Ad ad) {
+          final responseMetadata = _adResponseMetadata(ad);
           _log(
-              'impression banner unit=$adUnitId platform=${Platform.operatingSystem}');
+              'impression banner unit=$adUnitId platform=${Platform.operatingSystem} ${_adResponseLogSummary(ad)}');
           recordQALabAdEvent(
             stage: 'impression',
             placement: 'medium_rectangle',
             metadata: <String, dynamic>{
               'adUnitId': adUnitId,
               'platform': Platform.operatingSystem,
+              ...responseMetadata,
             },
           );
           if (!_impressionReported) {
