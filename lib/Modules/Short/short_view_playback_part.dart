@@ -260,8 +260,27 @@ extension ShortViewPlaybackPart on _ShortViewState {
     } catch (_) {}
   }
 
+  Future<void> _silenceActiveShortPlaybackForAdPage(int page) async {
+    if (page < 0 || page >= _cachedShorts.length) return;
+    final adapter = controller.cache[page];
+    if (adapter == null || adapter.isDisposed) return;
+    try {
+      final shouldStopPlayback = defaultTargetPlatform == TargetPlatform.iOS;
+      debugPrint(
+        '[PlaybackStopTrace] source=short_ad_page_active_silence '
+        'cacheIndex=$page stopPlayback=$shouldStopPlayback',
+      );
+      if (shouldStopPlayback) {
+        await adapter.silenceAndStopPlayback();
+      } else {
+        await adapter.forceSilence();
+      }
+    } catch (_) {}
+  }
+
   void _silenceAllShortPlaybackForAdPage() {
     try {
+      _playbackRuntimeService.pauseAll(force: true);
       _playbackRuntimeService.exitExclusiveMode();
     } catch (_) {}
     for (final entry in controller.cache.entries) {
@@ -691,7 +710,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
   }
 
-  void _onPageChanged(int renderPage) {
+  void _onPageChanged(int renderPage) async {
     if (_cachedShorts.isEmpty) return;
     if (renderPage == _currentRenderPage) return;
     _forceResumePosterOnReturn = false;
@@ -783,6 +802,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final resumedFromAdPage = _isAdPageActive;
     if (isAdPage) {
       isManuallyPaused = true;
+      await _silenceActiveShortPlaybackForAdPage(previousOrganicPage);
       _silenceAllShortPlaybackForAdPage();
       _updateShortViewState(() {
         _currentRenderPage = renderPage;

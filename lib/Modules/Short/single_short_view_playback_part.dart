@@ -3,6 +3,31 @@
 part of 'single_short_view.dart';
 
 extension SingleShortViewPlaybackPart on _SingleShortViewState {
+  Future<void> _silenceActiveSingleShortPlaybackForAdPage(int page) async {
+    final candidates = <HLSVideoAdapter?>[
+      _videoControllers[page],
+      widget.injectedController,
+    ];
+    final seen = <HLSVideoAdapter>{};
+    for (final adapter in candidates) {
+      if (adapter == null || adapter.isDisposed || !seen.add(adapter)) {
+        continue;
+      }
+      try {
+        final shouldStopPlayback = defaultTargetPlatform == TargetPlatform.iOS;
+        debugPrint(
+          '[PlaybackStopTrace] source=single_short_ad_page_active_silence '
+          'cacheIndex=$page stopPlayback=$shouldStopPlayback',
+        );
+        if (shouldStopPlayback) {
+          await adapter.silenceAndStopPlayback();
+        } else {
+          await adapter.forceSilence();
+        }
+      } catch (_) {}
+    }
+  }
+
   void _resetSingleShortAutoplaySegmentGate() {
     _autoplaySegmentGateTimer?.cancel();
     _autoplaySegmentGateTimer = null;
@@ -113,7 +138,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     }
   }
 
-  void _handlePageChanged(int renderPage) {
+  void _handlePageChanged(int renderPage) async {
     if (_renderPlan.length == 0 || _renderPlan.length < shorts.length) {
       _rebuildSingleShortRenderPlan();
     }
@@ -125,6 +150,7 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
       if (_isSingleShortAdPageActive && renderPage == _currentRenderPage) {
         return;
       }
+      await _silenceActiveSingleShortPlaybackForAdPage(currentPage);
       _currentRenderPage = renderPage;
       _isSingleShortAdPageActive = true;
       showControls = false;
