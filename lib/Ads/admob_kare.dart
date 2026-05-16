@@ -190,16 +190,25 @@ class _AdmobKareState extends State<AdmobKare> {
   static Map<String, dynamic> _adResponseMetadata(Ad ad) {
     final responseInfo = ad.responseInfo;
     final loaded = responseInfo?.loadedAdapterResponseInfo;
+    final adapterResponses = responseInfo?.adapterResponses;
     return <String, dynamic>{
       'responseId': responseInfo?.responseId ?? '',
       'mediationAdapterClassName':
           responseInfo?.mediationAdapterClassName ?? '',
       'adapterClassName': loaded?.adapterClassName ?? '',
+      'adapterDescription': loaded?.description ?? '',
+      'adapterAdUnitMapping': loaded?.adUnitMapping ?? const <String, String>{},
       'adSourceName': loaded?.adSourceName ?? '',
       'adSourceId': loaded?.adSourceId ?? '',
       'adSourceInstanceName': loaded?.adSourceInstanceName ?? '',
       'adSourceInstanceId': loaded?.adSourceInstanceId ?? '',
       'adapterLatencyMs': loaded?.latencyMillis ?? 0,
+      'responseExtras':
+          responseInfo?.responseExtras ?? const <String, dynamic>{},
+      'responseInfo': responseInfo?.toString() ?? '',
+      'loadedAdapterResponseInfo': loaded?.toString() ?? '',
+      'adapterResponses':
+          adapterResponses?.map((info) => info.toString()).join(' | ') ?? '',
     };
   }
 
@@ -219,6 +228,17 @@ class _AdmobKareState extends State<AdmobKare> {
     final searchable =
         meta.values.map((value) => value.toString().toLowerCase()).join(' ');
     return _blockedAdResponseFragments.any(searchable.contains);
+  }
+
+  static String _decodeManagedSliderImageSource(String source) {
+    return source
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#34;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'")
+        .replaceAll('&amp;', '&');
   }
 
   static void _markBlockedCreativeCooldown(String adUnitId) {
@@ -1072,7 +1092,12 @@ class _AdmobKareState extends State<AdmobKare> {
         } catch (_) {}
         if (_usesScrollCriticalPoolOnly) {
           _waitingForFuturePool = true;
-          _schedulePoolTopUp(delay: const Duration(seconds: 4));
+          unawaited(warmupPool(
+            targetCount: _poolTargetCount,
+            maxRequestCount: 1,
+            bypassMinInterval: true,
+            debugSource: 'scroll_critical_invalid_pool_ad',
+          ));
           return;
         }
         _loadBanner();
@@ -1113,7 +1138,12 @@ class _AdmobKareState extends State<AdmobKare> {
         'slot=$_stableAdSlotKey state=$debugState',
       );
       _armFallbackGate();
-      _schedulePoolTopUp(delay: const Duration(seconds: 4));
+      unawaited(warmupPool(
+        targetCount: _poolTargetCount,
+        maxRequestCount: 1,
+        bypassMinInterval: true,
+        debugSource: 'scroll_critical_pool_miss',
+      ));
       return;
     }
     final cooldownRemaining = _globalCooldownRemaining();
@@ -2256,7 +2286,7 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   String _normalizedManagedSliderImageSource(String source) {
-    final trimmed = source.trim();
+    final trimmed = _decodeManagedSliderImageSource(source).trim();
     if (trimmed.isEmpty) {
       return '';
     }
@@ -2265,7 +2295,7 @@ class _AdmobKareState extends State<AdmobKare> {
       caseSensitive: false,
     ).firstMatch(trimmed);
     final rawSource = imageTagMatch?.group(1)?.trim() ?? trimmed;
-    return rawSource.replaceAll('&amp;', '&');
+    return _decodeManagedSliderImageSource(rawSource).trim();
   }
 
   void _openSuggestionPasajTab({
@@ -2398,7 +2428,12 @@ class _AdmobKareState extends State<AdmobKare> {
 
   Widget _buildManagedSliderItem(String source) {
     final imageSource = _normalizedManagedSliderImageSource(source);
-    if (imageSource.isEmpty || imageSource.contains('<')) {
+    if (imageSource.isEmpty ||
+        imageSource.contains('<') ||
+        imageSource.contains('>')) {
+      _log(
+        'managed slider image blocked raw_source=${source.length > 96 ? '${source.substring(0, 96)}...' : source}',
+      );
       return _buildPromoFallbackCard();
     }
     if (imageSource.startsWith('http')) {
