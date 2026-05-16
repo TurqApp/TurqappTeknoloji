@@ -1,12 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/local_preference_repository.dart';
-import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'dart:async';

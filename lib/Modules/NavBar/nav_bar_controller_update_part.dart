@@ -172,108 +172,101 @@ extension _NavBarControllerUpdatePart on NavBarController {
     if (_isForceUpdateVisible) return;
     _isForceUpdateVisible = true;
     unawaited(() async {
-      final preferences = ensureLocalPreferenceRepository();
-      final countKey = _appUpdatePromptCountKeyImpl(
-        requiredVersion: requiredVersion,
-        requiredBuild: requiredBuild,
-      );
-      final showCount = (await preferences.getInt(countKey) ?? 0) + 1;
-      await preferences.setInt(countKey, showCount);
-      final forceUpdate = showCount >= 5;
-      debugPrint(
-        '[AppUpdateCheck] action=show_update_sheet count=$showCount '
-        'force=$forceUpdate key=$countKey',
-      );
-      await Get.bottomSheet<void>(
-        isDismissible: !forceUpdate,
-        enableDrag: !forceUpdate,
-        barrierColor: Colors.black54,
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Text(
+      try {
+        final preferences = ensureLocalPreferenceRepository();
+        final countKey = _appUpdatePromptCountKeyImpl(
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+        );
+        final showCount = (await preferences.getInt(countKey) ?? 0) + 1;
+        await preferences.setInt(countKey, showCount);
+        final forceUpdate = showCount >= 5;
+
+        for (var attempt = 0; attempt < 48; attempt++) {
+          if (_isDisposed) return;
+          final routeReady = Get.currentRoute.isEmpty ||
+              Get.currentRoute == '/NavBarView' ||
+              Get.currentRoute.contains('NavBar');
+          final feedReady = selectedIndex.value == 0;
+          final overlayFree =
+              Get.isBottomSheetOpen != true && Get.isDialogOpen != true;
+          if (Get.context != null && routeReady && feedReady && overlayFree) {
+            await WidgetsBinding.instance.endOfFrame;
+            await Future<void>.delayed(const Duration(milliseconds: 350));
+            if (_isDisposed || Get.isDialogOpen == true) return;
+            debugPrint(
+              '[AppUpdateCheck] action=show_update_dialog count=$showCount '
+              'force=$forceUpdate key=$countKey attempt=$attempt',
+            );
+            await Get.dialog<void>(
+              CupertinoAlertDialog(
+                title: Text(
                   _updateTitle,
                   style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                     fontFamily: "MontserratBold",
+                    color: Colors.black,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  _updateBody,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                    fontFamily: "MontserratMedium",
-                    height: 1.5,
+                content: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _updateBody,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontFamily: "MontserratMedium",
+                      color: Colors.black,
+                      height: 1.25,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                30.ph,
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _launchStore,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                actions: [
+                  if (!forceUpdate)
+                    CupertinoDialogAction(
+                      onPressed: Get.back<void>,
+                      child: const Text(
+                        'Sonra',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontFamily: "Montserrat",
+                          color: Colors.black,
+                        ),
                       ),
                     ),
+                  CupertinoDialogAction(
+                    onPressed: _launchStore,
+                    isDefaultAction: true,
                     child: Text(
                       'app_update.cta'.tr,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontFamily: "MontserratMedium",
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                if (!forceUpdate) ...[
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: Get.back<void>,
-                    child: const Text(
-                      'Sonra',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontFamily: "MontserratMedium",
-                        color: Colors.black54,
+                        fontFamily: "Montserrat",
+                        color: Colors.black,
                       ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        ),
-      );
-      _isForceUpdateVisible = false;
+              ),
+              barrierColor: Colors.black54,
+              barrierDismissible: !forceUpdate,
+            );
+            return;
+          }
+          if (attempt == 0 || attempt % 8 == 0) {
+            debugPrint(
+              '[AppUpdateCheck] action=defer_update_dialog attempt=$attempt '
+              'route=${Get.currentRoute} feedReady=$feedReady '
+              'overlayFree=$overlayFree',
+            );
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 250));
+        }
+        debugPrint('[AppUpdateCheck] action=skip_update_dialog reason=not_ready');
+      } finally {
+        _isForceUpdateVisible = false;
+      }
     }());
   }
 
@@ -466,10 +459,17 @@ extension _NavBarControllerUpdatePart on NavBarController {
     if (storeUrl.isNotEmpty) {
       final url = Uri.parse(storeUrl);
       try {
-        await confirmAndLaunchExternalUrl(
+        final opened = await launchUrl(
           url,
           mode: LaunchMode.externalApplication,
         );
+        if (!opened) {
+          AppSnackbar(
+            'common.error'.tr,
+            'nav.store_open_failed'.tr,
+            backgroundColor: Colors.red.withValues(alpha: 0.7),
+          );
+        }
       } catch (_) {
         AppSnackbar(
           'common.error'.tr,
