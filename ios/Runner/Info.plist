@@ -69,10 +69,14 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>TurqApp’in fotoğraf ve video çekebilmesi için kamera erişimine izin verilsin mi?</string>
+	<key>NSContactsUsageDescription</key>
+	<string>TurqApp, kişi seçme veya paylaşım sırasında rehber erişimini yalnızca sizin onayınızla kullanır.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>Profil fotoğrafınızı seçebilmeniz veya içerik paylaşabilmeniz için fotoğraflarınıza erişmemiz gerekiyor</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Uygulama yerel ağdaki cihazlara bağlanmak için bu izni kullanır.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>TurqApp, konum tabanlı özellikleri yalnızca sizin onayınızla kullanır.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>TurqApp uygulamasının bu cihazın konumuna erişmesine izin verilsin mi ?</string>
 	<key>NSMicrophoneUsageDescription</key>
