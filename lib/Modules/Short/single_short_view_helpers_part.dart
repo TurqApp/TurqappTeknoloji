@@ -64,7 +64,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
     final nextOrganicPage =
         _organicIndexForSingleShortRenderIndex(nextRenderPage);
     if (nextOrganicPage == null) return;
-    _singleShortAdAutoAdvanceTimer = Timer(const Duration(seconds: 3), () {
+    _singleShortAdAutoAdvanceTimer = Timer(const Duration(seconds: 6), () {
       if (!mounted ||
           !_isSingleShortRoutePlaybackActive ||
           !_isSingleShortAdPageActive ||

@@ -354,7 +354,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       nextRenderPage,
     );
     if (nextOrganicPage == null) return;
-    _shortAdAutoAdvanceTimer = Timer(const Duration(seconds: 3), () {
+    _shortAdAutoAdvanceTimer = Timer(const Duration(seconds: 6), () {
       if (!mounted ||
           !_isShortRoutePlaybackActive ||
           !_isAdPageActive ||
