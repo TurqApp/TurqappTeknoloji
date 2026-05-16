@@ -42,9 +42,9 @@ extension _NavBarControllerUpdatePart on NavBarController {
     );
 
     final updateTitle = (doc['updateTitle'] ?? '').toString().trim();
-    final updateBody = (doc['updateBody'] ?? '').toString().trim();
     _updateTitle = updateTitle.isEmpty ? 'app_update.title'.tr : updateTitle;
-    _updateBody = updateBody.isEmpty ? 'app_update.body'.tr : updateBody;
+    _updateBody =
+        'Daha iyi performans ve yeni özellikler için lütfen uygulamanızı güncelleyiniz.';
 
     final androidStoreUrl = (doc['androidStoreUrl'] ?? '').toString().trim();
     final iosStoreUrl = (doc['iosStoreUrl'] ?? '').toString().trim();
@@ -243,7 +243,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
                       style: const TextStyle(
                         fontSize: 15,
                         fontFamily: "Montserrat",
-                        color: Colors.black,
+                        color: CupertinoColors.destructiveRed,
                       ),
                     ),
                   ),
