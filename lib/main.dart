@@ -67,25 +67,7 @@ Future<void> main() async {
   }
   ErrorWidget.builder = (FlutterErrorDetails details) {
     _reportStartupFallbackError(details);
-    return Material(
-      color: Colors.white,
-      child: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'İçerik şu anda hazırlanıyor.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.black87,
-                fontSize: 14,
-                fontFamily: AppFontFamilies.mmedium,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   };
 
   // iOS'ta launch anında jetsam/watchdog riskini azaltmak için
