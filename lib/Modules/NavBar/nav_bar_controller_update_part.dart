@@ -65,7 +65,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
         Duration(days: cooldownDays < 1 ? 90 : cooldownDays);
   }
 
-  Future<void> _checkAppVersionImpl() async {
+  Future<void> _checkAppVersionImpl({bool forceRefresh = true}) async {
     try {
       if (kDebugMode) {
         return;
@@ -74,7 +74,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
       final currentBuild = _parseBuildNumberImpl(packageInfo.buildNumber);
-      await _loadAppVersionConfigImpl(forceRefresh: true);
+      await _loadAppVersionConfigImpl(forceRefresh: forceRefresh);
       if (!_appUpdateCheckEnabled) return;
 
       var requiredVersion = '';
@@ -105,6 +105,33 @@ extension _NavBarControllerUpdatePart on NavBarController {
     } catch (_) {}
   }
 
+  Future<void> _checkAppVersionDailyImpl() async {
+    if (kDebugMode) return;
+    try {
+      final preferences = ensureLocalPreferenceRepository();
+      final now = DateTime.now();
+      final lastCheckedMs =
+          await preferences.getInt(_appVersionLastCheckedAtKey) ?? 0;
+      if (lastCheckedMs > 0) {
+        final lastChecked = DateTime.fromMillisecondsSinceEpoch(lastCheckedMs);
+        final alreadyCheckedToday = lastChecked.year == now.year &&
+            lastChecked.month == now.month &&
+            lastChecked.day == now.day;
+        if (alreadyCheckedToday) {
+          debugPrint('[AppUpdateCheck] source=cache reason=daily_gate');
+          await _checkAppVersionImpl(forceRefresh: false);
+          return;
+        }
+      }
+
+      await _checkAppVersionImpl(forceRefresh: true);
+      await preferences.setInt(
+        _appVersionLastCheckedAtKey,
+        now.millisecondsSinceEpoch,
+      );
+    } catch (_) {}
+  }
+
   bool _isVersionLowerImpl(String currentVersion, String requiredVersion) {
     final current = currentVersion
         .split('.')
@@ -124,17 +151,6 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }
 
     return false;
-  }
-
-  void _startAppUpdateCheckLoopImpl() {
-    _appUpdateCheckTimer?.cancel();
-    if (kDebugMode || IntegrationTestMode.suppressPeriodicSideEffects) {
-      return;
-    }
-    _appUpdateCheckTimer = Timer.periodic(const Duration(minutes: 10), (_) {
-      if (_isDisposed || _isForceUpdateVisible) return;
-      unawaited(_checkAppVersionImpl());
-    });
   }
 
   void _showUpdateDialogImpl() {
