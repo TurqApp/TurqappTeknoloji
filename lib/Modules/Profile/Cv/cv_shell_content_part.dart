@@ -26,12 +26,12 @@ extension _CvShellContentPart on _CvState {
         }
       },
       child: Container(
-        height: 48,
+        height: TurqButtonTokens.height,
         width: double.infinity,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.black,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         ),
         child: controller.isSaving.value
             ? const SizedBox(
@@ -42,14 +42,7 @@ extension _CvShellContentPart on _CvState {
                   color: Colors.white,
                 ),
               )
-            : Text(
-                'cv.save'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontFamily: "MontserratBold",
-                ),
-              ),
+            : Text('cv.save'.tr, style: TurqButtonTokens.primaryTextStyle),
       ),
     );
   }
@@ -83,11 +76,7 @@ extension _CvShellContentPart on _CvState {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              CupertinoIcons.add,
-              color: Colors.black,
-              size: 22,
-            ),
+            const Icon(CupertinoIcons.add, color: Colors.black, size: 22),
             const SizedBox(width: 10),
             Text(
               text,

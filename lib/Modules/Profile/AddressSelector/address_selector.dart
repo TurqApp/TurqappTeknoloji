@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import '../../../Core/Buttons/turq_app_button.dart';
 import 'address_selector_controller.dart';
 
@@ -44,12 +45,15 @@ class _AddressSelectorState extends State<AddressSelector> {
         bottom: false,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              15,
+              15,
+              systemNavigationAwareBottom(context, spacing: 15),
+            ),
             child: Column(
               children: [
-                Row(
-                  children: [BackButtons(text: 'address.title'.tr)],
-                ),
+                Row(children: [BackButtons(text: 'address.title'.tr)]),
                 const SizedBox(height: 12),
                 _buildContent(),
               ],
@@ -64,10 +68,7 @@ class _AddressSelectorState extends State<AddressSelector> {
     return Column(
       children: [
         Container(
-          constraints: const BoxConstraints(
-            minHeight: 150,
-            maxHeight: 150,
-          ),
+          constraints: const BoxConstraints(minHeight: 150, maxHeight: 150),
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.03),
@@ -117,7 +118,6 @@ class _AddressSelectorState extends State<AddressSelector> {
             controller.setData();
           },
         ),
-        const SizedBox(height: 12),
       ],
     );
   }

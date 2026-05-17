@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'job_selector_controller.dart';
 
 class JobSelector extends StatefulWidget {
@@ -46,13 +47,16 @@ class _JobSelectorState extends State<JobSelector> {
         bottom: false,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              15,
+              15,
+              systemNavigationAwareBottom(context, spacing: 15),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [BackButtons(text: 'job_selector.title'.tr)],
-                ),
+                Row(children: [BackButtons(text: 'job_selector.title'.tr)]),
                 const SizedBox(height: 12),
                 Text(
                   'job_selector.subtitle'.tr,
@@ -72,7 +76,6 @@ class _JobSelectorState extends State<JobSelector> {
                     controller.setData();
                   },
                 ),
-                const SizedBox(height: 12),
               ],
             ),
           ),
@@ -86,9 +89,7 @@ class _JobSelectorState extends State<JobSelector> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.all(Radius.circular(12)),
-        border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.20),
-        ),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.20)),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -140,22 +141,17 @@ class _JobSelectorState extends State<JobSelector> {
     });
   }
 
-  Widget _buildJobTile({
-    required String job,
-    required bool isSelected,
-  }) {
+  Widget _buildJobTile({required String job, required bool isSelected}) {
     return Container(
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: isSelected ? Colors.white.withValues(alpha: 0.10) : Colors.white,
         borderRadius: const BorderRadius.all(Radius.circular(12)),
         border: Border.all(
-          color:
-              isSelected ? Colors.black : Colors.grey.withValues(alpha: 0.20),
+          color: isSelected
+              ? Colors.black
+              : Colors.grey.withValues(alpha: 0.20),
         ),
       ),
       child: Row(
@@ -177,9 +173,7 @@ class _JobSelectorState extends State<JobSelector> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isSelected ? Colors.black : Colors.white,
-              borderRadius: const BorderRadius.all(
-                Radius.circular(15),
-              ),
+              borderRadius: const BorderRadius.all(Radius.circular(15)),
               border: Border.all(
                 color: isSelected ? Colors.black : Colors.grey,
               ),

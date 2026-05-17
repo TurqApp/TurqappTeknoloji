@@ -10,9 +10,7 @@ extension _InterestsContentPart on _InterestsState {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.20),
-            ),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.20)),
           ),
           child: Obx(
             () => Column(
@@ -28,12 +26,10 @@ extension _InterestsContentPart on _InterestsState {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "interests.selection_range".trParams(
-                    <String, String>{
-                      'min': '$interestsMinSelection',
-                      'max': '$interestsMaxSelection',
-                    },
-                  ),
+                  "interests.selection_range".trParams(<String, String>{
+                    'min': '$interestsMinSelection',
+                    'max': '$interestsMaxSelection',
+                  }),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade700,
@@ -44,12 +40,10 @@ extension _InterestsContentPart on _InterestsState {
                 Row(
                   children: [
                     Text(
-                      "interests.selected_count".trParams(
-                        <String, String>{
-                          'selected': '${controller.selecteds.length}',
-                          'max': '$interestsMaxSelection',
-                        },
-                      ),
+                      "interests.selected_count".trParams(<String, String>{
+                        'selected': '${controller.selecteds.length}',
+                        'max': '$interestsMaxSelection',
+                      }),
                       style: const TextStyle(
                         fontSize: 13,
                         color: Color(0xFF111827),
@@ -60,7 +54,9 @@ extension _InterestsContentPart on _InterestsState {
                     if (controller.selecteds.length >= interestsMinSelection)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFDCFCE7),
                           borderRadius: BorderRadius.circular(20),
@@ -85,19 +81,12 @@ extension _InterestsContentPart on _InterestsState {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.20),
-            ),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.20)),
           ),
           child: TextField(
             onChanged: (value) => controller.searchText.value = value,
-            inputFormatters: [
-              LengthLimitingTextInputFormatter(40),
-            ],
-            style: const TextStyle(
-              fontFamily: "Montserrat",
-              fontSize: 14,
-            ),
+            inputFormatters: [LengthLimitingTextInputFormatter(40)],
+            style: const TextStyle(fontFamily: "Montserrat", fontSize: 14),
             decoration: InputDecoration(
               hintText: "interests.search_hint".tr,
               hintStyle: TextStyle(
@@ -117,130 +106,134 @@ extension _InterestsContentPart on _InterestsState {
           ),
         ),
         const SizedBox(height: 10),
-        Obx(
-          () {
-            if (controller.selecteds.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: controller.selecteds
-                    .map(
-                      (item) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Text(
-                          item,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 12,
-                            fontFamily: "MontserratMedium",
-                          ),
+        Obx(() {
+          if (controller.selecteds.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: controller.selecteds
+                  .map(
+                    (item) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.25),
                         ),
                       ),
-                    )
-                    .toList(growable: false),
-              ),
-            );
-          },
-        ),
-        Obx(
-          () {
-            if (!controller.isReady.value) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final filtered = controller.filterItems(interestList);
-            final selectedCanonicalSet =
-                controller.selecteds.map(controller.canonicalize).toSet();
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filtered.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final item = filtered[index];
-                final isSelected = selectedCanonicalSet
-                    .contains(controller.canonicalize(item));
-                return GestureDetector(
-                  onTap: () => controller.select(item),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOut,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? Colors.white.withValues(alpha: 0.10)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? Colors.black
-                            : Colors.grey.withValues(alpha: 0.20),
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontFamily: "MontserratMedium",
+                        ),
                       ),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontFamily:
-                                  isSelected ? "MontserratBold" : "Montserrat",
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 20,
-                          height: 20,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.black : Colors.white,
-                            borderRadius:
-                                const BorderRadius.all(Radius.circular(15)),
-                            border: Border.all(
-                              color: isSelected ? Colors.black : Colors.grey,
-                            ),
-                          ),
-                          child: isSelected
-                              ? const Icon(
-                                  CupertinoIcons.checkmark,
-                                  color: Colors.white,
-                                  size: 12,
-                                )
-                              : const SizedBox(),
-                        ),
-                      ],
+                  )
+                  .toList(growable: false),
+            ),
+          );
+        }),
+        Obx(() {
+          if (!controller.isReady.value) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final filtered = controller.filterItems(interestList);
+          final selectedCanonicalSet = controller.selecteds
+              .map(controller.canonicalize)
+              .toSet();
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filtered.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final item = filtered[index];
+              final isSelected = selectedCanonicalSet.contains(
+                controller.canonicalize(item),
+              );
+              return GestureDetector(
+                onTap: () => controller.select(item),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? Colors.black
+                          : Colors.grey.withValues(alpha: 0.20),
                     ),
                   ),
-                );
-              },
-            );
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 16,
+                            fontFamily: isSelected
+                                ? "MontserratBold"
+                                : "Montserrat",
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: 20,
+                        height: 20,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.black : Colors.white,
+                          borderRadius: const BorderRadius.all(
+                            Radius.circular(15),
+                          ),
+                          border: Border.all(
+                            color: isSelected ? Colors.black : Colors.grey,
+                          ),
+                        ),
+                        child: isSelected
+                            ? const Icon(
+                                CupertinoIcons.checkmark,
+                                color: Colors.white,
+                                size: 12,
+                              )
+                            : const SizedBox(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+        const SizedBox(height: 14),
+        TurqAppButton(
+          onTap: () {
+            controller.setData();
           },
         ),
-        const SizedBox(height: 14),
-        TurqAppButton(onTap: () {
-          controller.setData();
-        }),
-        const SizedBox(height: 12),
+        SizedBox(height: systemNavigationAwareBottom(context, spacing: 12)),
       ],
     );
   }

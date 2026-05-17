@@ -17,7 +17,12 @@ extension _CvShellLayoutPart on _CvState {
         bottom: false,
         child: Obx(() {
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 32),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 32),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

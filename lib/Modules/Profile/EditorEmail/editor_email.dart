@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Profile/EditorEmail/editor_email_controller.dart';
 
 class EditorEmail extends StatefulWidget {
@@ -44,7 +45,12 @@ class _EditorEmailState extends State<EditorEmail> {
         bottom: false,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              15,
+              15,
+              systemNavigationAwareBottom(context, spacing: 15),
+            ),
             child: Obx(() => _buildEditorEmailContent()),
           ),
         ),
@@ -70,8 +76,9 @@ class _EditorEmailState extends State<EditorEmail> {
           },
           bgColor: canSend ? Colors.black : Colors.grey,
           text: controller.countdown.value > 0
-              ? 'editor_email.resend_in'
-                  .trParams({'seconds': '${controller.countdown.value}'})
+              ? 'editor_email.resend_in'.trParams({
+                  'seconds': '${controller.countdown.value}',
+                })
               : 'editor_email.send_code'.tr,
         ),
         const SizedBox(height: 10),

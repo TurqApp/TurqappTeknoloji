@@ -55,7 +55,12 @@ extension JobDetailsBodyPart on _JobDetailsState {
               ? current.ilanBasligi
               : current.meslek;
           return ListView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               _buildHeroImage(current.logo),
               const SizedBox(height: 14),
@@ -102,8 +107,8 @@ extension JobDetailsBodyPart on _JobDetailsState {
                   Get.to(() => TagPosts(tag: tag.trim()));
                 },
                 onUrlTap: (url) async {
-                  final uniqueKey =
-                      DateTime.now().millisecondsSinceEpoch.toString();
+                  final uniqueKey = DateTime.now().millisecondsSinceEpoch
+                      .toString();
                   await RedirectionLink().goToLink(url, uniqueKey: uniqueKey);
                 },
                 onMentionTap: (mention) => _openMentionProfile(mention),
@@ -153,7 +158,9 @@ extension JobDetailsBodyPart on _JobDetailsState {
                 children: [
                   _infoRow('common.company'.tr, current.brand),
                   _infoRow(
-                      'common.city'.tr, '${current.city}, ${current.town}'),
+                    'common.city'.tr,
+                    '${current.city}, ${current.town}',
+                  ),
                   _infoRow('common.views'.tr, current.viewCount.toString()),
                   _infoRow(
                     'common.status'.tr,
@@ -198,7 +205,7 @@ extension JobDetailsBodyPart on _JobDetailsState {
                       onTap: current.userID == _currentUid
                           ? null
                           : () => const ProfileNavigationService()
-                              .openSocialProfile(current.userID),
+                                .openSocialProfile(current.userID),
                       child: Row(
                         children: [
                           CachedUserAvatar(
@@ -269,9 +276,7 @@ extension JobDetailsBodyPart on _JobDetailsState {
               const SizedBox(height: 18),
               _buildSimilarSection(controller),
               const SizedBox(height: 12),
-              const AdmobKare(
-                suggestionPlacementId: 'job',
-              ),
+              const AdmobKare(suggestionPlacementId: 'job'),
             ],
           );
         }),
@@ -302,18 +307,11 @@ extension JobDetailsBodyPart on _JobDetailsState {
     return Container(
       color: const Color(0xFFF3F5F7),
       alignment: Alignment.center,
-      child: const Icon(
-        CupertinoIcons.photo,
-        color: Colors.black38,
-        size: 36,
-      ),
+      child: const Icon(CupertinoIcons.photo, color: Colors.black38, size: 36),
     );
   }
 
-  Widget _infoCard({
-    required String title,
-    required List<Widget> children,
-  }) {
+  Widget _infoCard({required String title, required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

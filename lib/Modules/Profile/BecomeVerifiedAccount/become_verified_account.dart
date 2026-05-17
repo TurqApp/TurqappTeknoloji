@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/verified_account_data_list.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
@@ -90,10 +91,13 @@ class _BecomeVerifiedAccountState extends State<BecomeVerifiedAccount> {
                 Expanded(
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.only(
+                      padding: EdgeInsets.only(
                         left: 15,
                         right: 15,
-                        bottom: 15,
+                        bottom: systemNavigationAwareBottom(
+                          context,
+                          spacing: 15,
+                        ),
                       ),
                       child: _buildStepBody(),
                     ),

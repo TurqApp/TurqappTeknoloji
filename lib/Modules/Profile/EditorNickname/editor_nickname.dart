@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Helpers/custom_nickname_formatter.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Profile/EditorNickname/editor_nickname_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -55,7 +56,12 @@ class _EditorNicknameState extends State<EditorNickname> {
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.all(15),
+                  padding: EdgeInsets.fromLTRB(
+                    15,
+                    15,
+                    15,
+                    systemNavigationAwareBottom(context, spacing: 15),
+                  ),
                   child: Obx(() => _buildEditorNicknameContent()),
                 ),
               ),

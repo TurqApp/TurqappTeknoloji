@@ -23,7 +23,12 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
         }
         final leaf = controller.selectedLeaf.value;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+          padding: EdgeInsets.fromLTRB(
+            15,
+            8,
+            15,
+            systemNavigationAwareBottom(context, spacing: 24),
+          ),
           children: [
             _sectionTitle('pasaj.market.create.images'.tr),
             const SizedBox(height: 8),
@@ -40,14 +45,16 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
               controller: controller.descriptionController,
               minLines: 4,
               maxLines: 6,
-              decoration:
-                  _inputDecoration('pasaj.market.create.description_hint'.tr),
+              decoration: _inputDecoration(
+                'pasaj.market.create.description_hint'.tr,
+              ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: controller.priceController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: _inputDecoration('pasaj.market.create.price_hint'.tr),
             ),
             const SizedBox(height: 18),
@@ -102,16 +109,13 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _contactChip(
-                    label: 'common.phone'.tr,
-                    value: 'phone',
-                  ),
+                  child: _contactChip(label: 'common.phone'.tr, value: 'phone'),
                 ),
               ],
             ),
             const SizedBox(height: 22),
             SizedBox(
-              height: 52,
+              height: TurqButtonTokens.height,
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: controller.isSubmitting.value
@@ -121,18 +125,16 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
                   elevation: 0,
                   backgroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(
+                      TurqButtonTokens.radius,
+                    ),
                   ),
                 ),
                 child: Text(
                   controller.isSubmitting.value
                       ? 'common.loading'.tr
                       : 'common.publish'.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontFamily: 'MontserratBold',
-                  ),
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),
@@ -230,8 +232,9 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
         _buildLocationSelector(
           label: 'common.district'.tr,
           value: controller.selectedDistrict.value,
-          onTap:
-              controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
+          onTap: controller.selectedCity.value.isEmpty
+              ? null
+              : _openDistrictSheet,
         ),
       ],
     );
@@ -263,8 +266,9 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
                 style: TextStyle(
                   color: value.isEmpty ? Colors.grey : Colors.black,
                   fontSize: 15,
-                  fontFamily:
-                      value.isEmpty ? 'MontserratMedium' : 'MontserratBold',
+                  fontFamily: value.isEmpty
+                      ? 'MontserratMedium'
+                      : 'MontserratBold',
                 ),
               ),
             ),
@@ -323,8 +327,9 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
     final items = controller.fieldOptions(field);
     if (items.isEmpty) return;
 
-    final selectedValue =
-        controller.fieldValue(key).isEmpty ? null : controller.fieldValue(key);
+    final selectedValue = controller.fieldValue(key).isEmpty
+        ? null
+        : controller.fieldValue(key);
 
     await ListBottomSheet.show(
       context: context,
@@ -360,10 +365,7 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
     }
   }
 
-  Widget _contactChip({
-    required String label,
-    required String value,
-  }) {
+  Widget _contactChip({required String label, required String value}) {
     final selected = value == 'message_only'
         ? true
         : controller.contactPreference.value == 'phone';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Profile/EditorPhoneNumber/editor_phone_number_controller.dart';
 
 class EditorPhoneNumber extends StatefulWidget {
@@ -43,7 +44,12 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
       body: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.all(15),
+          padding: EdgeInsets.fromLTRB(
+            15,
+            15,
+            15,
+            systemNavigationAwareBottom(context, spacing: 15),
+          ),
           child: SingleChildScrollView(
             child: Obx(() => _buildEditorPhoneNumberContent()),
           ),
@@ -71,8 +77,9 @@ class _EditorPhoneNumberState extends State<EditorPhoneNumber> {
           },
           bgColor: canSend ? Colors.black : Colors.grey,
           text: controller.countdown.value > 0
-              ? 'editor_phone.resend_in'
-                  .trParams({'seconds': '${controller.countdown.value}'})
+              ? 'editor_phone.resend_in'.trParams({
+                  'seconds': '${controller.countdown.value}',
+                })
               : 'editor_phone.send_approval'.tr,
         ),
         if (controller.isCodeSent.value) ...[

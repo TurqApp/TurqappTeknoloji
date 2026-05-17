@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/market_review_service.dart';
 import 'package:turqappv2/Core/Services/market_share_service.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Services/text_moderation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/typesense_market_service.dart';
@@ -43,10 +44,7 @@ part 'market_detail_view_shell_content_part.dart';
 part 'market_detail_view_content_part.dart';
 
 class MarketDetailView extends StatefulWidget {
-  const MarketDetailView({
-    super.key,
-    required this.item,
-  });
+  const MarketDetailView({super.key, required this.item});
 
   final MarketItemModel item;
 
@@ -150,18 +148,12 @@ class _MarketDetailViewState extends State<MarketDetailView> {
 
   Widget _imageFallback() => _performImageFallback();
 
-  Widget _infoCard({
-    required String title,
-    required List<Widget> children,
-  }) =>
+  Widget _infoCard({required String title, required List<Widget> children}) =>
       _performInfoCard(title: title, children: children);
 
   Widget _infoRow(String label, String value) => _performInfoRow(label, value);
 
-  Widget _primaryButton({
-    required String label,
-    required VoidCallback onTap,
-  }) =>
+  Widget _primaryButton({required String label, required VoidCallback onTap}) =>
       _performPrimaryButton(label: label, onTap: onTap);
 
   Widget _relatedCard(MarketItemModel related) => _performRelatedCard(related);
@@ -169,13 +161,9 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   Widget _secondaryButton({
     required String label,
     required VoidCallback onTap,
-  }) =>
-      _performSecondaryButton(label: label, onTap: onTap);
+  }) => _performSecondaryButton(label: label, onTap: onTap);
 
-  Widget _dangerButton({
-    required String label,
-    required VoidCallback onTap,
-  }) =>
+  Widget _dangerButton({required String label, required VoidCallback onTap}) =>
       _performDangerButton(label: label, onTap: onTap);
 
   String _statusLabel(String status) => _performStatusLabel(status);
@@ -189,8 +177,7 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   MarketItemModel _preserveProtectedFields(
     MarketItemModel remote,
     MarketItemModel local,
-  ) =>
-      _performPreserveProtectedFields(remote, local);
+  ) => _performPreserveProtectedFields(remote, local);
 
   Future<void> _archiveItem() => _performArchiveItem();
 

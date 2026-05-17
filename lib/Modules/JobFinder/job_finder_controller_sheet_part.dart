@@ -21,7 +21,7 @@ extension JobFinderControllerSheetPart on JobFinderController {
               20,
               12,
               20,
-              MediaQuery.of(sheetContext).padding.bottom + 12,
+              systemNavigationAwareBottom(sheetContext, spacing: 12),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -54,12 +54,7 @@ extension JobFinderControllerSheetPart on JobFinderController {
   Future<void> filtreTapped() async {
     final selectedType = "".obs;
 
-    final types = [
-      "Tam Zamanlı",
-      "Yarı Zamanlı",
-      "Uzaktan",
-      "Hibrit",
-    ];
+    final types = ["Tam Zamanlı", "Yarı Zamanlı", "Uzaktan", "Hibrit"];
 
     final context = Get.context;
     if (context == null) return;
@@ -78,7 +73,7 @@ extension JobFinderControllerSheetPart on JobFinderController {
               20,
               12,
               20,
-              MediaQuery.of(sheetContext).padding.bottom + 12,
+              systemNavigationAwareBottom(sheetContext, spacing: 12),
             ),
             child: Obx(() {
               return Column(
@@ -96,8 +91,9 @@ extension JobFinderControllerSheetPart on JobFinderController {
                       localizeJobWorkType(type),
                       selectedType.value == type,
                       () {
-                        selectedType.value =
-                            selectedType.value == type ? "" : type;
+                        selectedType.value = selectedType.value == type
+                            ? ""
+                            : type;
                       },
                     ),
                   ),
@@ -107,7 +103,8 @@ extension JobFinderControllerSheetPart on JobFinderController {
                       filtre.value = true;
 
                       final filtered = allJobs.where((job) {
-                        final matchCity = isAllTurkeySelection(sehir.value) ||
+                        final matchCity =
+                            isAllTurkeySelection(sehir.value) ||
                             job.city == sehir.value;
                         final normalizedSelectedType = normalizeSearchText(
                           selectedType.value,
@@ -118,7 +115,8 @@ extension JobFinderControllerSheetPart on JobFinderController {
                               normalizeSearchText('Yarı Zamanlı'))
                             normalizeSearchText('Part-Time'),
                         };
-                        final matchType = selectedType.value.isEmpty ||
+                        final matchType =
+                            selectedType.value.isEmpty ||
                             job.calismaTuru
                                 .map(normalizeSearchText)
                                 .any(normalizedTypeAliases.contains);
@@ -188,11 +186,7 @@ extension JobFinderControllerSheetPart on JobFinderController {
     }
   }
 
-  Widget buildFilterRow(
-    String text,
-    bool isSelected,
-    VoidCallback onSelected,
-  ) {
+  Widget buildFilterRow(String text, bool isSelected, VoidCallback onSelected) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
@@ -252,8 +246,9 @@ extension JobFinderControllerSheetPart on JobFinderController {
                 padding: const EdgeInsets.all(3),
                 child: Container(
                   decoration: BoxDecoration(
-                    color:
-                        short.value == selection ? Colors.black : Colors.white,
+                    color: short.value == selection
+                        ? Colors.black
+                        : Colors.white,
                     shape: BoxShape.circle,
                   ),
                 ),

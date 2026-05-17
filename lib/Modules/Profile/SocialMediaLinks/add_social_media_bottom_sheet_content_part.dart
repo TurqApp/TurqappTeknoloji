@@ -17,7 +17,7 @@ extension AddSocialMediaBottomSheetContentPart on AddSocialMediaBottomSheet {
           _buildEditorRow(context),
           const SizedBox(height: 20),
           _buildSaveButton(),
-          const SizedBox(height: 15),
+          SizedBox(height: systemNavigationAwareBottom(context, spacing: 15)),
         ],
       ),
     );
@@ -69,10 +69,7 @@ extension AddSocialMediaBottomSheetContentPart on AddSocialMediaBottomSheet {
               padding: const EdgeInsets.symmetric(horizontal: 15),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTitleField(),
-                  _buildUrlField(),
-                ],
+                children: [_buildTitleField(), _buildUrlField()],
               ),
             ),
           ),
@@ -119,9 +116,7 @@ extension AddSocialMediaBottomSheetContentPart on AddSocialMediaBottomSheet {
                       ),
                     )
                   : ClipRRect(
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(50),
-                      ),
+                      borderRadius: const BorderRadius.all(Radius.circular(50)),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -181,19 +176,18 @@ extension AddSocialMediaBottomSheetContentPart on AddSocialMediaBottomSheet {
       height: 40,
       child: TextField(
         controller: controller.textController,
-        inputFormatters: [
-          LengthLimitingTextInputFormatter(20),
-        ],
-        decoration: const InputDecoration(
-          hintText: '',
-          border: InputBorder.none,
-        ).copyWith(
-          hintText: 'social_links.label_title'.tr,
-          hintStyle: const TextStyle(
-            color: Colors.grey,
-            fontFamily: 'MontserratBold',
-          ),
-        ),
+        inputFormatters: [LengthLimitingTextInputFormatter(20)],
+        decoration:
+            const InputDecoration(
+              hintText: '',
+              border: InputBorder.none,
+            ).copyWith(
+              hintText: 'social_links.label_title'.tr,
+              hintStyle: const TextStyle(
+                color: Colors.grey,
+                fontFamily: 'MontserratBold',
+              ),
+            ),
         style: const TextStyle(
           color: Colors.black,
           fontSize: 15,
@@ -211,16 +205,17 @@ extension AddSocialMediaBottomSheetContentPart on AddSocialMediaBottomSheet {
         child: TextField(
           controller: controller.urlController,
           keyboardType: isTurq ? TextInputType.text : TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: '',
-            border: InputBorder.none,
-          ).copyWith(
-            hintText: isTurq ? 'social_links.username_hint'.tr : 'https://',
-            hintStyle: const TextStyle(
-              color: Colors.grey,
-              fontFamily: 'MontserratMedium',
-            ),
-          ),
+          decoration:
+              const InputDecoration(
+                hintText: '',
+                border: InputBorder.none,
+              ).copyWith(
+                hintText: isTurq ? 'social_links.username_hint'.tr : 'https://',
+                hintStyle: const TextStyle(
+                  color: Colors.grey,
+                  fontFamily: 'MontserratMedium',
+                ),
+              ),
           style: const TextStyle(
             color: Colors.black,
             fontSize: 15,

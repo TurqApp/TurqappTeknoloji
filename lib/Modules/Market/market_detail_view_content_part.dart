@@ -6,7 +6,12 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
     List<String> galleryImages,
   ) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+      padding: EdgeInsets.fromLTRB(
+        15,
+        8,
+        15,
+        systemNavigationAwareBottom(context, spacing: 24),
+      ),
       children: [
         _buildGallery(galleryImages),
         if (galleryImages.length > 1) ...[
@@ -95,10 +100,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
               'pasaj.market.saved_count'.tr,
               item.favoriteCount.toString(),
             ),
-            _infoRow(
-              'pasaj.market.offer_count'.tr,
-              item.offerCount.toString(),
-            ),
+            _infoRow('pasaj.market.offer_count'.tr, item.offerCount.toString()),
           ],
         ),
         const SizedBox(height: 18),
@@ -167,8 +169,9 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
           GestureDetector(
             onTap: _isOwner || item.userId.trim().isEmpty
                 ? null
-                : () => const ProfileNavigationService()
-                    .openSocialProfile(item.userId),
+                : () => const ProfileNavigationService().openSocialProfile(
+                    item.userId,
+                  ),
             child: Row(
               children: [
                 CachedUserAvatar(
@@ -241,10 +244,7 @@ extension MarketDetailViewContentPart on _MarketDetailViewState {
             ),
           ),
           const SizedBox(height: 12),
-          Divider(
-            height: 1,
-            color: Colors.black.withValues(alpha: 0.06),
-          ),
+          Divider(height: 1, color: Colors.black.withValues(alpha: 0.06)),
           const SizedBox(height: 12),
           _buildReviewsSection(),
         ],

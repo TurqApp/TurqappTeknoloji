@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/job_finder_controller.dart';
 import 'package:turqappv2/Modules/TypeWriter/type_writer.dart';
@@ -67,7 +68,7 @@ class JobFinder extends StatelessWidget {
           if (showEmbeddedControls && AdminAccessService.isKnownAdminSync())
             Positioned(
               right: 20,
-              bottom: 20,
+              bottom: systemNavigationAwareBottom(context),
               child: ActionButton(
                 context: context,
                 menuItems: [
@@ -118,8 +119,10 @@ class JobFinder extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on_outlined,
-                                color: Colors.red),
+                            const Icon(
+                              Icons.location_on_outlined,
+                              color: Colors.red,
+                            ),
                             const SizedBox(width: 3),
                             Text(
                               controller.sehir.value.isNotEmpty

@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Profile/Cv/cv_controller.dart';
@@ -34,10 +36,7 @@ class _CvState extends State<Cv> {
   @override
   void dispose() {
     if (maybeFindCvController(tag: _controllerTag) != null &&
-        identical(
-          maybeFindCvController(tag: _controllerTag),
-          controller,
-        )) {
+        identical(maybeFindCvController(tag: _controllerTag), controller)) {
       Get.delete<CvController>(tag: _controllerTag);
     }
     super.dispose();

@@ -23,6 +23,7 @@ extension _EditProfileSettingsPart on _EditProfileState {
           ),
         ),
         12.ph,
+        SizedBox(height: systemNavigationAwareBottom(context, spacing: 0)),
       ],
     );
   }
@@ -33,8 +34,9 @@ extension _EditProfileSettingsPart on _EditProfileState {
         _buildActionTile(
           onTap: () async {
             final currentPrivacy = currentUserService.isPrivate;
-            await currentUserService
-                .updateFields({'isPrivate': !currentPrivacy});
+            await currentUserService.updateFields({
+              'isPrivate': !currentPrivacy,
+            });
           },
           leading: Row(
             children: [
@@ -165,11 +167,13 @@ extension _EditProfileSettingsPart on _EditProfileState {
   Widget _buildUpdateButton() {
     if (_updating) {
       return Container(
-        height: 50,
+        height: TurqButtonTokens.height,
         alignment: Alignment.center,
         decoration: const BoxDecoration(
           color: Colors.black,
-          borderRadius: BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.all(
+            Radius.circular(TurqButtonTokens.radius),
+          ),
         ),
         child: const CupertinoActivityIndicator(color: Colors.white),
       );

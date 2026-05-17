@@ -46,13 +46,13 @@ import 'package:turqappv2/Modules/Profile/Settings/language_settings_view.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 import 'package:turqappv2/Services/account_center_service.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
-import 'package:turqappv2/Utils/empty_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_health_dashboard.dart';
 import 'package:turqappv2/Core/Widgets/error_report_widget.dart';
 import 'package:turqappv2/Core/Services/error_handling_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Services/draft_service.dart';
 import 'package:turqappv2/Core/Services/post_editing_service.dart';
 import 'package:turqappv2/Core/Services/media_enhancement_service.dart';
@@ -126,10 +126,7 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void dispose() {
     if (_ownsScholarshipsController &&
-        identical(
-          maybeFindScholarshipsController(),
-          scholarshipsController,
-        )) {
+        identical(maybeFindScholarshipsController(), scholarshipsController)) {
       Get.delete<ScholarshipsController>(force: true);
     }
     if (_ownsSettingsController &&
@@ -157,7 +154,12 @@ class _SettingsViewState extends State<SettingsView> {
                       _buildAssignedTasksSection(),
                       _buildAdminSection(),
                       ..._buildSessionSection(),
-                      15.ph,
+                      SizedBox(
+                        height: systemNavigationAwareBottom(
+                          context,
+                          spacing: 15,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -183,4 +185,5 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) => _buildPage(context);
 }
+
 // ignore_for_file: file_names

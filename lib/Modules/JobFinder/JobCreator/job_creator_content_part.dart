@@ -21,7 +21,12 @@ extension _JobCreatorContentPart on _JobCreatorState {
         top: false,
         child: Obx(
           () => ListView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               _buildLogoPicker(),
               const SizedBox(height: 18),
@@ -29,11 +34,10 @@ extension _JobCreatorContentPart on _JobCreatorState {
               const SizedBox(height: 8),
               TextField(
                 controller: controller.brand,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(150),
-                ],
-                decoration:
-                    _inputDecoration('pasaj.job_finder.create.company_name'.tr),
+                inputFormatters: [LengthLimitingTextInputFormatter(150)],
+                decoration: _inputDecoration(
+                  'pasaj.job_finder.create.company_name'.tr,
+                ),
               ),
               const SizedBox(height: 18),
               _sectionTitle('pasaj.job_finder.create.location'.tr),
@@ -64,9 +68,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
               const SizedBox(height: 8),
               TextField(
                 controller: controller.ilanBasligi,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(100),
-                ],
+                inputFormatters: [LengthLimitingTextInputFormatter(100)],
                 decoration: _inputDecoration(
                   'pasaj.job_finder.create.listing_title'.tr,
                 ),
@@ -75,16 +77,18 @@ extension _JobCreatorContentPart on _JobCreatorState {
               _selectionField(
                 label: controller.selectedCalismaTuruList.isEmpty
                     ? 'pasaj.job_finder.create.work_type'.tr
-                    : controller
-                        .localizedWorkTypes(controller.selectedCalismaTuruList),
+                    : controller.localizedWorkTypes(
+                        controller.selectedCalismaTuruList,
+                      ),
                 onTap: controller.selectCalismaTuru,
               ),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedCalismaGunleri.isEmpty
                     ? 'pasaj.job_finder.create.work_days'.tr
-                    : controller
-                        .localizedWorkDays(controller.selectedCalismaGunleri),
+                    : controller.localizedWorkDays(
+                        controller.selectedCalismaGunleri,
+                      ),
                 onTap: controller.selectCalismaGunleri,
               ),
               const SizedBox(height: 8),
@@ -100,8 +104,9 @@ extension _JobCreatorContentPart on _JobCreatorState {
                         FilteringTextInputFormatter.digitsOnly,
                         _TimeTextInputFormatter(),
                       ],
-                      decoration:
-                          _inputDecoration('pasaj.job_finder.create.start'.tr),
+                      decoration: _inputDecoration(
+                        'pasaj.job_finder.create.start'.tr,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -113,8 +118,9 @@ extension _JobCreatorContentPart on _JobCreatorState {
                         FilteringTextInputFormatter.digitsOnly,
                         _TimeTextInputFormatter(),
                       ],
-                      decoration:
-                          _inputDecoration('pasaj.job_finder.create.end'.tr),
+                      decoration: _inputDecoration(
+                        'pasaj.job_finder.create.end'.tr,
+                      ),
                     ),
                   ),
                 ],
@@ -131,18 +137,18 @@ extension _JobCreatorContentPart on _JobCreatorState {
                 controller: controller.isTanimi,
                 minLines: 4,
                 maxLines: 8,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(2000),
-                ],
-                decoration:
-                    _inputDecoration('pasaj.job_finder.create.job_desc'.tr),
+                inputFormatters: [LengthLimitingTextInputFormatter(2000)],
+                decoration: _inputDecoration(
+                  'pasaj.job_finder.create.job_desc'.tr,
+                ),
               ),
               const SizedBox(height: 8),
               _selectionField(
                 label: controller.selectedYanHaklar.isEmpty
                     ? 'pasaj.job_finder.create.benefits'.tr
-                    : controller
-                        .localizedBenefits(controller.selectedYanHaklar),
+                    : controller.localizedBenefits(
+                        controller.selectedYanHaklar,
+                      ),
                 onTap: () => controller.selectYanHaklar(context),
               ),
               const SizedBox(height: 8),

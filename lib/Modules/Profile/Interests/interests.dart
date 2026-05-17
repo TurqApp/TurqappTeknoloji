@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/interests_list.dart';
 import 'package:turqappv2/Modules/Profile/Interests/interest_controller.dart';
 part 'interests_content_part.dart';
@@ -24,8 +25,9 @@ class _InterestsState extends State<Interests> {
   void initState() {
     super.initState();
     _controllerTag = 'profile_interests_${identityHashCode(this)}';
-    final existingController =
-        maybeFindInterestsController(tag: _controllerTag);
+    final existingController = maybeFindInterestsController(
+      tag: _controllerTag,
+    );
     if (existingController != null) {
       controller = existingController;
       _ownsController = false;

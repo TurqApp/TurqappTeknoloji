@@ -27,7 +27,12 @@ extension _CareerProfileContentPart on _CareerProfileState {
           return RefreshIndicator(
             onRefresh: () => controller.loadCvData(forceRefresh: true),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
+              padding: EdgeInsets.fromLTRB(
+                15,
+                10,
+                15,
+                systemNavigationAwareBottom(context, spacing: 24),
+              ),
               children: [
                 _buildProfileHeaderCard(),
                 if (controller.experiences.isNotEmpty) ...[
@@ -72,9 +77,17 @@ extension _CareerProfileContentPart on _CareerProfileState {
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
+                  height: TurqButtonTokens.height,
                   child: ElevatedButton(
                     onPressed: _openCvEditor,
+                    style: ElevatedButton.styleFrom(
+                      textStyle: TurqButtonTokens.primaryTextStyle,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
+                      ),
+                    ),
                     child: Text('pasaj.job_finder.edit_cv'.tr),
                   ),
                 ),
@@ -146,8 +159,8 @@ extension _CareerProfileContentPart on _CareerProfileState {
                       controller.experiences.isNotEmpty
                           ? controller.experiences.first.position
                           : controller.schools.isNotEmpty
-                              ? controller.schools.first.branch
-                              : 'pasaj.job_finder.professional_profile'.tr,
+                          ? controller.schools.first.branch
+                          : 'pasaj.job_finder.professional_profile'.tr,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -195,9 +208,7 @@ extension _CareerProfileContentPart on _CareerProfileState {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: controller.toggleFindingJob,
-                  child: TurqAppToggle(
-                    isOn: controller.isFindingJob.value,
-                  ),
+                  child: TurqAppToggle(isOn: controller.isFindingJob.value),
                 ),
               ],
             ),
@@ -224,40 +235,42 @@ extension _CareerProfileContentPart on _CareerProfileState {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: controller.languages.map((lang) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F6FB),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      lang.languege,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: 'MontserratMedium',
-                      ),
+            children: controller.languages
+                .map((lang) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    const SizedBox(width: 6),
-                    ...List.generate(
-                      5,
-                      (i) => Icon(
-                        i < lang.level ? Icons.star : Icons.star_border,
-                        color: i < lang.level ? Colors.amber : Colors.grey,
-                        size: 14,
-                      ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F6FB),
+                      borderRadius: BorderRadius.circular(999),
                     ),
-                  ],
-                ),
-              );
-            }).toList(growable: false),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          lang.languege,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontFamily: 'MontserratMedium',
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        ...List.generate(
+                          5,
+                          (i) => Icon(
+                            i < lang.level ? Icons.star : Icons.star_border,
+                            color: i < lang.level ? Colors.amber : Colors.grey,
+                            size: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                })
+                .toList(growable: false),
           ),
         ],
       ),
@@ -312,7 +325,12 @@ extension _CareerProfileContentPart on _CareerProfileState {
   Widget _noCvView() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          systemNavigationAwareBottom(context, spacing: 24),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -344,9 +362,17 @@ extension _CareerProfileContentPart on _CareerProfileState {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 40,
+              height: TurqButtonTokens.height,
               child: ElevatedButton(
                 onPressed: _openCvEditor,
+                style: ElevatedButton.styleFrom(
+                  textStyle: TurqButtonTokens.primaryTextStyle,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      TurqButtonTokens.radius,
+                    ),
+                  ),
+                ),
                 child: Text('pasaj.job_finder.create_cv'.tr),
               ),
             ),

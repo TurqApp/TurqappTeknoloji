@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'biography_maker_controller.dart';
 
 class BiographyMaker extends StatefulWidget {
@@ -48,7 +49,12 @@ class _BiographyMakerState extends State<BiographyMaker> {
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.all(15),
+                  padding: EdgeInsets.fromLTRB(
+                    15,
+                    15,
+                    15,
+                    systemNavigationAwareBottom(context, spacing: 15),
+                  ),
                   child: _buildContent(),
                 ),
               ),
@@ -63,10 +69,7 @@ class _BiographyMakerState extends State<BiographyMaker> {
     return Column(
       children: [
         Container(
-          constraints: const BoxConstraints(
-            minHeight: 150,
-            maxHeight: 150,
-          ),
+          constraints: const BoxConstraints(minHeight: 150, maxHeight: 150),
           padding: const EdgeInsets.symmetric(horizontal: 15),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.03),
@@ -121,7 +124,6 @@ class _BiographyMakerState extends State<BiographyMaker> {
             ),
           );
         }),
-        const SizedBox(height: 12),
       ],
     );
   }
