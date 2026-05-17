@@ -5,6 +5,7 @@ extension CreatorContentShellContentPart on CreatorContent {
     controller = ensureCreatorContentController(
       tag: model.index.toString(),
     );
+    _requestInitialKeyboardFocusIfNeeded(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -238,5 +239,21 @@ extension CreatorContentShellContentPart on CreatorContent {
         }),
       ),
     );
+  }
+
+  void _requestInitialKeyboardFocusIfNeeded(BuildContext context) {
+    if (model.index != 0 || !isSelected) return;
+    if (mainController.isEditMode.value) return;
+    if (controller.isFocusedOnce.value) return;
+
+    controller.isFocusedOnce.value = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.mounted) return;
+      if (!controller.focus.canRequestFocus || controller.focus.hasFocus) {
+        return;
+      }
+      if (mainController.selectedIndex.value != 0) return;
+      controller.focus.requestFocus();
+    });
   }
 }
