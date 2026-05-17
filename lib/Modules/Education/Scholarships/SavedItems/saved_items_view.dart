@@ -16,7 +16,14 @@ part 'saved_items_view_actions_part.dart';
 part 'saved_items_view_content_part.dart';
 
 class SavedItemsView extends StatefulWidget {
-  const SavedItemsView({super.key});
+  const SavedItemsView({
+    super.key,
+    this.initialTabIndex = 0,
+    this.showOnlySelectedTab = false,
+  });
+
+  final int initialTabIndex;
+  final bool showOnlySelectedTab;
 
   @override
   State<SavedItemsView> createState() => _SavedItemsViewState();
@@ -34,6 +41,10 @@ class _SavedItemsViewState extends State<SavedItemsView> {
     final existing = maybeFindSavedItemsController(tag: _controllerTag);
     _ownsController = existing == null;
     controller = existing ?? ensureSavedItemsController(tag: _controllerTag);
+    controller.configureView(
+      initialTabIndex: widget.initialTabIndex,
+      showOnlySelectedTab: widget.showOnlySelectedTab,
+    );
   }
 
   @override

@@ -76,7 +76,21 @@ class ScholarshipNavigationService {
   }
 
   static Future<void> openSavedItems() async {
-    await Get.to(() => SavedItemsView());
+    await Get.to(
+      () => const SavedItemsView(
+        initialTabIndex: 0,
+        showOnlySelectedTab: true,
+      ),
+    );
+  }
+
+  static Future<void> openLikedItems() async {
+    await Get.to(
+      () => const SavedItemsView(
+        initialTabIndex: 1,
+        showOnlySelectedTab: true,
+      ),
+    );
   }
 
   static Future<void> openPersonalized() async {

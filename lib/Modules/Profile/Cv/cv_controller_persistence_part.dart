@@ -329,6 +329,9 @@ extension CvControllerPersistencePart on CvController {
       if (data != null) {
         _applyCvData(data);
       }
+      await _seedEducationSchoolIfCvSchoolsEmpty(
+        forceServer: forceRefresh,
+      );
       ensureDefaultPhoto();
       SilentRefreshGate.markRefreshed('profile:cv:$uid');
     } catch (_) {}

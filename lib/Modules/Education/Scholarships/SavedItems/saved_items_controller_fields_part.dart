@@ -7,5 +7,6 @@ extension SavedItemsControllerFieldsPart on SavedItemsController {
   RxList<Map<String, dynamic>> get bookmarkedScholarships =>
       _state.bookmarkedScholarships;
   RxInt get selectedTabIndex => _state.selectedTabIndex;
+  bool get showOnlySelectedTab => _state.showOnlySelectedTab;
   PageController get pageController => _state.pageController;
 }

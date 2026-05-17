@@ -15,21 +15,9 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
                 ),
                 Expanded(
                   child: Obx(
-                    () => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildTab(
-                          index: 0,
-                          label:
-                              '${'common.saved'.tr} (${controller.bookmarkedScholarships.length})',
-                        ),
-                        _buildTab(
-                          index: 1,
-                          label:
-                              '${'common.liked'.tr} (${controller.likedScholarships.length})',
-                        ),
-                      ],
-                    ),
+                    () => widget.showOnlySelectedTab
+                        ? _buildSingleTitle()
+                        : _buildTabBar(),
                   ),
                 ),
               ],
@@ -41,24 +29,26 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
                         controller.likedScholarships.isEmpty &&
                         controller.bookmarkedScholarships.isEmpty
                     ? const AppStateView.loading()
-                    : PageView(
-                        controller: controller.pageController,
-                        onPageChanged: controller.onTabChanged,
-                        children: [
-                          _buildScholarshipList(
-                            context,
-                            controller.bookmarkedScholarships,
-                            'scholarship.saved_empty'.tr,
-                            true,
+                    : widget.showOnlySelectedTab
+                        ? _buildSelectedScholarshipList(context)
+                        : PageView(
+                            controller: controller.pageController,
+                            onPageChanged: controller.onTabChanged,
+                            children: [
+                              _buildScholarshipList(
+                                context,
+                                controller.bookmarkedScholarships,
+                                'scholarship.saved_empty'.tr,
+                                true,
+                              ),
+                              _buildScholarshipList(
+                                context,
+                                controller.likedScholarships,
+                                'scholarship.liked_empty'.tr,
+                                false,
+                              ),
+                            ],
                           ),
-                          _buildScholarshipList(
-                            context,
-                            controller.likedScholarships,
-                            'scholarship.liked_empty'.tr,
-                            false,
-                          ),
-                        ],
-                      ),
               ),
             ),
           ],
@@ -71,31 +61,79 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
     required int index,
     required String label,
   }) {
+    final isSelected = controller.selectedTabIndex.value == index;
     return Expanded(
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => controller.onTabChanged(index),
-            child: Text(
-              label,
-              style: TextStyle(
-                color: controller.selectedTabIndex.value == index
-                    ? Colors.black
-                    : Colors.black54,
-                fontSize: 20,
-                fontFamily: 'MontserratBold',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => controller.onTabChanged(index),
+        child: Container(
+          height: 52,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.black.withAlpha(6) : Colors.transparent,
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? Colors.black : Colors.grey.shade300,
+                width: isSelected ? 3 : 1,
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Container(
-            height: 2,
-            color: controller.selectedTabIndex.value == index
-                ? Colors.black
-                : Colors.transparent,
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? Colors.black : Colors.black54,
+              fontSize: 18,
+              fontFamily: 'MontserratBold',
+            ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Row(
+      children: [
+        _buildTab(
+          index: 0,
+          label: 'common.saved'.tr,
+        ),
+        Container(width: 1, height: 32, color: Colors.grey.shade300),
+        _buildTab(
+          index: 1,
+          label: 'common.liked'.tr,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleTitle() {
+    final isSaved = controller.selectedTabIndex.value == 0;
+    final title = isSaved ? 'common.saved'.tr : 'common.liked'.tr;
+    return Text(
+      title,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 22,
+        fontFamily: 'MontserratBold',
+      ),
+    );
+  }
+
+  Widget _buildSelectedScholarshipList(BuildContext context) {
+    final isSaved = controller.selectedTabIndex.value == 0;
+    return _buildScholarshipList(
+      context,
+      isSaved
+          ? controller.bookmarkedScholarships
+          : controller.likedScholarships,
+      isSaved ? 'scholarship.saved_empty'.tr : 'scholarship.liked_empty'.tr,
+      isSaved,
     );
   }
 

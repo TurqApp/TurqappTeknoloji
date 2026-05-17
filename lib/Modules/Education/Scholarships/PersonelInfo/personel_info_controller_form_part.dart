@@ -100,9 +100,7 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
 
   Future<void> toggleDropdown(BuildContext context, FieldConfig config) async {
     final animationController = _animationControllers[config.label];
-    if (animationController == null) return;
-
-    animationController.forward();
+    animationController?.forward();
 
     if ([
       _maritalStatusFieldLabel,
@@ -142,6 +140,6 @@ extension PersonelInfoControllerFormPart on PersonelInfoController {
       );
     }
 
-    animationController.reverse();
+    animationController?.reverse();
   }
 }

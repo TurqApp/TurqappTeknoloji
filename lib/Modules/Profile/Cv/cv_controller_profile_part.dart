@@ -113,6 +113,7 @@ extension CvControllerProfilePart on CvController {
     );
     if (cached != null) {
       _applyCvData(cached);
+      await _seedEducationSchoolIfCvSchoolsEmpty();
       ensureDefaultPhoto();
       if (SilentRefreshGate.shouldRefresh(
         'profile:cv:$uid',
@@ -123,6 +124,7 @@ extension CvControllerProfilePart on CvController {
       return;
     }
     await loadDataFromFirestore();
+    await _seedEducationSchoolIfCvSchoolsEmpty(forceServer: true);
   }
 
   void _applyCvData(Map<String, dynamic> data) {
@@ -134,9 +136,12 @@ extension CvControllerProfilePart on CvController {
     onYazi.text = data["about"] ?? onYazi.text;
     photoUrl.value = (data["photoUrl"] ?? photoUrl.value).toString().trim();
 
-    okullar.value = (data["okullar"] as List<dynamic>? ?? [])
+    final cvSchools = (data["okullar"] as List<dynamic>? ?? [])
         .map((e) => CvSchoolModel.fromMap(e))
         .toList(growable: false);
+    if (cvSchools.isNotEmpty || okullar.isEmpty) {
+      okullar.value = cvSchools;
+    }
     diler.value = (data["diller"] as List<dynamic>? ?? [])
         .map((e) => CVLanguegeModel.fromMap(e))
         .toList(growable: false);
@@ -149,5 +154,78 @@ extension CvControllerProfilePart on CvController {
     skills.value = (data["skills"] as List<dynamic>? ?? [])
         .map((e) => e.toString())
         .toList(growable: false);
+  }
+
+  Future<void> _seedEducationSchoolIfCvSchoolsEmpty({
+    bool forceServer = false,
+  }) async {
+    if (okullar.isNotEmpty) return;
+
+    final uid = _currentUid;
+    Map<String, dynamic>? data;
+    if (uid.isNotEmpty) {
+      try {
+        data = await _userRepository.getUserRaw(
+          uid,
+          preferCache: !forceServer,
+          forceServer: forceServer,
+        );
+      } catch (_) {}
+    }
+
+    data ??= _educationDataFromCurrentUser();
+    final school = _cvSchoolFromEducationData(data);
+    if (school == null) return;
+    okullar.add(school);
+  }
+
+  Map<String, dynamic> _educationDataFromCurrentUser() {
+    final current = _userService.currentUser;
+    if (current == null) return const <String, dynamic>{};
+    return <String, dynamic>{
+      'education': <String, dynamic>{
+        'educationLevel': current.educationLevel,
+        'okul': current.okul,
+        'okulSehir': current.okulSehir,
+        'okulIlce': current.okulIlce,
+        'ortaOkul': current.ortaOkul,
+        'lise': current.lise,
+        'universite': current.universite,
+        'fakulte': current.fakulte,
+        'bolum': current.bolum,
+        'sinif': current.sinif,
+      },
+    };
+  }
+
+  CvSchoolModel? _cvSchoolFromEducationData(Map<String, dynamic> data) {
+    final schoolName = _firstNonEmpty([
+      userString(data, key: 'okul', scope: 'education'),
+      userString(data, key: 'universite', scope: 'education'),
+      userString(data, key: 'lise', scope: 'education'),
+      userString(data, key: 'ortaOkul', scope: 'education'),
+    ]);
+    if (schoolName.isEmpty) return null;
+
+    final branch = _firstNonEmpty([
+      userString(data, key: 'bolum', scope: 'education'),
+      userString(data, key: 'fakulte', scope: 'education'),
+      userString(data, key: 'sinif', scope: 'education'),
+      userString(data, key: 'educationLevel', scope: 'education'),
+    ]);
+
+    return CvSchoolModel(
+      school: schoolName,
+      branch: branch,
+      lastYear: '',
+    );
+  }
+
+  String _firstNonEmpty(List<String> values) {
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
   }
 }

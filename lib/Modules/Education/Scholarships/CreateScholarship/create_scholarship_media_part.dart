@@ -47,10 +47,17 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                   4.ph,
                   GestureDetector(
                     onTap: () async {
-                      final pickedFile =
-                          await AppImagePickerService.pickSingleImage(context);
-                      if (pickedFile != null) {
-                        // Copy the picked file to a persistent location
+                      debugPrint('[ScholarshipLogoPicker] tap');
+                      try {
+                        final pickedFile =
+                            await AppImagePickerService.pickSingleImage(context);
+                        if (pickedFile == null) {
+                          debugPrint('[ScholarshipLogoPicker] cancelled');
+                          return;
+                        }
+                        debugPrint(
+                          '[ScholarshipLogoPicker] picked path=${pickedFile.path}',
+                        );
                         final tempDir = await getTemporaryDirectory();
                         final newPath =
                             '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.png';
@@ -64,21 +71,42 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                           return;
                         }
 
-                        final r = await OptimizedNSFWService.checkImage(
-                          newFile,
+                        controller.logoPath.value = newFile.path;
+                        controller.logo.value = newFile.path;
+                        debugPrint(
+                          '[ScholarshipLogoPicker] preview_set path=${newFile.path}',
                         );
-                        if (r.isNSFW) {
-                          controller.logoPath.value = '';
-                          controller.logo.value = '';
-                          AppSnackbar(
-                            "edit_profile.upload_failed_title".tr,
-                            "edit_profile.upload_failed_body".tr,
-                            backgroundColor: Colors.red.withValues(alpha: 0.7),
+
+                        try {
+                          final r = await OptimizedNSFWService.checkImage(
+                            newFile,
+                          ).timeout(const Duration(seconds: 8));
+                          debugPrint(
+                            '[ScholarshipLogoPicker] nsfw_result isNSFW=${r.isNSFW}',
                           );
-                        } else {
-                          controller.logoPath.value = newFile.path;
-                          controller.logo.value = newFile.path;
+                          if (r.isNSFW) {
+                            controller.logoPath.value = '';
+                            controller.logo.value = '';
+                            AppSnackbar(
+                              "edit_profile.upload_failed_title".tr,
+                              "edit_profile.upload_failed_body".tr,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.7),
+                            );
+                          }
+                        } catch (error) {
+                          debugPrint(
+                            '[ScholarshipLogoPicker] nsfw_check_failed error=$error',
+                          );
                         }
+                      } catch (error) {
+                        debugPrint(
+                          '[ScholarshipLogoPicker] failed error=$error',
+                        );
+                        AppSnackbar(
+                          'common.error'.tr,
+                          'scholarship.image_upload_failed'.tr,
+                        );
                       }
                     },
                     child: AspectRatio(

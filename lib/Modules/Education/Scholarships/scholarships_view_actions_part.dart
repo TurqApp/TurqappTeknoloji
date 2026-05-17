@@ -601,6 +601,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                 onTap: ScholarshipNavigationService.openSavedItems,
               ),
               PullDownMenuItem(
+                title: 'common.liked'.tr,
+                icon: CupertinoIcons.hand_thumbsup,
+                onTap: ScholarshipNavigationService.openLikedItems,
+              ),
+              PullDownMenuItem(
                 title: 'common.applications'.tr,
                 icon: CupertinoIcons.doc_plaintext,
                 onTap: ScholarshipNavigationService.openApplications,

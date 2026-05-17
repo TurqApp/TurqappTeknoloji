@@ -61,6 +61,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
       }
 
       await _scholarshipRepository.toggleLike(docId, userId: userId);
+      invalidateSavedItemsScreenCacheForUser(userId, isLiked: true);
     } catch (_) {
       likedScholarships[docId] = wasLiked;
       if (wasLiked) {
@@ -121,6 +122,7 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
       }
 
       await _scholarshipRepository.toggleBookmark(docId, userId: userId);
+      invalidateSavedItemsScreenCacheForUser(userId, isLiked: false);
     } catch (_) {
       bookmarkedScholarships[docId] = wasBookmarked;
       if (wasBookmarked) {

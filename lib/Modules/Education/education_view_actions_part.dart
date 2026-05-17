@@ -299,6 +299,11 @@ extension EducationViewActionsPart on EducationView {
             onTap: ScholarshipNavigationService.openSavedItems,
           ),
           PullDownMenuItem(
+            title: 'common.liked'.tr,
+            icon: CupertinoIcons.hand_thumbsup,
+            onTap: ScholarshipNavigationService.openLikedItems,
+          ),
+          PullDownMenuItem(
             title: 'explore.tab.for_you'.tr,
             icon: CupertinoIcons.star,
             onTap: ScholarshipNavigationService.openPersonalized,

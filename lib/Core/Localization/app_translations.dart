@@ -3271,7 +3271,7 @@ class AppTranslations extends Translations {
         'scholarship.applicant.gender': 'Cinsiyet',
         'scholarship.applicant.disability_report': 'Engelli Raporu',
         'scholarship.applicant.employment_status': 'Çalışma Durumu',
-        'scholarship.applicant.education_level': 'Eğitim Düzeyi',
+        'scholarship.applicant.education_level': 'Eğitim Seviyesi',
         'scholarship.applicant.university': 'Üniversite',
         'scholarship.applicant.faculty': 'Fakülte',
         'scholarship.applicant.department': 'Bölüm',
