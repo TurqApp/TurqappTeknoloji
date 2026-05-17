@@ -20,7 +20,7 @@ double systemNavigationBottomInset(BuildContext context) {
       media.viewPadding.bottom,
       math.max(
         media.padding.bottom,
-        math.max(media.viewInsets.bottom, media.systemGestureInsets.bottom),
+        media.systemGestureInsets.bottom,
       ),
     ),
   );
