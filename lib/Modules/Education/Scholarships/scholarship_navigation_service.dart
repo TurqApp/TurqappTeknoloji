@@ -22,30 +22,40 @@ class ScholarshipNavigationService {
   static const String _cooldownPrefsKey =
       'scholarship_detail_interstitial_last_shown_at_ms';
   static const Duration _interstitialCooldown = Duration(minutes: 30);
+  static bool _isOpeningDetail = false;
 
   static Future<void> openDetail(
     Map<String, dynamic> scholarshipData,
   ) async {
-    final preferences = ensureLocalPreferenceRepository();
-    final now = DateTime.now();
-    final lastShownAtMs = await preferences.getInt(_cooldownPrefsKey);
-    final shouldAttemptInterstitial = lastShownAtMs == null ||
-        now.difference(
-              DateTime.fromMillisecondsSinceEpoch(lastShownAtMs),
-            ) >=
-            _interstitialCooldown;
-
-    if (shouldAttemptInterstitial) {
-      final didShowInterstitial = await showUnskippableInterstitialAd();
-      if (didShowInterstitial) {
-        await preferences.setInt(
-          _cooldownPrefsKey,
-          DateTime.now().millisecondsSinceEpoch,
-        );
-      }
+    if (_isOpeningDetail) {
+      return;
     }
 
-    await openDetailRoute(scholarshipData);
+    _isOpeningDetail = true;
+    try {
+      final preferences = ensureLocalPreferenceRepository();
+      final now = DateTime.now();
+      final lastShownAtMs = await preferences.getInt(_cooldownPrefsKey);
+      final shouldAttemptInterstitial = lastShownAtMs == null ||
+          now.difference(
+                DateTime.fromMillisecondsSinceEpoch(lastShownAtMs),
+              ) >=
+              _interstitialCooldown;
+
+      if (shouldAttemptInterstitial) {
+        final didShowInterstitial = await showUnskippableInterstitialAd();
+        if (didShowInterstitial) {
+          await preferences.setInt(
+            _cooldownPrefsKey,
+            DateTime.now().millisecondsSinceEpoch,
+          );
+        }
+      }
+
+      await openDetailRoute(scholarshipData);
+    } finally {
+      _isOpeningDetail = false;
+    }
   }
 
   static Future<void> openDetailRoute(
