@@ -53,7 +53,29 @@ extension _AgendaContentMediaPart on _AgendaContentState {
   }
 
   void _prepareVideoFullscreenTransition() {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      _pauseFeedBeforeFullscreen();
+      return;
+    }
     markSkipNextPause();
+  }
+
+  Future<bool> _restartFeedVideoAfterIosFullscreenIfNeeded({
+    required bool restartFullscreenFromBeginning,
+  }) async {
+    if (!restartFullscreenFromBeginning) return false;
+    final vc = videoController;
+    if (vc == null || !vc.value.isInitialized) return false;
+    try {
+      await vc.seekTo(Duration.zero);
+      if (widget.shouldPlay) {
+        vc.play();
+        vc.setVolume(agendaController.isMuted.value ? 0 : 1);
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<Duration> _resolveCurrentVideoPosition() async {

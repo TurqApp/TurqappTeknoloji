@@ -109,6 +109,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                             await _resolveCurrentVideoPosition();
                                         final listForFullscreen =
                                             await _buildFullscreenStartList();
+                                        final restartFullscreenFromBeginning =
+                                            defaultTargetPlatform ==
+                                                TargetPlatform.iOS;
 
                                         setPauseBlocked(true);
                                         _prepareVideoFullscreenTransition();
@@ -119,9 +122,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                             await Get.to(() => SingleShortView(
                                                   startModel: widget.model,
                                                   startList: listForFullscreen,
-                                                  initialPosition: currentPos,
+                                                  initialPosition:
+                                                      restartFullscreenFromBeginning
+                                                          ? null
+                                                          : currentPos,
                                                   injectedController:
-                                                      videoController,
+                                                      restartFullscreenFromBeginning
+                                                          ? null
+                                                          : videoController,
                                                   returnToExploreSeriesOnExit:
                                                       widget.floodHostSurface ==
                                                           FloodListingHostSurface
@@ -153,6 +161,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         final vc = videoController;
                                         if (vc != null &&
                                             vc.value.isInitialized) {
+                                          if (await _restartFeedVideoAfterIosFullscreenIfNeeded(
+                                            restartFullscreenFromBeginning:
+                                                restartFullscreenFromBeginning,
+                                          )) {
+                                            return;
+                                          }
                                           if (res is Map &&
                                               res['docID'] ==
                                                   widget.model.docID) {
@@ -180,6 +194,9 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                             await _resolveCurrentVideoPosition();
                                         final listForFullscreen =
                                             await _buildFullscreenStartList();
+                                        final restartFullscreenFromBeginning =
+                                            defaultTargetPlatform ==
+                                                TargetPlatform.iOS;
 
                                         setPauseBlocked(true);
                                         _prepareVideoFullscreenTransition();
@@ -188,9 +205,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                             await Get.to(() => SingleShortView(
                                                   startModel: widget.model,
                                                   startList: listForFullscreen,
-                                                  initialPosition: currentPos,
+                                                  initialPosition:
+                                                      restartFullscreenFromBeginning
+                                                          ? null
+                                                          : currentPos,
                                                   injectedController:
-                                                      videoController,
+                                                      restartFullscreenFromBeginning
+                                                          ? null
+                                                          : videoController,
                                                   returnToExploreSeriesOnExit:
                                                       widget.floodHostSurface ==
                                                           FloodListingHostSurface
@@ -220,6 +242,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                         final vc = videoController;
                                         if (vc != null &&
                                             vc.value.isInitialized) {
+                                          if (await _restartFeedVideoAfterIosFullscreenIfNeeded(
+                                            restartFullscreenFromBeginning:
+                                                restartFullscreenFromBeginning,
+                                          )) {
+                                            return;
+                                          }
                                           if (res is Map &&
                                               res['docID'] ==
                                                   widget.model.docID) {

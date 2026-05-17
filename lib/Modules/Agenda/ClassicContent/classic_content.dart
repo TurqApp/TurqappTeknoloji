@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'dart:ui';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
