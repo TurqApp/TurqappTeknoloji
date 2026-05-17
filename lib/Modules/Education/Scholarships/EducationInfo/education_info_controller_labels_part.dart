@@ -4,7 +4,7 @@ extension EducationInfoControllerLabelsPart on EducationInfoController {
   String localizedFieldLabel(String label) {
     switch (label) {
       case 'Eğitim Seviyesi':
-        return 'scholarship.education_level_label'.tr;
+        return 'scholarship.applicant.education_level'.tr;
       case 'Ülke':
         return 'scholarship.country_label'.tr;
       case 'İl':
@@ -67,6 +67,11 @@ extension EducationInfoControllerLabelsPart on EducationInfoController {
   }
 
   String localizedPlaceholder(String label) {
+    if (label == 'Eğitim Seviyesi') {
+      return 'education_info.select_field'.trParams({
+        'field': 'scholarship.applicant.education_level'.tr,
+      });
+    }
     return 'education_info.select_field'
         .trParams({'field': localizedFieldLabel(label)});
   }

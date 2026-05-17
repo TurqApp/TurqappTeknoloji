@@ -76,7 +76,7 @@ class _EducationInfoViewState extends State<EducationInfoView> {
                       children: [
                         DropdownField(
                           config: FieldConfig(
-                            label: "scholarship.applicant.education_level".tr,
+                            label: "Eğitim Seviyesi",
                             items: [
                               controller.middleSchoolValue,
                               controller.highSchoolValue,
