@@ -276,7 +276,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
 
   Widget _buildSubmitButton() {
     return SizedBox(
-      height: 52,
+      height: TurqButtonTokens.height,
       width: double.infinity,
       child: ElevatedButton(
         onPressed: controller.isSubmitting.value ? null : _submit,
@@ -285,7 +285,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
           backgroundColor: Colors.black,
           disabledBackgroundColor: Colors.black54,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           ),
         ),
         child: controller.isSubmitting.value
@@ -301,11 +301,7 @@ extension _JobCreatorContentPart on _JobCreatorState {
                 widget.existingJob == null
                     ? 'common.publish'.tr
                     : 'common.update'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
       ),
     );

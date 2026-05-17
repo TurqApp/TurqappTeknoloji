@@ -144,25 +144,21 @@ extension SignInStartPart on _SignInState {
             color: Colors.transparent,
             child: InkWell(
               key: const ValueKey('login_button'),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               onTap: () {
                 controller.clearStoredAccountContext();
                 controller.selection.value = 1;
               },
               child: Ink(
-                height: 50,
-                decoration: const BoxDecoration(
+                height: TurqButtonTokens.height,
+                decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
                 child: Center(
                   child: Text(
                     'login.sign_in'.tr,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: "MontserratBold",
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
                 ),
               ),
@@ -181,19 +177,15 @@ extension SignInStartPart on _SignInState {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Container(
-              height: 50,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.grey.withAlpha(50),
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'login.create_account'.tr,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: "MontserratMedium",
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),

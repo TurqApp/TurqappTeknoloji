@@ -480,20 +480,16 @@ extension _BecomeVerifiedAccountFlowPart on _BecomeVerifiedAccountState {
               duration: const Duration(milliseconds: 180),
               opacity: isEnabled ? 1 : 0.55,
               child: Container(
-                height: 50,
+                height: TurqButtonTokens.height,
                 margin: const EdgeInsets.only(top: 25),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
                 child: Text(
                   'become_verified.submit'.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'MontserratBold',
-                    fontSize: 15,
-                  ),
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),

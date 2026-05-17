@@ -80,7 +80,7 @@ extension ReportUserResultPart on _ReportUserState {
                   : 'report.done'.tr,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: systemNavigationAwareBottom(context, spacing: 12)),
         ],
       ),
     );

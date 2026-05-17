@@ -362,19 +362,17 @@ extension TestsGridControllerActionsPart on TestsGridController {
               GestureDetector(
                 onTap: Get.back,
                 child: Container(
-                  height: 50,
+                  height: TurqButtonTokens.height,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(
+                      TurqButtonTokens.radius,
+                    ),
                   ),
                   child: Text(
                     'common.close'.tr,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontFamily: 'MontserratBold',
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
                 ),
               ),
@@ -399,19 +397,15 @@ extension TestsGridControllerActionsPart on TestsGridController {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 50,
+          height: TurqButtonTokens.height,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           ),
           child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'MontserratMedium',
-              fontSize: 15,
-            ),
+            style: TurqButtonTokens.primaryTextStyle,
           ),
         ),
       ),

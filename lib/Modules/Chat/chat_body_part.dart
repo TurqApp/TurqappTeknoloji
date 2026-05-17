@@ -239,7 +239,10 @@ extension ChatBodyPart on ChatView {
                   Obx(
                     () => controller.showScrollDownButton.value
                         ? Positioned(
-                            bottom: 15,
+                            bottom: systemNavigationAwareBottom(
+                              context,
+                              spacing: 15,
+                            ),
                             right: 15,
                             child: GestureDetector(
                               onTap: controller.scrollToBottom,

@@ -19,16 +19,12 @@ extension _BookletAnswerContentPart on _BookletAnswerState {
                   ? GestureDetector(
                       onTap: controller.finishTest,
                       child: Container(
-                        height: 50,
+                        height: TurqButtonTokens.height,
                         color: Colors.green,
                         alignment: Alignment.center,
                         child: Text(
                           'tests.finish_test'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontFamily: 'MontserratBold',
-                          ),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                       ),
                     )

@@ -41,19 +41,17 @@ extension BlockedUsersControllerActionsPart on BlockedUsersController {
                       Get.back();
                     },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.grey.withAlpha(50),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: Text(
                         "common.cancel".tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
@@ -92,19 +90,17 @@ extension BlockedUsersControllerActionsPart on BlockedUsersController {
                       }
                     },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: Text(
                         "blocked_users.unblock".tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

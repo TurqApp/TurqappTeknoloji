@@ -75,7 +75,7 @@ extension JobDetailsReviewsPart on _JobDetailsState {
                     const SizedBox(height: 14),
                     SizedBox(
                       width: double.infinity,
-                      height: 48,
+                      height: TurqButtonTokens.height,
                       child: ElevatedButton(
                         onPressed: isSubmitting
                             ? null
@@ -97,7 +97,9 @@ extension JobDetailsReviewsPart on _JobDetailsState {
                           backgroundColor: Colors.black,
                           disabledBackgroundColor: Colors.black54,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                           ),
                         ),
                         child: isSubmitting
@@ -113,11 +115,7 @@ extension JobDetailsReviewsPart on _JobDetailsState {
                               )
                             : Text(
                                 "common.save".tr,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
+                                style: TurqButtonTokens.primaryTextStyle,
                               ),
                       ),
                     ),
@@ -342,7 +340,8 @@ extension JobDetailsReviewsPart on _JobDetailsState {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("pasaj.market.related_listings".tr, style: TextStyles.bold16Black),
+          Text("pasaj.market.related_listings".tr,
+              style: TextStyles.bold16Black),
           8.ph,
           SizedBox(
             height: (Get.height * 0.30).clamp(206.0, 236.0),

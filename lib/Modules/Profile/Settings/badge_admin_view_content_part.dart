@@ -104,14 +104,16 @@ extension _BadgeAdminViewContentPart on _BadgeAdminViewState {
               ],
               const SizedBox(height: 16),
               SizedBox(
-                height: 48,
+                height: TurqButtonTokens.height,
                 child: ElevatedButton.icon(
                   onPressed: _saving ? null : _saveBadge,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                   ),
                   icon: _saving
@@ -128,9 +130,7 @@ extension _BadgeAdminViewContentPart on _BadgeAdminViewState {
                     _saving
                         ? 'admin.tasks.saving'.tr
                         : 'admin.badges.save_badge'.tr,
-                    style: const TextStyle(
-                      fontFamily: 'MontserratBold',
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
                 ),
               ),

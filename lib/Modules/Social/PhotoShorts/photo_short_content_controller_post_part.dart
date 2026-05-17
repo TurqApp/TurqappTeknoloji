@@ -366,20 +366,16 @@ extension PhotoShortContentControllerPostPart on PhotoShortsContentController {
             GestureDetector(
               onTap: () => Get.back(),
               child: Container(
-                height: 50,
+                height: TurqButtonTokens.height,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                   border: Border.all(color: Colors.black),
                 ),
                 child: Text(
                   'common.cancel'.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontFamily: "MontserratBold",
-                  ),
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),

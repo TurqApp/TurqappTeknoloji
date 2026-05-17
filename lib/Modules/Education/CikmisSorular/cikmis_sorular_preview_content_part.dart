@@ -242,19 +242,15 @@ extension CikmisSorularPreviewContentPart on _CikmisSorularPreviewState {
       onTap: _persistAndShowResults,
       child: Container(
         margin: const EdgeInsets.all(15),
-        height: 50,
+        height: TurqButtonTokens.height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.green,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         ),
         child: Text(
           'tests.finish_test'.tr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontFamily: 'MontserratBold',
-          ),
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );

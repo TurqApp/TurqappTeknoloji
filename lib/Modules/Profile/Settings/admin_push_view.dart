@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/admin_push_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
@@ -486,14 +487,14 @@ class _AdminPushViewState extends State<AdminPushView> {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 48,
+          height: TurqButtonTokens.height,
           child: ElevatedButton(
             onPressed: _sending ? null : _sendPush,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
             ),
             child: _sending
@@ -507,9 +508,7 @@ class _AdminPushViewState extends State<AdminPushView> {
                   )
                 : Text(
                     'admin.push.send'.tr,
-                    style: const TextStyle(
-                      fontFamily: 'MontserratSemiBold',
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
           ),
         ),

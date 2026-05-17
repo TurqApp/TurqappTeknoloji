@@ -381,23 +381,21 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
                   ],
                   SizedBox(
                     width: double.infinity,
-                    height: 54,
+                    height: TurqButtonTokens.height,
                     child: ElevatedButton(
                       onPressed: submitOffer,
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
                         backgroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(
+                            TurqButtonTokens.radius,
+                          ),
                         ),
                       ),
                       child: Text(
                         'pasaj.market.offer_count'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: 'MontserratBold',
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

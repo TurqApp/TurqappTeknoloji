@@ -53,9 +53,9 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
                 title: 'practice.slider_management'.tr,
                 onTap: () =>
                     const SliderAdminNavigationService().openSliderAdmin(
-                      sliderId: 'online_sinav',
-                      title: 'pasaj.tabs.online_exam'.tr,
-                    ),
+                  sliderId: 'online_sinav',
+                  title: 'pasaj.tabs.online_exam'.tr,
+                ),
               ),
             ],
           ),
@@ -123,19 +123,17 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
                         .openBecomeVerifiedAccount();
                   },
                   child: Container(
-                    height: 50,
+                    height: TurqButtonTokens.height,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.black,
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                     child: Text(
                       'settings.become_verified'.tr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontFamily: 'MontserratBold',
-                      ),
+                      style: TurqButtonTokens.primaryTextStyle,
                     ),
                   ),
                 ),

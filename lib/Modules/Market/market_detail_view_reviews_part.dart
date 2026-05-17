@@ -391,7 +391,7 @@ extension _MarketDetailViewReviewsPart on _MarketDetailViewState {
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
-                    height: 48,
+                    height: TurqButtonTokens.height,
                     child: ElevatedButton(
                       onPressed: submitting
                           ? null
@@ -441,7 +441,9 @@ extension _MarketDetailViewReviewsPart on _MarketDetailViewState {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            TurqButtonTokens.radius,
+                          ),
                         ),
                       ),
                       child: submitting
@@ -456,11 +458,7 @@ extension _MarketDetailViewReviewsPart on _MarketDetailViewState {
                             )
                           : Text(
                               'common.save'.tr,
-                              style: const TextStyle(
-                                fontFamily: 'MontserratBold',
-                                fontSize: 15,
-                                color: Colors.white,
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                     ),
                   ),

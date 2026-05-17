@@ -245,14 +245,11 @@ extension _CreateBookEditorPart on _CreateBookState {
                         child: Container(
                           color: Colors.red.withValues(alpha: 0.1),
                           alignment: Alignment.center,
-                          height: 50,
+                          height: TurqButtonTokens.height,
                           child: Text(
                             "common.delete".tr,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 16,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.secondaryTextStyle
+                                .copyWith(color: Colors.red),
                           ),
                         ),
                       ),
@@ -261,14 +258,11 @@ extension _CreateBookEditorPart on _CreateBookState {
                       child: Container(
                         color: Colors.green.withValues(alpha: 0.1),
                         alignment: Alignment.center,
-                        height: 50,
+                        height: TurqButtonTokens.height,
                         child: Text(
                           "common.add".tr,
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 16,
-                            fontFamily: "MontserratBold",
-                          ),
+                          style: TurqButtonTokens.secondaryTextStyle
+                              .copyWith(color: Colors.green),
                         ),
                       ),
                     ),

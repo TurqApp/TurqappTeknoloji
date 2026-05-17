@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Ads/admob_kare.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/chat_navigation_service.dart';
@@ -161,7 +162,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   Widget _secondaryButton({
     required String label,
     required VoidCallback onTap,
-  }) => _performSecondaryButton(label: label, onTap: onTap);
+  }) =>
+      _performSecondaryButton(label: label, onTap: onTap);
 
   Widget _dangerButton({required String label, required VoidCallback onTap}) =>
       _performDangerButton(label: label, onTap: onTap);
@@ -177,7 +179,8 @@ class _MarketDetailViewState extends State<MarketDetailView> {
   MarketItemModel _preserveProtectedFields(
     MarketItemModel remote,
     MarketItemModel local,
-  ) => _performPreserveProtectedFields(remote, local);
+  ) =>
+      _performPreserveProtectedFields(remote, local);
 
   Future<void> _archiveItem() => _performArchiveItem();
 

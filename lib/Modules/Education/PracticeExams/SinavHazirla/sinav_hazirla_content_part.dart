@@ -53,12 +53,14 @@ extension SinavHazirlaContentPart on _SinavHazirlaState {
                     ? null
                     : () => controller.setData(context),
                 child: Container(
-                  height: 50,
+                  height: TurqButtonTokens.height,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color:
                         controller.isSaving.value ? Colors.grey : Colors.indigo,
-                    borderRadius: const BorderRadius.all(Radius.circular(8)),
+                    borderRadius: BorderRadius.circular(
+                      TurqButtonTokens.radius,
+                    ),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -67,11 +69,7 @@ extension SinavHazirlaContentPart on _SinavHazirlaState {
                       children: [
                         Text(
                           'common.continue'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: "MontserratBold",
-                          ),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                         Icon(
                           controller.isSaving.value

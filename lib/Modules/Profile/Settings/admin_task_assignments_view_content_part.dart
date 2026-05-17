@@ -66,14 +66,16 @@ extension _AdminTaskAssignmentsViewContentPart
               ),
               const SizedBox(width: 10),
               SizedBox(
-                height: 54,
+                height: TurqButtonTokens.height,
                 child: ElevatedButton(
                   onPressed: _searching ? null : _loadUser,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                   ),
                   child: _searching
@@ -87,7 +89,7 @@ extension _AdminTaskAssignmentsViewContentPart
                         )
                       : Text(
                           'admin.tasks.load'.tr,
-                          style: const TextStyle(fontFamily: 'MontserratBold'),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                 ),
               ),
@@ -185,14 +187,16 @@ extension _AdminTaskAssignmentsViewContentPart
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 48,
+                    height: TurqButtonTokens.height,
                     child: ElevatedButton.icon(
                       onPressed: _saving ? null : _saveTasks,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(
+                            TurqButtonTokens.radius,
+                          ),
                         ),
                       ),
                       icon: _saving
@@ -209,21 +213,23 @@ extension _AdminTaskAssignmentsViewContentPart
                         _saving
                             ? 'admin.tasks.saving'.tr
                             : 'admin.tasks.save'.tr,
-                        style: const TextStyle(fontFamily: 'MontserratBold'),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
                 SizedBox(
-                  height: 48,
+                  height: TurqButtonTokens.height,
                   child: OutlinedButton(
                     onPressed: _clearing ? null : _clearTasks,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.redAccent),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                     ),
                     child: _clearing
@@ -234,9 +240,8 @@ extension _AdminTaskAssignmentsViewContentPart
                           )
                         : Text(
                             'admin.tasks.clear'.tr,
-                            style: const TextStyle(
-                              fontFamily: 'MontserratBold',
-                            ),
+                            style: TurqButtonTokens.secondaryTextStyle
+                                .copyWith(color: Colors.red),
                           ),
                   ),
                 ),

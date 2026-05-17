@@ -116,19 +116,17 @@ extension DenemeSinaviPreviewControllerActionsPart
                       Get.back();
                     },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: Text(
                         'common.ok'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

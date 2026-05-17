@@ -66,28 +66,17 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
                       child: GestureDetector(
                         onTap: controller.saveData,
                         child: Container(
-                          height: 50,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Colors.black,
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(12),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
                           ),
                           child: Text(
                             'common.save'.tr,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: 'MontserratMedium',
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),

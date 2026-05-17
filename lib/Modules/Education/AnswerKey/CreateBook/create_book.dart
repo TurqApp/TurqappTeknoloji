@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
@@ -120,14 +121,14 @@ class _CreateBookState extends State<CreateBook> {
                           child: Padding(
                             padding: const EdgeInsets.only(left: 15, right: 15)
                                 .copyWith(
-                                  bottom: systemNavigationAwareBottom(context),
-                                ),
+                              bottom: systemNavigationAwareBottom(context),
+                            ),
                             child: Container(
-                              height: 50,
-                              decoration: const BoxDecoration(
+                              height: TurqButtonTokens.height,
+                              decoration: BoxDecoration(
                                 color: Colors.black,
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(12),
+                                borderRadius: BorderRadius.circular(
+                                  TurqButtonTokens.radius,
                                 ),
                               ),
                               alignment: Alignment.center,
@@ -135,13 +136,9 @@ class _CreateBookState extends State<CreateBook> {
                                 controller.selection.value == 0
                                     ? 'common.continue'.tr
                                     : controller.isEditMode
-                                    ? 'common.update'.tr
-                                    : 'common.publish'.tr,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratBold",
-                                ),
+                                        ? 'common.update'.tr
+                                        : 'common.publish'.tr,
+                                style: TurqButtonTokens.primaryTextStyle,
                               ),
                             ),
                           ),

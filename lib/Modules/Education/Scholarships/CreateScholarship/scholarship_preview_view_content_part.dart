@@ -218,27 +218,15 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
           child: GestureDetector(
             onTap: () => Get.back(),
             child: Container(
-              height: 50,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    spreadRadius: 1,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'common.back'.tr,
-                style: TextStyles.textFieldTitle.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textBlack,
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),
@@ -270,19 +258,11 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
               }
             },
             child: Container(
-              height: 50,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.textBlack,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    spreadRadius: 1,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Obx(() {
                 return controller.isLoading.value
@@ -291,7 +271,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
                         controller.isEditing.value
                             ? 'common.update'.tr
                             : 'common.share'.tr,
-                        style: TextStyles.medium15white.copyWith(fontSize: 16),
+                        style: TurqButtonTokens.primaryTextStyle,
                       );
               }),
             ),

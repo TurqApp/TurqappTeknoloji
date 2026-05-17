@@ -121,13 +121,13 @@ extension _HighlightPickerSheetCreatePart on _HighlightPickerSheetState {
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: TurqButtonTokens.height,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
                 elevation: 0,
               ),
@@ -143,10 +143,7 @@ extension _HighlightPickerSheetCreatePart on _HighlightPickerSheetState {
                     )
                   : Text(
                       'common.create'.tr,
-                      style: const TextStyle(
-                        fontFamily: 'MontserratSemiBold',
-                        fontSize: 14,
-                      ),
+                      style: TurqButtonTokens.primaryTextStyle,
                     ),
             ),
           ),

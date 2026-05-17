@@ -101,11 +101,13 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             );
                           },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.blue.shade900,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
@@ -126,11 +128,13 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             );
                           },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
@@ -158,11 +162,13 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             );
                           },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.red.shade800,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
@@ -293,7 +299,8 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                                   Navigator.pop(context);
                                                 },
                                                 child: Container(
-                                                  height: 50,
+                                                  height:
+                                                      TurqButtonTokens.height,
                                                   alignment: Alignment.center,
                                                   decoration: BoxDecoration(
                                                     color: Colors.grey
@@ -301,16 +308,13 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                                     borderRadius:
                                                         BorderRadius.all(
                                                             Radius.circular(
-                                                                12)),
+                                                                TurqButtonTokens
+                                                                    .radius)),
                                                   ),
                                                   child: Text(
                                                     "common.cancel".tr,
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                      fontSize: 15,
-                                                      fontFamily:
-                                                          "MontserratBold",
-                                                    ),
+                                                    style: TurqButtonTokens
+                                                        .secondaryTextStyle,
                                                   ),
                                                 ),
                                               ),
@@ -326,24 +330,22 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                                       .checkUserApplicationReadiness();
                                                 },
                                                 child: Container(
-                                                  height: 50,
+                                                  height:
+                                                      TurqButtonTokens.height,
                                                   alignment: Alignment.center,
                                                   decoration: BoxDecoration(
                                                     color: Colors.black,
                                                     borderRadius:
                                                         BorderRadius.all(
                                                             Radius.circular(
-                                                                12)),
+                                                                TurqButtonTokens
+                                                                    .radius)),
                                                   ),
                                                   child: Text(
                                                     "scholarship.update_my_info"
                                                         .tr,
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 15,
-                                                      fontFamily:
-                                                          "MontserratBold",
-                                                    ),
+                                                    style: TurqButtonTokens
+                                                        .primaryTextStyle,
                                                   ),
                                                 ),
                                               ),
@@ -359,7 +361,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                           }
                         },
                   child: Container(
-                    height: 50,
+                    height: TurqButtonTokens.height,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isExpired
@@ -367,7 +369,9 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                           : controller.allreadyApplied.value
                               ? Colors.grey
                               : Colors.black,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                     child: isLoading
                         ? CupertinoActivityIndicator()
@@ -378,11 +382,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                     ? 'scholarship.applied'.tr
                                     : 'common.apply'.tr,
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                   ),
                 ),
@@ -413,22 +413,20 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                             );
                           },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.red.shade700,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: isLoading
                           ? CupertinoActivityIndicator()
                           : Text(
                               'scholarship.cancel_apply_button'.tr,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontFamily: "MontserratBold",
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                     ),
                   ),
@@ -449,11 +447,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontFamily: "MontserratBold",
-          ),
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );

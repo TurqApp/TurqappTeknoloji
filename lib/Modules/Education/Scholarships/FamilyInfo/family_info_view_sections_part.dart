@@ -254,19 +254,15 @@ extension _FamilyInfoViewSectionsPart on _FamilyInfoViewState {
         GestureDetector(
           onTap: controller.setData,
           child: Container(
-            height: 50,
+            height: TurqButtonTokens.height,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.black,
-              borderRadius: BorderRadius.all(Radius.circular(12)),
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
             ),
             child: Text(
               'common.save'.tr,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontFamily: "MontserratMedium",
-              ),
+              style: TurqButtonTokens.primaryTextStyle,
             ),
           ),
         ),

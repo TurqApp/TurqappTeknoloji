@@ -263,7 +263,8 @@ extension _NavBarControllerUpdatePart on NavBarController {
           }
           await Future<void>.delayed(const Duration(milliseconds: 250));
         }
-        debugPrint('[AppUpdateCheck] action=skip_update_dialog reason=not_ready');
+        debugPrint(
+            '[AppUpdateCheck] action=skip_update_dialog reason=not_ready');
       } finally {
         _isForceUpdateVisible = false;
       }
@@ -393,7 +394,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
               const SizedBox(height: 22),
               SizedBox(
                 width: double.infinity,
-                height: 52,
+                height: TurqButtonTokens.height,
                 child: ElevatedButton(
                   onPressed: () async {
                     await preferences.setInt(
@@ -409,23 +410,21 @@ extension _NavBarControllerUpdatePart on NavBarController {
                     backgroundColor: Colors.black,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                   ),
                   child: Text(
                     'nav.rating_prompt_cta'.tr,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.white,
-                      fontFamily: 'MontserratBold',
-                    ),
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: TurqButtonTokens.height,
                 child: TextButton(
                   onPressed: () => Get.back(),
                   child: Text(

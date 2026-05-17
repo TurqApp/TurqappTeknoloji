@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/conversation_repository.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/conversation_id.dart';
@@ -178,7 +179,7 @@ class MarketContactService {
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
-                  height: 50,
+                  height: TurqButtonTokens.height,
                   child: ElevatedButton(
                     onPressed: () async {
                       final dialUri = Uri.parse('tel:${_dialValue(phone)}');
@@ -193,16 +194,14 @@ class MarketContactService {
                       elevation: 0,
                       backgroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                     ),
                     child: Text(
                       'common.call'.tr,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontFamily: 'MontserratBold',
-                      ),
+                      style: TurqButtonTokens.primaryTextStyle,
                     ),
                   ),
                 ),

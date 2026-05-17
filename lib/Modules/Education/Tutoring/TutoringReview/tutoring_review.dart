@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/BottomSheets/app_sheet_header.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/TutoringDetail/tutoring_detail_controller.dart';
 
@@ -19,10 +20,10 @@ void showTutoringReviewBottomSheet({
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           AppSheetHeader(title: 'tutoring.review_title'.tr),
           const SizedBox(height: 16),
           // Star rating
@@ -79,7 +80,7 @@ void showTutoringReviewBottomSheet({
           // Submit button
           Obx(() => SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: TurqButtonTokens.height,
                 child: ElevatedButton(
                   onPressed: isSubmitting.value
                       ? null
@@ -99,13 +100,15 @@ void showTutoringReviewBottomSheet({
                           );
                           isSubmitting.value = false;
                           Get.back();
-                          AppSnackbar('common.done'.tr,
-                              'tutoring.review_saved'.tr);
+                          AppSnackbar(
+                              'common.done'.tr, 'tutoring.review_saved'.tr);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                   ),
                   child: isSubmitting.value
@@ -119,11 +122,7 @@ void showTutoringReviewBottomSheet({
                         )
                       : Text(
                           'common.send'.tr,
-                          style: const TextStyle(
-                            fontFamily: "MontserratBold",
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                 ),
               )),

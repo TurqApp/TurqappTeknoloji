@@ -157,7 +157,6 @@ class _ShareGridState extends State<ShareGrid> {
           child: Obx(() {
             final hasSelection = controller.selectedUser.value != null;
             return TurqAppButton(
-              borderRadiusAll: 50,
               bgColor: hasSelection ? Colors.black : Colors.grey.shade400,
               onTap: () {
                 controller.sendIt();

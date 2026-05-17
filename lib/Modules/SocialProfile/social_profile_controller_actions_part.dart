@@ -60,19 +60,17 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
                       Get.back();
                     },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: Text(
                         'common.cancel'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
@@ -93,19 +91,17 @@ extension SocialProfileControllerActionsPart on SocialProfileController {
                       );
                     },
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.circular(
+                          TurqButtonTokens.radius,
+                        ),
                       ),
                       child: Text(
                         'common.remove'.tr,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

@@ -137,18 +137,14 @@ class _CreateBookAnswerKeyState extends State<CreateBookAnswerKey> {
                       child: Obx(
                         () => controller.inputController.text.isNotEmpty
                             ? Container(
-                                height: 50,
+                                height: TurqButtonTokens.height,
                                 alignment: Alignment.center,
                                 decoration: const BoxDecoration(
                                   color: Colors.indigo,
                                 ),
                                 child: Text(
                                   "common.preview".tr,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 15,
-                                    fontFamily: "MontserratBold",
-                                  ),
+                                  style: TurqButtonTokens.primaryTextStyle,
                                 ),
                               )
                             : const SizedBox.shrink(),
@@ -224,21 +220,17 @@ class _CreateBookAnswerKeyState extends State<CreateBookAnswerKey> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Container(
-                          height: 50,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: Colors.black,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(50),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
                             ),
                           ),
                           child: Text(
                             "common.ok".tr,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),

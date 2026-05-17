@@ -166,20 +166,18 @@ extension JobDetailsActionsPart on _JobDetailsState {
                                         await detailNavigationService.openCv();
                                       },
                                       child: Container(
-                                        height: 50,
+                                        height: TurqButtonTokens.height,
                                         alignment: Alignment.center,
                                         decoration: BoxDecoration(
                                           color: Colors.green,
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(12)),
+                                          borderRadius: BorderRadius.circular(
+                                            TurqButtonTokens.radius,
+                                          ),
                                         ),
                                         child: Text(
                                           "pasaj.job_finder.create_cv".tr,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratBold",
-                                          ),
+                                          style:
+                                              TurqButtonTokens.primaryTextStyle,
                                         ),
                                       ),
                                     ),
@@ -189,20 +187,18 @@ extension JobDetailsActionsPart on _JobDetailsState {
                                         Get.back(); // Vazgeç
                                       },
                                       child: Container(
-                                        height: 50,
+                                        height: TurqButtonTokens.height,
                                         alignment: Alignment.center,
                                         decoration: BoxDecoration(
                                           color: Colors.grey.withAlpha(50),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            TurqButtonTokens.radius,
+                                          ),
                                         ),
                                         child: Text(
                                           "common.cancel".tr,
-                                          style: TextStyle(
-                                            color: Colors.black,
-                                            fontSize: 15,
-                                            fontFamily: "MontserratBold",
-                                          ),
+                                          style: TurqButtonTokens
+                                              .secondaryTextStyle,
                                         ),
                                       ),
                                     ),
@@ -216,13 +212,15 @@ extension JobDetailsActionsPart on _JobDetailsState {
                           }
                         },
                         child: Container(
-                          height: 50,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: controller.basvuruldu.value
                                 ? Colors.grey.withAlpha(50)
                                 : Colors.black,
-                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                             border: Border.all(
                               color: controller.basvuruldu.value
                                   ? Colors.grey.withAlpha(50)
@@ -266,21 +264,18 @@ extension JobDetailsActionsPart on _JobDetailsState {
                             );
                           },
                           child: Container(
-                            height: 50,
+                            height: TurqButtonTokens.height,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.red,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.circular(
+                                TurqButtonTokens.radius,
+                              ),
                               border: Border.all(color: Colors.red),
                             ),
                             child: Text(
                               "pasaj.job_finder.cancel_application".tr,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                           ),
                         ),

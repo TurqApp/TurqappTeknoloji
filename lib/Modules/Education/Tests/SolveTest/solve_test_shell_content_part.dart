@@ -82,12 +82,12 @@ extension _SolveTestShellContentPart on _SolveTestState {
     return GestureDetector(
       onTap: controller.testiBitir,
       child: Container(
-        height: 50,
+        height: TurqButtonTokens.height,
         color: Colors.green,
         alignment: Alignment.center,
         child: Text(
           'tests.finish_test'.tr,
-          style: TextStyles.medium15white,
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );

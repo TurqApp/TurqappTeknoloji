@@ -145,14 +145,14 @@ extension StoryMusicAdminViewContentPart on _StoryMusicAdminViewState {
           ],
           const SizedBox(height: 14),
           SizedBox(
-            height: 48,
+            height: TurqButtonTokens.height,
             child: ElevatedButton.icon(
               onPressed: _isBusy ? null : _saveTrack,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
               ),
               icon: _isBusy
@@ -169,7 +169,7 @@ extension StoryMusicAdminViewContentPart on _StoryMusicAdminViewState {
                 _editingDocId.isEmpty
                     ? 'admin.story_music.save_track'.tr
                     : 'admin.story_music.save_update'.tr,
-                style: const TextStyle(fontFamily: 'MontserratBold'),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

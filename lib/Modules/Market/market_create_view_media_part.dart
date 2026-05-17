@@ -7,7 +7,7 @@ extension _MarketCreateViewMediaPart on _MarketCreateViewState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 50,
+          height: TurqButtonTokens.height,
           width: double.infinity,
           child: OutlinedButton(
             onPressed:
@@ -25,8 +25,8 @@ extension _MarketCreateViewMediaPart on _MarketCreateViewState {
               }),
               style: const TextStyle(
                 color: Colors.black,
-                fontSize: 13,
-                fontFamily: 'MontserratBold',
+                fontSize: 15,
+                fontFamily: 'MontserratMedium',
               ),
             ),
           ),

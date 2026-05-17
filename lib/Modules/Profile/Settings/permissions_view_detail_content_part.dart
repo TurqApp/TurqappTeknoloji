@@ -41,7 +41,7 @@ extension _PermissionDetailContentPart on _PermissionDetailViewState {
                     const Spacer(),
                     SizedBox(
                       width: double.infinity,
-                      height: 54,
+                      height: TurqButtonTokens.height,
                       child: ElevatedButton(
                         key: ValueKey<String>(
                           IntegrationTestKeys.actionPermissionPrimary(
@@ -53,16 +53,15 @@ extension _PermissionDetailContentPart on _PermissionDetailViewState {
                           backgroundColor: Colors.black,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                           ),
                           disabledBackgroundColor: Colors.black38,
                         ),
                         child: Text(
                           _busy ? 'permissions.checking'.tr : _buttonText,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(color: Colors.white),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                       ),
                     ),

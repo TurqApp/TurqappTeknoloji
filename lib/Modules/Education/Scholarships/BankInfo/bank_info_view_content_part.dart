@@ -174,8 +174,8 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
                     inputFormatters: _inputFormattersForSelection(),
                     keyboardType:
                         controller.isIbanSelected || controller.isPhoneSelected
-                        ? TextInputType.number
-                        : TextInputType.emailAddress,
+                            ? TextInputType.number
+                            : TextInputType.emailAddress,
                     decoration: InputDecoration(
                       hintText: controller.localizedFastType(
                         controller.kolayAdres.value,
@@ -267,19 +267,15 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
     return GestureDetector(
       onTap: controller.saveData,
       child: Container(
-        height: 50,
+        height: TurqButtonTokens.height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Color(controller.color.value),
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         ),
         child: Text(
           'common.save'.tr,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontFamily: 'MontserratMedium',
-          ),
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );

@@ -230,19 +230,15 @@ extension _CreateAnswerKeyEditorPart on _CreateAnswerKeyState {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Container(
-              height: 50,
-              decoration: const BoxDecoration(
+              height: TurqButtonTokens.height,
+              decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               alignment: Alignment.center,
               child: Text(
                 'common.save'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontFamily: 'MontserratMedium',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

@@ -51,16 +51,12 @@ extension SinavSorusuHazirlaQuestionPart on _SinavSorusuHazirlaState {
                   child: GestureDetector(
                     onTap: controller.completeExam,
                     child: Container(
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       color: Colors.green,
                       child: Text(
                         'tests.complete'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratBold",
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

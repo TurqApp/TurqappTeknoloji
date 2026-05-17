@@ -105,21 +105,17 @@ extension _BookletAnswerResultPart on _BookletAnswerState {
                             GestureDetector(
                               onTap: () => Get.back(),
                               child: Container(
-                                height: 50,
-                                decoration: const BoxDecoration(
+                                height: TurqButtonTokens.height,
+                                decoration: BoxDecoration(
                                   color: Colors.black,
-                                  borderRadius: BorderRadius.all(
-                                    Radius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    TurqButtonTokens.radius,
                                   ),
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
                                   'common.continue'.tr,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontFamily: 'MontserratMedium',
-                                  ),
+                                  style: TurqButtonTokens.primaryTextStyle,
                                 ),
                               ),
                             ),

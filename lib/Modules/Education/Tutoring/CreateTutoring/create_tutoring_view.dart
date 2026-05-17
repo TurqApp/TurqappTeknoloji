@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
@@ -61,9 +62,8 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
     controller.priceController.text = initialData.fiyat.toString();
     controller.cityController.text = initialData.sehir;
     controller.districtController.text = initialData.ilce;
-    controller.selectedLessonPlace.value = initialData.dersYeri.isNotEmpty
-        ? initialData.dersYeri.first
-        : '';
+    controller.selectedLessonPlace.value =
+        initialData.dersYeri.isNotEmpty ? initialData.dersYeri.first : '';
     controller.selectedGender.value = initialData.cinsiyet;
     controller.city.value = initialData.sehir;
     controller.town = initialData.ilce;
@@ -251,7 +251,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
               _buildAvailabilityCard(controller),
               const SizedBox(height: 22),
               SizedBox(
-                height: 52,
+                height: TurqButtonTokens.height,
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: controller.isLoading.value
@@ -267,7 +267,9 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
                     elevation: 0,
                     backgroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(
+                        TurqButtonTokens.radius,
+                      ),
                     ),
                   ),
                   child: controller.isLoading.value
@@ -276,11 +278,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
                           _initialData == null
                               ? 'common.publish'.tr
                               : 'common.update'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontFamily: 'MontserratBold',
-                          ),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                 ),
               ),

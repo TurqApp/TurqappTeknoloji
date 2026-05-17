@@ -139,7 +139,11 @@ extension ReportUserSelectionPart on _ReportUserState {
         const SizedBox(height: 27),
         for (final item in reportSelections) _buildSelectionItem(item),
         Padding(
-          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 25),
+          padding: EdgeInsets.only(
+            left: 15,
+            right: 15,
+            bottom: systemNavigationAwareBottom(context, spacing: 25),
+          ),
           child: TurqAppButton(
             bgColor: Colors.black,
             onTap: () {

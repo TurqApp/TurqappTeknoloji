@@ -27,16 +27,12 @@ extension _CikmisSoruOlusturShellContentPart on _CikmisSoruOlusturState {
 
   Widget _buildCikmisSoruOlusturStartBannerContent() {
     return Container(
-      height: 50,
+      height: TurqButtonTokens.height,
       alignment: Alignment.center,
       decoration: const BoxDecoration(color: Colors.indigo),
       child: Text(
         "education.start_creating".tr,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontFamily: "MontserratBold",
-        ),
+        style: TurqButtonTokens.primaryTextStyle,
       ),
     );
   }
