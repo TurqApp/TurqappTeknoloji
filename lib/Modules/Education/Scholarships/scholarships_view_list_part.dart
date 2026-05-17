@@ -1,6 +1,6 @@
 part of 'scholarships_view.dart';
 
-const int _pasajListAdInterval = 6;
+const int _pasajListAdInterval = 3;
 const int _loadMoreTriggerDistance = 10;
 
 extension ScholarshipsViewListPart on _ScholarshipsViewState {
@@ -67,9 +67,9 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
           final slot = ((index + 1) ~/ (_pasajListAdInterval + 1)) - 1;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-            child: AdmobKare(
-              key: ValueKey('scholarship-list-ad-$slot'),
-              suggestionPlacementId: 'scholarship',
+            child: _buildScholarshipAdSlot(
+              keyPrefix: 'scholarship-list',
+              slot: slot,
             ),
           );
         }
@@ -240,8 +240,6 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
   }
 
   Widget _buildScholarshipCard(int index, List<Map<String, dynamic>> items) {
-    final isSearching = controller.hasActiveSearch;
-
     final scholarshipData = items[index];
     final burs = scholarshipData['model'];
     final type = kIndividualScholarshipType;
@@ -285,9 +283,9 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Center(
-            child: AdmobKare(
-              key: ValueKey('scholarship-ad-$slot'),
-              suggestionPlacementId: 'scholarship',
+            child: _buildScholarshipAdSlot(
+              keyPrefix: 'scholarship-card',
+              slot: slot,
             ),
           ),
         ),
@@ -297,6 +295,26 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
+    );
+  }
+
+  Widget _buildScholarshipAdSlot({
+    required String keyPrefix,
+    required int slot,
+  }) {
+    final normalizedSlot = slot < 1 ? 1 : slot;
+    final adSlotId = '$keyPrefix-ad-$normalizedSlot';
+    return AdmobKare(
+      key: ValueKey(adSlotId),
+      contentPadding: EdgeInsets.zero,
+      liveAdOffsetX: 5,
+      promoFallbackOffsetX: 0,
+      promoFallbackExtraWidth: 0,
+      forceSingleLinePromoChips: true,
+      suggestionPlacementId: 'scholarship',
+      adSlotId: adSlotId,
+      disposeImmediatelyWhenHidden: true,
+      preferManagedSuggestionSurface: true,
     );
   }
 

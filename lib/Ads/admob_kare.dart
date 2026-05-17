@@ -666,9 +666,8 @@ class _AdmobKareState extends State<AdmobKare> {
         targetCount: targetCount,
         maxRequestCount: maxRequestCount,
         bypassMinInterval: bypassMinInterval,
-        debugSource: debugSource == 'pool_top_up'
-            ? 'deferred_pool_top_up'
-            : debugSource,
+        debugSource:
+            debugSource == 'pool_top_up' ? 'deferred_pool_top_up' : debugSource,
       ));
     });
   }
@@ -1424,6 +1423,8 @@ class _AdmobKareState extends State<AdmobKare> {
     );
 
     _retryTimer?.cancel();
+    final preserveManagedFallback = _prefersManagedSuggestionSurface &&
+        (_allowFallbackSurface || _loadFailed);
     final previousAd = _bannerAd;
     _bannerAd = null;
     _liveAdEverRendered = false;
@@ -1434,7 +1435,7 @@ class _AdmobKareState extends State<AdmobKare> {
       setState(() {
         _isAdLoaded = false;
         _loadFailed = false;
-        _allowFallbackSurface = false;
+        _allowFallbackSurface = preserveManagedFallback;
       });
     }
     _impressionReported = false;
@@ -1562,7 +1563,7 @@ class _AdmobKareState extends State<AdmobKare> {
                 setState(() {
                   _loadFailed = false;
                   _isAdLoaded = false;
-                  _allowFallbackSurface = false;
+                  _allowFallbackSurface = preserveManagedFallback;
                 });
               }
               _scheduleRetry(
