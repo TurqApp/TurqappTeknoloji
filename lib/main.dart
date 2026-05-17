@@ -135,7 +135,8 @@ bool _isFilteredSystemNavigationRoute(String route) {
   }
   return normalized.contains('shortview') ||
       normalized.contains('singleshortview') ||
-      normalized.contains('photoshorts');
+      normalized.contains('photoshorts') ||
+      normalized.contains('storymaker');
 }
 
 void _scheduleFeedManifestWarmOnAppLaunch() {

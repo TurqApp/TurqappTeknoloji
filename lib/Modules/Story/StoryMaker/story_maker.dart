@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Buttons/icon_buttons.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/upload_constants.dart';
+import 'package:turqappv2/Runtime/system_navigation_surface_controller.dart';
 import 'story_maker_controller.dart';
 import 'story_sticker_sheet.dart';
 import 'story_video.dart';
@@ -52,6 +53,7 @@ class StoryMaker extends StatefulWidget {
 class _StoryMakerState extends State<StoryMaker> {
   late final StoryMakerController controller;
   late final String _controllerTag;
+  late final bool _previousFilteredNavigationSurface;
 
   Map<String, String> get _mediaLookLabels => StoryMaker._mediaLookLabels;
   Map<String, IconData> get _mediaLookIcons => StoryMaker._mediaLookIcons;
@@ -64,6 +66,9 @@ class _StoryMakerState extends State<StoryMaker> {
   @override
   void initState() {
     super.initState();
+    _previousFilteredNavigationSurface =
+        useFilteredSystemNavigationSurface.value;
+    setFilteredSystemNavigationSurface(true);
     _controllerTag = 'story_maker_${identityHashCode(this)}';
     controller = maybeFindStoryMakerController(tag: _controllerTag) ??
         ensureStoryMakerController(tag: _controllerTag);
@@ -78,6 +83,7 @@ class _StoryMakerState extends State<StoryMaker> {
         )) {
       Get.delete<StoryMakerController>(tag: _controllerTag);
     }
+    setFilteredSystemNavigationSurface(_previousFilteredNavigationSurface);
     super.dispose();
   }
 
