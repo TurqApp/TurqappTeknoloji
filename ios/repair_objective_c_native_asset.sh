@@ -8,6 +8,14 @@ fi
 FRAMEWORK_DIR="${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/objective_c.framework"
 BINARY_PATH="${FRAMEWORK_DIR}/objective_c"
 
+create_objective_c_dsym() {
+  if [ -n "${DWARF_DSYM_FOLDER_PATH:-}" ] && [ -f "$BINARY_PATH" ] && [ -x /usr/bin/dsymutil ]; then
+    OBJECTIVE_C_DSYM_PATH="${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM"
+    /bin/rm -rf "$OBJECTIVE_C_DSYM_PATH"
+    /usr/bin/dsymutil "$BINARY_PATH" -o "$OBJECTIVE_C_DSYM_PATH" || true
+  fi
+}
+
 existing_platform=""
 if [ -f "$BINARY_PATH" ]; then
   existing_platform="$(
@@ -17,6 +25,7 @@ if [ -f "$BINARY_PATH" ]; then
 fi
 
 if [ "$existing_platform" = "2" ]; then
+  create_objective_c_dsym
   exit 0
 fi
 
@@ -56,11 +65,7 @@ SOURCE_DYLIB="$(
 /bin/cp -f "$SOURCE_DYLIB" "$BINARY_PATH"
 /usr/bin/install_name_tool -id '@rpath/objective_c.framework/objective_c' "$BINARY_PATH"
 
-if [ -n "${DWARF_DSYM_FOLDER_PATH:-}" ] && [ -x /usr/bin/dsymutil ]; then
-  OBJECTIVE_C_DSYM_PATH="${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM"
-  /bin/rm -rf "$OBJECTIVE_C_DSYM_PATH"
-  /usr/bin/dsymutil "$BINARY_PATH" -o "$OBJECTIVE_C_DSYM_PATH" || true
-fi
+create_objective_c_dsym
 
 /bin/cat > "$FRAMEWORK_DIR/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
