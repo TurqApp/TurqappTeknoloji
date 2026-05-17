@@ -26,14 +26,50 @@ extension UserRepositoryProfilePart on UserRepository {
     bool forceServer = false,
   }) async {
     if (uid.isEmpty) return null;
-    final data = await _cache.getProfile(
+    final privateDoc = AppFirestore.instance.collection('users').doc(uid);
+
+    if (cacheOnly) {
+      try {
+        final cached = await privateDoc.get(
+          const GetOptions(source: Source.cache),
+        );
+        if (cached.exists) {
+          final data = cached.data();
+          if (data != null) return _cloneUserProfileRawMap(data);
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    if (!forceServer && preferCache) {
+      try {
+        final cached = await privateDoc.get(
+          const GetOptions(source: Source.cache),
+        );
+        if (cached.exists) {
+          final data = cached.data();
+          if (data != null) return _cloneUserProfileRawMap(data);
+        }
+      } catch (_) {}
+    }
+
+    try {
+      final server = await privateDoc.get();
+      if (server.exists) {
+        final data = server.data();
+        if (data != null) {
+          await _cache.putProfile(uid, data);
+          return _cloneUserProfileRawMap(data);
+        }
+      }
+    } catch (_) {}
+
+    return getPublicUserRaw(
       uid,
       preferCache: preferCache,
       cacheOnly: cacheOnly,
       forceServer: forceServer,
     );
-    if (data == null) return null;
-    return _cloneUserProfileRawMap(data);
   }
 
   Future<Map<String, dynamic>?> getPublicUserRaw(
