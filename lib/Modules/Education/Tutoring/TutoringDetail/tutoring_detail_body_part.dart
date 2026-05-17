@@ -619,58 +619,48 @@ extension TutoringDetailBodyPart on TutoringDetail {
 
   Widget _solidAction(String text) {
     return Container(
-      height: 40,
+      height: TurqButtonTokens.height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontFamily: 'MontserratBold',
-        ),
+        style: TurqButtonTokens.primaryTextStyle,
       ),
     );
   }
 
   Widget _outlinedAction(String text) {
     return Container(
-      height: 40,
+      height: TurqButtonTokens.height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         border: Border.all(color: Colors.black12),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Colors.black,
-          fontSize: 15,
-          fontFamily: 'MontserratBold',
-        ),
+        style: TurqButtonTokens.secondaryTextStyle,
       ),
     );
   }
 
   Widget _dangerAction(String text) {
     return Container(
-      height: 40,
+      height: TurqButtonTokens.height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         border: Border.all(color: const Color(0xFFE45858)),
       ),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TurqButtonTokens.secondaryTextStyle.copyWith(
           color: Color(0xFFE45858),
-          fontSize: 15,
-          fontFamily: 'MontserratBold',
         ),
       ),
     );
