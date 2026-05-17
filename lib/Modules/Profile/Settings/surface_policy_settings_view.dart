@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
@@ -314,7 +315,12 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
               child: !_isReady
                   ? const AppStateView.loading()
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        15,
+                        8,
+                        15,
+                        systemNavigationAwareBottom(context, spacing: 20),
+                      ),
                       children: [
                         _buildHeaderCard(),
                         const SizedBox(height: 14),

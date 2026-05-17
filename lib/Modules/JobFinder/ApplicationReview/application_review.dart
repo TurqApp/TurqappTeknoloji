@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -86,7 +87,12 @@ class _ApplicationReviewState extends State<ApplicationReview> {
 
           return ListView.builder(
             itemCount: controller.applicants.length,
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 20),
+            ),
             itemBuilder: (context, index) {
               final app = controller.applicants[index];
               return _applicantCard(app, context);

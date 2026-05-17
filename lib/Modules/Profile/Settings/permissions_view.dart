@@ -17,6 +17,7 @@ import 'package:turqappv2/Core/Services/SegmentCache/cache_manager.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/cache_metrics.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Runtime/feature_runtime_services.dart';
 
@@ -117,7 +118,12 @@ class _PermissionsViewState extends State<PermissionsView>
                   : RefreshIndicator(
                       onRefresh: _refreshStatuses,
                       child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          8,
+                          16,
+                          systemNavigationAwareBottom(context, spacing: 24),
+                        ),
                         children: [
                           if (_showAdvancedControls) ...[
                             Text(

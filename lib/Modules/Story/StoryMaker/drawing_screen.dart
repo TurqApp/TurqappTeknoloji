@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 
 class DrawingScreen extends StatefulWidget {
   final Function(String) onSave;
@@ -101,7 +102,7 @@ class _DrawingScreenState extends State<DrawingScreen> {
           ),
           // Alt sağda slider ve renk seçici butonu
           Positioned(
-            bottom: 16,
+            bottom: systemNavigationAwareBottom(context, spacing: 16),
             right: 16,
             left: 16,
             child: Row(

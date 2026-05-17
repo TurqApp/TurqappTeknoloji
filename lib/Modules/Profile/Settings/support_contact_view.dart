@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class SupportContactView extends StatefulWidget {
@@ -206,7 +207,12 @@ class _SupportContactViewState extends State<SupportContactView> {
             BackButtons(text: 'support.title'.tr),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  systemNavigationAwareBottom(context, spacing: 24),
+                ),
                 children: [
                   _buildSupportCard(),
                 ],

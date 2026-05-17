@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:svg_flutter/svg_flutter.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Education/pasaj_tabs.dart';
 import 'package:turqappv2/Modules/Profile/Settings/settings_controller.dart';
 
@@ -58,7 +59,12 @@ class _PasajSettingsViewState extends State<PasajSettingsView> {
     return Obx(() {
       final tabs = _resolvedPasajTabs();
       return ListView(
-        padding: const EdgeInsets.fromLTRB(15, 6, 15, 20),
+        padding: EdgeInsets.fromLTRB(
+          15,
+          6,
+          15,
+          systemNavigationAwareBottom(context, spacing: 20),
+        ),
         children: tabs
             .map(
               (title) => _PasajToggleTile(

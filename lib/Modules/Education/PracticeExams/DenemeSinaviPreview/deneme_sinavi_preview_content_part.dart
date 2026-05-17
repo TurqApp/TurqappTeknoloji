@@ -68,7 +68,12 @@ extension DenemeSinaviPreviewContentPart on _DenemeSinaviPreviewState {
               return RefreshIndicator(
                 onRefresh: controller.refreshData,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    15,
+                    8,
+                    15,
+                    systemNavigationAwareBottom(context, spacing: 24),
+                  ),
                   children: [
                     _buildCover(),
                     const SizedBox(height: 14),

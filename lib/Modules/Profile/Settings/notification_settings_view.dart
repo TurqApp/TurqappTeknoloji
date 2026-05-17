@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/notification_service.dart';
 import 'package:turqappv2/Core/Services/notification_preferences_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 
 part 'notification_settings_view_categories_part.dart';
@@ -45,7 +46,12 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
               child: _loading
                   ? const AppStateView.loading()
                   : ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        8,
+                        16,
+                        systemNavigationAwareBottom(context, spacing: 24),
+                      ),
                       children: [
                         _deviceNoticeCard(),
                         const SizedBox(height: 18),

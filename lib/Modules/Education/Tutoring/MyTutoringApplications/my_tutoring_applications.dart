@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Models/Education/tutoring_application_model.dart';
@@ -58,7 +59,12 @@ class _MyTutoringApplicationsState extends State<MyTutoringApplications> {
         return RefreshIndicator(
           onRefresh: () async => controller.loadApplications(),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(0, 10, 0, 24),
+            padding: EdgeInsets.fromLTRB(
+              0,
+              10,
+              0,
+              systemNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               if (controller.applications.isEmpty)
                 SizedBox(

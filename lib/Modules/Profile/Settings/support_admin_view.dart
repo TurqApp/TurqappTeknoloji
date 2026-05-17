@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
@@ -149,7 +150,12 @@ class _SupportAdminViewState extends State<SupportAdminView> {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            systemNavigationAwareBottom(context, spacing: 24),
+          ),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             return _buildInboxCard(context, docs[index]);

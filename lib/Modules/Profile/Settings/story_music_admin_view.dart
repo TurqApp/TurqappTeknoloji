@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/story_music_library_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Models/music_model.dart';
@@ -100,7 +101,12 @@ class _StoryMusicAdminViewState extends State<StoryMusicAdminView> {
                   }
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                    padding: EdgeInsets.fromLTRB(
+                      15,
+                      8,
+                      15,
+                      systemNavigationAwareBottom(context, spacing: 24),
+                    ),
                     child: Column(
                       children: [
                         _buildFormCard(),

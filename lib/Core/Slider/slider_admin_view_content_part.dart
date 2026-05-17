@@ -44,7 +44,7 @@ extension _SliderAdminViewContentPart on _SliderAdminViewState {
             ),
             Positioned(
               right: 20,
-              bottom: 24,
+              bottom: systemNavigationAwareBottom(context, spacing: 24),
               child: FloatingActionButton.extended(
                 backgroundColor: Colors.black,
                 onPressed: _isBusy ? null : _addSlide,

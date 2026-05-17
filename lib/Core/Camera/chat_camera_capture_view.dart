@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 
 enum ChatCameraMode { photo, video }
 
@@ -187,7 +188,7 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                     ),
                   ),
                   Positioned(
-                    bottom: 164,
+                    bottom: systemNavigationAwareBottom(context, spacing: 164),
                     left: 20,
                     right: 20,
                     child: Center(
@@ -220,7 +221,7 @@ class _ChatCameraCaptureViewState extends State<ChatCameraCaptureView> {
                     ),
                   ),
                   Positioned(
-                    bottom: 38,
+                    bottom: systemNavigationAwareBottom(context, spacing: 38),
                     left: 18,
                     right: 18,
                     child: Container(

@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/webp_upload_service.dart';
 import 'package:turqappv2/Core/Slider/slider_catalog.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 

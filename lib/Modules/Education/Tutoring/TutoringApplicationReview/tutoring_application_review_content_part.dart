@@ -29,7 +29,12 @@ extension _TutoringApplicationReviewContentPart
         }
         return ListView.builder(
           itemCount: controller.applicants.length,
-          padding: const EdgeInsets.fromLTRB(15, 8, 15, 20),
+          padding: EdgeInsets.fromLTRB(
+            15,
+            8,
+            15,
+            systemNavigationAwareBottom(context, spacing: 20),
+          ),
           itemBuilder: (context, index) {
             final app = controller.applicants[index];
             return _buildApplicantCard(app);

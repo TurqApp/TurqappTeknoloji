@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 
 class ImagePreview extends StatefulWidget {
   final List<String> imgs;
@@ -165,7 +166,7 @@ class _ImagePreviewState extends State<ImagePreview> {
                   Positioned(
                     left: 12,
                     right: 12,
-                    bottom: 10,
+                    bottom: systemNavigationAwareBottom(context, spacing: 10),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.all(8),
@@ -268,7 +269,7 @@ class _ImagePreviewState extends State<ImagePreview> {
                 else
                   Positioned(
                     right: 12,
-                    bottom: 18,
+                    bottom: systemNavigationAwareBottom(context, spacing: 18),
                     child: _buildCollapsedReplyButton(),
                   ),
             ],

@@ -101,7 +101,12 @@ extension TutoringDetailBodyPart on TutoringDetail {
           final cityDistrict = _cityDistrictText(current);
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               _heroImage(current),
               const SizedBox(height: 14),
