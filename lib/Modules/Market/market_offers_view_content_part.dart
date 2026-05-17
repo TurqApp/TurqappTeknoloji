@@ -237,17 +237,19 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
                         status: kMarketOfferStatusRejected,
                       ),
               style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.black,
+                side: BorderSide(
+                  color: Colors.grey.withAlpha(120),
+                ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: TurqButtonTokens.horizontalPadding,
                 ),
                 minimumSize: const Size(0, TurqButtonTokens.height),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                side: BorderSide(
-                  color: Colors.grey.withAlpha(120),
-                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
+                textStyle: TurqButtonTokens.secondaryTextStyle,
               ),
               child: processing
                   ? const SizedBox(
@@ -275,18 +277,7 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
                         offer: offer,
                         status: kMarketOfferStatusAccepted,
                       ),
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: TurqButtonTokens.horizontalPadding,
-                ),
-                minimumSize: const Size(0, TurqButtonTokens.height),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
-                ),
-              ),
+              style: TurqButtonTokens.elevatedStyle(),
               child: Text(
                 'pasaj.job_finder.accept'.tr,
                 style: TurqButtonTokens.primaryTextStyle,

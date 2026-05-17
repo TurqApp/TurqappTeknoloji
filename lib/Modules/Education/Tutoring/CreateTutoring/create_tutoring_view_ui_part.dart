@@ -9,22 +9,20 @@ extension CreateTutoringViewUiPart on _CreateTutoringViewState {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 44,
+        height: TurqButtonTokens.height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: primary ? Colors.black : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           border: Border.all(
             color: primary ? Colors.black : const Color(0x22000000),
           ),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            color: primary ? Colors.white : Colors.black,
-            fontSize: 14,
-            fontFamily: 'MontserratBold',
-          ),
+          style: primary
+              ? TurqButtonTokens.primaryTextStyle
+              : TurqButtonTokens.secondaryTextStyle,
         ),
       ),
     );

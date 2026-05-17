@@ -195,22 +195,15 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
       children: [
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: TurqButtonTokens.height,
             child: OutlinedButton(
               onPressed: () => _clearFilters(context),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.grey.withAlpha(120)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              style: TurqButtonTokens.outlinedStyle(
+                borderColor: Colors.grey.withAlpha(120),
               ),
               child: Text(
                 'common.clear'.tr,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),
@@ -218,23 +211,13 @@ class _MarketFilterSheetState extends State<MarketFilterSheet> {
         const SizedBox(width: 10),
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: TurqButtonTokens.height,
             child: ElevatedButton(
               onPressed: () => _applyFilters(context),
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
+              style: TurqButtonTokens.elevatedStyle(),
               child: Text(
                 'pasaj.market.filter.apply'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

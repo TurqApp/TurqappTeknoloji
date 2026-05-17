@@ -109,10 +109,9 @@ extension _DeleteAccountContentPart on _DeleteAccountState {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'delete_account.validity_notice'
-                        .trParams({
-                          'days': '${_DeleteAccountState._deletionGraceDays}',
-                        }),
+                    'delete_account.validity_notice'.trParams({
+                      'days': '${_DeleteAccountState._deletionGraceDays}',
+                    }),
                     style: TextStyle(
                       color: Colors.black.withValues(alpha: 0.6),
                       fontSize: 12,
@@ -124,23 +123,20 @@ extension _DeleteAccountContentPart on _DeleteAccountState {
                     onTap: _isBusy ? null : _verifyAndDelete,
                     child: Container(
                       alignment: Alignment.center,
-                      height: 50,
+                      height: TurqButtonTokens.height,
                       decoration: BoxDecoration(
                         color: _isBusy
                             ? Colors.black.withValues(alpha: 0.35)
                             : Color(_color),
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(TurqButtonTokens.radius),
+                        ),
                       ),
                       child: Text(
                         _isBusy
                             ? 'delete_account.processing'.tr
                             : 'delete_account.delete_my_account'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

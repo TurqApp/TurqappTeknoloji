@@ -136,8 +136,8 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
               controller.bursVerenController.text = controller.bursVeren.value;
               controller.bursVerenController.selection =
                   TextSelection.collapsed(
-                    offset: controller.bursVerenController.text.length,
-                  );
+                offset: controller.bursVerenController.text.length,
+              );
             },
           ),
         ),
@@ -216,14 +216,17 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
             GestureDetector(
               onTap: ScholarshipNavigationService.openScholarshipsHome,
               child: Container(
-                height: 40,
+                height: TurqButtonTokens.height,
                 width: 80,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.grey.withAlpha(100),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
-                child: Text('common.back'.tr, style: TextStyles.medium15Black),
+                child: Text(
+                  'common.back'.tr,
+                  style: TurqButtonTokens.secondaryTextStyle,
+                ),
               ),
             ),
             // currentSection.value = 2
@@ -243,16 +246,16 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                 controller.currentSection.value = 2;
               },
               child: Container(
-                height: 40,
+                height: TurqButtonTokens.height,
                 width: 80,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
                 child: Text(
                   'common.continue'.tr,
-                  style: TextStyles.medium15white,
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),
@@ -552,13 +555,13 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                         FutureDatePickerBottomSheet(
                           initialDate:
                               controller.baslangicTarihi.value.isNotEmpty
-                              ? DateFormat(
-                                  'dd.MM.yyyy',
-                                ).parse(controller.baslangicTarihi.value)
-                              : DateTime.now(),
+                                  ? DateFormat(
+                                      'dd.MM.yyyy',
+                                    ).parse(controller.baslangicTarihi.value)
+                                  : DateTime.now(),
                           onSelected: (DateTime date) {
-                            controller.baslangicTarihi.value = dateFormat
-                                .format(date);
+                            controller.baslangicTarihi.value =
+                                dateFormat.format(date);
                           },
                           title: 'scholarship.application_start_date'.tr,
                         ),
@@ -651,14 +654,17 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                 controller.currentSection.value = 1;
               },
               child: Container(
-                height: 40,
+                height: TurqButtonTokens.height,
                 width: 80,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.grey.withAlpha(100),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
-                child: Text('common.back'.tr, style: TextStyles.medium15Black),
+                child: Text(
+                  'common.back'.tr,
+                  style: TurqButtonTokens.secondaryTextStyle,
+                ),
               ),
             ),
             GestureDetector(
@@ -681,16 +687,16 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                 controller.currentSection.value = 3;
               },
               child: Container(
-                height: 40,
+                height: TurqButtonTokens.height,
                 width: 80,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
                 child: Text(
                   'common.continue'.tr,
-                  style: TextStyles.medium15white,
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),

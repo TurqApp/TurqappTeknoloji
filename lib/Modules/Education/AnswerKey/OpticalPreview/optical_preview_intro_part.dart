@@ -82,23 +82,19 @@ extension OpticalPreviewIntroPart on _OpticalPreviewState {
                 GestureDetector(
                   onTap: _handleStartPressed,
                   child: Container(
-                    height: 45,
+                    height: TurqButtonTokens.height,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: controller.canStartTest()
                           ? Colors.indigo
                           : Colors.grey,
-                      borderRadius: const BorderRadius.all(
-                        Radius.circular(12),
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(TurqButtonTokens.radius),
                       ),
                     ),
                     child: Text(
                       'answer_key.start_now'.tr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontFamily: 'MontserratMedium',
-                      ),
+                      style: TurqButtonTokens.primaryTextStyle,
                     ),
                   ),
                 ),

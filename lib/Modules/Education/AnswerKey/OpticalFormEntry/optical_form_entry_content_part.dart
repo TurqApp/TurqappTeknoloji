@@ -92,19 +92,17 @@ extension _OpticalFormEntryContentPart on _OpticalFormEntryState {
       child: Padding(
         padding: const EdgeInsets.only(top: 20),
         child: Container(
-          height: 50,
+          height: TurqButtonTokens.height,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.indigo,
-            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderRadius: BorderRadius.all(
+              Radius.circular(TurqButtonTokens.radius),
+            ),
           ),
           child: Text(
             'answer_key.search_optical_form'.tr,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontFamily: 'MontserratMedium',
-            ),
+            style: TurqButtonTokens.primaryTextStyle,
           ),
         ),
       ),

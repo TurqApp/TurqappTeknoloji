@@ -155,24 +155,15 @@ extension _TutoringApplicationReviewContentPart
       children: [
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: TurqButtonTokens.height,
             child: OutlinedButton(
               onPressed: () => _openProfile(app.userID),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: Colors.grey.withAlpha(120),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              style: TurqButtonTokens.outlinedStyle(
+                borderColor: Colors.grey.withAlpha(120),
               ),
               child: Text(
                 'common.open_profile'.tr,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),
@@ -180,24 +171,15 @@ extension _TutoringApplicationReviewContentPart
         const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: TurqButtonTokens.height,
             child: OutlinedButton(
               onPressed: () => controller.updateStatus(app.userID, 'rejected'),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: Colors.grey.withAlpha(120),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              style: TurqButtonTokens.outlinedStyle(
+                borderColor: Colors.grey.withAlpha(120),
               ),
               child: Text(
                 'common.reject'.tr,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),
@@ -205,23 +187,13 @@ extension _TutoringApplicationReviewContentPart
         const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
-            height: 40,
+            height: TurqButtonTokens.height,
             child: ElevatedButton(
               onPressed: () => controller.updateStatus(app.userID, 'accepted'),
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+              style: TurqButtonTokens.elevatedStyle(),
               child: Text(
                 'common.accept'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),
@@ -233,24 +205,15 @@ extension _TutoringApplicationReviewContentPart
   Widget _buildOpenProfileButton(TutoringApplicationModel app) {
     return SizedBox(
       width: double.infinity,
-      height: 40,
+      height: TurqButtonTokens.height,
       child: OutlinedButton(
         onPressed: () => _openProfile(app.userID),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(
-            color: Colors.grey.withAlpha(120),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        style: TurqButtonTokens.outlinedStyle(
+          borderColor: Colors.grey.withAlpha(120),
         ),
         child: const Text(
           'Profili Aç',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
+          style: TurqButtonTokens.secondaryTextStyle,
         ),
       ),
     );

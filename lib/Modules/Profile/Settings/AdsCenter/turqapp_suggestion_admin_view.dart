@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Services/Ads/turqapp_suggestion_config_service.dart';
 import 'package:turqappv2/Core/Slider/slider_admin_view.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -416,29 +417,41 @@ class _TurqAppSuggestionAdminViewState
           Row(
             children: [
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _openSliderAdmin(inventoryItem.placement),
-                  icon: const Icon(CupertinoIcons.photo_on_rectangle),
-                  label: Text(
-                    hasSliderItems ? 'Slider Yönet' : 'Slider Yükle',
+                child: SizedBox(
+                  height: TurqButtonTokens.height,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openSliderAdmin(inventoryItem.placement),
+                    style: TurqButtonTokens.outlinedStyle(),
+                    icon: const Icon(CupertinoIcons.photo_on_rectangle),
+                    label: Text(
+                      hasSliderItems ? 'Slider Yönet' : 'Slider Yükle',
+                      style: TurqButtonTokens.secondaryTextStyle,
+                    ),
                   ),
                 ),
               ),
               if (hasSliderItems) ...[
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: removing
-                        ? null
-                        : () => _confirmRemoveSlider(inventoryItem.placement),
-                    icon: removing
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(CupertinoIcons.trash),
-                    label: const Text('Kaldır'),
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: OutlinedButton.icon(
+                      onPressed: removing
+                          ? null
+                          : () => _confirmRemoveSlider(inventoryItem.placement),
+                      style: TurqButtonTokens.outlinedStyle(),
+                      icon: removing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(CupertinoIcons.trash),
+                      label: const Text(
+                        'Kaldır',
+                        style: TurqButtonTokens.secondaryTextStyle,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -447,13 +460,10 @@ class _TurqAppSuggestionAdminViewState
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
+            height: TurqButtonTokens.height,
             child: ElevatedButton.icon(
               onPressed: saving ? null : () => _savePlacement(placement),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-              ),
+              style: TurqButtonTokens.elevatedStyle(),
               icon: saving
                   ? const SizedBox(
                       width: 16,
@@ -464,7 +474,10 @@ class _TurqAppSuggestionAdminViewState
                       ),
                     )
                   : const Icon(CupertinoIcons.check_mark),
-              label: const Text('Kaydet'),
+              label: const Text(
+                'Kaydet',
+                style: TurqButtonTokens.primaryTextStyle,
+              ),
             ),
           ),
         ],

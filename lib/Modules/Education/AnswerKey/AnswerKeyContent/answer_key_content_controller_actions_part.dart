@@ -56,18 +56,16 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
             },
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey, width: 1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'answer_key.inspect'.tr,
-                style: TextStyle(
-                  fontSize: 15,
+                style: TurqButtonTokens.secondaryTextStyle.copyWith(
                   color: Colors.purpleAccent,
-                  fontFamily: 'MontserratMedium',
                 ),
               ),
             ),
@@ -82,18 +80,16 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
             },
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey, width: 1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'answer_key.delete_book'.tr,
-                style: TextStyle(
-                  fontSize: 15,
+                style: TurqButtonTokens.secondaryTextStyle.copyWith(
                   color: Colors.red,
-                  fontFamily: 'MontserratMedium',
                 ),
               ),
             ),
@@ -106,18 +102,16 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
             },
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey, width: 1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'common.edit'.tr,
-                style: TextStyle(
-                  fontSize: 15,
+                style: TurqButtonTokens.secondaryTextStyle.copyWith(
                   color: Colors.indigo,
-                  fontFamily: 'MontserratMedium',
                 ),
               ),
             ),
@@ -127,18 +121,16 @@ extension AnswerKeyContentControllerActionsPart on AnswerKeyContentController {
             onTap: Get.back,
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               width: double.infinity,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey, width: 1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'common.cancel'.tr,
-                style: TextStyle(
-                  fontSize: 15,
+                style: TurqButtonTokens.secondaryTextStyle.copyWith(
                   color: Colors.black,
-                  fontFamily: 'MontserratMedium',
                 ),
               ),
             ),

@@ -63,52 +63,39 @@ extension _MarketCategorySheetContentPart on _MarketCategorySheetState {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      widget.controller.selectCategory('');
-                      Navigator.of(context).pop();
-                    },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: Color(0x22000000)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        widget.controller.selectCategory('');
+                        Navigator.of(context).pop();
+                      },
+                      style: TurqButtonTokens.outlinedStyle(
+                        borderColor: const Color(0x22000000),
                       ),
-                    ),
-                    child: Text(
-                      'pasaj.market.all_categories'.tr,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
+                      child: Text(
+                        'pasaj.market.all_categories'.tr,
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: _selectedCategoryKey.isEmpty
-                        ? null
-                        : () {
-                            widget.controller
-                                .selectCategory(_selectedCategoryKey);
-                            Navigator.of(context).pop();
-                          },
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: Text(
-                      'pasaj.market.filter.apply'.tr,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'MontserratBold',
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: ElevatedButton(
+                      onPressed: _selectedCategoryKey.isEmpty
+                          ? null
+                          : () {
+                              widget.controller
+                                  .selectCategory(_selectedCategoryKey);
+                              Navigator.of(context).pop();
+                            },
+                      style: TurqButtonTokens.elevatedStyle(),
+                      child: Text(
+                        'pasaj.market.filter.apply'.tr,
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

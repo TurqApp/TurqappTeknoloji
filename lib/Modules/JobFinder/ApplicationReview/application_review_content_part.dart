@@ -97,14 +97,11 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
+                  height: TurqButtonTokens.height,
                   child: OutlinedButton.icon(
                     onPressed: () => _showCvPreview(app.userID, name, context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0x14000000)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    style: TurqButtonTokens.outlinedStyle(
+                      borderColor: const Color(0x14000000),
                     ),
                     icon: const Icon(
                       CupertinoIcons.doc_text,
@@ -113,11 +110,7 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                     ),
                     label: Text(
                       'pasaj.job_finder.view_cv'.tr,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontFamily: 'MontserratBold',
-                        fontSize: 13,
-                      ),
+                      style: TurqButtonTokens.secondaryTextStyle,
                     ),
                   ),
                 ),
@@ -127,26 +120,17 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                     children: [
                       Expanded(
                         child: SizedBox(
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           child: OutlinedButton(
                             onPressed: () {
                               controller.updateStatus(app.userID, 'rejected');
                             },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: Colors.grey.withAlpha(120),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            style: TurqButtonTokens.outlinedStyle(
+                              borderColor: Colors.grey.withAlpha(120),
                             ),
                             child: Text(
                               'pasaj.job_finder.reject'.tr,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontSize: 13,
-                                fontFamily: 'MontserratBold',
-                              ),
+                              style: TurqButtonTokens.secondaryTextStyle,
                             ),
                           ),
                         ),
@@ -155,7 +139,7 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                       if (app.status != 'reviewing') ...[
                         Expanded(
                           child: SizedBox(
-                            height: 40,
+                            height: TurqButtonTokens.height,
                             child: OutlinedButton(
                               onPressed: () {
                                 controller.updateStatus(
@@ -163,21 +147,12 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                                   'reviewing',
                                 );
                               },
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(
-                                  color: Colors.grey.withAlpha(120),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                              style: TurqButtonTokens.outlinedStyle(
+                                borderColor: Colors.grey.withAlpha(120),
                               ),
                               child: Text(
                                 'pasaj.job_finder.review'.tr,
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 13,
-                                  fontFamily: 'MontserratBold',
-                                ),
+                                style: TurqButtonTokens.secondaryTextStyle,
                               ),
                             ),
                           ),
@@ -186,25 +161,15 @@ extension ApplicationReviewContentPart on _ApplicationReviewState {
                       ],
                       Expanded(
                         child: SizedBox(
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           child: ElevatedButton(
                             onPressed: () {
                               controller.updateStatus(app.userID, 'accepted');
                             },
-                            style: ElevatedButton.styleFrom(
-                              elevation: 0,
-                              backgroundColor: Colors.black,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            style: TurqButtonTokens.elevatedStyle(),
                             child: Text(
                               'pasaj.job_finder.accept'.tr,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontFamily: 'MontserratBold',
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                           ),
                         ),

@@ -354,19 +354,17 @@ extension CikmisSorularPreviewContentPart on _CikmisSorularPreviewState {
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: Container(
-                        height: 50,
+                        height: TurqButtonTokens.height,
                         alignment: Alignment.center,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Colors.black,
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(TurqButtonTokens.radius),
+                          ),
                         ),
                         child: Text(
                           'past_questions.continue_solving'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            fontFamily: 'MontserratMedium',
-                          ),
+                          style: TurqButtonTokens.primaryTextStyle,
                         ),
                       ),
                     ),

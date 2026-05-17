@@ -330,20 +330,16 @@ extension SignInSignupIdentityPart on _SignInState {
                     },
                     child: Container(
                       width: 80,
-                      height: 40,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.grey.withAlpha(20),
                         borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
+                            BorderRadius.circular(TurqButtonTokens.radius),
                       ),
                       child: Text(
                         'common.back'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
@@ -362,13 +358,12 @@ extension SignInSignupIdentityPart on _SignInState {
                           },
                     child: Container(
                       width: 80,
-                      height: 40,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.all(
-                          Radius.circular(8),
-                        ),
+                        borderRadius:
+                            BorderRadius.circular(TurqButtonTokens.radius),
                       ),
                       child: controller.signupIdentityCheckLoading.value
                           ? const CupertinoActivityIndicator(
@@ -376,11 +371,7 @@ extension SignInSignupIdentityPart on _SignInState {
                             )
                           : Text(
                               'signup.next'.tr,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                     ),
                   ),

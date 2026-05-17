@@ -232,9 +232,8 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
         _buildLocationSelector(
           label: 'common.district'.tr,
           value: controller.selectedDistrict.value,
-          onTap: controller.selectedCity.value.isEmpty
-              ? null
-              : _openDistrictSheet,
+          onTap:
+              controller.selectedCity.value.isEmpty ? null : _openDistrictSheet,
         ),
       ],
     );
@@ -266,9 +265,8 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
                 style: TextStyle(
                   color: value.isEmpty ? Colors.grey : Colors.black,
                   fontSize: 15,
-                  fontFamily: value.isEmpty
-                      ? 'MontserratMedium'
-                      : 'MontserratBold',
+                  fontFamily:
+                      value.isEmpty ? 'MontserratMedium' : 'MontserratBold',
                 ),
               ),
             ),
@@ -327,9 +325,8 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
     final items = controller.fieldOptions(field);
     if (items.isEmpty) return;
 
-    final selectedValue = controller.fieldValue(key).isEmpty
-        ? null
-        : controller.fieldValue(key);
+    final selectedValue =
+        controller.fieldValue(key).isEmpty ? null : controller.fieldValue(key);
 
     await ListBottomSheet.show(
       context: context,
@@ -372,10 +369,10 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
     return GestureDetector(
       onTap: () => controller.setContactPreference(value),
       child: Container(
-        height: 50,
+        height: TurqButtonTokens.height,
         decoration: BoxDecoration(
           color: selected ? Colors.black : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           border: Border.all(
             color: selected ? Colors.black : const Color(0x22000000),
           ),
@@ -385,8 +382,8 @@ extension _MarketCreateViewFormPart on _MarketCreateViewState {
           label,
           style: TextStyle(
             color: selected ? Colors.white : Colors.black,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
+            fontSize: TurqButtonTokens.primaryTextStyle.fontSize,
+            fontFamily: TurqButtonTokens.primaryTextStyle.fontFamily,
           ),
         ),
       ),

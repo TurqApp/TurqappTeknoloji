@@ -145,21 +145,19 @@ extension _ApplicationsViewActionsPart on _ApplicationsViewState {
       onTap: onTap,
       child: Container(
         width: width,
-        height: 40,
+        height: TurqButtonTokens.height,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
           border: borderColor == null
               ? null
               : Border.all(width: 1, color: borderColor),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 15,
+          style: TurqButtonTokens.secondaryTextStyle.copyWith(
             color: textColor,
-            fontFamily: 'MontserratMedium',
           ),
         ),
       ),

@@ -321,21 +321,16 @@ extension SignInSignInPart on _SignInState {
                         },
                         child: Container(
                           width: 80,
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Colors.grey.withAlpha(20),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(8),
-                            ),
+                            borderRadius:
+                                BorderRadius.circular(TurqButtonTokens.radius),
                           ),
                           child: Text(
                             'common.back'.tr,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
+                            style: TurqButtonTokens.secondaryTextStyle,
                           ),
                         ),
                       ),
@@ -343,12 +338,12 @@ extension SignInSignInPart on _SignInState {
                         color: Colors.transparent,
                         child: InkWell(
                           key: const ValueKey('login_submit_button'),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius:
+                              BorderRadius.circular(TurqButtonTokens.radius),
                           onTap: controller.wait.value
                               ? null
                               : () async {
-                                  FocusManager.instance.primaryFocus
-                                      ?.unfocus();
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   controller.emailFocus.value.unfocus();
                                   controller.passwordFocus.value.unfocus();
                                   final mailOrNick =
@@ -374,10 +369,11 @@ extension SignInSignInPart on _SignInState {
                                 },
                           child: Ink(
                             width: 80,
-                            height: 40,
+                            height: TurqButtonTokens.height,
                             decoration: BoxDecoration(
                               color: Colors.black,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(
+                                  TurqButtonTokens.radius),
                             ),
                             child: Center(
                               child: controller.wait.value
@@ -386,11 +382,7 @@ extension SignInSignInPart on _SignInState {
                                     )
                                   : Text(
                                       'common.continue'.tr,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontFamily: "MontserratMedium",
-                                      ),
+                                      style: TurqButtonTokens.primaryTextStyle,
                                     ),
                             ),
                           ),

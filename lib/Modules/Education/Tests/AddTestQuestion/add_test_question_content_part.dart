@@ -57,18 +57,14 @@ extension AddTestQuestionContentPart on _AddTestQuestionState {
         GestureDetector(
           onTap: controller.publishTest,
           child: Container(
-            height: 50,
+            height: TurqButtonTokens.height,
             color: Colors.purple,
             alignment: Alignment.center,
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 "post_creator.publish".tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontFamily: "MontserratMedium",
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

@@ -106,18 +106,16 @@ extension _DenemeGridActionsPart on DenemeGrid {
       onTap: onTap,
       child: Container(
         alignment: Alignment.center,
-        height: 40,
+        height: TurqButtonTokens.height,
         width: double.infinity,
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey, width: 1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 15,
+          style: TurqButtonTokens.secondaryTextStyle.copyWith(
             color: color,
-            fontFamily: 'MontserratMedium',
           ),
         ),
       ),

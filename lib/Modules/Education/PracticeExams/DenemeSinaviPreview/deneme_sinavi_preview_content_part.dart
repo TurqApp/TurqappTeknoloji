@@ -145,21 +145,18 @@ extension DenemeSinaviPreviewContentPart on _DenemeSinaviPreviewState {
                       onTap: () => _handlePrimaryAction(controller),
                       child: Obx(
                         () => Container(
-                          height: 52,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _ctaColor(controller),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                           ),
                           child: Text(
                             _ctaLabel(controller),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              height: 1.5,
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: 'MontserratMedium',
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),

@@ -58,19 +58,15 @@ extension DatePickerBottomSheetContentPart on DatePickerBottomSheet {
           child: GestureDetector(
             onTap: () => Get.back(),
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'common.cancel'.tr,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 15,
-                  fontFamily: 'MontserratMedium',
-                ),
+                style: TurqButtonTokens.secondaryTextStyle,
               ),
             ),
           ),
@@ -80,19 +76,15 @@ extension DatePickerBottomSheetContentPart on DatePickerBottomSheet {
           child: GestureDetector(
             onTap: onConfirm,
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'common.ok'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontFamily: 'MontserratMedium',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

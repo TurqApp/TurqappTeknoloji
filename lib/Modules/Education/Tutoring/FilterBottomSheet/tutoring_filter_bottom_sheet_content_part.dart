@@ -285,13 +285,16 @@ extension TutoringFilterBottomSheetContentPart on TutoringFilterBottomSheet {
             onTap: filterController.clearFilters,
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 border: Border.all(color: Colors.black, width: 1),
               ),
-              child: Text("common.reset".tr, style: TextStyles.bold16Black),
+              child: Text(
+                "common.reset".tr,
+                style: TurqButtonTokens.secondaryTextStyle,
+              ),
             ),
           ),
         ),
@@ -301,12 +304,15 @@ extension TutoringFilterBottomSheetContentPart on TutoringFilterBottomSheet {
             onTap: filterController.applyFilters,
             child: Container(
               alignment: Alignment.center,
-              height: 40,
+              height: TurqButtonTokens.height,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
-              child: Text("common.apply".tr, style: TextStyles.bold16White),
+              child: Text(
+                "common.apply".tr,
+                style: TurqButtonTokens.primaryTextStyle,
+              ),
             ),
           ),
         ),

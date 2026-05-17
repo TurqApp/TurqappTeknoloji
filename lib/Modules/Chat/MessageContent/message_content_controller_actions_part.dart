@@ -236,20 +236,18 @@ extension MessageContentControllerActionsPart on MessageContentController {
                     child: GestureDetector(
                       onTap: addContact,
                       child: Container(
-                        height: 50,
+                        height: TurqButtonTokens.height,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(50),
+                          borderRadius: BorderRadius.circular(
+                            TurqButtonTokens.radius,
+                          ),
                           border: Border.all(color: Colors.grey),
                         ),
                         child: Text(
                           'chat.save_to_contacts'.tr,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontFamily: "MontserratMedium",
-                          ),
+                          style: TurqButtonTokens.secondaryTextStyle,
                         ),
                       ),
                     ),
@@ -261,22 +259,20 @@ extension MessageContentControllerActionsPart on MessageContentController {
                         launchUrl(Uri.parse("tel://${model.kisiTelefon}"));
                       },
                       child: Container(
-                        height: 50,
+                        height: TurqButtonTokens.height,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: Colors.green,
-                          borderRadius: BorderRadius.circular(50),
+                          borderRadius: BorderRadius.circular(
+                            TurqButtonTokens.radius,
+                          ),
                           border: Border.all(color: Colors.green),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15),
                           child: Text(
                             'chat.call'.tr,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratMedium",
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),

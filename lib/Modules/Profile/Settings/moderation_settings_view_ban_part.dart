@@ -301,38 +301,34 @@ class _UserBanSectionState extends State<_UserBanSection> {
           Row(
             children: [
               Expanded(
-                child: ElevatedButton(
-                  onPressed:
-                      _saving ? null : () => _applyByUserId(doc.id, 'advance'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: TurqButtonTokens.height,
+                  child: ElevatedButton(
+                    onPressed: _saving
+                        ? null
+                        : () => _applyByUserId(doc.id, 'advance'),
+                    style: TurqButtonTokens.elevatedStyle(),
+                    child: Text(
+                      'admin.moderation.next_penalty'.tr,
+                      style: TurqButtonTokens.primaryTextStyle,
                     ),
-                  ),
-                  child: Text(
-                    'admin.moderation.next_penalty'.tr,
-                    style: const TextStyle(fontFamily: 'MontserratBold'),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: OutlinedButton(
-                  onPressed:
-                      _saving ? null : () => _applyByUserId(doc.id, 'clear'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side:
-                        BorderSide(color: Colors.black.withValues(alpha: 0.2)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: TurqButtonTokens.height,
+                  child: OutlinedButton(
+                    onPressed:
+                        _saving ? null : () => _applyByUserId(doc.id, 'clear'),
+                    style: TurqButtonTokens.outlinedStyle(
+                      borderColor: Colors.black.withValues(alpha: 0.2),
                     ),
-                  ),
-                  child: Text(
-                    'admin.moderation.clear_ban'.tr,
-                    style: const TextStyle(fontFamily: 'MontserratBold'),
+                    child: Text(
+                      'admin.moderation.clear_ban'.tr,
+                      style: TurqButtonTokens.secondaryTextStyle,
+                    ),
                   ),
                 ),
               ),

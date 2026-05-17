@@ -16,19 +16,17 @@ extension JobDetailsActionsPart on _JobDetailsState {
                       child: GestureDetector(
                         onTap: controller.goToEdit,
                         child: Container(
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Colors.black,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                           ),
                           child: Text(
                             "pasaj.job_finder.edit_listing".tr,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),
@@ -38,22 +36,20 @@ extension JobDetailsActionsPart on _JobDetailsState {
                       child: GestureDetector(
                         onTap: controller.goToApplicationReview,
                         child: Container(
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                             border: Border.all(
                               color: Colors.black12,
                             ),
                           ),
                           child: Text(
                             "pasaj.job_finder.applications".tr,
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.secondaryTextStyle,
                           ),
                         ),
                       ),
@@ -86,21 +82,23 @@ extension JobDetailsActionsPart on _JobDetailsState {
                           );
                         },
                         child: Container(
-                          height: 40,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(
+                              TurqButtonTokens.radius,
+                            ),
                             border: Border.all(
                               color: const Color(0xFFE45858),
                             ),
                           ),
                           child: Text(
                             "common.remove".tr,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Color(0xFFE45858),
                               fontSize: 15,
-                              fontFamily: "MontserratBold",
+                              fontFamily: "MontserratMedium",
                             ),
                           ),
                         ),

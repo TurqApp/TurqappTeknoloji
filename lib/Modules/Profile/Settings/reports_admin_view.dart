@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -427,31 +428,30 @@ class _ReportAggregateCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: busy ? null : () => onReview(item.id, true),
-                    child: Text(
-                      'admin.reports.restore'.tr,
-                      style: const TextStyle(
-                        fontFamily: 'MontserratMedium',
-                        color: Colors.black,
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: OutlinedButton(
+                      onPressed: busy ? null : () => onReview(item.id, true),
+                      style: TurqButtonTokens.outlinedStyle(),
+                      child: Text(
+                        'admin.reports.restore'.tr,
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: busy ? null : () => onReview(item.id, false),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                    ),
-                    child: Text(
-                      busy
-                          ? 'admin.reports.processing'.tr
-                          : 'admin.reports.keep_hidden'.tr,
-                      style: const TextStyle(
-                        fontFamily: 'MontserratMedium',
-                        color: Colors.white,
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: ElevatedButton(
+                      onPressed: busy ? null : () => onReview(item.id, false),
+                      style: TurqButtonTokens.elevatedStyle(),
+                      child: Text(
+                        busy
+                            ? 'admin.reports.processing'.tr
+                            : 'admin.reports.keep_hidden'.tr,
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

@@ -78,35 +78,32 @@ extension MultipleChoiceBottomSheetContentPart on MultipleChoiceBottomSheet {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Expanded(
-          child: ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey.shade300,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: TurqButtonTokens.height,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: TurqButtonTokens.elevatedStyle(
+                backgroundColor: Colors.grey.shade300,
+                foregroundColor: Colors.black,
               ),
-            ),
-            child: Text(
-              'common.cancel'.tr,
-              style: TextStyles.textFieldTitle,
+              child: Text(
+                'common.cancel'.tr,
+                style: TurqButtonTokens.secondaryTextStyle,
+              ),
             ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: ElevatedButton(
-            onPressed: () => _confirmSelection(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: TurqButtonTokens.height,
+            child: ElevatedButton(
+              onPressed: () => _confirmSelection(context),
+              style: TurqButtonTokens.elevatedStyle(),
+              child: Text(
+                'common.select'.tr,
+                style: TurqButtonTokens.primaryTextStyle,
               ),
-            ),
-            child: Text(
-              'common.select'.tr,
-              style: const TextStyle(fontSize: 16, color: Colors.white),
             ),
           ),
         ),

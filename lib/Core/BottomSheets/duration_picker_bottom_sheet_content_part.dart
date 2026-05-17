@@ -64,11 +64,11 @@ extension DurationPickerBottomSheetContentPart on DurationPickerBottomSheet {
           child: GestureDetector(
             onTap: () => Get.back(),
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: const Text(
                 '',
@@ -81,11 +81,11 @@ extension DurationPickerBottomSheetContentPart on DurationPickerBottomSheet {
           child: GestureDetector(
             onTap: onConfirm,
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: const Text(
                 '',

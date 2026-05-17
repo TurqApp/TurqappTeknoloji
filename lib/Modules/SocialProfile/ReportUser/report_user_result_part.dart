@@ -28,22 +28,18 @@ extension ReportUserResultPart on _ReportUserState {
             GestureDetector(
               onTap: controller.block,
               child: Container(
-                height: 40,
+                height: TurqButtonTokens.height,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                   border: Border.all(color: Colors.grey.withValues(alpha: 0.5)),
                 ),
                 child: Text(
                   'report.block_user_button'.trParams({
                     'nickname': controller.nickname.value,
                   }),
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: 'MontserratMedium',
-                  ),
+                  style: TurqButtonTokens.secondaryTextStyle,
                 ),
               ),
             )

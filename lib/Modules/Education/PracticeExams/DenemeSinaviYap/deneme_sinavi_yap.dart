@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeSinaviYap/deneme_sinavi_yap_controller.dart';
@@ -115,19 +116,17 @@ class _DenemeSinaviYapState extends State<DenemeSinaviYap> {
             GestureDetector(
               onTap: () => controller.selection.value = 0,
               child: Container(
-                height: 45,
+                height: TurqButtonTokens.height,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.indigo,
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(TurqButtonTokens.radius),
+                  ),
                 ),
                 child: Text(
                   'practice.start_exam'.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontFamily: "MontserratMedium",
-                  ),
+                  style: TurqButtonTokens.primaryTextStyle,
                 ),
               ),
             ),

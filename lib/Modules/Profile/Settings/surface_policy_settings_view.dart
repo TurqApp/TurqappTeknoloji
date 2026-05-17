@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/feed_snapshot_repository.dart';
 import 'package:turqappv2/Core/Services/AppPolicy/surface_policy_override_service.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
@@ -415,42 +416,30 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: _isSaving ? null : _reset,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.black12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: TurqButtonTokens.height,
+                child: OutlinedButton(
+                  onPressed: _isSaving ? null : _reset,
+                  style: TurqButtonTokens.outlinedStyle(
+                    borderColor: Colors.black12,
                   ),
-                ),
-                child: const Text(
-                  'Varsayılanlara Dön',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 15,
-                    fontFamily: 'MontserratBold',
+                  child: const Text(
+                    'Varsayılanlara Dön',
+                    style: TurqButtonTokens.secondaryTextStyle,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  _isSaving ? 'Kaydediliyor...' : 'Kaydet',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontFamily: 'MontserratBold',
+              child: SizedBox(
+                height: TurqButtonTokens.height,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _save,
+                  style: TurqButtonTokens.elevatedStyle(),
+                  child: Text(
+                    _isSaving ? 'Kaydediliyor...' : 'Kaydet',
+                    style: TurqButtonTokens.primaryTextStyle,
                   ),
                 ),
               ),
@@ -460,24 +449,16 @@ class _SurfacePolicySettingsViewState extends State<SurfacePolicySettingsView> {
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
+          height: TurqButtonTokens.height,
           child: ElevatedButton(
             onPressed: _isSaving ? null : _reloadNow,
-            style: ElevatedButton.styleFrom(
+            style: TurqButtonTokens.elevatedStyle(
               backgroundColor: const Color(0xFFF1F1F1),
               foregroundColor: Colors.black,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
             ),
             child: const Text(
               'Şimdi Yeniden Yükle',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 15,
-                fontFamily: 'MontserratBold',
-              ),
+              style: TurqButtonTokens.secondaryTextStyle,
             ),
           ),
         ),

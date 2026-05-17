@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Models/Ads/ads_models.dart';
 import 'package:turqappv2/Modules/Profile/Settings/AdsCenter/ads_center_controller.dart';
 
@@ -95,38 +96,52 @@ class AdsCreativeReviewView extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton(
-                    onPressed: () async {
-                      final note = await _askNote(
-                        context,
-                        title: 'ads_center.reject_note'.tr,
-                      );
-                      if (note == null) return;
-                      await controller.reviewCreative(
-                        creativeId: creative.id,
-                        status: AdModerationStatus.rejected,
-                        note: note,
-                      );
-                    },
-                    child: Text('common.reject'.tr),
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final note = await _askNote(
+                          context,
+                          title: 'ads_center.reject_note'.tr,
+                        );
+                        if (note == null) return;
+                        await controller.reviewCreative(
+                          creativeId: creative.id,
+                          status: AdModerationStatus.rejected,
+                          note: note,
+                        );
+                      },
+                      style: TurqButtonTokens.outlinedStyle(),
+                      child: Text(
+                        'common.reject'.tr,
+                        style: TurqButtonTokens.secondaryTextStyle,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final note = await _askNote(
-                        context,
-                        title: 'ads_center.approve_note'.tr,
-                      );
-                      if (note == null) return;
-                      await controller.reviewCreative(
-                        creativeId: creative.id,
-                        status: AdModerationStatus.approved,
-                        note: note,
-                      );
-                    },
-                    child: Text('common.approve'.tr),
+                  child: SizedBox(
+                    height: TurqButtonTokens.height,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final note = await _askNote(
+                          context,
+                          title: 'ads_center.approve_note'.tr,
+                        );
+                        if (note == null) return;
+                        await controller.reviewCreative(
+                          creativeId: creative.id,
+                          status: AdModerationStatus.approved,
+                          note: note,
+                        );
+                      },
+                      style: TurqButtonTokens.elevatedStyle(),
+                      child: Text(
+                        'common.approve'.tr,
+                        style: TurqButtonTokens.primaryTextStyle,
+                      ),
+                    ),
                   ),
                 ),
               ],

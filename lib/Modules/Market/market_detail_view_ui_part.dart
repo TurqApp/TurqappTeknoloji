@@ -172,23 +172,13 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      height: 46,
+      height: TurqButtonTokens.height,
       child: ElevatedButton(
         onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        style: TurqButtonTokens.elevatedStyle(),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );
@@ -265,23 +255,16 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      height: 46,
+      height: TurqButtonTokens.height,
       child: OutlinedButton(
         onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Color(0x22000000)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+        style: TurqButtonTokens.outlinedStyle(
+          borderColor: const Color(0x22000000),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
+          style: TurqButtonTokens.secondaryTextStyle,
         ),
       ),
     );
@@ -292,23 +275,15 @@ extension _MarketDetailViewUiPart on _MarketDetailViewState {
     required VoidCallback onTap,
   }) {
     return SizedBox(
-      height: 46,
+      height: TurqButtonTokens.height,
       child: ElevatedButton(
         onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
+        style: TurqButtonTokens.elevatedStyle(
           backgroundColor: const Color(0xFFDC2626),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontFamily: 'MontserratBold',
-          ),
+          style: TurqButtonTokens.primaryTextStyle,
         ),
       ),
     );

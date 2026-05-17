@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -90,23 +91,15 @@ Future<bool?> _showExternalLinkDialog(Uri uri) {
               children: [
                 Expanded(
                   child: SizedBox(
-                    height: 44,
+                    height: TurqButtonTokens.height,
                     child: OutlinedButton(
                       onPressed: () => Get.back(result: false),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        side: BorderSide(
-                          color: Colors.black.withValues(alpha: 0.10),
-                        ),
+                      style: TurqButtonTokens.outlinedStyle(
+                        borderColor: Colors.black.withValues(alpha: 0.10),
                       ),
                       child: const Text(
                         'Vazgeç',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontFamily: 'MontserratSemiBold',
-                        ),
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
@@ -114,22 +107,13 @@ Future<bool?> _showExternalLinkDialog(Uri uri) {
                 const SizedBox(width: 10),
                 Expanded(
                   child: SizedBox(
-                    height: 44,
+                    height: TurqButtonTokens.height,
                     child: ElevatedButton(
                       onPressed: () => Get.back(result: true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
+                      style: TurqButtonTokens.elevatedStyle(),
                       child: const Text(
                         'Devam Et',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontFamily: 'MontserratSemiBold',
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

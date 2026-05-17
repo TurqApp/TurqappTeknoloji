@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
@@ -317,28 +318,38 @@ class _SupportAdminViewState extends State<SupportAdminView> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _updateStatus(
-                    doc.id,
-                    status: 'answered',
-                    currentNote: adminNote,
+                child: SizedBox(
+                  height: TurqButtonTokens.height,
+                  child: OutlinedButton(
+                    onPressed: () => _updateStatus(
+                      doc.id,
+                      status: 'answered',
+                      currentNote: adminNote,
+                    ),
+                    style: TurqButtonTokens.outlinedStyle(),
+                    child: Text(
+                      'admin.support.mark_answered'.tr,
+                      style: TurqButtonTokens.secondaryTextStyle,
+                    ),
                   ),
-                  child: Text('admin.support.mark_answered'.tr),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _updateStatus(
-                    doc.id,
-                    status: 'closed',
-                    currentNote: adminNote,
+                child: SizedBox(
+                  height: TurqButtonTokens.height,
+                  child: ElevatedButton(
+                    onPressed: () => _updateStatus(
+                      doc.id,
+                      status: 'closed',
+                      currentNote: adminNote,
+                    ),
+                    style: TurqButtonTokens.elevatedStyle(),
+                    child: Text(
+                      'admin.support.close'.tr,
+                      style: TurqButtonTokens.primaryTextStyle,
+                    ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text('admin.support.close'.tr),
                 ),
               ),
             ],

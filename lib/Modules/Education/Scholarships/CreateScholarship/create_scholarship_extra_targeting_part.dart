@@ -369,14 +369,17 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
             controller.currentSection.value = 2;
           },
           child: Container(
-            height: 40,
+            height: TurqButtonTokens.height,
             width: 80,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: Colors.grey.withAlpha(100),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
             ),
-            child: Text('common.back'.tr, style: TextStyles.medium15Black),
+            child: Text(
+              'common.back'.tr,
+              style: TurqButtonTokens.secondaryTextStyle,
+            ),
           ),
         ),
         GestureDetector(
@@ -392,14 +395,17 @@ extension CreateScholarshipExtraTargetingPart on _CreateScholarshipViewState {
             controller.currentSection.value = 4;
           },
           child: Container(
-            height: 40,
+            height: TurqButtonTokens.height,
             width: 80,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: Colors.black,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
             ),
-            child: Text('common.continue'.tr, style: TextStyles.medium15white),
+            child: Text(
+              'common.continue'.tr,
+              style: TurqButtonTokens.primaryTextStyle,
+            ),
           ),
         ),
       ],

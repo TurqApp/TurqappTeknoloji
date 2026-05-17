@@ -87,19 +87,17 @@ extension OpticalPreviewExamPart on _OpticalPreviewState {
                   child: GestureDetector(
                     onTap: () => controller.handleFinishTest(context),
                     child: Container(
-                      height: 45,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.indigo,
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(TurqButtonTokens.radius),
+                        ),
                       ),
                       child: Text(
                         'practice.finish_exam'.tr,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontFamily: 'MontserratMedium',
-                        ),
+                        style: TurqButtonTokens.primaryTextStyle,
                       ),
                     ),
                   ),

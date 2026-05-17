@@ -19,4 +19,41 @@ class TurqButtonTokens {
     fontSize: 15,
     fontFamily: 'MontserratMedium',
   );
+
+  static ButtonStyle elevatedStyle({
+    Color backgroundColor = Colors.black,
+    Color foregroundColor = Colors.white,
+    TextStyle? textStyle,
+  }) {
+    return ElevatedButton.styleFrom(
+      elevation: 0,
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+      minimumSize: const Size(0, height),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      textStyle: textStyle ?? primaryTextStyle,
+    );
+  }
+
+  static ButtonStyle outlinedStyle({
+    Color borderColor = const Color(0x1F000000),
+    Color foregroundColor = Colors.black,
+    TextStyle? textStyle,
+  }) {
+    return OutlinedButton.styleFrom(
+      foregroundColor: foregroundColor,
+      padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+      minimumSize: const Size(0, height),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      side: BorderSide(color: borderColor),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      textStyle: textStyle ?? secondaryTextStyle,
+    );
+  }
 }

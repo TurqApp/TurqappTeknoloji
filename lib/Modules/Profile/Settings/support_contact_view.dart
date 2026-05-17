@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/support_message_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
@@ -26,24 +27,15 @@ class _SupportContactViewState extends State<SupportContactView> {
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
+      height: TurqButtonTokens.height,
       child: ElevatedButton(
         onPressed: _sending ? null : _submit,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
+        style: TurqButtonTokens.elevatedStyle(),
         child: _sending
             ? const CupertinoActivityIndicator(color: Colors.white)
             : Text(
                 'support.send'.tr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'MontserratSemiBold',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
       ),
     );

@@ -105,10 +105,9 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(12),
                                       ),
-                                      child:
-                                          controller.logo.value.startsWith(
-                                            'http',
-                                          )
+                                      child: controller.logo.value.startsWith(
+                                        'http',
+                                      )
                                           ? CachedNetworkImage(
                                               imageUrl: controller.logo.value,
                                               fit: BoxFit.cover,
@@ -229,13 +228,11 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(12),
                                       ),
-                                      child:
-                                          controller.customImagePath.value
+                                      child: controller.customImagePath.value
                                               .startsWith('http')
                                           ? CachedNetworkImage(
                                               imageUrl: controller
-                                                  .customImagePath
-                                                  .value,
+                                                  .customImagePath.value,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
@@ -246,8 +243,7 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                           : Image.file(
                                               File(
                                                 controller
-                                                    .customImagePath
-                                                    .value,
+                                                    .customImagePath.value,
                                               ),
                                               fit: BoxFit.cover,
                                               width: double.infinity,
@@ -348,14 +344,17 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
               controller.currentSection.value = 3;
             },
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               width: 80,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.grey.withAlpha(100),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
-              child: Text('common.back'.tr, style: TextStyles.medium15Black),
+              child: Text(
+                'common.back'.tr,
+                style: TurqButtonTokens.secondaryTextStyle,
+              ),
             ),
           ),
           GestureDetector(
@@ -372,16 +371,16 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
               controller.goToPreview();
             },
             child: Container(
-              height: 40,
+              height: TurqButtonTokens.height,
               width: 140,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
               ),
               child: Text(
                 'scholarship.preview_title'.tr,
-                style: TextStyles.medium15white,
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),

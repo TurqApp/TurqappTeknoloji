@@ -132,20 +132,16 @@ extension SignInSignupOtpPart on _SignInState {
                     },
                     child: Container(
                       width: 80,
-                      height: 40,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.grey.withAlpha(20),
                         borderRadius:
-                            const BorderRadius.all(Radius.circular(8)),
+                            BorderRadius.circular(TurqButtonTokens.radius),
                       ),
                       child: Text(
                         'common.back'.tr,
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 15,
-                          fontFamily: "MontserratMedium",
-                        ),
+                        style: TurqButtonTokens.secondaryTextStyle,
                       ),
                     ),
                   ),
@@ -159,11 +155,12 @@ extension SignInSignupOtpPart on _SignInState {
                           },
                     child: Container(
                       width: 80,
-                      height: 40,
+                      height: TurqButtonTokens.height,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: Colors.black,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius:
+                            BorderRadius.circular(TurqButtonTokens.radius),
                       ),
                       child: controller.wait.value
                           ? const CupertinoActivityIndicator(
@@ -171,11 +168,7 @@ extension SignInSignupOtpPart on _SignInState {
                             )
                           : Text(
                               'common.continue'.tr,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontFamily: "MontserratMedium",
-                              ),
+                              style: TurqButtonTokens.primaryTextStyle,
                             ),
                     ),
                   ),

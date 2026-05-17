@@ -61,16 +61,12 @@ extension _DenemeSinaviYapContentPart on _DenemeSinaviYapState {
                       GestureDetector(
                         onTap: controller.setData,
                         child: Container(
-                          height: 50,
+                          height: TurqButtonTokens.height,
                           alignment: Alignment.center,
                           color: Colors.green,
                           child: Text(
                             'practice.finish_exam'.tr,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontFamily: "MontserratBold",
-                            ),
+                            style: TurqButtonTokens.primaryTextStyle,
                           ),
                         ),
                       ),
