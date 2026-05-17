@@ -1761,7 +1761,17 @@ class _AdmobKareState extends State<AdmobKare> {
       final showManagedSuggestion = _usesManagedSuggestion &&
           (_suggestionSliderItems.isNotEmpty || preferManagedSuggestionSurface);
       final hasRenderableLiveAdAvailable = _hasRenderableLiveAdAvailable;
-      if (hasRenderableLiveAdAvailable &&
+      final shouldKeepFallbackWhileLiveAdAttaches =
+          hasRenderableLiveAdAvailable &&
+              !canRenderLiveAd &&
+              !liveAdBindingPaused &&
+              (_allowFallbackSurface || _loadFailed);
+      if (shouldKeepFallbackWhileLiveAdAttaches) {
+        scheduleMicrotask(() {
+          if (!mounted || _isDisposed) return;
+          _attachBannerOrLoad();
+        });
+      } else if (hasRenderableLiveAdAvailable &&
           (_allowFallbackSurface || _loadFailed)) {
         scheduleMicrotask(() {
           if (!mounted || _isDisposed) return;
@@ -1822,7 +1832,11 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         }
       } else if (showManagedSuggestion) {
-        if (hasRenderableLiveAdAvailable) {
+        if (shouldKeepFallbackWhileLiveAdAttaches) {
+          scheduleMicrotask(_startFallbackPoolPolling);
+          _queueManagedSuggestionImpressionIfVisible();
+          child = _buildManagedSuggestionSlot();
+        } else if (hasRenderableLiveAdAvailable) {
           child = liveAdBindingPaused
               ? _buildDeferredAdSlot()
               : _buildPendingAdSlot();
@@ -1842,6 +1856,23 @@ class _AdmobKareState extends State<AdmobKare> {
           child = const SizedBox.shrink();
         } else if (liveAdBindingPaused) {
           child = _buildDeferredAdSlot();
+        } else if (shouldKeepFallbackWhileLiveAdAttaches) {
+          scheduleMicrotask(_startFallbackPoolPolling);
+          final fallbackSurface = SizedBox(
+            height: _promoSlotHeight,
+            child: _buildPromoFrame(
+              child: _buildPromoFallbackSurface(),
+            ),
+          );
+          child = Padding(
+            padding: widget.contentPadding,
+            child: widget.promoFallbackOffsetX == 0
+                ? fallbackSurface
+                : Transform.translate(
+                    offset: Offset(widget.promoFallbackOffsetX, 0),
+                    child: fallbackSurface,
+                  ),
+          );
         } else if (!_allowFallbackSurface && !_loadFailed) {
           child = _buildPendingAdSlot();
         } else {
