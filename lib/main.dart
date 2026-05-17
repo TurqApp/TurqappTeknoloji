@@ -34,8 +34,9 @@ import 'package:turqappv2/hls_player/hls_controller.dart';
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 final int appLaunchEpochMs = DateTime.now().millisecondsSinceEpoch;
-const String _appCheckDebugToken =
-    String.fromEnvironment('TURQ_APP_CHECK_DEBUG_TOKEN');
+const String _appCheckDebugToken = String.fromEnvironment(
+  'TURQ_APP_CHECK_DEBUG_TOKEN',
+);
 late final Future<void> firebaseBootstrapFuture;
 // ignore: unused_element
 AppLifecycleListener? _appLifecycleListener;
@@ -75,9 +76,7 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSizeBytes = 100 * 1024 * 1024;
   PaintingBinding.instance.imageCache.maximumSize = 1200;
 
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   // Firebase'i widget agacina girmeden once hazirla; aksi halde Splash,
   // CurrentUserService ve SignIn gibi erken ayaga kalkan akislarda
@@ -85,12 +84,16 @@ Future<void> main() async {
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
   unawaited(
-    firebaseBootstrapFuture.timeout(
-      _startupBootstrapWait,
-      onTimeout: () {
-        debugPrint('[bootstrap] startup timed out after runApp; continuing.');
-      },
-    ).catchError((_) {}),
+    firebaseBootstrapFuture
+        .timeout(
+          _startupBootstrapWait,
+          onTimeout: () {
+            debugPrint(
+              '[bootstrap] startup timed out after runApp; continuing.',
+            );
+          },
+        )
+        .catchError((_) {}),
   );
   _scheduleFeedManifestWarmOnAppLaunch();
 
@@ -136,33 +139,41 @@ bool _isFilteredSystemNavigationRoute(String route) {
 
 void _scheduleFeedManifestWarmOnAppLaunch() {
   unawaited(
-    firebaseBootstrapFuture.then((_) async {
-      if (Firebase.apps.isEmpty) {
-        debugPrint('[FeedManifestWarm] status=skip reason=firebase_not_ready');
-        return;
-      }
-      final startedAt = DateTime.now();
-      debugPrint(
-        '[FeedManifestWarm] status=start source=app_launch '
-        'slotBudget=${FeedManifestPolicy.startupSlotLoadBudget}',
-      );
-      try {
-        await ensureFeedManifestRepository().warmStartupWindow(
-          maxSlotsToLoad: FeedManifestPolicy.startupSlotLoadBudget,
-        );
-        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-        debugPrint(
-          '[FeedManifestWarm] status=done source=app_launch '
-          'elapsedMs=$elapsedMs',
-        );
-      } catch (error) {
-        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
-        debugPrint(
-          '[FeedManifestWarm] status=fail source=app_launch '
-          'elapsedMs=$elapsedMs error=$error',
-        );
-      }
-    }).catchError((_) {}),
+    firebaseBootstrapFuture
+        .then((_) async {
+          if (Firebase.apps.isEmpty) {
+            debugPrint(
+              '[FeedManifestWarm] status=skip reason=firebase_not_ready',
+            );
+            return;
+          }
+          final startedAt = DateTime.now();
+          debugPrint(
+            '[FeedManifestWarm] status=start source=app_launch '
+            'slotBudget=${FeedManifestPolicy.startupSlotLoadBudget}',
+          );
+          try {
+            await ensureFeedManifestRepository().warmStartupWindow(
+              maxSlotsToLoad: FeedManifestPolicy.startupSlotLoadBudget,
+            );
+            final elapsedMs = DateTime.now()
+                .difference(startedAt)
+                .inMilliseconds;
+            debugPrint(
+              '[FeedManifestWarm] status=done source=app_launch '
+              'elapsedMs=$elapsedMs',
+            );
+          } catch (error) {
+            final elapsedMs = DateTime.now()
+                .difference(startedAt)
+                .inMilliseconds;
+            debugPrint(
+              '[FeedManifestWarm] status=fail source=app_launch '
+              'elapsedMs=$elapsedMs error=$error',
+            );
+          }
+        })
+        .catchError((_) {}),
   );
 }
 
@@ -191,9 +202,7 @@ void _reportStartupFallbackError(FlutterErrorDetails details) {
 
 void _handleAppResumeTransition() {
   recordQALabLifecycleState('resume');
-  unawaited(
-    refreshQALabPermissionSnapshot(trigger: 'resume'),
-  );
+  unawaited(refreshQALabPermissionSnapshot(trigger: 'resume'));
   unawaited(_restorePlaybackAfterAppResume());
 }
 
@@ -237,8 +246,9 @@ Future<void> _bootstrapFirebaseAndCrashlytics() async {
   if (firebaseReady) {
     if (kDebugMode) {
       try {
-        await FirebasePerformance.instance
-            .setPerformanceCollectionEnabled(false);
+        await FirebasePerformance.instance.setPerformanceCollectionEnabled(
+          false,
+        );
         debugPrint('[FirebasePerformance] debug collection disabled.');
       } catch (e, st) {
         debugPrint('[FirebasePerformance] disable failed: $e');
@@ -292,14 +302,16 @@ Future<void> _activateFirebaseAppCheck() async {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
           ? AndroidDebugProvider(
-              debugToken:
-                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
+              debugToken: _appCheckDebugToken.isEmpty
+                  ? null
+                  : _appCheckDebugToken,
             )
           : const AndroidPlayIntegrityProvider(),
       providerApple: kDebugMode
           ? AppleDebugProvider(
-              debugToken:
-                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
+              debugToken: _appCheckDebugToken.isEmpty
+                  ? null
+                  : _appCheckDebugToken,
             )
           : const AppleAppAttestWithDeviceCheckFallbackProvider(),
     );
@@ -345,14 +357,12 @@ class MyApp extends StatelessWidget {
         if (routing == null) return;
         final current = routing.current;
         final previous = routing.previous;
-        final useFilteredSystemNavigation =
-            _isFilteredSystemNavigationRoute(current);
+        final useFilteredSystemNavigation = _isFilteredSystemNavigationRoute(
+          current,
+        );
         setFilteredSystemNavigationSurface(useFilteredSystemNavigation);
         if (current == previous) return;
-        recordQALabRouteChange(
-          current: current,
-          previous: previous,
-        );
+        recordQALabRouteChange(current: current, previous: previous);
       },
       defaultTransition: Transition.fade,
       translations: AppTranslations(),
@@ -502,10 +512,16 @@ class MyApp extends StatelessWidget {
       ),
       builder: (ctx, child) {
         final mq = MediaQuery.of(ctx);
-        final topGap =
-            GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
+        final topGap = GetPlatform.isIOS
+            ? _globalTopGapIOS
+            : _globalTopGapAndroid;
+        final bottomGap =
+            GetPlatform.isAndroid && mq.viewPadding.bottom > mq.padding.bottom
+            ? mq.viewPadding.bottom
+            : mq.padding.bottom;
         final adjustedPadding = mq.padding.copyWith(
           top: mq.padding.top + topGap,
+          bottom: bottomGap,
         );
         final adjustedViewPadding = mq.viewPadding.copyWith(
           top: mq.viewPadding.top + topGap,
@@ -557,10 +573,7 @@ class _SystemNavigationSurfaceHost extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: useFilteredSystemNavigationSurface,
       builder: (context, filtered, _) {
-        return _SystemNavigationSurface(
-          height: height,
-          filtered: filtered,
-        );
+        return _SystemNavigationSurface(height: height, filtered: filtered);
       },
     );
   }
@@ -591,9 +604,7 @@ class _SystemNavigationSurface extends StatelessWidget {
           child: ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-              child: ColoredBox(
-                color: color,
-              ),
+              child: ColoredBox(color: color),
             ),
           ),
         ),
