@@ -42,20 +42,15 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
           scope: 'education',
           values: {
             'educationLevel': EducationInfoController._middleSchool,
+            'okul': selectedSchool.value,
+            'okulSehir': selectedCity.value,
+            'okulIlce': selectedDistrict.value,
             'ortaOkul': selectedSchool.value,
             'sinif': selectedClassLevel.value,
             'lise': '',
             'universite': '',
             'fakulte': '',
             'bolum': '',
-          },
-        ),
-        ...scopedUserUpdate(
-          scope: 'profile',
-          values: {
-            'ulke': selectedCountry.value,
-            'il': selectedCity.value,
-            'ilce': selectedDistrict.value,
           },
         ),
       });
@@ -115,20 +110,15 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
           scope: 'education',
           values: {
             'educationLevel': EducationInfoController._highSchool,
+            'okul': selectedHighSchool.value,
+            'okulSehir': selectedCity.value,
+            'okulIlce': selectedDistrict.value,
             'lise': selectedHighSchool.value,
             'sinif': selectedClassLevel.value,
             'ortaOkul': '',
             'universite': '',
             'fakulte': '',
             'bolum': '',
-          },
-        ),
-        ...scopedUserUpdate(
-          scope: 'profile',
-          values: {
-            'ulke': selectedCountry.value,
-            'il': selectedCity.value,
-            'ilce': selectedDistrict.value,
           },
         ),
       });
@@ -190,6 +180,9 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
           scope: 'education',
           values: {
             'educationLevel': educationLevel,
+            'okul': selectedUniversity.value,
+            'okulSehir': selectedCity.value,
+            'okulIlce': '',
             'universite': selectedUniversity.value,
             'fakulte': selectedFaculty.value,
             'bolum': selectedDepartment.value,
@@ -197,10 +190,6 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
             'lise': '',
             'sinif': '',
           },
-        ),
-        ...scopedUserUpdate(
-          scope: 'profile',
-          values: {'ulke': selectedCountry.value, 'il': selectedCity.value},
         ),
       });
 
@@ -229,9 +218,8 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
     animationController?.forward();
 
     final localizedItems = items.map(localizedOption).toList();
-    final localizedSelectedItem = selectedItem == null
-        ? null
-        : localizedOption(selectedItem);
+    final localizedSelectedItem =
+        selectedItem == null ? null : localizedOption(selectedItem);
 
     await ListBottomSheet.show(
       context: context,

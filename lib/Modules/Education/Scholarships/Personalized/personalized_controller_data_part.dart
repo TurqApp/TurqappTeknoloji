@@ -83,7 +83,11 @@ extension PersonalizedControllerDataPart on PersonalizedController {
     final uni = userString(data, key: 'universite', scope: 'education');
     final hs = userString(data, key: 'lise', scope: 'education');
     final ms = userString(data, key: 'ortaOkul', scope: 'education');
-    final il = (data['il'] ?? '').toString();
+    final schoolCityText =
+        userString(data, key: 'okulSehir', scope: 'education').trim();
+    final il = schoolCityText.isNotEmpty
+        ? schoolCityText
+        : userString(data, key: 'il', scope: 'profile');
 
     hasSchoolInfo.value = educationLevel.isNotEmpty ||
         uni.isNotEmpty ||

@@ -211,10 +211,40 @@ extension _EducationInfoControllerDataPart on EducationInfoController {
     ].contains(level);
   }
 
+  String _firstNonEmpty(List<String> values) {
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
+  }
+
+  String _savedSchoolCountry(Map<String, dynamic> data) {
+    final saved = _firstNonEmpty([
+      userString(data, key: 'okulUlke', scope: 'education'),
+      userString(data, key: 'ulke', scope: 'profile'),
+    ]);
+    return saved.isNotEmpty ? saved : 'Türkiye';
+  }
+
+  String _savedSchoolCity(Map<String, dynamic> data) {
+    return _firstNonEmpty([
+      userString(data, key: 'okulSehir', scope: 'education'),
+      userString(data, key: 'il', scope: 'profile'),
+    ]);
+  }
+
+  String _savedSchoolDistrict(Map<String, dynamic> data) {
+    return _firstNonEmpty([
+      userString(data, key: 'okulIlce', scope: 'education'),
+      userString(data, key: 'ilce', scope: 'profile'),
+    ]);
+  }
+
   void _applyMiddleSchoolData(Map<String, dynamic> data) {
-    selectedCountry.value = userString(data, key: 'ulke', scope: 'profile');
-    selectedCity.value = userString(data, key: 'il', scope: 'profile');
-    selectedDistrict.value = userString(data, key: 'ilce', scope: 'profile');
+    selectedCountry.value = _savedSchoolCountry(data);
+    selectedCity.value = _savedSchoolCity(data);
+    selectedDistrict.value = _savedSchoolDistrict(data);
     selectedSchool.value =
         userString(data, key: 'ortaOkul', scope: 'education');
     selectedClassLevel.value =
@@ -222,9 +252,9 @@ extension _EducationInfoControllerDataPart on EducationInfoController {
   }
 
   void _applyHighSchoolData(Map<String, dynamic> data) {
-    selectedCountry.value = userString(data, key: 'ulke', scope: 'profile');
-    selectedCity.value = userString(data, key: 'il', scope: 'profile');
-    selectedDistrict.value = userString(data, key: 'ilce', scope: 'profile');
+    selectedCountry.value = _savedSchoolCountry(data);
+    selectedCity.value = _savedSchoolCity(data);
+    selectedDistrict.value = _savedSchoolDistrict(data);
     selectedHighSchool.value =
         userString(data, key: 'lise', scope: 'education');
     selectedClassLevel.value =
@@ -232,8 +262,8 @@ extension _EducationInfoControllerDataPart on EducationInfoController {
   }
 
   void _applyHigherEducationData(Map<String, dynamic> data) {
-    selectedCountry.value = userString(data, key: 'ulke', scope: 'profile');
-    selectedCity.value = userString(data, key: 'il', scope: 'profile');
+    selectedCountry.value = _savedSchoolCountry(data);
+    selectedCity.value = _savedSchoolCity(data);
     selectedUniversity.value =
         userString(data, key: 'universite', scope: 'education');
     selectedFaculty.value =

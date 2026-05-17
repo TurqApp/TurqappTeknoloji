@@ -54,6 +54,14 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
             userString(data, key: 'fatherLiving', scope: 'family');
         final motherLiving =
             userString(data, key: 'motherLiving', scope: 'family');
+        final schoolCity = _firstNonEmpty([
+          userString(data, key: 'okulSehir', scope: 'education'),
+          userString(data, key: 'il', scope: 'profile'),
+        ]);
+        final schoolDistrict = _firstNonEmpty([
+          userString(data, key: 'okulIlce', scope: 'education'),
+          userString(data, key: 'ilce', scope: 'profile'),
+        ]);
 
         bool isPersonalInfoComplete = userString(data,
                     key: 'ulke', scope: 'profile')
@@ -75,17 +83,15 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
                         .isNotEmpty &&
                     userString(data, key: 'sinif', scope: 'education')
                         .isNotEmpty &&
-                    userString(data, key: 'il', scope: 'profile').isNotEmpty &&
-                    userString(data, key: 'ilce', scope: 'profile').isNotEmpty)
+                    schoolCity.isNotEmpty &&
+                    schoolDistrict.isNotEmpty)
                 : educationLevel == ScholarshipDetailController._highSchool
                     ? (userString(data, key: 'lise', scope: 'education')
                             .isNotEmpty &&
                         userString(data, key: 'sinif', scope: 'education')
                             .isNotEmpty &&
-                        userString(data, key: 'il', scope: 'profile')
-                            .isNotEmpty &&
-                        userString(data, key: 'ilce', scope: 'profile')
-                            .isNotEmpty)
+                        schoolCity.isNotEmpty &&
+                        schoolDistrict.isNotEmpty)
                     : (userString(data,
                                 key: 'universite', scope: 'education')
                             .isNotEmpty &&
@@ -93,8 +99,7 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
                             .isNotEmpty &&
                         userString(data, key: 'bolum', scope: 'education')
                             .isNotEmpty &&
-                        userString(data, key: 'il', scope: 'profile')
-                            .isNotEmpty));
+                        schoolCity.isNotEmpty));
 
         bool isFamilyInfoComplete = fatherLiving !=
                 ScholarshipDetailController._selectValue &&
@@ -218,5 +223,13 @@ extension ScholarshipDetailControllerDataPart on ScholarshipDetailController {
       scholarshipId,
       preferCache: true,
     );
+  }
+
+  String _firstNonEmpty(List<String> values) {
+    for (final value in values) {
+      final trimmed = value.trim();
+      if (trimmed.isNotEmpty) return trimmed;
+    }
+    return '';
   }
 }

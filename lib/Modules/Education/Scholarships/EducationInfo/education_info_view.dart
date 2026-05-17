@@ -59,58 +59,55 @@ class _EducationInfoViewState extends State<EducationInfoView> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Stack(
+        child: Column(
           children: [
             _buildHeader(),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
-              child: Obx(
-                () => Column(
-                  children: [
-                    SizedBox(height: 50),
-                    if (!controller.isInitialLoading.value)
-                      Expanded(
-                        child: Column(
-                          children: [
-                            DropdownField(
-                              config: FieldConfig(
-                                label:
-                                    "scholarship.applicant.education_level".tr,
-                                items: [
-                                  controller.middleSchoolValue,
-                                  controller.highSchoolValue,
-                                  controller.associateValue,
-                                  controller.bachelorValue,
-                                  controller.mastersValue,
-                                  controller.doctorateValue,
-                                ],
-                                value: controller.selectedEducationLevel,
-                                onSelect: (selected) {
-                                  controller.selectedEducationLevel.value =
-                                      selected;
-                                  controller.loadSavedDataForLevel(selected);
-                                },
-                                isSearchable: false,
-                              ),
-                              controller: controller,
-                            ),
-                            12.ph,
-                            Expanded(child: _buildFormFields()),
-                            20.ph,
-                            _buildSaveButton(),
-                            SizedBox(
-                              height: systemNavigationAwareBottom(
-                                context,
-                                spacing: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Obx(
+                  () {
                     if (controller.isInitialLoading.value ||
-                        controller.isLoading.value)
-                      Expanded(child: AppStateView.loading()),
-                  ],
+                        controller.isLoading.value) {
+                      return AppStateView.loading();
+                    }
+
+                    return Column(
+                      children: [
+                        DropdownField(
+                          config: FieldConfig(
+                            label: "scholarship.applicant.education_level".tr,
+                            items: [
+                              controller.middleSchoolValue,
+                              controller.highSchoolValue,
+                              controller.associateValue,
+                              controller.bachelorValue,
+                              controller.mastersValue,
+                              controller.doctorateValue,
+                            ],
+                            value: controller.selectedEducationLevel,
+                            onSelect: (selected) {
+                              controller.selectedEducationLevel.value =
+                                  selected;
+                              controller.loadSavedDataForLevel(selected);
+                            },
+                            isSearchable: false,
+                          ),
+                          controller: controller,
+                        ),
+                        12.ph,
+                        Expanded(child: _buildFormFields()),
+                        20.ph,
+                        _buildSaveButton(),
+                        SizedBox(
+                          height: systemNavigationAwareBottom(
+                            context,
+                            spacing: 15,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

@@ -30,20 +30,15 @@ extension _EducationInfoViewActionsPart on _EducationInfoViewState {
                           scope: 'education',
                           values: {
                             'educationLevel': '',
+                            'okul': '',
+                            'okulSehir': '',
+                            'okulIlce': '',
                             'ortaOkul': '',
                             'lise': '',
                             'universite': '',
                             'fakulte': '',
                             'bolum': '',
                             'sinif': '',
-                          },
-                        ),
-                        ...scopedUserUpdate(
-                          scope: 'profile',
-                          values: {
-                            'ulke': '',
-                            'il': '',
-                            'ilce': '',
                           },
                         ),
                       },
