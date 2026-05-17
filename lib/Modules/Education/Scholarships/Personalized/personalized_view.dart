@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Models/Education/individual_scholarships_model.dart';
@@ -89,7 +90,7 @@ class _PersonalizedViewState extends State<PersonalizedView> {
           if (controller.isInitialLoading.value) {
             return _buildInitialLoader();
           }
-          return _buildContent(controller);
+          return _buildContent(context, controller);
         }),
       ),
     );
@@ -99,9 +100,15 @@ class _PersonalizedViewState extends State<PersonalizedView> {
     return const AppStateView.loading();
   }
 
-  Widget _buildContent(PersonalizedController controller) {
+  Widget _buildContent(
+    BuildContext context,
+    PersonalizedController controller,
+  ) {
     return ListView(
       controller: controller.scrollController,
+      padding: EdgeInsets.only(
+        bottom: androidNavigationAwareBottom(context, spacing: 0),
+      ),
       children: [
         _buildCarousel(controller),
         _buildGrid(controller),

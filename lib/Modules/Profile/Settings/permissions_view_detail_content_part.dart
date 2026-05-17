@@ -3,8 +3,10 @@ part of 'permissions_view.dart';
 extension _PermissionDetailContentPart on _PermissionDetailViewState {
   Widget _buildPermissionDetailScaffold(BuildContext context) {
     final permissionId = _permissionId(widget.item.permission);
-    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    final bottomActionPadding = bottomInset > 0 ? bottomInset + 12.0 : 20.0;
+    final bottomActionPadding = androidNavigationAwareBottom(
+      context,
+      spacing: 20,
+    );
     return Scaffold(
       key: ValueKey<String>(
         IntegrationTestKeys.screenPermissionDetail(permissionId),

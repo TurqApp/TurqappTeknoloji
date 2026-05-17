@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -103,13 +104,27 @@ class _MyTutoringsState extends State<MyTutorings> {
                                   );
                                   if (viewModeController.isGridView.value) {
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 15,
+                                      padding: EdgeInsets.fromLTRB(
+                                        15,
+                                        0,
+                                        15,
+                                        androidNavigationAwareBottom(
+                                          context,
+                                          spacing: 0,
+                                        ),
                                       ),
                                       child: content,
                                     );
                                   }
-                                  return content;
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: androidNavigationAwareBottom(
+                                        context,
+                                        spacing: 0,
+                                      ),
+                                    ),
+                                    child: content,
+                                  );
                                 },
                               ),
                       ),
@@ -119,6 +134,12 @@ class _MyTutoringsState extends State<MyTutorings> {
                                 title: 'tutoring.expired_listings_empty'.tr,
                               )
                             : SingleChildScrollView(
+                                padding: EdgeInsets.only(
+                                  bottom: androidNavigationAwareBottom(
+                                    context,
+                                    spacing: 0,
+                                  ),
+                                ),
                                 child: TutoringWidgetBuilder(
                                   tutoringList: controller.expiredTutorings,
                                   isGridView: false,

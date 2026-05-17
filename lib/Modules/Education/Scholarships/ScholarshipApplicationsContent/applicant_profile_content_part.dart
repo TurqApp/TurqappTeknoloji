@@ -16,6 +16,9 @@ extension ApplicantProfileContentPart on _ApplicantProfileState {
                 }
 
                 return SingleChildScrollView(
+                  padding: EdgeInsets.only(
+                    bottom: androidNavigationAwareBottom(context, spacing: 0),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Column(

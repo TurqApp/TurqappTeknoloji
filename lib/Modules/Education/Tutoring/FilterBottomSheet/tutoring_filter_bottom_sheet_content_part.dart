@@ -45,6 +45,9 @@ extension TutoringFilterBottomSheetContentPart on TutoringFilterBottomSheet {
             AppSheetHeader(title: "tutoring.filter_title".tr),
             Expanded(
               child: SingleChildScrollView(
+                padding: EdgeInsets.only(
+                  bottom: androidNavigationAwareBottom(context, spacing: 0),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

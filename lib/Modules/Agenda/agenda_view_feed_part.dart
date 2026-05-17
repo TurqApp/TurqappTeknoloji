@@ -439,10 +439,10 @@ extension _AgendaViewFeedPart on AgendaView {
       if (!controller.showFAB.value) {
         return const SizedBox.shrink();
       }
-      final systemNavigationInset = GetPlatform.isAndroid
-          ? MediaQuery.of(context).viewPadding.bottom
-          : 0.0;
-      final navAwareBottom = systemNavigationInset + 72;
+      final navAwareBottom = androidNavigationAwareBottom(
+        context,
+        spacing: 72,
+      );
       return Positioned(
         bottom: navAwareBottom > 82 ? navAwareBottom : 82,
         right: 20,

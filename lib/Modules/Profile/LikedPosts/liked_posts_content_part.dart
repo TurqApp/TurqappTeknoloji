@@ -20,7 +20,10 @@ extension _LikedPostsContentPart on _LikedPostsState {
           color: Colors.white,
           onRefresh: controller.refresh,
           child: GridView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 50),
+            padding: EdgeInsets.only(
+              top: 8,
+              bottom: androidNavigationAwareBottom(context, spacing: 50),
+            ),
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),

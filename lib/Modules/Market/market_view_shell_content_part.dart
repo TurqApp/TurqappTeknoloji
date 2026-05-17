@@ -190,6 +190,11 @@ extension MarketViewShellContentPart on MarketView {
                   ),
                 ),
               ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: androidNavigationAwareBottom(context, spacing: 0),
+              ),
+            ),
           ],
         ),
       );

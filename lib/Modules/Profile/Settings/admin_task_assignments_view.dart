@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/admin_task_catalog.dart';
@@ -86,7 +87,12 @@ class _AdminTaskAssignmentsViewState extends State<AdminTaskAssignmentsView> {
                     );
                   }
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                    padding: EdgeInsets.fromLTRB(
+                      15,
+                      8,
+                      15,
+                      androidNavigationAwareBottom(context, spacing: 24),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [

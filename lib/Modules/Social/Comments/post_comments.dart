@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_content.dart';
 import 'package:turqappv2/Modules/Social/Comments/post_comment_controller.dart';
 import 'package:turqappv2/Themes/app_colors.dart';
@@ -278,7 +279,9 @@ class _PostCommentsState extends State<PostComments> {
 
   Widget inputRow() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: EdgeInsets.only(
+        bottom: androidNavigationAwareBottom(context, spacing: 14),
+      ),
       child: Obx(
         () {
           final currentUser = user.currentUserRx.value;

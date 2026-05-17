@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Core/Repositories/report_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
@@ -97,6 +98,9 @@ class _ReportsAdminViewState extends State<ReportsAdminView> {
                   );
                 }
                 return ListView.separated(
+                  padding: EdgeInsets.only(
+                    bottom: androidNavigationAwareBottom(context, spacing: 0),
+                  ),
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {

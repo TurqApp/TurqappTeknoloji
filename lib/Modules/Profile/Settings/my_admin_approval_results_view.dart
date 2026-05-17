@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
@@ -19,9 +20,16 @@ class MyAdminApprovalResultsView extends StatelessWidget {
   }
 
   Widget _buildApprovalList(
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    BuildContext context,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+      padding: EdgeInsets.fromLTRB(
+        15,
+        8,
+        15,
+        androidNavigationAwareBottom(context, spacing: 24),
+      ),
       itemCount: docs.length,
       itemBuilder: (context, index) {
         return _ApprovalResultTile(data: docs[index].data());
@@ -53,7 +61,7 @@ class MyAdminApprovalResultsView extends StatelessWidget {
             'admin.my_approvals.empty'.tr,
           );
         }
-        return _buildApprovalList(docs);
+        return _buildApprovalList(context, docs);
       },
     );
   }

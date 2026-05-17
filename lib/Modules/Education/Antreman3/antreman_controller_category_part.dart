@@ -45,7 +45,11 @@ extension AntremanControllerCategoryPart on AntremanController {
       enableDrag: !force,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.72;
+        final media = MediaQuery.of(sheetContext);
+        final maxHeight = media.size.height * 0.72;
+        final bottomPadding = GetPlatform.isAndroid
+            ? androidNavigationAwareBottom(sheetContext, spacing: 10)
+            : media.padding.bottom + 10;
         return PopScope(
           canPop: !force,
           child: SafeArea(
@@ -60,7 +64,7 @@ extension AntremanControllerCategoryPart on AntremanController {
                   16,
                   14,
                   16,
-                  MediaQuery.of(sheetContext).padding.bottom + 10,
+                  bottomPadding,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

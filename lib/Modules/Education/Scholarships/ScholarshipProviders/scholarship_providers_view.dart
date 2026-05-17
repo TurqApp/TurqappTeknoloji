@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
@@ -66,6 +67,10 @@ class _ScholarshipProvidersViewState extends State<ScholarshipProvidersView> {
                     ? const AppStateView.loading()
                     : SingleChildScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.only(
+                          bottom:
+                              androidNavigationAwareBottom(context, spacing: 0),
+                        ),
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 15),
                           child: Column(

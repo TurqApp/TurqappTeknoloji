@@ -10,6 +10,7 @@ import 'package:turqappv2/Core/Services/market_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/education_question_bank_navigation_service.dart';
 import 'package:turqappv2/Core/Services/practice_exam_navigation_service.dart';
 import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
 import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';

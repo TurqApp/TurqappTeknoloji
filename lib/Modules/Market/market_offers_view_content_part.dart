@@ -67,7 +67,12 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
             _updateViewState(_reload);
           },
           child: ListView.separated(
-            padding: const EdgeInsets.all(15),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              15,
+              15,
+              androidNavigationAwareBottom(context, spacing: 15),
+            ),
             itemCount: offers.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) => _buildOfferCard(

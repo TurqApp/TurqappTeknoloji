@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Utils/cdn_url_builder.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/hls_player/hls_video_adapter.dart';
@@ -285,7 +286,7 @@ class DynamicShortViewState extends State<DynamicShortView> {
               preloadLabel,
               if (currentPage == idx)
                 Positioned(
-                  bottom: 48,
+                  bottom: androidNavigationAwareBottom(context, spacing: 48),
                   left: 0,
                   right: 0,
                   child: Center(

@@ -20,6 +20,7 @@ import 'package:turqappv2/Core/Localization/app_language_service.dart';
 import 'package:turqappv2/Core/Localization/app_translations.dart';
 import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 import 'package:turqappv2/Core/root_navigator_key.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/Buttons/turq_button_tokens.dart';
 import 'package:turqappv2/Runtime/system_navigation_surface_controller.dart';
@@ -512,21 +513,23 @@ class MyApp extends StatelessWidget {
       ),
       builder: (ctx, child) {
         final mq = MediaQuery.of(ctx);
-        final topGap = GetPlatform.isIOS
-            ? _globalTopGapIOS
-            : _globalTopGapAndroid;
+        final topGap =
+            GetPlatform.isIOS ? _globalTopGapIOS : _globalTopGapAndroid;
+        final systemNavigationHeight = GetPlatform.isAndroid
+            ? systemNavigationBottomInset(ctx)
+            : mq.viewPadding.bottom;
         final bottomGap =
-            GetPlatform.isAndroid && mq.viewPadding.bottom > mq.padding.bottom
-            ? mq.viewPadding.bottom
-            : mq.padding.bottom;
+            GetPlatform.isAndroid && systemNavigationHeight > mq.padding.bottom
+                ? systemNavigationHeight
+                : mq.padding.bottom;
         final adjustedPadding = mq.padding.copyWith(
           top: mq.padding.top + topGap,
           bottom: bottomGap,
         );
         final adjustedViewPadding = mq.viewPadding.copyWith(
           top: mq.viewPadding.top + topGap,
+          bottom: systemNavigationHeight,
         );
-        final systemNavigationHeight = mq.viewPadding.bottom;
         return MediaQuery(
           data: mq.copyWith(
             padding: adjustedPadding,

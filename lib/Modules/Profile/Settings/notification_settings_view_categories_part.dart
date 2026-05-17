@@ -130,7 +130,12 @@ class _NotificationCategoryViewState extends State<_NotificationCategoryView> {
             BackButtons(text: widget.title),
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  androidNavigationAwareBottom(context, spacing: 24),
+                ),
                 itemCount: widget.items.length,
                 separatorBuilder: (_, __) =>
                     const Divider(height: 1, color: Color(0x12000000)),

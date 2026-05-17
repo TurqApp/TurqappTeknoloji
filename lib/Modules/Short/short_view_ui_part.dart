@@ -495,7 +495,7 @@ extension ShortViewUiPart on _ShortViewState {
               pager,
               if (kDebugMode)
                 Positioned(
-                  bottom: MediaQuery.of(context).padding.bottom + 60,
+                  bottom: androidNavigationAwareBottom(context, spacing: 60),
                   right: 8,
                   child: CacheDebugOverlay(totalCount: _cachedShorts.length),
                 ),

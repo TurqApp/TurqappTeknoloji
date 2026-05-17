@@ -271,8 +271,7 @@ extension _NavBarViewShellContentPart on NavBarView {
     required bool showBar,
   }) {
     final hasEducation = settingController.educationScreenIsOn.value;
-    final media = MediaQuery.of(context);
-    final systemNavigationInset = media.viewPadding.bottom;
+    final systemNavigationInset = systemNavigationBottomInset(context);
     final navBarBottomPadding = GetPlatform.isAndroid
         ? systemNavigationInset
         : math.max(0.0, math.max(8.0, systemNavigationInset) - 20);

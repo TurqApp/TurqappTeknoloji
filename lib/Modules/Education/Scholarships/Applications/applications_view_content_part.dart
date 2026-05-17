@@ -14,6 +14,10 @@ extension _ApplicationsViewContentPart on _ApplicationsViewState {
                     ? const AppStateView.loading()
                     : SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
+                        padding: EdgeInsets.only(
+                          bottom:
+                              androidNavigationAwareBottom(context, spacing: 0),
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 15),
                           child: Column(
@@ -22,8 +26,9 @@ extension _ApplicationsViewContentPart on _ApplicationsViewState {
                               Obx(
                                 () => controller.applications.isEmpty
                                     ? AppStateView.empty(
-                                        title: 'scholarship.no_user_applications'
-                                            .tr,
+                                        title:
+                                            'scholarship.no_user_applications'
+                                                .tr,
                                       )
                                     : ListView.builder(
                                         shrinkWrap: true,

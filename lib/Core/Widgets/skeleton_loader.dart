@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 
 /// Shimmer effect skeleton loader for content placeholders.
 class SkeletonLoader extends StatefulWidget {
@@ -162,7 +163,7 @@ class ShortVideoSkeleton extends StatelessWidget {
           ),
           // Alt bilgi alanı
           Positioned(
-            bottom: 80,
+            bottom: androidNavigationAwareBottom(context, spacing: 80),
             left: 16,
             right: 60,
             child: Column(
@@ -185,7 +186,7 @@ class ShortVideoSkeleton extends StatelessWidget {
           // Sağ aksiyon bar
           Positioned(
             right: 12,
-            bottom: 120,
+            bottom: androidNavigationAwareBottom(context, spacing: 120),
             child: Column(
               children: List.generate(
                 4,

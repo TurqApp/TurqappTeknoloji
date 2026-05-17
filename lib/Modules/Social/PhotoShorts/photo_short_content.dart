@@ -13,6 +13,7 @@ import 'package:turqappv2/Core/Services/short_link_service.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';
 import 'package:turqappv2/Core/Services/profile_navigation_service.dart';
 import 'package:turqappv2/Core/Services/report_user_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/cached_user_avatar.dart';
 import 'package:turqappv2/Core/Widgets/shared_post_label.dart';
@@ -199,7 +200,10 @@ class _PhotoShortContentState extends State<PhotoShortContent> {
               Align(
                 alignment: Alignment.bottomLeft,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 8, bottom: 70),
+                  padding: EdgeInsets.only(
+                    left: 8,
+                    bottom: androidNavigationAwareBottom(context, spacing: 70),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

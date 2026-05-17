@@ -5,6 +5,7 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
@@ -41,9 +42,9 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
           BackButtons(text: 'admin.approvals.title'.tr),
           Expanded(
             child: FutureBuilder<bool>(
-                future: _canAccessFuture,
-                builder: (context, accessSnap) {
-                  if (accessSnap.connectionState == ConnectionState.waiting) {
+              future: _canAccessFuture,
+              builder: (context, accessSnap) {
+                if (accessSnap.connectionState == ConnectionState.waiting) {
                   return const AppStateView.loading();
                 }
                 if (accessSnap.data != true) {
@@ -64,7 +65,15 @@ class _AdminApprovalsViewState extends State<AdminApprovalsView> {
                           return _buildEmptyState();
                         }
                         return ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                          padding: EdgeInsets.fromLTRB(
+                            15,
+                            8,
+                            15,
+                            androidNavigationAwareBottom(
+                              context,
+                              spacing: 24,
+                            ),
+                          ),
                           itemCount: docs.length,
                           itemBuilder: (context, index) {
                             return Padding(

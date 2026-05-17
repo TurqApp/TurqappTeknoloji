@@ -73,7 +73,12 @@ class _MarketMyItemsViewState extends State<MarketMyItemsView> {
               _updateViewState(() => _reload(force: true));
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(15, 10, 15, 24),
+              padding: EdgeInsets.fromLTRB(
+                15,
+                10,
+                15,
+                androidNavigationAwareBottom(context, spacing: 24),
+              ),
               children: [
                 if (visible.isEmpty)
                   _buildEmptyState()

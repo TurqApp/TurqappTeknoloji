@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Profile/Policies/policy_content.dart';
 
 class PolicyDetailView extends StatelessWidget {
@@ -20,16 +21,21 @@ class PolicyDetailView extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
               child: BackButtons(text: policy.title),
             ),
-            Expanded(child: _buildPolicyDetailContent()),
+            Expanded(child: _buildPolicyDetailContent(context)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPolicyDetailContent() {
+  Widget _buildPolicyDetailContent(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(15, 8, 15, 28),
+      padding: EdgeInsets.fromLTRB(
+        15,
+        8,
+        15,
+        androidNavigationAwareBottom(context, spacing: 28),
+      ),
       children: [
         _buildPolicyHeaderCard(),
         const SizedBox(height: 14),

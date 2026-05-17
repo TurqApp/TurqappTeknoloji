@@ -353,10 +353,10 @@ extension EducationViewBodyPart on EducationView {
       final tabBarVisible = maybeFindNavBarController()?.showBar.value ?? true;
       final searchActive =
           controller.isKeyboardOpen.value || controller.isSearchMode.value;
-      final systemNavigationInset = GetPlatform.isAndroid
-          ? MediaQuery.of(context).viewPadding.bottom
-          : 0.0;
-      final navAwareBottom = systemNavigationInset + 72;
+      final navAwareBottom = androidNavigationAwareBottom(
+        context,
+        spacing: 72,
+      );
       final menuBottom = navAwareBottom > 82 ? navAwareBottom : 82.0;
 
       return Stack(

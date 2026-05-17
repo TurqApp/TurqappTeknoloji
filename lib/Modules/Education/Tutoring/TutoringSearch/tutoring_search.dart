@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
@@ -82,6 +83,10 @@ class _TutoringSearchState extends State<TutoringSearch> {
                       );
                     } else {
                       return SingleChildScrollView(
+                        padding: EdgeInsets.only(
+                          bottom:
+                              androidNavigationAwareBottom(context, spacing: 0),
+                        ),
                         child: TutoringWidgetBuilder(
                           tutoringList: controller.searchResults,
                           isGridView: viewModeController.isGridView.value,

@@ -72,7 +72,12 @@ class _CreateScholarshipViewState extends State<CreateScholarshipView> {
         child: Form(
           key: controller.formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              0,
+              15,
+              androidNavigationAwareBottom(context, spacing: 0),
+            ),
             child: Obx(
               () => controller.currentSection.value == 1
                   ? buildTemelBilgiler(context, controller)

@@ -65,15 +65,19 @@ class _CikmisSorularState extends State<CikmisSorular> {
 
     return ListView.separated(
       controller: _scrollController,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        androidNavigationAwareBottom(context, spacing: 30),
+      ),
       itemCount: controller.searchResults.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final item = controller.searchResults[index];
         final anaBaslik = (item['anaBaslik'] ?? '').toString();
-        final title = anaBaslik.isNotEmpty
-            ? anaBaslik
-            : (item['title'] ?? '').toString();
+        final title =
+            anaBaslik.isNotEmpty ? anaBaslik : (item['title'] ?? '').toString();
         final sinavTuru = (item['sinavTuru'] ?? '').toString();
         final yil = (item['yil'] ?? '').toString();
         final baslik2 = (item['baslik2'] ?? '').toString();

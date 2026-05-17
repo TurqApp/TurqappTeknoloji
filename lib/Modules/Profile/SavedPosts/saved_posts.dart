@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Services/market_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/market_saved_store.dart';
 import 'package:turqappv2/Core/Services/share_link_service.dart';
 import 'package:turqappv2/Core/Services/short_link_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
@@ -142,7 +143,10 @@ class _SavedPostsState extends State<SavedPosts> {
           color: Colors.white,
           onRefresh: controller.refresh,
           child: GridView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 50),
+            padding: EdgeInsets.only(
+              top: 8,
+              bottom: androidNavigationAwareBottom(context, spacing: 50),
+            ),
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
@@ -289,7 +293,12 @@ class _SavedMarketTabState extends State<_SavedMarketTab> {
                 )
               : ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  padding: EdgeInsets.fromLTRB(
+                    15,
+                    0,
+                    15,
+                    androidNavigationAwareBottom(context, spacing: 16),
+                  ),
                   itemCount: items.length,
                   itemBuilder: (context, index) {
                     final item = items[index];
@@ -379,7 +388,9 @@ class _SavedJobsTabState extends State<_SavedJobsTab> {
               )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 50),
+                padding: EdgeInsets.only(
+                  bottom: androidNavigationAwareBottom(context, spacing: 50),
+                ),
                 itemCount: _controller.list.length,
                 itemBuilder: (context, index) {
                   return JobContent(
@@ -453,8 +464,12 @@ class _SavedScholarshipsTabState extends State<_SavedScholarshipsTab> {
               )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                padding: EdgeInsets.fromLTRB(
+                  15,
+                  8,
+                  15,
+                  androidNavigationAwareBottom(context, spacing: 8),
+                ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final scholarshipData = items[index];

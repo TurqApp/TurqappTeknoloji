@@ -10,7 +10,12 @@ extension BookletPreviewContentPart on _BookletPreviewState {
         bottom: false,
         child: Obx(
           () => ListView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              androidNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               _buildCoverImage(),
               const SizedBox(height: 14),

@@ -158,7 +158,12 @@ extension _SavedItemsViewContentPart on _SavedItemsViewState {
               )
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  0,
+                  16,
+                  androidNavigationAwareBottom(context, spacing: 16),
+                ),
                 itemCount: scholarships.length,
                 itemBuilder: (context, index) {
                   final scholarshipData = scholarships[index];

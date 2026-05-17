@@ -65,7 +65,12 @@ class _MarketSavedViewState extends State<MarketSavedView> {
             child: items.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding: EdgeInsets.fromLTRB(
+                      15,
+                      0,
+                      15,
+                      androidNavigationAwareBottom(context, spacing: 16),
+                    ),
                     itemCount: items.length,
                     itemBuilder: (context, index) =>
                         _buildItemCard(items[index]),

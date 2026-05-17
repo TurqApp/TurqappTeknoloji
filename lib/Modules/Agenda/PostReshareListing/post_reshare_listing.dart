@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Agenda/PostReshareListing/PostReshareContent/post_reshare_content.dart';
 import 'package:turqappv2/Modules/Agenda/PostReshareListing/post_reshare_listing_controller.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -45,9 +46,12 @@ class _PostReshareListingState extends State<PostReshareListing> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeTop = MediaQuery.of(context).padding.top;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final media = MediaQuery.of(context);
+    final screenHeight = media.size.height;
+    final safeTop = media.padding.top;
+    final safeBottom = GetPlatform.isAndroid
+        ? androidNavigationAwareBottom(context)
+        : media.padding.bottom;
     final maxSheetHeight = screenHeight - safeTop - 20;
     final desiredHeight = (screenHeight * 0.56).clamp(340.0, maxSheetHeight);
 

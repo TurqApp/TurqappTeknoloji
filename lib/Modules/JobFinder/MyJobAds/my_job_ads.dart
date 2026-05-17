@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/page_line_bar.dart';
 
@@ -86,6 +87,9 @@ class _MyJobAdsState extends State<MyJobAds> {
       }
 
       return ListView.builder(
+        padding: EdgeInsets.only(
+          bottom: androidNavigationAwareBottom(context, spacing: 16),
+        ),
         itemCount: controller.active.length,
         itemBuilder: (context, index) {
           final model = controller.active[index];
@@ -113,6 +117,9 @@ class _MyJobAdsState extends State<MyJobAds> {
       }
 
       return ListView.builder(
+        padding: EdgeInsets.only(
+          bottom: androidNavigationAwareBottom(context, spacing: 16),
+        ),
         itemCount: controller.deactive.length,
         itemBuilder: (context, index) {
           final model = controller.deactive[index];

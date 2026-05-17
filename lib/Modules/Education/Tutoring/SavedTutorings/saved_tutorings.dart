@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/info_message.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/SavedTutorings/saved_tutorings_controller.dart';
 import 'package:turqappv2/Modules/Education/Tutoring/tutoring_controller.dart';
@@ -74,11 +75,21 @@ class _SavedTutoringsState extends State<SavedTutorings> {
                 );
                 if (viewModeController.isGridView.value) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    padding: EdgeInsets.fromLTRB(
+                      15,
+                      0,
+                      15,
+                      androidNavigationAwareBottom(context, spacing: 0),
+                    ),
                     child: content,
                   );
                 }
-                return content;
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: androidNavigationAwareBottom(context, spacing: 0),
+                  ),
+                  child: content,
+                );
               }),
             ),
           ],

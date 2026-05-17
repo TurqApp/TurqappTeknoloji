@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/JobFinder/JobContent/job_content.dart';
 import 'package:turqappv2/Modules/JobFinder/SavedJobs/saved_job_controller.dart';
@@ -63,6 +64,9 @@ class _SavedJobsState extends State<SavedJobs> {
                 }
 
                 return ListView.builder(
+                  padding: EdgeInsets.only(
+                    bottom: androidNavigationAwareBottom(context, spacing: 16),
+                  ),
                   itemCount: controller.list.length,
                   itemBuilder: (context, index) {
                     return JobContent(

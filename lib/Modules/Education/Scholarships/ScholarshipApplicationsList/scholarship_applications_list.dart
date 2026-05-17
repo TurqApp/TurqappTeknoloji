@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsContent/scholarship_applications_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/ScholarshipApplicationsList/scholarship_applications_list_controller.dart';
 
@@ -97,6 +98,10 @@ class _ScholarshipApplicationsListState
                   : RefreshIndicator(
                       onRefresh: controller.onRefresh,
                       child: ListView.builder(
+                        padding: EdgeInsets.only(
+                          bottom:
+                              androidNavigationAwareBottom(context, spacing: 0),
+                        ),
                         itemCount: widget.basvuranlar.length,
                         itemBuilder: (context, index) {
                           return ScholarshipApplicationsContent(

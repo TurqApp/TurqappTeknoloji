@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/MyScholarship/my_scholarship_controller.dart';
@@ -72,6 +73,12 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
                             title: 'scholarship.no_my_listings'.tr,
                           )
                         : ListView.builder(
+                            padding: EdgeInsets.only(
+                              bottom: androidNavigationAwareBottom(
+                                context,
+                                spacing: 16,
+                              ),
+                            ),
                             itemCount: controller.myScholarships.length,
                             itemBuilder: (context, index) {
                               final scholarshipData =
@@ -113,8 +120,7 @@ class _MyScholarshipViewState extends State<MyScholarshipView> {
                                         child: ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(12),
-                                          child:
-                                              burs.primaryImageUrl.isNotEmpty
+                                          child: burs.primaryImageUrl.isNotEmpty
                                               ? CachedNetworkImage(
                                                   imageUrl:
                                                       burs.primaryImageUrl,
