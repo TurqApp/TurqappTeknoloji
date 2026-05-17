@@ -64,11 +64,19 @@ extension ScholarshipsControllerRuntimeX on ScholarshipsController {
   void updatePageIndex(int scholarshipIndex, int pageIndex) =>
       _updatePageIndexImpl(scholarshipIndex, pageIndex);
 
-  Future<void> toggleLike(String docId, String type) =>
-      _toggleLikeImpl(docId, type);
+  Future<void> toggleLike(
+    String docId,
+    String type, {
+    Map<String, dynamic>? scholarshipData,
+  }) =>
+      _toggleLikeImpl(docId, type, scholarshipData: scholarshipData);
 
-  Future<void> toggleBookmark(String docId, String type) =>
-      _toggleBookmarkImpl(docId, type);
+  Future<void> toggleBookmark(
+    String docId,
+    String type, {
+    Map<String, dynamic>? scholarshipData,
+  }) =>
+      _toggleBookmarkImpl(docId, type, scholarshipData: scholarshipData);
 
   Future<void> shareScholarship(
     Map<String, dynamic> scholarshipData,

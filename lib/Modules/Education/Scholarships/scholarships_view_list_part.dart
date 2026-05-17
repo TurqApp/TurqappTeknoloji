@@ -329,6 +329,7 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
       onToggleSaved: () => controller.toggleBookmark(
         docId,
         kIndividualScholarshipType,
+        scholarshipData: scholarshipData,
       ),
       onShare: () => controller.shareScholarshipExternally(scholarshipData),
     );

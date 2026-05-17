@@ -8,7 +8,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     Map<String, dynamic> scholarshipData,
   ) {
     return GestureDetector(
-      onDoubleTap: () => controller.toggleLike(scholarshipData['docId'], type),
+      onDoubleTap: () => controller.toggleLike(
+        scholarshipData['docId'],
+        type,
+        scholarshipData: scholarshipData,
+      ),
       child: _hasMultipleImages(type, burs)
           ? _buildMultipleImagesView(index, burs, scholarshipData)
           : _buildSingleImageView(burs, scholarshipData),
@@ -42,11 +46,10 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     IndividualScholarshipsModel burs,
     Map<String, dynamic> scholarshipData,
   ) {
-    final docId =
-        (scholarshipData['docId'] ??
-                scholarshipData['scholarshipId'] ??
-                burs.timeStamp)
-            .toString();
+    final docId = (scholarshipData['docId'] ??
+            scholarshipData['scholarshipId'] ??
+            burs.timeStamp)
+        .toString();
     return Column(
       children: [
         AspectRatio(
@@ -81,9 +84,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       child: _buildInteractiveScholarshipImage(
         burs: burs,
         scholarshipData: scholarshipData,
-        imageUrl: burs is IndividualScholarshipsModel
-            ? burs.primaryImageUrl
-            : '',
+        imageUrl:
+            burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '',
       ),
     );
   }
@@ -93,9 +95,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     required Map<String, dynamic> scholarshipData,
     required String imageUrl,
   }) {
-    final website = burs is IndividualScholarshipsModel
-        ? burs.website.trim()
-        : '';
+    final website =
+        burs is IndividualScholarshipsModel ? burs.website.trim() : '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -252,9 +253,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                       overflow: controller.isExpandedList[index].value
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
-                      maxLines: controller.isExpandedList[index].value
-                          ? null
-                          : 2,
+                      maxLines:
+                          controller.isExpandedList[index].value ? null : 2,
                     ),
                   ),
                 )
@@ -426,8 +426,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     Map<String, dynamic>? userData,
     Map<String, dynamic> scholarshipData,
   ) {
-    final isOwnScholarship =
-        isIndividualScholarshipType(type) &&
+    final isOwnScholarship = isIndividualScholarshipType(type) &&
         userData?['userID']?.toString() ==
             CurrentUserService.instance.effectiveUserId;
 
@@ -482,7 +481,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
         mainAxisSize: MainAxisSize.min,
         children: [
           EducationActionIconButton(
-            onTap: () => controller.toggleLike(docId, type),
+            onTap: () => controller.toggleLike(
+              docId,
+              type,
+              scholarshipData: scholarshipData,
+            ),
             icon: (controller.likedScholarships[docId] ?? false)
                 ? CupertinoIcons.hand_thumbsup_fill
                 : CupertinoIcons.hand_thumbsup,
@@ -517,7 +520,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
         mainAxisSize: MainAxisSize.min,
         children: [
           EducationActionIconButton(
-            onTap: () => controller.toggleBookmark(docId, type),
+            onTap: () => controller.toggleBookmark(
+              docId,
+              type,
+              scholarshipData: scholarshipData,
+            ),
             icon: (controller.bookmarkedScholarships[docId] ?? false)
                 ? CupertinoIcons.bookmark_fill
                 : CupertinoIcons.bookmark,

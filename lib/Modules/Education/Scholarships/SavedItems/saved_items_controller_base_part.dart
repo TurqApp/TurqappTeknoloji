@@ -23,18 +23,36 @@ class _CachedSavedItemsList {
   final DateTime cachedAt;
 }
 
+class _SavedItemsInteractionOverride {
+  const _SavedItemsInteractionOverride({
+    required this.isSelected,
+    required this.createdAt,
+    this.item,
+  });
+
+  final bool isSelected;
+  final DateTime createdAt;
+  final Map<String, dynamic>? item;
+}
+
 abstract class _SavedItemsControllerBase extends GetxController {
   static const Duration silentRefreshInterval = Duration(minutes: 5);
+  static const Duration interactionOverrideTtl = Duration(minutes: 2);
   static final Map<String, _CachedSavedItemsList> _screenCache =
       <String, _CachedSavedItemsList>{};
+  static final Map<String, _SavedItemsInteractionOverride>
+      _interactionOverrides = <String, _SavedItemsInteractionOverride>{};
+  static final Set<SavedItemsController> _liveControllers =
+      <SavedItemsController>{};
 
   final _state = _SavedItemsControllerState();
 
   @override
   void onInit() {
     super.onInit();
+    final controller = this as SavedItemsController;
+    _liveControllers.add(controller);
     Future.microtask(() {
-      final controller = this as SavedItemsController;
       if (!controller._state.configured) {
         controller.configureView(
           initialTabIndex: 0,
@@ -46,7 +64,9 @@ abstract class _SavedItemsControllerBase extends GetxController {
 
   @override
   void onClose() {
-    (this as SavedItemsController).pageController.dispose();
+    final controller = this as SavedItemsController;
+    _liveControllers.remove(controller);
+    controller.pageController.dispose();
     super.onClose();
   }
 }

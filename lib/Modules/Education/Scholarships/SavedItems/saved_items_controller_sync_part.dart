@@ -132,30 +132,57 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
           isLiked: selectedTabIndex.value == 1,
           isBookmarked: selectedTabIndex.value == 0,
           forceRefresh: forceRefresh,
+          assignResult: false,
+          showError: !silent,
         );
-        _assignSelectedResult(items);
-        _storeSelectedScreenCache(userId, items);
+        if (!silent || items.isNotEmpty || _selectedListIsEmpty()) {
+          _assignSelectedResult(items);
+          _storeSelectedScreenCache(userId, items);
+        } else {
+          debugPrint(
+            '[SavedItemsFetch] keep_existing_selected_after_empty_silent '
+            'tab=${selectedTabIndex.value}',
+          );
+        }
       } else {
         final results = await Future.wait([
           _fetchScholarships(
             userId,
             isLiked: true,
             forceRefresh: forceRefresh,
+            assignResult: false,
+            showError: !silent,
           ),
           _fetchScholarships(
             userId,
             isBookmarked: true,
             forceRefresh: forceRefresh,
+            assignResult: false,
+            showError: !silent,
           ),
         ]);
-        _storeScreenCache(
-          _screenCacheKey(userId, isLiked: true),
-          results[0],
-        );
-        _storeScreenCache(
-          _screenCacheKey(userId, isLiked: false),
-          results[1],
-        );
+        final liked = results[0];
+        final bookmarked = results[1];
+        if (!silent || liked.isNotEmpty || likedScholarships.isEmpty) {
+          likedScholarships.assignAll(liked);
+          _storeScreenCache(_screenCacheKey(userId, isLiked: true), liked);
+        } else {
+          debugPrint(
+              '[SavedItemsFetch] keep_existing_liked_after_empty_silent');
+        }
+        if (!silent ||
+            bookmarked.isNotEmpty ||
+            bookmarkedScholarships.isEmpty) {
+          bookmarkedScholarships.assignAll(bookmarked);
+          _storeScreenCache(
+            _screenCacheKey(userId, isLiked: false),
+            bookmarked,
+          );
+        } else {
+          debugPrint(
+            '[SavedItemsFetch] keep_existing_bookmarked_after_empty_silent',
+          );
+        }
       }
       SilentRefreshGate.markRefreshed(_refreshGateKey(userId));
     } finally {
@@ -172,6 +199,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
     bool forceRefresh = false,
     bool cacheOnly = false,
     bool assignResult = true,
+    bool showError = true,
   }) async {
     try {
       final docs = await _state.scholarshipRepository.fetchByArrayMembershipRaw(
@@ -191,19 +219,27 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
       }
 
       final userDataMap = <String, Map<String, dynamic>>{};
-      final users = await _state.userSummaryResolver.resolveMany(
-        userIds.toList(growable: false),
-        preferCache: true,
-        cacheOnly: cacheOnly,
-      );
-      for (final entry in users.entries) {
-        final user = entry.value;
-        userDataMap[entry.key] = {
-          'avatarUrl': user.avatarUrl,
-          'nickname': user.nickname,
-          'displayName': user.preferredName,
-          'userID': entry.key,
-        };
+      try {
+        final users = await _state.userSummaryResolver.resolveMany(
+          userIds.toList(growable: false),
+          preferCache: true,
+          cacheOnly: cacheOnly,
+        );
+        for (final entry in users.entries) {
+          final user = entry.value;
+          userDataMap[entry.key] = {
+            'avatarUrl': user.avatarUrl,
+            'nickname': user.nickname,
+            'displayName': user.preferredName,
+            'userID': entry.key,
+          };
+        }
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[SavedItemsFetch] user_summary_failed '
+          'liked=$isLiked bookmarked=$isBookmarked error=$error',
+        );
+        debugPrintStack(stackTrace: stackTrace);
       }
 
       for (final data in docs) {
@@ -228,16 +264,29 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
         }
       }
 
+      final mergedScholarships = applySavedItemsInteractionOverridesForUser(
+        userId: userId,
+        isLiked: isLiked,
+        items: scholarships,
+      );
+
       if (assignResult) {
         if (isLiked) {
-          likedScholarships.value = scholarships;
+          likedScholarships.value = mergedScholarships;
         } else {
-          bookmarkedScholarships.value = scholarships;
+          bookmarkedScholarships.value = mergedScholarships;
         }
       }
-      return scholarships;
-    } catch (_) {
-      AppSnackbar('common.error'.tr, 'scholarship.data_load_failed'.tr);
+      return mergedScholarships;
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[SavedItemsFetch] failed liked=$isLiked bookmarked=$isBookmarked '
+        'cacheOnly=$cacheOnly forceRefresh=$forceRefresh error=$error',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      if (showError) {
+        AppSnackbar('common.error'.tr, 'scholarship.data_load_failed'.tr);
+      }
       return const <Map<String, dynamic>>[];
     }
   }

@@ -28,16 +28,24 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
     pageIndices[scholarshipIndex]?.value = pageIndex;
   }
 
-  Future<void> _toggleLikeImpl(String docId, String type) async {
+  Future<void> _toggleLikeImpl(
+    String docId,
+    String type, {
+    Map<String, dynamic>? scholarshipData,
+  }) async {
     final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
     final wasLiked = likedScholarships[docId] ?? false;
+    final nextLiked = !wasLiked;
 
     try {
-      likedScholarships[docId] = !wasLiked;
+      debugPrint(
+        '[ScholarshipInteraction] like_start docId=$docId was=$wasLiked',
+      );
+      likedScholarships[docId] = nextLiked;
       if (wasLiked) {
         _likedByCurrentUser.remove(docId);
       } else {
@@ -61,8 +69,17 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
       }
 
       await _scholarshipRepository.toggleLike(docId, userId: userId);
-      invalidateSavedItemsScreenCacheForUser(userId, isLiked: true);
-    } catch (_) {
+      syncSavedItemsInteractionForUser(
+        userId: userId,
+        docId: docId,
+        isLiked: true,
+        isSelected: nextLiked,
+        item: _savedItemsSnapshotForScholarship(docId, scholarshipData),
+      );
+      debugPrint(
+        '[ScholarshipInteraction] like_done docId=$docId now=$nextLiked',
+      );
+    } catch (error) {
       likedScholarships[docId] = wasLiked;
       if (wasLiked) {
         _likedByCurrentUser.add(docId);
@@ -85,20 +102,32 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
             (current + (wasLiked ? 1 : -1)).clamp(0, 1 << 30);
         visibleScholarships.refresh();
       }
+      invalidateSavedItemsScreenCacheForUser(userId, isLiked: true);
+      debugPrint(
+        '[ScholarshipInteraction] like_failed docId=$docId restore=$wasLiked error=$error',
+      );
       AppSnackbar('common.error'.tr, 'scholarship.like_failed'.tr);
     }
   }
 
-  Future<void> _toggleBookmarkImpl(String docId, String type) async {
+  Future<void> _toggleBookmarkImpl(
+    String docId,
+    String type, {
+    Map<String, dynamic>? scholarshipData,
+  }) async {
     final userId = CurrentUserService.instance.effectiveUserId;
     if (userId.isEmpty) {
       AppSnackbar('common.error'.tr, 'scholarship.session_missing'.tr);
       return;
     }
     final wasBookmarked = bookmarkedScholarships[docId] ?? false;
+    final nextBookmarked = !wasBookmarked;
 
     try {
-      bookmarkedScholarships[docId] = !wasBookmarked;
+      debugPrint(
+        '[ScholarshipInteraction] bookmark_start docId=$docId was=$wasBookmarked',
+      );
+      bookmarkedScholarships[docId] = nextBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.remove(docId);
       } else {
@@ -122,8 +151,17 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
       }
 
       await _scholarshipRepository.toggleBookmark(docId, userId: userId);
-      invalidateSavedItemsScreenCacheForUser(userId, isLiked: false);
-    } catch (_) {
+      syncSavedItemsInteractionForUser(
+        userId: userId,
+        docId: docId,
+        isLiked: false,
+        isSelected: nextBookmarked,
+        item: _savedItemsSnapshotForScholarship(docId, scholarshipData),
+      );
+      debugPrint(
+        '[ScholarshipInteraction] bookmark_done docId=$docId now=$nextBookmarked',
+      );
+    } catch (error) {
       bookmarkedScholarships[docId] = wasBookmarked;
       if (wasBookmarked) {
         _bookmarkedByCurrentUser.add(docId);
@@ -146,8 +184,37 @@ extension _ScholarshipsControllerActionsPart on ScholarshipsController {
             (current + (wasBookmarked ? 1 : -1)).clamp(0, 1 << 30);
         visibleScholarships.refresh();
       }
+      invalidateSavedItemsScreenCacheForUser(userId, isLiked: false);
+      debugPrint(
+        '[ScholarshipInteraction] bookmark_failed docId=$docId restore=$wasBookmarked error=$error',
+      );
       AppSnackbar('common.error'.tr, 'scholarship.bookmark_failed'.tr);
     }
+  }
+
+  Map<String, dynamic>? _savedItemsSnapshotForScholarship(
+    String docId,
+    Map<String, dynamic>? scholarshipData,
+  ) {
+    final cleanDocId = docId.trim();
+    if (cleanDocId.isEmpty) return null;
+    Map<String, dynamic>? source;
+    if (scholarshipData != null) {
+      source = scholarshipData;
+    } else {
+      final visibleIndex =
+          visibleScholarships.indexWhere((item) => item['docId'] == cleanDocId);
+      if (visibleIndex != -1) {
+        source = visibleScholarships[visibleIndex];
+      } else {
+        final allIndex =
+            allScholarships.indexWhere((item) => item['docId'] == cleanDocId);
+        if (allIndex != -1) source = allScholarships[allIndex];
+      }
+    }
+    if (source == null) return null;
+    final snapshot = Map<String, dynamic>.from(source)..['docId'] = cleanDocId;
+    return snapshot;
   }
 
   Future<void> _shareScholarshipImpl(
