@@ -355,12 +355,19 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
         userId: CurrentUserService.instance.effectiveUserId,
         limit: _scholarshipsBatchSize,
         page: _typesensePage + 1,
-        forceSync: true,
       );
+      if (result.hasLiveError && result.data == null) {
+        hasMoreData.value = false;
+        return;
+      }
       _typesensePage += 1;
       final snapshot = result.data;
       totalCount.value = snapshot?.found ?? totalCount.value;
       final combined = snapshot?.items ?? const <Map<String, dynamic>>[];
+      if (combined.isEmpty) {
+        hasMoreData.value = false;
+        return;
+      }
       await _primeLocalStateForCombined(combined);
 
       isExpandedList.addAll(
@@ -384,7 +391,10 @@ extension _ScholarshipsControllerDataPart on ScholarshipsController {
       hasMoreData.value = combined.length >= _scholarshipsBatchSize &&
           allScholarships.length < totalCount.value;
     } catch (_) {
-      AppSnackbar('common.error'.tr, 'scholarship.load_more_failed'.tr);
+      hasMoreData.value = false;
+      if (allScholarships.isEmpty) {
+        AppSnackbar('common.error'.tr, 'scholarship.load_more_failed'.tr);
+      }
     } finally {
       isLoadingMore.value = false;
     }

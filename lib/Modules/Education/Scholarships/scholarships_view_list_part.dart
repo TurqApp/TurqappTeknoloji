@@ -241,9 +241,6 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
 
   Widget _buildScholarshipCard(int index, List<Map<String, dynamic>> items) {
     final isSearching = controller.hasActiveSearch;
-    if (!isSearching && index == 4 && controller.hasMoreData.value) {
-      controller.loadMoreScholarships();
-    }
 
     final scholarshipData = items[index];
     final burs = scholarshipData['model'];
@@ -255,7 +252,8 @@ extension ScholarshipsViewListPart on _ScholarshipsViewState {
 
     final children = <Widget>[];
 
-    if (burs is IndividualScholarshipsModel && burs.primaryImageUrl.isNotEmpty) {
+    if (burs is IndividualScholarshipsModel &&
+        burs.primaryImageUrl.isNotEmpty) {
       children.add(
         Row(
           children: [
