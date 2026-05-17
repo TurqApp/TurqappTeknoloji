@@ -41,11 +41,16 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     IndividualScholarshipsModel burs,
     Map<String, dynamic> scholarshipData,
   ) {
+    final docId = (scholarshipData['docId'] ??
+            scholarshipData['scholarshipId'] ??
+            burs.timeStamp)
+        .toString();
     return Column(
       children: [
         AspectRatio(
           aspectRatio: 4 / 3,
           child: PageView.builder(
+            key: ValueKey('scholarship-gallery-$docId'),
             itemCount: burs.galleryImageUrls.length,
             itemBuilder: (context, pageIndex) {
               final imageUrl = burs.galleryImageUrls[pageIndex];
@@ -74,7 +79,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       child: _buildInteractiveScholarshipImage(
         burs: burs,
         scholarshipData: scholarshipData,
-        imageUrl: burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '',
+        imageUrl:
+            burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '',
       ),
     );
   }

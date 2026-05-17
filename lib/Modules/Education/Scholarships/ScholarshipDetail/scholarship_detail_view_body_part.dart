@@ -112,7 +112,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                     ),
                   ),
                 ),
-            ),
+              ),
             Padding(
               padding: const EdgeInsets.only(right: 10),
               child: _buildReportMenu(
@@ -139,6 +139,10 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                         child: galleryImages.length == 1
                             ? _buildGalleryImage(galleryImages.first)
                             : PageView.builder(
+                                key: ValueKey(
+                                  'scholarship-detail-gallery-'
+                                  '$scholarshipDocId',
+                                ),
                                 itemCount: galleryImages.length,
                                 itemBuilder: (context, pageIndex) {
                                   return _buildGalleryImage(
