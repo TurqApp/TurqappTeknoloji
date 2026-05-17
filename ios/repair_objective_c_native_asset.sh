@@ -56,6 +56,12 @@ SOURCE_DYLIB="$(
 /bin/cp -f "$SOURCE_DYLIB" "$BINARY_PATH"
 /usr/bin/install_name_tool -id '@rpath/objective_c.framework/objective_c' "$BINARY_PATH"
 
+if [ -n "${DWARF_DSYM_FOLDER_PATH:-}" ] && [ -x /usr/bin/dsymutil ]; then
+  OBJECTIVE_C_DSYM_PATH="${DWARF_DSYM_FOLDER_PATH}/objective_c.framework.dSYM"
+  /bin/rm -rf "$OBJECTIVE_C_DSYM_PATH"
+  /usr/bin/dsymutil "$BINARY_PATH" -o "$OBJECTIVE_C_DSYM_PATH" || true
+fi
+
 /bin/cat > "$FRAMEWORK_DIR/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
