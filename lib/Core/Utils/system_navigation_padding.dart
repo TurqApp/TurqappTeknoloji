@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-const double _androidNavigationFallback = 48;
-
 double systemNavigationBottomInset(BuildContext context) {
   final media = MediaQuery.maybeOf(context);
   if (media == null) return 0;
@@ -14,20 +12,15 @@ double systemNavigationBottomInset(BuildContext context) {
       : math.max(view.viewPadding.bottom, view.padding.bottom) /
           view.devicePixelRatio;
 
-  final systemBottom = math.max(
+  // Gesture insets describe swipe-sensitive space, not a visible navigation bar.
+  // Only reserve bottom space when Android reports an actual visible inset.
+  return math.max(
     viewBottom,
     math.max(
       media.viewPadding.bottom,
-      math.max(
-        media.padding.bottom,
-        media.systemGestureInsets.bottom,
-      ),
+      media.padding.bottom,
     ),
   );
-
-  return defaultTargetPlatform == TargetPlatform.android
-      ? math.max(systemBottom, _androidNavigationFallback)
-      : systemBottom;
 }
 
 double systemNavigationAwareBottom(
