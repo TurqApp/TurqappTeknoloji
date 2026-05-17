@@ -72,7 +72,7 @@ class MyScholarshipControllerRuntimePart {
           await controller.buildScholarshipCards(rawScholarships);
       SilentRefreshGate.markRefreshed('scholarships:mine:$userId');
     } catch (_) {
-      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
+      AppSnackbar('common.error'.tr, 'scholarship.data_load_failed'.tr);
     } finally {
       if (shouldShowLoader || controller.myScholarships.isEmpty) {
         controller.isLoading.value = false;

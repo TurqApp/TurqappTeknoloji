@@ -237,7 +237,7 @@ extension SavedItemsControllerSyncPart on SavedItemsController {
       }
       return scholarships;
     } catch (_) {
-      AppSnackbar('common.error'.tr, 'common.data_load_failed'.tr);
+      AppSnackbar('common.error'.tr, 'scholarship.data_load_failed'.tr);
       return const <Map<String, dynamic>>[];
     }
   }

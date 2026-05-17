@@ -300,6 +300,9 @@ extension _ScholarshipRepositoryCacheX on ScholarshipRepository {
   }
 
   dynamic _cloneValue(dynamic value) {
+    if (value is Timestamp) {
+      return value.millisecondsSinceEpoch;
+    }
     if (value is Map) {
       return value.map(
         (key, child) => MapEntry(key.toString(), _cloneValue(child)),

@@ -380,7 +380,9 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
                                 ? 'scholarship.closed'.tr
                                 : controller.allreadyApplied.value
                                     ? 'scholarship.applied'.tr
-                                    : 'common.apply'.tr,
+                                    : model.basvuruURL.isEmpty
+                                        ? 'pasaj.job_finder.apply'.tr
+                                        : 'common.apply'.tr,
                             textAlign: TextAlign.center,
                             style: TurqButtonTokens.primaryTextStyle,
                           ),

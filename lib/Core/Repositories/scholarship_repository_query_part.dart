@@ -70,11 +70,10 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
 
     if (cacheOnly) return const <Map<String, dynamic>>[];
 
-    final snapshot = await ScholarshipFirestorePath.collection()
-        .where('userID', isEqualTo: cleanUid)
-        .orderBy('timeStamp', descending: true)
-        .limit(limit)
-        .get();
+    final snapshot = await _fetchOwnerSnapshot(
+      cleanUid,
+      limit: limit,
+    );
 
     final items = snapshot.docs
         .map((doc) => <String, dynamic>{
@@ -82,8 +81,9 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
               'docId': doc.id,
             })
         .toList(growable: false);
-    await _storeQueryDocs(cacheKey, items);
-    return items;
+    final sortedItems = _sortScholarshipDocsByTimestampDesc(items);
+    await _storeQueryDocs(cacheKey, sortedItems);
+    return sortedItems;
   }
 
   Future<QuerySnapshot<Map<String, dynamic>>> fetchLatestPage({
@@ -142,6 +142,75 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
     return const <String>[];
   }
 
+  int _scholarshipTimestampMillis(Map<String, dynamic> item) {
+    final value = item['timeStamp'];
+    if (value is Timestamp) return value.millisecondsSinceEpoch;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final parsedInt = int.tryParse(value.trim());
+      if (parsedInt != null) return parsedInt;
+      final parsedNum = num.tryParse(value.trim());
+      if (parsedNum != null) return parsedNum.toInt();
+    }
+    return 0;
+  }
+
+  List<Map<String, dynamic>> _sortScholarshipDocsByTimestampDesc(
+    List<Map<String, dynamic>> items,
+  ) {
+    final sorted = _cloneDocs(items);
+    sorted.sort(
+      (left, right) => _scholarshipTimestampMillis(right)
+          .compareTo(_scholarshipTimestampMillis(left)),
+    );
+    return sorted;
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _fetchArrayMembershipSnapshot(
+    String field,
+    String uid, {
+    required int limit,
+  }) async {
+    try {
+      return await ScholarshipFirestorePath.collection()
+          .where(field, arrayContains: uid)
+          .orderBy('timeStamp', descending: true)
+          .limit(limit)
+          .get();
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition' &&
+          error.code != 'invalid-argument') {
+        rethrow;
+      }
+      return ScholarshipFirestorePath.collection()
+          .where(field, arrayContains: uid)
+          .limit(limit)
+          .get();
+    }
+  }
+
+  Future<QuerySnapshot<Map<String, dynamic>>> _fetchOwnerSnapshot(
+    String uid, {
+    required int limit,
+  }) async {
+    try {
+      return await ScholarshipFirestorePath.collection()
+          .where('userID', isEqualTo: uid)
+          .orderBy('timeStamp', descending: true)
+          .limit(limit)
+          .get();
+    } on FirebaseException catch (error) {
+      if (error.code != 'failed-precondition' &&
+          error.code != 'invalid-argument') {
+        rethrow;
+      }
+      return ScholarshipFirestorePath.collection()
+          .where('userID', isEqualTo: uid)
+          .limit(limit)
+          .get();
+    }
+  }
+
   Future<int> fetchTotalCount({
     bool preferCache = true,
     bool forceRefresh = false,
@@ -187,11 +256,11 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
 
     if (cacheOnly) return const <Map<String, dynamic>>[];
 
-    final snapshot = await ScholarshipFirestorePath.collection()
-        .where('basvurular', arrayContains: cleanUid)
-        .orderBy('timeStamp', descending: true)
-        .limit(limit)
-        .get();
+    final snapshot = await _fetchArrayMembershipSnapshot(
+      'basvurular',
+      cleanUid,
+      limit: limit,
+    );
 
     final items = snapshot.docs
         .map((doc) => <String, dynamic>{
@@ -199,8 +268,9 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
               'docId': doc.id,
             })
         .toList(growable: false);
-    await _storeQueryDocs(cacheKey, items);
-    return items;
+    final sortedItems = _sortScholarshipDocsByTimestampDesc(items);
+    await _storeQueryDocs(cacheKey, sortedItems);
+    return sortedItems;
   }
 
   Future<List<Map<String, dynamic>>> fetchByArrayMembershipRaw(
@@ -234,11 +304,11 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
 
     if (cacheOnly) return const <Map<String, dynamic>>[];
 
-    final snapshot = await ScholarshipFirestorePath.collection()
-        .where(cleanField, arrayContains: cleanUid)
-        .orderBy('timeStamp', descending: true)
-        .limit(limit)
-        .get();
+    final snapshot = await _fetchArrayMembershipSnapshot(
+      cleanField,
+      cleanUid,
+      limit: limit,
+    );
 
     final items = snapshot.docs
         .map((doc) => <String, dynamic>{
@@ -246,8 +316,9 @@ extension ScholarshipRepositoryQueryPart on ScholarshipRepository {
               'docId': doc.id,
             })
         .toList(growable: false);
-    await _storeQueryDocs(cacheKey, items);
-    return items;
+    final sortedItems = _sortScholarshipDocsByTimestampDesc(items);
+    await _storeQueryDocs(cacheKey, sortedItems);
+    return sortedItems;
   }
 
   Future<bool> hasUserApplied(
