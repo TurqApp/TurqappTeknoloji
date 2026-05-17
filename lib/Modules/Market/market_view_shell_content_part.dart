@@ -160,12 +160,11 @@ extension MarketViewShellContentPart on MarketView {
                     children: PasajListingAdLayout.buildListChildren(
                       items: controller.visibleItems,
                       itemBuilder: (item, index) => _buildListingCard(item),
-                      adBuilder: (slot) => Padding(
+                      adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                        keyPrefix: 'market-list',
+                        slot: slot,
+                        suggestionPlacementId: 'market',
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: AdmobKare(
-                          key: ValueKey('market-list-ad-$slot'),
-                          suggestionPlacementId: 'market',
-                        ),
                       ),
                     ),
                   ),
@@ -182,8 +181,9 @@ extension MarketViewShellContentPart on MarketView {
                       horizontalSpacing: 4,
                       rowSpacing: 4,
                       itemBuilder: (item, index) => _buildGridCard(item),
-                      adBuilder: (slot) => AdmobKare(
-                        key: ValueKey('market-grid-ad-$slot'),
+                      adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                        keyPrefix: 'market-grid',
+                        slot: slot,
                         suggestionPlacementId: 'market',
                       ),
                     ),

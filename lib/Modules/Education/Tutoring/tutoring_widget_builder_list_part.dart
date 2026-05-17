@@ -197,12 +197,11 @@ extension _TutoringWidgetBuilderListPart on TutoringWidgetBuilder {
             ),
           );
         },
-        adBuilder: (slot) => Padding(
+        adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+          keyPrefix: 'tutoring-list',
+          slot: slot,
+          suggestionPlacementId: 'tutoring',
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-          child: AdmobKare(
-            key: ValueKey('tutoring-list-ad-$slot'),
-            suggestionPlacementId: 'tutoring',
-          ),
         ),
       ),
     );

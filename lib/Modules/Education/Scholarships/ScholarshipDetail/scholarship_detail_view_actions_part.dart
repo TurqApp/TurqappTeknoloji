@@ -1,6 +1,24 @@
 part of 'scholarship_detail_view.dart';
 
 extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
+  Widget _buildScholarshipDetailAdSlot(String adSlotId) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: AdmobKare(
+        key: ValueKey(adSlotId),
+        contentPadding: EdgeInsets.zero,
+        liveAdOffsetX: 5,
+        promoFallbackOffsetX: 0,
+        promoFallbackExtraWidth: 0,
+        forceSingleLinePromoChips: true,
+        suggestionPlacementId: 'scholarship',
+        adSlotId: adSlotId,
+        disposeImmediatelyWhenHidden: true,
+        preferManagedSuggestionSurface: true,
+      ),
+    );
+  }
+
   Widget _buildReportMenu({
     required String userId,
     required String scholarshipDocId,
@@ -66,13 +84,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: AdmobKare(
-                key: ValueKey('sch-detail-ad-owner'),
-                suggestionPlacementId: 'scholarship',
-              ),
-            ),
+            _buildScholarshipDetailAdSlot('sch-detail-ad-owner'),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -187,13 +199,7 @@ extension ScholarshipDetailViewActionsPart on ScholarshipDetailView {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: AdmobKare(
-              key: ValueKey('sch-detail-ad-apply'),
-              suggestionPlacementId: 'scholarship',
-            ),
-          ),
+          _buildScholarshipDetailAdSlot('sch-detail-ad-apply'),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

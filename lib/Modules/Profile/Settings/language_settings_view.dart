@@ -11,9 +11,7 @@ class LanguageSettingsView extends StatelessWidget {
     return Obx(
       () => ListView(
         children: [
-          const SizedBox(height: 8),
-          const _LanguageHeader(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           ...AppLanguageService.options.map((option) {
             return _LanguageOptionTile(
               title: _localizedLanguageTitle(option.code, option.nativeLabel),
@@ -61,36 +59,6 @@ class LanguageSettingsView extends StatelessWidget {
   }
 }
 
-class _LanguageHeader extends StatelessWidget {
-  const _LanguageHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'language.subtitle'.tr,
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 24,
-            fontFamily: "MontserratBold",
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'language.note'.tr,
-          style: const TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-            fontFamily: "MontserratMedium",
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _LanguageOptionTile extends StatelessWidget {
   const _LanguageOptionTile({
     required this.title,
@@ -107,17 +75,17 @@ class _LanguageOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: isSelected ? Colors.black : Colors.black12,
                 width: isSelected ? 1.5 : 1,
@@ -133,16 +101,16 @@ class _LanguageOptionTile extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           color: Colors.black,
-                          fontSize: 18,
+                          fontSize: 17,
                           fontFamily: "MontserratBold",
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         subtitle,
                         style: const TextStyle(
                           color: Colors.black54,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontFamily: "MontserratMedium",
                         ),
                       ),

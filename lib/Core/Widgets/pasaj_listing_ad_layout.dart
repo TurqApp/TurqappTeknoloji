@@ -1,13 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:turqappv2/Ads/admob_kare.dart';
 
 class PasajListingAdLayout {
   const PasajListingAdLayout._();
+
+  static Widget buildAdSlot({
+    required String keyPrefix,
+    required int slot,
+    required String suggestionPlacementId,
+    EdgeInsetsGeometry padding = EdgeInsets.zero,
+  }) {
+    final normalizedSlot = slot < 1 ? 1 : slot;
+    final adSlotId = '$keyPrefix-ad-$normalizedSlot';
+    final child = AdmobKare(
+      key: ValueKey(adSlotId),
+      contentPadding: EdgeInsets.zero,
+      liveAdOffsetX: 5,
+      promoFallbackOffsetX: 0,
+      promoFallbackExtraWidth: 0,
+      forceSingleLinePromoChips: true,
+      suggestionPlacementId: suggestionPlacementId,
+      adSlotId: adSlotId,
+      disposeImmediatelyWhenHidden: true,
+      preferManagedSuggestionSurface: true,
+    );
+    if (padding == EdgeInsets.zero) return child;
+    return Padding(padding: padding, child: child);
+  }
 
   static List<Widget> buildListChildren<T>({
     required List<T> items,
     required Widget Function(T item, int index) itemBuilder,
     required Widget Function(int slot) adBuilder,
-    int interval = 6,
+    int interval = 3,
   }) {
     final children = <Widget>[];
     var adSlot = 0;
@@ -24,7 +49,7 @@ class PasajListingAdLayout {
     required List<T> items,
     required Widget Function(T item, int index) itemBuilder,
     required Widget Function(int slot) adBuilder,
-    int interval = 6,
+    int interval = 3,
     double horizontalSpacing = 4,
     double rowSpacing = 4,
   }) {
@@ -53,7 +78,8 @@ class PasajListingAdLayout {
         ),
       );
 
-      final processedCount = secondIndex < items.length ? secondIndex + 1 : start + 1;
+      final processedCount =
+          secondIndex < items.length ? secondIndex + 1 : start + 1;
       if (processedCount % interval == 0) {
         children.add(SizedBox(height: rowSpacing));
         children.add(adBuilder(adSlot++));

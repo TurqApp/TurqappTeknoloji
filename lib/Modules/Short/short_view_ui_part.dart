@@ -186,11 +186,7 @@ extension ShortViewUiPart on _ShortViewState {
 
   Widget _buildShortView(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
+      value: systemOverlayStyleForNavigationSurface(true),
       child: Scaffold(
         key: const ValueKey(IntegrationTestKeys.screenShort),
         backgroundColor: Colors.black,

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/BottomSheets/list_bottom_sheet.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';

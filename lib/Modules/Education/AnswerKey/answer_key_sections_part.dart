@@ -131,8 +131,9 @@ extension AnswerKeySectionsPart on AnswerKey {
                     onUpdate: (v) => controller.refreshData(),
                     isListLayout: true,
                   ),
-                  adBuilder: (slot) => AdmobKare(
-                    key: ValueKey('answer-key-list-ad-$slot'),
+                  adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                    keyPrefix: 'answer-key-list',
+                    slot: slot,
                     suggestionPlacementId: 'answer_key',
                   ),
                 ),
@@ -147,8 +148,9 @@ extension AnswerKeySectionsPart on AnswerKey {
                     model: item,
                     onUpdate: (v) => controller.refreshData(),
                   ),
-                  adBuilder: (slot) => AdmobKare(
-                    key: ValueKey('answer-key-grid-ad-$slot'),
+                  adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                    keyPrefix: 'answer-key-grid',
+                    slot: slot,
                     suggestionPlacementId: 'answer_key',
                   ),
                 ),

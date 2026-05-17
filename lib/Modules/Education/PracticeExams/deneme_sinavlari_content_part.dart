@@ -130,12 +130,11 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
                     getData: controller.getData,
                     isListLayout: true,
                   ),
-                  adBuilder: (slot) => Padding(
+                  adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                    keyPrefix: 'practice-exam-list',
+                    slot: slot,
+                    suggestionPlacementId: 'practice_exam',
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: AdmobKare(
-                      key: ValueKey('practice-exam-list-ad-$slot'),
-                      suggestionPlacementId: 'practice_exam',
-                    ),
                   ),
                 ),
               )
@@ -148,8 +147,9 @@ extension DenemeSinavlariContentPart on DenemeSinavlari {
                     model: item,
                     getData: controller.getData,
                   ),
-                  adBuilder: (slot) => AdmobKare(
-                    key: ValueKey('practice-exam-grid-ad-$slot'),
+                  adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                    keyPrefix: 'practice-exam-grid',
+                    slot: slot,
                     suggestionPlacementId: 'practice_exam',
                   ),
                 ),

@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pull_down_button/pull_down_button.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Helpers/GlobalLoader/global_loader.dart';
 import 'package:turqappv2/Core/Services/Ads/admob_banner_warmup_service.dart';

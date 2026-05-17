@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:turqappv2/Ads/admob_kare.dart';
 import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Services/share_action_guard.dart';

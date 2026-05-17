@@ -135,8 +135,9 @@ extension _TutoringWidgetBuilderGridPart on TutoringWidgetBuilder {
             ),
           );
         },
-        adBuilder: (slot) => AdmobKare(
-          key: ValueKey('tutoring-grid-ad-$slot'),
+        adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+          keyPrefix: 'tutoring-grid',
+          slot: slot,
           suggestionPlacementId: 'tutoring',
         ),
       ),

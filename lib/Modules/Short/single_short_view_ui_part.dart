@@ -5,11 +5,7 @@ part of 'single_short_view.dart';
 extension SingleShortViewUiPart on _SingleShortViewState {
   Widget _buildSingleShortView(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
+      value: systemOverlayStyleForNavigationSurface(true),
       child: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {

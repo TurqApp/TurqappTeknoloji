@@ -70,13 +70,12 @@ extension JobFinderContentPart on JobFinder {
                 model: item,
                 isGrid: false,
               ),
-              adBuilder: (slot) => Padding(
+              adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                keyPrefix: 'job-list',
+                slot: slot,
+                suggestionPlacementId: 'job',
                 padding:
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                child: AdmobKare(
-                  key: ValueKey('job-list-ad-$slot'),
-                  suggestionPlacementId: 'job',
-                ),
               ),
             ),
           ],
@@ -114,12 +113,11 @@ extension JobFinderContentPart on JobFinder {
                   rowSpacing: 8,
                   itemBuilder: (item, index) =>
                       JobContent(model: item, isGrid: true),
-                  adBuilder: (slot) => Padding(
+                  adBuilder: (slot) => PasajListingAdLayout.buildAdSlot(
+                    keyPrefix: 'job-grid',
+                    slot: slot,
+                    suggestionPlacementId: 'job',
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: AdmobKare(
-                      key: ValueKey('job-grid-ad-$slot'),
-                      suggestionPlacementId: 'job',
-                    ),
                   ),
                 ),
               ),
