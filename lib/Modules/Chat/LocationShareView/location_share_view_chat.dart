@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_button.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'location_share_controller.dart';
@@ -110,7 +111,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
 
             // Konuma git butonu
             Positioned(
-                bottom: 100,
+                bottom: systemNavigationAwareBottom(context, spacing: 100),
                 right: 20,
                 child: TextButton(
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -131,7 +132,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
                 )),
 
             Positioned(
-                bottom: 100,
+                bottom: systemNavigationAwareBottom(context, spacing: 100),
                 left: 20,
                 child: AppBackButton(
                   onTap: () {
@@ -142,7 +143,7 @@ class _LocationShareViewChatState extends State<LocationShareViewChat> {
 
             // Paylaş butonu
             Positioned(
-              bottom: 30,
+              bottom: systemNavigationAwareBottom(context, spacing: 30),
               left: 20,
               right: 20,
               child: TurqAppButton(

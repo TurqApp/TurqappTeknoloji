@@ -228,7 +228,7 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
       children: [
         Expanded(
           child: SizedBox(
-            height: 42,
+            height: TurqButtonTokens.height,
             child: OutlinedButton(
               onPressed: processing
                   ? null
@@ -237,11 +237,16 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
                         status: kMarketOfferStatusRejected,
                       ),
               style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TurqButtonTokens.horizontalPadding,
+                ),
+                minimumSize: const Size(0, TurqButtonTokens.height),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 side: BorderSide(
                   color: Colors.grey.withAlpha(120),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
               ),
               child: processing
@@ -254,11 +259,7 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
                     )
                   : Text(
                       'pasaj.job_finder.reject'.tr,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
-                        fontFamily: 'MontserratBold',
-                      ),
+                      style: TurqButtonTokens.secondaryTextStyle,
                     ),
             ),
           ),
@@ -266,7 +267,7 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
         const SizedBox(width: 8),
         Expanded(
           child: SizedBox(
-            height: 42,
+            height: TurqButtonTokens.height,
             child: ElevatedButton(
               onPressed: processing
                   ? null
@@ -277,17 +278,18 @@ extension _MarketOffersViewContentPart on _MarketOffersViewState {
               style: ElevatedButton.styleFrom(
                 elevation: 0,
                 backgroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: TurqButtonTokens.horizontalPadding,
+                ),
+                minimumSize: const Size(0, TurqButtonTokens.height),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(TurqButtonTokens.radius),
                 ),
               ),
               child: Text(
                 'pasaj.job_finder.accept'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontFamily: 'MontserratBold',
-                ),
+                style: TurqButtonTokens.primaryTextStyle,
               ),
             ),
           ),
