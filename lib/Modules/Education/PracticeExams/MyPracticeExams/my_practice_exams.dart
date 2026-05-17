@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/MyPracticeExams/my_practice_exams_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
@@ -86,9 +87,7 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
 
   Widget _buildPublishedExamsContent() {
     if (controller.isLoading.value) {
-      return const Center(
-        child: CupertinoActivityIndicator(),
-      );
+      return const Center(child: CupertinoActivityIndicator());
     }
 
     if (controller.exams.isEmpty) {
@@ -115,7 +114,9 @@ class _MyPracticeExamsState extends State<MyPracticeExams> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: GridView.builder(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: EdgeInsets.only(
+            bottom: systemNavigationAwareBottom(context),
+          ),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 4,

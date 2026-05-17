@@ -6,10 +6,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
       bottom: false,
       child: SingleChildScrollView(
         child: Column(
-          children: [
-            _buildHeader(),
-            _buildLoadingOrContent(context),
-          ],
+          children: [_buildHeader(), _buildLoadingOrContent(context)],
         ),
       ),
     );
@@ -19,9 +16,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: BackButtons(text: 'bank_info.title'.tr),
-        ),
+        Expanded(child: BackButtons(text: 'bank_info.title'.tr)),
         PullDownButton(
           itemBuilder: (context) => [
             PullDownMenuItem(
@@ -32,11 +27,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
           ],
           buttonBuilder: (context, showMenu) => AppHeaderActionButton(
             onTap: showMenu,
-            child: const Icon(
-              Icons.more_vert,
-              color: Colors.black,
-              size: 20,
-            ),
+            child: const Icon(Icons.more_vert, color: Colors.black, size: 20),
           ),
         ),
       ],
@@ -63,7 +54,12 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(15),
+                  padding: EdgeInsets.fromLTRB(
+                    15,
+                    15,
+                    15,
+                    systemNavigationAwareBottom(context, spacing: 15),
+                  ),
                   child: _buildSaveButton(),
                 ),
               ],
@@ -75,10 +71,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'bank_info.fast_title'.tr,
-          style: TextStyles.textFieldTitle,
-        ),
+        Text('bank_info.fast_title'.tr, style: TextStyles.textFieldTitle),
         GestureDetector(
           onTap: () => controller.showKolayAdresBottomSheet(context),
           child: Container(
@@ -102,10 +95,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
                         fontFamily: 'MontserratMedium',
                       ),
                     ),
-                    const Icon(
-                      CupertinoIcons.chevron_down,
-                      size: 20,
-                    ),
+                    const Icon(CupertinoIcons.chevron_down, size: 20),
                   ],
                 ),
               ),
@@ -120,10 +110,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'bank_info.bank_label'.tr,
-          style: TextStyles.textFieldTitle,
-        ),
+        Text('bank_info.bank_label'.tr, style: TextStyles.textFieldTitle),
         GestureDetector(
           onTap: () => controller.showBankBottomSheet(context),
           child: Container(
@@ -150,10 +137,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
                         fontFamily: 'MontserratMedium',
                       ),
                     ),
-                    const Icon(
-                      CupertinoIcons.chevron_down,
-                      size: 20,
-                    ),
+                    const Icon(CupertinoIcons.chevron_down, size: 20),
                   ],
                 ),
               ),
@@ -190,11 +174,12 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
                     inputFormatters: _inputFormattersForSelection(),
                     keyboardType:
                         controller.isIbanSelected || controller.isPhoneSelected
-                            ? TextInputType.number
-                            : TextInputType.emailAddress,
+                        ? TextInputType.number
+                        : TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      hintText: controller
-                          .localizedFastType(controller.kolayAdres.value),
+                      hintText: controller.localizedFastType(
+                        controller.kolayAdres.value,
+                      ),
                       hintStyle: const TextStyle(
                         color: Colors.grey,
                         fontFamily: 'MontserratMedium',
@@ -273,9 +258,7 @@ extension _BankInfoViewContentPart on _BankInfoViewState {
       ];
     }
     if (controller.isEmailSelected) {
-      return [
-        LengthLimitingTextInputFormatter(50),
-      ];
+      return [LengthLimitingTextInputFormatter(50)];
     }
     return [];
   }

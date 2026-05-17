@@ -11,6 +11,7 @@ import 'package:turqappv2/Core/BottomSheets/app_bottom_sheet.dart';
 import 'package:turqappv2/Core/Buttons/turq_app_toggle.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_selection_chip.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -60,8 +61,9 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
     controller.priceController.text = initialData.fiyat.toString();
     controller.cityController.text = initialData.sehir;
     controller.districtController.text = initialData.ilce;
-    controller.selectedLessonPlace.value =
-        initialData.dersYeri.isNotEmpty ? initialData.dersYeri.first : '';
+    controller.selectedLessonPlace.value = initialData.dersYeri.isNotEmpty
+        ? initialData.dersYeri.first
+        : '';
     controller.selectedGender.value = initialData.cinsiyet;
     controller.city.value = initialData.sehir;
     controller.town = initialData.ilce;
@@ -78,10 +80,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
   @override
   void dispose() {
     if (_ownsController &&
-        identical(
-          maybeFindCreateTutoringController(tag: _tag),
-          controller,
-        )) {
+        identical(maybeFindCreateTutoringController(tag: _tag), controller)) {
       Get.delete<CreateTutoringController>(tag: _tag);
     }
     super.dispose();
@@ -108,7 +107,12 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
         top: false,
         child: Obx(
           () => ListView(
-            padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+            padding: EdgeInsets.fromLTRB(
+              15,
+              8,
+              15,
+              systemNavigationAwareBottom(context, spacing: 24),
+            ),
             children: [
               _buildImagePicker(context, controller, _initialData),
               const SizedBox(height: 18),

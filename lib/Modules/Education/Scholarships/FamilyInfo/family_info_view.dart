@@ -6,6 +6,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Utils/text_normalization_utils.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/job_categories.dart';
@@ -42,7 +43,9 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
   void dispose() {
     if (_ownsController &&
         identical(
-            maybeFindFamilyInfoController(tag: _controllerTag), controller)) {
+          maybeFindFamilyInfoController(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<FamilyInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
@@ -102,7 +105,12 @@ class _FamilyInfoViewState extends State<FamilyInfoView> {
                         controller: controller.scrollController,
                         physics: ScrollPhysics(),
                         child: Padding(
-                          padding: const EdgeInsets.all(15),
+                          padding: EdgeInsets.fromLTRB(
+                            15,
+                            15,
+                            15,
+                            systemNavigationAwareBottom(context, spacing: 15),
+                          ),
                           child: _buildFormContent(),
                         ),
                       ),

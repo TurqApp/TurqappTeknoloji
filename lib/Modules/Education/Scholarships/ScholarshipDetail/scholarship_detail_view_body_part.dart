@@ -12,8 +12,10 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
         body: Center(
           child: Text(
             'scholarship.detail_missing'.tr,
-            style:
-                const TextStyle(fontSize: 16, fontFamily: 'MontserratMedium'),
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: 'MontserratMedium',
+            ),
           ),
         ),
       );
@@ -27,15 +29,17 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
             .toString();
     final Map<String, dynamic> userData =
         (scholarshipData['userData'] as Map<String, dynamic>?) ??
-            <String, dynamic>{};
-    final bool isOwnScholarship = userData['userID']?.toString() ==
+        <String, dynamic>{};
+    final bool isOwnScholarship =
+        userData['userID']?.toString() ==
         CurrentUserService.instance.effectiveUserId;
     final String userImage = (userData['avatarUrl'] ?? '').toString();
-    final String userNick = (userData['displayName'] ??
-            userData['username'] ??
-            userData['nickname'] ??
-            'common.user'.tr)
-        .toString();
+    final String userNick =
+        (userData['displayName'] ??
+                userData['username'] ??
+                userData['nickname'] ??
+                'common.user'.tr)
+            .toString();
     final ScrollController detailScrollController = ScrollController();
 
     return Obx(() {
@@ -43,26 +47,31 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
       final int universityCount = model.universiteler.length;
       if (controller.hiddenUniversityCount.value !=
           (universityCount > 10 ? universityCount - 10 : 0)) {
-        controller.hiddenUniversityCount.value =
-            universityCount > 10 ? universityCount - 10 : 0;
+        controller.hiddenUniversityCount.value = universityCount > 10
+            ? universityCount - 10
+            : 0;
       }
 
       final List<String> galleryImages = model.galleryImageUrls;
-      final String providerName =
-          model.bursVeren.trim().isNotEmpty ? model.bursVeren.trim() : userNick;
+      final String providerName = model.bursVeren.trim().isNotEmpty
+          ? model.bursVeren.trim()
+          : userNick;
       final List<String> metaParts = <String>[
         if (providerName.trim().isNotEmpty) providerName.trim(),
         if (model.bitisTarihi.trim().isNotEmpty)
-          'education_feed.application_deadline'
-              .trParams({'date': model.bitisTarihi.trim()}),
+          'education_feed.application_deadline'.trParams({
+            'date': model.bitisTarihi.trim(),
+          }),
       ];
       final String metaText = metaParts.join('  •  ');
       final String applicationDates = [
         model.baslangicTarihi.trim(),
         model.bitisTarihi.trim(),
       ].where((value) => value.isNotEmpty).join(' - ');
-      final String requiredDocs =
-          model.belgeler.map((e) => '• $e').join('\n').trim();
+      final String requiredDocs = model.belgeler
+          .map((e) => '• $e')
+          .join('\n')
+          .trim();
       final String awardMonths = model.aylar.map((ay) => '• $ay').join('\n');
       final String otherInfo =
           '• ${'scholarship.duplicate_status_label'.tr}: ${model.mukerrerDurumu.isNotEmpty ? model.mukerrerDurumu : 'common.unspecified'.tr}\n'
@@ -103,7 +112,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                               false)
                           ? CupertinoIcons.bookmark_fill
                           : CupertinoIcons.bookmark,
-                      color: (scholarshipsController
+                      color:
+                          (scholarshipsController
                                   .bookmarkedScholarships[scholarshipDocId] ??
                               false)
                           ? Colors.orange
@@ -129,7 +139,12 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
             children: [
               ListView(
                 controller: detailScrollController,
-                padding: const EdgeInsets.fromLTRB(15, 8, 15, 24),
+                padding: EdgeInsets.fromLTRB(
+                  15,
+                  8,
+                  15,
+                  systemNavigationAwareBottom(context, spacing: 24),
+                ),
                 children: [
                   if (galleryImages.isNotEmpty) ...[
                     ClipRRect(
@@ -250,14 +265,16 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                     ),
                                   ),
                                   TextSpan(
-                                    text: model.basvuruYapilacakYer ==
+                                    text:
+                                        model.basvuruYapilacakYer ==
                                             applicationPlaceTurqAppValue
                                         ? 'scholarship.application_received_status'
-                                            .tr
+                                              .tr
                                         : 'scholarship.application_not_received_status'
-                                            .tr,
+                                              .tr,
                                     style: TextStyle(
-                                      color: model.basvuruYapilacakYer ==
+                                      color:
+                                          model.basvuruYapilacakYer ==
                                               applicationPlaceTurqAppValue
                                           ? Colors.black
                                           : Colors.red.shade700,
@@ -288,10 +305,7 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                           'scholarship.award_months_label'.tr,
                           awardMonths,
                         ),
-                      _buildInfoRow(
-                        'scholarship.other_info'.tr,
-                        otherInfo,
-                      ),
+                      _buildInfoRow('scholarship.other_info'.tr, otherInfo),
                     ],
                   ),
                   if (model.universiteler.isNotEmpty) ...[
@@ -303,12 +317,12 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                           () => Text(
                             controller.showAllUniversities.value
                                 ? model.universiteler
-                                    .map((e) => '• $e')
-                                    .join('\n')
+                                      .map((e) => '• $e')
+                                      .join('\n')
                                 : model.universiteler
-                                    .take(10)
-                                    .map((e) => '• $e')
-                                    .join('\n'),
+                                      .take(10)
+                                      .map((e) => '• $e')
+                                      .join('\n'),
                             style: const TextStyle(
                               color: Colors.black87,
                               fontSize: 14,
@@ -330,7 +344,8 @@ extension ScholarshipDetailViewBodyPart on ScholarshipDetailView {
                                     ? 'scholarship.show_less'.tr
                                     : 'scholarship.more_universities'.trParams({
                                         'count': controller
-                                            .hiddenUniversityCount.value
+                                            .hiddenUniversityCount
+                                            .value
                                             .toString(),
                                       }),
                                 style: const TextStyle(

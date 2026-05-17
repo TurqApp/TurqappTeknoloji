@@ -76,7 +76,7 @@ extension AnswerKeyShellContentPart on AnswerKey {
     return [
       Obx(
         () => Positioned(
-          bottom: 20,
+          bottom: systemNavigationAwareBottom(context),
           right: 20,
           child: Visibility(
             visible: controller.scrollOffset.value <= 350,
@@ -118,9 +118,9 @@ extension AnswerKeyShellContentPart on AnswerKey {
                   icon: CupertinoIcons.slider_horizontal_3,
                   onTap: () =>
                       const SliderAdminNavigationService().openSliderAdmin(
-                    sliderId: 'cevap_anahtari',
-                    title: 'answer_key.title'.tr,
-                  ),
+                        sliderId: 'cevap_anahtari',
+                        title: 'answer_key.title'.tr,
+                      ),
                 ),
               ],
             ),

@@ -80,7 +80,7 @@ extension _TestsShellContentPart on _TestsState {
     return [
       Obx(
         () => Positioned(
-          bottom: 20,
+          bottom: systemNavigationAwareBottom(context),
           right: 20,
           child: Visibility(
             visible: controller.scrollOffset.value <= 350,

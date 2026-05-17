@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Widgets/education_share_icon_button.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
 import 'package:turqappv2/Core/Widgets/search_reset_on_page_return_scope.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/formatters.dart';
 import 'package:turqappv2/Core/rozet_content.dart';
 import 'package:turqappv2/Core/rozet_permissions.dart';
@@ -55,8 +56,9 @@ class ScholarshipsView extends StatefulWidget {
 }
 
 class _ScholarshipsViewState extends State<ScholarshipsView> {
-  final ScholarshipsController controller =
-      ensureScholarshipsController(permanent: true);
+  final ScholarshipsController controller = ensureScholarshipsController(
+    permanent: true,
+  );
   final DateTime startTime = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
 
@@ -85,11 +87,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
     if (widget.embedded) {
       return Stack(
         children: [
-          Column(
-            children: [
-              _buildBody(),
-            ],
-          ),
+          Column(children: [_buildBody()]),
           if (widget.showEmbeddedControls) _buildActionButton(context),
         ],
       );
@@ -106,11 +104,7 @@ class _ScholarshipsViewState extends State<ScholarshipsView> {
           child: Stack(
             children: [
               Column(
-                children: [
-                  _buildHeader(),
-                  _buildSearchField(),
-                  _buildBody(),
-                ],
+                children: [_buildHeader(), _buildSearchField(), _buildBody()],
               ),
               _buildActionButton(context),
             ],

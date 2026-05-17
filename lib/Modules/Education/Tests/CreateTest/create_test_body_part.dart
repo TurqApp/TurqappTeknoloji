@@ -2,8 +2,8 @@ part of 'create_test.dart';
 
 extension CreateTestBodyPart on _CreateTestState {
   Widget testHazirla(BuildContext context, CreateTestController controller) {
-    final coverSelectButtonWidth =
-        (MediaQuery.of(context).size.width * 0.52).clamp(160.0, 200.0);
+    final coverSelectButtonWidth = (MediaQuery.of(context).size.width * 0.52)
+        .clamp(160.0, 200.0);
 
     return ListView(
       children: [
@@ -11,8 +11,9 @@ extension CreateTestBodyPart on _CreateTestState {
           children: [
             GestureDetector(
               onTap: () async {
-                final pickedFile =
-                    await AppImagePickerService.pickSingleImage(context);
+                final pickedFile = await AppImagePickerService.pickSingleImage(
+                  context,
+                );
                 if (pickedFile != null) {
                   final file = pickedFile;
                   final r = await OptimizedNSFWService.checkImage(file);
@@ -33,106 +34,112 @@ extension CreateTestBodyPart on _CreateTestState {
                 child: Obx(
                   () => controller.imageFile.value == null
                       ? controller.foundImage.value.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: const BorderRadius.all(
-                                Radius.circular(12),
-                              ),
-                              child: CachedNetworkImage(
-                                imageUrl: controller.foundImage.value,
-                                cacheManager: TurqImageCacheManager.instance,
-                                fit: BoxFit.cover,
-                                fadeInDuration: Duration.zero,
-                                fadeOutDuration: Duration.zero,
-                                placeholder: (_, __) => Container(
-                                  color: Colors.grey[200],
+                            ? ClipRRect(
+                                borderRadius: const BorderRadius.all(
+                                  Radius.circular(12),
                                 ),
-                                errorWidget: (_, __, ___) => Container(
-                                  color: Colors.grey[300],
-                                  child: const Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              height: MediaQuery.of(context).size.width - 60,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withValues(alpha: 0.3),
-                                    spreadRadius: 2,
-                                    blurRadius: 8,
-                                    offset: const Offset(2, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Stack(
-                                  alignment: Alignment.bottomCenter,
-                                  children: [
-                                    Opacity(
-                                      opacity: 0.5,
-                                      child: Image.asset(
-                                        "assets/education/testgridpreview.webp",
-                                      ),
+                                child: CachedNetworkImage(
+                                  imageUrl: controller.foundImage.value,
+                                  cacheManager: TurqImageCacheManager.instance,
+                                  fit: BoxFit.cover,
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
+                                  placeholder: (_, __) =>
+                                      Container(color: Colors.grey[200]),
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: Colors.grey[300],
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
                                     ),
-                                    GestureDetector(
-                                      onTap: () async {
-                                        final pickedFile =
-                                            await AppImagePickerService
-                                                .pickSingleImage(context);
-                                        if (pickedFile != null) {
-                                          final file = pickedFile;
-                                          final r = await OptimizedNSFWService
-                                              .checkImage(file);
-                                          if (r.isNSFW) {
-                                            controller.imageFile.value = null;
-                                            AppSnackbar("common.error".tr,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                height: MediaQuery.of(context).size.width - 60,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withValues(alpha: 0.3),
+                                      spreadRadius: 2,
+                                      blurRadius: 8,
+                                      offset: const Offset(2, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                  ),
+                                  child: Stack(
+                                    alignment: Alignment.bottomCenter,
+                                    children: [
+                                      Opacity(
+                                        opacity: 0.5,
+                                        child: Image.asset(
+                                          "assets/education/testgridpreview.webp",
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final pickedFile =
+                                              await AppImagePickerService.pickSingleImage(
+                                                context,
+                                              );
+                                          if (pickedFile != null) {
+                                            final file = pickedFile;
+                                            final r =
+                                                await OptimizedNSFWService.checkImage(
+                                                  file,
+                                                );
+                                            if (r.isNSFW) {
+                                              controller.imageFile.value = null;
+                                              AppSnackbar(
+                                                "common.error".tr,
                                                 "tests.create_upload_failed".tr,
                                                 backgroundColor: Colors.red
-                                                    .withValues(alpha: 0.7));
-                                          } else {
-                                            controller.imageFile.value = file;
+                                                    .withValues(alpha: 0.7),
+                                              );
+                                            } else {
+                                              controller.imageFile.value = file;
+                                            }
                                           }
-                                        }
-                                      },
-                                      child: Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 20),
-                                        child: SizedBox(
-                                          height: 35,
-                                          width: coverSelectButtonWidth,
-                                          child: Material(
-                                            color: Colors.pink,
-                                            borderRadius:
-                                                const BorderRadius.all(
-                                              Radius.circular(20),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                "tests.cover_select".tr,
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 15,
-                                                  fontFamily: "MontserratBold",
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 20,
+                                          ),
+                                          child: SizedBox(
+                                            height: 35,
+                                            width: coverSelectButtonWidth,
+                                            child: Material(
+                                              color: Colors.pink,
+                                              borderRadius:
+                                                  const BorderRadius.all(
+                                                    Radius.circular(20),
+                                                  ),
+                                              child: Center(
+                                                child: Text(
+                                                  "tests.cover_select".tr,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 15,
+                                                    fontFamily:
+                                                        "MontserratBold",
+                                                  ),
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            )
+                              )
                       : ClipRRect(
                           borderRadius: const BorderRadius.all(
                             Radius.circular(12),
@@ -352,11 +359,13 @@ extension CreateTestBodyPart on _CreateTestState {
                                     Radius.circular(40),
                                   ),
                                   border: Border.all(
-                                    color: controller.testTuru.value ==
+                                    color:
+                                        controller.testTuru.value ==
                                             dersler[index]
                                         ? Colors.black
-                                        : Colors.black
-                                            .withValues(alpha: 0.0001),
+                                        : Colors.black.withValues(
+                                            alpha: 0.0001,
+                                          ),
                                     width: 2,
                                   ),
                                 ),
@@ -373,7 +382,8 @@ extension CreateTestBodyPart on _CreateTestState {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: controller.testTuru.value ==
+                                  color:
+                                      controller.testTuru.value ==
                                           dersler[index]
                                       ? Colors.pink
                                       : Colors.black,
@@ -390,16 +400,17 @@ extension CreateTestBodyPart on _CreateTestState {
               ),
             ),
             Obx(
-              () => controller.testTuru.value == createTestTypeMiddleSchool ||
+              () =>
+                  controller.testTuru.value == createTestTypeMiddleSchool ||
                       controller.testTuru.value == createTestTypeHighSchool
                   ? buildOrtaOkulLise(context, controller)
                   : controller.testTuru.value == createTestTypePrep
-                      ? buildHazirlik(context, controller)
-                      : controller.testTuru.value == createTestTypeLanguage
-                          ? buildDil(context, controller)
-                          : controller.testTuru.value == createTestTypeBranch
-                              ? buildBransh(context, controller)
-                              : const SizedBox.shrink(),
+                  ? buildHazirlik(context, controller)
+                  : controller.testTuru.value == createTestTypeLanguage
+                  ? buildDil(context, controller)
+                  : controller.testTuru.value == createTestTypeBranch
+                  ? buildBransh(context, controller)
+                  : const SizedBox.shrink(),
             ),
             Obx(
               () => controller.showSilButon.value
@@ -458,35 +469,38 @@ extension CreateTestBodyPart on _CreateTestState {
                       ),
                     )
                   : (controller.selectedDers.isNotEmpty &&
-                          controller.aciklama.text.isNotEmpty &&
-                          !controller.showSilButon.value &&
-                          (controller.imageFile.value != null ||
-                              controller.model != null))
-                      ? GestureDetector(
-                          onTap: () => controller.prepareTest(context),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Container(
-                              height: 45,
-                              alignment: Alignment.center,
-                              decoration: const BoxDecoration(
-                                color: Colors.indigo,
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                "tests.prepare_test".tr,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 15,
-                                  fontFamily: "MontserratMedium",
-                                ),
-                              ),
+                        controller.aciklama.text.isNotEmpty &&
+                        !controller.showSilButon.value &&
+                        (controller.imageFile.value != null ||
+                            controller.model != null))
+                  ? GestureDetector(
+                      onTap: () => controller.prepareTest(context),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          20,
+                          20,
+                          systemNavigationAwareBottom(context),
+                        ),
+                        child: Container(
+                          height: 45,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            color: Colors.indigo,
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          child: Text(
+                            "tests.prepare_test".tr,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontFamily: "MontserratMedium",
                             ),
                           ),
-                        )
-                      : const SizedBox.shrink(),
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),

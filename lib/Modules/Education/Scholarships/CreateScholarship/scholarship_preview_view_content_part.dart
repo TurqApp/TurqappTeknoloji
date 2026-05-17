@@ -149,7 +149,12 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
                         scrollController: scrollController,
                         currentIndex: currentIndex,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(
+                        height: systemNavigationAwareBottom(
+                          context,
+                          spacing: 20,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -196,11 +201,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(title),
-          12.ph,
-          ...children,
-        ],
+        children: [_buildSectionHeader(title), 12.ph, ...children],
       ),
     );
   }
@@ -254,8 +255,7 @@ extension ScholarshipPreviewViewContentPart on ScholarshipPreviewView {
                   curve: Curves.easeInOut,
                 );
               }
-              if (scrollController.hasClients &&
-                  scrollController.offset > 0) {
+              if (scrollController.hasClients && scrollController.offset > 0) {
                 await scrollController.animateTo(
                   0,
                   duration: const Duration(milliseconds: 300),

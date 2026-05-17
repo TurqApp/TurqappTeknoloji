@@ -5,7 +5,7 @@ extension TutoringViewShellContentPart on TutoringView {
     return [
       Obx(
         () => Positioned(
-          bottom: 20,
+          bottom: systemNavigationAwareBottom(context),
           right: 20,
           child: Visibility(
             visible: tutoringController.scrollOffset.value <= 350,
@@ -53,9 +53,9 @@ extension TutoringViewShellContentPart on TutoringView {
                   icon: CupertinoIcons.slider_horizontal_3,
                   onTap: () =>
                       const SliderAdminNavigationService().openSliderAdmin(
-                    sliderId: 'ozel_ders',
-                    title: 'tutoring.title'.tr,
-                  ),
+                        sliderId: 'ozel_ders',
+                        title: 'tutoring.title'.tr,
+                      ),
                 ),
               ],
             ),
@@ -73,11 +73,7 @@ extension TutoringViewShellContentPart on TutoringView {
           children: [
             IconButton(
               onPressed: Get.back,
-              icon: Icon(
-                AppIcons.arrowLeft,
-                color: Colors.black,
-                size: 25,
-              ),
+              icon: Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
             ),
             TypewriterText(text: 'tutoring.title'.tr),
           ],

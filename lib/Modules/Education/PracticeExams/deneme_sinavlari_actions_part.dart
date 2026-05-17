@@ -4,7 +4,7 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
   Widget _buildFloatingAction(BuildContext context) {
     return Obx(
       () => Positioned(
-        bottom: 20,
+        bottom: systemNavigationAwareBottom(context),
         right: 20,
         child: Visibility(
           visible: controller.scrollOffset.value <= 350,
@@ -53,9 +53,9 @@ extension DenemeSinavlariActionsPart on DenemeSinavlari {
                 title: 'practice.slider_management'.tr,
                 onTap: () =>
                     const SliderAdminNavigationService().openSliderAdmin(
-                  sliderId: 'online_sinav',
-                  title: 'pasaj.tabs.online_exam'.tr,
-                ),
+                      sliderId: 'online_sinav',
+                      title: 'pasaj.tabs.online_exam'.tr,
+                    ),
               ),
             ],
           ),

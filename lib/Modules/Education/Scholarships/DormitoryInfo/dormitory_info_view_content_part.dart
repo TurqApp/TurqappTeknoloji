@@ -11,9 +11,7 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: BackButtons(text: 'dormitory.title'.tr),
-                ),
+                Expanded(child: BackButtons(text: 'dormitory.title'.tr)),
                 PullDownButton(
                   itemBuilder: (context) => _buildMenuItems(),
                   buttonBuilder: (context, showMenu) => AppHeaderActionButton(
@@ -59,7 +57,12 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
             Obx(
               () => _canSave
                   ? Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        systemNavigationAwareBottom(context, spacing: 16),
+                      ),
                       child: GestureDetector(
                         onTap: controller.saveData,
                         child: Container(
@@ -285,11 +288,7 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
               ),
               child: Obx(
                 () => controller.listedeYok.value
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.black,
-                        size: 20,
-                      )
+                    ? const Icon(Icons.check, color: Colors.black, size: 20)
                     : const SizedBox(),
               ),
             ),
@@ -323,9 +322,7 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
           controller: controller.yurtInput,
           textCapitalization: TextCapitalization.sentences,
           keyboardType: TextInputType.text,
-          inputFormatters: [
-            LengthLimitingTextInputFormatter(50),
-          ],
+          inputFormatters: [LengthLimitingTextInputFormatter(50)],
           decoration: InputDecoration(
             hintText: 'scholarship.dormitory_name_hint'.tr,
             hintStyle: const TextStyle(
@@ -336,10 +333,7 @@ extension _DormitoryInfoViewContentPart on _DormitoryInfoViewState {
             suffixIcon: Obx(
               () => controller.yurtInputText.value.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(
-                        Icons.clear,
-                        color: Colors.grey,
-                      ),
+                      icon: const Icon(Icons.clear, color: Colors.grey),
                       onPressed: () {
                         controller.yurtInput.clear();
                         controller.yurtInputText.value = '';

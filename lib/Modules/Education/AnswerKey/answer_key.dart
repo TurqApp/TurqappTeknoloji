@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Services/answer_key_navigation_service.dart';
 import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/AnswerKeyContent/answer_key_content.dart';
@@ -45,8 +46,9 @@ class AnswerKey extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AnswerKeyController controller =
-      ensureAnswerKeyController(permanent: true);
+  final AnswerKeyController controller = ensureAnswerKeyController(
+    permanent: true,
+  );
   ScrollController get _scrollController => controller.scrollController;
 
   @override

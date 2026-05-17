@@ -4,9 +4,7 @@ extension SinavSorusuHazirlaQuestionPart on _SinavSorusuHazirlaState {
   Widget _buildSinavSorusuHazirlaContent() {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(
-          child: CupertinoActivityIndicator(radius: 20),
-        );
+        return const Center(child: CupertinoActivityIndicator(radius: 20));
       }
 
       if (controller.isInitialized.value && controller.list.isEmpty) {
@@ -44,7 +42,12 @@ extension SinavSorusuHazirlaQuestionPart on _SinavSorusuHazirlaState {
                     ),
                   ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    20,
+                    0,
+                    systemNavigationAwareBottom(context),
+                  ),
                   child: GestureDetector(
                     onTap: controller.completeExam,
                     child: Container(
@@ -127,8 +130,9 @@ extension SinavSorusuHazirlaQuestionPart on _SinavSorusuHazirlaState {
                             top: 10,
                             left: 10,
                             child: Text(
-                              'tests.question_number'
-                                  .trParams({'index': '${entry.key + 1}'}),
+                              'tests.question_number'.trParams({
+                                'index': '${entry.key + 1}',
+                              }),
                               style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 18,

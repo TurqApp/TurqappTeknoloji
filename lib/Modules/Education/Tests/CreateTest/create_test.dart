@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
 import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Models/Education/tests_model.dart';
 import 'package:turqappv2/Modules/Education/Tests/CreateTest/create_test_controller.dart';
 
@@ -47,8 +48,9 @@ class _CreateTestState extends State<CreateTest> {
   @override
   void dispose() {
     if (_ownsController) {
-      final registeredController =
-          maybeFindCreateTestController(tag: _controllerTag);
+      final registeredController = maybeFindCreateTestController(
+        tag: _controllerTag,
+      );
       if (identical(registeredController, controller)) {
         Get.delete<CreateTestController>(tag: _controllerTag, force: true);
       }

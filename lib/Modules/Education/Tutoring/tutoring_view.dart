@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/Widgets/turq_search_bar.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/functions.dart';
 import 'package:turqappv2/Core/Services/education_detail_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
 import 'package:turqappv2/Models/Education/tutoring_model.dart';
@@ -38,10 +39,12 @@ class TutoringView extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final TutoringController tutoringController =
-      ensureTutoringController(permanent: true);
-  final ViewModeController viewModeController =
-      ensureViewModeController(permanent: true);
+  final TutoringController tutoringController = ensureTutoringController(
+    permanent: true,
+  );
+  final ViewModeController viewModeController = ensureViewModeController(
+    permanent: true,
+  );
   final TutoringFilterController filterController =
       ensureTutoringFilterController(permanent: true);
   final applyFilterTrigger = false.obs;

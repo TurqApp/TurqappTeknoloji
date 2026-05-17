@@ -251,10 +251,7 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                     onTap: () {
                       AppBottomSheet.show(
                         context: Get.context!,
-                        items: const [
-                          repayableYesValue,
-                          repayableNoValue,
-                        ],
+                        items: const [repayableYesValue, repayableNoValue],
                         title: "scholarship.repayable_label".tr,
                         selectedItem: controller.geriOdemeli.value,
                         itemLabelBuilder: (item) =>
@@ -427,12 +424,12 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
             Obx(
               () =>
                   controller.egitimKitlesi.value == educationAudienceAllValue ||
-                          controller.egitimKitlesi.value ==
-                              educationAudienceMiddleSchoolValue ||
-                          controller.egitimKitlesi.value ==
-                              educationAudienceHighSchoolValue
-                      ? const SizedBox.shrink()
-                      : 8.pw,
+                      controller.egitimKitlesi.value ==
+                          educationAudienceMiddleSchoolValue ||
+                      controller.egitimKitlesi.value ==
+                          educationAudienceHighSchoolValue
+                  ? const SizedBox.shrink()
+                  : 8.pw,
             ),
             Obx(() {
               if (controller.egitimKitlesi.value ==
@@ -489,14 +486,13 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
                                   controller.lisansTuru.isEmpty
                                       ? "scholarship.degree_type_select".tr
                                       : controller.lisansTuru.length > 1
-                                          ? 'common.selected_count'.trParams({
-                                              'count': controller
-                                                  .lisansTuru.length
-                                                  .toString(),
-                                            })
-                                          : _degreeTypeLabel(
-                                              controller.lisansTuru.first,
-                                            ),
+                                      ? 'common.selected_count'.trParams({
+                                          'count': controller.lisansTuru.length
+                                              .toString(),
+                                        })
+                                      : _degreeTypeLabel(
+                                          controller.lisansTuru.first,
+                                        ),
                                   style: const TextStyle(color: Colors.black),
                                 ),
                                 const Icon(
@@ -517,13 +513,10 @@ extension CreateScholarshipExtraPart on _CreateScholarshipViewState {
           ],
         ),
         16.ph,
-        _buildTargetingSection(
-          context,
-          controller,
-          containerDecoration,
-        ),
+        _buildTargetingSection(context, controller, containerDecoration),
         const SizedBox(height: 20),
         _buildExtraSectionActions(controller),
+        SizedBox(height: systemNavigationAwareBottom(context, spacing: 15)),
       ],
     );
   }

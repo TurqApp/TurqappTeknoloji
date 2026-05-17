@@ -8,7 +8,7 @@ extension CreateTestQuestionContentShellContentPart
           ? _buildInvalidState()
           : Padding(
               padding: EdgeInsets.only(
-                bottom: 20,
+                bottom: systemNavigationAwareBottom(context),
                 top: index == 0 ? 20 : 0,
                 left: 20,
                 right: 20,
@@ -68,10 +68,7 @@ extension CreateTestQuestionContentShellContentPart
   Widget _buildImageSection(BuildContext context) {
     if (controller.isLoading.value) {
       return const Center(
-        child: CupertinoActivityIndicator(
-          radius: 20,
-          color: Colors.black,
-        ),
+        child: CupertinoActivityIndicator(radius: 20, color: Colors.black),
       );
     }
     if (controller.selectedImage.value != null) {
@@ -86,23 +83,24 @@ extension CreateTestQuestionContentShellContentPart
     return CachedNetworkImage(
       imageUrl: controller.model.img,
       key: ValueKey(controller.model.img),
-      placeholder: (context, url) => const Center(
-        child: CupertinoActivityIndicator(),
-      ),
+      placeholder: (context, url) =>
+          const Center(child: CupertinoActivityIndicator()),
       errorWidget: (context, url, error) => const Icon(Icons.broken_image),
     );
   }
 
   Widget _buildEmptyImageState(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.only(bottom: systemNavigationAwareBottom(context)),
       child: Column(
         children: [
           const SizedBox(height: 20),
           Image.asset(
             "assets/createsoru.webp",
-            height:
-                (MediaQuery.of(context).size.height * 0.24).clamp(140.0, 180.0),
+            height: (MediaQuery.of(context).size.height * 0.24).clamp(
+              140.0,
+              180.0,
+            ),
           ),
           const SizedBox(height: 15),
           Text(
@@ -128,11 +126,7 @@ extension CreateTestQuestionContentShellContentPart
           ),
           const SizedBox(height: 15),
           Padding(
-            padding: const EdgeInsets.only(
-              left: 30,
-              right: 30,
-              top: 20,
-            ),
+            padding: const EdgeInsets.only(left: 30, right: 30, top: 20),
             child: Row(
               children: [
                 Expanded(

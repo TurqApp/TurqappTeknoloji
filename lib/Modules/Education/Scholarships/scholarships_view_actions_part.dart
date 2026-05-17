@@ -1,8 +1,12 @@
 part of 'scholarships_view.dart';
 
 extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
-  Widget _buildScholarshipImage(int index, String type, dynamic burs,
-      Map<String, dynamic> scholarshipData) {
+  Widget _buildScholarshipImage(
+    int index,
+    String type,
+    dynamic burs,
+    Map<String, dynamic> scholarshipData,
+  ) {
     return GestureDetector(
       onDoubleTap: () => controller.toggleLike(scholarshipData['docId'], type),
       child: _hasMultipleImages(type, burs)
@@ -23,10 +27,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       await confirmAndLaunchExternalUrl(url);
       return;
     }
-    AppSnackbar(
-      'common.error'.tr,
-      'scholarship.website_open_failed'.tr,
-    );
+    AppSnackbar('common.error'.tr, 'scholarship.website_open_failed'.tr);
   }
 
   bool _hasMultipleImages(String type, dynamic burs) {
@@ -41,10 +42,11 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     IndividualScholarshipsModel burs,
     Map<String, dynamic> scholarshipData,
   ) {
-    final docId = (scholarshipData['docId'] ??
-            scholarshipData['scholarshipId'] ??
-            burs.timeStamp)
-        .toString();
+    final docId =
+        (scholarshipData['docId'] ??
+                scholarshipData['scholarshipId'] ??
+                burs.timeStamp)
+            .toString();
     return Column(
       children: [
         AspectRatio(
@@ -79,8 +81,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       child: _buildInteractiveScholarshipImage(
         burs: burs,
         scholarshipData: scholarshipData,
-        imageUrl:
-            burs is IndividualScholarshipsModel ? burs.primaryImageUrl : '',
+        imageUrl: burs is IndividualScholarshipsModel
+            ? burs.primaryImageUrl
+            : '',
       ),
     );
   }
@@ -90,8 +93,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     required Map<String, dynamic> scholarshipData,
     required String imageUrl,
   }) {
-    final website =
-        burs is IndividualScholarshipsModel ? burs.website.trim() : '';
+    final website = burs is IndividualScholarshipsModel
+        ? burs.website.trim()
+        : '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -248,8 +252,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                       overflow: controller.isExpandedList[index].value
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
-                      maxLines:
-                          controller.isExpandedList[index].value ? null : 2,
+                      maxLines: controller.isExpandedList[index].value
+                          ? null
+                          : 2,
                     ),
                   ),
                 )
@@ -326,10 +331,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
       );
       if (!canExpand) {
         return Text.rich(
-          ScholarshipRichText.build(
-            description,
-            baseStyle: baseStyle,
-          ),
+          ScholarshipRichText.build(description, baseStyle: baseStyle),
           style: baseStyle,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -339,10 +341,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
         () => GestureDetector(
           onTap: () => controller.toggleExpanded(index),
           child: Text.rich(
-            ScholarshipRichText.build(
-              description,
-              baseStyle: baseStyle,
-            ),
+            ScholarshipRichText.build(description, baseStyle: baseStyle),
             style: baseStyle,
             maxLines: controller.isExpandedList[index].value ? null : 2,
             overflow: controller.isExpandedList[index].value
@@ -427,7 +426,8 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
     Map<String, dynamic>? userData,
     Map<String, dynamic> scholarshipData,
   ) {
-    final isOwnScholarship = isIndividualScholarshipType(type) &&
+    final isOwnScholarship =
+        isIndividualScholarshipType(type) &&
         userData?['userID']?.toString() ==
             CurrentUserService.instance.effectiveUserId;
 
@@ -458,7 +458,10 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildInteractionButtons(
-      Map<String, dynamic> scholarshipData, String docId, String type) {
+    Map<String, dynamic> scholarshipData,
+    String docId,
+    String type,
+  ) {
     return Wrap(
       spacing: 8,
       children: [
@@ -470,7 +473,10 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildLikeButton(
-      Map<String, dynamic> scholarshipData, String docId, String type) {
+    Map<String, dynamic> scholarshipData,
+    String docId,
+    String type,
+  ) {
     return Obx(
       () => Row(
         mainAxisSize: MainAxisSize.min,
@@ -502,7 +508,10 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   }
 
   Widget _buildBookmarkButton(
-      Map<String, dynamic> scholarshipData, String docId, String type) {
+    Map<String, dynamic> scholarshipData,
+    String docId,
+    String type,
+  ) {
     return Obx(
       () => Row(
         mainAxisSize: MainAxisSize.min,
@@ -544,7 +553,7 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
   Widget _buildActionButton(BuildContext context) {
     return Obx(
       () => Positioned(
-        bottom: 20,
+        bottom: systemNavigationAwareBottom(context),
         right: 20,
         child: Visibility(
           visible: controller.scrollOffset.value <= 350,
@@ -578,8 +587,9 @@ extension ScholarshipsViewActionsPart on _ScholarshipsViewState {
                     featureName: 'scholarship.my_listings'.tr,
                   );
                   if (!allowed) return;
-                  ScholarshipNavigationService.openMyScholarships()
-                      .then((_) async {
+                  ScholarshipNavigationService.openMyScholarships().then((
+                    _,
+                  ) async {
                     await controller.fetchScholarships();
                     await controller.refreshTotalCount();
                   });

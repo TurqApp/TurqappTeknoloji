@@ -5,6 +5,7 @@ import 'package:pull_down_button/pull_down_button.dart';
 import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Services/education_question_bank_navigation_service.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/text_styles.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Antreman3/antreman_controller.dart';
@@ -26,19 +27,16 @@ class AntremanView2 extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final AntremanController controller =
-      ensureAntremanController(permanent: true);
+  final AntremanController controller = ensureAntremanController(
+    permanent: true,
+  );
 
   @override
   Widget build(BuildContext context) {
     if (embedded) {
       return Stack(
         children: [
-          Column(
-            children: [
-              _buildBody(context),
-            ],
-          ),
+          Column(children: [_buildBody(context)]),
           if (showEmbeddedControls) _buildActionButton(context),
         ],
       );
@@ -47,12 +45,7 @@ class AntremanView2 extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildBody(context),
-          ],
-        ),
+        child: Column(children: [_buildHeader(), _buildBody(context)]),
       ),
       floatingActionButton: ActionButton(
         context: context,

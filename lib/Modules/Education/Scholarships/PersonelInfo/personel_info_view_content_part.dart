@@ -133,17 +133,20 @@ extension _PersonelInfoViewContentPart on _PersonelInfoViewState {
                                             controller.selectedDate.value ==
                                                     null
                                                 ? 'personal_info.select_birth_date'
-                                                    .tr
+                                                      .tr
                                                 : DateFormat(
                                                     "dd.MM.yyyy",
                                                   ).format(
                                                     controller
-                                                        .selectedDate.value!,
+                                                        .selectedDate
+                                                        .value!,
                                                   ),
                                             style: TextStyle(
                                               fontSize: 16,
-                                              color: controller
-                                                          .selectedDate.value ==
+                                              color:
+                                                  controller
+                                                          .selectedDate
+                                                          .value ==
                                                       null
                                                   ? Colors.grey
                                                   : Colors.black,
@@ -155,7 +158,9 @@ extension _PersonelInfoViewContentPart on _PersonelInfoViewState {
                                     ),
                                   ),
                                 ),
-                                ...controller.fieldConfigs.sublist(1).map(
+                                ...controller.fieldConfigs
+                                    .sublist(1)
+                                    .map(
                                       (config) => Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
@@ -176,11 +181,17 @@ extension _PersonelInfoViewContentPart on _PersonelInfoViewState {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  systemNavigationAwareBottom(context, spacing: 16),
+                ),
                 child: Obx(
                   () => GestureDetector(
-                    onTap:
-                        controller.isSaving.value ? null : controller.saveData,
+                    onTap: controller.isSaving.value
+                        ? null
+                        : controller.saveData,
                     child: Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(12),

@@ -8,6 +8,7 @@ import 'package:turqappv2/Core/BottomSheets/no_yes_alert.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/user_schema_fields.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/text_styles.dart';
@@ -43,7 +44,9 @@ class _BankInfoViewState extends State<BankInfoView> {
   void dispose() {
     if (_ownsController &&
         identical(
-            maybeFindBankInfoController(tag: _controllerTag), controller)) {
+          maybeFindBankInfoController(tag: _controllerTag),
+          controller,
+        )) {
       Get.delete<BankInfoController>(tag: _controllerTag, force: true);
     }
     super.dispose();
@@ -51,9 +54,6 @@ class _BankInfoViewState extends State<BankInfoView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: _buildBody(context),
-    );
+    return Scaffold(resizeToAvoidBottomInset: false, body: _buildBody(context));
   }
 }

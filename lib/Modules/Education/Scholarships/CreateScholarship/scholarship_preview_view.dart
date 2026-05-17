@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:turqappv2/Core/Helpers/safe_external_link_guard.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Utils/url_utils.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 import 'package:turqappv2/Core/Buttons/back_buttons.dart';
@@ -31,8 +32,10 @@ class ScholarshipPreviewView extends StatelessWidget {
         CarouselSliderController();
     final ScrollController scrollController = ScrollController();
     final currentIndex = 0.obs;
-    final logoSize =
-        (MediaQuery.of(context).size.width * 0.35).clamp(108.0, 133.0);
+    final logoSize = (MediaQuery.of(context).size.width * 0.35).clamp(
+      108.0,
+      133.0,
+    );
 
     return _buildPage(
       context: context,

@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Services/user_schema_fields.dart';
 import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/Scholarships/EducationInfo/education_info_controller.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
 
@@ -97,15 +98,18 @@ class _EducationInfoViewState extends State<EducationInfoView> {
                             Expanded(child: _buildFormFields()),
                             20.ph,
                             _buildSaveButton(),
-                            15.ph,
+                            SizedBox(
+                              height: systemNavigationAwareBottom(
+                                context,
+                                spacing: 15,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     if (controller.isInitialLoading.value ||
                         controller.isLoading.value)
-                      Expanded(
-                        child: AppStateView.loading(),
-                      ),
+                      Expanded(child: AppStateView.loading()),
                   ],
                 ),
               ),

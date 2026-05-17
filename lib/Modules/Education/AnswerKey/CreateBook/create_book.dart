@@ -7,6 +7,7 @@ import 'package:turqappv2/Core/Widgets/app_header_action_button.dart';
 import 'package:turqappv2/Core/external.dart';
 import 'package:turqappv2/Core/Services/app_image_picker_service.dart';
 import 'package:turqappv2/Core/Services/optimized_nsfw_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Models/Education/booklet_model.dart';
 import 'package:turqappv2/Modules/Education/AnswerKey/CreateBook/create_book_controller.dart';
 
@@ -117,11 +118,10 @@ class _CreateBookState extends State<CreateBook> {
                               ? controller.nextStep()
                               : controller.setData(context),
                           child: Padding(
-                            padding: const EdgeInsets.only(
-                              left: 15,
-                              right: 15,
-                              bottom: 20,
-                            ),
+                            padding: const EdgeInsets.only(left: 15, right: 15)
+                                .copyWith(
+                                  bottom: systemNavigationAwareBottom(context),
+                                ),
                             child: Container(
                               height: 50,
                               decoration: const BoxDecoration(
@@ -135,8 +135,8 @@ class _CreateBookState extends State<CreateBook> {
                                 controller.selection.value == 0
                                     ? 'common.continue'.tr
                                     : controller.isEditMode
-                                        ? 'common.update'.tr
-                                        : 'common.publish'.tr,
+                                    ? 'common.update'.tr
+                                    : 'common.publish'.tr,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,

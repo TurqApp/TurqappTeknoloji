@@ -164,10 +164,7 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
       return;
     }
     if (selectedFaculty.value.isEmpty) {
-      AppSnackbar(
-        'common.error'.tr,
-        'education_info.select_faculty_error'.tr,
-      );
+      AppSnackbar('common.error'.tr, 'education_info.select_faculty_error'.tr);
       return;
     }
     if (selectedDepartment.value.isEmpty) {
@@ -203,10 +200,7 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
         ),
         ...scopedUserUpdate(
           scope: 'profile',
-          values: {
-            'ulke': selectedCountry.value,
-            'il': selectedCity.value,
-          },
+          values: {'ulke': selectedCountry.value, 'il': selectedCity.value},
         ),
       });
 
@@ -232,13 +226,12 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
     bool isSearchable = false,
   }) async {
     final animationController = _animationControllers[title];
-    if (animationController == null) return;
-
-    animationController.forward();
+    animationController?.forward();
 
     final localizedItems = items.map(localizedOption).toList();
-    final localizedSelectedItem =
-        selectedItem == null ? null : localizedOption(selectedItem);
+    final localizedSelectedItem = selectedItem == null
+        ? null
+        : localizedOption(selectedItem);
 
     await ListBottomSheet.show(
       context: context,
@@ -252,6 +245,6 @@ extension _EducationInfoControllerActionsPart on EducationInfoController {
       isSearchable: isSearchable,
     );
 
-    animationController.reverse();
+    animationController?.reverse();
   }
 }

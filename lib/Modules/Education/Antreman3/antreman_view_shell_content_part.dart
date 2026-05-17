@@ -3,7 +3,7 @@ part of 'antreman_view.dart';
 extension _AntremanViewShellContentPart on AntremanView2 {
   Widget _buildAntremanViewActionButtonContent(BuildContext context) {
     return Positioned(
-      bottom: 20,
+      bottom: systemNavigationAwareBottom(context),
       right: 20,
       child: ActionButton(
         context: context,
@@ -30,15 +30,9 @@ extension _AntremanViewShellContentPart on AntremanView2 {
             children: [
               IconButton(
                 onPressed: Get.back,
-                icon: Icon(
-                  AppIcons.arrowLeft,
-                  color: Colors.black,
-                  size: 25,
-                ),
+                icon: Icon(AppIcons.arrowLeft, color: Colors.black, size: 25),
               ),
-              TypewriterText(
-                text: "pasaj.tabs.question_bank".tr,
-              ),
+              TypewriterText(text: "pasaj.tabs.question_bank".tr),
             ],
           ),
         ),

@@ -64,15 +64,17 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                           return;
                         }
 
-                        final r =
-                            await OptimizedNSFWService.checkImage(newFile);
+                        final r = await OptimizedNSFWService.checkImage(
+                          newFile,
+                        );
                         if (r.isNSFW) {
                           controller.logoPath.value = '';
                           controller.logo.value = '';
-                          AppSnackbar("edit_profile.upload_failed_title".tr,
-                              "edit_profile.upload_failed_body".tr,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.7));
+                          AppSnackbar(
+                            "edit_profile.upload_failed_title".tr,
+                            "edit_profile.upload_failed_body".tr,
+                            backgroundColor: Colors.red.withValues(alpha: 0.7),
+                          );
                         } else {
                           controller.logoPath.value = newFile.path;
                           controller.logo.value = newFile.path;
@@ -103,19 +105,18 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(12),
                                       ),
-                                      child: controller.logo.value
-                                              .startsWith('http')
+                                      child:
+                                          controller.logo.value.startsWith(
+                                            'http',
+                                          )
                                           ? CachedNetworkImage(
                                               imageUrl: controller.logo.value,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
-                                              errorWidget: (
-                                                context,
-                                                url,
-                                                error,
-                                              ) =>
-                                                  const Icon(Icons.error),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      const Icon(Icons.error),
                                             )
                                           : Image.file(
                                               File(controller.logo.value),
@@ -135,10 +136,12 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.6),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.close,
@@ -186,14 +189,16 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                           return;
                         }
 
-                        final r =
-                            await OptimizedNSFWService.checkImage(newFile);
+                        final r = await OptimizedNSFWService.checkImage(
+                          newFile,
+                        );
                         if (r.isNSFW) {
                           controller.customImagePath.value = '';
-                          AppSnackbar("edit_profile.upload_failed_title".tr,
-                              "edit_profile.upload_failed_body".tr,
-                              backgroundColor:
-                                  Colors.red.withValues(alpha: 0.7));
+                          AppSnackbar(
+                            "edit_profile.upload_failed_title".tr,
+                            "edit_profile.upload_failed_body".tr,
+                            backgroundColor: Colors.red.withValues(alpha: 0.7),
+                          );
                         } else {
                           controller.customImagePath.value = newFile.path;
                         }
@@ -224,24 +229,26 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                       borderRadius: const BorderRadius.all(
                                         Radius.circular(12),
                                       ),
-                                      child: controller.customImagePath.value
+                                      child:
+                                          controller.customImagePath.value
                                               .startsWith('http')
                                           ? CachedNetworkImage(
                                               imageUrl: controller
-                                                  .customImagePath.value,
+                                                  .customImagePath
+                                                  .value,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
-                                              errorWidget: (
-                                                context,
-                                                url,
-                                                error,
-                                              ) =>
-                                                  const Icon(Icons.error),
+                                              errorWidget:
+                                                  (context, url, error) =>
+                                                      const Icon(Icons.error),
                                             )
                                           : Image.file(
-                                              File(controller
-                                                  .customImagePath.value),
+                                              File(
+                                                controller
+                                                    .customImagePath
+                                                    .value,
+                                              ),
                                               fit: BoxFit.cover,
                                               width: double.infinity,
                                               height: double.infinity,
@@ -257,10 +264,12 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                                         child: Container(
                                           padding: const EdgeInsets.all(4),
                                           decoration: BoxDecoration(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.6),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.6,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.close,
@@ -282,8 +291,10 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
           ],
         ),
         16.ph,
-        Text("scholarship.template_select".tr,
-            style: TextStyles.textFieldTitle),
+        Text(
+          "scholarship.template_select".tr,
+          style: TextStyles.textFieldTitle,
+        ),
         4.ph,
         GridView.count(
           crossAxisCount: 3,
@@ -328,7 +339,7 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
 
   Widget preview(BuildContext context, CreateScholarshipController controller) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.only(bottom: systemNavigationAwareBottom(context)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -368,8 +379,10 @@ extension CreateScholarshipMediaPart on _CreateScholarshipViewState {
                 color: Colors.black,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text('scholarship.preview_title'.tr,
-                  style: TextStyles.medium15white),
+              child: Text(
+                'scholarship.preview_title'.tr,
+                style: TextStyles.medium15white,
+              ),
             ),
           ),
         ],

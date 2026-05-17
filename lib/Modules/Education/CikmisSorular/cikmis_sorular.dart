@@ -6,6 +6,7 @@ import 'package:turqappv2/Core/Buttons/action_button.dart';
 import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Services/education_question_bank_navigation_service.dart';
 import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_controller.dart';
 import 'package:turqappv2/Modules/Education/CikmisSorular/cikmis_sorular_grid.dart';
@@ -30,8 +31,9 @@ class CikmisSorular extends StatefulWidget {
 }
 
 class _CikmisSorularState extends State<CikmisSorular> {
-  final CikmisSorularController controller =
-      ensureCikmisSorularController(permanent: true);
+  final CikmisSorularController controller = ensureCikmisSorularController(
+    permanent: true,
+  );
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -58,9 +60,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
     }
 
     if (controller.searchResults.isEmpty) {
-      return AppStateView.empty(
-        title: 'past_questions.search_empty'.tr,
-      );
+      return AppStateView.empty(title: 'past_questions.search_empty'.tr);
     }
 
     return ListView.separated(
@@ -71,8 +71,9 @@ class _CikmisSorularState extends State<CikmisSorular> {
       itemBuilder: (context, index) {
         final item = controller.searchResults[index];
         final anaBaslik = (item['anaBaslik'] ?? '').toString();
-        final title =
-            anaBaslik.isNotEmpty ? anaBaslik : (item['title'] ?? '').toString();
+        final title = anaBaslik.isNotEmpty
+            ? anaBaslik
+            : (item['title'] ?? '').toString();
         final sinavTuru = (item['sinavTuru'] ?? '').toString();
         final yil = (item['yil'] ?? '').toString();
         final baslik2 = (item['baslik2'] ?? '').toString();
@@ -95,9 +96,11 @@ class _CikmisSorularState extends State<CikmisSorular> {
             ),
           ),
           subtitle: Text(
-            [sinavTuru, baslik2, baslik3]
-                .where((e) => e.isNotEmpty)
-                .join(' • '),
+            [
+              sinavTuru,
+              baslik2,
+              baslik3,
+            ].where((e) => e.isNotEmpty).join(' • '),
             style: const TextStyle(
               fontFamily: 'MontserratMedium',
               color: Colors.black54,
@@ -201,7 +204,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
           Column(children: [bodyContent]),
           if (widget.showEmbeddedControls)
             Positioned(
-              bottom: 20,
+              bottom: systemNavigationAwareBottom(context),
               right: 20,
               child: ActionButton(
                 context: context,
@@ -251,9 +254,7 @@ class _CikmisSorularState extends State<CikmisSorular> {
                         size: 25,
                       ),
                     ),
-                    TypewriterText(
-                      text: 'past_questions.title'.tr,
-                    ),
+                    TypewriterText(text: 'past_questions.title'.tr),
                   ],
                 ),
                 bodyContent,

@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Slider/education_slider.dart';
 import 'package:turqappv2/Core/Services/practice_exam_navigation_service.dart';
 import 'package:turqappv2/Core/Services/slider_admin_navigation_service.dart';
 import 'package:turqappv2/Core/Services/verified_account_navigation_service.dart';
+import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
 import 'package:turqappv2/Core/Widgets/pasaj_listing_ad_layout.dart';
 import 'package:turqappv2/Modules/Education/PracticeExams/DenemeGrid/deneme_grid.dart';
@@ -33,8 +34,9 @@ class DenemeSinavlari extends StatelessWidget {
 
   final bool embedded;
   final bool showEmbeddedControls;
-  final DenemeSinavlariController controller =
-      ensureDenemeSinavlariController(permanent: true);
+  final DenemeSinavlariController controller = ensureDenemeSinavlariController(
+    permanent: true,
+  );
   ScrollController get _scrollController => controller.scrollController;
 
   @override
@@ -62,12 +64,7 @@ class DenemeSinavlari extends StatelessWidget {
         bottom: false,
         child: Stack(
           children: [
-            Column(
-              children: [
-                _buildHeader(),
-                bodyContent,
-              ],
-            ),
+            Column(children: [_buildHeader(), bodyContent]),
             Obx(
               () => controller.showOkulAlert.value
                   ? _buildSchoolAlertSheet(context)
@@ -94,9 +91,7 @@ class DenemeSinavlari extends StatelessWidget {
                   size: 25,
                 ),
               ),
-              TypewriterText(
-                text: 'pasaj.tabs.online_exam'.tr,
-              ),
+              TypewriterText(text: 'pasaj.tabs.online_exam'.tr),
             ],
           ),
         ),

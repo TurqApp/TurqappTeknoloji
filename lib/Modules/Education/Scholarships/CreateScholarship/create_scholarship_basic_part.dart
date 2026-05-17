@@ -52,7 +52,8 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
             cursorColor: Colors.black,
             textCapitalization: TextCapitalization.characters,
             decoration: inputDecoration.copyWith(
-                hintText: "scholarship.title_label".tr),
+              hintText: "scholarship.title_label".tr,
+            ),
             controller: controller.baslikController,
             onChanged: (value) => controller.baslik.value = value,
           ),
@@ -74,7 +75,8 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
             inputFormatters: [
               // Allow Turkish letters (both cases) and spaces; we'll uppercase dynamically
               FilteringTextInputFormatter.allow(
-                  RegExp(r'[A-Za-zÇĞİÖŞÜçğıöşü\s]')),
+                RegExp(r'[A-Za-zÇĞİÖŞÜçğıöşü\s]'),
+              ),
               TextInputFormatter.withFunction((oldValue, newValue) {
                 String toUpperTr(String s) {
                   return s
@@ -134,7 +136,8 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
               controller.bursVerenController.text = controller.bursVeren.value;
               controller.bursVerenController.selection =
                   TextSelection.collapsed(
-                      offset: controller.bursVerenController.text.length);
+                    offset: controller.bursVerenController.text.length,
+                  );
             },
           ),
         ),
@@ -190,8 +193,9 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
             minLines: 3,
             maxLines: null,
             keyboardType: TextInputType.multiline,
-            decoration:
-                inputDecoration.copyWith(hintText: "common.description".tr),
+            decoration: inputDecoration.copyWith(
+              hintText: "common.description".tr,
+            ),
             controller: controller.aciklamaController,
             onChanged: (value) => controller.aciklama.value = value,
           ),
@@ -246,12 +250,15 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child:
-                    Text('common.continue'.tr, style: TextStyles.medium15white),
+                child: Text(
+                  'common.continue'.tr,
+                  style: TextStyles.medium15white,
+                ),
               ),
             ),
           ],
         ),
+        SizedBox(height: systemNavigationAwareBottom(context, spacing: 15)),
       ],
     );
   }
@@ -469,9 +476,8 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                 items: controller.applicationOption,
                 title: "scholarship.application_place_label".tr,
                 selectedItem: controller.basvuruYapilacakYer.value,
-                itemLabelBuilder: (item) => _applicationPlaceLabel(
-                  item.toString(),
-                ),
+                itemLabelBuilder: (item) =>
+                    _applicationPlaceLabel(item.toString()),
                 onSelect: (value) {
                   controller.basvuruYapilacakYer.value = value;
                   controller.basvuruYapilacakYerController.text =
@@ -546,13 +552,13 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                         FutureDatePickerBottomSheet(
                           initialDate:
                               controller.baslangicTarihi.value.isNotEmpty
-                                  ? DateFormat(
-                                      'dd.MM.yyyy',
-                                    ).parse(controller.baslangicTarihi.value)
-                                  : DateTime.now(),
+                              ? DateFormat(
+                                  'dd.MM.yyyy',
+                                ).parse(controller.baslangicTarihi.value)
+                              : DateTime.now(),
                           onSelected: (DateTime date) {
-                            controller.baslangicTarihi.value =
-                                dateFormat.format(date);
+                            controller.baslangicTarihi.value = dateFormat
+                                .format(date);
                           },
                           title: 'scholarship.application_start_date'.tr,
                         ),
@@ -682,13 +688,15 @@ extension CreateScholarshipBasicPart on _CreateScholarshipViewState {
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child:
-                    Text('common.continue'.tr, style: TextStyles.medium15white),
+                child: Text(
+                  'common.continue'.tr,
+                  style: TextStyles.medium15white,
+                ),
               ),
             ),
           ],
         ),
-        15.ph,
+        SizedBox(height: systemNavigationAwareBottom(context, spacing: 15)),
       ],
     );
   }
