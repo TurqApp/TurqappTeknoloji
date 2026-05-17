@@ -218,17 +218,16 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     bool success = false;
 
     try {
-      await _firestore.runTransaction((tx) async {
-        if (isSubComment && parentCommentId != null) {
-          final parentRef =
-              _postRef(postId).collection('comments').doc(parentCommentId);
-          final subCommentRef =
-              parentRef.collection('sub_comments').doc(commentId);
+      if (isSubComment && parentCommentId != null) {
+        final parentRef =
+            _postRef(postId).collection('comments').doc(parentCommentId);
+        final subCommentRef =
+            parentRef.collection('sub_comments').doc(commentId);
 
+        await _firestore.runTransaction((tx) async {
           final subSnap = await tx.get(subCommentRef);
-          if (!subSnap.exists) return;
-
           final parentSnap = await tx.get(parentRef);
+          if (!subSnap.exists) return;
 
           tx.update(subCommentRef, {
             'deleted': true,
@@ -247,27 +246,28 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
           }
 
           success = true;
-          return;
-        }
-
+        });
+      } else {
         final postRef = _postRef(postId);
         final commentRef = postRef.collection('comments').doc(commentId);
-        final commentSnap = await tx.get(commentRef);
-        if (!commentSnap.exists) return;
 
-        final postSnap = await tx.get(postRef);
+        await _firestore.runTransaction((tx) async {
+          final commentSnap = await tx.get(commentRef);
+          final postSnap = await tx.get(postRef);
+          if (!commentSnap.exists) return;
 
-        tx.update(commentRef, {
-          'deleted': true,
-          'deletedTimeStamp': timestamp,
+          tx.update(commentRef, {
+            'deleted': true,
+            'deletedTimeStamp': timestamp,
+          });
+
+          final stats = _statsFromSnapshot(postSnap);
+          final next = math.max(stats.commentCount - 1, 0);
+          tx.update(postRef, {'stats.commentCount': next});
+
+          success = true;
         });
-
-        final stats = _statsFromSnapshot(postSnap);
-        final next = math.max(stats.commentCount - 1, 0);
-        tx.update(postRef, {'stats.commentCount': next});
-
-        success = true;
-      });
+      }
     } catch (_) {
       success = false;
     }

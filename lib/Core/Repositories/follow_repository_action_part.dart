@@ -104,6 +104,7 @@ extension FollowRepositoryActionPart on FollowRepository {
     final result =
         await firestore.runTransaction<FollowWriteResult>((transaction) async {
       final myFollowSnap = await transaction.get(myFollowingRef);
+      final counterSnap = await transaction.get(counterRef);
 
       if (myFollowSnap.exists) {
         transaction.delete(myFollowingRef);
@@ -116,7 +117,6 @@ extension FollowRepositoryActionPart on FollowRepository {
 
       int currentCount = 0;
       var storedDay = todayKey;
-      final counterSnap = await transaction.get(counterRef);
       if (counterSnap.exists) {
         final data = counterSnap.data();
         storedDay = (data?['date'] as String?) ?? todayKey;
