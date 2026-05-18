@@ -191,9 +191,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
         },
       );
       try {
-        await _playbackExecutionService.playAdapter(activeAdapter);
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId, activeAdapter);
+          await _playShortAdapterWithOwnerClaim(page, docId, activeAdapter);
           await _reassertActiveShortAudibility(page, activeAdapter);
           _scheduleDelayedShortAudibilityReassert(page, activeAdapter);
           _applyShortPlaybackPresentation(page, activeAdapter);
@@ -227,7 +226,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     final docId = _cachedShorts[page].docID.trim();
     if (docId.isEmpty) return;
     try {
-      _playbackRuntimeService.enterExclusiveMode(
+      _playbackRuntimeService.enterExclusiveModeSilently(
         controller.playbackHandleKeyForDoc(docId),
       );
     } catch (_) {}
@@ -477,23 +476,33 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _lastExclusivePlayDocId = playbackHandleKey;
     _lastExclusivePlayAt = now;
     try {
-      final shouldUseDirectOwnershipRequest =
-          PlaybackSurfacePolicy.shouldUseDirectShortOwnershipRequest(
-        platform: defaultTargetPlatform,
-        isPlaying: adapter.value.isPlaying,
-        isBuffering: adapter.value.isBuffering,
-        hasRenderedFirstFrame: adapter.value.hasRenderedFirstFrame,
-        position: adapter.value.position,
+      _playbackRuntimeService.claimPlaybackHandleSilently(
+        playbackHandleKey,
+        HLSAdapterPlaybackHandle(adapter),
       );
-      if (shouldUseDirectOwnershipRequest) {
-        _playbackRuntimeService.requestPlay(
-          playbackHandleKey,
-          HLSAdapterPlaybackHandle(adapter),
-        );
-      } else {
-        _playbackRuntimeService.playOnlyThis(playbackHandleKey);
-      }
     } catch (_) {}
+  }
+
+  Future<void> _playShortAdapterWithOwnerClaim(
+    int page,
+    String docId,
+    HLSVideoAdapter adapter,
+  ) async {
+    if (!mounted ||
+        page != currentPage ||
+        adapter.isDisposed ||
+        isManuallyPaused ||
+        !_isShortRoutePlaybackActive ||
+        _shouldBlockPlaybackForAdPage) {
+      return;
+    }
+    final activeAdapter = controller.cache[page];
+    if (activeAdapter == null || !identical(activeAdapter, adapter)) {
+      return;
+    }
+    _requestExclusivePlayback(docId, adapter);
+    _applyShortPlaybackPresentation(page, adapter);
+    await _playbackExecutionService.playAdapter(adapter);
   }
 
   void _cancelPendingShortPlaybackForManualPause(
@@ -544,8 +553,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (page != currentPage || adapter.isDisposed) return;
     isManuallyPaused = false;
     _clearShortPlaybackAttemptSuppression();
-    _playbackExecutionService.playAdapter(adapter);
-    _requestExclusivePlayback(post.docID, adapter);
+    unawaited(_playShortAdapterWithOwnerClaim(page, post.docID, adapter));
   }
 
   bool _shouldTrimShortAttachedPlayers(int page) {
@@ -1146,7 +1154,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (target == null) return false;
     try {
       var seekTarget = target;
-      const resumeNudge = Duration(milliseconds: 350);
+      const resumeNudge = Duration(milliseconds: 100);
       final duration = adapter.value.duration;
       if (duration <= Duration.zero ||
           duration - target > const Duration(milliseconds: 1200)) {
@@ -1529,7 +1537,6 @@ extension ShortViewPlaybackPart on _ShortViewState {
               'positionMs': earlyAdapter.value.position.inMilliseconds,
             },
           );
-          unawaited(_playbackExecutionService.playAdapter(earlyAdapter));
         }
         await controller.ensureActiveAdapterReady(page);
         if (!mounted ||
@@ -1676,17 +1683,16 @@ extension ShortViewPlaybackPart on _ShortViewState {
             _shouldRecoverShortPlaybackOnRevisit(page, vc)) {
           try {
             _markShortPlaybackAttempt(page, docId);
-            await vc.recoverFrozenPlayback();
+            await vc.recoverFrozenPlayback(playAfterSeek: true);
             recoveredRevisitPlayback = true;
           } catch (_) {}
         }
         if (!recoveredRevisitPlayback && !vc.value.isPlaying) {
           _markShortPlaybackAttempt(page, docId);
-          await _playbackExecutionService.playAdapter(vc);
+          await _playShortAdapterWithOwnerClaim(page, docId, vc);
         }
         _pendingPageActivation = false;
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId, vc);
           await _reassertActiveShortAudibility(page, vc);
           _scheduleDelayedShortAudibilityReassert(page, vc);
           _applyShortPlaybackPresentation(page, vc);
@@ -1783,10 +1789,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         return;
       }
+      final shouldRecoverFrozenPlayback = vc.value.hasRenderedFirstFrame &&
+          !vc.value.isCompleted &&
+          vc.value.position >= const Duration(milliseconds: 2500);
       try {
-        final shouldRecoverFrozenPlayback = vc.value.hasRenderedFirstFrame &&
-            !vc.value.isCompleted &&
-            vc.value.position >= const Duration(milliseconds: 2500);
         if (_shouldSuppressShortPlaybackAttempt(
           page,
           docId,
@@ -1795,9 +1801,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
           return;
         }
         if (shouldRecoverFrozenPlayback) {
-          await vc.recoverFrozenPlayback();
+          await vc.recoverFrozenPlayback(playAfterSeek: true);
         } else {
-          await _playbackExecutionService.playAdapter(vc);
+          await _playShortAdapterWithOwnerClaim(page, docId, vc);
         }
       } catch (_) {}
       if (!mounted ||
@@ -1808,7 +1814,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         return;
       }
       _applyShortPlaybackPresentation(page, vc);
-      if (docId.isNotEmpty) {
+      if (docId.isNotEmpty && shouldRecoverFrozenPlayback) {
         _requestExclusivePlayback(docId, vc);
       }
       if (attempt < maxAudibilityAttempts) {
@@ -1915,9 +1921,9 @@ extension ShortViewPlaybackPart on _ShortViewState {
               afterPosition >= const Duration(milliseconds: 2500);
           try {
             if (shouldRecoverFrozenPlayback) {
-              await vc.recoverFrozenPlayback();
+              await vc.recoverFrozenPlayback(playAfterSeek: true);
             } else {
-              await _playbackExecutionService.playAdapter(vc);
+              await _playShortAdapterWithOwnerClaim(page, docId, vc);
             }
           } catch (_) {}
           if (!mounted ||
@@ -1928,7 +1934,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
             return;
           }
           _applyShortPlaybackPresentation(page, vc);
-          if (docId.isNotEmpty) {
+          if (docId.isNotEmpty && shouldRecoverFrozenPlayback) {
             _requestExclusivePlayback(docId, vc);
             _applyShortPlaybackPresentation(page, vc);
           }
@@ -2054,11 +2060,11 @@ extension ShortViewPlaybackPart on _ShortViewState {
           } catch (_) {}
         }
         if (shouldRecoverFrozenPlayback) {
-          await vc.recoverFrozenPlayback();
+          await vc.recoverFrozenPlayback(playAfterSeek: true);
         } else {
-          await _playbackExecutionService.playAdapter(vc);
+          await _playShortAdapterWithOwnerClaim(page, docId, vc);
         }
-        if (docId.isNotEmpty) {
+        if (docId.isNotEmpty && shouldRecoverFrozenPlayback) {
           _requestExclusivePlayback(docId, vc);
           _applyShortPlaybackPresentation(page, vc);
         }
@@ -2166,9 +2172,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
           },
         );
         _applyShortPlaybackPresentation(page, vc);
-        await _playbackExecutionService.playAdapter(vc);
         if (docId.isNotEmpty) {
-          _requestExclusivePlayback(docId, vc);
+          await _playShortAdapterWithOwnerClaim(page, docId, vc);
           await _reassertActiveShortAudibility(page, vc);
           _scheduleDelayedShortAudibilityReassert(page, vc);
           _applyShortPlaybackPresentation(page, vc);
@@ -2244,6 +2249,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
   void _telemetryListener() {
     final vc = _telemetryAdapter;
     if (vc == null || currentPage >= _cachedShorts.length) return;
+    final activeAdapter = controller.cache[currentPage];
+    if (activeAdapter == null || !identical(activeAdapter, vc)) return;
     final videoId = _cachedShorts[currentPage].docID;
     final v = vc.value;
     _applyShortPlaybackPresentation(currentPage, vc);
@@ -2298,6 +2305,8 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (!mounted || _isTransitioning) return;
     if (page != currentPage) return;
     if (page < 0 || page >= _cachedShorts.length) return;
+    final activeAdapter = controller.cache[page];
+    if (activeAdapter == null || !identical(activeAdapter, vc)) return;
     final currentDocId = _cachedShorts[page].docID;
     if (currentDocId != expectedDocId) return;
 

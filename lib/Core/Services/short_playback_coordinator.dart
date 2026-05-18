@@ -41,7 +41,7 @@ class ShortPlaybackCoordinator {
     }
     return ShortPlaybackCoordinator(
       hotAhead: 1,
-      hotBehind: 0,
+      hotBehind: 3,
       warmBehind: 3,
       maxAttachedPlayers: 5,
       budgetPolicy: PlayerBudgetPolicy.forSurface(
@@ -59,6 +59,8 @@ class ShortPlaybackCoordinator {
   final Map<String, PlaybackStateMachine> _machineByDocId =
       <String, PlaybackStateMachine>{};
   String? _lastWindowSignature;
+  int? _lastActiveIndex;
+  int _lastDirection = 1;
 
   ShortPlaybackWindow buildWindow(
     List<PostsModel> items,
@@ -74,23 +76,29 @@ class ShortPlaybackCoordinator {
     }
 
     final currentIndex = rawIndex.clamp(0, items.length - 1);
-    final hotStart =
-        currentIndex - hotBehind < 0 ? 0 : currentIndex - hotBehind;
-    final hotEnd = currentIndex + hotAhead >= items.length
-        ? items.length - 1
-        : currentIndex + hotAhead;
-    final warmStart =
-        currentIndex - warmBehind < 0 ? 0 : currentIndex - warmBehind;
-
-    final hotIndices = <int>{};
-    for (int i = hotStart; i <= hotEnd; i++) {
-      hotIndices.add(i);
+    final previousIndex = _lastActiveIndex;
+    var direction = _lastDirection;
+    if (previousIndex != null) {
+      if (currentIndex > previousIndex) {
+        direction = 1;
+      } else if (currentIndex < previousIndex) {
+        direction = -1;
+      }
     }
+    _lastActiveIndex = currentIndex;
+    _lastDirection = direction;
 
-    final warmIndices = <int>{};
-    for (int i = warmStart; i < hotStart; i++) {
-      warmIndices.add(i);
-    }
+    final hotIndices = _resolveDirectionalHotIndices(
+      currentIndex: currentIndex,
+      itemCount: items.length,
+      direction: direction,
+    );
+    final warmIndices = _resolveDirectionalWarmIndices(
+      currentIndex: currentIndex,
+      itemCount: items.length,
+      direction: direction,
+      hotIndices: hotIndices,
+    );
 
     _syncStates(
       items,
@@ -103,6 +111,7 @@ class ShortPlaybackCoordinator {
       activeIndex: currentIndex,
       hotIndices: hotIndices,
       warmIndices: warmIndices,
+      direction: direction,
     );
 
     return ShortPlaybackWindow(
@@ -123,6 +132,48 @@ class ShortPlaybackCoordinator {
   void reset() {
     _machineByDocId.clear();
     _lastWindowSignature = null;
+    _lastActiveIndex = null;
+    _lastDirection = 1;
+  }
+
+  Set<int> _resolveDirectionalHotIndices({
+    required int currentIndex,
+    required int itemCount,
+    required int direction,
+  }) {
+    final behindCount = direction >= 0 ? hotBehind : hotAhead;
+    final aheadCount = direction >= 0 ? hotAhead : hotBehind;
+    final hotStart =
+        currentIndex - behindCount < 0 ? 0 : currentIndex - behindCount;
+    final hotEnd = currentIndex + aheadCount >= itemCount
+        ? itemCount - 1
+        : currentIndex + aheadCount;
+    return <int>{for (int i = hotStart; i <= hotEnd; i++) i};
+  }
+
+  Set<int> _resolveDirectionalWarmIndices({
+    required int currentIndex,
+    required int itemCount,
+    required int direction,
+    required Set<int> hotIndices,
+  }) {
+    if (itemCount <= 0) return <int>{};
+    final warmIndices = <int>{};
+    if (direction >= 0) {
+      final warmStart =
+          currentIndex - warmBehind < 0 ? 0 : currentIndex - warmBehind;
+      for (int i = warmStart; i < currentIndex; i++) {
+        if (!hotIndices.contains(i)) warmIndices.add(i);
+      }
+      return warmIndices;
+    }
+    final warmEnd = currentIndex + warmBehind >= itemCount
+        ? itemCount - 1
+        : currentIndex + warmBehind;
+    for (int i = currentIndex + 1; i <= warmEnd; i++) {
+      if (!hotIndices.contains(i)) warmIndices.add(i);
+    }
+    return warmIndices;
   }
 
   void _syncStates(
@@ -168,6 +219,7 @@ class ShortPlaybackCoordinator {
     required int activeIndex,
     required Set<int> hotIndices,
     required Set<int> warmIndices,
+    required int direction,
   }) {
     final playbackKpi = maybeFindPlaybackKpiService();
     if (playbackKpi == null) return;
@@ -180,6 +232,7 @@ class ShortPlaybackCoordinator {
       activeDocId,
       hotIndices.join(','),
       warmIndices.join(','),
+      '$direction',
       '$maxAttachedPlayers',
     ].join('|');
     if (signature == _lastWindowSignature) return;
@@ -193,6 +246,7 @@ class ShortPlaybackCoordinator {
         'activeDocId': activeDocId,
         'hotCount': hotIndices.length,
         'warmCount': warmIndices.length,
+        'direction': direction >= 0 ? 'forward' : 'backward',
         'maxAttachedPlayers': maxAttachedPlayers,
         'budgetMaxActivePlayers': budgetPolicy.maxActivePlayers,
         'budgetMaxWarmPlayers': budgetPolicy.maxWarmPlayers,

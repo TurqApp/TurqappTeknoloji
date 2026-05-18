@@ -114,6 +114,10 @@ class PlaybackRuntimeService {
     _manager.registerPlaybackHandle(docId, handle);
   }
 
+  void claimPlaybackHandleSilently(String docId, PlaybackHandle handle) {
+    _manager.claimPlaybackHandleSilently(docId, handle);
+  }
+
   void unregisterPlaybackHandle(String docId) {
     _manager.unregisterVideoController(docId);
   }
@@ -136,6 +140,10 @@ class PlaybackRuntimeService {
 
   void enterExclusiveMode(String docId) {
     _manager.enterExclusiveMode(docId);
+  }
+
+  void enterExclusiveModeSilently(String docId) {
+    _manager.enterExclusiveModeSilently(docId);
   }
 
   void updateExclusiveModeDoc(String docId) {

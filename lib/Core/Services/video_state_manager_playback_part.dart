@@ -584,6 +584,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     }
   }
 
+  void _claimPlaybackHandleSilently(String docID, PlaybackHandle handle) {
+    _registerPlaybackHandle(docID, handle);
+    _currentPlayingDocID = docID;
+    _markTargetPlaybackDoc(docID);
+  }
+
   void _registerVideoController(
     String docID,
     VideoPlayerController controller,
@@ -1403,6 +1409,12 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _playOnlyThis(docID);
   }
 
+  void _enterExclusiveModeSilently(String docID) {
+    _exclusiveMode = true;
+    _exclusiveDocID = docID;
+    _markTargetPlaybackDoc(docID);
+  }
+
   void _updateExclusiveModeDoc(String docID) {
     if (!_exclusiveMode) return;
     _exclusiveDocID = docID;
@@ -1523,6 +1535,10 @@ extension VideoStateManagerFacadePart on VideoStateManager {
       VideoStateManagerPlaybackPart(this)
           ._registerPlaybackHandle(docID, handle);
 
+  void claimPlaybackHandleSilently(String docID, PlaybackHandle handle) =>
+      VideoStateManagerPlaybackPart(this)
+          ._claimPlaybackHandleSilently(docID, handle);
+
   void registerVideoController(
     String docID,
     VideoPlayerController controller,
@@ -1567,6 +1583,9 @@ extension VideoStateManagerFacadePart on VideoStateManager {
 
   void enterExclusiveMode(String docID) =>
       VideoStateManagerPlaybackPart(this)._enterExclusiveMode(docID);
+
+  void enterExclusiveModeSilently(String docID) =>
+      VideoStateManagerPlaybackPart(this)._enterExclusiveModeSilently(docID);
 
   void updateExclusiveModeDoc(String docID) =>
       VideoStateManagerPlaybackPart(this)._updateExclusiveModeDoc(docID);

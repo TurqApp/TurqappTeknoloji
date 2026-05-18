@@ -183,7 +183,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         if (!likelyFrozen) return;
 
         try {
-          await ctrl.recoverFrozenPlayback();
+          await ctrl.recoverFrozenPlayback(playAfterSeek: true);
         } catch (_) {}
         _applySingleShortPlaybackPresentation(currentPage, ctrl);
         _scheduleVolumeRestore(
@@ -394,7 +394,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           return;
         }
         if (shouldRecoverFrozenPlayback) {
-          await ctrl.recoverFrozenPlayback();
+          await ctrl.recoverFrozenPlayback(playAfterSeek: true);
         } else {
           await _playbackExecutionService.playAdapter(ctrl);
         }
@@ -485,7 +485,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
             afterPosition >= const Duration(milliseconds: 2500);
         try {
           if (shouldRecoverFrozenPlayback) {
-            await ctrl.recoverFrozenPlayback();
+            await ctrl.recoverFrozenPlayback(playAfterSeek: true);
           } else {
             await _playbackExecutionService.playAdapter(ctrl);
           }
@@ -681,7 +681,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           } catch (_) {}
         }
         if (shouldRecoverFrozenPlayback) {
-          await ctrl.recoverFrozenPlayback();
+          await ctrl.recoverFrozenPlayback(playAfterSeek: true);
         } else {
           await _playbackExecutionService.playAdapter(ctrl);
         }
