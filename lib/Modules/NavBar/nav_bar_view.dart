@@ -16,6 +16,7 @@ import 'package:turqappv2/Core/Services/integration_test_keys.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Runtime/system_navigation_surface_controller.dart';
+import 'package:turqappv2/Runtime/app_task_controller.dart';
 import 'package:turqappv2/Modules/Explore/explore_controller.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Education/education_controller.dart';
@@ -40,6 +41,7 @@ part 'nav_bar_view_avatar_part.dart';
 class NavBarView extends StatelessWidget {
   final selection = 0;
   static bool _loggedFirstBuild = false;
+  static DateTime? _lastFeedBackPressedAt;
 
   NavBarView({super.key}) {
     _ensureControllersReady();
@@ -59,6 +61,7 @@ class NavBarView extends StatelessWidget {
   }
 
   late final AnimationController animationController;
+  static const Duration _feedBackBackgroundWindow = Duration(seconds: 2);
 
   int _stackIndexForSelected({
     required int selected,

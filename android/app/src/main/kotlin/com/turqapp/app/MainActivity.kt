@@ -15,6 +15,7 @@ class MainActivity : FlutterActivity() {
         private const val DEEP_LINK_CHANNEL = "turqapp.deep_link/method"
         private const val DEEP_LINK_EVENTS = "turqapp.deep_link/events"
         private const val NETWORK_STATE_CHANNEL = "turqapp.network_state/method"
+        private const val APP_TASK_CHANNEL = "turqapp.app_task/method"
     }
 
     private var initialDeepLink: String? = null
@@ -27,6 +28,7 @@ class MainActivity : FlutterActivity() {
         ExoPlayerPlugin.registerWith(flutterEngine, applicationContext)
         configureDeepLinkBridge(flutterEngine)
         configureNetworkStateBridge(flutterEngine)
+        configureAppTaskBridge(flutterEngine)
     }
 
     override fun onResume() {
@@ -86,6 +88,17 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getDefaultTransport" -> result.success(getDefaultTransport())
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun configureAppTaskBridge(flutterEngine: FlutterEngine) {
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        MethodChannel(messenger, APP_TASK_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "moveTaskToBack" -> result.success(moveTaskToBack(true))
                     else -> result.notImplemented()
                 }
             }

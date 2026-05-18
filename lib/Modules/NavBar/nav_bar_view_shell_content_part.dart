@@ -120,6 +120,27 @@ extension _NavBarViewShellContentPart on NavBarView {
     final profileIndex = hasEducation ? 4 : 3;
     final educationIndex = hasEducation ? 3 : 0;
 
+    if (controller.selectedIndex.value == feedIndex) {
+      final now = DateTime.now();
+      final lastPressed = NavBarView._lastFeedBackPressedAt;
+      final shouldMoveToBack = lastPressed != null &&
+          now.difference(lastPressed) <= NavBarView._feedBackBackgroundWindow;
+      NavBarView._lastFeedBackPressedAt = now;
+
+      if (shouldMoveToBack) {
+        NavBarView._lastFeedBackPressedAt = null;
+        final moved = await const AppTaskController().moveTaskToBack();
+        if (kDebugMode) {
+          debugPrint('[RootBackGuard] status=background moved=$moved');
+        }
+      } else if (kDebugMode) {
+        debugPrint('[RootBackGuard] status=feed_back_armed');
+      }
+      return false;
+    }
+
+    NavBarView._lastFeedBackPressedAt = null;
+
     if (controller.selectedIndex.value == exploreIndex) {
       controller.changeIndex(feedIndex);
       return false;
