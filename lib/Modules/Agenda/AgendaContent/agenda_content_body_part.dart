@@ -302,6 +302,12 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   .startsWith('flood_') ||
                                               instanceTag.startsWith(
                                                 'explore_series_',
+                                              ) ||
+                                              instanceTag.startsWith(
+                                                'top_tag_',
+                                              ) ||
+                                              instanceTag.startsWith(
+                                                'tag_post_',
                                               );
                                       final showInlinePlayer =
                                           videoController != null;
@@ -318,7 +324,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                   overrideAutoPlay:
                                                       shouldAutoResumeInlinePlatformView,
                                                   isPrimaryFeedSurface:
-                                                      isPrimaryFeedSurfaceInstance,
+                                                      isFeedStyleInlineSurface,
                                                   isFeedStyleSurface:
                                                       isFeedStyleInlineSurface,
                                                   preferWarmPoolPauseOnAndroid:

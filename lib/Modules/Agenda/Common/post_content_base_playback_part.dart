@@ -583,7 +583,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       return;
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _isPrimaryFeedSurfaceInstance &&
         _usesFeedPlaybackPolicy) {
       final modelIndex = _surfaceModelIndex();
       final centeredIndex = _surfaceCurrentCenteredIndex();
@@ -723,7 +722,6 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         return;
       }
       if (defaultTargetPlatform == TargetPlatform.iOS &&
-          _isPrimaryFeedSurfaceInstance &&
           _usesFeedPlaybackPolicy) {
         v.suppressNextReattachResume(
           reason: 'ios_feed_surface_loss_stop',
@@ -1416,7 +1414,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                 _usesFeedPlaybackPolicy &&
                 widget.shouldPlay &&
                 _isSurfacePlaybackAllowed &&
-                currentOwnerAfterResume.startsWith('feed:') &&
+                _isFeedStylePlaybackHandleKey(currentOwnerAfterResume) &&
                 currentOwnerAfterResume != playbackHandleKey;
         if (shouldClaimFeedOwnerMismatch) {
           debugPrint(

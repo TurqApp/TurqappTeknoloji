@@ -6,18 +6,26 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   String? _playbackSurfaceKind(String? key) {
     final trimmed = key?.trim() ?? '';
     if (trimmed.startsWith('short:')) return 'short';
-    if (trimmed.startsWith('feed:')) return 'feed';
-    if (trimmed.startsWith('social_')) return 'social';
-    if (trimmed.startsWith('profile_')) return 'profile';
+    if (_isFeedStylePlaybackKey(trimmed)) return 'feed';
     return null;
+  }
+
+  bool _isFeedStylePlaybackKey(String? docID) {
+    final trimmed = docID?.trim() ?? '';
+    return trimmed.startsWith('feed:') ||
+        trimmed.startsWith('profile_') ||
+        trimmed.startsWith('archives_') ||
+        trimmed.startsWith('liked_post_') ||
+        trimmed.startsWith('social_') ||
+        trimmed.startsWith('flood_') ||
+        trimmed.startsWith('explore_series_') ||
+        trimmed.startsWith('top_tag_') ||
+        trimmed.startsWith('tag_post_');
   }
 
   bool _isAndroidFeedStyleResumeKey(String docID) {
     if (defaultTargetPlatform != TargetPlatform.android) return false;
-    final trimmed = docID.trim();
-    return trimmed.startsWith('feed:') ||
-        trimmed.startsWith('social_post_') ||
-        trimmed.startsWith('social_reshare_');
+    return _isFeedStylePlaybackKey(docID);
   }
 
   bool _isAndroidFeedResumeRecoverActive(String docID) {
@@ -279,7 +287,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     PlaybackHandle handle,
   ) {
     if (defaultTargetPlatform == TargetPlatform.iOS &&
-        docID.trim().startsWith('feed:')) {
+        _isFeedStylePlaybackKey(docID)) {
       if (handle is HLSAdapterPlaybackHandle) {
         handle.adapter.suppressNextReattachResume(
           reason: 'ios_feed_superseded_stop',
@@ -355,7 +363,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     String reason,
   ) {
     if (defaultTargetPlatform != TargetPlatform.iOS) return false;
-    if (!docID.trim().startsWith('feed:')) return false;
+    if (!_isFeedStylePlaybackKey(docID)) return false;
     if (handle is! HLSAdapterPlaybackHandle) return false;
     return reason == 'ios_feed_surface_loss_stop' ||
         reason == 'ios_feed_hidden_handle_stop';
@@ -383,7 +391,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     if (!handle.isInitialized) return;
     try {
       final isIosFeedHls = defaultTargetPlatform == TargetPlatform.iOS &&
-          docID.trim().startsWith('feed:') &&
+          _isFeedStylePlaybackKey(docID) &&
           handle is HLSAdapterPlaybackHandle;
       if (isIosFeedHls &&
           handle.position <= const Duration(milliseconds: 100)) {
@@ -848,7 +856,7 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }) {
     _pendingPlayTimer?.cancel();
     final isIosFeedPlayback = defaultTargetPlatform == TargetPlatform.iOS &&
-        docID.startsWith('feed:');
+        _isFeedStylePlaybackKey(docID);
     final isAndroidFeedStylePlayback = _isAndroidFeedStyleResumeKey(docID);
     final resumeDelay = isIosFeedPlayback && attempt == 0
         ? Duration.zero
@@ -1553,7 +1561,7 @@ extension VideoStateManagerFacadePart on VideoStateManager {
   int setFeedVolume(double volume, {required String reason}) =>
       VideoStateManagerPlaybackPart(this)._setRegisteredHandleVolume(
         volume: volume,
-        where: (key) => key.startsWith('feed:'),
+        where: _isFeedStylePlaybackKey,
         reason: reason,
       );
 

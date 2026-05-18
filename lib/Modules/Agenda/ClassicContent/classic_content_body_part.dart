@@ -551,8 +551,10 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         isSocialProfileSurface;
                 final isFeedStyleInlineSurface = isPrimaryFeedSurfaceInstance ||
                     isProfileFamilySurface ||
-                    (widget.instanceTag ?? '').startsWith('flood_') ||
-                    (widget.instanceTag ?? '').startsWith('explore_series_');
+                    instanceTag.startsWith('flood_') ||
+                    instanceTag.startsWith('explore_series_') ||
+                    instanceTag.startsWith('top_tag_') ||
+                    instanceTag.startsWith('tag_post_');
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -574,8 +576,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                 useAspectRatio: false,
                                 overrideAutoPlay:
                                     shouldAutoResumeInlinePlatformView,
-                                isPrimaryFeedSurface:
-                                    isPrimaryFeedSurfaceInstance,
+                                isPrimaryFeedSurface: isFeedStyleInlineSurface,
                                 isFeedStyleSurface: isFeedStyleInlineSurface,
                                 preferWarmPoolPauseOnAndroid:
                                     preferWarmPoolPauseOnAndroid,

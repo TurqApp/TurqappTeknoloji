@@ -187,7 +187,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         final shouldStopRuntimeHandle =
             !PlaybackSurfacePolicy.shouldKeepFeedRuntimeHandleOnPause(
           platform: defaultTargetPlatform,
-          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+          isPrimaryFeedSurface: _usesFeedPlaybackPolicy,
           keepAndroidSurfaceAlive: shouldKeepAndroidSurfaceAlive,
         );
         if (shouldStopRuntimeHandle) {
@@ -211,7 +211,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           return;
         }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance) {
+            _usesFeedPlaybackPolicy) {
           debugPrint(
             '[PlaybackStopTrace] source=ios_feed_should_play_false_stop '
             'doc=${widget.model.docID} '
@@ -230,7 +230,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         if (PlaybackSurfacePolicy.shouldDisposeFeedPlaybackForSurfaceLoss(
           platform: defaultTargetPlatform,
-          isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+          isPrimaryFeedSurface: _usesFeedPlaybackPolicy,
           isFloodSurface: _isFloodSurfaceInstance,
         )) {
           unawaited(
@@ -326,7 +326,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     }
     _syncLiveResumePositionSample(v);
     if (defaultTargetPlatform == TargetPlatform.iOS &&
-        _isPrimaryFeedSurfaceInstance &&
+        _usesFeedPlaybackPolicy &&
         !widget.shouldPlay &&
         (v.isPlaying || v.isBuffering)) {
       final currentOwner = _playbackRuntimeService.currentPlayingDocId;
@@ -594,7 +594,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
 
     final shouldFinalizeIosFeedOwnerOnPlay =
         defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance &&
+            _usesFeedPlaybackPolicy &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed &&
             _surfaceModelIndex() == _surfaceCurrentCenteredIndex() &&
@@ -607,7 +607,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     final disableDartRecoveryForPlatformPrimaryFeed =
         PlaybackSurfacePolicy.shouldDisableDartRecoveryForPrimaryFeed(
       platform: defaultTargetPlatform,
-      isPrimaryFeedSurface: _isPrimaryFeedSurfaceInstance,
+      isPrimaryFeedSurface: _usesFeedPlaybackPolicy,
     );
     final shouldRecoverPlayback = !disableDartRecoveryForPlatformPrimaryFeed &&
         !_useLegacyIosFeedBehavior &&
@@ -634,7 +634,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
             !current.isCompleted;
         if (!stillNeedsRecovery) return;
         if (defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance) {
+            _usesFeedPlaybackPolicy) {
           if (_shouldThrottleIosPrimaryFeedRecovery(source: 'recovery_timer')) {
             return;
           }
@@ -647,7 +647,7 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
           return;
         }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
-            _isPrimaryFeedSurfaceInstance) {
+            _usesFeedPlaybackPolicy) {
           _markIosPrimaryFeedRecoveryAttempt();
         }
         _startPlayback(source: 'recovery_timer');

@@ -355,15 +355,28 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _usesFeedPlaybackPolicy => _isFeedStyleInlineSurfaceInstance;
 
+  bool _isFeedStylePlaybackHandleKey(String? key) {
+    final trimmed = key?.trim() ?? '';
+    return trimmed.startsWith('feed:') ||
+        trimmed.startsWith('profile_') ||
+        trimmed.startsWith('archives_') ||
+        trimmed.startsWith('liked_post_') ||
+        trimmed.startsWith('social_') ||
+        trimmed.startsWith('flood_') ||
+        trimmed.startsWith('explore_series_') ||
+        trimmed.startsWith('top_tag_') ||
+        trimmed.startsWith('tag_post_');
+  }
+
   bool get _shouldPreserveIosPrimaryFeedPlaybackForResumeTransition {
     return PlaybackSurfacePolicy
         .shouldPreserveIosFeedPlaybackForResumeTransition(
       platform: defaultTargetPlatform,
       isFeedStyleSurface: _usesFeedPlaybackPolicy,
       playbackSuspended: agendaController.playbackSuspended.value,
-      centeredIndex: agendaController.centeredIndex.value,
+      centeredIndex: _surfaceCurrentCenteredIndex(),
       modelIndex: _surfaceModelIndex(),
-      lastCenteredIndex: agendaController.lastCenteredIndex,
+      lastCenteredIndex: _surfacePreviousCenteredIndex(),
     );
   }
 
@@ -729,7 +742,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   }
 
   String _feedPlaybackOffsetLabel() {
-    if (!_isPrimaryFeedSurfaceInstance) return 'non_feed';
+    if (!_usesFeedPlaybackPolicy) return 'non_feed';
     final modelIndex = _surfaceModelIndex();
     final centered = _surfaceSafeCenteredIndex();
     if (modelIndex < 0 || centered < 0) return 'unknown';
@@ -927,11 +940,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       _replayOverlayLatched || _replayAdVisible || _replayButtonVisible;
 
   bool get _controllerOwnsInlinePlayback =>
-      !isStandalonePostInstance &&
-      !_isFloodSurfaceInstance &&
-      !_isTopTagSurfaceInstance &&
-      !_isTagPostsSurfaceInstance &&
-      (_qaSurfaceName == 'feed' || _qaSurfaceName == 'profile');
+      !isStandalonePostInstance && _usesFeedPlaybackPolicy;
 
   bool get shouldAutoResumeInlinePlatformView {
     if (isStandalonePostInstance) return widget.shouldPlay;
@@ -1229,9 +1238,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     )) {
       return true;
     }
-    final modelIndex = agendaController.agendaList.indexWhere(
-      (p) => p.docID == widget.model.docID,
-    );
+    final modelIndex = _surfaceModelIndex();
     return PlaybackSurfacePolicy.shouldBypassSavedResumeHintForPrimaryFeed(
       platform: defaultTargetPlatform,
       isFeedStyleSurface: _usesFeedPlaybackPolicy,

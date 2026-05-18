@@ -383,6 +383,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if !suppressPauseSnapshot {
             captureCurrentFrameSnapshot(showOverlay: true)
         }
+        autoplayRequestWorkItem?.cancel()
+        autoplayRequestWorkItem = nil
+        didRequestInitialPlay = false
+        isAutoPlay = false
         playbackWatchdog?.stop()
         player?.pause()
         playbackHealthMonitor.onPlaybackPaused()
@@ -497,6 +501,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     /// Oynatmayı durdur ve network/decoder kaynaklarını serbest bırak.
     /// Player instance hayatta kalır, tekrar loadVideo ile yüklenebilir.
     func stopPlayback(showOverlay: Bool = true) {
+        autoplayRequestWorkItem?.cancel()
+        autoplayRequestWorkItem = nil
+        didRequestInitialPlay = false
+        isAutoPlay = false
         if showOverlay {
             captureCurrentFrameSnapshot(showOverlay: true)
         } else {

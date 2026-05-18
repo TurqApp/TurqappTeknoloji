@@ -197,14 +197,12 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
     }
     _pendingPlayTimer?.cancel();
     _pendingPlayTimer = null;
-    final isInlineFeedStyleOwner = docID.startsWith('feed:') ||
-        docID.startsWith('social_') ||
-        docID.startsWith('profile_');
+    final isInlineFeedStyleOwner = _isFeedStylePlaybackKey(docID);
     final shouldReassertFeedPlayback =
         (GetPlatform.isAndroid || GetPlatform.isIOS) &&
             isInlineFeedStyleOwner &&
             handle is HLSAdapterPlaybackHandle &&
-            (docID.startsWith('feed:') ||
+            (_isFeedStylePlaybackKey(docID) ||
                 handle.position <= const Duration(milliseconds: 180));
     if (!handle.isPlaying || shouldReassertFeedPlayback) {
       debugPrint(
@@ -213,7 +211,7 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
         'doc=$docID positionMs=${handle.position.inMilliseconds}',
       );
       if ((GetPlatform.isAndroid || GetPlatform.isIOS) &&
-          docID.startsWith('feed:') &&
+          _isFeedStylePlaybackKey(docID) &&
           handle is HLSAdapterPlaybackHandle) {
         final resumePosition = handle.position;
         if (resumePosition >= const Duration(milliseconds: 180)) {
