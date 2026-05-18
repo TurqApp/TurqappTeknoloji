@@ -784,6 +784,10 @@ class FeedManifestRepository extends GetxService {
             .where((value) => value.isNotEmpty && value != 'null')
             .toList(growable: false)
         : <String>[];
+    final thumbnail = (item['thumbnail'] ?? '').toString().trim();
+    final resolvedThumbnail = thumbnail.isNotEmpty
+        ? thumbnail
+        : (posters.isEmpty ? '' : posters.first);
     return <String, dynamic>{
       'userID': item['userID'],
       'authorNickname': item['authorNickname'],
@@ -791,7 +795,7 @@ class FeedManifestRepository extends GetxService {
       'authorAvatarUrl': item['authorAvatarUrl'],
       'rozet': item['rozet'],
       'metin': item['metin'],
-      'thumbnail': item['thumbnail'],
+      'thumbnail': resolvedThumbnail,
       'img': hasPlayableVideo ? const <String>[] : posters,
       'video': item['video'],
       'hlsMasterUrl': item['hlsMasterUrl'],

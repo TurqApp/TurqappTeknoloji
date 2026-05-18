@@ -289,6 +289,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   Future<void> _runFeedRecoverOnce({
     required HLSVideoAdapter adapter,
     required String source,
+    bool preservePosition = true,
   }) async {
     if (_feedRecoverInFlight) {
       _recordPlaybackDispatch(
@@ -301,7 +302,9 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     }
     _feedRecoverInFlight = true;
     try {
-      await adapter.recoverFrozenPlayback();
+      await adapter.recoverFrozenPlayback(
+        preservePosition: preservePosition,
+      );
     } catch (_) {
       // Feed recovery is best-effort.
     } finally {
@@ -474,6 +477,17 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           if (defaultTargetPlatform == TargetPlatform.iOS &&
               _usesFeedPlaybackPolicy) {
             _markIosPrimaryFeedRecoveryAttempt();
+            if (_stallWatchdogRetries >= 2) {
+              _playbackRuntimeService.clearSavedPlaybackState(
+                playbackHandleKey,
+              );
+              await _runFeedRecoverOnce(
+                adapter: adapter,
+                source: 'stall_watchdog:ios_zero_recover',
+                preservePosition: false,
+              );
+              return;
+            }
             _startPlaybackWhenReady(source: 'stall_watchdog:ios_reassert');
             return;
           }

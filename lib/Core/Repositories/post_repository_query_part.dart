@@ -821,8 +821,7 @@ extension PostRepositoryQueryPart on PostRepository {
     final currentUid = currentUser == null ? '' : currentUser.uid.trim();
     if (currentUid.isEmpty || model.userID.trim() != currentUid) return false;
     if (model.deletedPost || model.arsiv || model.gizlendi) return false;
-    final hasPendingVideoProcessing =
-        model.hlsStatus == 'processing' &&
+    final hasPendingVideoProcessing = model.hlsStatus == 'processing' &&
         model.video.trim().isEmpty &&
         model.hlsMasterUrl.trim().isEmpty;
     if (hasPendingVideoProcessing) {
@@ -925,6 +924,9 @@ extension PostRepositoryQueryPart on PostRepository {
     final imageUrls = asStringList(doc['img']);
     final imgMap = parseImageMap(doc['imgMapJson']);
     final thumbnail = (doc['thumbnail'] ?? '').toString();
+    final resolvedThumbnail = thumbnail.trim().isNotEmpty || imageUrls.isEmpty
+        ? thumbnail
+        : imageUrls.first;
     final video = (doc['video'] ?? '').toString();
     final hlsMasterUrl = (doc['hlsMasterUrl'] ?? '').toString();
     final ctaLabel = (doc['ctaLabel'] ?? '').toString().trim();
@@ -940,7 +942,7 @@ extension PostRepositoryQueryPart on PostRepository {
       'metin': (doc['metin'] ?? '').toString(),
       'img': imageUrls,
       'imgMap': imgMap,
-      'thumbnail': thumbnail,
+      'thumbnail': resolvedThumbnail,
       'video': video,
       'hlsMasterUrl': hlsMasterUrl,
       'hlsStatus': (doc['hlsStatus'] ?? 'none').toString(),

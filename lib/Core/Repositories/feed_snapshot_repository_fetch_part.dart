@@ -46,10 +46,12 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         flood: canonical.flood,
         floodCount: canonical.floodCount,
         gizlendi: canonical.gizlendi,
-        img: canonical.img,
+        img: canonical.img.isNotEmpty ? canonical.img : current.img,
         isUploading: canonical.isUploading,
         mainFlood: canonical.mainFlood,
-        thumbnail: canonical.thumbnail,
+        thumbnail: canonical.thumbnail.trim().isNotEmpty
+            ? canonical.thumbnail
+            : current.thumbnail,
         video: canonical.video,
         hlsMasterUrl: canonical.hlsMasterUrl,
         hlsStatus: canonical.hlsStatus,

@@ -155,7 +155,13 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
             !(defaultTargetPlatform == TargetPlatform.android &&
                 preferWarmPoolPause));
     final resumeAt = shouldPreservePosition ? _value.position : Duration.zero;
-    await _performStopPlayback(preserveFrameSnapshot: false);
+    final shouldPreserveRecoverySnapshot =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isFeedStyleSurface &&
+            (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame);
+    await _performStopPlayback(
+      preserveFrameSnapshot: shouldPreserveRecoverySnapshot,
+    );
     await Future<void>.delayed(const Duration(milliseconds: 80));
     if (!shouldPreservePosition) {
       _pendingSeek = null;

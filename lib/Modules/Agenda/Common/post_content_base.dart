@@ -38,7 +38,7 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 4;
 const int _feedWarmWindowBehindCount = 2;
-const int _feedResumeBehindRetainCount = 3;
+const int _feedResumeBehindRetainCount = 2;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
@@ -1272,12 +1272,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      final hasProgressedVisibleFallback = value.hasRenderedFirstFrame &&
-          value.isPlaying &&
+      final hasProgressedVisibleFallback = value.isPlaying &&
           !value.isBuffering &&
           value.position > const Duration(milliseconds: 250);
-      final hasStableIosFeedFrame = value.hasRenderedFirstFrame &&
-          (value.hasVisibleVideoFrame || hasProgressedVisibleFallback) &&
+      final hasStableIosFeedFrame = (value.hasRenderedFirstFrame ||
+              value.hasVisibleVideoFrame ||
+              hasProgressedVisibleFallback) &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           (value.isPlaying || value.position > visualReadyPositionThreshold);
@@ -1400,9 +1400,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return hasResumeHint ? 'resume_poster' : 'poster';
     }
 
-    final hasStableVideo = value.hasRenderedFirstFrame &&
-        widget.shouldPlay &&
-        _isSurfacePlaybackAllowed;
+    final hasProgressedIosFeedPlayback =
+        defaultTargetPlatform == TargetPlatform.iOS &&
+            _isFeedStyleInlineSurfaceInstance &&
+            value.isPlaying &&
+            !value.isBuffering &&
+            value.position > const Duration(milliseconds: 250);
+    final hasStableVideo =
+        (value.hasRenderedFirstFrame || hasProgressedIosFeedPlayback) &&
+            widget.shouldPlay &&
+            _isSurfacePlaybackAllowed;
     if (hasStableVideo) return 'video_play';
 
     if (hasResumeHint) {
