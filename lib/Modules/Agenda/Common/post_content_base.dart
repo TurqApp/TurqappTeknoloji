@@ -38,13 +38,15 @@ part 'post_content_base_visibility_part.dart';
 
 const int _feedWarmWindowAheadCount = 4;
 const int _feedWarmWindowBehindCount = 2;
-const int _feedResumeBehindRetainCount = 2;
+const int _feedResumeRecentActiveRetainCount = 3;
 const int _feedStrongAheadCount = 5;
 const int _feedStrongOppositeCount = 3;
 const int _feedCacheOnlyOppositeCount = 2;
 const int _androidPrimaryFeedNativeStrongOppositeCount = 0;
 const int _androidPrimaryFeedNativeCacheOnlyOppositeCount = 0;
 const int _androidProfileWarmPlayerAheadVideoCount = 1;
+
+final List<String> _feedRecentActiveResumeDocIds = <String>[];
 
 enum _FeedNativeWarmTier {
   off,
@@ -650,6 +652,54 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return agendaController.agendaList[index].hasPlayableVideo;
   }
 
+  String _surfaceDocIdAtIndex(int index) {
+    if (index < 0) return '';
+    if (_isFloodSurfaceInstance) {
+      final posts = maybeFindFloodListingController()?.floods;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
+    if (_isProfileSurfaceInstance) {
+      final entries = ProfileController.maybeFind()?.mergedPosts;
+      if (entries == null || index >= entries.length) return '';
+      final post = entries[index]['post'];
+      return post is PostsModel ? post.docID.trim() : '';
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      final entries = _resolveSocialProfileController()?.combinedFeedEntries;
+      if (entries == null || index >= entries.length) return '';
+      final post = entries[index]['post'];
+      return post is PostsModel ? post.docID.trim() : '';
+    }
+    if (_isTopTagSurfaceInstance) {
+      final posts = maybeFindTopTagsController()?.agendaList;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
+    if (_isTagPostsSurfaceInstance) {
+      final posts = maybeFindTagPostsController()?.list;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
+    if (index >= agendaController.agendaList.length) return '';
+    return agendaController.agendaList[index].docID.trim();
+  }
+
+  void _rememberFeedResumeActiveDoc() {
+    if (!_usesFeedPlaybackPolicy || isStandalonePostInstance) return;
+    final docId = widget.model.docID.trim();
+    if (docId.isEmpty) return;
+    _feedRecentActiveResumeDocIds.remove(docId);
+    _feedRecentActiveResumeDocIds.insert(0, docId);
+    if (_feedRecentActiveResumeDocIds.length >
+        _feedResumeRecentActiveRetainCount) {
+      _feedRecentActiveResumeDocIds.removeRange(
+        _feedResumeRecentActiveRetainCount,
+        _feedRecentActiveResumeDocIds.length,
+      );
+    }
+  }
+
   int? _surfaceDirectionalAheadPlayableVideoDistance() {
     if (!widget.model.hasPlayableVideo) return null;
     final modelIndex = _surfaceModelIndex();
@@ -1202,12 +1252,28 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     final modelIndex = _surfaceModelIndex();
     final centeredIndex = _surfaceSafeCenteredIndex();
     if (modelIndex < 0 || centeredIndex < 0) return false;
-    final distanceFromCenter = modelIndex - centeredIndex;
-    if (distanceFromCenter >= -_feedResumeBehindRetainCount) {
+    final previousCenteredIndex = _surfacePreviousCenteredIndex();
+    final docId = widget.model.docID.trim();
+    final centeredDocId = _surfaceDocIdAtIndex(centeredIndex);
+    final previousCenteredDocId = previousCenteredIndex == null
+        ? ''
+        : _surfaceDocIdAtIndex(
+            previousCenteredIndex,
+          );
+    final isCurrentActive = docId.isNotEmpty && docId == centeredDocId;
+    final isPreviousActive = docId.isNotEmpty && docId == previousCenteredDocId;
+    final movedToNewCenter =
+        previousCenteredIndex != null && previousCenteredIndex != centeredIndex;
+    final isScrollActivation = source.contains('widget_should_play_changed');
+    final isRecentlyActive =
+        docId.isNotEmpty && _feedRecentActiveResumeDocIds.contains(docId);
+    final retainCurrentActiveResume =
+        isCurrentActive && (!isScrollActivation || isRecentlyActive);
+    if (retainCurrentActiveResume || isPreviousActive || isRecentlyActive) {
       return false;
     }
 
-    final resetKey = '$playbackHandleKey:$centeredIndex';
+    final resetKey = '$playbackHandleKey:$centeredIndex:$previousCenteredIndex';
     if (_lastDistantBehindResumeResetKey == resetKey) {
       _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
       return true;
@@ -1222,10 +1288,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     _savedResumeRecoveryGuardUntil = null;
     _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
     debugPrint(
-      '[FeedResumeWindow] action=reset_distant_behind '
+      '[FeedResumeWindow] action=reset_non_retained '
       'doc=${widget.model.docID} key=$playbackHandleKey '
       'source=$source modelIndex=$modelIndex centered=$centeredIndex '
-      'distance=$distanceFromCenter retainedBehind=$_feedResumeBehindRetainCount '
+      'previousCentered=$previousCenteredIndex '
+      'centeredDoc=$centeredDocId previousDoc=$previousCenteredDocId '
+      'isCurrent=$isCurrentActive isPrevious=$isPreviousActive '
+      'recentlyActive=$isRecentlyActive '
+      'recentRetain=$_feedResumeRecentActiveRetainCount '
+      'recentDocs=$_feedRecentActiveResumeDocIds '
+      'movedToNewCenter=$movedToNewCenter scrollActivation=$isScrollActivation '
       'positionMs=${value.position.inMilliseconds} '
       'firstFrame=${value.hasRenderedFirstFrame} '
       'visibleFrame=${value.hasVisibleVideoFrame}',
@@ -1272,12 +1344,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      final hasProgressedVisibleFallback = value.isPlaying &&
-          !value.isBuffering &&
-          value.position > const Duration(milliseconds: 250);
       final hasStableIosFeedFrame = (value.hasRenderedFirstFrame ||
-              value.hasVisibleVideoFrame ||
-              hasProgressedVisibleFallback) &&
+              value.hasVisibleVideoFrame) &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           (value.isPlaying || value.position > visualReadyPositionThreshold);
@@ -1400,14 +1468,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return hasResumeHint ? 'resume_poster' : 'poster';
     }
 
-    final hasProgressedIosFeedPlayback =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            _isFeedStyleInlineSurfaceInstance &&
-            value.isPlaying &&
-            !value.isBuffering &&
-            value.position > const Duration(milliseconds: 250);
     final hasStableVideo =
-        (value.hasRenderedFirstFrame || hasProgressedIosFeedPlayback) &&
+        (value.hasRenderedFirstFrame || value.hasVisibleVideoFrame) &&
             widget.shouldPlay &&
             _isSurfacePlaybackAllowed;
     if (hasStableVideo) return 'video_play';

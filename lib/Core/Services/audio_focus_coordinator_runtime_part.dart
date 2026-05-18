@@ -109,8 +109,12 @@ class _AudioFocusCoordinatorRuntimePart {
       try {
         if (defaultTargetPlatform == TargetPlatform.iOS &&
             p.isFeedStyleSurface &&
-            (p.isStopped || !p.value.isPlaying)) {
+            (p.value.isPlaying || p.value.isBuffering || !p.isStopped)) {
           await p.setVolume(0.0);
+          if (p.value.isPlaying || p.value.isBuffering) {
+            unawaited(
+                _stopMutedIosFeedPlayer(p, except, controller._focusEpoch));
+          }
           continue;
         }
         if (defaultTargetPlatform == TargetPlatform.iOS &&
@@ -122,6 +126,30 @@ class _AudioFocusCoordinatorRuntimePart {
         await p.forceSilence();
       } catch (_) {}
     }
+  }
+
+  Future<void> _stopMutedIosFeedPlayer(
+    HLSVideoAdapter player,
+    HLSVideoAdapter? except,
+    int epoch,
+  ) async {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    if (epoch != controller._focusEpoch) return;
+    if (identical(controller._activePlayer, player)) return;
+    if (except != null && player.url == except.url) return;
+    if (player.isDisposed) return;
+    if (!player.value.isPlaying && !player.value.isBuffering) return;
+    try {
+      await player.silenceAndStopPlayback();
+    } catch (_) {}
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    if (epoch != controller._focusEpoch) return;
+    if (identical(controller._activePlayer, player)) return;
+    if (player.isDisposed) return;
+    if (!player.value.isPlaying && !player.value.isBuffering) return;
+    try {
+      await player.silenceAndStopPlayback();
+    } catch (_) {}
   }
 
   Future<void> _pauseAudioPlayersExcept([AudioPlayer? except]) async {

@@ -329,12 +329,24 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         _isPrimaryFeedSurfaceInstance &&
         !widget.shouldPlay &&
         (v.isPlaying || v.isBuffering)) {
+      final currentOwner = _playbackRuntimeService.currentPlayingDocId;
+      if (currentOwner == playbackHandleKey && _isSurfacePlaybackAllowed) {
+        debugPrint(
+          '[PlaybackStopTrace] source=ios_feed_inactive_video_update_keep_owner '
+          'doc=${widget.model.docID} '
+          'playing=${v.isPlaying} buffering=${v.isBuffering} '
+          'positionMs=${v.position.inMilliseconds} '
+          'currentOwner=${currentOwner ?? ''}',
+        );
+        _applyPlaybackVolume();
+        return;
+      }
       debugPrint(
         '[PlaybackStopTrace] source=ios_feed_inactive_video_update_stop '
         'doc=${widget.model.docID} '
         'playing=${v.isPlaying} buffering=${v.isBuffering} '
         'positionMs=${v.position.inMilliseconds} '
-        'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+        'currentOwner=${currentOwner ?? ''}',
       );
       _playbackRuntimeService.requestStop(playbackHandleKey);
       _stopPlaybackForSurfaceLoss();

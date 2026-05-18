@@ -285,10 +285,19 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
           reason: 'ios_feed_superseded_stop',
         );
       }
-      _markTransitionResumeReset(
-        docID,
-        reason: 'ios_feed_superseded_stop',
-      );
+      if (_currentPlayingDocID == docID || _targetPlaybackDocID == docID) {
+        debugPrint(
+          '[FeedResumeReset] action=skip_mark '
+          'key=$docID reason=ios_feed_superseded_stop '
+          'current=${_currentPlayingDocID ?? ''} '
+          'target=${_targetPlaybackDocID ?? ''}',
+        );
+      } else {
+        _markTransitionResumeReset(
+          docID,
+          reason: 'ios_feed_superseded_stop',
+        );
+      }
     }
     _playbackExecutionService.quietHandle(
       handle,
@@ -340,6 +349,32 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     return true;
   }
 
+  bool _shouldPrimeIosFeedResetWithoutBlocking(
+    String docID,
+    PlaybackHandle handle,
+    String reason,
+  ) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    if (!docID.trim().startsWith('feed:')) return false;
+    if (handle is! HLSAdapterPlaybackHandle) return false;
+    return reason == 'ios_feed_surface_loss_stop' ||
+        reason == 'ios_feed_hidden_handle_stop';
+  }
+
+  void _consumeIosFeedResetWithoutBlocking(
+    String docID,
+    PlaybackHandle handle, {
+    required String source,
+    required String reason,
+  }) {
+    _videoStates.remove(docID);
+    debugPrint(
+      '[FeedResumeReset] action=consume_without_blocking key=$docID '
+      'source=$source reason=$reason positionMs=${handle.position.inMilliseconds} '
+      'playing=${handle.isPlaying}',
+    );
+  }
+
   Future<void> _seekTransitionResumeResetToZero(
     String docID,
     PlaybackHandle handle, {
@@ -347,14 +382,37 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
   }) async {
     if (!handle.isInitialized) return;
     try {
+      final isIosFeedHls = defaultTargetPlatform == TargetPlatform.iOS &&
+          docID.trim().startsWith('feed:') &&
+          handle is HLSAdapterPlaybackHandle;
+      if (isIosFeedHls &&
+          handle.position <= const Duration(milliseconds: 100)) {
+        _videoStates.remove(docID);
+        debugPrint(
+          '[FeedResumeReset] action=seek_zero_skip_near_start key=$docID '
+          'source=$source positionMs=${handle.position.inMilliseconds} '
+          'playing=${handle.isPlaying}',
+        );
+        return;
+      }
+      final shouldClearTransitionSnapshot = !isIosFeedHls ||
+          handle.adapter.value.hasRenderedFirstFrame ||
+          handle.adapter.value.hasVisibleVideoFrame;
       if (handle.isPlaying) {
         await handle.pause();
       }
       await handle.seekTo(Duration.zero);
       if (handle is HLSAdapterPlaybackHandle) {
-        await handle.adapter.clearFrameSnapshot(
-          reason: 'transition_resume_reset:$source',
-        );
+        if (shouldClearTransitionSnapshot) {
+          await handle.adapter.clearFrameSnapshot(
+            reason: 'transition_resume_reset:$source',
+          );
+        } else {
+          debugPrint(
+            '[FeedResumeReset] action=skip_clear_no_frame key=$docID '
+            'source=$source positionMs=${handle.position.inMilliseconds}',
+          );
+        }
       } else if (handle is HLSPlaybackHandle) {
         await handle.controller.clearFrameSnapshot(
           reason: 'transition_resume_reset:$source',
@@ -661,17 +719,77 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               );
             }
           }
+          final isIosFeedHiddenStop =
+              defaultTargetPlatform == TargetPlatform.iOS &&
+                  shouldStopPlayback &&
+                  controllerSurface == 'feed' &&
+                  allowedSurface == 'feed' &&
+                  handle is HLSAdapterPlaybackHandle;
+          if (isIosFeedHiddenStop) {
+            unawaited(handle.adapter.setVolume(0.0));
+          }
           _playbackExecutionService.quietHandle(
             handle,
             persistState: () => _saveVideoState(entry.key, handle),
             stopPlayback: shouldStopPlayback,
           );
+          if (isIosFeedHiddenStop) {
+            _verifyIosFeedHiddenHandleStopped(
+              controllerKey: controllerKey,
+              allowedDocID: allowedDocID,
+              handle: handle,
+              attempt: 0,
+            );
+          }
         }
       } catch (_) {}
     }
 
     _currentPlayingDocID = allowedDocID;
     _syncFocusedPrefetchDoc(allowedDocID);
+  }
+
+  void _verifyIosFeedHiddenHandleStopped({
+    required String controllerKey,
+    required String? allowedDocID,
+    required HLSAdapterPlaybackHandle handle,
+    required int attempt,
+  }) {
+    final delay = attempt == 0
+        ? const Duration(milliseconds: 100)
+        : const Duration(milliseconds: 100);
+    Future<void>.delayed(delay, () async {
+      if (defaultTargetPlatform != TargetPlatform.iOS) return;
+      if (_targetPlaybackDocID != allowedDocID ||
+          _currentPlayingDocID != allowedDocID) {
+        return;
+      }
+      if (controllerKey == allowedDocID) return;
+      final currentHandle = _allVideoControllers[controllerKey];
+      if (!identical(currentHandle, handle)) return;
+      final value = handle.adapter.value;
+      if (!value.isPlaying && !value.isBuffering) return;
+      if (kDebugMode) {
+        debugPrint(
+          '[PlaybackStopTrace] source=ios_feed_hidden_verify_stop '
+          'attempt=$attempt allowed=$allowedDocID stopping=$controllerKey '
+          'playing=${value.isPlaying} buffering=${value.isBuffering} '
+          'positionMs=${value.position.inMilliseconds}',
+        );
+      }
+      try {
+        await handle.adapter.setVolume(0.0);
+        await _playbackExecutionService.stopAdapter(handle.adapter);
+      } catch (_) {}
+      if (attempt == 0) {
+        _verifyIosFeedHiddenHandleStopped(
+          controllerKey: controllerKey,
+          allowedDocID: allowedDocID,
+          handle: handle,
+          attempt: attempt + 1,
+        );
+      }
+    });
   }
 
   void _syncFocusedPrefetchDoc(String? activeDocID) {
@@ -1060,6 +1178,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       return;
     }
     if (current != null) {
+      final transitionResetReason =
+          _transitionResumeResetReasons[docID.trim()] ?? '';
       final consumedTransitionReset = _consumeTransitionResumeReset(
         docID,
         current,
@@ -1068,6 +1188,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
       if (consumedTransitionReset) {
         _pauseAllExcept(docID);
         _markTargetPlaybackDoc(docID);
+        if (_shouldPrimeIosFeedResetWithoutBlocking(
+          docID,
+          current,
+          transitionResetReason,
+        )) {
+          _consumeIosFeedResetWithoutBlocking(
+            docID,
+            current,
+            source: 'play_only_this',
+            reason: transitionResetReason,
+          );
+          _schedulePendingPlayResume(docID, requestSeq);
+          return;
+        }
         unawaited(
           _seekTransitionResumeResetToZero(
             docID,
@@ -1101,6 +1235,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
     final handle = _allVideoControllers[docID];
     if (handle == null || !handle.isInitialized) return;
+    final transitionResetReason =
+        _transitionResumeResetReasons[docID.trim()] ?? '';
     final consumedTransitionReset = _consumeTransitionResumeReset(
       docID,
       handle,
@@ -1112,6 +1248,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _markTargetPlaybackDoc(docID);
     _pauseAllExcept(docID);
     if (consumedTransitionReset) {
+      if (_shouldPrimeIosFeedResetWithoutBlocking(
+        docID,
+        handle,
+        transitionResetReason,
+      )) {
+        _consumeIosFeedResetWithoutBlocking(
+          docID,
+          handle,
+          source: 'reassert_only_this',
+          reason: transitionResetReason,
+        );
+        _schedulePendingPlayResume(docID, requestSeq);
+        return;
+      }
       unawaited(
         _seekTransitionResumeResetToZero(
           docID,
@@ -1143,6 +1293,8 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
             ? previous
             : handle;
     _allVideoControllers[docID] = effectiveHandle;
+    final transitionResetReason =
+        _transitionResumeResetReasons[docID.trim()] ?? '';
     final consumedTransitionReset = _consumeTransitionResumeReset(
       docID,
       effectiveHandle,
@@ -1152,6 +1304,20 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pauseAllExcept(docID);
     _currentPlayingDocID = docID;
     if (consumedTransitionReset) {
+      if (_shouldPrimeIosFeedResetWithoutBlocking(
+        docID,
+        effectiveHandle,
+        transitionResetReason,
+      )) {
+        _consumeIosFeedResetWithoutBlocking(
+          docID,
+          effectiveHandle,
+          source: 'request_play',
+          reason: transitionResetReason,
+        );
+        _schedulePendingPlayResume(docID, requestSeq);
+        return;
+      }
       unawaited(
         _seekTransitionResumeResetToZero(
           docID,

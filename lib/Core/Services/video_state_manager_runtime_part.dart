@@ -160,11 +160,27 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
       );
       return false;
     }
+    final transitionResetReason =
+        _transitionResumeResetReasons[docID.trim()] ?? '';
     if (_consumeTransitionResumeReset(
       docID,
       handle,
       source: 'resume_current_blocked_reset',
     )) {
+      if (_shouldPrimeIosFeedResetWithoutBlocking(
+        docID,
+        handle,
+        transitionResetReason,
+      )) {
+        _consumeIosFeedResetWithoutBlocking(
+          docID,
+          handle,
+          source: 'resume_current_blocked_reset',
+          reason: transitionResetReason,
+        );
+        _playbackExecutionService.resumeHandle(handle);
+        return true;
+      }
       unawaited(
         _seekTransitionResumeResetToZero(
           docID,

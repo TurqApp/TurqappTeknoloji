@@ -82,6 +82,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       playbackHandleKey,
       value.position,
     );
+    _rememberFeedResumeActiveDoc();
 
     final lastLogged = _lastLoggedResumePositionSample;
     final shouldLog = lastLogged == null ||
@@ -146,6 +147,30 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     );
     if (!shouldUsePlatformResumeSeek) return false;
     if (!_controllerOwnsInlinePlayback) return false;
+    final resetNonRetainedFeedResume =
+        _resetDistantBehindFeedResumeStateIfNeeded(
+      adapter.value,
+      source: source,
+    );
+    if (resetNonRetainedFeedResume &&
+        widget.shouldPlay &&
+        _isSurfacePlaybackAllowed) {
+      _distantBehindResumeWasReset = false;
+      adapter.queueSeekAndPlay(Duration.zero);
+      _lastQueuedSavedResumePosition = Duration.zero;
+      _lastQueuedSavedResumeAt = DateTime.now();
+      _playbackRuntimeService.clearSavedPlaybackState(playbackHandleKey);
+      _recordPlaybackDispatch(
+        'feed_card_restore_saved_seek_reset_zero',
+        source: source,
+        dispatchIssued: false,
+        metadata: <String, dynamic>{
+          'previousPositionMs': adapter.value.position.inMilliseconds,
+          'reason': 'non_retained_feed_resume_reset',
+        },
+      );
+      return true;
+    }
     if (adapter.value.isInitialized && adapter.value.position > Duration.zero) {
       if (_distantBehindResumeWasReset &&
           widget.shouldPlay &&
@@ -161,7 +186,7 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
           dispatchIssued: false,
           metadata: <String, dynamic>{
             'previousPositionMs': adapter.value.position.inMilliseconds,
-            'reason': 'distant_behind_resume_reset',
+            'reason': 'non_retained_feed_resume_reset',
           },
         );
         return true;
@@ -1491,8 +1516,14 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
                     (!adapter.value.isInitialized &&
                         adapter.hlsController.canRestartStoppedPlayback));
         if (shouldRestartStoppedOwner) {
-          final resetDistantBehindResume = _distantBehindResumeWasReset;
-          if (resetDistantBehindResume) {
+          final resetNonRetainedFeedResume =
+              _resetDistantBehindFeedResumeStateIfNeeded(
+            adapter.value,
+            source: source,
+          );
+          final resetFeedResume =
+              _distantBehindResumeWasReset || resetNonRetainedFeedResume;
+          if (resetFeedResume) {
             _distantBehindResumeWasReset = false;
             adapter.queueSeekAndPlay(Duration.zero);
             _lastQueuedSavedResumePosition = Duration.zero;
@@ -1502,16 +1533,16 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
               'feed_card_adapter_restart_reset_zero',
               source: source,
               metadata: <String, dynamic>{
-                'reason': 'distant_behind_resume_reset',
+                'reason': 'non_retained_feed_resume_reset',
               },
             );
           }
-          final savedPosition = resetDistantBehindResume
+          final savedPosition = resetFeedResume
               ? Duration.zero
               : _normalizeFeedResumePosition(
                   _resolveSavedResumePosition(adapter),
                 );
-          final shouldUseSavedResumeSeek = !resetDistantBehindResume &&
+          final shouldUseSavedResumeSeek = !resetFeedResume &&
               !_shouldBypassSavedResumeHintForPrimaryFeed(
                 adapter.value,
                 source: source,
