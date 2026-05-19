@@ -374,6 +374,14 @@ extension AgendaControllerPublicApiPart on AgendaController {
             agendaList.isEmpty ||
             !_startupHeadFinalized);
     _lastStartupSurfacePreparedNetwork = networkType;
+    if (_startupChunkApplyInFlight) {
+      debugPrint(
+        '[FeedStartupSurface] status=skip_network_during_chunk_apply '
+        'network=${networkType.name} agendaCount=${agendaList.length} '
+        'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized',
+      );
+      return;
+    }
     if (shouldRefreshStartupSurface) {
       _lastStartupSurfacePreparedMutationEpoch = _feedMutationEpoch;
       unawaited(
@@ -414,6 +422,14 @@ extension AgendaControllerPublicApiPart on AgendaController {
     if (_lastPrimarySurfaceVisibleMutationEpoch == _feedMutationEpoch) {
       debugPrint(
         '[FeedStartupSurface] status=skip_primary_surface_repeat '
+        'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
+        'finalized=$_startupHeadFinalized',
+      );
+      return Future<void>.value();
+    }
+    if (_startupChunkApplyInFlight) {
+      debugPrint(
+        '[FeedStartupSurface] status=skip_primary_surface_chunk_apply '
         'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch '
         'finalized=$_startupHeadFinalized',
       );

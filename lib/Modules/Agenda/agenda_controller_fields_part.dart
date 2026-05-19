@@ -83,6 +83,7 @@ class _AgendaControllerState {
   bool startupPlannerHeadApplied = false;
   bool startupHeadFinalized = false;
   bool startupRenderBootstrapHold = false;
+  bool startupChunkApplyInFlight = false;
   bool growthRenderAppendHold = false;
   bool connectedFeedReservoirWarmInFlight = false;
   int growthRenderAppendEpoch = 0;
@@ -143,6 +144,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get debugEnsureInitialLoadInFlight => _ensureInitialLoadInFlight;
   bool get debugSurfaceBootstrapInFlight => _surfaceBootstrapFuture != null;
   bool get debugStartupHeadFinalized => _startupHeadFinalized;
+  bool get debugStartupChunkApplyInFlight => _startupChunkApplyInFlight;
   int get debugPlannedColdFeedCount => _plannedColdFeedWindow.length;
   int get debugRemainingPlannedColdFeedCount {
     final seenDocIds = <String>{
@@ -310,6 +312,9 @@ extension AgendaControllerFieldsPart on AgendaController {
   bool get _startupRenderBootstrapHold => _state.startupRenderBootstrapHold;
   set _startupRenderBootstrapHold(bool value) =>
       _state.startupRenderBootstrapHold = value;
+  bool get _startupChunkApplyInFlight => _state.startupChunkApplyInFlight;
+  set _startupChunkApplyInFlight(bool value) =>
+      _state.startupChunkApplyInFlight = value;
   bool get _growthRenderAppendHold => _state.growthRenderAppendHold;
   set _growthRenderAppendHold(bool value) =>
       _state.growthRenderAppendHold = value;

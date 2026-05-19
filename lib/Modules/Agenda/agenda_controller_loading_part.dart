@@ -18,6 +18,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       Duration(milliseconds: 16);
   static const Duration _startupWarmPreloadRenderReleaseDelay =
       Duration(milliseconds: 32);
+  static const int _startupChunkApplySize = 15;
+  static const Duration _startupChunkApplyDelay = Duration(milliseconds: 100);
 
   int _connectedColdFeedCandidateFetchLimitForTarget(int targetLimit) =>
       targetLimit + _connectedColdFeedPrimeBatchFloor;
@@ -949,31 +951,41 @@ extension AgendaControllerLoadingPart on AgendaController {
       );
       _scheduleInitialFeedVideoPosterWarmup(startupItems);
       unawaited(_primeInitialVisibleCardImageHints(startupItems));
-      _replaceAgendaState(
+      _applyStartupItemsInChunks(
         startupItems,
         reason: 'initial_items_to_add',
-      );
-      if (GetPlatform.isAndroid) {
-        _applyStartupRenderStagesNow();
-      }
-      if (_shouldFinalizeConnectedLiveStartupHead(
-        initial: initial,
-        currentAgenda: currentAgenda,
-      )) {
-        _startupHeadFinalized = true;
-        debugPrint(
-          '[FeedStartupPlanner] source=initial_bootstrap '
-          'status=finalize_connected_live_startup_head '
-          'composedCount=${startupItems.length}',
-        );
-      }
-      _scheduleStartupWarmPlayerPreload(
-        startupItems,
-        reason: 'initial_items_to_add',
-      );
-      _scheduleReshareFetchForPosts(
-        startupItems,
-        perPostLimit: 1,
+        onFirstChunkApplied: () {
+          if (GetPlatform.isAndroid) {
+            _applyStartupRenderStagesNow();
+          }
+        },
+        onCompleted: () {
+          if (_shouldFinalizeConnectedLiveStartupHead(
+            initial: initial,
+            currentAgenda: currentAgenda,
+          )) {
+            _startupHeadFinalized = true;
+            debugPrint(
+              '[FeedStartupPlanner] source=initial_bootstrap '
+              'status=finalize_connected_live_startup_head '
+              'composedCount=${startupItems.length}',
+            );
+          }
+          _scheduleStartupWarmPlayerPreload(
+            startupItems,
+            reason: 'initial_items_to_add',
+          );
+          _scheduleReshareFetchForPosts(
+            startupItems,
+            perPostLimit: 1,
+          );
+          if (ContentPolicy.isConnected && hasMore.value) {
+            _scheduleConnectedFeedReservoirStageWarmup(
+              targetLimit: _connectedColdFeedStageTwoLimit,
+              reason: 'initial_chunk_complete_page2_ready_before_50',
+            );
+          }
+        },
       );
       return;
     }
@@ -1013,6 +1025,93 @@ extension AgendaControllerLoadingPart on AgendaController {
     );
   }
 
+  void _applyStartupItemsInChunks(
+    List<PostsModel> items, {
+    required String reason,
+    VoidCallback? onFirstChunkApplied,
+    VoidCallback? onCompleted,
+  }) {
+    if (items.isEmpty) return;
+    if (items.length <= _startupChunkApplySize) {
+      _replaceAgendaState(items, reason: reason);
+      onFirstChunkApplied?.call();
+      onCompleted?.call();
+      return;
+    }
+
+    final expectedMutationEpoch = _feedMutationEpoch;
+    _startupChunkApplyInFlight = true;
+
+    void completeIfCurrent() {
+      if (expectedMutationEpoch != _feedMutationEpoch || isClosed) return;
+      _startupChunkApplyInFlight = false;
+      onCompleted?.call();
+      _reconcileFeedPageFetchTriggerToCurrentRunway(
+        reason: '${reason}_chunk_complete',
+      );
+      if (hasMore.value) {
+        _maybeTriggerDeferredFeedGrowth(
+          reason: '${reason}_chunk_complete',
+        );
+      }
+    }
+
+    final firstChunk =
+        items.take(_startupChunkApplySize).toList(growable: false);
+    debugPrint(
+      '[FeedStartupPlanner] source=initial_bootstrap '
+      'status=chunk_apply_start total=${items.length} '
+      'chunkSize=$_startupChunkApplySize delayMs=${_startupChunkApplyDelay.inMilliseconds}',
+    );
+    _replaceAgendaState(firstChunk, reason: '${reason}_chunk_1');
+    onFirstChunkApplied?.call();
+
+    if (firstChunk.length >= items.length) {
+      completeIfCurrent();
+      return;
+    }
+
+    var appliedCount = firstChunk.length;
+    var chunkIndex = 1;
+
+    void scheduleNextChunk() {
+      if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
+        if (expectedMutationEpoch == _feedMutationEpoch) {
+          _startupChunkApplyInFlight = false;
+        }
+        return;
+      }
+      if (appliedCount >= items.length) {
+        completeIfCurrent();
+        return;
+      }
+      Timer(_startupChunkApplyDelay, () {
+        if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
+          if (expectedMutationEpoch == _feedMutationEpoch) {
+            _startupChunkApplyInFlight = false;
+          }
+          return;
+        }
+        final nextCount = min(
+          items.length,
+          appliedCount + _startupChunkApplySize,
+        );
+        chunkIndex++;
+        final nextItems = items.take(nextCount).toList(growable: false);
+        debugPrint(
+          '[FeedStartupPlanner] source=initial_bootstrap '
+          'status=chunk_apply_progress chunk=$chunkIndex '
+          'applied=$nextCount total=${items.length}',
+        );
+        _replaceAgendaState(nextItems, reason: '${reason}_chunk_$chunkIndex');
+        appliedCount = nextCount;
+        scheduleNextChunk();
+      });
+    }
+
+    scheduleNextChunk();
+  }
+
   void _applyRefreshMergedAgenda({
     required List<PostsModel> mergedAgenda,
     bool resetStartupRenderStages = true,
@@ -1050,6 +1149,23 @@ extension AgendaControllerLoadingPart on AgendaController {
     String trigger = 'manual',
     int? expectedMutationEpoch,
   }) async {
+    if (!initial && _startupChunkApplyInFlight) {
+      recordQALabFeedFetchEvent(
+        stage: 'skipped',
+        trigger: trigger,
+        metadata: <String, dynamic>{
+          'initial': initial,
+          'pageLimit': pageLimit ?? 0,
+          'reason': 'startup_chunk_apply_in_flight',
+          'currentCount': agendaList.length,
+        },
+      );
+      debugPrint(
+        '[FeedBootstrapRequest] status=skip_startup_chunk_apply '
+        'trigger=$trigger agendaCount=${agendaList.length}',
+      );
+      return;
+    }
     if (initial && agendaList.isNotEmpty && _startupHeadFinalized) {
       recordQALabFeedFetchEvent(
         stage: 'skipped',
@@ -1622,6 +1738,13 @@ extension AgendaControllerLoadingPart on AgendaController {
     required String reason,
   }) {
     if (!ContentPolicy.isConnected) return;
+    if (_startupChunkApplyInFlight) {
+      debugPrint(
+        '[FeedTypesenseStageWarm] status=defer_startup_chunk_apply '
+        'reason=$reason target=$targetLimit agendaCount=${agendaList.length}',
+      );
+      return;
+    }
     if (targetLimit <= FeedSnapshotRepository.startupHomeLimitValue) return;
     if (_plannedColdFeedWindow.length >= targetLimit) return;
     if (_connectedFeedReservoirWarmTarget >= targetLimit) return;
@@ -2455,6 +2578,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     if (agendaList.isNotEmpty) {
       if (connectedStartup &&
           !_startupHeadFinalized &&
+          !_startupChunkApplyInFlight &&
           !isLoading.value &&
           !_ensureInitialLoadInFlight) {
         if (_startupPlannerHeadApplied) {

@@ -117,6 +117,7 @@ extension AgendaControllerFeedPart on AgendaController {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (isClosed ||
           agendaList.isEmpty ||
+          _startupChunkApplyInFlight ||
           isLoading.value ||
           !hasMore.value ||
           !scrollController.hasClients) {
