@@ -10,7 +10,6 @@ void main() {
         AppAssets.liveMarket1,
         AppAssets.liveMarket2,
         AppAssets.liveMarket3,
-        AppAssets.liveMarket4,
       ],
     );
     expect(
@@ -27,7 +26,6 @@ void main() {
         AppAssets.liveTutoring1,
         AppAssets.liveTutoring2,
         AppAssets.liveTutoring3,
-        AppAssets.liveTutoring4,
       ],
     );
     expect(

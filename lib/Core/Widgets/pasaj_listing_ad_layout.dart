@@ -35,7 +35,7 @@ class PasajListingAdLayout {
     int interval = 3,
   }) {
     final children = <Widget>[];
-    var adSlot = 0;
+    var adSlot = 1;
     for (var index = 0; index < items.length; index++) {
       children.add(itemBuilder(items[index], index));
       if ((index + 1) % interval == 0) {
@@ -54,7 +54,7 @@ class PasajListingAdLayout {
     double rowSpacing = 4,
   }) {
     final children = <Widget>[];
-    var adSlot = 0;
+    var adSlot = 1;
 
     for (var start = 0; start < items.length; start += 2) {
       if (children.isNotEmpty) {

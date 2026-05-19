@@ -171,6 +171,20 @@ class _AdmobKareState extends State<AdmobKare> {
     'astrodsp',
     'camera.astrodsp.com',
   };
+  static const List<String> _localSuggestionFallbackAssets = <String>[
+    'assets/images/turqapp_suggestions/turqapp_suggestion_01.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_02.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_03.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_04.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_05.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_06.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_07.webp',
+    'assets/images/turqapp_suggestions/turqapp_suggestion_08.webp',
+  ];
+  static final int _localSuggestionLaunchOffset =
+      DateTime.now().microsecondsSinceEpoch %
+          _localSuggestionFallbackAssets.length;
+  static int _localSuggestionLaunchCursor = 0;
   final AdsAnalyticsService _adsAnalyticsService = const AdsAnalyticsService();
   TurqAppSuggestionConfig? _suggestionConfig;
   TurqAppSuggestionConfig? _fallbackSuggestionConfig;
@@ -179,6 +193,7 @@ class _AdmobKareState extends State<AdmobKare> {
   int _visibleSuggestionIndex = 0;
   String _lastReportedManagedItemId = '';
   bool _allowFallbackSurface = false;
+  String _localSuggestionFallbackAsset = _localSuggestionFallbackAssets.first;
 
   static void _log(String message) {
     debugPrint('[AdmobKare] $message');
@@ -929,6 +944,7 @@ class _AdmobKareState extends State<AdmobKare> {
   void initState() {
     super.initState();
     _visibilityKey = ValueKey<String>('admob-kare-${identityHashCode(this)}');
+    _localSuggestionFallbackAsset = _pickLocalSuggestionFallbackAsset();
     _sharedAdAvailabilityRevision.addListener(_handleSharedAdAvailability);
     _scrollCriticalLiveAdBindingPaused.addListener(
       _handleScrollCriticalAdBindingChanged,
@@ -971,6 +987,7 @@ class _AdmobKareState extends State<AdmobKare> {
     _fallbackGateTimer?.cancel();
     _stopFallbackPoolPolling();
     _allowFallbackSurface = false;
+    _localSuggestionFallbackAsset = _pickLocalSuggestionFallbackAsset();
     _suggestionConfig = null;
     _waitingForFuturePool = false;
     _fallbackSuggestionConfig = nextPlacement.isEmpty
@@ -1784,9 +1801,7 @@ class _AdmobKareState extends State<AdmobKare> {
         } else if (_allowFallbackSurface ||
             _loadFailed ||
             liveAdBindingPaused) {
-          if (_allowFallbackSurface || _loadFailed) {
-            scheduleMicrotask(_startFallbackPoolPolling);
-          }
+          scheduleMicrotask(_startFallbackPoolPolling);
           _queueManagedSuggestionImpressionIfVisible();
           child = _buildManagedSuggestionSlot();
         } else {
@@ -1796,6 +1811,7 @@ class _AdmobKareState extends State<AdmobKare> {
         if (!widget.showChrome) {
           child = const SizedBox.shrink();
         } else if (liveAdBindingPaused) {
+          scheduleMicrotask(_startFallbackPoolPolling);
           child = _buildDeferredAdSlot();
         } else if (shouldKeepFallbackWhileLiveAdAttaches) {
           scheduleMicrotask(_startFallbackPoolPolling);
@@ -1917,142 +1933,14 @@ class _AdmobKareState extends State<AdmobKare> {
   }
 
   Widget _buildPromoFallbackCard() {
-    final config = _currentFallbackSuggestionConfig;
-    final accentColor = _promoAccentColorFor(config.placementId);
-    final accentTint = accentColor.withValues(alpha: 0.12);
-    return Container(
+    return Image.asset(
+      _localSuggestionFallbackAsset,
+      width: double.infinity,
       height: _promoSlotHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            Color(0xFFF8F9FB),
-            Color(0xFFF3F6F4),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -26,
-            top: -18,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: accentTint,
-              ),
-              child: const SizedBox(
-                width: 118,
-                height: 118,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 16,
-            top: 16,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: accentTint,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                child: Text(
-                  config.title,
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.84),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: const Color(0x14000000),
-                    ),
-                  ),
-                  child: const Text(
-                    'TurqApp Önerisi',
-                    style: TextStyle(
-                      color: Color(0xFF111827),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  config.headline,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF111827),
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    height: 1.14,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  config.body,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF4B5563),
-                    fontSize: 13,
-                    height: 1.38,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0x14000000),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        _promoCtaLabelFor(config.placementId),
-                        style: TextStyle(
-                          color: accentColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      Icon(
-                        CupertinoIcons.arrow_right,
-                        size: 16,
-                        color: accentColor,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, __, ___) => const SizedBox.expand(),
     );
   }
 
@@ -2124,46 +2012,13 @@ class _AdmobKareState extends State<AdmobKare> {
     return available[_suggestionRandom.nextInt(available.length)];
   }
 
-  Color _promoAccentColorFor(String placementId) {
-    switch (placementId) {
-      case 'feed':
-        return const Color(0xFF0F766E);
-      case 'profile':
-        return const Color(0xFF2563EB);
-      case 'market':
-        return const Color(0xFFB45309);
-      case 'scholarship':
-        return const Color(0xFF7C3AED);
-      case 'answer_key':
-        return const Color(0xFF0F766E);
-      case 'job':
-        return const Color(0xFFBE123C);
-      case 'practice_exam':
-        return const Color(0xFF1D4ED8);
-      case 'tutoring':
-        return const Color(0xFF15803D);
-    }
-    return const Color(0xFF0F766E);
-  }
-
-  String _promoCtaLabelFor(String placementId) {
-    switch (placementId) {
-      case 'market':
-      case 'job':
-      case 'tutoring':
-        return 'İncelemeye başla';
-      case 'scholarship':
-        return 'Fırsatları gör';
-      case 'answer_key':
-        return 'Kaynakları keşfet';
-      case 'practice_exam':
-        return 'Denemeleri gör';
-      case 'profile':
-        return 'Seçili içerikleri aç';
-      case 'feed':
-        return 'Bugünün öne çıkanları';
-    }
-    return 'Şimdi keşfet';
+  String _pickLocalSuggestionFallbackAsset() {
+    final index =
+        (_localSuggestionLaunchOffset + _localSuggestionLaunchCursor) %
+            _localSuggestionFallbackAssets.length;
+    _localSuggestionLaunchCursor = (_localSuggestionLaunchCursor + 1) %
+        _localSuggestionFallbackAssets.length;
+    return _localSuggestionFallbackAssets[index];
   }
 
   String _pasajTabIdForSuggestionPlacement(String placementId) {

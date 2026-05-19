@@ -96,6 +96,7 @@ flutter:
     - assets/icons/
     - assets/fonts/
     - assets/images/
+    - assets/images/turqapp_suggestions/
     - assets/slider/
     - assets/slider/live/
     - assets/data/Countries.json

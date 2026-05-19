@@ -1,6 +1,19 @@
 import 'package:turqappv2/Themes/app_assets.dart';
 
 class SliderCatalog {
+  static const Set<String> bundledLiveSliderIds = <String>{
+    'denemeler',
+    'online_sinav',
+    'cevap_anahtari',
+    'ozel_ders',
+    'is_bul',
+    'market',
+  };
+
+  static bool usesBundledLiveDefaults(String sliderId) {
+    return bundledLiveSliderIds.contains(sliderId.trim());
+  }
+
   static List<String> defaultImagesFor(String sliderId) {
     switch (sliderId) {
       case 'denemeler':
@@ -26,7 +39,6 @@ class SliderCatalog {
           AppAssets.liveTutoring1,
           AppAssets.liveTutoring2,
           AppAssets.liveTutoring3,
-          AppAssets.liveTutoring4,
         ];
       case 'is_bul':
         return [
@@ -39,7 +51,6 @@ class SliderCatalog {
           AppAssets.liveMarket1,
           AppAssets.liveMarket2,
           AppAssets.liveMarket3,
-          AppAssets.liveMarket4,
         ];
       default:
         return const [];

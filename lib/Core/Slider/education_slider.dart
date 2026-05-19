@@ -91,6 +91,10 @@ class _EducationSliderState extends State<EducationSlider> {
       _setItems(_defaultItems());
       return;
     }
+    if (SliderCatalog.usesBundledLiveDefaults(sliderId)) {
+      _setItems(_defaultItems());
+      return;
+    }
 
     final snapshot = await _cache.readSnapshot(sliderId);
     if (snapshot.hasItems) {
