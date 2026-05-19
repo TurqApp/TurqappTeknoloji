@@ -3,7 +3,7 @@ part of 'story_row_controller.dart';
 extension StoryRowControllerCachePart on StoryRowController {
   Future<void> _warmPublishCriticalAvatarFiles(
     Iterable<StoryUserModel> source, {
-    int take = 4,
+    int take = 6,
   }) async {
     final myUid = _currentUid;
     final ordered = <StoryUserModel>[
@@ -24,21 +24,21 @@ extension StoryRowControllerCachePart on StoryRowController {
     }) async {
       try {
         final remembered =
-            TurqImageCacheManager.rememberedResolvedFilePathForUrl(url);
+            TurqAvatarCacheManager.rememberedResolvedFilePathForUrl(url);
         if (remembered.isNotEmpty) return;
-        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+        final cached = await TurqAvatarCacheManager.instance.getFileFromCache(
           url,
         );
         var path = cached?.file.path ?? '';
         if (path.isEmpty && allowNetwork) {
-          final file = await TurqImageCacheManager.warmUrl(url).timeout(
+          final file = await TurqAvatarCacheManager.warmUrl(url).timeout(
             const Duration(milliseconds: 220),
             onTimeout: () => throw TimeoutException('story_avatar_timeout'),
           );
           path = file.path;
         }
         if (path.isEmpty) return;
-        TurqImageCacheManager.rememberResolvedFile(url, path);
+        TurqAvatarCacheManager.rememberResolvedFile(url, path);
       } catch (_) {}
     }
 
@@ -67,12 +67,12 @@ extension StoryRowControllerCachePart on StoryRowController {
 
     for (final url in urls) {
       try {
-        final cached = await TurqImageCacheManager.instance.getFileFromCache(
+        final cached = await TurqAvatarCacheManager.instance.getFileFromCache(
           url,
         );
         final path = cached?.file.path ?? '';
         if (path.isEmpty) continue;
-        TurqImageCacheManager.rememberResolvedFile(url, path);
+        TurqAvatarCacheManager.rememberResolvedFile(url, path);
       } catch (_) {}
     }
   }
@@ -130,7 +130,7 @@ extension StoryRowControllerCachePart on StoryRowController {
 
     for (final url in urls) {
       try {
-        await TurqImageCacheManager.warmUrl(url);
+        await TurqAvatarCacheManager.warmUrl(url);
       } catch (_) {}
     }
   }

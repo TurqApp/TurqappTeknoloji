@@ -58,8 +58,8 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     if (url.isEmpty) return;
     if (_lastWarmedAvatarUrl == url) return;
     try {
-      final file = await TurqImageCacheManager.instance.getSingleFile(url);
-      TurqImageCacheManager.rememberResolvedFile(url, file.path);
+      final file = await TurqAvatarCacheManager.instance.getSingleFile(url);
+      TurqAvatarCacheManager.rememberResolvedFile(url, file.path);
       _lastWarmedAvatarUrl = url;
     } catch (_) {}
   }
@@ -68,10 +68,10 @@ extension CurrentUserServiceLifecyclePart on CurrentUserService {
     final url = (user?.avatarUrl ?? '').trim();
     if (url.isEmpty) return;
     try {
-      final cached = await TurqImageCacheManager.instance.getFileFromCache(url);
+      final cached = await TurqAvatarCacheManager.instance.getFileFromCache(url);
       final path = cached?.file.path ?? '';
       if (path.isEmpty) return;
-      TurqImageCacheManager.rememberResolvedFile(url, path);
+      TurqAvatarCacheManager.rememberResolvedFile(url, path);
     } catch (_) {}
   }
 
