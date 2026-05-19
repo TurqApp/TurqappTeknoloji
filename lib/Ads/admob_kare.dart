@@ -116,7 +116,6 @@ class _AdmobKareState extends State<AdmobKare> {
   static int _loadingCount = 0;
   static DateTime? _globalCooldownUntil;
   static DateTime? _lastWarmupAttemptAt;
-  static Timer? _deferredPoolTopUpTimer;
   static Timer? _poolWarmupRetryTimer;
   static int _globalFailureBurstCount = 0;
   static Future<void>? _sdkInitFuture;
@@ -165,11 +164,10 @@ class _AdmobKareState extends State<AdmobKare> {
       Duration(milliseconds: 30);
   static const Duration _scrollCriticalLiveAdBindingResumeDelay = Duration.zero;
   static const Duration _stableHiddenDetachDelay = Duration(seconds: 2);
-  static const Duration _blockedCreativeUnitCooldown = Duration(seconds: 20);
   static const double _promoSlotHeight = 270;
   static const double _livePromoSlotHeight = 274;
   static const double _feedVisibilityLoadThreshold = 0.72;
-  static const Set<String> _blockedAdResponseFragments = <String>{
+  static const Set<String> _monitoredAdResponseFragments = <String>{
     'astrodsp',
     'camera.astrodsp.com',
   };
@@ -211,22 +209,64 @@ class _AdmobKareState extends State<AdmobKare> {
     };
   }
 
+  static Map<String, dynamic> _adSlotMetadata(Ad ad) {
+    if (ad is! BannerAd) {
+      return const <String, dynamic>{};
+    }
+    return <String, dynamic>{
+      'requestedAdWidth': ad.size.width,
+      'requestedAdHeight': ad.size.height,
+    };
+  }
+
   static String _adResponseLogSummary(Ad ad) {
     final meta = _adResponseMetadata(ad);
+    final slotMeta = _adSlotMetadata(ad);
+    final sizeSuffix = slotMeta.isEmpty
+        ? ''
+        : ' size=${slotMeta['requestedAdWidth']}x${slotMeta['requestedAdHeight']}';
     return 'responseId=${meta['responseId']} '
         'mediation=${meta['mediationAdapterClassName']} '
         'adapter=${meta['adapterClassName']} '
         'source=${meta['adSourceName']} '
         'sourceId=${meta['adSourceId']} '
         'instance=${meta['adSourceInstanceName']} '
-        'instanceId=${meta['adSourceInstanceId']}';
+        'instanceId=${meta['adSourceInstanceId']}$sizeSuffix';
   }
 
-  static bool _isBlockedAdCreative(Ad ad) {
+  static List<String> _monitoredAdCreativeFragments(Ad ad) {
     final meta = _adResponseMetadata(ad);
     final searchable =
         meta.values.map((value) => value.toString().toLowerCase()).join(' ');
-    return _blockedAdResponseFragments.any(searchable.contains);
+    return _monitoredAdResponseFragments
+        .where(searchable.contains)
+        .toList(growable: false);
+  }
+
+  static void _logMonitoredAdCreative(
+    Ad ad, {
+    required String adUnitId,
+    required String source,
+  }) {
+    final fragments = _monitoredAdCreativeFragments(ad);
+    if (fragments.isEmpty) return;
+    _log(
+      'monitored creative source=$source unit=$adUnitId '
+      'fragments=${fragments.join(',')} '
+      'platform=${Platform.operatingSystem} ${_adResponseLogSummary(ad)}',
+    );
+    recordQALabAdEvent(
+      stage: 'monitored_creative',
+      placement: 'medium_rectangle',
+      metadata: <String, dynamic>{
+        'adUnitId': adUnitId,
+        'source': source,
+        'platform': Platform.operatingSystem,
+        'monitoredFragments': fragments,
+        ..._adSlotMetadata(ad),
+        ..._adResponseMetadata(ad),
+      },
+    );
   }
 
   static String _decodeManagedSliderImageSource(String source) {
@@ -238,42 +278,6 @@ class _AdmobKareState extends State<AdmobKare> {
         .replaceAll('&#39;', "'")
         .replaceAll('&apos;', "'")
         .replaceAll('&amp;', '&');
-  }
-
-  static bool _isBlockedManagedSliderSource(String source) {
-    final decoded = _decodeManagedSliderImageSource(source).toLowerCase();
-    if (decoded.trim().isEmpty) return false;
-    return _blockedAdResponseFragments.any(decoded.contains);
-  }
-
-  static void _markBlockedCreativeCooldown(String adUnitId) {
-    _unitCooldownUntilById[adUnitId] =
-        DateTime.now().add(_blockedCreativeUnitCooldown);
-  }
-
-  static void _disposeBlockedCreative(
-    Ad ad, {
-    required String adUnitId,
-    required String source,
-  }) {
-    _markBlockedCreativeCooldown(adUnitId);
-    _log(
-      'blocked creative source=$source unit=$adUnitId '
-      'platform=${Platform.operatingSystem} ${_adResponseLogSummary(ad)}',
-    );
-    recordQALabAdEvent(
-      stage: 'blocked_creative',
-      placement: 'medium_rectangle',
-      metadata: <String, dynamic>{
-        'adUnitId': adUnitId,
-        'source': source,
-        'platform': Platform.operatingSystem,
-        ..._adResponseMetadata(ad),
-      },
-    );
-    try {
-      ad.dispose();
-    } catch (_) {}
   }
 
   static void _notifySharedAdAvailabilityChanged() {
@@ -372,14 +376,13 @@ class _AdmobKareState extends State<AdmobKare> {
   static bool get _supportsSharedPool => true;
   static bool get _usePlaceholderOnly => kDebugMode && !_renderLiveAdsInDebug;
   static bool get hasReadyBanner => _readyPool.isNotEmpty;
-  static bool get hasRenderableBanner => _readyPool
-      .any((ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad));
+  static bool get hasRenderableBanner =>
+      _readyPool.any((ad) => ad.responseInfo != null);
   static Map<String, Object> get debugState => <String, Object>{
         'sdkInitialized': _sdkInitialized,
         'readyPoolCount': _readyPool.length,
-        'renderablePoolCount': _readyPool
-            .where((ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad))
-            .length,
+        'renderablePoolCount':
+            _readyPool.where((ad) => ad.responseInfo != null).length,
         'loadingCount': _loadingCount,
         'cooldownActive': _globalCooldownRemaining() > Duration.zero,
       };
@@ -640,38 +643,6 @@ class _AdmobKareState extends State<AdmobKare> {
     }
   }
 
-  static void _schedulePoolTopUp({
-    Duration delay = Duration.zero,
-    int targetCount = _poolTargetCount,
-    int maxRequestCount = _poolTopUpBatchCount,
-    bool bypassMinInterval = false,
-    String debugSource = 'pool_top_up',
-  }) {
-    if (delay <= Duration.zero) {
-      unawaited(warmupPool(
-        targetCount: targetCount,
-        maxRequestCount: maxRequestCount,
-        bypassMinInterval: bypassMinInterval,
-        debugSource: debugSource,
-      ));
-      return;
-    }
-    final activeTimer = _deferredPoolTopUpTimer;
-    if (activeTimer != null && activeTimer.isActive) {
-      return;
-    }
-    _deferredPoolTopUpTimer = Timer(delay, () {
-      _deferredPoolTopUpTimer = null;
-      unawaited(warmupPool(
-        targetCount: targetCount,
-        maxRequestCount: maxRequestCount,
-        bypassMinInterval: bypassMinInterval,
-        debugSource:
-            debugSource == 'pool_top_up' ? 'deferred_pool_top_up' : debugSource,
-      ));
-    });
-  }
-
   static void _schedulePoolWarmupRetry({
     required Duration delay,
     required String debugSource,
@@ -718,18 +689,11 @@ class _AdmobKareState extends State<AdmobKare> {
           _unitCooldownUntilById.remove(adUnitId);
           _log(
               'warmup loaded unit=$adUnitId platform=${Platform.operatingSystem} ${_adResponseLogSummary(loadedAd)}');
-          if (_isBlockedAdCreative(loadedAd)) {
-            _disposeBlockedCreative(
-              loadedAd,
-              adUnitId: adUnitId,
-              source: 'pool_warmup',
-            );
-            _schedulePoolWarmupRetry(
-              delay: _noFillFastRetryDelay,
-              debugSource: 'blocked_creative_next_unit',
-            );
-            return;
-          }
+          _logMonitoredAdCreative(
+            loadedAd,
+            adUnitId: adUnitId,
+            source: 'pool_warmup',
+          );
           if (_readyPool.length < _maxPoolSize) {
             _readyPool.add(loadedAd as BannerAd);
             _trimReadyPoolToLimit();
@@ -793,18 +757,15 @@ class _AdmobKareState extends State<AdmobKare> {
     if (!_supportsSharedPool) return null;
     while (_readyPool.isNotEmpty) {
       final renderableIndex = _readyPool.indexWhere(
-        (ad) => ad.responseInfo != null && !_isBlockedAdCreative(ad),
+        (ad) => ad.responseInfo != null,
       );
       final index = renderableIndex >= 0 ? renderableIndex : 0;
       final ad = _readyPool.removeAt(index);
-      if (_isBlockedAdCreative(ad)) {
-        _disposeBlockedCreative(
-          ad,
-          adUnitId: ad.adUnitId,
-          source: 'pool_take',
-        );
-        continue;
-      }
+      _logMonitoredAdCreative(
+        ad,
+        adUnitId: ad.adUnitId,
+        source: 'pool_take',
+      );
       return ad;
     }
     return null;
@@ -812,11 +773,11 @@ class _AdmobKareState extends State<AdmobKare> {
 
   bool _canRenderAd(BannerAd? ad) {
     if (!_isAdLoaded || ad == null) return false;
-    return ad.responseInfo != null && !_isBlockedAdCreative(ad);
+    return ad.responseInfo != null;
   }
 
   bool _isRenderableBanner(BannerAd? ad) =>
-      ad != null && ad.responseInfo != null && !_isBlockedAdCreative(ad);
+      ad != null && ad.responseInfo != null;
 
   _StableAdSlotState _ensureStableSlotState() {
     final slotId = _stableAdSlotKey;
@@ -1463,36 +1424,16 @@ class _AdmobKareState extends State<AdmobKare> {
               'adUnitId': adUnitId,
               'latencyMs': latencyMs,
               'platform': Platform.operatingSystem,
+              'monitoredFragments': _monitoredAdCreativeFragments(ad),
+              ..._adSlotMetadata(ad),
               ...responseMetadata,
             },
           );
-          if (_isBlockedAdCreative(ad)) {
-            _disposeBlockedCreative(
-              ad,
-              adUnitId: adUnitId,
-              source: 'inline_load',
-            );
-            _bannerAd = null;
-            if (mounted && !_isDisposed) {
-              setState(() {
-                _isAdLoaded = false;
-                _loadFailed = false;
-                _allowFallbackSurface = false;
-              });
-            }
-            _armFallbackGate();
-            _scheduleRetry(
-              delay: _noFillFastRetryDelay,
-              markLoadFailed: false,
-            );
-            _schedulePoolTopUp(
-              delay: _noFillFastRetryDelay,
-              maxRequestCount: 1,
-              bypassMinInterval: true,
-              debugSource: 'blocked_inline_next_unit',
-            );
-            return;
-          }
+          _logMonitoredAdCreative(
+            ad,
+            adUnitId: adUnitId,
+            source: 'inline_load',
+          );
           if (mounted && !_isDisposed) {
             setState(() {
               _isAdLoaded = true;
@@ -2462,12 +2403,10 @@ class _AdmobKareState extends State<AdmobKare> {
   Widget _buildManagedSliderItem(String source) {
     final imageSource = _normalizedManagedSliderImageSource(source);
     if (imageSource.isEmpty ||
-        _isBlockedManagedSliderSource(source) ||
-        _isBlockedManagedSliderSource(imageSource) ||
         imageSource.contains('<') ||
         imageSource.contains('>')) {
       _log(
-        'managed slider image blocked raw_source=${source.length > 96 ? '${source.substring(0, 96)}...' : source}',
+        'managed slider image invalid raw_source=${source.length > 96 ? '${source.substring(0, 96)}...' : source}',
       );
       return _buildPromoFallbackCard();
     }
