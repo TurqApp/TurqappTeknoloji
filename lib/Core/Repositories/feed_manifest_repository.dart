@@ -160,8 +160,18 @@ class FeedManifestRepository extends GetxService {
   }) async {
     await _hydrateLocalCache();
     final hasLocalWindows = _windows.isNotEmpty;
-    if (forceRefresh || !hasLocalWindows) {
+    final hasStaleLocalWindow =
+        hasLocalWindows && _isActiveManifestWindowStale(DateTime.now());
+    if (forceRefresh || !hasLocalWindows || hasStaleLocalWindow) {
       try {
+        if (hasStaleLocalWindow && kDebugMode) {
+          debugPrint(
+            '[FeedManifestRepo] stage=freshness_gate '
+            'action=blocking_active_sync '
+            'manifestId=$_manifestId generatedAt=$_generatedAt '
+            'windowCount=${_windows.length}',
+          );
+        }
         final active = await _loadActiveManifestDoc();
         final activeData = active.data() ?? const <String, dynamic>{};
         final nextManifestId =
@@ -190,6 +200,18 @@ class FeedManifestRepository extends GetxService {
         }
       } catch (error) {
         if (_windows.isEmpty) rethrow;
+        if (hasStaleLocalWindow) {
+          await _dropLocalManifestWindows(
+            reason: 'stale_active_sync_failed',
+          );
+          return const FeedManifestPoolResult(
+            manifestId: '',
+            entries: <FeedManifestEntry>[],
+            slotCount: 0,
+            loadedSlotCount: 0,
+            generatedAt: 0,
+          );
+        }
         if (kDebugMode) {
           debugPrint(
             '[FeedManifestRepo] stage=active_fallback_to_local error=$error',
@@ -199,7 +221,37 @@ class FeedManifestRepository extends GetxService {
     } else {
       _scheduleBackgroundActiveSyncIfNeeded();
     }
-    final slotRefs = _flattenWindowSlotRefs();
+    var slotRefs = _flattenWindowSlotRefs(
+      maxSlotsToTake: maxSlotsToLoad,
+    );
+    if (!forceRefresh &&
+        maxSlotsToLoad != null &&
+        maxSlotsToLoad > 0 &&
+        slotRefs.length < maxSlotsToLoad) {
+      try {
+        final changed = await syncActiveWindowIfChanged();
+        if (changed) {
+          slotRefs = _flattenWindowSlotRefs(
+            maxSlotsToTake: maxSlotsToLoad,
+          );
+        }
+        if (kDebugMode) {
+          debugPrint(
+            '[FeedManifestRepo] stage=slot_window_completion '
+            'target=$maxSlotsToLoad selected=${slotRefs.length} '
+            'activeChanged=$changed',
+          );
+        }
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint(
+            '[FeedManifestRepo] stage=slot_window_completion_skip '
+            'target=$maxSlotsToLoad selected=${slotRefs.length} '
+            'error=$error',
+          );
+        }
+      }
+    }
     if (slotRefs.isEmpty) {
       return const FeedManifestPoolResult(
         manifestId: '',
@@ -219,7 +271,7 @@ class FeedManifestRepository extends GetxService {
       effectiveSlotRefs,
       forceRefresh: forceRefresh,
     );
-    _scheduleBackgroundSlotPrefetch(slotRefs);
+    _scheduleBackgroundSlotPrefetch(effectiveSlotRefs);
     return _buildPoolResult(effectiveSlotRefs);
   }
 
@@ -274,8 +326,9 @@ class FeedManifestRepository extends GetxService {
     if (nextManifestId.isEmpty || slotRefs.isEmpty) {
       return false;
     }
-    final changed =
-        nextManifestId != _manifestId || generatedAt != _generatedAt;
+    final changed = nextManifestId != _manifestId ||
+        generatedAt != _generatedAt ||
+        !_currentPrimaryWindowHasSlots(slotRefs);
     if (!changed) {
       return false;
     }
@@ -511,6 +564,31 @@ class FeedManifestRepository extends GetxService {
     _slotEntries.clear();
   }
 
+  bool _isActiveManifestWindowStale(DateTime now) {
+    if (_generatedAt <= 0) return true;
+    final nextRefreshAt = DateTime.fromMillisecondsSinceEpoch(_generatedAt)
+        .add(manifestWindowCadence + _manifestPublishDelay);
+    return !now.isBefore(nextRefreshAt);
+  }
+
+  bool _currentPrimaryWindowHasSlots(List<_FeedManifestSlotRef> slotRefs) {
+    if (_windows.isEmpty) return false;
+    final current = _windows.first;
+    final expectedPaths = slotRefs
+        .map((slot) => slot.path)
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+    final currentPaths = current.slots
+        .map((slot) => slot.path)
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+    if (expectedPaths.length != currentPaths.length) return false;
+    for (var index = 0; index < expectedPaths.length; index++) {
+      if (expectedPaths[index] != currentPaths[index]) return false;
+    }
+    return true;
+  }
+
   Future<void> _hydrateLocalCache() async {
     if (_localCacheHydrated) return;
     final prefs = await _ensurePrefs();
@@ -580,15 +658,15 @@ class FeedManifestRepository extends GetxService {
     _windows
         .sort((left, right) => right.generatedAt.compareTo(left.generatedAt));
 
-    final retained =
-        _windows.take(_maxCachedManifestWindows).toList(growable: false);
+    final retained = manifestChanged
+        ? <_FeedManifestWindow>[next]
+        : _windows.take(_maxCachedManifestWindows).toList(growable: false);
     final retainedPaths = retained
         .expand((entry) => entry.slots)
         .map((slot) => slot.path)
         .where((path) => path.isNotEmpty)
         .toSet();
     final removedPaths = _windows
-        .skip(_maxCachedManifestWindows)
         .expand((entry) => entry.slots)
         .map((slot) => slot.path)
         .where((path) => path.isNotEmpty && !retainedPaths.contains(path))
@@ -607,6 +685,32 @@ class FeedManifestRepository extends GetxService {
       _slotEntries.remove(path);
     }
     await _persistLocalCache(removedPaths: invalidatedPaths);
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=window_retention '
+        'manifestChanged=$manifestChanged retainedWindows=${_windows.length} '
+        'retainedSlots=${_flattenWindowSlotRefs().length} '
+        'removedSlots=${invalidatedPaths.length}',
+      );
+    }
+  }
+
+  Future<void> _dropLocalManifestWindows({
+    required String reason,
+  }) async {
+    final removedPaths = _windows
+        .expand((entry) => entry.slots)
+        .map((slot) => slot.path)
+        .where((path) => path.isNotEmpty)
+        .toSet();
+    _reset();
+    await _persistLocalCache(removedPaths: removedPaths);
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=drop_local_windows '
+        'reason=$reason removedSlots=${removedPaths.length}',
+      );
+    }
   }
 
   Future<void> _persistLocalCache({
@@ -628,13 +732,20 @@ class FeedManifestRepository extends GetxService {
     }
   }
 
-  List<_FeedManifestSlotRef> _flattenWindowSlotRefs() {
+  List<_FeedManifestSlotRef> _flattenWindowSlotRefs({
+    int? maxSlotsToTake,
+  }) {
     final output = <_FeedManifestSlotRef>[];
     final seenPaths = <String>{};
     for (final window in _windows) {
       for (final slot in window.slots) {
         if (slot.path.isEmpty || !seenPaths.add(slot.path)) continue;
         output.add(slot);
+        if (maxSlotsToTake != null &&
+            maxSlotsToTake > 0 &&
+            output.length >= maxSlotsToTake) {
+          return output;
+        }
       }
     }
     return output;
@@ -745,7 +856,19 @@ class FeedManifestRepository extends GetxService {
         ),
       );
     }
+    output.sort(_compareSlotRefsNewestFirst);
     return output;
+  }
+
+  static int _compareSlotRefsNewestFirst(
+    _FeedManifestSlotRef left,
+    _FeedManifestSlotRef right,
+  ) {
+    final dateCompare = right.date.compareTo(left.date);
+    if (dateCompare != 0) return dateCompare;
+    final hourCompare = right.slotHour.compareTo(left.slotHour);
+    if (hourCompare != 0) return hourCompare;
+    return right.path.compareTo(left.path);
   }
 
   static String _canonicalIdForManifestItem(
