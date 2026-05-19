@@ -281,6 +281,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         manifestGeneratedAt: pool.generatedAt,
         primarySlotPath: _resolvePrimarySlotPath(pool.entries),
         limit: limit,
+        allowBlockingRefresh: pageNumber > 1,
       );
       final seed = FeedManifestPolicy.resolveDeckSeed(
         userId: currentUserId,
@@ -489,6 +490,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     required int manifestGeneratedAt,
     required String primarySlotPath,
     required int limit,
+    required bool allowBlockingRefresh,
   }) async {
     if (!FeedManifestPolicy.typesenseGapEnabled) {
       return const <FeedManifestEntry>[];
@@ -541,6 +543,92 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         return true;
       }
       return visibleEntries.length == rawEntries.length;
+    }
+
+    Future<List<FeedManifestEntry>> refreshGapEntries() {
+      if (_state.gapWindowCacheKey == cacheKey &&
+          _state.gapWindowCacheFuture != null &&
+          nowMs < gapCacheUntilMs) {
+        return _state.gapWindowCacheFuture!;
+      }
+      final ownedMinutes = List<int>.generate(60, (index) => index);
+      final loadFuture = () async {
+        try {
+          final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
+            surface: 'feed',
+            ownedMinutes: ownedMinutes,
+            limit: candidateLimit,
+            page: 1,
+            nowMs: effectiveNowMs,
+            cutoffMs: gapCutoffMs,
+          );
+          final visible = _filterFeedManifestDeckPosts(
+            motorPage.items,
+            hiddenPostIds: hiddenPostIds,
+            nowMs: effectiveNowMs,
+            cutoffMs: gapCutoffMs,
+            limit: candidateLimit,
+          );
+          final entries = visible
+              .map(
+                (post) => FeedManifestMixer.entryFromPost(
+                  post,
+                  slotId: 'typesense_gap',
+                  slotPath: 'typesense_gap',
+                ),
+              )
+              .toList(growable: false);
+          final usableResult = _filterUsableFeedManifestGapEntries(
+            entries,
+            hiddenPostIds: hiddenPostIds,
+            consumedDocIds: consumedDocIds,
+            consumedFloodRootIds: consumedFloodRootIds,
+            nowMs: effectiveNowMs,
+            cutoffMs: gapCutoffMs,
+            limit: candidateLimit,
+          );
+          final usableEntries = usableResult.entries;
+          _state.gapWindowCacheKey = cacheKey;
+          _state.gapWindowCacheEntries = usableEntries;
+          if (usableEntries.isNotEmpty) {
+            await _persistGapEntries(
+              cacheKey: cacheKey,
+              cacheUntilMs: gapCacheUntilMs,
+              entries: usableEntries,
+            );
+          }
+          if (_shouldLogDiagnostics) {
+            debugPrint(
+              '[FeedManifestPrimary] gap_status=ready '
+              'manifest=$manifestId rawFetched=${motorPage.items.length} '
+              'filteredVisible=${visible.length} count=${entries.length} '
+              'usable=${usableEntries.length} '
+              'consumedPruned=${usableResult.consumedPrunedCount} '
+              'windowStart=$gapWindowStartMs '
+              'cacheUntil=$gapCacheUntilMs',
+            );
+            debugPrint(
+              '[GAP] status=ready '
+              'manifest=$manifestId raw=${motorPage.items.length} '
+              'filtered=${visible.length} cached=${usableEntries.length} '
+              'consumedPruned=${usableResult.consumedPrunedCount}',
+            );
+          }
+          return usableEntries;
+        } catch (error) {
+          if (_shouldLogDiagnostics) {
+            debugPrint('[FeedManifestPrimary] gap_status=fail error=$error');
+          }
+          return const <FeedManifestEntry>[];
+        } finally {
+          if (_state.gapWindowCacheKey == cacheKey) {
+            _state.gapWindowCacheFuture = null;
+          }
+        }
+      }();
+      _state.gapWindowCacheKey = cacheKey;
+      _state.gapWindowCacheFuture = loadFuture;
+      return loadFuture;
     }
 
     if (_state.gapWindowCacheKey == cacheKey &&
@@ -599,90 +687,32 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           'visible=${visiblePersisted.length} reason=consumed_pruned',
         );
       }
-    }
-    if (_state.gapWindowCacheKey == cacheKey &&
-        _state.gapWindowCacheFuture != null &&
-        nowMs < gapCacheUntilMs) {
-      return _state.gapWindowCacheFuture!;
-    }
-    final ownedMinutes = List<int>.generate(60, (index) => index);
-    final loadFuture = () async {
-      try {
-        final motorPage = await _postRepository.fetchTypesenseMotorCandidates(
-          surface: 'feed',
-          ownedMinutes: ownedMinutes,
-          limit: candidateLimit,
-          page: 1,
-          nowMs: effectiveNowMs,
-          cutoffMs: gapCutoffMs,
-        );
-        final visible = _filterFeedManifestDeckPosts(
-          motorPage.items,
-          hiddenPostIds: hiddenPostIds,
-          nowMs: effectiveNowMs,
-          cutoffMs: gapCutoffMs,
-          limit: candidateLimit,
-        );
-        final entries = visible
-            .map(
-              (post) => FeedManifestMixer.entryFromPost(
-                post,
-                slotId: 'typesense_gap',
-                slotPath: 'typesense_gap',
-              ),
-            )
-            .toList(growable: false);
-        final usableResult = _filterUsableFeedManifestGapEntries(
-          entries,
-          hiddenPostIds: hiddenPostIds,
-          consumedDocIds: consumedDocIds,
-          consumedFloodRootIds: consumedFloodRootIds,
-          nowMs: effectiveNowMs,
-          cutoffMs: gapCutoffMs,
-          limit: candidateLimit,
-        );
-        final usableEntries = usableResult.entries;
+      if (visiblePersisted.isNotEmpty) {
         _state.gapWindowCacheKey = cacheKey;
-        _state.gapWindowCacheEntries = usableEntries;
-        if (usableEntries.isNotEmpty) {
-          await _persistGapEntries(
-            cacheKey: cacheKey,
-            cacheUntilMs: gapCacheUntilMs,
-            entries: usableEntries,
-          );
-        }
+        _state.gapWindowCacheEntries = visiblePersisted;
         if (_shouldLogDiagnostics) {
           debugPrint(
-            '[FeedManifestPrimary] gap_status=ready '
-            'manifest=$manifestId rawFetched=${motorPage.items.length} '
-            'filteredVisible=${visible.length} count=${entries.length} '
-            'usable=${usableEntries.length} '
-            'consumedPruned=${usableResult.consumedPrunedCount} '
-            'windowStart=$gapWindowStartMs '
-            'cacheUntil=$gapCacheUntilMs',
-          );
-          debugPrint(
-            '[GAP] status=ready '
-            'manifest=$manifestId raw=${motorPage.items.length} '
-            'filtered=${visible.length} cached=${usableEntries.length} '
-            'consumedPruned=${usableResult.consumedPrunedCount}',
+            '[FeedManifestPrimary] gap_status=disk_cache_partial_return '
+            'manifest=$manifestId raw=${persisted.length} '
+            'visible=${visiblePersisted.length} refresh=background',
           );
         }
-        return usableEntries;
-      } catch (error) {
-        if (_shouldLogDiagnostics) {
-          debugPrint('[FeedManifestPrimary] gap_status=fail error=$error');
-        }
-        return const <FeedManifestEntry>[];
-      } finally {
-        if (_state.gapWindowCacheKey == cacheKey) {
-          _state.gapWindowCacheFuture = null;
-        }
+        unawaited(refreshGapEntries());
+        return visiblePersisted;
       }
-    }();
-    _state.gapWindowCacheKey = cacheKey;
-    _state.gapWindowCacheFuture = loadFuture;
-    return loadFuture;
+    }
+    final refreshFuture = refreshGapEntries();
+    if (!allowBlockingRefresh) {
+      if (_shouldLogDiagnostics) {
+        debugPrint(
+          '[FeedManifestPrimary] gap_status=refresh_background_nonblocking '
+          'manifest=$manifestId',
+        );
+      }
+      unawaited(refreshFuture);
+      return const <FeedManifestEntry>[];
+    }
+    return refreshFuture;
   }
 
   ({List<FeedManifestEntry> entries, int consumedPrunedCount})
