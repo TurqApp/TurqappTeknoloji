@@ -166,7 +166,11 @@ extension MarketCreateControllerFormPart on MarketCreateController {
 
   bool fieldUsesTextInput(Map<String, dynamic> field) {
     final type = (field['type'] ?? 'select').toString();
-    return type != 'select';
+    if (type != 'select') return true;
+    final key = (field['key'] ?? '').toString();
+    if (key == 'model') return false;
+    final options = field['options'] as List<dynamic>? ?? const [];
+    return options.isEmpty;
   }
 
   List<String> fieldOptions(Map<String, dynamic> field) {
