@@ -63,21 +63,32 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
   }) {
     final leaf = selectedLeaf.value;
     final now = int.tryParse(itemId) ?? DateTime.now().millisecondsSinceEpoch;
-    final current = CurrentUserService.instance.currentUser;
+    final currentService = CurrentUserService.instance;
+    final current = currentService.currentUser;
     final fullName = [
-      current?.firstName ?? '',
-      current?.lastName ?? '',
+      current?.firstName ?? currentService.firstName,
+      current?.lastName ?? currentService.lastName,
     ].where((part) => part.trim().isNotEmpty).join(' ').trim();
-    final nickname = (current?.nickname ?? '').trim();
-    final displayName = fullName.isEmpty ? nickname : fullName;
-    final avatarUrl = (current?.avatarUrl ?? '').trim();
+    final nickname = (current?.nickname ?? currentService.nickname).trim();
+    final displayName = fullName.isEmpty
+        ? (currentService.effectiveDisplayName.trim().isNotEmpty
+            ? currentService.effectiveDisplayName.trim()
+            : nickname)
+        : fullName;
+    final avatarUrl = (currentService.avatarUrl.trim().isNotEmpty
+            ? currentService.avatarUrl
+            : (current?.avatarUrl ?? ''))
+        .trim();
+    final rozet = (current?.rozet ?? currentService.rozet).trim();
     final showPhone = contactPreference.value == 'phone';
     final phoneNumber = showPhone ? _resolveSellerPhone(current) : '';
     final attributes = <String, dynamic>{};
     if (leaf != null) {
       for (final field in leaf.fields) {
         final fieldKey = (field['key'] ?? '').toString();
-        final label = (field['label'] ?? fieldKey).toString();
+        final label = MarketItemModel.normalizeAttributeLabel(
+          (field['label'] ?? fieldKey).toString(),
+        );
         final value = fieldValue(fieldKey);
         if (value.isNotEmpty) {
           attributes[label] = value;
@@ -112,7 +123,7 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
             : displayName,
         'nickname': nickname,
         'avatarUrl': avatarUrl,
-        'rozet': current?.rozet ?? '',
+        'rozet': rozet,
         'phoneNumber': phoneNumber,
         'isApproved': current?.hesapOnayi == true,
         'name': displayName.isEmpty
@@ -126,7 +137,7 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
           displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
       'sellerNickname': nickname,
       'sellerAvatarUrl': avatarUrl,
-      'sellerRozet': current?.rozet ?? '',
+      'sellerRozet': rozet,
       'sellerName':
           displayName.isEmpty ? 'pasaj.market.default_seller'.tr : displayName,
       'sellerUsername': nickname,

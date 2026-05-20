@@ -128,9 +128,23 @@ class MarketItemModel {
     return value;
   }
 
+  static String normalizeAttributeLabel(String label) {
+    final trimmed = label.trim();
+    switch (trimmed) {
+      case 'Motor Güc��':
+      case 'Motor G��c��':
+      case 'Motor Gucu':
+        return 'Motor Gücü';
+    }
+    return trimmed;
+  }
+
   static Map<String, dynamic> _cloneAttributes(Map source) {
     return source.map(
-      (key, value) => MapEntry(key.toString(), _cloneValue(value)),
+      (key, value) => MapEntry(
+        normalizeAttributeLabel(key.toString()),
+        _cloneValue(value),
+      ),
     );
   }
 

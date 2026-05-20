@@ -453,8 +453,9 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
       final latest = results[0] as MarketItemModel?;
       if (latest != null && mounted) {
         final preserved = _preserveProtectedFields(latest, _item);
+        final hydrated = await _hydrateSellerProfileIfNeeded(preserved);
         _updateViewState(() {
-          _item = preserved;
+          _item = hydrated;
           if (!_isOwner && results.length > 1) {
             _isSaved = results[1] == true;
           }
@@ -469,6 +470,75 @@ extension _MarketDetailViewActionsPart on _MarketDetailViewState {
         });
       }
     }
+  }
+
+  Future<MarketItemModel> _hydrateSellerProfileIfNeeded(
+    MarketItemModel source,
+  ) async {
+    final uid = source.userId.trim();
+    if (uid.isEmpty || !_needsSellerProfile(source)) return source;
+
+    try {
+      final raw = await _MarketDetailViewState._userRepository.getUserRaw(
+        uid,
+        preferCache: true,
+        forceServer: true,
+      );
+      if (raw == null) return source;
+      final summary = UserSummary.fromMap(uid, raw);
+      return _mergeSellerSummary(source, summary);
+    } catch (_) {
+      return source;
+    }
+  }
+
+  MarketItemModel _mergeSellerSummary(
+    MarketItemModel source,
+    UserSummary summary,
+  ) {
+    final preferredName = summary.preferredName.trim();
+    final username = summary.nickname.trim().isNotEmpty
+        ? summary.nickname.trim()
+        : summary.username.trim();
+    final avatarUrl = summary.avatarUrl.trim();
+    final rozet = summary.rozet.trim();
+
+    return source.copyWith(
+      sellerName:
+          _isDefaultSellerName(source.sellerName) && preferredName.isNotEmpty
+              ? preferredName
+              : source.sellerName,
+      sellerUsername:
+          source.sellerUsername.trim().isEmpty && username.isNotEmpty
+              ? username
+              : source.sellerUsername,
+      sellerPhotoUrl:
+          source.sellerPhotoUrl.trim().isEmpty && avatarUrl.isNotEmpty
+              ? avatarUrl
+              : source.sellerPhotoUrl,
+      sellerRozet: source.sellerRozet.trim().isEmpty && rozet.isNotEmpty
+          ? rozet
+          : source.sellerRozet,
+    );
+  }
+
+  bool _needsSellerProfile(MarketItemModel source) {
+    return _isDefaultSellerName(source.sellerName) ||
+        source.sellerUsername.trim().isEmpty ||
+        source.sellerPhotoUrl.trim().isEmpty;
+  }
+
+  bool _isDefaultSellerName(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    if (normalized == 'pasaj.market.default_seller') return true;
+    if (normalized == 'pasaj.market.default_seller'.tr.toLowerCase()) {
+      return true;
+    }
+    return normalized == 'turq kullanıcı' ||
+        normalized == 'turq kullanici' ||
+        normalized == 'kullanıcı' ||
+        normalized == 'kullanici';
   }
 
   MarketItemModel _performPreserveProtectedFields(

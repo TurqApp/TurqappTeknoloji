@@ -242715,7 +242715,7 @@
                     },
                     {
                       "key": "motor-guc",
-                      "label": "Motor Güc��",
+                      "label": "Motor Gücü",
                       "type": "select",
                       "required": true,
                       "filterable": true,
