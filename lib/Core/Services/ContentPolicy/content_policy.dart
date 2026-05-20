@@ -31,7 +31,7 @@ class ContentPolicy {
   }
 
   static bool get isConnected {
-    return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
+    return NetworkAwarenessService.maybeFind()?.allowLiveRead ?? true;
   }
 
   static bool get _usesWifiContentBehavior => isConnected;
@@ -52,6 +52,8 @@ class ContentPolicy {
   }
 
   static bool allowBackgroundRefresh(ContentScreenKind screen) {
+    final network = NetworkAwarenessService.maybeFind();
+    if (network?.allowBackgroundRefresh == false) return false;
     return _surfacePolicy(screen)
         .allowBackgroundRefresh(onWiFi: _usesWifiContentBehavior);
   }

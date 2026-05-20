@@ -1,5 +1,11 @@
 part of 'network_awareness_service.dart';
 
+enum NetworkReachabilityState {
+  online,
+  unstable,
+  offlineConfirmed,
+}
+
 class NetworkSettings {
   bool autoUploadOnWiFi;
   bool pauseOnCellular;

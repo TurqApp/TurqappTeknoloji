@@ -8,7 +8,7 @@ class _OfflineModeServiceState {
   final failedCount = 0.obs;
   final pendingActions = <PendingAction>[].obs;
   final deadLetterActions = <PendingAction>[].obs;
-  StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
+  StreamSubscription<NetworkReachabilityState>? connectivitySubscription;
   StreamSubscription<User?>? authSubscription;
   Timer? retryTimer;
   SharedPreferences? prefs;
@@ -23,10 +23,10 @@ extension OfflineModeServiceFieldsPart on OfflineModeService {
   RxInt get failedCount => _state.failedCount;
   RxList<PendingAction> get pendingActions => _state.pendingActions;
   RxList<PendingAction> get deadLetterActions => _state.deadLetterActions;
-  StreamSubscription<List<ConnectivityResult>>? get _connectivitySubscription =>
+  StreamSubscription<NetworkReachabilityState>? get _connectivitySubscription =>
       _state.connectivitySubscription;
   set _connectivitySubscription(
-    StreamSubscription<List<ConnectivityResult>>? value,
+    StreamSubscription<NetworkReachabilityState>? value,
   ) =>
       _state.connectivitySubscription = value;
   StreamSubscription<User?>? get _authSubscription => _state.authSubscription;

@@ -125,10 +125,8 @@ extension UploadQueueServiceProcessingPart on UploadQueueService {
 
   Future<void> _performProcessUpload(QueuedUpload upload) async {
     try {
-      final connectivity = await Connectivity().checkConnectivity();
-      final hasNetwork =
-          connectivity.any((result) => result != ConnectivityResult.none);
-      if (!hasNetwork) {
+      final network = NetworkAwarenessService.maybeFind();
+      if (!(network?.allowUploadAttempt ?? true)) {
         upload.status = UploadStatus.failed;
         upload.errorMessage = 'upload_queue.no_internet'.tr;
         await _saveQueueToStorage();

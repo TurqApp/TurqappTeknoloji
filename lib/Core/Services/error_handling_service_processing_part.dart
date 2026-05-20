@@ -234,10 +234,10 @@ Retry Count: ${appError.retryCount}
   }
 
   void _monitorConnectivity() {
-    Connectivity().onConnectivityChanged.listen((results) {
+    NetworkAwarenessService.ensure().reachabilityStateRx.listen((_) {
       final wasOnline = _isOnline.value;
       _isOnline.value =
-          results.any((result) => result != ConnectivityResult.none);
+          !(NetworkAwarenessService.maybeFind()?.allowQueueWrites ?? false);
 
       if (!wasOnline && _isOnline.value) {
         _retryPendingOperations();

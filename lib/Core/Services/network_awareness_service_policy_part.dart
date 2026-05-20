@@ -2,6 +2,7 @@ part of 'network_awareness_service.dart';
 
 extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   static const Duration _connectivityPollInterval = Duration(seconds: 3);
+  static const Duration _offlineConfirmationDelay = Duration(seconds: 4);
   static const MethodChannel _androidNetworkStateChannel = MethodChannel(
     'turqapp.network_state/method',
   );
@@ -71,10 +72,121 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       results: results,
       resolvedFromConnectivity: resolvedFromConnectivity,
     );
-    _currentNetwork.value = resolved;
+    if (resolved == NetworkType.none) {
+      _handleOfflineCandidate(
+        previousNetwork: previousNetwork,
+        results: results,
+        source: source,
+      );
+      return;
+    }
+
+    _applyResolvedNetworkType(
+      resolved,
+      previousNetwork: previousNetwork,
+      results: results,
+      source: source,
+    );
+  }
+
+  void _handleOfflineCandidate({
+    required NetworkType previousNetwork,
+    required List<ConnectivityResult> results,
+    required String source,
+  }) {
+    if (_reachabilityState.value == NetworkReachabilityState.offlineConfirmed &&
+        _currentNetwork.value == NetworkType.none) {
+      debugPrint(
+        '[NetworkAwareness] source=offline_still_confirmed '
+        'results=${results.map((e) => e.name).join(",")}',
+      );
+      return;
+    }
+
+    _reachabilityState.value = NetworkReachabilityState.unstable;
+    _offlineCandidateStartedAtMs = _offlineCandidateStartedAtMs == 0
+        ? DateTime.now().millisecondsSinceEpoch
+        : _offlineCandidateStartedAtMs;
 
     debugPrint(
-      '[NetworkAwareness] source=network_update resolved=${_currentNetwork.value.name} '
+      '[NetworkAwareness] source=offline_candidate '
+      'trigger=$source previous=${previousNetwork.name} '
+      'held=${_currentNetwork.value.name} '
+      'results=${results.map((e) => e.name).join(",")}',
+    );
+
+    _offlineConfirmationTimer ??= Timer(
+      _offlineConfirmationDelay,
+      () => unawaited(_confirmOfflineCandidate()),
+    );
+  }
+
+  Future<void> _confirmOfflineCandidate() async {
+    _offlineConfirmationTimer = null;
+    if (_debugOverrideNetwork != null) return;
+    try {
+      final results = await Connectivity().checkConnectivity();
+      final resolvedFromConnectivity =
+          _resolveNetworkTypeFromConnectivity(results);
+      final resolved = await _reconcileNativeNetworkType(
+        results: results,
+        resolvedFromConnectivity: resolvedFromConnectivity,
+      );
+      final previousNetwork = _currentNetwork.value;
+      if (resolved == NetworkType.none) {
+        debugPrint(
+          '[NetworkAwareness] source=offline_confirmed '
+          'heldForMs=${DateTime.now().millisecondsSinceEpoch - _offlineCandidateStartedAtMs} '
+          'previous=${previousNetwork.name} '
+          'results=${results.map((e) => e.name).join(",")}',
+        );
+        _applyResolvedNetworkType(
+          NetworkType.none,
+          previousNetwork: previousNetwork,
+          results: results,
+          source: 'offline_confirmed',
+        );
+        return;
+      }
+
+      debugPrint(
+        '[NetworkAwareness] source=offline_recovered_before_confirm '
+        'resolved=${resolved.name} '
+        'results=${results.map((e) => e.name).join(",")}',
+      );
+      _applyResolvedNetworkType(
+        resolved,
+        previousNetwork: previousNetwork,
+        results: results,
+        source: 'offline_recovered_before_confirm',
+      );
+    } catch (e) {
+      debugPrint('[NetworkAwareness] source=offline_confirm_failed error=$e');
+      _offlineConfirmationTimer ??= Timer(
+        _offlineConfirmationDelay,
+        () => unawaited(_confirmOfflineCandidate()),
+      );
+    }
+  }
+
+  void _applyResolvedNetworkType(
+    NetworkType resolved, {
+    required NetworkType previousNetwork,
+    required List<ConnectivityResult> results,
+    required String source,
+  }) {
+    _offlineConfirmationTimer?.cancel();
+    _offlineConfirmationTimer = null;
+    _offlineCandidateStartedAtMs = 0;
+    _currentNetwork.value = resolved;
+    _reachabilityState.value = resolved == NetworkType.none
+        ? NetworkReachabilityState.offlineConfirmed
+        : NetworkReachabilityState.online;
+
+    debugPrint(
+      '[NetworkAwareness] source=network_update trigger=$source '
+      'resolved=${_currentNetwork.value.name} '
+      'reachability=${_reachabilityState.value.name} '
       'results=${results.map((e) => e.name).join(",")}',
     );
 
@@ -165,6 +277,13 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
 
   void debugSetNetworkOverride(NetworkType? type) {
     _debugOverrideNetwork = type;
+    if (type != null) {
+      _offlineConfirmationTimer?.cancel();
+      _offlineConfirmationTimer = null;
+      _reachabilityState.value = type == NetworkType.none
+          ? NetworkReachabilityState.offlineConfirmed
+          : NetworkReachabilityState.online;
+    }
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
     if (isOnWiFi) {
@@ -179,7 +298,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   }
 
   CompressionQuality getOptimalCompressionQuality() {
-    if (!isConnected) return CompressionQuality.low;
+    if (!allowUploadAttempt) return CompressionQuality.low;
 
     final mode = isOnWiFi ? settings.wifiDataMode : settings.cellularDataMode;
 
@@ -194,7 +313,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   }
 
   bool shouldAllowUpload({required int fileSizeMB}) {
-    if (!isConnected) return false;
+    if (!allowUploadAttempt) return false;
 
     if (isOnCellular && settings.pauseOnCellular) {
       return false;
@@ -213,7 +332,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   }
 
   Map<String, dynamic> getUploadRecommendation({required int fileSizeMB}) {
-    if (!isConnected) {
+    if (!allowUploadAttempt) {
       return {
         'allowed': false,
         'reason': 'network_awareness.no_internet_reason'.tr,

@@ -1,8 +1,9 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:turqappv2/Core/Services/network_awareness_service.dart';
 
 class ConnectivityHelper {
-  static Future<bool> isWifi() => Connectivity()
-      .checkConnectivity()
-      .then((results) => results.contains(ConnectivityResult.wifi))
-      .catchError((_) => true);
+  static Future<bool> isWifi() async {
+    final network = NetworkAwarenessService.maybeFind();
+    if (network == null) return true;
+    return network.isOnWiFi || (network.allowLiveRead && !network.isOnCellular);
+  }
 }

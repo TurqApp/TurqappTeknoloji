@@ -14,7 +14,7 @@ class _OpticalPreviewControllerState {
   final selection = 0.obs;
   final fullName = TextEditingController();
   final ogrenciNo = TextEditingController();
-  StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
+  StreamSubscription<NetworkReachabilityState>? connectivitySubscription;
 }
 
 _OpticalPreviewControllerState _buildOpticalPreviewControllerState(
@@ -37,10 +37,10 @@ extension OpticalPreviewControllerFieldsPart on OpticalPreviewController {
   RxInt get selection => _state.selection;
   TextEditingController get fullName => _state.fullName;
   TextEditingController get ogrenciNo => _state.ogrenciNo;
-  StreamSubscription<List<ConnectivityResult>>? get _connectivitySubscription =>
+  StreamSubscription<NetworkReachabilityState>? get _connectivitySubscription =>
       _state.connectivitySubscription;
   set _connectivitySubscription(
-    StreamSubscription<List<ConnectivityResult>>? value,
+    StreamSubscription<NetworkReachabilityState>? value,
   ) =>
       _state.connectivitySubscription = value;
 }
@@ -80,10 +80,12 @@ void _disposeOpticalPreviewController(OpticalPreviewController controller) {
 }
 
 void _checkOpticalPreviewInternet(OpticalPreviewController controller) {
+  final network = NetworkAwarenessService.ensure();
+  controller.isConnected.value = network.allowWriteAttempt;
   controller._connectivitySubscription =
-      Connectivity().onConnectivityChanged.listen((results) {
+      network.reachabilityStateRx.listen((_) {
     controller.isConnected.value =
-        results.any((r) => r != ConnectivityResult.none);
+        NetworkAwarenessService.maybeFind()?.allowWriteAttempt ?? true;
   });
 }
 

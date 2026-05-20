@@ -18,4 +18,5 @@ void _handleNetworkAwarenessInit(NetworkAwarenessService service) {
 void _handleNetworkAwarenessClose(NetworkAwarenessService service) {
   service._connectivitySubscription?.cancel();
   service._connectivityPollTimer?.cancel();
+  service._offlineConfirmationTimer?.cancel();
 }

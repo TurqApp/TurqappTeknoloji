@@ -82,16 +82,12 @@ class _DenemeSinaviYapControllerRuntimePart {
 
   void checkInternetConnection() {
     _controller._connectivitySubscription?.cancel();
-    unawaited(
-      Connectivity().checkConnectivity().then((results) {
-        _controller.isConnected.value =
-            results.any((r) => r != ConnectivityResult.none);
-      }),
-    );
+    final network = NetworkAwarenessService.ensure();
+    _controller.isConnected.value = network.allowWriteAttempt;
     _controller._connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((results) {
+        network.reachabilityStateRx.listen((_) {
       _controller.isConnected.value =
-          results.any((r) => r != ConnectivityResult.none);
+          NetworkAwarenessService.maybeFind()?.allowWriteAttempt ?? true;
       print(
         _controller.isConnected.value
             ? 'Connectivity available.'

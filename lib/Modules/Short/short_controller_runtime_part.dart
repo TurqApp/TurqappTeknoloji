@@ -242,12 +242,14 @@ extension _ShortControllerRuntimeX on ShortController {
     if (existing != _ShortSessionSourceMode.unresolved) {
       return existing;
     }
-    final network =
-        NetworkAwarenessService.maybeFind()?.currentNetworkRx.value ??
-            NetworkType.none;
-    _shortStartupNetworkType ??= network;
+    final networkService = NetworkAwarenessService.maybeFind();
+    final network = networkService?.currentNetworkRx.value ?? NetworkType.wifi;
+    final liveReadAllowed = networkService?.allowLiveRead ?? true;
+    _shortStartupNetworkType ??= liveReadAllowed && network == NetworkType.none
+        ? NetworkType.cellular
+        : network;
     final offlineReadyCount = _offlineReadyShortPoolCount();
-    final resolved = network != NetworkType.none
+    final resolved = liveReadAllowed
         ? _ShortSessionSourceMode.wifiLive
         : offlineReadyCount > 0
             ? _ShortSessionSourceMode.mobileCacheOnly

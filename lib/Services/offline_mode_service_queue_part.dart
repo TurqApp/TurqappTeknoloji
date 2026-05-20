@@ -25,25 +25,13 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
   }
 
   void _startConnectivityListener() {
-    _connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> results) {
-      final wasOffline = !isOnline.value;
-      isOnline.value =
-          results.any((result) => result != ConnectivityResult.none);
-
-      if (wasOffline && isOnline.value) {
-        processPendingNow();
-      }
+    final network = NetworkAwarenessService.ensure();
+    _connectivitySubscription =
+        network.reachabilityStateRx.listen((NetworkReachabilityState _) {
+      _syncOnlineStateFromNetworkPolicy();
     });
 
-    Connectivity().checkConnectivity().then((results) async {
-      isOnline.value =
-          results.any((result) => result != ConnectivityResult.none);
-      if (isOnline.value) {
-        await processPendingNow();
-      }
-    });
+    _syncOnlineStateFromNetworkPolicy(processIfOnline: true);
 
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
@@ -51,6 +39,15 @@ extension OfflineModeServiceQueuePart on OfflineModeService {
       if (pendingActions.isEmpty) return;
       await processPendingNow();
     });
+  }
+
+  void _syncOnlineStateFromNetworkPolicy({bool processIfOnline = false}) {
+    final network = NetworkAwarenessService.maybeFind();
+    final wasOffline = !isOnline.value;
+    isOnline.value = !(network?.allowQueueWrites ?? false);
+    if ((wasOffline || processIfOnline) && isOnline.value) {
+      unawaited(processPendingNow());
+    }
   }
 
   Future<void> queueAction(PendingAction action) async {

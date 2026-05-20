@@ -11,7 +11,7 @@ ChatListingController? _maybeFindChatListingController() =>
 extension ChatListingControllerFacadePart on ChatListingController {
   NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
 
-  bool get _isOffline => _network?.currentNetwork == NetworkType.none;
+  bool get _isOffline => _network?.isOfflineConfirmed ?? false;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
   String get _uid => CurrentUserService.instance.effectiveUserId;
   Duration get _syncInterval {

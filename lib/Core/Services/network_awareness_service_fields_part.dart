@@ -2,6 +2,8 @@ part of 'network_awareness_service.dart';
 
 class _NetworkAwarenessServiceState {
   final Rx<NetworkType> currentNetwork = NetworkType.none.obs;
+  final Rx<NetworkReachabilityState> reachabilityState =
+      NetworkReachabilityState.online.obs;
   final Rx<NetworkSettings> settings = NetworkSettings().obs;
   final Rx<DataUsageStats> dataUsage = DataUsageStats(
     uploadedMB: 0,
@@ -11,11 +13,15 @@ class _NetworkAwarenessServiceState {
 
   StreamSubscription<List<ConnectivityResult>>? connectivitySubscription;
   Timer? connectivityPollTimer;
+  Timer? offlineConfirmationTimer;
+  int offlineCandidateStartedAtMs = 0;
   NetworkType? debugOverrideNetwork;
 }
 
 extension _NetworkAwarenessServiceFieldsPart on NetworkAwarenessService {
   Rx<NetworkType> get _currentNetwork => _state.currentNetwork;
+  Rx<NetworkReachabilityState> get _reachabilityState =>
+      _state.reachabilityState;
   Rx<NetworkSettings> get _settings => _state.settings;
   Rx<DataUsageStats> get _dataUsage => _state.dataUsage;
   StreamSubscription<List<ConnectivityResult>>? get _connectivitySubscription =>
@@ -27,6 +33,12 @@ extension _NetworkAwarenessServiceFieldsPart on NetworkAwarenessService {
   Timer? get _connectivityPollTimer => _state.connectivityPollTimer;
   set _connectivityPollTimer(Timer? value) =>
       _state.connectivityPollTimer = value;
+  Timer? get _offlineConfirmationTimer => _state.offlineConfirmationTimer;
+  set _offlineConfirmationTimer(Timer? value) =>
+      _state.offlineConfirmationTimer = value;
+  int get _offlineCandidateStartedAtMs => _state.offlineCandidateStartedAtMs;
+  set _offlineCandidateStartedAtMs(int value) =>
+      _state.offlineCandidateStartedAtMs = value;
   NetworkType? get _debugOverrideNetwork => _state.debugOverrideNetwork;
   set _debugOverrideNetwork(NetworkType? value) =>
       _state.debugOverrideNetwork = value;

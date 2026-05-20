@@ -40,7 +40,7 @@ ChatController _ensureChatController({
 extension ChatControllerSupportPart on ChatController {
   NetworkAwarenessService? get _network => NetworkAwarenessService.maybeFind();
 
-  bool get _isOffline => _network?.currentNetwork == NetworkType.none;
+  bool get _isOffline => _network?.isOfflineConfirmed ?? false;
   bool get _isOnWiFi => _network?.isOnWiFi ?? true;
 
   Duration get _serverSyncGap {

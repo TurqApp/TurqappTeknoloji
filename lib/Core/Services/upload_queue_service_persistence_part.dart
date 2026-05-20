@@ -108,10 +108,11 @@ extension UploadQueueServicePersistencePart on UploadQueueService {
   }
 
   void _performListenToConnectivity() {
-    Connectivity().onConnectivityChanged.listen((results) {
-      final hasNetwork =
-          results.any((result) => result != ConnectivityResult.none);
-      if (hasNetwork && !_isProcessing.value && !_isPaused.value) {
+    NetworkAwarenessService.ensure().reachabilityStateRx.listen((_) {
+      final network = NetworkAwarenessService.maybeFind();
+      if ((network?.allowUploadAttempt ?? true) &&
+          !_isProcessing.value &&
+          !_isPaused.value) {
         _processQueue();
       }
     });

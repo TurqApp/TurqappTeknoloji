@@ -363,6 +363,13 @@ extension AgendaControllerPublicApiPart on AgendaController {
       '[FeedNetworkPolicy] status=dispatch network=${networkType.name} '
       'frozen=$_renderWindowFrozenOnCellular agendaCount=${agendaList.length}',
     );
+    if (networkType == NetworkType.none) {
+      debugPrint(
+        '[FeedNetworkPolicy] status=offline_confirmed_keep_surface '
+        'agendaCount=${agendaList.length} mutationEpoch=$_feedMutationEpoch',
+      );
+      return;
+    }
     _renderWindowFrozenOnCellular = false;
     debugPrint(
       '[FeedNetworkPolicy] status=live_network network=${networkType.name} '
