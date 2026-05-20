@@ -202,7 +202,7 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
         minimumSize: Size.zero,
         child: const SizedBox(
           width: 44,
-          height: 40,
+          height: 28,
           child: Align(
             alignment: Alignment.centerRight,
             child: Icon(Icons.more_vert, color: Colors.black, size: 22),
