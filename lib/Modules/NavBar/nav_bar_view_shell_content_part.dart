@@ -317,8 +317,8 @@ extension _NavBarViewShellContentPart on NavBarView {
       child: AnimatedOpacity(
         opacity: showBar ? 1 : 0,
         duration: const Duration(milliseconds: 180),
-        child: IgnorePointer(
-          ignoring: !showBar,
+        child: _NavBarPointerGate(
+          showBar: showBar,
           child: Padding(
             padding: EdgeInsets.fromLTRB(
               12,
@@ -548,5 +548,65 @@ extension _NavBarViewShellContentPart on NavBarView {
       return IntegrationTestKeys.navEducation;
     }
     return IntegrationTestKeys.navProfile;
+  }
+}
+
+class _NavBarPointerGate extends StatefulWidget {
+  const _NavBarPointerGate({
+    required this.showBar,
+    required this.child,
+  });
+
+  final bool showBar;
+  final Widget child;
+
+  @override
+  State<_NavBarPointerGate> createState() => _NavBarPointerGateState();
+}
+
+class _NavBarPointerGateState extends State<_NavBarPointerGate> {
+  static const _hideDuration = Duration(milliseconds: 220);
+
+  Timer? _hideTimer;
+  late bool _acceptPointers;
+
+  @override
+  void initState() {
+    super.initState();
+    _acceptPointers = widget.showBar;
+  }
+
+  @override
+  void didUpdateWidget(covariant _NavBarPointerGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.showBar) {
+      _hideTimer?.cancel();
+      if (!_acceptPointers) {
+        setState(() => _acceptPointers = true);
+      }
+      return;
+    }
+
+    if (oldWidget.showBar && !widget.showBar) {
+      _hideTimer?.cancel();
+      _hideTimer = Timer(_hideDuration, () {
+        if (!mounted || widget.showBar) return;
+        setState(() => _acceptPointers = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !_acceptPointers,
+      child: widget.child,
+    );
   }
 }
