@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:turqappv2/Core/follow_service.dart';
 import 'package:turqappv2/Core/Repositories/follow_repository.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
+import 'package:turqappv2/Modules/RecommendedUserList/recommended_user_list_controller.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 
 part 'recommended_user_content_controller_facade_part.dart';

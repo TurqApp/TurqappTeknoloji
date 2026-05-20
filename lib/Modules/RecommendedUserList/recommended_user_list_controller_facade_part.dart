@@ -14,6 +14,34 @@ RecommendedUserListController ensureRecommendedUserListController() {
 
 extension RecommendedUserListControllerFacadePart
     on RecommendedUserListController {
+  void applyFollowState(
+    String userId, {
+    required bool isFollowing,
+  }) {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) return;
+
+    if (isFollowing) {
+      if (!takipEdilenler.contains(normalizedUserId)) {
+        takipEdilenler.add(normalizedUserId);
+      }
+      final before = list.length;
+      list.removeWhere((user) => user.userID.trim() == normalizedUserId);
+      if (before != list.length) {
+        debugPrint(
+          '[RecommendedUsers] status=followed_removed user=$normalizedUserId '
+          'before=$before after=${list.length}',
+        );
+      }
+      _lastFollowingLoadTime = DateTime.now();
+      return;
+    }
+
+    takipEdilenler.remove(normalizedUserId);
+    _lastFollowingLoadTime = null;
+    _lastLoadTime = null;
+  }
+
   void reshuffleLocal() {
     final copy = List<RecommendedUserModel>.from(list);
     copy.shuffle();

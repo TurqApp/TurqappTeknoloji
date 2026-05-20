@@ -23,6 +23,10 @@ Future<void> _toggleRecommendedUserFollow(
       assumedFollowing: wasFollowing,
     );
     controller.isFollowing.value = outcome.nowFollowing;
+    maybeFindRecommendedUserListController()?.applyFollowState(
+      controller.userID,
+      isFollowing: outcome.nowFollowing,
+    );
     if (outcome.limitReached) {
       AppSnackbar('following.limit_title'.tr, 'following.limit_body'.tr);
     }
