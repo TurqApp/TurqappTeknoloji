@@ -137,7 +137,10 @@ extension StoryRepositoryCachePart on StoryRepository {
     final userIds = userStories.keys.toList(growable: false);
     final userDataMap = await _userCache.getProfiles(
       userIds,
-      preferCache: true,
+      // Story row already paints instantly from its scoped mini cache. The
+      // live refresh must not rehydrate owner metadata from stale memory,
+      // otherwise changed avatars can fall back to deleted CDN URLs.
+      preferCache: false,
       cacheOnly: false,
     );
     final missingUserIds =
