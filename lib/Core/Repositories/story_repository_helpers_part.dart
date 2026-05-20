@@ -21,6 +21,24 @@ extension StoryRepositoryHelpersPart on StoryRepository {
     return resolveAvatarUrl(data, profile: profile);
   }
 
+  Map<String, dynamic>? _mergeStoryUserProfileData({
+    required Map<String, dynamic>? profileData,
+    required Map<String, dynamic>? embeddedData,
+  }) {
+    if (profileData == null) return embeddedData;
+    if (embeddedData == null || embeddedData.isEmpty) return profileData;
+
+    final merged = Map<String, dynamic>.from(profileData);
+    for (final entry in embeddedData.entries) {
+      final current = (merged[entry.key] ?? '').toString().trim();
+      final incoming = (entry.value ?? '').toString().trim();
+      if (current.isEmpty && incoming.isNotEmpty) {
+        merged[entry.key] = entry.value;
+      }
+    }
+    return merged;
+  }
+
   Map<String, dynamic> _fallbackUserData(
     String userId,
     CurrentUserService current,

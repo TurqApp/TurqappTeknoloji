@@ -9,24 +9,67 @@ String resolveCachedUserAvatarBootstrapUrl({
   String? cachedProfileAvatarUrl,
   String? cachedSummaryAvatarUrl,
 }) {
-  final direct = (directImageUrl ?? '').trim();
-  if (direct.isNotEmpty) return direct;
+  final candidates = <String>[
+    directImageUrl ?? '',
+  ];
 
   final normalizedUserId = userId.trim();
   if (normalizedUserId.isNotEmpty && normalizedUserId == currentUserId.trim()) {
-    final current = currentAvatarUrl.trim();
-    if (current.isNotEmpty) return current;
-    final stream = currentStreamAvatarUrl.trim();
-    if (stream.isNotEmpty) return stream;
+    candidates
+      ..add(currentAvatarUrl)
+      ..add(currentStreamAvatarUrl);
   }
 
-  final cachedProfile = (cachedProfileAvatarUrl ?? '').trim();
-  if (cachedProfile.isNotEmpty) return cachedProfile;
+  candidates
+    ..add(cachedProfileAvatarUrl ?? '')
+    ..add(cachedSummaryAvatarUrl ?? '');
 
-  final cachedSummary = (cachedSummaryAvatarUrl ?? '').trim();
-  if (cachedSummary.isNotEmpty) return cachedSummary;
+  return chooseFreshestCachedUserAvatarUrl(candidates);
+}
 
-  return '';
+String chooseFreshestCachedUserAvatarUrl(Iterable<String?> urls) {
+  var selected = '';
+  var selectedVersion = 0;
+  for (final raw in urls) {
+    final candidate = (raw ?? '').trim();
+    if (candidate.isEmpty || isDefaultAvatarUrl(candidate)) continue;
+    final candidateVersion = cachedUserAvatarUrlVersion(candidate);
+    if (selected.isEmpty ||
+        (candidateVersion > 0 && candidateVersion > selectedVersion)) {
+      selected = candidate;
+      selectedVersion = candidateVersion;
+    }
+  }
+  return selected;
+}
+
+int cachedUserAvatarUrlVersion(String url) {
+  final normalized = url.trim();
+  if (normalized.isEmpty) return 0;
+  final avatarMatch =
+      RegExp(r'_(\d{10,})_avatarUrl(?:_|\.|$)').firstMatch(normalized);
+  final genericMatch =
+      avatarMatch ?? RegExp(r'_(\d{10,})(?:_|\.|$)').firstMatch(normalized);
+  if (genericMatch == null) return 0;
+  return int.tryParse(genericMatch.group(1) ?? '') ?? 0;
+}
+
+bool shouldReplaceCachedUserAvatarUrl({
+  required String currentUrl,
+  required String nextUrl,
+}) {
+  final current = currentUrl.trim();
+  final next = nextUrl.trim();
+  if (next.isEmpty || isDefaultAvatarUrl(next)) return false;
+  if (current.isEmpty || isDefaultAvatarUrl(current)) return true;
+  if (current == next) return false;
+
+  final currentVersion = cachedUserAvatarUrlVersion(current);
+  final nextVersion = cachedUserAvatarUrlVersion(next);
+  if (currentVersion > 0 && nextVersion > 0) {
+    return nextVersion >= currentVersion;
+  }
+  return true;
 }
 
 bool shouldDeferCachedUserAvatarPlaceholder({

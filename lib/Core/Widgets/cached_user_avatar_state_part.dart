@@ -45,6 +45,39 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
     );
   }
 
+  bool _shouldReplaceResolvedUrl(String nextUrl) =>
+      shouldReplaceCachedUserAvatarUrl(
+        currentUrl: _resolvedUrl,
+        nextUrl: nextUrl,
+      );
+
+  void _replaceResolvedUrlIfFresh(
+    String nextUrl, {
+    required String source,
+    int? epoch,
+  }) {
+    final normalized = _normalizeUrl(nextUrl);
+    if (normalized.isEmpty) return;
+    if (epoch != null && !_isBootstrapEpochCurrent(epoch)) return;
+    if (normalized == _resolvedUrl) return;
+    if (!_shouldReplaceResolvedUrl(normalized)) {
+      _logAvatarSync(
+        'skip_stale_url',
+        source: source,
+        metadata: <String, dynamic>{
+          'currentUrl': _resolvedUrl,
+          'nextUrl': normalized,
+        },
+      );
+      return;
+    }
+    setState(() {
+      _resolvedUrl = normalized;
+      _resolvedFilePath = _rememberedFilePathFor(normalized);
+    });
+    _primeResolvedFileFrame(_resolvedFilePath);
+  }
+
   String _rememberedFilePathFor(String url) =>
       TurqAvatarCacheManager.rememberedResolvedFilePathForUrl(url);
 
@@ -119,12 +152,12 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         oldWidget.imageUrl != widget.imageUrl) {
       final sameUser =
           (oldWidget.userId ?? '').trim() == (widget.userId ?? '').trim();
-      final shouldPreserveResolvedUrl =
-          sameUser && widget.imageUrl == null && _resolvedUrl.isNotEmpty;
-      _resolvedUrl = shouldPreserveResolvedUrl ? _resolvedUrl : nextResolved;
-      _resolvedFilePath = shouldPreserveResolvedUrl
-          ? _resolvedFilePath
-          : _rememberedFilePathFor(_resolvedUrl);
+      final shouldKeepResolvedUrl =
+          sameUser && !_shouldReplaceResolvedUrl(nextResolved);
+      if (!shouldKeepResolvedUrl) {
+        _resolvedUrl = nextResolved;
+        _resolvedFilePath = _rememberedFilePathFor(_resolvedUrl);
+      }
       _primeResolvedFileFrame(_resolvedFilePath);
       _didBootstrap = false;
       _bootstrapInFlight = true;
@@ -163,9 +196,13 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
       if (uid == currentUser.effectiveUserId) {
         final currentAvatar = _normalizeUrl(currentUser.avatarUrl);
         if (!_isBootstrapEpochCurrent(epoch)) return;
-        _resolvedUrl = currentAvatar;
-        await _resolveLocalFile(
+        _replaceResolvedUrlIfFresh(
           currentAvatar,
+          source: 'current_user_service',
+          epoch: epoch,
+        );
+        await _resolveLocalFile(
+          _resolvedUrl,
           allowNetwork: _allowAvatarNetworkFetch,
           epoch: epoch,
         );
@@ -183,9 +220,13 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
           final currentRawUrl = _pickAvatarUrl(currentRaw);
           if (currentRawUrl.isNotEmpty) {
             if (!_isBootstrapEpochCurrent(epoch)) return;
-            _resolvedUrl = currentRawUrl;
-            await _resolveLocalFile(
+            _replaceResolvedUrlIfFresh(
               currentRawUrl,
+              source: 'current_user_raw',
+              epoch: epoch,
+            );
+            await _resolveLocalFile(
+              _resolvedUrl,
               allowNetwork: _allowAvatarNetworkFetch,
               epoch: epoch,
             );
@@ -207,13 +248,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         if (cachedUrl.isNotEmpty &&
             cachedUrl != _resolvedUrl &&
             _isBootstrapEpochCurrent(epoch)) {
-          setState(() {
-            _resolvedUrl = cachedUrl;
-          });
+          _replaceResolvedUrlIfFresh(
+            cachedUrl,
+            source: 'cached_summary',
+            epoch: epoch,
+          );
         }
         if (cachedUrl.isNotEmpty) {
           await _resolveLocalFile(
-            cachedUrl,
+            _resolvedUrl,
             allowNetwork: false,
             epoch: epoch,
           );
@@ -231,13 +274,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         if (cachedRawUrl.isNotEmpty &&
             cachedRawUrl != _resolvedUrl &&
             _isBootstrapEpochCurrent(epoch)) {
-          setState(() {
-            _resolvedUrl = cachedRawUrl;
-          });
+          _replaceResolvedUrlIfFresh(
+            cachedRawUrl,
+            source: 'cached_public_raw',
+            epoch: epoch,
+          );
         }
         if (cachedRawUrl.isNotEmpty) {
           await _resolveLocalFile(
-            cachedRawUrl,
+            _resolvedUrl,
             allowNetwork: false,
             epoch: epoch,
           );
@@ -257,13 +302,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         if (fetchedUrl.isNotEmpty &&
             fetchedUrl != _resolvedUrl &&
             _isBootstrapEpochCurrent(epoch)) {
-          setState(() {
-            _resolvedUrl = fetchedUrl;
-          });
+          _replaceResolvedUrlIfFresh(
+            fetchedUrl,
+            source: 'fetched_summary',
+            epoch: epoch,
+          );
         }
         if (fetchedUrl.isNotEmpty) {
           await _resolveLocalFile(
-            fetchedUrl,
+            _resolvedUrl,
             allowNetwork: _allowAvatarNetworkFetch,
             epoch: epoch,
           );
@@ -284,13 +331,15 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         if (fetchedRawUrl.isNotEmpty &&
             fetchedRawUrl != _resolvedUrl &&
             _isBootstrapEpochCurrent(epoch)) {
-          setState(() {
-            _resolvedUrl = fetchedRawUrl;
-          });
+          _replaceResolvedUrlIfFresh(
+            fetchedRawUrl,
+            source: 'fetched_public_raw',
+            epoch: epoch,
+          );
         }
         if (fetchedRawUrl.isNotEmpty) {
           await _resolveLocalFile(
-            fetchedRawUrl,
+            _resolvedUrl,
             allowNetwork: _allowAvatarNetworkFetch,
             epoch: epoch,
           );
@@ -395,8 +444,11 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
             if (direct.isNotEmpty) return direct;
             return _normalizeUrl((snapshot.data?.avatarUrl ?? '').trim());
           })();
-          if (currentUserImage.isNotEmpty && currentUserImage != _resolvedUrl) {
+          if (currentUserImage.isNotEmpty &&
+              currentUserImage != _resolvedUrl &&
+              _shouldReplaceResolvedUrl(currentUserImage)) {
             _resolvedUrl = currentUserImage;
+            _resolvedFilePath = _rememberedFilePathFor(currentUserImage);
             _didBootstrap = false;
             _bootstrapInFlight = true;
             _bootstrapSettled = false;

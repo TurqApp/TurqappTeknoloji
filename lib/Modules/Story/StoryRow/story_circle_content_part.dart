@@ -229,7 +229,10 @@ extension _StoryCircleContentPart on _StoryCircleState {
         imageUrl: imageUrl,
         radius: _StoryCircleState._storyAvatarRadius,
         backgroundColor: Colors.transparent,
-        placeholder: const SizedBox.expand(),
+        placeholder: DefaultAvatar(
+          radius: _StoryCircleState._storyAvatarRadius,
+          backgroundColor: Colors.transparent,
+        ),
         debugSurface: 'story_ring_avatar',
         debugKey: widget.model.userID,
       ),

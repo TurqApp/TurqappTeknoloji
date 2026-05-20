@@ -145,6 +145,23 @@ extension StoryRepositoryCachePart on StoryRepository {
     if (missingUserIds.isNotEmpty) {
       userDataMap.addAll(await _loadMissingProfilesFromUsers(missingUserIds));
     }
+    final avatarMissingUserIds = userIds.where((id) {
+      final data = userDataMap[id];
+      if (data == null) return false;
+      return _resolveAvatar(data).trim().isEmpty;
+    }).toList(growable: false);
+    for (final userId in avatarMissingUserIds) {
+      try {
+        final fresh = await _userRepository.getPublicUserRaw(
+          userId,
+          preferCache: false,
+          cacheOnly: false,
+          forceServer: true,
+        );
+        if (fresh == null || _resolveAvatar(fresh).trim().isEmpty) continue;
+        userDataMap[userId] = fresh;
+      } catch (_) {}
+    }
 
     final followingIds =
         await VisibilityPolicyService.ensure().loadViewerFollowingIds(
@@ -161,7 +178,12 @@ extension StoryRepositoryCachePart on StoryRepository {
 
       final stories = [...entry.value]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      final rawData = userDataMap[userId] ?? storyEmbeddedUserMeta[userId];
+      final profileData = userDataMap[userId];
+      final embeddedData = storyEmbeddedUserMeta[userId];
+      final rawData = _mergeStoryUserProfileData(
+        profileData: profileData,
+        embeddedData: embeddedData,
+      );
       final data = Map<String, dynamic>.from(
         rawData ?? _fallbackUserData(userId, current),
       );
