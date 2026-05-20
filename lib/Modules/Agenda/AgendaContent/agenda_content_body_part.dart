@@ -89,6 +89,10 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                       if (isReplayOverlayBlockingTap) {
                                         return;
                                       }
+                                      if (ShareActionGuard
+                                          .isSuppressingUnderlyingTouches) {
+                                        return;
+                                      }
                                       if (_shouldBlurIzBirakPost) {
                                         videoController?.pause();
                                         return;

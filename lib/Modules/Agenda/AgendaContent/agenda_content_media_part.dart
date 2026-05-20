@@ -130,6 +130,9 @@ extension _AgendaContentMediaPart on _AgendaContentState {
   }
 
   Future<void> _openImageMediaOrFeedCta() async {
+    if (ShareActionGuard.isSuppressingUnderlyingTouches) {
+      return;
+    }
     if (_hasEducationFeedCta()) {
       await _AgendaContentState._ctaNavigationService.openFromPostMeta(
         widget.model.reshareMap,

@@ -283,28 +283,30 @@ extension PostContentControllerActionsPart on PostContentController {
   }
 
   Future<void> showPostCommentsBottomSheet({VoidCallback? onClosed}) async {
-    await Get.bottomSheet(
-      Builder(
-        builder: (context) => buildPostCommentsSheet(
-          context: context,
-          postID: model.docID,
-          userID: model.userID,
-          collection: 'Posts',
-          onCommentCountChange: (increment) async {
-            await updateCommentCount(increment: increment);
-          },
-          preferredHeightFactor: 0.55,
+    await ShareActionGuard.suppressUnderlyingTouchesWhile<void>(() {
+      return Get.bottomSheet(
+        Builder(
+          builder: (context) => buildPostCommentsSheet(
+            context: context,
+            postID: model.docID,
+            userID: model.userID,
+            collection: 'Posts',
+            onCommentCountChange: (increment) async {
+              await updateCommentCount(increment: increment);
+            },
+            preferredHeightFactor: 0.55,
+          ),
         ),
-      ),
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true, // Sürükleyerek kapatma için
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black54, // Gri karartma rengi
-    ).then((v) {
+        isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true, // Sürükleyerek kapatma için
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54, // Gri karartma rengi
+      );
+    }).then((v) {
       if (onClosed != null) onClosed();
     });
   }

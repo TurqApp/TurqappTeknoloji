@@ -94,6 +94,9 @@ extension _ClassicContentMediaPart on _ClassicContentState {
   }
 
   Future<void> _openImageMediaOrFeedCta() async {
+    if (ShareActionGuard.isSuppressingUnderlyingTouches) {
+      return;
+    }
     if (_hasEducationFeedCta()) {
       await _ClassicContentState._ctaNavigationService.openFromPostMeta(
         widget.model.reshareMap,
@@ -196,6 +199,9 @@ extension _ClassicContentMediaPart on _ClassicContentState {
   }
 
   Future<void> _openVideoMedia() async {
+    if (ShareActionGuard.isSuppressingUnderlyingTouches) {
+      return;
+    }
     if (_shouldBlurIzBirakPost) {
       videoController?.pause();
       return;
