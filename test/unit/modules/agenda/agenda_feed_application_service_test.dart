@@ -73,6 +73,45 @@ void main() {
       expect(plan.freshScheduledIds, <String>['p4']);
     });
 
+    test('buildRefreshPlan preserves preplanned manifest order on refresh', () {
+      final service = AgendaFeedApplicationService();
+      final nowMs = DateTime(2026, 5, 20, 21).millisecondsSinceEpoch;
+      final currentItems = <PostsModel>[
+        _post(id: 'slot-18-a', timeStamp: nowMs - 1),
+        _post(id: 'slot-15-a', timeStamp: nowMs - 2),
+        _post(id: 'old-current', timeStamp: nowMs - 3),
+      ];
+      final fetchedPosts = <PostsModel>[
+        _post(id: 'slot-21-a', timeStamp: nowMs),
+        _post(id: 'slot-21-b', timeStamp: nowMs - 1),
+        _post(id: 'slot-18-a', timeStamp: nowMs - 2),
+        _post(id: 'slot-18-b', timeStamp: nowMs - 3),
+        _post(id: 'slot-15-a', timeStamp: nowMs - 4),
+      ];
+
+      final plan = service.buildRefreshPlan(
+        currentItems: currentItems,
+        fetchedPosts: fetchedPosts,
+        nowMs: nowMs,
+        fetchedPostsPreplanned: true,
+      );
+
+      expect(
+        plan.replacementItems.map((post) => post.docID).toList(),
+        <String>[
+          'slot-21-a',
+          'slot-21-b',
+          'slot-18-a',
+          'slot-18-b',
+          'slot-15-a',
+        ],
+      );
+      expect(
+        plan.freshScheduledIds,
+        <String>['slot-21-a', 'slot-21-b', 'slot-18-b'],
+      );
+    });
+
     test(
         'capturePlaybackAnchor prefers centered index over last centered index',
         () {

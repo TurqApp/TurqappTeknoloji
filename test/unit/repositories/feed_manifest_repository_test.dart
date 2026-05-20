@@ -112,5 +112,27 @@ void main() {
 
       expect(entries.single.slotId, 'slot_06');
     });
+
+    test('keeps slot manifest timestamp for ordered feed rendering', () {
+      final entries = FeedManifestRepository.parseSlotEntries(
+        jsonEncode(<String, dynamic>{
+          'slotId': 'slot_03',
+          'manifestId': 'feed_2026-04-29_slot_03_v1777674456490',
+          'generatedAt': 1777674456490,
+          'items': <Map<String, dynamic>>[
+            _item('doc-1'),
+          ],
+        }),
+        fallbackSlotId: 'slot_00',
+        slotPath: 'feedManifest/2026-04-29/slots/slot_03.json',
+      );
+
+      expect(entries.single.slotId, 'slot_03');
+      expect(
+        entries.single.slotManifestId,
+        'feed_2026-04-29_slot_03_v1777674456490',
+      );
+      expect(entries.single.slotGeneratedAt, 1777674456490);
+    });
   });
 }

@@ -61,28 +61,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     return merged;
   }
 
-  Future<List<PostsModel>> loadQuickCachedPersonalFallback({
-    required String userId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int limit,
-  }) async {
-    final normalizedUserId = userId.trim();
-    if (normalizedUserId.isEmpty) return const <PostsModel>[];
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final page = await _loadPersonalFallbackPage(
-      currentUserId: normalizedUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: _feedHomeCutoffMs(nowMs),
-      limit: limit,
-      preferCache: true,
-      cacheOnly: true,
-    );
-    return page.items;
-  }
-
   Future<FeedSourcePage> fetchHomePage({
     required String userId,
     required Set<String> followingIds,
@@ -148,53 +126,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
     if (manifestPage != null) {
       return manifestPage;
     }
-    final shouldUseFallback =
-        startAfter == null && (typesensePage == null || typesensePage <= 1);
-    if (shouldUseFallback) {
-      if (normalizedUserId.isNotEmpty) {
-        final warmFallback = await _loadWarmFeedFallbackPage(
-          currentUserId: normalizedUserId,
-          followingIds: followingIds,
-          hiddenPostIds: hiddenPostIds,
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-          limit: limit,
-        );
-        if (warmFallback.items.isNotEmpty) {
-          if (_shouldLogDiagnostics) {
-            debugPrint(
-              '[FeedManifestPrimary] status=fallback_warm '
-              'uid=$normalizedUserId count=${warmFallback.items.length}',
-            );
-          }
-          return warmFallback;
-        }
-
-        final personalFallback = await _loadPersonalFallbackPage(
-          currentUserId: normalizedUserId,
-          followingIds: followingIds,
-          hiddenPostIds: hiddenPostIds,
-          nowMs: nowMs,
-          cutoffMs: cutoffMs,
-          limit: limit,
-          preferCache: preferCache,
-          cacheOnly: cacheOnly,
-          refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-        );
-        if (personalFallback.items.isNotEmpty) {
-          if (_shouldLogDiagnostics) {
-            debugPrint(
-              '[FeedManifestPrimary] status=fallback_personal '
-              'uid=$normalizedUserId count=${personalFallback.items.length}',
-            );
-          }
-          return personalFallback;
-        }
-      }
-    }
     if (_shouldLogDiagnostics) {
       debugPrint(
-        '[FeedManifestPrimary] status=manifest_only_empty '
+        '[FeedManifestPrimary] status=manifest_only_no_fallback '
         'uid=$normalizedUserId page=${typesensePage ?? 1}',
       );
     }
@@ -283,29 +217,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         limit: limit,
         allowBlockingRefresh: pageNumber > 1,
       );
-      final seed = FeedManifestPolicy.resolveDeckSeed(
-        userId: currentUserId,
-        manifestId: pool.manifestId,
-        startupSeed: startupSurfaceSessionSeed(sessionNamespace: 'feed'),
-      );
-      final deck = _feedManifestMixer.buildDeck(
-        manifestEntries: pool.entries,
-        gapEntries: gapEntries,
-        seed: seed,
-        limit: deckLimit,
-        consumedCanonicalIds: <String>{
-          ..._feedDiversityMemory.weeklyWatchedPenaltyDocIds(),
-          ..._feedDiversityMemory.weeklyWatchedFloodRootIds(),
-        },
-        consumedDocIds: _feedDiversityMemory.weeklyWatchedPenaltyDocIds(),
-        headPenaltyCanonicalIds: <String>{
-          ..._feedDiversityMemory.startupHeadPenaltyDocIds(),
-          ..._feedDiversityMemory.startupHeadPenaltyFloodRootIds(),
-        },
-        leadingGapCount: FeedManifestPolicy.gapSlotBatchSize,
-        minUserSpacing: FeedManifestPolicy.minUserSpacing,
-        maxItemsPerUser: FeedManifestPolicy.maxItemsPerUser,
-      );
       final visibleEntries = _selectVisibleFeedManifestEntries(
         manifestEntries: pool.entries,
         gapEntries: gapEntries,
@@ -340,7 +251,7 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           debugPrint(
             '[FeedManifestPrimary] status=empty_visible '
             'page=$pageNumber pool=${pool.entries.length} '
-            'deck=${deck.entries.length}',
+            'selected=${visibleEntries.length}',
           );
         }
         return null;
@@ -379,17 +290,15 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           limit: FeedManifestPolicy.startupHeadRememberLimit,
         );
       }
-      final hasPotentialMore = deck.entries.length >= deckLimit &&
-          (pool.entries.length > deck.manifestCount ||
-              gapEntries.length > deck.gapCount);
-      final nextPage = visible.length > pageEndExclusive || hasPotentialMore
-          ? pageNumber + 1
-          : null;
+      final nextPage =
+          visible.length > pageEndExclusive ? pageNumber + 1 : null;
       if (_shouldLogDiagnostics) {
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
         final totalVisibleGapCount = visibleEntries
             .where((entry) => entry.source == FeedManifestDeckSource.gap)
             .length;
+        final totalVisibleManifestCount =
+            visibleEntries.length - totalVisibleGapCount;
         final pageGapCount = pageVisibleEntries
             .where((entry) => entry.source == FeedManifestDeckSource.gap)
             .length;
@@ -400,10 +309,9 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
           'manifest=${pool.manifestId} slots=${pool.loadedSlotCount}/${pool.slotCount} '
           'timeoutMs=${primaryLoadTimeout.inMilliseconds} '
           'slotBudget=$slotLoadBudget '
-          'pool=${pool.entries.length} gap=${deck.gapCount} '
-          'visible=${visible.length} returned=${pageItems.length} '
-          'skippedConsumed=${deck.skippedConsumedCount} '
-          'skippedDuplicate=${deck.skippedDuplicateCount}',
+          'pool=${pool.entries.length} gap=$totalVisibleGapCount '
+          'manifestVisible=$totalVisibleManifestCount '
+          'visible=${visible.length} returned=${pageItems.length}',
         );
         debugPrint(
           '[GAP_FINAL] page=$pageNumber manifest=${pool.manifestId} '
@@ -435,49 +343,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       }
       return null;
     }
-  }
-
-  Future<FeedSourcePage> _loadWarmFeedFallbackPage({
-    required String currentUserId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-  }) async {
-    final posts = await _warmLaunchPool.loadPosts(
-      IndexPoolKind.feed,
-      limit: limit,
-      allowStale: true,
-    );
-    if (posts.isEmpty) {
-      return const FeedSourcePage(
-        items: <PostsModel>[],
-        lastDoc: null,
-        usesPrimaryFeed: false,
-        itemsPreplanned: true,
-        nextTypesensePage: null,
-      );
-    }
-    final visible = await filterVisiblePosts(
-      posts,
-      currentUserId: currentUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      summaryCacheOnly: true,
-      refreshNonPublicCachedSummaries: false,
-    );
-    final filteredVisible = _filterConsumedFeedSnapshotPosts(visible);
-    return FeedSourcePage(
-      items: filteredVisible,
-      lastDoc: null,
-      usesPrimaryFeed: false,
-      itemsPreplanned: true,
-      nextTypesensePage: null,
-    );
   }
 
   Future<List<FeedManifestEntry>> _loadFeedManifestGapEntries({
@@ -773,12 +638,18 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
 
   String _resolvePrimarySlotPath(List<FeedManifestEntry> entries) {
     var best = '';
+    FeedManifestEntry? bestEntry;
     for (final entry in entries) {
       final slotPath = entry.slotPath.trim();
       if (slotPath.isEmpty || slotPath == 'typesense_gap') continue;
-      if (best.isEmpty ||
-          FeedManifestMixer.compareSlotKeysNewestFirst(slotPath, best) < 0) {
+      if (bestEntry == null ||
+          FeedManifestMixer.compareEntriesBySlotNewestFirst(
+                entry,
+                bestEntry,
+              ) <
+              0) {
         best = slotPath;
+        bestEntry = entry;
       }
     }
     return best;
@@ -1038,7 +909,23 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
         'floodPreview=$skippedConsumedFloodRootIds',
       );
     }
-    slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);
+    slotOrder.sort((left, right) {
+      final leftBucket = manifestBuckets[left];
+      final rightBucket = manifestBuckets[right];
+      final leftEntry = leftBucket == null || leftBucket.isEmpty
+          ? null
+          : leftBucket.first.entry;
+      final rightEntry = rightBucket == null || rightBucket.isEmpty
+          ? null
+          : rightBucket.first.entry;
+      if (leftEntry != null && rightEntry != null) {
+        return FeedManifestMixer.compareEntriesBySlotNewestFirst(
+          leftEntry,
+          rightEntry,
+        );
+      }
+      return FeedManifestMixer.compareSlotKeysNewestFirst(left, right);
+    });
     for (final bucket in manifestBuckets.values) {
       bucket.sort((left, right) {
         final timeCompare =
@@ -1119,88 +1006,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       );
     }
     return selected;
-  }
-
-  Future<FeedSourcePage> _loadPersonalFallbackPage({
-    required String currentUserId,
-    required Set<String> followingIds,
-    required Set<String> hiddenPostIds,
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    required bool preferCache,
-    required bool cacheOnly,
-    bool refreshNonPublicCachedSummaries = true,
-  }) async {
-    if (currentUserId.isEmpty) {
-      return const FeedSourcePage(
-        items: <PostsModel>[],
-        lastDoc: null,
-        usesPrimaryFeed: false,
-        itemsPreplanned: false,
-        nextTypesensePage: null,
-      );
-    }
-
-    final merged = <String, PostsModel>{};
-
-    final ownPosts = await _postRepository.fetchRecentPostsForAuthors(
-      <String>[currentUserId],
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      perAuthorLimit: limit,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    for (final post in ownPosts) {
-      merged[post.docID] = post;
-    }
-
-    final globalBadgePosts = await _fetchVisibleGlobalBadgePosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit < ReadBudgetRegistry.feedGlobalBadgeMinLimit
-          ? ReadBudgetRegistry.feedGlobalBadgeMinLimit
-          : limit,
-      maxTimeExclusive: null,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    for (final post in globalBadgePosts) {
-      merged.putIfAbsent(post.docID, () => post);
-    }
-
-    final visible = await filterVisiblePosts(
-      _sortFeedCandidatesForVisibility(
-        merged.values.toList(growable: false),
-      ),
-      currentUserId: currentUserId,
-      followingIds: followingIds,
-      hiddenPostIds: hiddenPostIds,
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      summaryCacheOnly: cacheOnly,
-      refreshNonPublicCachedSummaries: refreshNonPublicCachedSummaries,
-    );
-    final filteredVisible = _filterConsumedFeedSnapshotPosts(visible);
-
-    if (_shouldLogDiagnostics) {
-      debugPrint(
-        '[FeedSnapshot] uid=$currentUserId personalFallback own=${ownPosts.length} '
-        'merged=${merged.length} visible=${visible.length} '
-        'consumedFiltered=${filteredVisible.length} '
-        'globalBadge=${globalBadgePosts.length}',
-      );
-    }
-
-    return FeedSourcePage(
-      items: filteredVisible,
-      lastDoc: null,
-      usesPrimaryFeed: false,
-      itemsPreplanned: false,
-      nextTypesensePage: null,
-    );
   }
 
   Future<FeedSourcePage> _loadCityTypesenseSeedPage({
@@ -1354,74 +1159,6 @@ extension FeedSnapshotRepositoryFetchPart on FeedSnapshotRepository {
       viewerUserId: userId,
       preferCache: true,
     );
-  }
-
-  Future<List<PostsModel>> _fetchVisibleGlobalBadgePosts({
-    required int nowMs,
-    required int cutoffMs,
-    required int limit,
-    required int? maxTimeExclusive,
-    required bool preferCache,
-    required bool cacheOnly,
-  }) async {
-    final posts = await _postRepository.fetchRecentGlobalPosts(
-      nowMs: nowMs,
-      cutoffMs: cutoffMs,
-      limit: limit,
-      maxTimeExclusive: maxTimeExclusive,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    return _resolveVisibleDiscoveryPublicPosts(
-      posts,
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-      limit: limit,
-    );
-  }
-
-  Future<List<PostsModel>> _resolveVisibleDiscoveryPublicPosts(
-    List<PostsModel> posts, {
-    required bool preferCache,
-    required bool cacheOnly,
-    int? limit,
-  }) async {
-    if (posts.isEmpty) return const <PostsModel>[];
-
-    final authorMeta = await _userSummaryResolver.resolveMany(
-      posts.map((post) => post.userID).toSet().toList(growable: false),
-      preferCache: preferCache,
-      cacheOnly: cacheOnly,
-    );
-    final visible = <PostsModel>[];
-    for (final post in posts) {
-      final meta = authorMeta[post.userID];
-      if (meta == null || meta.isDeleted) continue;
-      if (!isDiscoveryPublicAuthor(
-        rozet: meta.rozet,
-        isApproved: meta.isApproved,
-      )) {
-        continue;
-      }
-      visible.add(
-        post.copyWith(
-          authorNickname: post.authorNickname.isNotEmpty
-              ? post.authorNickname
-              : meta.nickname,
-          authorDisplayName: post.authorDisplayName.isNotEmpty
-              ? post.authorDisplayName
-              : meta.displayName,
-          authorAvatarUrl: post.authorAvatarUrl.isNotEmpty
-              ? post.authorAvatarUrl
-              : meta.avatarUrl,
-          rozet: post.rozet.isNotEmpty ? post.rozet : meta.rozet,
-        ),
-      );
-      if (limit != null && visible.length >= limit) {
-        break;
-      }
-    }
-    return visible;
   }
 
   Future<Map<String, Map<String, dynamic>>> _buildUserMeta(

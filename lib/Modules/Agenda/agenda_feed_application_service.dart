@@ -228,11 +228,35 @@ class AgendaFeedApplicationService {
     final orderedFetchedPosts = fetchedPostsPreplanned
         ? List<PostsModel>.from(fetchedPosts)
         : _normalizeFeedDisplayOrder(fetchedPosts);
+    final freshScheduledIds = <String>[];
+    final fifteenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
+
+    if (fetchedPostsPreplanned) {
+      final replacementItems = <PostsModel>[];
+      final seenIds = <String>{};
+
+      for (final post in orderedFetchedPosts) {
+        if (!seenIds.add(post.docID)) {
+          continue;
+        }
+        replacementItems.add(post);
+        final justBecameVisible = !existingIds.contains(post.docID) &&
+            post.timeStamp != 0 &&
+            post.timeStamp >= fifteenMinAgo;
+        if (justBecameVisible) {
+          freshScheduledIds.add(post.docID);
+        }
+      }
+
+      return AgendaFeedRefreshPlan(
+        replacementItems: replacementItems,
+        freshScheduledIds: freshScheduledIds,
+      );
+    }
+
     final fetchedById = <String, PostsModel>{
       for (final post in orderedFetchedPosts) post.docID: post,
     };
-    final freshScheduledIds = <String>[];
-    final fifteenMinAgo = nowMs - const Duration(minutes: 15).inMilliseconds;
     final newHeadItems = <PostsModel>[];
 
     for (final post in orderedFetchedPosts) {

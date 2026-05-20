@@ -920,6 +920,47 @@ extension AgendaControllerLoadingPart on AgendaController {
       return;
     }
 
+    if (initial && _startupPlannerHeadApplied && !_startupHeadFinalized) {
+      _startupHeadFinalized = true;
+    }
+    final shouldReplaceOrderedPreplannedPage = initial &&
+        currentAgenda.isNotEmpty &&
+        pageApplyPlan.pageItemsPreplanned &&
+        visibleItems.isNotEmpty;
+    if (shouldReplaceOrderedPreplannedPage) {
+      final replacementAgenda = List<PostsModel>.from(visibleItems);
+      debugPrint(
+        '[FeedStartupPlanner] source=initial_bootstrap '
+        'status=replace_preplanned_ordered_page '
+        'initial=$initial '
+        'currentCount=${currentAgenda.length} '
+        'replacementCount=${replacementAgenda.length} '
+        'currentHead=${currentAgenda.take(5).map((post) => post.docID).join(",")} '
+        'replacementHead=${replacementAgenda.take(5).map((post) => post.docID).join(",")}',
+      );
+      if (initial) {
+        _startupHeadFinalized = true;
+      }
+      _scheduleInitialFeedVideoPosterWarmup(replacementAgenda);
+      unawaited(_primeInitialVisibleCardImageHints(replacementAgenda));
+      _replaceAgendaState(
+        replacementAgenda,
+        reason: initial
+            ? 'initial_preplanned_order_replace'
+            : 'preplanned_order_replace',
+      );
+      _scheduleStartupWarmPlayerPreload(
+        replacementAgenda,
+        reason: initial
+            ? 'initial_preplanned_order_replace'
+            : 'preplanned_order_replace',
+      );
+      _scheduleReshareFetchForPosts(
+        replacementAgenda,
+        perPostLimit: 1,
+      );
+      return;
+    }
     if (pageApplyPlan.itemsToAdd.isEmpty) {
       debugPrint(
         '[FeedAppendDiagnostics] status=empty_apply initial=$initial '
@@ -929,10 +970,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         'hasMore=${pageApplyPlan.hasMore}',
       );
       return;
-    }
-
-    if (initial && _startupPlannerHeadApplied && !_startupHeadFinalized) {
-      _startupHeadFinalized = true;
     }
     final shouldActivateStartupStages = initial && agendaList.isEmpty;
     if (initial && currentAgenda.isEmpty) {
@@ -1028,19 +1065,25 @@ extension AgendaControllerLoadingPart on AgendaController {
   void _applyStartupItemsInChunks(
     List<PostsModel> items, {
     required String reason,
+    Duration firstChunkDelay = _startupChunkApplyDelay,
+    Duration chunkDelay = _startupChunkApplyDelay,
     VoidCallback? onFirstChunkApplied,
     VoidCallback? onCompleted,
   }) {
     if (items.isEmpty) return;
-    if (items.length <= _startupChunkApplySize) {
-      _replaceAgendaState(items, reason: reason);
-      onFirstChunkApplied?.call();
-      onCompleted?.call();
-      return;
-    }
 
     final expectedMutationEpoch = _feedMutationEpoch;
     _startupChunkApplyInFlight = true;
+    final firstChunk =
+        items.take(_startupChunkApplySize).toList(growable: false);
+    var appliedCount = 0;
+    var chunkIndex = 0;
+
+    void cancelIfStale() {
+      if (expectedMutationEpoch == _feedMutationEpoch) {
+        _startupChunkApplyInFlight = false;
+      }
+    }
 
     void completeIfCurrent() {
       if (expectedMutationEpoch != _feedMutationEpoch || isClosed) return;
@@ -1056,40 +1099,18 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
     }
 
-    final firstChunk =
-        items.take(_startupChunkApplySize).toList(growable: false);
-    debugPrint(
-      '[FeedStartupPlanner] source=initial_bootstrap '
-      'status=chunk_apply_start total=${items.length} '
-      'chunkSize=$_startupChunkApplySize delayMs=${_startupChunkApplyDelay.inMilliseconds}',
-    );
-    _replaceAgendaState(firstChunk, reason: '${reason}_chunk_1');
-    onFirstChunkApplied?.call();
-
-    if (firstChunk.length >= items.length) {
-      completeIfCurrent();
-      return;
-    }
-
-    var appliedCount = firstChunk.length;
-    var chunkIndex = 1;
-
     void scheduleNextChunk() {
       if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
-        if (expectedMutationEpoch == _feedMutationEpoch) {
-          _startupChunkApplyInFlight = false;
-        }
+        cancelIfStale();
         return;
       }
       if (appliedCount >= items.length) {
         completeIfCurrent();
         return;
       }
-      Timer(_startupChunkApplyDelay, () {
+      Timer(chunkDelay, () {
         if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
-          if (expectedMutationEpoch == _feedMutationEpoch) {
-            _startupChunkApplyInFlight = false;
-          }
+          cancelIfStale();
           return;
         }
         final nextCount = min(
@@ -1109,12 +1130,42 @@ extension AgendaControllerLoadingPart on AgendaController {
       });
     }
 
-    scheduleNextChunk();
+    void applyFirstChunk() {
+      if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
+        cancelIfStale();
+        return;
+      }
+      debugPrint(
+        '[FeedStartupPlanner] source=initial_bootstrap '
+        'status=chunk_apply_start total=${items.length} '
+        'chunkSize=$_startupChunkApplySize '
+        'firstDelayMs=${firstChunkDelay.inMilliseconds} '
+        'nextDelayMs=${chunkDelay.inMilliseconds}',
+      );
+      chunkIndex = 1;
+      appliedCount = firstChunk.length;
+      _replaceAgendaState(firstChunk, reason: '${reason}_chunk_1');
+      onFirstChunkApplied?.call();
+
+      if (firstChunk.length >= items.length) {
+        completeIfCurrent();
+        return;
+      }
+
+      scheduleNextChunk();
+    }
+
+    if (firstChunkDelay > Duration.zero) {
+      Timer(firstChunkDelay, applyFirstChunk);
+    } else {
+      applyFirstChunk();
+    }
   }
 
   void _applyRefreshMergedAgenda({
     required List<PostsModel> mergedAgenda,
     bool resetStartupRenderStages = true,
+    String reason = 'refresh_merge_live_items',
   }) {
     _cancelStartupWarmPlayerPreload();
     _prefetchedThumbnailPostCount = 0;
@@ -1127,7 +1178,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     highlightDocIDs.clear();
     _replaceAgendaState(
       mergedAgenda,
-      reason: 'refresh_merge_live_items',
+      reason: reason,
     );
   }
 
@@ -1342,14 +1393,16 @@ extension AgendaControllerLoadingPart on AgendaController {
       effectiveUsesPrimaryFeed = page.usesPrimaryFeed;
       effectivePageItemsPreplanned =
           usesPlannedColdPage || page.itemsPreplanned;
-      effectiveHasMore = FeedTypesensePagingContract.resolvePageHasMore(
-        initial: initial,
-        liveConnected: liveConnected,
-        itemCount: page.items.length,
-        sourcePageLimit: sourcePageLimit,
-        lastDoc: page.lastDoc,
-        nextTypesensePage: page.nextTypesensePage,
-      );
+      effectiveHasMore = effectivePageItemsPreplanned
+          ? page.nextTypesensePage != null && page.nextTypesensePage! > 0
+          : FeedTypesensePagingContract.resolvePageHasMore(
+              initial: initial,
+              liveConnected: liveConnected,
+              itemCount: page.items.length,
+              sourcePageLimit: sourcePageLimit,
+              lastDoc: page.lastDoc,
+              nextTypesensePage: page.nextTypesensePage,
+            );
 
       final skipConnectedStartupSupport =
           initial && currentAgenda.isEmpty && liveConnected;
@@ -1398,7 +1451,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
       }
 
-      if (initial) {
+      if (initial || effectivePageItemsPreplanned) {
         visibleItems = pageVisibleItems;
       } else {
         visibleItems = pageVisibleItems.where((post) {
@@ -1425,6 +1478,24 @@ extension AgendaControllerLoadingPart on AgendaController {
           '[FeedAppendDiagnostics] status=skip_auto_planned_cold_apply '
           'trigger=$trigger current=${currentAgenda.length} '
           'candidateCount=${page.items.length}',
+        );
+        return;
+      }
+      final shouldSkipRedundantPreplannedAppend = !initial &&
+          !usesPlannedColdPage &&
+          effectivePageItemsPreplanned &&
+          currentAgenda.isNotEmpty &&
+          (page.nextTypesensePage == null || page.nextTypesensePage! <= 0);
+      if (shouldSkipRedundantPreplannedAppend) {
+        debugPrint(
+          '[FeedAppendDiagnostics] status=skip_preplanned_append_terminal '
+          'trigger=$trigger current=${currentAgenda.length} '
+          'candidateCount=${page.items.length}',
+        );
+        hasMore.value = false;
+        _feedTypesenseNextPage = null;
+        _reconcileFeedPageFetchTriggerToCurrentRunway(
+          reason: 'skip_preplanned_append_terminal',
         );
         return;
       }
@@ -2691,7 +2762,16 @@ extension AgendaControllerLoadingPart on AgendaController {
       _lastPlaybackCommandDocId = null;
       _lastPlaybackCommandAt = null;
 
-      _pruneConsumedAgendaOnRefresh();
+      final skipPrePruneForManifestRefresh =
+          _usePrimaryFeedPaging && !isFollowingMode && !isCityMode;
+      if (skipPrePruneForManifestRefresh) {
+        debugPrint(
+          '[FeedConsumedRefresh] status=skip_pre_prune_manifest_refresh '
+          'current=${agendaList.length}',
+        );
+      } else {
+        _pruneConsumedAgendaOnRefresh();
+      }
 
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
@@ -2782,6 +2862,8 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
         return;
       }
+      final applyAsOrderedColdStart =
+          forceNewLaunchSession || page.itemsPreplanned;
 
       final pageApplyPlan = _agendaFeedApplicationService.buildPageApplyPlan(
         currentItems: previousAgenda,
@@ -2789,11 +2871,13 @@ extension AgendaControllerLoadingPart on AgendaController {
         nowMs: nowMs,
         loadLimit: loadLimit,
         lastDoc: page.lastDoc,
-        hasMore: FeedTypesensePagingContract.resolveTopUpHasMore(
-          itemCount: page.items.length,
-          lastDoc: page.lastDoc,
-          nextTypesensePage: page.nextTypesensePage,
-        ),
+        hasMore: page.itemsPreplanned
+            ? page.nextTypesensePage != null && page.nextTypesensePage! > 0
+            : FeedTypesensePagingContract.resolveTopUpHasMore(
+                itemCount: page.items.length,
+                lastDoc: page.lastDoc,
+                nextTypesensePage: page.nextTypesensePage,
+              ),
         usesPrimaryFeed: page.usesPrimaryFeed,
         pageItemsPreplanned: page.itemsPreplanned,
       );
@@ -2803,7 +2887,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         nowMs: nowMs,
         fetchedPostsPreplanned: page.itemsPreplanned,
       );
-      final mergedAgenda = forceNewLaunchSession
+      final mergedAgenda = applyAsOrderedColdStart
           ? refreshPlan.replacementItems
           : _agendaFeedApplicationService.mergeLiveItemsPreservingCurrentOrder(
               currentItems: previousAgenda,
@@ -2851,17 +2935,19 @@ extension AgendaControllerLoadingPart on AgendaController {
       _usePrimaryFeedPaging = pageApplyPlan.usesPrimaryFeed;
       lastDoc = pageApplyPlan.lastDoc;
       _feedTypesenseNextPage = page.nextTypesensePage;
-      hasMore.value = FeedTypesensePagingContract.resolveTopUpHasMore(
-        itemCount: pageApplyPlan.itemsToAdd.length,
-        lastDoc: pageApplyPlan.lastDoc,
-        nextTypesensePage: page.nextTypesensePage,
-      );
+      hasMore.value = pageApplyPlan.pageItemsPreplanned
+          ? page.nextTypesensePage != null && page.nextTypesensePage! > 0
+          : FeedTypesensePagingContract.resolveTopUpHasMore(
+              itemCount: pageApplyPlan.itemsToAdd.length,
+              lastDoc: pageApplyPlan.lastDoc,
+              nextTypesensePage: page.nextTypesensePage,
+            );
       _reconcileFeedPageFetchTriggerToCurrentRunway(
-        reason: forceNewLaunchSession ? 'refresh_reset' : 'refresh_merge',
+        reason: applyAsOrderedColdStart ? 'refresh_reset' : 'refresh_merge',
       );
       if (hasMore.value) {
         _maybeTriggerDeferredFeedGrowth(
-          reason: forceNewLaunchSession ? 'refresh_reset' : 'refresh_merge',
+          reason: applyAsOrderedColdStart ? 'refresh_reset' : 'refresh_merge',
         );
       }
       _feedRefreshInFlight = true;
@@ -2869,14 +2955,39 @@ extension AgendaControllerLoadingPart on AgendaController {
       _activateStartupRenderStages(
         reason: 'refresh_cold_start',
       );
-      await _warmInitialFeedVisuals(filteredMergedAgenda);
-      await _primeInitialVisibleCardImageHints(filteredMergedAgenda);
-      _applyRefreshMergedAgenda(
-        mergedAgenda: filteredMergedAgenda,
-        resetStartupRenderStages: false,
-      );
-      if (GetPlatform.isAndroid) {
-        _applyStartupRenderStagesNow();
+      final visualWarmupFuture = _warmInitialFeedVisuals(filteredMergedAgenda);
+      final imageHintFuture =
+          _primeInitialVisibleCardImageHints(filteredMergedAgenda);
+      if (applyAsOrderedColdStart) {
+        unawaited(visualWarmupFuture);
+        unawaited(imageHintFuture);
+        _cancelStartupWarmPlayerPreload();
+        _prefetchedThumbnailPostCount = 0;
+        _prefetchedThumbnailDocIds.clear();
+        publicReshareEvents.clear();
+        feedReshareEntries.clear();
+        highlightDocIDs.clear();
+        _applyStartupItemsInChunks(
+          filteredMergedAgenda,
+          reason: 'refresh_cold_start',
+          firstChunkDelay: _startupChunkApplyDelay,
+          chunkDelay: _startupChunkApplyDelay,
+          onFirstChunkApplied: () {
+            if (GetPlatform.isAndroid) {
+              _applyStartupRenderStagesNow();
+            }
+          },
+        );
+      } else {
+        await visualWarmupFuture;
+        await imageHintFuture;
+        _applyRefreshMergedAgenda(
+          mergedAgenda: filteredMergedAgenda,
+          resetStartupRenderStages: false,
+        );
+        if (GetPlatform.isAndroid) {
+          _applyStartupRenderStagesNow();
+        }
       }
       _scheduleStartupWarmPlayerPreload(
         filteredMergedAgenda,
@@ -2939,7 +3050,10 @@ extension AgendaControllerLoadingPart on AgendaController {
       '[FeedConsumedRefresh] status=prune_current removed=$removedCount '
       'before=${current.length} after=${filtered.length}',
     );
-    _applyRefreshMergedAgenda(mergedAgenda: filtered);
+    _applyRefreshMergedAgenda(
+      mergedAgenda: filtered,
+      reason: 'refresh_prune_consumed_current',
+    );
   }
 
   List<PostsModel> _filterConsumedAgendaPosts(List<PostsModel> items) {

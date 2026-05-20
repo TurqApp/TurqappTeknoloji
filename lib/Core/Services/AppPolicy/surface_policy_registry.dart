@@ -11,6 +11,17 @@ class SurfacePolicyRegistry {
   static const int notificationsInboxSchemaVersion = 2;
   static const int listingSnapshotSchemaVersion = 2;
 
+  static const CacheFirstPolicy _feedTimelineSnapshotCachePolicy =
+      CacheFirstPolicy(
+    snapshotTtl: Duration(minutes: 10),
+    minLiveSyncInterval: Duration(seconds: 20),
+    syncOnOpen: true,
+    allowWarmLaunchFallback: false,
+    persistWarmLaunchSnapshot: false,
+    treatWarmLaunchAsStale: true,
+    preservePreviousOnEmptyLive: false,
+  );
+
   static const CacheFirstPolicy _timelineSnapshotCachePolicy = CacheFirstPolicy(
     snapshotTtl: Duration(minutes: 10),
     minLiveSyncInterval: Duration(seconds: 20),
@@ -181,7 +192,7 @@ class SurfacePolicyRegistry {
 
   static const SurfacePolicy feedHomeSurface = SurfacePolicy(
     schemaVersion: feedHomeSchemaVersion,
-    cachePolicy: _timelineSnapshotCachePolicy,
+    cachePolicy: _feedTimelineSnapshotCachePolicy,
     initialLimit: feedHomeInitialLimit,
     readyForNavCount: feedReadyForNavCount,
     initialPoolLimit: AdaptiveIntPolicy.uniform(feedHomeInitialLimit),

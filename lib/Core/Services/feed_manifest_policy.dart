@@ -58,7 +58,7 @@ class FeedManifestPolicy {
     required int pageNumber,
     required bool hasAuthUser,
   }) {
-    if (!hasAuthUser && pageNumber <= 1) {
+    if (pageNumber <= 1) {
       return Duration.zero;
     }
     return primaryLoadTimeout;

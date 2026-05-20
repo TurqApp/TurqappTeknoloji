@@ -176,9 +176,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
         : (liveDocIds.contains(docId) ? 'live' : 'mixed');
     if (post.isFloodSeriesContent) return 'flood@$origin';
     final text = post.metin.trim().isNotEmpty;
-    final hasMedia = post.canonicalImageUrls.any((entry) => entry.trim().isNotEmpty) ||
-        post.video.trim().isNotEmpty ||
-        post.thumbnail.trim().isNotEmpty;
+    final hasMedia =
+        post.canonicalImageUrls.any((entry) => entry.trim().isNotEmpty) ||
+            post.video.trim().isNotEmpty ||
+            post.thumbnail.trim().isNotEmpty;
     if (text && !hasMedia) return 'text@$origin';
     if (post.hasPlayableVideo) {
       return origin == 'live' ? 'live' : 'cache';
@@ -529,27 +530,10 @@ extension AgendaControllerLoadingCachePart on AgendaController {
       locationCity: normalizedCity,
     );
     if (cacheOnly && page.items.isEmpty) {
-      final cacheManager = maybeFindSegmentCacheManager();
-      if (cacheManager != null) {
-        final offlineFeedItems = cacheManager
-            .getOfflineReadyPostsForFeed(limit: limit)
-            .where((p) => _isEligibleAgendaPost(p, nowMs))
-            .where((p) => !hiddenPosts.contains(p.docID))
-            .where((p) => p.deletedPost != true)
-            .toList(growable: false);
-        if (offlineFeedItems.isNotEmpty) {
-          for (final post in offlineFeedItems) {
-            cacheManager.markReservedForFeed(post.docID);
-          }
-          return _AgendaSourcePage(
-            offlineFeedItems,
-            null,
-            false,
-            true,
-            resolvedTypesensePage,
-          );
-        }
-      }
+      debugPrint(
+        '[FeedManifestOnly] status=offline_cache_fallback_disabled '
+        'limit=$limit page=${resolvedTypesensePage ?? 1}',
+      );
     }
     return _AgendaSourcePage(
       page.items,

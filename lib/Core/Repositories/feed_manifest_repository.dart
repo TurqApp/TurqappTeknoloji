@@ -19,12 +19,16 @@ class FeedManifestEntry {
     required this.canonicalId,
     required this.slotId,
     required this.slotPath,
+    this.slotGeneratedAt = 0,
+    this.slotManifestId = '',
   });
 
   final PostsModel post;
   final String canonicalId;
   final String slotId;
   final String slotPath;
+  final int slotGeneratedAt;
+  final String slotManifestId;
 }
 
 class FeedManifestPoolResult {
@@ -587,6 +591,7 @@ class FeedManifestRepository extends GetxService {
         slotId: 'slot_$hour',
         date: date,
         slotHour: slotStart.hour,
+        generatedAt: _generatedAtForSlotStart(slotStart),
       );
     }, growable: false);
   }
@@ -602,6 +607,7 @@ class FeedManifestRepository extends GetxService {
   }
 
   int _generatedAtForSlotRef(_FeedManifestSlotRef slot) {
+    if (slot.generatedAt > 0) return slot.generatedAt;
     final parts = slot.date.split('-');
     if (parts.length != 3) return 0;
     final year = int.tryParse(parts[0]);
@@ -611,6 +617,10 @@ class FeedManifestRepository extends GetxService {
     return DateTime(year, month, day, slot.slotHour)
         .add(_manifestPublishDelay)
         .millisecondsSinceEpoch;
+  }
+
+  int _generatedAtForSlotStart(DateTime slotStart) {
+    return slotStart.add(_manifestPublishDelay).millisecondsSinceEpoch;
   }
 
   String _slotDateString(DateTime timestamp) {
@@ -645,6 +655,8 @@ class FeedManifestRepository extends GetxService {
         rawJson,
         fallbackSlotId: slot.slotId,
         slotPath: slot.path,
+        fallbackSlotGeneratedAt: slot.generatedAt,
+        fallbackSlotManifestId: slot.manifestId,
       );
       await prefs.setString(
         slotPrefsKey,
@@ -678,6 +690,8 @@ class FeedManifestRepository extends GetxService {
       clearText,
       fallbackSlotId: slot.slotId,
       slotPath: slot.path,
+      fallbackSlotGeneratedAt: slot.generatedAt,
+      fallbackSlotManifestId: slot.manifestId,
     );
     _slotEntries[slot.path] = parsed;
     await _rewritePlainManifestPrefsStringIfNeeded(
@@ -924,10 +938,21 @@ class FeedManifestRepository extends GetxService {
     String rawJson, {
     required String fallbackSlotId,
     required String slotPath,
+    int fallbackSlotGeneratedAt = 0,
+    String fallbackSlotManifestId = '',
   }) {
     final decoded = jsonDecode(rawJson);
     if (decoded is! Map) return const <FeedManifestEntry>[];
     final slotId = (decoded['slotId'] ?? fallbackSlotId).toString().trim();
+    final slotManifestId =
+        (decoded['manifestId'] ?? fallbackSlotManifestId).toString().trim();
+    final decodedGeneratedAt =
+        int.tryParse('${decoded['generatedAt'] ?? 0}') ?? 0;
+    final slotGeneratedAt = decodedGeneratedAt > 0
+        ? decodedGeneratedAt
+        : (fallbackSlotGeneratedAt > 0
+            ? fallbackSlotGeneratedAt
+            : _generatedAtFromManifestId(slotManifestId));
     final itemsRaw = decoded['items'];
     if (itemsRaw is! List) return const <FeedManifestEntry>[];
     final entries = <FeedManifestEntry>[];
@@ -948,6 +973,8 @@ class FeedManifestRepository extends GetxService {
           canonicalId: canonicalId,
           slotId: slotId,
           slotPath: slotPath,
+          slotGeneratedAt: slotGeneratedAt,
+          slotManifestId: slotManifestId,
         ),
       );
     }
@@ -984,6 +1011,8 @@ class FeedManifestRepository extends GetxService {
           slotId: (map['slotId'] ?? '').toString().trim(),
           date: (map['date'] ?? '').toString().trim(),
           slotHour: int.tryParse('${map['slotHour'] ?? 0}') ?? 0,
+          generatedAt: int.tryParse('${map['generatedAt'] ?? 0}') ?? 0,
+          manifestId: (map['manifestId'] ?? '').toString().trim(),
         ),
       );
     }
@@ -995,11 +1024,37 @@ class FeedManifestRepository extends GetxService {
     _FeedManifestSlotRef left,
     _FeedManifestSlotRef right,
   ) {
+    final leftGeneratedAt = _slotRefSortTimestamp(left);
+    final rightGeneratedAt = _slotRefSortTimestamp(right);
+    if (leftGeneratedAt != rightGeneratedAt) {
+      return rightGeneratedAt.compareTo(leftGeneratedAt);
+    }
     final dateCompare = right.date.compareTo(left.date);
     if (dateCompare != 0) return dateCompare;
     final hourCompare = right.slotHour.compareTo(left.slotHour);
     if (hourCompare != 0) return hourCompare;
     return right.path.compareTo(left.path);
+  }
+
+  static int _slotRefSortTimestamp(_FeedManifestSlotRef slot) {
+    if (slot.generatedAt > 0) return slot.generatedAt;
+    final manifestGeneratedAt = _generatedAtFromManifestId(slot.manifestId);
+    if (manifestGeneratedAt > 0) return manifestGeneratedAt;
+    final parts = slot.date.split('-');
+    if (parts.length != 3) return 0;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return 0;
+    return DateTime(year, month, day, slot.slotHour)
+        .add(_manifestPublishDelay)
+        .millisecondsSinceEpoch;
+  }
+
+  static int _generatedAtFromManifestId(String manifestId) {
+    final match = RegExp(r'_v(\d{10,})$').firstMatch(manifestId.trim());
+    if (match == null) return 0;
+    return int.tryParse(match.group(1) ?? '') ?? 0;
   }
 
   static String _canonicalIdForManifestItem(
@@ -1084,18 +1139,24 @@ class _FeedManifestSlotRef {
     required this.slotId,
     required this.date,
     required this.slotHour,
+    this.generatedAt = 0,
+    this.manifestId = '',
   });
 
   final String path;
   final String slotId;
   final String date;
   final int slotHour;
+  final int generatedAt;
+  final String manifestId;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'path': path,
         'slotId': slotId,
         'date': date,
         'slotHour': slotHour,
+        'generatedAt': generatedAt,
+        'manifestId': manifestId,
       };
 
   bool get isValid => path.trim().isNotEmpty;
@@ -1106,6 +1167,8 @@ class _FeedManifestSlotRef {
       slotId: (json['slotId'] ?? '').toString().trim(),
       date: (json['date'] ?? '').toString().trim(),
       slotHour: int.tryParse('${json['slotHour'] ?? 0}') ?? 0,
+      generatedAt: int.tryParse('${json['generatedAt'] ?? 0}') ?? 0,
+      manifestId: (json['manifestId'] ?? '').toString().trim(),
     );
   }
 }

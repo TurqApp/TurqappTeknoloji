@@ -9,7 +9,7 @@ void main() {
     test('defines the canonical primary home feed path', () {
       const contract = FeedHomeContract.primaryHybridV1;
 
-      expect(contract.contractId, 'feed_home_primary_global_v2');
+      expect(contract.contractId, 'feed_home_manifest_only_v1');
       expect(
         contract.primarySource,
         FeedHomePrimarySource.globalApprovedPosts,
@@ -23,12 +23,9 @@ void main() {
       );
       expect(
         contract.fallbackOrder,
-        const <FeedHomeFallbackPath>[
-          FeedHomeFallbackPath.personalSnapshot,
-          FeedHomeFallbackPath.legacyPage,
-        ],
+        const <FeedHomeFallbackPath>[],
       );
-      expect(contract.usesPrimaryFeedPaging, isFalse);
+      expect(contract.usesPrimaryFeedPaging, isTrue);
       expect(contract.primaryCollection, 'Posts');
       expect(contract.primaryItemsSubcollection, isEmpty);
       expect(contract.celebrityCollection, 'celebAccounts');
@@ -41,23 +38,23 @@ void main() {
       );
     });
 
-    test('repository remains manifest-first with warm and personal fallbacks',
-        () {
+    test('repository remains manifest-only without cache fallbacks', () {
       final fetchSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+        'lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(fetchSource, contains('_tryLoadFeedManifestPrimaryPage('));
-      expect(fetchSource, contains('_loadWarmFeedFallbackPage('));
-      expect(fetchSource, contains('_loadPersonalFallbackPage('));
-      expect(fetchSource, contains("status=fallback_warm"));
-      expect(fetchSource, contains("status=fallback_personal"));
+      expect(fetchSource, isNot(contains('_loadWarmFeedFallbackPage(')));
+      expect(fetchSource, isNot(contains('_loadPersonalFallbackPage(')));
+      expect(fetchSource, isNot(contains("status=fallback_warm")));
+      expect(fetchSource, isNot(contains("status=fallback_personal")));
+      expect(fetchSource, contains("status=manifest_only_no_fallback"));
     });
 
     test('explicit opt-out is manifest-only and legacy page is unreachable',
         () {
       final fetchSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+        'lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(
@@ -103,10 +100,27 @@ void main() {
     test('manifest selection prunes watched cards and bypasses empty slots',
         () {
       final fetchSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+        'lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(fetchSource, contains('if (consumedDocIds.contains(docId)) {'));
+      expect(
+        fetchSource,
+        contains(
+          'final consumedDocIds = _feedDiversityMemory.weeklyWatchedPenaltyDocIds();',
+        ),
+      );
+      expect(
+        fetchSource,
+        contains(
+          'final consumedFloodRootIds =\n          _feedDiversityMemory.weeklyWatchedFloodRootIds();',
+        ),
+      );
+      expect(fetchSource, contains('consumedDocIds: consumedDocIds'));
+      expect(
+        fetchSource,
+        contains('consumedFloodRootIds: consumedFloodRootIds'),
+      );
       expect(
         fetchSource,
         contains('if (_isNonRootFloodChildPost(post)) return;'),
@@ -134,7 +148,7 @@ void main() {
         'manifest visible selection stays gap-first then newest-to-oldest in five-card slot batches',
         () {
       final fetchSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+        'lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
       ).readAsStringSync();
 
       expect(
@@ -147,9 +161,11 @@ void main() {
       );
       expect(
         fetchSource,
-        contains(
-          'slotOrder.sort(FeedManifestMixer.compareSlotKeysNewestFirst);',
-        ),
+        contains('slotOrder.sort((left, right) {'),
+      );
+      expect(
+        fetchSource,
+        contains('FeedManifestMixer.compareEntriesBySlotNewestFirst('),
       );
       expect(
         fetchSource,
@@ -195,13 +211,20 @@ void main() {
         fetchSource,
         contains('.take(pageTakeLimit)'),
       );
+      expect(
+        fetchSource,
+        contains(
+          'final nextPage =\n          visible.length > pageEndExclusive ? pageNumber + 1 : null;',
+        ),
+      );
+      expect(fetchSource, isNot(contains('_feedManifestMixer.buildDeck(')));
     });
 
     test(
         'startup feed does not auto-append planned cold pages without explicit near-end triggers',
         () {
       final loadingSource = File(
-        '/Users/turqapp/Documents/Turqapp/repo/lib/Modules/Agenda/agenda_controller_loading_part.dart',
+        'lib/Modules/Agenda/agenda_controller_loading_part.dart',
       ).readAsStringSync();
 
       expect(
@@ -220,6 +243,47 @@ void main() {
       expect(
         loadingSource,
         contains('[FeedAppendDiagnostics] status=skip_auto_planned_cold_apply'),
+      );
+      expect(
+        loadingSource,
+        contains('status=skip_preplanned_append_terminal'),
+      );
+      expect(
+        loadingSource,
+        contains(
+            'effectivePageItemsPreplanned\n          ? page.nextTypesensePage != null'),
+      );
+      expect(
+        loadingSource,
+        contains(
+            'pageApplyPlan.pageItemsPreplanned\n          ? page.nextTypesensePage != null'),
+      );
+    });
+
+    test('manifest refresh skips current-list pre-prune flicker', () {
+      final loadingSource = File(
+        'lib/Modules/Agenda/agenda_controller_loading_part.dart',
+      ).readAsStringSync();
+
+      expect(
+        loadingSource,
+        contains('skipPrePruneForManifestRefresh'),
+      );
+      expect(
+        loadingSource,
+        contains('_usePrimaryFeedPaging && !isFollowingMode && !isCityMode'),
+      );
+      expect(
+        loadingSource,
+        contains('status=skip_pre_prune_manifest_refresh'),
+      );
+      expect(
+        loadingSource,
+        contains("String reason = 'refresh_merge_live_items'"),
+      );
+      expect(
+        loadingSource,
+        contains("reason: 'refresh_prune_consumed_current'"),
       );
     });
   });

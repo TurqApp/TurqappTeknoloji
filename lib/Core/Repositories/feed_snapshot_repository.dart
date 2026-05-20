@@ -105,7 +105,6 @@ class _FeedSnapshotRepositoryState {
   late final WarmLaunchPool warmLaunchPool = ensureWarmLaunchPool();
   late final FeedManifestRepository feedManifestRepository =
       ensureFeedManifestRepository();
-  late final FeedManifestMixer feedManifestMixer = const FeedManifestMixer();
   late final FeedDiversityMemoryService feedDiversityMemory =
       FeedDiversityMemoryService.ensure();
   late final MemoryScopedSnapshotStore<List<PostsModel>> memoryStore =
@@ -164,7 +163,6 @@ extension FeedSnapshotRepositoryFieldsPart on FeedSnapshotRepository {
   WarmLaunchPool get _warmLaunchPool => _state.warmLaunchPool;
   FeedManifestRepository get _feedManifestRepository =>
       _state.feedManifestRepository;
-  FeedManifestMixer get _feedManifestMixer => _state.feedManifestMixer;
   FeedDiversityMemoryService get _feedDiversityMemory =>
       _state.feedDiversityMemory;
   MemoryScopedSnapshotStore<List<PostsModel>> get _memoryStore =>

@@ -190,20 +190,9 @@ class FeedManifestMixer {
       }
     }
 
-    while (deck.length < normalizedLimit &&
-        (manifest.isNotEmpty || gap.isNotEmpty)) {
-      var candidate = _takeNext(
+    while (deck.length < normalizedLimit && manifest.isNotEmpty) {
+      final candidate = _takeNext(
         manifest,
-        recentUsers: recentUsers,
-        position: deck.length,
-        minUserSpacing: effectiveSpacing,
-        emittedUserCounts: emittedUserCounts,
-        maxItemsPerUser: effectiveMaxItemsPerUser,
-        scanWindow: effectiveScanWindow,
-        headPenaltyDepth: headPenaltyDepth,
-      );
-      candidate ??= _takeNext(
-        gap,
         recentUsers: recentUsers,
         position: deck.length,
         minUserSpacing: effectiveSpacing,
@@ -220,11 +209,7 @@ class FeedManifestMixer {
           source: candidate.source,
         ),
       );
-      if (candidate.source == FeedManifestDeckSource.gap) {
-        gapCount++;
-      } else {
-        manifestCount++;
-      }
+      manifestCount++;
       rememberEmittedUser(candidate.entry);
     }
 
@@ -277,6 +262,45 @@ class FeedManifestMixer {
     return right.compareTo(left);
   }
 
+  static int compareEntriesBySlotNewestFirst(
+    FeedManifestEntry left,
+    FeedManifestEntry right,
+  ) {
+    final leftGeneratedAt = _entrySlotSortTimestamp(left);
+    final rightGeneratedAt = _entrySlotSortTimestamp(right);
+    if (leftGeneratedAt != rightGeneratedAt) {
+      return rightGeneratedAt.compareTo(leftGeneratedAt);
+    }
+    final leftKey =
+        left.slotPath.trim().isNotEmpty ? left.slotPath.trim() : left.slotId;
+    final rightKey =
+        right.slotPath.trim().isNotEmpty ? right.slotPath.trim() : right.slotId;
+    return compareSlotKeysNewestFirst(leftKey, rightKey);
+  }
+
+  static int _entrySlotSortTimestamp(FeedManifestEntry entry) {
+    if (entry.slotGeneratedAt > 0) return entry.slotGeneratedAt;
+    final manifestId = entry.slotManifestId.trim();
+    final manifestMatch = RegExp(r'_v(\d{10,})$').firstMatch(manifestId);
+    if (manifestMatch != null) {
+      final parsed = int.tryParse(manifestMatch.group(1) ?? '') ?? 0;
+      if (parsed > 0) return parsed;
+    }
+    final key =
+        entry.slotPath.trim().isNotEmpty ? entry.slotPath : entry.slotId;
+    final parsedKey = _parseSlotKey(key);
+    final date = parsedKey.$1;
+    final hour = parsedKey.$2;
+    if (date == null || hour == null) return 0;
+    final parts = date.split('-');
+    if (parts.length != 3) return 0;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return 0;
+    return DateTime(year, month, day, hour).millisecondsSinceEpoch;
+  }
+
   static List<FeedManifestEntry> _interleaveManifestEntriesBySlot(
     List<FeedManifestEntry> entries, {
     required int batchSize,
@@ -305,7 +329,18 @@ class FeedManifestMixer {
       bucket.add(entry);
     }
 
-    slotOrder.sort(compareSlotKeysNewestFirst);
+    slotOrder.sort((left, right) {
+      final leftBucket = grouped[left];
+      final rightBucket = grouped[right];
+      final leftEntry =
+          leftBucket == null || leftBucket.isEmpty ? null : leftBucket.first;
+      final rightEntry =
+          rightBucket == null || rightBucket.isEmpty ? null : rightBucket.first;
+      if (leftEntry != null && rightEntry != null) {
+        return compareEntriesBySlotNewestFirst(leftEntry, rightEntry);
+      }
+      return compareSlotKeysNewestFirst(left, right);
+    });
     for (final bucket in grouped.values) {
       final originalIndexes = <FeedManifestEntry, int>{
         for (var index = 0; index < bucket.length; index++)

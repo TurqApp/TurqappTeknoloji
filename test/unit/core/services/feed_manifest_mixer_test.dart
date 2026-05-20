@@ -11,10 +11,15 @@ FeedManifestEntry _entry(
   bool floodRoot = false,
   int timeStamp = 1776710000000,
   String slotPath = 'feedManifest/2026-04-21/slots/slot_12.json',
+  String slotId = 'slot_12',
+  String manifestId = '',
+  int generatedAt = 0,
 }) {
   return FeedManifestRepository.parseSlotEntries(
     jsonEncode(<String, dynamic>{
-      'slotId': 'slot_12',
+      'slotId': slotId,
+      if (manifestId.isNotEmpty) 'manifestId': manifestId,
+      if (generatedAt > 0) 'generatedAt': generatedAt,
       'items': <Map<String, dynamic>>[
         <String, dynamic>{
           'docId': docId,
@@ -58,7 +63,7 @@ FeedManifestEntry _entry(
         },
       ],
     }),
-    fallbackSlotId: 'slot_12',
+    fallbackSlotId: slotId,
     slotPath: slotPath,
   ).single;
 }
@@ -88,6 +93,41 @@ void main() {
       );
 
       expect(_docIds(first), _docIds(sameSeed));
+    });
+
+    test('orders manifest slots by generated timestamp before slot key', () {
+      final result = mixer.buildDeck(
+        manifestEntries: <FeedManifestEntry>[
+          _entry(
+            'slot-18-a',
+            slotId: 'slot_18',
+            slotPath: 'feedManifest/2026-05-20/slots/slot_18.json',
+            manifestId: 'feed_2026-05-20_slot_18_v1779285900000',
+            generatedAt: 1779285900000,
+          ),
+          _entry(
+            'slot-21-a',
+            slotId: 'slot_21',
+            slotPath: 'feedManifest/2026-05-20/slots/slot_21.json',
+            manifestId: 'feed_2026-05-20_slot_21_v1779296700000',
+            generatedAt: 1779296700000,
+          ),
+          _entry(
+            'slot-15-a',
+            slotId: 'slot_15',
+            slotPath: 'feedManifest/2026-05-20/slots/slot_15.json',
+            manifestId: 'feed_2026-05-20_slot_15_v1779275100000',
+            generatedAt: 1779275100000,
+          ),
+        ],
+        seed: 1,
+        limit: 3,
+      );
+
+      expect(
+        _docIds(result),
+        <String>['slot-21-a', 'slot-18-a', 'slot-15-a'],
+      );
     });
 
     test(
@@ -192,6 +232,36 @@ void main() {
                 (entry) => entry.source == FeedManifestDeckSource.manifest,
               ),
           isTrue);
+    });
+
+    test('does not use gap candidates to backfill after manifest slots', () {
+      final result = mixer.buildDeck(
+        manifestEntries: List<FeedManifestEntry>.generate(
+          3,
+          (index) => _entry('manifest-$index', userId: 'm-$index'),
+        ),
+        gapEntries: List<FeedManifestEntry>.generate(
+          5,
+          (index) => _entry('gap-$index', userId: 'g-$index'),
+        ),
+        seed: 12,
+        limit: 8,
+        leadingGapCount: 2,
+      );
+
+      expect(result.entries, hasLength(5));
+      expect(result.gapCount, 2);
+      expect(result.manifestCount, 3);
+      expect(
+        result.entries.map((entry) => entry.source).toList(growable: false),
+        <FeedManifestDeckSource>[
+          FeedManifestDeckSource.gap,
+          FeedManifestDeckSource.gap,
+          FeedManifestDeckSource.manifest,
+          FeedManifestDeckSource.manifest,
+          FeedManifestDeckSource.manifest,
+        ],
+      );
     });
 
     test('keeps gap first and manifest slots newest to oldest', () {

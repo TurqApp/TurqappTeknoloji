@@ -29,17 +29,14 @@ class FeedHomeContract {
   });
 
   static const FeedHomeContract primaryHybridV1 = FeedHomeContract(
-    contractId: 'feed_home_primary_global_v2',
+    contractId: 'feed_home_manifest_only_v1',
     primarySource: FeedHomePrimarySource.globalApprovedPosts,
     supplementalSources: <FeedHomeSupplementalSource>[
       FeedHomeSupplementalSource.ownRecentPosts,
       FeedHomeSupplementalSource.publicScheduledIzBirakPosts,
     ],
-    fallbackOrder: <FeedHomeFallbackPath>[
-      FeedHomeFallbackPath.personalSnapshot,
-      FeedHomeFallbackPath.legacyPage,
-    ],
-    usesPrimaryFeedPaging: false,
+    fallbackOrder: <FeedHomeFallbackPath>[],
+    usesPrimaryFeedPaging: true,
     primaryCollection: 'Posts',
     primaryItemsSubcollection: '',
     celebrityCollection: 'celebAccounts',
