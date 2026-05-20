@@ -199,8 +199,15 @@ extension AgendaContentHeaderMenuPart on _AgendaContentState {
         padding: EdgeInsets.zero,
         pressedOpacity: 0.6,
         alignment: Alignment.center,
-        minimumSize: Size(0, 0),
-        child: const Icon(Icons.more_vert, color: Colors.black, size: 22),
+        minimumSize: Size.zero,
+        child: const SizedBox(
+          width: 44,
+          height: 40,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Icon(Icons.more_vert, color: Colors.black, size: 22),
+          ),
+        ),
       ),
     );
   }
