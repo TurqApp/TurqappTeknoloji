@@ -18,19 +18,31 @@ class RecommendedUserContent extends StatefulWidget {
 }
 
 class _RecommendedUserContentState extends State<RecommendedUserContent> {
-  late final RecommendedUserContentController controller;
-  late final String _controllerTag;
+  late RecommendedUserContentController controller;
+  late String _controllerTag;
 
   RecommendedUserModel get model => widget.model;
 
   Future<void> _openProfile() async {
-    await const ProfileNavigationService().openSocialProfile(controller.userID);
+    await const ProfileNavigationService().openSocialProfile(model.userID);
     await controller.getTakipStatus();
   }
 
   @override
   void initState() {
     super.initState();
+    _bindController();
+  }
+
+  @override
+  void didUpdateWidget(covariant RecommendedUserContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.model.userID == model.userID) return;
+    _deleteController();
+    _bindController();
+  }
+
+  void _bindController() {
     _controllerTag =
         'recommended_user_${model.userID}_${identityHashCode(this)}';
     controller = ensureRecommendedUserContentController(
@@ -41,6 +53,11 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
 
   @override
   void dispose() {
+    _deleteController();
+    super.dispose();
+  }
+
+  void _deleteController() {
     final existing = maybeFindRecommendedUserContentController(
       tag: _controllerTag,
     );
@@ -50,7 +67,6 @@ class _RecommendedUserContentState extends State<RecommendedUserContent> {
         force: true,
       );
     }
-    super.dispose();
   }
 
   @override

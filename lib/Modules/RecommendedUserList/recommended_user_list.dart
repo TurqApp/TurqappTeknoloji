@@ -99,7 +99,10 @@ class _RecommendedUserListState extends State<RecommendedUserList> {
                 return SizedBox(
                   width: (MediaQuery.of(context).size.width * 0.44)
                       .clamp(150.0, 186.0),
-                  child: RecommendedUserContent(model: model),
+                  child: RecommendedUserContent(
+                    key: ValueKey('recommended_user_${model.userID}'),
+                    model: model,
+                  ),
                 );
               },
             ),
