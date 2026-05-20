@@ -62,6 +62,7 @@ class FeedManifestRepository extends GetxService {
   static const Duration _authReadyTimeout = Duration(milliseconds: 1600);
   static const Duration _slotDownloadTimeout = Duration(seconds: 6);
   static const int _slotLoadRetryPasses = 2;
+  static const int _expectedRollingSlotCount = 24;
   static const String _localWindowsPrefsKey = 'feed_manifest_windows_v1';
   static const String _localSlotPrefsPrefix = 'feed_manifest_slot_v1';
   static const String _refreshGraceSyncPrefsKey =
@@ -142,7 +143,9 @@ class FeedManifestRepository extends GetxService {
       return false;
     }
     await prefs.setString(_refreshGraceSyncPrefsKey, dueWindowKey);
-    final changed = await syncActiveWindowIfChanged();
+    final changed = await syncActiveWindowIfChanged(
+      allowExpectedSlotProbe: true,
+    );
     if (kDebugMode) {
       debugPrint(
         '[FeedManifestRepo] stage=refresh_grace_sync '
@@ -188,6 +191,13 @@ class FeedManifestRepository extends GetxService {
             generatedAt: generatedAt,
             slotRefs: slotRefs,
           );
+          if (hasStaleLocalWindow &&
+              _isActiveManifestWindowStale(DateTime.now())) {
+            await _tryMergeExpectedRollingSlotWindow(
+              reason: 'stale_active_doc_unchanged',
+              maxSlotsToTake: maxSlotsToLoad ?? _expectedRollingSlotCount,
+            );
+          }
         } else if (_windows.isEmpty) {
           _reset();
           return const FeedManifestPoolResult(
@@ -201,6 +211,17 @@ class FeedManifestRepository extends GetxService {
       } catch (error) {
         if (_windows.isEmpty) rethrow;
         if (hasStaleLocalWindow) {
+          final recovered = await _tryMergeExpectedRollingSlotWindow(
+            reason: 'stale_active_sync_failed',
+            maxSlotsToTake: maxSlotsToLoad ?? _expectedRollingSlotCount,
+          );
+          if (recovered) {
+            final slotRefs = _flattenWindowSlotRefs(
+              maxSlotsToTake: maxSlotsToLoad,
+            );
+            await _ensureSlotsLoaded(slotRefs, forceRefresh: false);
+            return _buildPoolResult(slotRefs);
+          }
           await _dropLocalManifestWindows(
             reason: 'stale_active_sync_failed',
           );
@@ -229,7 +250,9 @@ class FeedManifestRepository extends GetxService {
         maxSlotsToLoad > 0 &&
         slotRefs.length < maxSlotsToLoad) {
       try {
-        final changed = await syncActiveWindowIfChanged();
+        final changed = await syncActiveWindowIfChanged(
+          allowExpectedSlotProbe: true,
+        );
         if (changed) {
           slotRefs = _flattenWindowSlotRefs(
             maxSlotsToTake: maxSlotsToLoad,
@@ -316,7 +339,9 @@ class FeedManifestRepository extends GetxService {
     );
   }
 
-  Future<bool> syncActiveWindowIfChanged() async {
+  Future<bool> syncActiveWindowIfChanged({
+    bool allowExpectedSlotProbe = false,
+  }) async {
     await _hydrateLocalCache();
     final active = await _loadActiveManifestDoc();
     final activeData = active.data() ?? const <String, dynamic>{};
@@ -330,6 +355,12 @@ class FeedManifestRepository extends GetxService {
         generatedAt != _generatedAt ||
         !_currentPrimaryWindowHasSlots(slotRefs);
     if (!changed) {
+      if (allowExpectedSlotProbe &&
+          _isActiveManifestWindowStale(DateTime.now())) {
+        return _tryMergeExpectedRollingSlotWindow(
+          reason: 'active_doc_stable_but_stale',
+        );
+      }
       return false;
     }
     await _mergeActiveWindow(
@@ -487,6 +518,106 @@ class FeedManifestRepository extends GetxService {
     final day = local.day.toString().padLeft(2, '0');
     final hour = slotHour.toString().padLeft(2, '0');
     return '${local.year}-$month-$day:$hour';
+  }
+
+  Future<bool> _tryMergeExpectedRollingSlotWindow({
+    required String reason,
+    int maxSlotsToTake = _expectedRollingSlotCount,
+  }) async {
+    final slotRefs = _buildExpectedRollingSlotRefs(
+      DateTime.now(),
+      maxSlotsToTake: maxSlotsToTake,
+    );
+    if (slotRefs.isEmpty) return false;
+    final newest = slotRefs.first;
+    final alreadyPrimary = _windows.isNotEmpty &&
+        _windows.first.slots.isNotEmpty &&
+        _windows.first.slots.first.path == newest.path;
+    if (alreadyPrimary) return false;
+
+    await _loadSlot(newest, forceRefresh: false);
+    final newestReady = _slotEntries.containsKey(newest.path);
+    if (!newestReady) {
+      if (kDebugMode) {
+        debugPrint(
+          '[FeedManifestRepo] stage=expected_slot_probe '
+          'status=missing reason=$reason path=${newest.path} '
+          'currentManifest=$_manifestId generatedAt=$_generatedAt',
+        );
+      }
+      return false;
+    }
+
+    final generatedAt = _generatedAtForSlotRef(newest);
+    if (generatedAt <= 0) return false;
+    final manifestId = 'feed_expected_${newest.date}_'
+        '${newest.slotHour.toString().padLeft(2, '0')}';
+    await _mergeActiveWindow(
+      manifestId: manifestId,
+      generatedAt: generatedAt,
+      slotRefs: slotRefs,
+    );
+    if (kDebugMode) {
+      debugPrint(
+        '[FeedManifestRepo] stage=expected_slot_probe '
+        'status=merged reason=$reason manifestId=$manifestId '
+        'generatedAt=$generatedAt firstPath=${newest.path} '
+        'slotCount=${slotRefs.length}',
+      );
+    }
+    return true;
+  }
+
+  List<_FeedManifestSlotRef> _buildExpectedRollingSlotRefs(
+    DateTime now, {
+    required int maxSlotsToTake,
+  }) {
+    if (maxSlotsToTake <= 0) return const <_FeedManifestSlotRef>[];
+    final latestSlotStart = _slotStartFor(now.subtract(_manifestPublishDelay));
+    return List<_FeedManifestSlotRef>.generate(maxSlotsToTake, (index) {
+      final slotStart = latestSlotStart.subtract(
+        Duration(
+          milliseconds: manifestWindowCadence.inMilliseconds * index,
+        ),
+      );
+      final date = _slotDateString(slotStart);
+      final hour = slotStart.hour.toString().padLeft(2, '0');
+      return _FeedManifestSlotRef(
+        path: 'feedManifest/$date/slots/slot_$hour.json',
+        slotId: 'slot_$hour',
+        date: date,
+        slotHour: slotStart.hour,
+      );
+    }, growable: false);
+  }
+
+  DateTime _slotStartFor(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    return DateTime(
+      local.year,
+      local.month,
+      local.day,
+      (local.hour ~/ 3) * 3,
+    );
+  }
+
+  int _generatedAtForSlotRef(_FeedManifestSlotRef slot) {
+    final parts = slot.date.split('-');
+    if (parts.length != 3) return 0;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return 0;
+    return DateTime(year, month, day, slot.slotHour)
+        .add(_manifestPublishDelay)
+        .millisecondsSinceEpoch;
+  }
+
+  String _slotDateString(DateTime timestamp) {
+    final local = timestamp.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
   }
 
   Future<void> _loadSlot(

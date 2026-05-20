@@ -584,7 +584,7 @@ async function generateRollingFeedManifestBackfill(nowMs) {
             (asString(data?.status) || "active") === "active" &&
             Math.max(0, Math.floor(asNumber(data?.itemCount))) > 0 &&
             asString(data?.path).length > 0;
-        if (hasPublishedSlot && !target.isCurrent)
+        if (hasPublishedSlot)
             continue;
         const range = istanbulSlotRangeForDateHour(target.date, target.slotHour);
         results.push(await generateFeedManifest({
@@ -596,6 +596,9 @@ async function generateRollingFeedManifestBackfill(nowMs) {
             publish: true,
             generatedAt: Date.now(),
         }));
+    }
+    if (results.length === 0) {
+        await refreshActiveFeedManifestIndex(Date.now());
     }
     return results;
 }
@@ -646,7 +649,7 @@ exports.f29_generateFeedManifestScheduled = (0, scheduler_1.onSchedule)({
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5 */3 * * *",
+    schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5,20,35,50 * * * *",
     timeZone: "Europe/Istanbul",
 }, async () => {
     ensureAdmin();

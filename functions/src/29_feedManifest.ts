@@ -795,7 +795,7 @@ async function generateRollingFeedManifestBackfill(nowMs: number) {
       Math.max(0, Math.floor(asNumber(data?.itemCount))) > 0 &&
       asString(data?.path).length > 0;
 
-    if (hasPublishedSlot && !target.isCurrent) continue;
+    if (hasPublishedSlot) continue;
 
     const range = istanbulSlotRangeForDateHour(target.date, target.slotHour);
     results.push(await generateFeedManifest({
@@ -807,6 +807,10 @@ async function generateRollingFeedManifestBackfill(nowMs: number) {
       publish: true,
       generatedAt: Date.now(),
     }));
+  }
+
+  if (results.length === 0) {
+    await refreshActiveFeedManifestIndex(Date.now());
   }
 
   return results;
@@ -867,7 +871,7 @@ export const f29_generateFeedManifestScheduled = onSchedule(
     region: REGION,
     timeoutSeconds: 300,
     memory: "512MiB",
-    schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5 */3 * * *",
+    schedule: getEnv("FEED_MANIFEST_SCHEDULE") || "5,20,35,50 * * * *",
     timeZone: "Europe/Istanbul",
   },
   async () => {
