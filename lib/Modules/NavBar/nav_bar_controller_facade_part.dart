@@ -43,4 +43,15 @@ extension NavBarControllerFacadePart on NavBarController {
     double offset = 0,
   }) =>
       _resetVisibilityScrollAnchorImpl(source: source, offset: offset);
+
+  void updateVisibilityFromGlobalSwipe({
+    required String source,
+    required double deltaY,
+    required double deltaX,
+  }) =>
+      _updateVisibilityFromGlobalSwipeImpl(
+        source: source,
+        deltaY: deltaY,
+        deltaX: deltaX,
+      );
 }

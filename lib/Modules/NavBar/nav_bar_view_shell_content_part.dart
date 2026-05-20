@@ -22,13 +22,16 @@ extension _NavBarViewShellContentPart on NavBarView {
             GestureDetector(
               behavior: HitTestBehavior.translucent,
               onHorizontalDragEnd: _handleRootHorizontalSwipe,
-              child: Column(
-                children: [
-                  const OfflineIndicator(),
-                  Expanded(
-                    child: Obx(() => _buildSelectedPage()),
-                  ),
-                ],
+              child: _GlobalNavBarSwipeGate(
+                controller: controller,
+                child: Column(
+                  children: [
+                    const OfflineIndicator(),
+                    Expanded(
+                      child: Obx(() => _buildSelectedPage()),
+                    ),
+                  ],
+                ),
               ),
             ),
             Obx(() {
@@ -606,6 +609,68 @@ class _NavBarPointerGateState extends State<_NavBarPointerGate> {
   Widget build(BuildContext context) {
     return IgnorePointer(
       ignoring: !_acceptPointers,
+      child: widget.child,
+    );
+  }
+}
+
+class _GlobalNavBarSwipeGate extends StatefulWidget {
+  const _GlobalNavBarSwipeGate({
+    required this.controller,
+    required this.child,
+  });
+
+  final NavBarController controller;
+  final Widget child;
+
+  @override
+  State<_GlobalNavBarSwipeGate> createState() => _GlobalNavBarSwipeGateState();
+}
+
+class _GlobalNavBarSwipeGateState extends State<_GlobalNavBarSwipeGate> {
+  int? _pointer;
+  Offset? _start;
+  bool _handled = false;
+
+  void _handlePointerDown(PointerDownEvent event) {
+    if (_pointer != null) return;
+    _pointer = event.pointer;
+    _start = event.position;
+    _handled = false;
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    if (event.pointer != _pointer || _handled) return;
+    final start = _start;
+    if (start == null) return;
+    final delta = event.position - start;
+    widget.controller.updateVisibilityFromGlobalSwipe(
+      source: 'global_root_swipe',
+      deltaY: delta.dy,
+      deltaX: delta.dx,
+    );
+    final absY = delta.dy.abs();
+    final absX = delta.dx.abs();
+    if (absY >= 48 && absY >= absX * 1.2) {
+      _handled = true;
+    }
+  }
+
+  void _clearPointer(PointerEvent event) {
+    if (event.pointer != _pointer) return;
+    _pointer = null;
+    _start = null;
+    _handled = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: _handlePointerDown,
+      onPointerMove: _handlePointerMove,
+      onPointerUp: _clearPointer,
+      onPointerCancel: _clearPointer,
       child: widget.child,
     );
   }

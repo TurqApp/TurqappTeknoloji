@@ -29,6 +29,17 @@ extension _NavBarControllerSupportFacadePart on NavBarController {
         source: source,
         offset: offset,
       );
+
+  void _updateVisibilityFromGlobalSwipeImpl({
+    required String source,
+    required double deltaY,
+    required double deltaX,
+  }) =>
+      _NavBarControllerSupportPart(this).updateVisibilityFromGlobalSwipe(
+        source: source,
+        deltaY: deltaY,
+        deltaX: deltaX,
+      );
 }
 
 class _PrimaryTabLayout {
@@ -148,6 +159,32 @@ class _NavBarControllerSupportPart {
     if (safeOffset <= 0 && _controller.showBar.value != true) {
       _controller.showBar.value = true;
     }
+  }
+
+  void updateVisibilityFromGlobalSwipe({
+    required String source,
+    required double deltaY,
+    required double deltaX,
+  }) {
+    if (_controller._isDisposed) return;
+    final normalizedSource = source.trim();
+    if (normalizedSource.isEmpty) return;
+
+    final absY = deltaY.abs();
+    final absX = deltaX.abs();
+    const minSwipeDistance = 48.0;
+    const verticalBias = 1.2;
+    if (absY < minSwipeDistance || absY < absX * verticalBias) return;
+
+    final shouldShow = deltaY > 0;
+    if (_controller.showBar.value == shouldShow) return;
+    _controller.showBar.value = shouldShow;
+    debugPrint(
+      '[NavBarVisibility] source=$normalizedSource show=$shouldShow '
+      'gesture=vertical_swipe deltaY=${deltaY.toStringAsFixed(1)} '
+      'deltaX=${deltaX.toStringAsFixed(1)} '
+      'overlay=${_controller.mediaOverlayActive}',
+    );
   }
 
   String routeHintForIndex(int index) {
