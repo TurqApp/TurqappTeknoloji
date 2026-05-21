@@ -429,29 +429,34 @@ extension _NavBarViewShellContentPart on NavBarView {
     BuildContext context, {
     required int index,
   }) async {
+    if (!controller.showBar.value) {
+      controller.showBar.value = true;
+    }
     _logNavTap(
       'tap index=$index selectedIndex=${controller.selectedIndex.value}',
     );
     if (index == 0 && controller.selectedIndex.value == 0) {
       final agendaCtrl = maybeFindAgendaController();
       if (agendaCtrl != null) {
-        final scrollController = agendaCtrl.scrollController;
-        if (scrollController.hasClients) {
-          final currentOffset = scrollController.offset;
-          if (currentOffset > 8) {
-            await scrollController.animateTo(
-              0,
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeOut,
-            );
-          } else {
-            scrollController.jumpTo(0);
+        unawaited(() async {
+          final scrollController = agendaCtrl.scrollController;
+          if (scrollController.hasClients) {
+            final currentOffset = scrollController.offset;
+            if (currentOffset > 8) {
+              await scrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOut,
+              );
+            } else {
+              scrollController.jumpTo(0);
+            }
           }
-        }
-        final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
-        if (!didShowRefresh) {
-          await agendaCtrl.refreshAgendaFromUserAction();
-        }
+          final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
+          if (!didShowRefresh) {
+            await agendaCtrl.refreshAgendaFromUserAction();
+          }
+        }());
         return;
       }
     }
@@ -481,10 +486,12 @@ extension _NavBarViewShellContentPart on NavBarView {
             sc = explore.exploreScroll;
         }
         if (sc.hasClients) {
-          await sc.animateTo(
-            0,
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOut,
+          unawaited(
+            sc.animateTo(
+              0,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeOut,
+            ),
           );
           return;
         }
@@ -496,7 +503,7 @@ extension _NavBarViewShellContentPart on NavBarView {
         controller.selectedIndex.value == profileIndex) {
       final profile = ProfileController.maybeFind();
       if (profile != null) {
-        await profile.animateCurrentSelectionToTop();
+        unawaited(profile.animateCurrentSelectionToTop());
         return;
       }
     }
@@ -568,47 +575,10 @@ class _NavBarPointerGate extends StatefulWidget {
 }
 
 class _NavBarPointerGateState extends State<_NavBarPointerGate> {
-  static const _hideDuration = Duration(milliseconds: 220);
-
-  Timer? _hideTimer;
-  late bool _acceptPointers;
-
-  @override
-  void initState() {
-    super.initState();
-    _acceptPointers = widget.showBar;
-  }
-
-  @override
-  void didUpdateWidget(covariant _NavBarPointerGate oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.showBar) {
-      _hideTimer?.cancel();
-      if (!_acceptPointers) {
-        setState(() => _acceptPointers = true);
-      }
-      return;
-    }
-
-    if (oldWidget.showBar && !widget.showBar) {
-      _hideTimer?.cancel();
-      _hideTimer = Timer(_hideDuration, () {
-        if (!mounted || widget.showBar) return;
-        setState(() => _acceptPointers = false);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: !_acceptPointers,
+      ignoring: !widget.showBar,
       child: widget.child,
     );
   }
