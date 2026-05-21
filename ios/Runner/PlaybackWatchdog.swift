@@ -45,11 +45,22 @@ final class PlaybackWatchdog {
         log("stop")
     }
 
+    func resetBaseline(to seconds: Double? = nil) {
+        let observedTime = seconds ?? playerProvider()?.currentTime().seconds ?? 0
+        lastObservedTime = observedTime.isFinite ? max(0, observedTime) : 0
+        lastAdvancedAt = CACurrentMediaTime()
+        log("resetBaseline time=\(String(format: "%.3f", lastObservedTime))")
+    }
+
     private func tick() {
         guard let player = playerProvider() else { return }
         let layer = playerLayerProvider()
         let currentTime = player.currentTime().seconds
         let timestamp = CACurrentMediaTime()
+        if currentTime.isFinite && currentTime + 0.04 < lastObservedTime {
+            resetBaseline(to: currentTime)
+            monitor.onPlaybackSeeked(to: currentTime)
+        }
         let duration = player.currentItem?.duration.seconds ?? 0
         let hasFiniteDuration = duration.isFinite && duration > 0
         let remaining = hasFiniteDuration ? max(0, duration - currentTime) : Double.greatestFiniteMagnitude

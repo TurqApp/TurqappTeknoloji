@@ -154,6 +154,16 @@ final class PlaybackHealthMonitor {
         publishState("timeProgress=\(String(format: "%.3f", seconds))")
     }
 
+    func onPlaybackSeeked(to seconds: Double) {
+        let timestamp = now()
+        lastKnownPlaybackTime = max(0, seconds)
+        lastPlaybackProgressedAt = timestamp
+        if hasRenderedFirstFrame {
+            lastFrameRenderedAt = timestamp
+        }
+        publishState("playbackSeeked=\(String(format: "%.3f", seconds))")
+    }
+
     func onBufferingStarted() {
         isBuffering = true
         publishState("bufferingStarted")

@@ -397,6 +397,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         let time = CMTime(seconds: seconds, preferredTimescale: 600)
         player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] completed in
             if completed {
+                self?.playbackWatchdog?.resetBaseline(to: seconds)
+                self?.playbackHealthMonitor.onPlaybackSeeked(to: seconds)
                 self?.sendEvent(["event": "seekCompleted", "position": seconds])
             }
         }
@@ -852,6 +854,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         sendEvent(["event": "completed"])
 
         if isLooping {
+            playbackWatchdog?.resetBaseline(to: 0)
+            playbackHealthMonitor.onPlaybackSeeked(to: 0)
             player?.seek(to: .zero)
             player?.play()
         }
