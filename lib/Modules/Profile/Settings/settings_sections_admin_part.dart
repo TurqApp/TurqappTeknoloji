@@ -52,6 +52,11 @@ extension _SettingsViewSectionsAdminPart on _SettingsViewState {
               () => Get.to(() => const AdminApprovalsView()),
             ),
             buildRow(
+              'Pasaj İlan Onayları',
+              CupertinoIcons.briefcase_fill,
+              () => Get.to(() => const PasajListingApprovalsView()),
+            ),
+            buildRow(
               'settings.admin_story_music'.tr,
               CupertinoIcons.music_note_list,
               () => Get.to(() => const StoryMusicAdminView()),

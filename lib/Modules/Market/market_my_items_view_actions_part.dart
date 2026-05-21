@@ -73,13 +73,15 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
                           title: 'common.share'.tr,
                           icon: CupertinoIcons.share,
                         ),
-                        if (item.status != 'active')
+                        if (item.status != 'active' &&
+                            item.status != 'pending_review')
                           PullDownMenuItem(
                             onTap: () => _onMenuAction(item, 'active'),
                             title: 'pasaj.market.status.active'.tr,
                             icon: CupertinoIcons.check_mark_circled,
                           ),
-                        if (item.status != 'sold')
+                        if (item.status != 'sold' &&
+                            item.status != 'pending_review')
                           PullDownMenuItem(
                             onTap: () => _onMenuAction(item, 'sold'),
                             title: 'pasaj.market.status.sold'.tr,
@@ -172,7 +174,7 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
   }
 
   bool _shouldShowStatusChip(String status) {
-    return status == 'active' || status == 'sold';
+    return status == 'active' || status == 'sold' || status == 'pending_review';
   }
 
   Widget _statusChip(String status) {
@@ -202,6 +204,8 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
         return 'pasaj.market.status.reserved'.tr;
       case 'draft':
         return 'pasaj.market.status.draft'.tr;
+      case 'pending_review':
+        return 'pasaj.market.status.pending_review'.tr;
       case 'archived':
         return 'pasaj.market.status.archived'.tr;
       default:
@@ -217,6 +221,8 @@ extension MarketMyItemsViewActionsPart on _MarketMyItemsViewState {
         return const Color(0xFF1D4ED8);
       case 'draft':
         return const Color(0xFF6D28D9);
+      case 'pending_review':
+        return const Color(0xFFD97706);
       case 'archived':
         return const Color(0xFF6B7280);
       default:

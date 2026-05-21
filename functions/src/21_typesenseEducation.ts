@@ -1038,6 +1038,7 @@ function buildAnswerKeyDoc(docId: string, data: Record<string, unknown>): Educat
 
 function buildTutoringDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
   const imgs = asStringArray(data.imgs);
+  const approved = data.onayVerildi === undefined ? true : asBool(data.onayVerildi);
   const description = composeDescription(
     asString(data.aciklama),
     asString(data.detay),
@@ -1051,7 +1052,7 @@ function buildTutoringDoc(docId: string, data: Record<string, unknown>): Educati
     description,
     ownerId: asString(data.userID) || asString(data.userId),
     timeStamp: asEpochMillis(data.timeStamp),
-    active: !asBool(data.ended),
+    active: approved && !asBool(data.ended),
     city: asString(data.sehir),
     town: asString(data.ilce),
     tags: dedupe([
@@ -1084,6 +1085,7 @@ function buildTutoringDoc(docId: string, data: Record<string, unknown>): Educati
 
 function buildJobDoc(docId: string, data: Record<string, unknown>): EducationSearchDoc {
   const imgs = asStringArray(data.imgs);
+  const approved = data.onayVerildi === undefined ? true : asBool(data.onayVerildi);
   const title = asString(data.ilanBasligi) || asString(data.meslek) || asString(data.brand);
   const description = composeDescription(
     asString(data.isTanimi),
@@ -1099,7 +1101,7 @@ function buildJobDoc(docId: string, data: Record<string, unknown>): EducationSea
     description,
     ownerId: asString(data.userID),
     timeStamp: asEpochMillis(data.timeStamp),
-    active: !asBool(data.ended),
+    active: approved && !asBool(data.ended),
     city: asString(data.city),
     town: asString(data.town),
     tags: dedupe([

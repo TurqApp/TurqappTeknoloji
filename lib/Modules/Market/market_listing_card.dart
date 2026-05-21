@@ -317,6 +317,8 @@ class MarketListingCard extends StatelessWidget {
         return 'pasaj.market.status.reserved'.tr;
       case 'draft':
         return 'pasaj.market.status.draft'.tr;
+      case 'pending_review':
+        return 'pasaj.market.status.pending_review'.tr;
       case 'archived':
         return 'pasaj.market.status.archived'.tr;
       default:

@@ -36,6 +36,7 @@ import 'package:turqappv2/Modules/Profile/Settings/account_center_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/badge_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/moderation_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/notification_settings_view.dart';
+import 'package:turqappv2/Modules/Profile/Settings/pasaj_listing_approvals_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/pasaj_settings_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/reports_admin_view.dart';
 import 'package:turqappv2/Modules/Profile/Settings/story_music_admin_view.dart';

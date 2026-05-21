@@ -721,6 +721,7 @@ function buildAnswerKeyDoc(docId, data) {
 }
 function buildTutoringDoc(docId, data) {
     const imgs = asStringArray(data.imgs);
+    const approved = data.onayVerildi === undefined ? true : asBool(data.onayVerildi);
     const description = composeDescription(asString(data.aciklama), asString(data.detay), asString(data.ekAciklama), asString(data.ucret), ...asStringArray(data.dersYeri));
     const base = baseDoc("tutoring", docId, data, {
         title: asString(data.baslik),
@@ -728,7 +729,7 @@ function buildTutoringDoc(docId, data) {
         description,
         ownerId: asString(data.userID) || asString(data.userId),
         timeStamp: asEpochMillis(data.timeStamp),
-        active: !asBool(data.ended),
+        active: approved && !asBool(data.ended),
         city: asString(data.sehir),
         town: asString(data.ilce),
         tags: dedupe([
@@ -760,6 +761,7 @@ function buildTutoringDoc(docId, data) {
 }
 function buildJobDoc(docId, data) {
     const imgs = asStringArray(data.imgs);
+    const approved = data.onayVerildi === undefined ? true : asBool(data.onayVerildi);
     const title = asString(data.ilanBasligi) || asString(data.meslek) || asString(data.brand);
     const description = composeDescription(asString(data.isTanimi), asString(data.ilanDetayi), asString(data.aciklama), asString(data.arananNitelikler), ...asStringArray(data.yanHaklar), ...asStringArray(data.calismaTuru));
     const base = baseDoc("job", docId, data, {
@@ -768,7 +770,7 @@ function buildJobDoc(docId, data) {
         description,
         ownerId: asString(data.userID),
         timeStamp: asEpochMillis(data.timeStamp),
-        active: !asBool(data.ended),
+        active: approved && !asBool(data.ended),
         city: asString(data.city),
         town: asString(data.town),
         tags: dedupe([

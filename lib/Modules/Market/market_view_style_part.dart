@@ -23,6 +23,8 @@ extension _MarketViewStylePart on MarketView {
         return const Color(0xFF2563EB);
       case 'draft':
         return const Color(0xFF7C3AED);
+      case 'pending_review':
+        return const Color(0xFFD97706);
       case 'archived':
         return const Color(0xFF6B7280);
       default:
@@ -55,6 +57,8 @@ extension _MarketViewStylePart on MarketView {
         return 'pasaj.market.status.reserved'.tr;
       case 'draft':
         return 'pasaj.market.status.draft'.tr;
+      case 'pending_review':
+        return 'pasaj.market.status.pending_review'.tr;
       case 'archived':
         return 'pasaj.market.status.archived'.tr;
       default:

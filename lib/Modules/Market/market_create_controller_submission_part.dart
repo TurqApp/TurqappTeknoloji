@@ -290,8 +290,15 @@ extension MarketCreateControllerSubmissionPart on MarketCreateController {
 
   String _nextStatus(bool publish) {
     if (!publish) return 'draft';
+    final rozet = (CurrentUserService.instance.currentUser?.rozet ??
+            CurrentUserService.instance.rozet)
+        .trim();
+    if (!isEditing && rozet.isEmpty) return 'pending_review';
     if (!isEditing) return 'active';
-    if (initialItem?.status == 'draft') return 'active';
+    if (initialItem?.status == 'draft' ||
+        initialItem?.status == 'pending_review') {
+      return rozet.isEmpty ? 'pending_review' : 'active';
+    }
     return initialItem?.status ?? 'active';
   }
 }

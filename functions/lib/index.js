@@ -247,6 +247,7 @@ __exportStar(require("./27_nicknameChange"), exports);
 __exportStar(require("./28_shortManifest"), exports);
 __exportStar(require("./29_feedManifest"), exports);
 __exportStar(require("./30_floodManifest"), exports);
+__exportStar(require("./31_pasajListingApprovals"), exports);
 // USER SCHEMA NORMALIZER (canonical-only)
 exports.syncUserSchemaAndFlags = functions.firestore
     .document("users/{uid}")

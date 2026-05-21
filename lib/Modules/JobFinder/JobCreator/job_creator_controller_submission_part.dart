@@ -169,6 +169,7 @@ extension JobCreatorControllerSubmissionPart on JobCreatorController {
       if (existingJob != null) {
         jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
       } else {
+        jobData["onayVerildi"] = rozet.isNotEmpty;
         jobData["timeStamp"] = DateTime.now().millisecondsSinceEpoch;
         jobData["viewCount"] = 0;
         jobData["applicationCount"] = 0;

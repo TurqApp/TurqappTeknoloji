@@ -303,6 +303,7 @@ export * from "./27_nicknameChange";
 export * from "./28_shortManifest";
 export * from "./29_feedManifest";
 export * from "./30_floodManifest";
+export * from "./31_pasajListingApprovals";
 
 // USER SCHEMA NORMALIZER (canonical-only)
 export const syncUserSchemaAndFlags = functions.firestore
