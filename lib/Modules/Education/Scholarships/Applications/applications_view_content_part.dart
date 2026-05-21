@@ -169,20 +169,22 @@ extension _ApplicationsViewContentPart on _ApplicationsViewState {
                   fit: BoxFit.cover,
                   placeholder: (context, url) =>
                       const CupertinoActivityIndicator(),
-                  errorWidget: (context, url, error) => Image.asset(
-                    'assets/images/placeholder.webp',
-                    width: width,
-                    height: height,
-                    fit: BoxFit.cover,
-                  ),
+                  errorWidget: (context, url, error) => _thumbnailFallback(),
                 )
-              : Image.asset(
-                  'assets/images/placeholder.webp',
-                  width: width,
-                  height: height,
-                  fit: BoxFit.cover,
-                ),
+              : _thumbnailFallback(),
         ],
+      ),
+    );
+  }
+
+  Widget _thumbnailFallback() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: Icon(Icons.image_outlined, color: Color(0xFF9A9A9A)),
       ),
     );
   }

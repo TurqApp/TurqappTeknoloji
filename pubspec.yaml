@@ -110,8 +110,6 @@ flutter:
     - assets/bursSablonlar/
     - assets/tutorings/
     - assets/education/
-    - assets/logo/
-    - assets/models/
     - assets/models/nudenet/
   fonts:
     - family: Montserrat

@@ -21,22 +21,22 @@ const List<String> _createTutoringTimeSlots = <String>[
 ];
 
 const Map<String, String> _createTutoringBranchIconMap = <String, String>{
-  'Yaz Okulu': '1.png',
-  'Orta Öğretim': '2.png',
-  'İlk Öğretim': '3.png',
-  'Yabancı Dil': '4.png',
-  'Yazılım': '5.png',
-  'Direksiyon': '6.png',
-  'Spor': '7.png',
-  'Sanat': '8.png',
-  'Müzik': '9.png',
-  'Tiyatro': '10.png',
-  'Kişisel Gelişim': '11.png',
-  'Mesleki': '12.png',
-  'Özel Eğitim': '13.png',
-  'Çocuk': '14.png',
-  'Diksiyon': '15.png',
-  'Fotoğrafçılık': '16.png',
+  'Yaz Okulu': '1.webp',
+  'Orta Öğretim': '2.webp',
+  'İlk Öğretim': '3.webp',
+  'Yabancı Dil': '4.webp',
+  'Yazılım': '5.webp',
+  'Direksiyon': '6.webp',
+  'Spor': '7.webp',
+  'Sanat': '8.webp',
+  'Müzik': '9.webp',
+  'Tiyatro': '10.webp',
+  'Kişisel Gelişim': '11.webp',
+  'Mesleki': '12.webp',
+  'Özel Eğitim': '13.webp',
+  'Çocuk': '14.webp',
+  'Diksiyon': '15.webp',
+  'Fotoğrafçılık': '16.webp',
 };
 
 extension CreateTutoringControllerSupportPart on CreateTutoringController {

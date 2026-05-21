@@ -96,7 +96,7 @@ extension CreateTestQuestionContentShellContentPart
         children: [
           const SizedBox(height: 20),
           Image.asset(
-            "assets/createsoru.webp",
+            "assets/education/createsoru.webp",
             height: (MediaQuery.of(context).size.height * 0.24).clamp(
               140.0,
               180.0,
