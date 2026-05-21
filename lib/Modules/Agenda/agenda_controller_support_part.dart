@@ -335,6 +335,14 @@ extension AgendaControllerPublicApiPart on AgendaController {
       if (changed) {
         _lastPrimarySurfaceVisibleMutationEpoch = -1;
         if (!_feedRefreshInFlight && !isLoading.value) {
+          if (agendaList.isNotEmpty) {
+            debugPrint(
+              '[FeedManifestWindowSync] status=defer_recompose_until_user_action '
+              'trigger=$trigger manifest=${_feedSnapshotRepository.activeFeedManifestId} '
+              'agendaCount=${agendaList.length}',
+            );
+            return;
+          }
           debugPrint(
             '[FeedManifestWindowSync] status=recompose_feed trigger=$trigger '
             'manifest=${_feedSnapshotRepository.activeFeedManifestId}',
