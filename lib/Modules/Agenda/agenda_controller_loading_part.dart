@@ -544,6 +544,54 @@ extension AgendaControllerLoadingPart on AgendaController {
     required int expectedEpoch,
   }) {
     if (agendaList.isEmpty) return;
+    void scheduleRefreshLeadPlaybackReassert({
+      required int targetIndex,
+      required String targetDocId,
+      required String source,
+    }) {
+      if (defaultTargetPlatform != TargetPlatform.iOS || targetIndex != 0) {
+        return;
+      }
+      const delays = <Duration>[
+        Duration(milliseconds: 80),
+        Duration(milliseconds: 260),
+      ];
+      final playbackKey = _feedPlaybackHandleKeyForDoc(targetDocId);
+      for (final delay in delays) {
+        Future<void>.delayed(delay, () {
+          if (isClosed ||
+              agendaList.isEmpty ||
+              _feedMutationEpoch != expectedEpoch ||
+              !canClaimPlaybackNow ||
+              centeredIndex.value != targetIndex ||
+              targetIndex < 0 ||
+              targetIndex >= agendaList.length ||
+              agendaList[targetIndex].docID != targetDocId) {
+            return;
+          }
+          final manager = VideoStateManager.instance;
+          final currentOwner = manager.currentPlayingDocID ?? '';
+          if (currentOwner != playbackKey) {
+            debugPrint(
+              '[FeedRefreshResume] status=lead_reassert_claim '
+              'source=$source delayMs=${delay.inMilliseconds} '
+              'targetIndex=$targetIndex targetDocId=$targetDocId '
+              'currentOwner=$currentOwner',
+            );
+            _ensureFeedPlaybackForIndex(targetIndex);
+            return;
+          }
+          final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
+          debugPrint(
+            '[FeedRefreshResume] status=lead_reassert '
+            'source=$source delayMs=${delay.inMilliseconds} '
+            'targetIndex=$targetIndex targetDocId=$targetDocId '
+            'resumed=$resumed currentOwner=$currentOwner',
+          );
+        });
+      }
+    }
+
     void attemptRefreshPlaybackKick(String source) {
       if (isClosed ||
           agendaList.isEmpty ||
@@ -591,6 +639,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         reason: source,
       );
       _ensureFeedPlaybackForIndex(targetIndex);
+      scheduleRefreshLeadPlaybackReassert(
+        targetIndex: targetIndex,
+        targetDocId: targetPost.docID,
+        source: source,
+      );
       if (PlaybackSurfacePolicy.shouldScheduleFeedRefreshPlaybackReassert(
         platform: defaultTargetPlatform,
       )) {

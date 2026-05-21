@@ -999,7 +999,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         return true;
       }
     }
-    if (_isTopTagSurfaceInstance || _isTagPostsSurfaceInstance) {
+    if (_isTagPostsSurfaceInstance) {
+      if (!_dependenciesReady) {
+        return true;
+      }
+      final route = ModalRoute.of(context);
+      return route?.isCurrent ?? false;
+    }
+    if (_isTopTagSurfaceInstance) {
       return true;
     }
     if (!_isProfileFamilySurfaceInstance) {

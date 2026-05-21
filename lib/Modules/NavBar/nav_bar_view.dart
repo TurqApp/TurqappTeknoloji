@@ -42,6 +42,7 @@ class NavBarView extends StatelessWidget {
   final selection = 0;
   static bool _loggedFirstBuild = false;
   static DateTime? _lastFeedBackPressedAt;
+  static bool _feedHomeTapTaskInFlight = false;
 
   NavBarView({super.key}) {
     _ensureControllersReady();

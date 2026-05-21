@@ -29,22 +29,25 @@ extension _AgendaViewFeedPart on AgendaView {
       color: Colors.white,
       onRefresh: () {
         AgendaView.markFeedRefreshIndicatorInvoked();
-        return runSurfaceRefresh(
-          primaryRefresh: controller.refreshAgendaFromUserAction,
-          resetPlayback: false,
-          backgroundRefreshes: [
-            unreadController.refreshUnreadCount,
-            () async {
-              await maybeFindStoryRowController()?.loadStories();
-            },
-            () async {
-              unawaited(
-                recommendedController.ensureLoaded(
-                  limit: recommendedController.usersWarmCount,
-                ),
-              );
-            },
-          ],
+        return AgendaView.runFeedRefreshInteraction(
+          () => runSurfaceRefresh(
+            primaryRefresh: controller.refreshAgendaFromUserAction,
+            resetPlayback: false,
+            backgroundRefreshes: [
+              unreadController.refreshUnreadCount,
+              () async {
+                await maybeFindStoryRowController()?.loadStories();
+              },
+              () async {
+                unawaited(
+                  recommendedController.ensureLoaded(
+                    limit: recommendedController.usersWarmCount,
+                  ),
+                );
+              },
+            ],
+          ),
+          source: 'refresh_indicator',
         );
       },
       child: Obx(() {
@@ -340,11 +343,28 @@ extension _AgendaViewFeedPart on AgendaView {
     return GetBuilder<AgendaController>(
       id: controller.feedPlaybackRowUpdateId(model.docID),
       builder: (agendaController) {
-        final isCentered = agendaController.centeredIndex.value == agendaIndex;
-        final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-          isCentered: isCentered,
-        );
         return Obx(() {
+          final liveAgendaIndex = agendaController.agendaList.indexWhere(
+            (post) => post.docID == model.docID,
+          );
+          final effectiveAgendaIndex =
+              liveAgendaIndex >= 0 ? liveAgendaIndex : agendaIndex;
+          final isCentered =
+              agendaController.centeredIndex.value == effectiveAgendaIndex;
+          final shouldPlay = FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
+            isCentered: isCentered,
+          );
+          if (liveAgendaIndex >= 0 &&
+              liveAgendaIndex != agendaIndex &&
+              (shouldPlay ||
+                  agendaController.centeredIndex.value == agendaIndex)) {
+            debugPrint(
+              '[FeedPlaybackIndexGuard] doc=${model.docID} '
+              'stored=$agendaIndex live=$liveAgendaIndex '
+              'centered=${agendaController.centeredIndex.value} '
+              'shouldPlay=$shouldPlay',
+            );
+          }
           final viewSelection =
               CurrentUserService.instance.effectiveViewSelection;
           if (viewSelection == 1) {

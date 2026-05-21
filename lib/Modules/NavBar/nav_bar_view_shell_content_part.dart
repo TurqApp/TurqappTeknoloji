@@ -439,22 +439,37 @@ extension _NavBarViewShellContentPart on NavBarView {
       final agendaCtrl = maybeFindAgendaController();
       if (agendaCtrl != null) {
         unawaited(() async {
-          final scrollController = agendaCtrl.scrollController;
-          if (scrollController.hasClients) {
-            final currentOffset = scrollController.offset;
-            if (currentOffset > 8) {
-              await scrollController.animateTo(
-                0,
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOut,
-              );
-            } else {
-              scrollController.jumpTo(0);
-            }
+          if (NavBarView._feedHomeTapTaskInFlight ||
+              AgendaView.isFeedRefreshInteractionInFlight ||
+              agendaCtrl.isFeedRefreshBusy) {
+            _logNavTap(
+              'skip_home_refresh_busy homeTask=${NavBarView._feedHomeTapTaskInFlight} '
+              'refreshInteraction=${AgendaView.isFeedRefreshInteractionInFlight} '
+              'feedBusy=${agendaCtrl.isFeedRefreshBusy}',
+            );
+            return;
           }
-          final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
-          if (!didShowRefresh) {
-            await agendaCtrl.refreshAgendaFromUserAction();
+          NavBarView._feedHomeTapTaskInFlight = true;
+          try {
+            final scrollController = agendaCtrl.scrollController;
+            if (scrollController.hasClients) {
+              final currentOffset = scrollController.offset;
+              if (currentOffset > 8) {
+                await scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOut,
+                );
+              } else {
+                scrollController.jumpTo(0);
+              }
+            }
+            final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
+            if (!didShowRefresh) {
+              await agendaCtrl.refreshAgendaFromUserAction();
+            }
+          } finally {
+            NavBarView._feedHomeTapTaskInFlight = false;
           }
         }());
         return;
