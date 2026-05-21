@@ -258,7 +258,6 @@ extension TutoringRepositoryActionPart on TutoringRepository {
     final ownerUserId = (docSnap.data()?['userID'] ?? '').toString().trim();
     await docRef.update({
       'ended': true,
-      'endedAt': DateTime.now().millisecondsSinceEpoch,
     });
     await TypesenseEducationSearchService.instance.invalidateEntity(
       EducationTypesenseEntity.tutoring,

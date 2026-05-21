@@ -49,10 +49,21 @@ class _TutoringDetailControllerActionsX {
   }
 
   Future<void> unpublishTutoring() async {
-    final docId = controller.tutoring.value.docID;
+    final current = controller.tutoring.value;
+    final docId = current.docID;
     try {
       await controller._tutoringRepository.unpublish(docId);
-    } catch (_) {}
+      _applyUnpublishedState(
+        current.copyWith(
+          ended: true,
+          endedAt: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('[TutoringDetail] unpublish_failed error=$error');
+      debugPrintStack(stackTrace: stackTrace);
+      AppSnackbar('common.error'.tr, 'tutoring.unpublish_failed'.tr);
+    }
   }
 
   Future<void> deleteTutoring() async {
@@ -61,6 +72,32 @@ class _TutoringDetailControllerActionsX {
       await controller._tutoringRepository.deleteTutoring(docId);
     } catch (_) {
       rethrow;
+    }
+  }
+
+  void _applyUnpublishedState(TutoringModel unpublished) {
+    controller.tutoring.value = unpublished;
+
+    final tutoringController = maybeFindTutoringController();
+    if (tutoringController != null) {
+      tutoringController.tutoringList.removeWhere(
+        (item) => item.docID == unpublished.docID,
+      );
+      tutoringController.searchResults.removeWhere(
+        (item) => item.docID == unpublished.docID,
+      );
+    }
+
+    final myTutoringsController = maybeFindMyTutoringsController();
+    if (myTutoringsController != null) {
+      final ownerIndex = myTutoringsController.myTutorings.indexWhere(
+        (item) => item.docID == unpublished.docID,
+      );
+      if (ownerIndex != -1) {
+        myTutoringsController.myTutorings[ownerIndex] = unpublished;
+        myTutoringsController.myTutorings.refresh();
+        myTutoringsController.updateTutoringsStatus();
+      }
     }
   }
 }
