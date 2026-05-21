@@ -324,6 +324,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_enforceBlockedSurfacePlaybackStop(v, source: 'video_update')) {
       return;
     }
+    if (_enforceOffCenterPrimaryFeedPlaybackStop(v, source: 'video_update')) {
+      return;
+    }
     _syncLiveResumePositionSample(v);
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _usesFeedPlaybackPolicy &&

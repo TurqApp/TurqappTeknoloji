@@ -799,6 +799,31 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
     return true;
   }
 
+  bool _enforceOffCenterPrimaryFeedPlaybackStop(
+    HLSVideoValue value, {
+    required String source,
+  }) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    if (!_isPrimaryFeedSurfaceInstance) return false;
+    if (!_isSurfacePlaybackAllowed) return false;
+    if (!value.isPlaying && !value.isBuffering) return false;
+    if (_isCurrentPrimaryFeedPlaybackTarget) return false;
+    if (_isPlaybackTransferredToSingleShort()) return false;
+    debugPrint(
+      '[PlaybackStopTrace] source=ios_feed_off_center_video_update_stop '
+      'doc=${widget.model.docID} sourceEvent=$source '
+      'modelIndex=${_surfaceModelIndex()} '
+      'centered=${_surfaceCurrentCenteredIndex()} '
+      'shouldPlay=${widget.shouldPlay} '
+      'playing=${value.isPlaying} buffering=${value.isBuffering} '
+      'positionMs=${value.position.inMilliseconds} '
+      'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+    );
+    _playbackRuntimeService.requestStop(playbackHandleKey);
+    _stopPlaybackForSurfaceLoss();
+    return true;
+  }
+
   bool _isPlaybackTransferredToSingleShort() {
     if (!_usesFeedPlaybackPolicy) return false;
     final currentOwner =

@@ -942,10 +942,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _controllerOwnsInlinePlayback =>
       !isStandalonePostInstance && _usesFeedPlaybackPolicy;
 
+  bool get _isCurrentPrimaryFeedPlaybackTarget {
+    if (!_isPrimaryFeedSurfaceInstance) return true;
+    final modelIndex = _surfaceModelIndex();
+    final centeredIndex = _surfaceCurrentCenteredIndex();
+    return modelIndex >= 0 && modelIndex == centeredIndex;
+  }
+
   bool get shouldAutoResumeInlinePlatformView {
     if (isStandalonePostInstance) return widget.shouldPlay;
     if (_useLegacyIosFeedBehavior) return widget.shouldPlay;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
+    if (defaultTargetPlatform == TargetPlatform.iOS &&
+        !_isCurrentPrimaryFeedPlaybackTarget) {
+      return false;
+    }
     if (_manualPauseRequested) return false;
     final adapter = _videoAdapter;
     if (adapter == null) return false;
