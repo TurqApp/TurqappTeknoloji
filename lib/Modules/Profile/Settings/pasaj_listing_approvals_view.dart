@@ -5,8 +5,10 @@ import 'package:turqappv2/Core/Buttons/back_buttons.dart';
 import 'package:turqappv2/Core/Services/admin_access_service.dart';
 import 'package:turqappv2/Core/Services/app_cloud_functions.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/turq_image_cache_manager.dart';
 import 'package:turqappv2/Core/Utils/system_navigation_padding.dart';
 import 'package:turqappv2/Core/Widgets/app_state_view.dart';
+import 'package:turqappv2/Core/Widgets/cache_first_network_image.dart';
 import 'package:turqappv2/Core/app_snackbar.dart';
 
 class PasajListingApprovalsView extends StatefulWidget {
@@ -167,6 +169,11 @@ class _PendingPasajListing {
     required this.subtitle,
     required this.owner,
     required this.rozet,
+    required this.imageUrl,
+    required this.description,
+    required this.location,
+    required this.price,
+    required this.details,
     required this.createdAt,
     required this.isEnded,
   });
@@ -185,6 +192,17 @@ class _PendingPasajListing {
       subtitle: 'Market',
       owner: (data['sellerNickname'] ?? data['userId'] ?? '').toString(),
       rozet: (data['sellerRozet'] ?? seller['rozet'] ?? '').toString(),
+      imageUrl: _firstString(data['coverImageUrl'], data['imageUrls']),
+      description: (data['description'] ?? '').toString(),
+      location: _joinNonEmpty([
+        (data['city'] ?? '').toString(),
+        (data['district'] ?? '').toString(),
+      ]),
+      price: _formatPrice(data['price'], (data['currency'] ?? '').toString()),
+      details: [
+        _InfoLine('Kategori', _joinStringList(data['categoryPath'])),
+        _InfoLine('Durum', (data['status'] ?? '').toString()),
+      ],
       createdAt: _asInt(data['createdAt'] ?? data['updatedAt']),
       isEnded: (data['status'] ?? '').toString() == 'archived',
     );
@@ -201,6 +219,18 @@ class _PendingPasajListing {
       subtitle: 'İş Bul',
       owner: (data['nickname'] ?? data['userID'] ?? '').toString(),
       rozet: (data['rozet'] ?? '').toString(),
+      imageUrl: (data['logo'] ?? data['avatarUrl'] ?? '').toString(),
+      description: (data['isTanimi'] ?? data['about'] ?? '').toString(),
+      location: _joinNonEmpty([
+        (data['city'] ?? '').toString(),
+        (data['town'] ?? '').toString(),
+      ]),
+      price: _jobSalary(data),
+      details: [
+        _InfoLine('Firma', (data['brand'] ?? '').toString()),
+        _InfoLine('Meslek', (data['meslek'] ?? '').toString()),
+        _InfoLine('Çalışma', _joinStringList(data['calismaTuru'])),
+      ],
       createdAt: _asInt(data['timeStamp']),
       isEnded: data['ended'] == true,
     );
@@ -217,6 +247,19 @@ class _PendingPasajListing {
       subtitle: 'Özel Ders',
       owner: (data['nickname'] ?? data['userID'] ?? '').toString(),
       rozet: (data['rozet'] ?? '').toString(),
+      imageUrl: _firstString(data['avatarUrl'], data['imgs']),
+      description: (data['aciklama'] ?? '').toString(),
+      location: _joinNonEmpty([
+        (data['sehir'] ?? '').toString(),
+        (data['ilce'] ?? '').toString(),
+      ]),
+      price: _formatPrice(data['fiyat'], 'TRY'),
+      details: [
+        _InfoLine('Branş', (data['brans'] ?? '').toString()),
+        _InfoLine('Ders yeri', _joinStringList(data['dersYeri'])),
+        _InfoLine('Cinsiyet', (data['cinsiyet'] ?? '').toString()),
+        _InfoLine('Uygunluk', _availabilitySummary(data['availability'])),
+      ],
       createdAt: _asInt(data['timeStamp']),
       isEnded: data['ended'] == true,
     );
@@ -228,6 +271,11 @@ class _PendingPasajListing {
   final String subtitle;
   final String owner;
   final String rozet;
+  final String imageUrl;
+  final String description;
+  final String location;
+  final String price;
+  final List<_InfoLine> details;
   final int createdAt;
   final bool isEnded;
 
@@ -237,6 +285,76 @@ class _PendingPasajListing {
     if (value is Timestamp) return value.millisecondsSinceEpoch;
     return 0;
   }
+
+  static String _firstString(dynamic primary, dynamic fallbackList) {
+    final primaryValue = (primary ?? '').toString().trim();
+    if (primaryValue.isNotEmpty) return primaryValue;
+    if (fallbackList is List && fallbackList.isNotEmpty) {
+      return (fallbackList.first ?? '').toString().trim();
+    }
+    return '';
+  }
+
+  static String _joinNonEmpty(List<String> values) {
+    return values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .join(' / ');
+  }
+
+  static String _joinStringList(dynamic value) {
+    if (value is List) {
+      return value
+          .map((entry) => (entry ?? '').toString().trim())
+          .where((entry) => entry.isNotEmpty)
+          .join(', ');
+    }
+    return (value ?? '').toString().trim();
+  }
+
+  static String _formatPrice(dynamic value, String currency) {
+    final amount =
+        value is num ? value : num.tryParse((value ?? '').toString());
+    if (amount == null || amount <= 0) return '';
+    final rounded = amount.round().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < rounded.length; i++) {
+      final remaining = rounded.length - i;
+      buffer.write(rounded[i]);
+      if (remaining > 1 && remaining % 3 == 1) buffer.write('.');
+    }
+    final normalizedCurrency = currency.trim().toUpperCase();
+    final suffix = normalizedCurrency == 'TRY' ? 'TL' : normalizedCurrency;
+    return suffix.isEmpty ? buffer.toString() : '${buffer.toString()} $suffix';
+  }
+
+  static String _jobSalary(Map<String, dynamic> data) {
+    final min = data['maas1'];
+    final max = data['maas2'];
+    final first = _formatPrice(min, 'TRY');
+    final second = _formatPrice(max, 'TRY');
+    if (first.isEmpty && second.isEmpty) return '';
+    if (first.isEmpty) return second;
+    if (second.isEmpty || second == first) return first;
+    return '$first - $second';
+  }
+
+  static String _availabilitySummary(dynamic value) {
+    if (value is! Map) return '';
+    final parts = <String>[];
+    value.forEach((day, slots) {
+      final slotText = _joinStringList(slots);
+      if (slotText.isNotEmpty) parts.add('${day.toString()}: $slotText');
+    });
+    return parts.join(' | ');
+  }
+}
+
+class _InfoLine {
+  const _InfoLine(this.label, this.value);
+
+  final String label;
+  final String value;
 }
 
 class _PendingListingCard extends StatelessWidget {
@@ -289,6 +407,44 @@ class _PendingListingCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ListingPreviewImage(imageUrl: item.imageUrl),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (item.price.isNotEmpty) _DetailText(item.price),
+                    if (item.location.isNotEmpty) _DetailText(item.location),
+                    ...item.details
+                        .where((detail) => detail.value.trim().isNotEmpty)
+                        .map(
+                          (detail) => _DetailText(
+                            '${detail.label}: ${detail.value}',
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (item.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              item.description.trim(),
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'MontserratMedium',
+                fontSize: 12,
+                height: 1.35,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
             children: [
               Expanded(
                 child: ElevatedButton(
@@ -314,6 +470,59 @@ class _PendingListingCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ListingPreviewImage extends StatelessWidget {
+  const _ListingPreviewImage({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 78,
+        height: 78,
+        color: const Color(0xFFF3F4F6),
+        child: imageUrl.trim().isEmpty
+            ? const Icon(Icons.image_outlined, color: Colors.black38)
+            : CacheFirstNetworkImage(
+                imageUrl: imageUrl.trim(),
+                cacheManager: TurqImageCacheManager.instance,
+                fallback: const Icon(
+                  Icons.image_outlined,
+                  color: Colors.black38,
+                ),
+                fit: BoxFit.cover,
+              ),
+      ),
+    );
+  }
+}
+
+class _DetailText extends StatelessWidget {
+  const _DetailText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontFamily: 'MontserratMedium',
+          fontSize: 12,
+          height: 1.25,
+          color: Colors.black54,
+        ),
       ),
     );
   }
