@@ -23,7 +23,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
           final downloadUrl = await WebpUploadService.uploadFileAsWebp(
             file: tempFile,
             storagePathWithoutExt:
-                'educators/$userId/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
+                'users/$userId/educators/${path.basenameWithoutExtension(iconFileName)}_${DateTime.now().millisecondsSinceEpoch}',
           );
           imageUrls.add(downloadUrl);
         } finally {
@@ -56,7 +56,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         final downloadUrl = await WebpUploadService.uploadFileAsWebp(
           file: localFile,
           storagePathWithoutExt:
-              'educators/$userId/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
+              'users/$userId/educators/${path.basenameWithoutExtension(imagePath)}_${DateTime.now().millisecondsSinceEpoch}',
         );
         imageUrls.add(downloadUrl);
       }
@@ -85,6 +85,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
 
       final imageUrls = await uploadImages();
       final profile = _profileFields();
+      final isBadgeOwner = (profile['rozet'] ?? '').trim().isNotEmpty;
       final tutoring = TutoringModel(
         docID: '',
         aciklama: descriptionController.text,
@@ -97,7 +98,7 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         fiyat: num.tryParse(priceController.text) ?? 0,
         imgs: imageUrls.isNotEmpty ? imageUrls : null,
         ilce: districtController.text,
-        onayVerildi: false,
+        onayVerildi: isBadgeOwner,
         sehir: cityController.text,
         telefon: isPhoneOpen.value,
         timeStamp: DateTime.now().millisecondsSinceEpoch,
@@ -118,7 +119,9 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
       Get.back();
       AppSnackbar('common.success'.tr, 'tutoring.create.published'.tr);
       clearForm();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[CreateTutoring] publish_failed error=$error');
+      debugPrintStack(stackTrace: stackTrace);
       AppSnackbar('common.error'.tr, 'tutoring.create.publish_failed'.tr);
     } finally {
       isLoading.value = false;
@@ -225,7 +228,9 @@ extension CreateTutoringControllerSubmissionPart on CreateTutoringController {
         Get.back();
         AppSnackbar('common.info'.tr, 'tutoring.create.no_changes'.tr);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('[CreateTutoring] update_failed error=$error');
+      debugPrintStack(stackTrace: stackTrace);
       AppSnackbar('common.error'.tr, 'tutoring.create.update_failed'.tr);
     } finally {
       isLoading.value = false;

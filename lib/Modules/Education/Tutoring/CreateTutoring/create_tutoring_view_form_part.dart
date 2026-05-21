@@ -122,7 +122,9 @@ extension CreateTutoringViewFormPart on _CreateTutoringViewState {
     required String selected,
     required ValueChanged<String> onSelect,
     String Function(dynamic)? itemLabelBuilder,
-  }) {
+  }) async {
+    await _dismissKeyboardBeforeSheet(context);
+    if (!context.mounted) return;
     AppBottomSheet.show(
       context: context,
       title: title,
@@ -136,7 +138,9 @@ extension CreateTutoringViewFormPart on _CreateTutoringViewState {
   void _showBranchSelector(
     BuildContext context,
     CreateTutoringController controller,
-  ) {
+  ) async {
+    await _dismissKeyboardBeforeSheet(context);
+    if (!context.mounted) return;
     AppBottomSheet.show(
       context: context,
       title: 'tutoring.branch'.tr,
@@ -148,6 +152,14 @@ extension CreateTutoringViewFormPart on _CreateTutoringViewState {
         controller.branchController.text = value;
       },
     );
+  }
+
+  Future<void> _dismissKeyboardBeforeSheet(BuildContext context) async {
+    final focusScope = FocusScope.of(context);
+    if (!focusScope.hasPrimaryFocus && focusScope.focusedChild != null) {
+      focusScope.unfocus();
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    }
   }
 
   Widget _buildAvailabilityCard(CreateTutoringController controller) {

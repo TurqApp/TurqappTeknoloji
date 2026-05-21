@@ -925,10 +925,24 @@ class _AdmobKareState extends State<AdmobKare> {
       if (_isDisposed || _isVisible) {
         return;
       }
+      final slot = _stableSlotState;
+      final slotAd = slot?.ad;
       _detachStableSlotOwner(
         resetLocalState: true,
         reason: 'hidden_page_deferred',
       );
+      if (slot != null && slotAd != null) {
+        slot.ad = null;
+        slot.impressionReported = false;
+        slot.mark(_StableAdSlotPhase.empty);
+        _disposeBannerAd(
+          slotAd,
+          reason: 'hidden_stable_slot',
+          delay: widget.disposeImmediatelyWhenHidden
+              ? Duration.zero
+              : _disposeDelay,
+        );
+      }
       _notifySharedAdAvailabilityChanged();
       if (mounted && !_isDisposed) {
         setState(() {});

@@ -186,7 +186,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
                   selected: controller.selectedLessonPlace.value,
                   onSelect: (value) =>
                       controller.selectedLessonPlace.value = value,
-                  itemLabelBuilder: (value) => value.tr,
+                  itemLabelBuilder: (value) => value.toString().tr,
                 ),
               ),
               const SizedBox(height: 8),
@@ -204,7 +204,7 @@ class _CreateTutoringViewState extends State<CreateTutoringView> {
                   ],
                   selected: controller.selectedGender.value,
                   onSelect: (value) => controller.selectedGender.value = value,
-                  itemLabelBuilder: (value) => value.tr,
+                  itemLabelBuilder: (value) => value.toString().tr,
                 ),
               ),
               const SizedBox(height: 8),

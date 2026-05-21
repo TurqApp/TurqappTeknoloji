@@ -33,6 +33,7 @@ extension CreateTutoringViewUiPart on _CreateTutoringViewState {
     required VoidCallback? onTap,
   }) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
         height: 58,
