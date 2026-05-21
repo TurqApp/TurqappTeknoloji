@@ -1069,6 +1069,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     Duration chunkDelay = _startupChunkApplyDelay,
     VoidCallback? onFirstChunkApplied,
     VoidCallback? onCompleted,
+    VoidCallback? onCancelled,
   }) {
     if (items.isEmpty) return;
 
@@ -1078,16 +1079,23 @@ extension AgendaControllerLoadingPart on AgendaController {
         items.take(_startupChunkApplySize).toList(growable: false);
     var appliedCount = 0;
     var chunkIndex = 0;
+    var terminalNotified = false;
 
     void cancelIfStale() {
       if (expectedMutationEpoch == _feedMutationEpoch) {
         _startupChunkApplyInFlight = false;
+      }
+      if (!terminalNotified) {
+        terminalNotified = true;
+        onCancelled?.call();
       }
     }
 
     void completeIfCurrent() {
       if (expectedMutationEpoch != _feedMutationEpoch || isClosed) return;
       _startupChunkApplyInFlight = false;
+      if (terminalNotified) return;
+      terminalNotified = true;
       onCompleted?.call();
       _reconcileFeedPageFetchTriggerToCurrentRunway(
         reason: '${reason}_chunk_complete',
@@ -2722,6 +2730,18 @@ extension AgendaControllerLoadingPart on AgendaController {
     bool forceNewLaunchSession = false,
     bool preservePlaybackTarget = true,
   }) async {
+    if (_feedRefreshInFlight || _startupChunkApplyInFlight || isLoading.value) {
+      debugPrint(
+        '[FeedRefreshGuard] status=skip_refresh_in_flight '
+        'refreshInFlight=$_feedRefreshInFlight '
+        'chunkInFlight=$_startupChunkApplyInFlight '
+        'isLoading=${isLoading.value} '
+        'forceNewLaunchSession=$forceNewLaunchSession '
+        'preservePlaybackTarget=$preservePlaybackTarget',
+      );
+      return;
+    }
+    _feedRefreshInFlight = true;
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
     try {
@@ -2787,7 +2807,6 @@ extension AgendaControllerLoadingPart on AgendaController {
         forceNewLaunchSession: forceNewLaunchSession,
         preservePlaybackTarget: preservePlaybackTarget,
       );
-      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
       unawaited(Future<void>(() async {
         try {
@@ -2798,8 +2817,9 @@ extension AgendaControllerLoadingPart on AgendaController {
       }));
     } catch (e) {
       print("refreshAgenda error: $e");
-      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
+    } finally {
+      _feedRefreshInFlight = false;
     }
   }
 
@@ -2967,6 +2987,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         publicReshareEvents.clear();
         feedReshareEntries.clear();
         highlightDocIDs.clear();
+        final chunkApplyCompleter = Completer<void>();
         _applyStartupItemsInChunks(
           filteredMergedAgenda,
           reason: 'refresh_cold_start',
@@ -2977,7 +2998,18 @@ extension AgendaControllerLoadingPart on AgendaController {
               _applyStartupRenderStagesNow();
             }
           },
+          onCompleted: () {
+            if (!chunkApplyCompleter.isCompleted) {
+              chunkApplyCompleter.complete();
+            }
+          },
+          onCancelled: () {
+            if (!chunkApplyCompleter.isCompleted) {
+              chunkApplyCompleter.complete();
+            }
+          },
         );
+        await chunkApplyCompleter.future;
       } else {
         await visualWarmupFuture;
         await imageHintFuture;

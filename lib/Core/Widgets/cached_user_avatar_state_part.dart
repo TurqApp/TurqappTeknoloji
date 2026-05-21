@@ -1,6 +1,10 @@
 part of 'cached_user_avatar.dart';
 
 class _CachedUserAvatarState extends State<CachedUserAvatar> {
+  static final Map<String, DateTime> _serverAvatarRefreshAtByUid =
+      <String, DateTime>{};
+  static const Duration _serverAvatarRefreshCooldown = Duration(minutes: 5);
+
   bool get _allowAvatarNetworkFetch => !QALabMode.integrationSmokeRun;
   String _resolvedUrl = '';
   String _resolvedFilePath = '';
@@ -50,6 +54,21 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         currentUrl: _resolvedUrl,
         nextUrl: nextUrl,
       );
+
+  bool _shouldRefreshAvatarFromServer(String uid) {
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty || !_allowAvatarNetworkFetch) return false;
+    final lastRefresh = _serverAvatarRefreshAtByUid[normalizedUid];
+    if (lastRefresh == null) return true;
+    return DateTime.now().difference(lastRefresh) >=
+        _serverAvatarRefreshCooldown;
+  }
+
+  void _markServerAvatarRefreshed(String uid) {
+    final normalizedUid = uid.trim();
+    if (normalizedUid.isEmpty) return;
+    _serverAvatarRefreshAtByUid[normalizedUid] = DateTime.now();
+  }
 
   void _replaceResolvedUrlIfFresh(
     String nextUrl, {
@@ -289,14 +308,19 @@ class _CachedUserAvatarState extends State<CachedUserAvatar> {
         }
       } catch (_) {}
 
-      if (_resolvedUrl.isNotEmpty) return;
+      final shouldRefreshFromServer = _shouldRefreshAvatarFromServer(uid);
+      if (_resolvedUrl.isNotEmpty && !shouldRefreshFromServer) return;
 
       try {
         final fetched = await _userSummaryResolver.resolve(
           uid,
-          preferCache: true,
+          preferCache: !shouldRefreshFromServer,
           cacheOnly: false,
+          forceServer: shouldRefreshFromServer,
         );
+        if (shouldRefreshFromServer) {
+          _markServerAvatarRefreshed(uid);
+        }
         if (!_isBootstrapEpochCurrent(epoch)) return;
         final fetchedUrl = _normalizeUrl(fetched?.avatarUrl);
         if (fetchedUrl.isNotEmpty &&
