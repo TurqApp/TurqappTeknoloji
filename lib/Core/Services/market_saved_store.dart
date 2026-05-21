@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Repositories/market_repository.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/firestore_transaction_trace.dart';
 
 class MarketSavedStore {
   MarketSavedStore._();
@@ -62,7 +63,8 @@ class MarketSavedStore {
   }
 
   static Future<void> save(String uid, String itemId) async {
-    await _firestore.runTransaction((transaction) async {
+    await runTracedTransaction(_firestore, 'market_saved.save',
+        (transaction) async {
       final savedRef = _userSavedDoc(uid, itemId);
       final favoriteRef = _favoriteDoc(itemId, uid);
       final savedSnap = await transaction.get(savedRef);
@@ -85,7 +87,8 @@ class MarketSavedStore {
   }
 
   static Future<void> unsave(String uid, String itemId) async {
-    await _firestore.runTransaction((transaction) async {
+    await runTracedTransaction(_firestore, 'market_saved.unsave',
+        (transaction) async {
       final savedRef = _userSavedDoc(uid, itemId);
       final favoriteRef = _favoriteDoc(itemId, uid);
       final savedSnap = await transaction.get(savedRef);

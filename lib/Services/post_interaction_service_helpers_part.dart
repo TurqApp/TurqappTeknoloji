@@ -64,7 +64,8 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
 
   String _resolveNotificationPreviewImage(Map<String, dynamic> data) {
     final thumbnail = (data['thumbnail'] ?? '').toString().trim();
-    if (thumbnail.isNotEmpty) return _normalizeStorageBackedPreviewUrl(thumbnail);
+    if (thumbnail.isNotEmpty)
+      return _normalizeStorageBackedPreviewUrl(thumbnail);
 
     final imageUrl =
         (data['imageUrl'] ?? data['imageURL'] ?? '').toString().trim();
@@ -117,7 +118,8 @@ extension PostInteractionServiceHelpersPart on PostInteractionService {
     DocumentReference<Map<String, dynamic>> ref,
     String userId,
   ) async {
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.toggle_like_array',
+        (tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) return;
       final data = snap.data() as Map<String, dynamic>;

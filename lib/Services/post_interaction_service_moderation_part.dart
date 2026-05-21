@@ -13,7 +13,7 @@ extension PostInteractionServiceModerationPart on PostInteractionService {
     final reporterDocRef = postRef.collection('reporters').doc(userId);
     bool reported = false;
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.report', (tx) async {
       final existing = await tx.get(reporterDocRef);
       if (existing.exists) return;
 
@@ -62,7 +62,7 @@ extension PostInteractionServiceModerationPart on PostInteractionService {
     int nextFlagCount = 0;
     final nowMs = _nowMs();
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.flag_reason', (tx) async {
       final postSnap = await tx.get(postRef);
       if (!postSnap.exists) return;
 

@@ -146,7 +146,8 @@ extension PracticeExamRepositoryActionPart on PracticeExamRepository {
         );
     var alreadyApplied = false;
 
-    await _firestore.runTransaction((transaction) async {
+    await runTracedTransaction(_firestore, 'practice_exam.apply',
+        (transaction) async {
       final applicationDoc = await transaction.get(applicationRef);
       if (applicationDoc.exists) {
         alreadyApplied = true;

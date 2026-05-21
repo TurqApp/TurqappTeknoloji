@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/firestore_transaction_trace.dart';
 import 'package:turqappv2/Core/Services/market_notification_service.dart';
 import 'package:turqappv2/Models/market_item_model.dart';
 import 'package:turqappv2/Models/market_offer_model.dart';

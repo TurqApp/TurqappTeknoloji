@@ -12,6 +12,7 @@ import 'package:turqappv2/Core/Repositories/user_repository.dart';
 import 'package:turqappv2/Core/Services/app_firebase_auth.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
 import 'package:turqappv2/Core/Services/cache_invalidation_service.dart';
+import 'package:turqappv2/Core/Services/firestore_transaction_trace.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Repositories/user_subcollection_repository.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';

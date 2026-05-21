@@ -347,7 +347,8 @@ extension PostRepositoryInteractionPart on PostRepository {
     if (postId.trim().isEmpty || currentUid.trim().isEmpty) return null;
     final postRef = _firestore.collection('Posts').doc(postId);
     Map<String, dynamic>? updatedPoll;
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post_repository.commit_poll_vote',
+        (tx) async {
       final snap = await tx.get(postRef);
       final data = snap.data();
       if (data == null) return;

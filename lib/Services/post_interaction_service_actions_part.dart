@@ -33,7 +33,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
     bool? isLiked;
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.toggle_like', (tx) async {
       final likeDoc = await tx.get(likeDocRef);
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
@@ -113,7 +113,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     final userCommentRef = _userCommentsRef(userId).doc(commentRef.id);
     final timestamp = _nowMs();
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.add_comment', (tx) async {
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
 
@@ -170,7 +170,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     final subCommentRef = commentRef.collection('sub_comments').doc();
     final timestamp = _nowMs();
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.add_sub_comment', (tx) async {
       final parentSnap = await tx.get(commentRef);
       if (!parentSnap.exists) return;
 
@@ -224,7 +224,8 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
         final subCommentRef =
             parentRef.collection('sub_comments').doc(commentId);
 
-        await _firestore.runTransaction((tx) async {
+        await runTracedTransaction(_firestore, 'post.delete_sub_comment',
+            (tx) async {
           final subSnap = await tx.get(subCommentRef);
           final parentSnap = await tx.get(parentRef);
           if (!subSnap.exists) return;
@@ -251,7 +252,8 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
         final postRef = _postRef(postId);
         final commentRef = postRef.collection('comments').doc(commentId);
 
-        await _firestore.runTransaction((tx) async {
+        await runTracedTransaction(_firestore, 'post.delete_comment',
+            (tx) async {
           final commentSnap = await tx.get(commentRef);
           final postSnap = await tx.get(postRef);
           if (!commentSnap.exists) return;
@@ -281,7 +283,8 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
               parentRef.collection('sub_comments').doc(commentId);
           await subCommentRef.delete();
           try {
-            await _firestore.runTransaction((tx) async {
+            await runTracedTransaction(
+                _firestore, 'post.delete_sub_comment_fallback', (tx) async {
               final parentSnap = await tx.get(parentRef);
               if (!parentSnap.exists) return;
               final parentData = parentSnap.data() as Map<String, dynamic>;
@@ -387,7 +390,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
     bool? isSaved;
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.toggle_save', (tx) async {
       final saveDoc = await tx.get(saveDocRef);
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
@@ -432,7 +435,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
 
     bool? isReshared;
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.toggle_reshare', (tx) async {
       final reshareDoc = await tx.get(reshareDocRef);
       final postSnap = await tx.get(postRef);
       final stats = _statsFromSnapshot(postSnap);
@@ -525,7 +528,7 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
     final postRef = _postRef(postId);
     final viewerDocRef = postRef.collection('viewers').doc(userId);
 
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(_firestore, 'post.record_view', (tx) async {
       final existing = await tx.get(viewerDocRef);
       if (existing.exists) {
         if (kDebugMode) {

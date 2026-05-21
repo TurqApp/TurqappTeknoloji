@@ -107,7 +107,7 @@ extension PendingActionExecutionPart on PendingAction {
         .collection('liked_posts')
         .doc(postId);
 
-    return firestore.runTransaction((tx) async {
+    return runTracedTransaction(firestore, 'offline.set_like_post', (tx) async {
       final likeSnap = await tx.get(likeRef);
       final postSnap = await tx.get(postRef);
       if (!postSnap.exists) {
@@ -179,7 +179,7 @@ extension PendingActionExecutionPart on PendingAction {
         .collection('saved_posts')
         .doc(postId);
 
-    return firestore.runTransaction((tx) async {
+    return runTracedTransaction(firestore, 'offline.set_save_post', (tx) async {
       final saveSnap = await tx.get(saveRef);
       final postSnap = await tx.get(postRef);
       if (!postSnap.exists) {
@@ -237,7 +237,8 @@ extension PendingActionExecutionPart on PendingAction {
         .doc(commentRef.id);
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    return firestore.runTransaction((tx) async {
+    return runTracedTransaction(firestore, 'offline.add_comment_post',
+        (tx) async {
       final postSnap = await tx.get(postRef);
       if (!postSnap.exists) {
         return PendingActionExecutionResult.skipped('post_missing');

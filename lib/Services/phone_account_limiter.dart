@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:turqappv2/Core/Services/app_firestore.dart';
+import 'package:turqappv2/Core/Services/firestore_transaction_trace.dart';
 import 'package:turqappv2/Core/Utils/phone_utils.dart';
 
 class PhoneAccountLimitReached implements Exception {
@@ -56,7 +57,8 @@ class PhoneAccountLimiter {
     final phoneRef = _phoneDocRef(phone);
     final userRef = AppFirestore.instance.collection('users').doc(uid);
 
-    await AppFirestore.instance.runTransaction((tx) async {
+    await runTracedTransaction(
+        AppFirestore.instance, 'phone_account.create_user', (tx) async {
       final phoneSnap = await tx.get(phoneRef);
 
       final data = phoneSnap.data() ?? <String, dynamic>{};
@@ -97,7 +99,8 @@ class PhoneAccountLimiter {
     final oldRef = _phoneDocRef(oldPhone);
     final newRef = _phoneDocRef(newPhone);
 
-    await AppFirestore.instance.runTransaction((tx) async {
+    await runTracedTransaction(AppFirestore.instance, 'phone_account.move_user',
+        (tx) async {
       final newSnap = await tx.get(newRef);
       final newData = newSnap.data() ?? <String, dynamic>{};
       final int newCount = (newData['count'] ?? 0) as int;
@@ -145,7 +148,8 @@ class PhoneAccountLimiter {
     required String phone,
   }) async {
     final ref = _phoneDocRef(phone);
-    await AppFirestore.instance.runTransaction((tx) async {
+    await runTracedTransaction(
+        AppFirestore.instance, 'phone_account.decrement_on_delete', (tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) return;
       final data = snap.data() ?? {};

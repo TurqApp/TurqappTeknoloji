@@ -42,7 +42,8 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    await firestore.runTransaction((tx) async {
+    await runTracedTransaction(firestore, 'follow.create_relation_pair',
+        (tx) async {
       final existing = await tx.get(followingRef);
       if (existing.exists) return;
       tx.set(followingRef, {'timeStamp': now}, SetOptions(merge: true));
@@ -69,7 +70,8 @@ extension FollowRepositoryActionPart on FollowRepository {
         .doc(otherUid)
         .collection('followers')
         .doc(currentUid);
-    await firestore.runTransaction((tx) async {
+    await runTracedTransaction(firestore, 'follow.delete_relation_pair',
+        (tx) async {
       final existing = await tx.get(followingRef);
       if (!existing.exists) return;
       tx.delete(followingRef);
@@ -101,8 +103,8 @@ extension FollowRepositoryActionPart on FollowRepository {
         .collection('private')
         .doc('followDaily');
 
-    final result =
-        await firestore.runTransaction<FollowWriteResult>((transaction) async {
+    final result = await runTracedTransaction<FollowWriteResult>(
+        firestore, 'follow.toggle_relation', (transaction) async {
       final myFollowSnap = await transaction.get(myFollowingRef);
       final counterSnap = await transaction.get(counterRef);
 
@@ -181,7 +183,8 @@ extension FollowRepositoryActionPart on FollowRepository {
         .collection('private')
         .doc('followDaily');
 
-    final created = await firestore.runTransaction<bool>((transaction) async {
+    final created = await runTracedTransaction<bool>(
+        firestore, 'follow.ensure_relation', (transaction) async {
       final existing = await transaction.get(myFollowingRef);
       if (existing.exists) return false;
 

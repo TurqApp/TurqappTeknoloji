@@ -506,7 +506,8 @@ extension ConversationRepositoryMessagePart on ConversationRepository {
     required String emoji,
   }) async {
     final ref = _messageRef(chatId, messageId);
-    await _firestore.runTransaction((tx) async {
+    await runTracedTransaction(
+        _firestore, 'conversation.toggle_message_reaction', (tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) return;
 

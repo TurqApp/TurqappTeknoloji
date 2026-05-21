@@ -60,7 +60,8 @@ Future<void> _createOfferImpl({
     'updatedAt': now,
   };
 
-  await MarketOfferService._firestore.runTransaction((tx) async {
+  await runTracedTransaction(
+      MarketOfferService._firestore, 'market_offer.create', (tx) async {
     tx.set(offerRef, offerPayload);
     tx.set(sentRef, offerPayload);
     tx.set(receivedRef, offerPayload);
@@ -120,7 +121,8 @@ Future<void> _respondToOfferImpl({
     'respondedAt': now,
   };
 
-  await MarketOfferService._firestore.runTransaction((tx) async {
+  await runTracedTransaction(
+      MarketOfferService._firestore, 'market_offer.respond', (tx) async {
     final offerSnap = await tx.get(offerRef);
     if (!offerSnap.exists) {
       throw Exception('offer_not_found');
