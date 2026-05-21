@@ -71,6 +71,7 @@ android {
 
         ndk {
             abiFilters += listOf("arm64-v8a")
+            debugSymbolLevel = "SYMBOL_TABLE"
         }
     }
 
@@ -101,9 +102,10 @@ android {
         }
 
         getByName("release") {
-            // Bu sürümde Play Core/deferred-components çatışmasını aşmak için
-            // release shrinker kapalı tutulur.
-            isMinifyEnabled = false
+            // Play Console mapping uyarıları için R8 açık tutulur.
+            // Resource shrink şimdilik kapalı; dynamic/deferred resource davranışını
+            // ayrı test etmeden açmak release için gereksiz riskli.
+            isMinifyEnabled = true
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
