@@ -8,6 +8,8 @@ class PostInteractionService extends GetxController {
   final UserSubcollectionRepository _userSubcollectionRepository =
       ensureUserSubcollectionRepository();
   final Map<String, _InteractionCacheEntry> _interactionStatusCache = {};
+  final Set<String> _viewRecordInFlight = <String>{};
+  final Set<String> _viewRecordCompleted = <String>{};
   final Set<String> _reportedByMe = <String>{};
   bool _permissionDeniedLogged = false;
   StreamSubscription<CacheInvalidationEvent>? _invalidationSubscription;

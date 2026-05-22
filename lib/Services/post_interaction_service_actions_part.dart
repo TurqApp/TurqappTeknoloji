@@ -525,27 +525,43 @@ extension PostInteractionServiceActionsPart on PostInteractionService {
       return;
     }
 
+    final cacheKey = _cacheKey(userId, postId);
+    if (_viewRecordCompleted.contains(cacheKey) ||
+        !_viewRecordInFlight.add(cacheKey)) {
+      if (kDebugMode) {
+        debugPrint('[PostViewRecord] status=skip_cached doc=$postId');
+      }
+      return;
+    }
+
     final postRef = _postRef(postId);
     final viewerDocRef = postRef.collection('viewers').doc(userId);
 
-    await runTracedTransaction(_firestore, 'post.record_view', (tx) async {
-      final existing = await tx.get(viewerDocRef);
+    try {
+      final existing = await viewerDocRef.get(
+        const GetOptions(source: Source.serverAndCache),
+      );
       if (existing.exists) {
+        _viewRecordCompleted.add(cacheKey);
         if (kDebugMode) {
           debugPrint('[PostViewRecord] status=already_seen doc=$postId');
         }
         return;
       }
 
-      final postSnap = await tx.get(postRef);
-      final stats = _statsFromSnapshot(postSnap);
-
-      tx.set(viewerDocRef,
-          PostViewerModel(userID: userId, timeStamp: _nowMs()).toMap());
-      tx.update(postRef, {'stats.statsCount': stats.statsCount + 1});
+      final batch = _firestore.batch();
+      batch.set(
+        viewerDocRef,
+        PostViewerModel(userID: userId, timeStamp: _nowMs()).toMap(),
+      );
+      batch.update(postRef, {'stats.statsCount': FieldValue.increment(1)});
+      await batch.commit();
+      _viewRecordCompleted.add(cacheKey);
       if (kDebugMode) {
         debugPrint('[PostViewRecord] status=recorded doc=$postId');
       }
-    });
+    } finally {
+      _viewRecordInFlight.remove(cacheKey);
+    }
   }
 }
