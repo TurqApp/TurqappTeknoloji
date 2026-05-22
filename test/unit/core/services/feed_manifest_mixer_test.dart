@@ -95,7 +95,7 @@ void main() {
       expect(_docIds(first), _docIds(sameSeed));
     });
 
-    test('orders manifest slots by generated timestamp before slot key', () {
+    test('orders same-day manifest slots by slot hour newest first', () {
       final result = mixer.buildDeck(
         manifestEntries: <FeedManifestEntry>[
           _entry(
@@ -127,6 +127,41 @@ void main() {
       expect(
         _docIds(result),
         <String>['slot-21-a', 'slot-18-a', 'slot-15-a'],
+      );
+    });
+
+    test('keeps slot date and hour ahead of stale generated timestamps', () {
+      final result = mixer.buildDeck(
+        manifestEntries: <FeedManifestEntry>[
+          _entry(
+            'may-20-21-a',
+            slotId: 'slot_21',
+            slotPath: 'feedManifest/2026-05-20/slots/slot_21.json',
+            manifestId: 'feed_2026-05-20_slot_21_v1779459999999',
+            generatedAt: 1779459999999,
+          ),
+          _entry(
+            'may-22-12-a',
+            slotId: 'slot_12',
+            slotPath: 'feedManifest/2026-05-22/slots/slot_12.json',
+            manifestId: 'feed_2026-05-22_slot_12_v1779440700000',
+            generatedAt: 1779440700000,
+          ),
+          _entry(
+            'may-22-15-a',
+            slotId: 'slot_15',
+            slotPath: 'feedManifest/2026-05-22/slots/slot_15.json',
+            manifestId: 'feed_2026-05-22_slot_15_v1779451500000',
+            generatedAt: 1779451500000,
+          ),
+        ],
+        seed: 1,
+        limit: 3,
+      );
+
+      expect(
+        _docIds(result),
+        <String>['may-22-15-a', 'may-22-12-a', 'may-20-21-a'],
       );
     });
 

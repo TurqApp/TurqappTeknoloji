@@ -266,16 +266,19 @@ class FeedManifestMixer {
     FeedManifestEntry left,
     FeedManifestEntry right,
   ) {
+    final leftKey =
+        left.slotPath.trim().isNotEmpty ? left.slotPath.trim() : left.slotId;
+    final rightKey =
+        right.slotPath.trim().isNotEmpty ? right.slotPath.trim() : right.slotId;
+    final keyCompare = compareSlotKeysNewestFirst(leftKey, rightKey);
+    if (keyCompare != 0) return keyCompare;
+
     final leftGeneratedAt = _entrySlotSortTimestamp(left);
     final rightGeneratedAt = _entrySlotSortTimestamp(right);
     if (leftGeneratedAt != rightGeneratedAt) {
       return rightGeneratedAt.compareTo(leftGeneratedAt);
     }
-    final leftKey =
-        left.slotPath.trim().isNotEmpty ? left.slotPath.trim() : left.slotId;
-    final rightKey =
-        right.slotPath.trim().isNotEmpty ? right.slotPath.trim() : right.slotId;
-    return compareSlotKeysNewestFirst(leftKey, rightKey);
+    return right.post.docID.compareTo(left.post.docID);
   }
 
   static int _entrySlotSortTimestamp(FeedManifestEntry entry) {
