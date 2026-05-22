@@ -19,6 +19,7 @@ class _ExploreControllerState {
   final isKeyboardOpen = false.obs;
   final isSearchMode = false.obs;
   final scrollController = ScrollController();
+  final trendingScroll = ScrollController();
   final trendingTags = <HashtagModel>[].obs;
   final exploreScroll = ScrollController();
   final explorePosts = <PostsModel>[].obs;
@@ -79,6 +80,7 @@ extension ExploreControllerFieldsPart on ExploreController {
   RxBool get isKeyboardOpen => _state.isKeyboardOpen;
   RxBool get isSearchMode => _state.isSearchMode;
   ScrollController get scrollController => _state.scrollController;
+  ScrollController get trendingScroll => _state.trendingScroll;
   RxList<HashtagModel> get trendingTags => _state.trendingTags;
   ScrollController get exploreScroll => _state.exploreScroll;
   RxList<PostsModel> get explorePosts => _state.explorePosts;

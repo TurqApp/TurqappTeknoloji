@@ -40,6 +40,7 @@ class PageLineBar extends StatefulWidget {
   final EdgeInsetsGeometry scrollablePadding;
   final double scrollableTabHorizontalPadding;
   final PageController? pageController; // optional: direct control of PageView
+  final ValueChanged<int>? onTap;
 
   const PageLineBar({
     super.key,
@@ -51,6 +52,7 @@ class PageLineBar extends StatefulWidget {
     this.scrollablePadding = EdgeInsets.zero,
     this.scrollableTabHorizontalPadding = 14,
     this.pageController,
+    this.onTap,
   });
 
   @override
@@ -199,6 +201,7 @@ class _PageLineBarState extends State<PageLineBar> {
           IntegrationTestKeys.pageLineBarItem(widget.pageName, index),
         ),
         onTap: () {
+          widget.onTap?.call(index);
           controller.selection.value = index;
           _syncExternalPageController(index, animate: true);
         },

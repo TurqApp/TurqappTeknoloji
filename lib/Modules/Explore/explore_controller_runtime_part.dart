@@ -81,6 +81,7 @@ extension ExploreControllerRuntime on ExploreController {
     _shortsMirrorWorker?.dispose();
     _shortsMirrorWorker = null;
     _searchDebounce?.cancel();
+    trendingScroll.dispose();
     exploreScroll.dispose();
     videoScroll.dispose();
     photoScroll.dispose();

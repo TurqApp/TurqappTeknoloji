@@ -7,6 +7,37 @@ extension _ExploreViewTabsPart on _ExploreViewState {
     }
   }
 
+  ScrollController _scrollControllerForExploreTab(int index) {
+    if (index == 0) return controller.trendingScroll;
+    if (index == 1) return controller.exploreScroll;
+    return controller.floodsScroll;
+  }
+
+  void _resetExploreTabScroll(
+    int index, {
+    bool animated = false,
+  }) {
+    final scrollController = _scrollControllerForExploreTab(index);
+    void reset() {
+      if (!mounted || !scrollController.hasClients) return;
+      if (scrollController.offset <= 0) return;
+      if (animated) {
+        unawaited(
+          scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+          ),
+        );
+        return;
+      }
+      scrollController.jumpTo(0);
+    }
+
+    reset();
+    WidgetsBinding.instance.addPostFrameCallback((_) => reset());
+  }
+
   double _safeAspectRatio(num ratio, {double fallback = 9 / 16}) {
     final value = ratio.toDouble();
     if (!value.isFinite || value <= 0) return fallback;
@@ -59,12 +90,19 @@ extension _ExploreViewTabsPart on _ExploreViewState {
             ],
             pageName: kExplorePageLineBarTag,
             pageController: controller.pageController,
+            onTap: (idx) {
+              _resetExploreTabScroll(
+                idx,
+                animated: controller.selection.value == idx,
+              );
+            },
           ),
           Expanded(
             child: PageView(
               controller: controller.pageController,
               physics: const ClampingScrollPhysics(),
               onPageChanged: (idx) {
+                _resetExploreTabScroll(idx);
                 controller.selection.value = idx;
                 syncPageLineBarSelection(
                   kExplorePageLineBarTag,
@@ -106,6 +144,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
         child: items.isEmpty
             ? ListView(
                 key: const PageStorageKey('Explore_Gundemdekiler_Empty'),
+                controller: controller.trendingScroll,
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   SizedBox(
@@ -118,6 +157,7 @@ extension _ExploreViewTabsPart on _ExploreViewState {
               )
             : ListView.builder(
                 key: const PageStorageKey('Explore_Gundemdekiler'),
+                controller: controller.trendingScroll,
                 itemCount: items.length,
                 itemBuilder: (context, i) {
                   final item = items[i];
