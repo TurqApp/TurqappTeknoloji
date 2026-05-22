@@ -33,8 +33,15 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
     required String playlistContent,
     required SegmentCacheManager cacheManager,
   }) async {
-    if (!_shouldWarmShortStartupSegments(docID)) return;
-    if (!_canFetchSegmentOnDemandForDoc(docID)) return;
+    final playbackDocID = _resolvePlaybackDocIdForRequest(docID, cacheManager);
+    final policyDocID = playbackDocID ?? docID;
+    if (!_shouldWarmShortStartupSegments(policyDocID)) return;
+    if (!_canFetchSegmentOnDemandForDoc(
+      docID,
+      playbackDocID: playbackDocID,
+    )) {
+      return;
+    }
 
     final segmentUris = M3U8Parser.segmentUris(playlistContent);
     if (segmentUris.length < 2) return;
@@ -46,7 +53,8 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
 
     final playlistDir = relativePath.substring(0, lastSlashIndex + 1);
     final hlsRoot = _playlistHlsRoot(relativePath);
-    final entry = cacheManager.getEntry(docID);
+    final entry =
+        cacheManager.getEntry(policyDocID) ?? cacheManager.getEntry(docID);
     final currentSegmentIndex =
         HlsSegmentPolicy.estimateCurrentSegmentFromProgress(
               progress: entry?.watchProgress ?? 0.0,
@@ -67,7 +75,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
     }
     if (targetIndices.isEmpty) return;
 
-    claimExternalOnDemandFetchForDoc(docID);
+    claimExternalOnDemandFetchForDoc(policyDocID);
     try {
       for (final index in targetIndices) {
         final uri = segmentUris[index];
@@ -77,11 +85,15 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
         if (cacheManager.getSegmentFile(docID, segmentKey) != null) {
           continue;
         }
+        if (policyDocID != docID &&
+            cacheManager.getSegmentFile(policyDocID, segmentKey) != null) {
+          continue;
+        }
 
         final segmentOrdinal =
             ShortSwipeSegmentGuard.segmentOrdinalFromKey(segmentKey);
         if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
-          docId: docID,
+          docId: policyDocID,
           segmentKey: segmentKey,
           segmentOrdinal: segmentOrdinal,
           cacheOrigin: 'playlist_warm',
@@ -104,9 +116,14 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
                 }
               }();
 
-        if (!_canFetchSegmentOnDemandForDoc(docID)) return;
+        if (!_canFetchSegmentOnDemandForDoc(
+          docID,
+          playbackDocID: playbackDocID,
+        )) {
+          return;
+        }
         if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
-          docId: docID,
+          docId: policyDocID,
           segmentKey: segmentKey,
           segmentOrdinal: segmentOrdinal,
           cacheOrigin: 'playlist_warm',
@@ -123,7 +140,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
           cacheOrigin: 'playlist_warm',
         );
         _logPlaybackSegmentServe(
-          docId: docID,
+          docId: policyDocID,
           segmentKey: segmentKey,
           cacheHit: false,
           bytes: bytes.length,
@@ -131,7 +148,7 @@ extension HlsProxyServerPlaylistPart on HLSProxyServer {
         );
       }
     } finally {
-      releaseExternalOnDemandFetchForDoc(docID);
+      releaseExternalOnDemandFetchForDoc(policyDocID);
     }
   }
 

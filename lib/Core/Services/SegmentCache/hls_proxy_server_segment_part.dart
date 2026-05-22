@@ -23,11 +23,18 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
 
   Future<void> _warmAdjacentPlaybackSegment({
     required String docId,
+    required String? playbackDocId,
     required String currentPath,
     required String currentSegmentKey,
     required SegmentCacheManager cacheManager,
   }) async {
-    if (!_canFetchSegmentOnDemandForDoc(docId)) return;
+    final policyDocId = playbackDocId ?? docId;
+    if (!_canFetchSegmentOnDemandForDoc(
+      docId,
+      playbackDocID: playbackDocId,
+    )) {
+      return;
+    }
 
     final currentRelativePath =
         currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
@@ -62,6 +69,11 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     );
     final nextSegmentKey = '$segmentDir$nextUri';
     if (cacheManager.getSegmentFile(docId, nextSegmentKey) != null) return;
+    if (playbackDocId != null &&
+        playbackDocId != docId &&
+        cacheManager.getSegmentFile(playbackDocId, nextSegmentKey) != null) {
+      return;
+    }
 
     final nextSegmentOrdinal =
         ShortSwipeSegmentGuard.segmentOrdinalFromKey(nextSegmentKey);
@@ -80,7 +92,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         '${currentPath.substring(0, currentPath.lastIndexOf('/') + 1)}$nextUri';
     if (_segmentFetchInFlight.containsKey(nextPath)) return;
     if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
-      docId: docId,
+      docId: policyDocId,
       segmentKey: nextSegmentKey,
       segmentOrdinal: nextSegmentOrdinal,
       cacheOrigin: 'playback_warm',
@@ -96,11 +108,14 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             _fetchSegmentFromCDN('$_hlsProxyServerCdnOrigin$nextPath');
         _segmentFetchInFlight[nextPath] = future;
         final bytes = await future;
-        if (!_canFetchSegmentOnDemandForDoc(docId)) {
+        if (!_canFetchSegmentOnDemandForDoc(
+          docId,
+          playbackDocID: playbackDocId,
+        )) {
           return;
         }
         if (ShortSwipeSegmentGuard.shouldDropPrefetchWriteAfterSwipe(
-          docId: docId,
+          docId: policyDocId,
           segmentKey: nextSegmentKey,
           segmentOrdinal: nextSegmentOrdinal,
           cacheOrigin: 'playback_warm',
@@ -130,11 +145,31 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     }());
   }
 
-  bool _canFetchSegmentOnDemandForDoc(String? docID) {
+  String? _resolvePlaybackDocIdForRequest(
+    String? mediaDocID,
+    SegmentCacheManager? cacheManager,
+  ) {
+    final normalizedMediaDocID = HlsSegmentPolicy.normalizeDocId(mediaDocID);
+    if (normalizedMediaDocID == null || normalizedMediaDocID.isEmpty) {
+      return null;
+    }
+    final manager = maybeFindVideoStateManager();
+    if (manager?.allowsOnDemandSegmentFetchFor(normalizedMediaDocID) == true) {
+      return normalizedMediaDocID;
+    }
+    return cacheManager?.playbackDocIdForMediaDocId(normalizedMediaDocID) ??
+        normalizedMediaDocID;
+  }
+
+  bool _canFetchSegmentOnDemandForDoc(
+    String? docID, {
+    String? playbackDocID,
+  }) {
     if (!CacheNetworkPolicy.canFetchOnDemand) {
       return false;
     }
-    final requestedDocId = HlsSegmentPolicy.normalizeDocId(docID);
+    final requestedDocId = HlsSegmentPolicy.normalizeDocId(playbackDocID) ??
+        HlsSegmentPolicy.normalizeDocId(docID);
     if (requestedDocId == null || requestedDocId.isEmpty) {
       return true;
     }
@@ -149,24 +184,37 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
     final cacheManager = _getCacheManager();
     final metrics = cacheManager?.metrics;
     final probe = ensureHlsDataUsageProbe();
+    final playbackDocID = _resolvePlaybackDocIdForRequest(docID, cacheManager);
 
     if (docID != null && cacheManager != null) {
       final segmentKey = _extractSegmentKey(path, docID);
 
       if (segmentKey != null) {
-        final cached = cacheManager.getSegmentFile(docID, segmentKey);
+        var cacheDocID = docID;
+        var cached = cacheManager.getSegmentFile(cacheDocID, segmentKey);
+        if (cached == null && playbackDocID != null && playbackDocID != docID) {
+          final playbackCached =
+              cacheManager.getSegmentFile(playbackDocID, segmentKey);
+          if (playbackCached != null) {
+            cacheDocID = playbackDocID;
+            cached = playbackCached;
+          }
+        }
         if (cached != null) {
           try {
             final bytes = await cached.readAsBytes();
-            if (!_canFetchSegmentOnDemandForDoc(docID)) {
+            if (!_canFetchSegmentOnDemandForDoc(
+              docID,
+              playbackDocID: playbackDocID,
+            )) {
               await _respondStalePlaybackSegment(request);
               return;
             }
             metrics?.recordHit(bytes.length);
-            cacheManager.touchEntry(docID);
-            final entry = cacheManager.getEntry(docID);
+            cacheManager.touchEntry(cacheDocID);
+            final entry = cacheManager.getEntry(cacheDocID);
             probe.recordSegmentTransfer(
-              docId: docID,
+              docId: playbackDocID ?? docID,
               segmentKey: segmentKey,
               bytes: bytes.length,
               source: HlsTrafficSource.playback,
@@ -174,7 +222,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
               cacheOriginOverride: entry?.segments[segmentKey]?.cacheOrigin,
             );
             _logPlaybackSegmentServe(
-              docId: docID,
+              docId: playbackDocID ?? docID,
               segmentKey: segmentKey,
               cacheHit: true,
               bytes: bytes.length,
@@ -194,6 +242,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             unawaited(
               _warmAdjacentPlaybackSegment(
                 docId: docID,
+                playbackDocId: playbackDocID,
                 currentPath: path,
                 currentSegmentKey: segmentKey,
                 cacheManager: cacheManager,
@@ -205,7 +254,10 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
       }
     }
 
-    if (!_canFetchSegmentOnDemandForDoc(docID)) {
+    if (!_canFetchSegmentOnDemandForDoc(
+      docID,
+      playbackDocID: playbackDocID,
+    )) {
       request.response
         ..statusCode = HttpStatus.serviceUnavailable
         ..write(CacheNetworkPolicy.segmentFetchBlockedReason)
@@ -230,7 +282,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             final segmentOrdinal =
                 ShortSwipeSegmentGuard.segmentOrdinalFromKey(segmentKey);
             if (ShortSwipeSegmentGuard.shouldBlockPrefetchDispatchAfterSwipe(
-              docId: docID,
+              docId: playbackDocID ?? docID,
               segmentKey: segmentKey,
               segmentOrdinal: segmentOrdinal,
               cacheOrigin: 'playback',
@@ -241,7 +293,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
               return;
             }
             probe.recordSegmentStart(
-              docId: docID,
+              docId: playbackDocID ?? docID,
               segmentKey: segmentKey,
               source: HlsTrafficSource.playback,
             );
@@ -256,12 +308,15 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         isPlaylist: false,
         source: HlsTrafficSource.playback,
       );
-      if (!_canFetchSegmentOnDemandForDoc(docID)) {
+      if (!_canFetchSegmentOnDemandForDoc(
+        docID,
+        playbackDocID: playbackDocID,
+      )) {
         if (docID != null) {
           final segmentKey = _extractSegmentKey(path, docID);
           if (segmentKey != null) {
             probe.cancelSegmentTransfer(
-              docId: docID,
+              docId: playbackDocID ?? docID,
               segmentKey: segmentKey,
               source: HlsTrafficSource.playback,
             );
@@ -281,7 +336,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
         final segmentKey = _extractSegmentKey(path, docID);
         if (segmentKey != null) {
           probe.recordSegmentTransfer(
-            docId: docID,
+            docId: playbackDocID ?? docID,
             segmentKey: segmentKey,
             bytes: bytes.length,
             source: HlsTrafficSource.playback,
@@ -289,7 +344,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
             cacheOriginOverride: servedFromInflight ? 'inflight_reuse' : null,
           );
           _logPlaybackSegmentServe(
-            docId: docID,
+            docId: playbackDocID ?? docID,
             segmentKey: segmentKey,
             cacheHit: servedFromInflight,
             bytes: bytes.length,
@@ -321,6 +376,7 @@ extension HlsProxyServerSegmentPart on HLSProxyServer {
           unawaited(
             _warmAdjacentPlaybackSegment(
               docId: docID,
+              playbackDocId: playbackDocID,
               currentPath: path,
               currentSegmentKey: segmentKey,
               cacheManager: cacheManager,

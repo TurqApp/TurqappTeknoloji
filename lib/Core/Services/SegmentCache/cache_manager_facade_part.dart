@@ -80,6 +80,11 @@ extension SegmentCacheManagerFacadePart on SegmentCacheManager {
   VideoCacheEntry? getEntry(String docID) =>
       _SegmentCacheManagerRuntimeX(this).getEntry(docID);
 
+  String? playbackDocIdForMediaDocId(String? mediaDocID) =>
+      _SegmentCacheManagerRuntimeX(this).playbackDocIdForMediaDocId(
+        mediaDocID,
+      );
+
   void cachePostCards(Iterable<PostsModel> posts) =>
       _SegmentCacheManagerRuntimeX(this).cachePostCards(posts);
 

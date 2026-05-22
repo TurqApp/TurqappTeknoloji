@@ -161,6 +161,36 @@ extension _SegmentCacheManagerRuntimeX on SegmentCacheManager {
 
   VideoCacheEntry? getEntry(String docID) => _index.entries[docID];
 
+  String? playbackDocIdForMediaDocId(String? mediaDocID) {
+    final normalizedMediaDocID = HlsSegmentPolicy.normalizeDocId(mediaDocID);
+    if (normalizedMediaDocID == null || normalizedMediaDocID.isEmpty) {
+      return null;
+    }
+
+    final manager = maybeFindVideoStateManager();
+    if (manager?.allowsOnDemandSegmentFetchFor(normalizedMediaDocID) == true) {
+      return normalizedMediaDocID;
+    }
+
+    String? fallbackDocID;
+    for (final entry in _index.entries.values) {
+      final entryDocID = HlsSegmentPolicy.normalizeDocId(entry.docID);
+      if (entryDocID == null || entryDocID.isEmpty) continue;
+
+      final entryMediaDocID = HlsSegmentPolicy.normalizeDocId(
+        hlsDocIdFromUrlOrPath(entry.masterPlaylistUrl),
+      );
+      if (entryMediaDocID != normalizedMediaDocID) continue;
+
+      fallbackDocID ??= entryDocID;
+      if (manager?.allowsOnDemandSegmentFetchFor(entryDocID) == true) {
+        return entryDocID;
+      }
+    }
+
+    return fallbackDocID;
+  }
+
   void cachePostCards(Iterable<PostsModel> posts) {
     var changed = false;
     for (final post in posts) {
