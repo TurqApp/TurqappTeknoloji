@@ -2,6 +2,9 @@ part of 'agenda_controller.dart';
 
 const Duration _feedOnYuklemeLogThrottle = Duration(milliseconds: 500);
 final Map<String, DateTime> _feedOnYuklemeLastLogAtByKey = <String, DateTime>{};
+final Map<String, DateTime> _feedPlaybackHorizonVisualWarmAtByDoc =
+    <String, DateTime>{};
+const Duration _feedPlaybackHorizonVisualWarmTtl = Duration(seconds: 4);
 
 bool _shouldLogFeedOnYukleme(String key) {
   final now = DateTime.now();
@@ -705,6 +708,7 @@ extension AgendaControllerFeedPart on AgendaController {
     final maxBoosted = startupWindowStabilizing
         ? _feedPlaybackBoostLookAheadForCurrentPlatform + 1
         : _feedBoostPlayableCount + 1;
+    _warmPlaybackHorizonVisualWindow(centered);
     var boosted = 0;
     final boostLogs = <String>[];
     for (final index in prioritizedIndices) {
@@ -721,6 +725,7 @@ extension AgendaControllerFeedPart on AgendaController {
         post.docID,
         readySegments: readySegments,
       );
+      _warmPlaybackHorizonVisuals(post);
       final playableOffset = index == centered
           ? 0
           : _resolvePlayableOffsetFromCentered(
@@ -744,6 +749,39 @@ extension AgendaControllerFeedPart on AgendaController {
         debugPrint(logMessage);
       }
     }
+  }
+
+  void _warmPlaybackHorizonVisualWindow(int centered) {
+    if (agendaList.isEmpty) return;
+    final start = max(0, centered - 1);
+    final end = min(
+      agendaList.length,
+      centered + StartupPreloadPolicy.aheadFirstSegmentCount + 1,
+    );
+    for (var index = start; index < end; index++) {
+      final post = agendaList[index];
+      if (!post.hasRenderableVideoCard) continue;
+      _warmPlaybackHorizonVisuals(post);
+    }
+  }
+
+  void _warmPlaybackHorizonVisuals(PostsModel post) {
+    final docId = post.docID.trim();
+    if (docId.isEmpty) return;
+    final now = DateTime.now();
+    final lastWarmAt = _feedPlaybackHorizonVisualWarmAtByDoc[docId];
+    if (lastWarmAt != null &&
+        now.difference(lastWarmAt) < _feedPlaybackHorizonVisualWarmTtl) {
+      return;
+    }
+    _feedPlaybackHorizonVisualWarmAtByDoc[docId] = now;
+    if (_feedPlaybackHorizonVisualWarmAtByDoc.length > 256) {
+      _feedPlaybackHorizonVisualWarmAtByDoc.removeWhere(
+        (_, warmAt) =>
+            now.difference(warmAt) > _feedPlaybackHorizonVisualWarmTtl,
+      );
+    }
+    _warmPostVisuals(post);
   }
 
   void primeImmediateNextFeedAfterPlaybackStart(String anchorDocId) {
@@ -1204,15 +1242,7 @@ extension AgendaControllerFeedPart on AgendaController {
       current + _feedUpcomingPosterAheadCount + 1,
     );
     for (int i = start; i < end; i++) {
-      final post = agendaList[i];
-      _warmPostAvatar(post);
-      final preview = post.primaryImageUrl.trim();
-      if (preview.isNotEmpty) {
-        TurqImageCacheManager.warmUrl(preview).ignore();
-      }
-      for (final posterUrl in post.preferredVideoPosterUrls) {
-        TurqImageCacheManager.warmUrl(posterUrl).ignore();
-      }
+      _warmPostVisuals(agendaList[i]);
     }
   }
 
@@ -1232,14 +1262,7 @@ extension AgendaControllerFeedPart on AgendaController {
       if (!_prefetchedThumbnailDocIds.add(post.docID)) {
         continue;
       }
-      _warmPostAvatar(post);
-      final preview = post.primaryImageUrl.trim();
-      if (preview.isNotEmpty) {
-        TurqImageCacheManager.warmUrl(preview).ignore();
-      }
-      for (final previewUrl in post.preferredVideoPosterUrls) {
-        TurqImageCacheManager.warmUrl(previewUrl).ignore();
-      }
+      _warmPostVisuals(post);
     }
 
     _prefetchedThumbnailPostCount = max(_prefetchedThumbnailPostCount, end);
@@ -1250,6 +1273,17 @@ extension AgendaControllerFeedPart on AgendaController {
     final avatarUrl = post.authorAvatarUrl.trim();
     if (avatarUrl.isEmpty) return;
     TurqAvatarCacheManager.warmUrl(avatarUrl).ignore();
+  }
+
+  void _warmPostVisuals(PostsModel post) {
+    _warmPostAvatar(post);
+    final preview = post.primaryImageUrl.trim();
+    if (preview.isNotEmpty) {
+      TurqImageCacheManager.warmUrl(preview).ignore();
+    }
+    for (final posterUrl in post.preferredVideoPosterUrls) {
+      TurqImageCacheManager.warmUrl(posterUrl).ignore();
+    }
   }
 
   void _warmReplayAdsForPreparedWindow(int preparedPostCount) {
