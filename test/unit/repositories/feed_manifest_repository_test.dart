@@ -134,5 +134,23 @@ void main() {
       );
       expect(entries.single.slotGeneratedAt, 1777674456490);
     });
+
+    test('prefers active slot timestamp over stale slot payload timestamp', () {
+      final entries = FeedManifestRepository.parseSlotEntries(
+        jsonEncode(<String, dynamic>{
+          'slotId': 'slot_15',
+          'manifestId': 'feed_2026-05-22_slot_15_v1779456035510',
+          'generatedAt': 1779440700000,
+          'items': <Map<String, dynamic>>[
+            _item('doc-1'),
+          ],
+        }),
+        fallbackSlotId: 'slot_15',
+        slotPath: 'feedManifest/2026-05-22/slots/slot_15.json',
+        fallbackSlotGeneratedAt: 1779451500000,
+      );
+
+      expect(entries.single.slotGeneratedAt, 1779451500000);
+    });
   });
 }

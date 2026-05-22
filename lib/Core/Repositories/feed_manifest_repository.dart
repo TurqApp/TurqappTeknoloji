@@ -948,10 +948,10 @@ class FeedManifestRepository extends GetxService {
         (decoded['manifestId'] ?? fallbackSlotManifestId).toString().trim();
     final decodedGeneratedAt =
         int.tryParse('${decoded['generatedAt'] ?? 0}') ?? 0;
-    final slotGeneratedAt = decodedGeneratedAt > 0
-        ? decodedGeneratedAt
-        : (fallbackSlotGeneratedAt > 0
-            ? fallbackSlotGeneratedAt
+    final slotGeneratedAt = fallbackSlotGeneratedAt > 0
+        ? fallbackSlotGeneratedAt
+        : (decodedGeneratedAt > 0
+            ? decodedGeneratedAt
             : _generatedAtFromManifestId(slotManifestId));
     final itemsRaw = decoded['items'];
     if (itemsRaw is! List) return const <FeedManifestEntry>[];
@@ -1024,15 +1024,15 @@ class FeedManifestRepository extends GetxService {
     _FeedManifestSlotRef left,
     _FeedManifestSlotRef right,
   ) {
+    final dateCompare = right.date.compareTo(left.date);
+    if (dateCompare != 0) return dateCompare;
+    final hourCompare = right.slotHour.compareTo(left.slotHour);
+    if (hourCompare != 0) return hourCompare;
     final leftGeneratedAt = _slotRefSortTimestamp(left);
     final rightGeneratedAt = _slotRefSortTimestamp(right);
     if (leftGeneratedAt != rightGeneratedAt) {
       return rightGeneratedAt.compareTo(leftGeneratedAt);
     }
-    final dateCompare = right.date.compareTo(left.date);
-    if (dateCompare != 0) return dateCompare;
-    final hourCompare = right.slotHour.compareTo(left.slotHour);
-    if (hourCompare != 0) return hourCompare;
     return right.path.compareTo(left.path);
   }
 
