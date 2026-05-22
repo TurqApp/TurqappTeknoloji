@@ -555,6 +555,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       const delays = <Duration>[
         Duration(milliseconds: 80),
         Duration(milliseconds: 260),
+        Duration(milliseconds: 520),
+        Duration(milliseconds: 900),
       ];
       final playbackKey = _feedPlaybackHandleKeyForDoc(targetDocId);
       for (final delay in delays) {
@@ -588,6 +590,9 @@ extension AgendaControllerLoadingPart on AgendaController {
             'targetIndex=$targetIndex targetDocId=$targetDocId '
             'resumed=$resumed currentOwner=$currentOwner',
           );
+          if (!resumed) {
+            _ensureFeedPlaybackForIndex(targetIndex);
+          }
         });
       }
     }
@@ -2860,6 +2865,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         forceNewLaunchSession: forceNewLaunchSession,
         preservePlaybackTarget: preservePlaybackTarget,
       );
+      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
       unawaited(Future<void>(() async {
         try {
@@ -2870,6 +2876,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       }));
     } catch (e) {
       print("refreshAgenda error: $e");
+      _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
     } finally {
       _feedRefreshInFlight = false;

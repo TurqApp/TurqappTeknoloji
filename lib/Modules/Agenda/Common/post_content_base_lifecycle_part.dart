@@ -145,9 +145,11 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
   }
 
   void _handleDidUpdateWidget(T oldWidget) {
+    final didChangeModelDoc = oldWidget.model.docID != widget.model.docID;
     controller.syncModelFromWidget(widget.model);
-    if (oldWidget.model.docID != widget.model.docID) {
+    if (didChangeModelDoc) {
       _lastImmediateFeedNextWarmDocId = null;
+      _releasePlaybackForModelRebind(oldWidget);
     }
     _recordPlaybackVisualWarning(
       _videoAdapter?.value ?? const HLSVideoValue(),
@@ -242,6 +244,48 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
         }
         _safePauseVideo();
       }
+    } else if (didChangeModelDoc && widget.shouldPlay) {
+      _cancelSurfaceKeepAliveDebounce();
+      _resetAutoplaySegmentGate();
+      _lazyInitTimer?.cancel();
+      _recordVisibleViewIfNeeded();
+      if (isStandalonePostInstance) {
+        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
+      }
+      _resumePlaybackIfEligible(source: 'widget_model_changed_should_play');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.shouldPlay || !_isSurfacePlaybackAllowed) {
+          return;
+        }
+        _resumePlaybackIfEligible(
+          source: 'widget_model_changed_post_frame',
+        );
+        _startPlaybackWhenReady(
+          source: 'widget_model_changed_post_frame',
+        );
+      });
+    } else if (widget.shouldPlay &&
+        _videoAdapter == null &&
+        _isSurfacePlaybackAllowed) {
+      _cancelSurfaceKeepAliveDebounce();
+      _resetAutoplaySegmentGate();
+      _lazyInitTimer?.cancel();
+      _recordVisibleViewIfNeeded();
+      if (isStandalonePostInstance) {
+        _playbackRuntimeService.enterExclusiveMode(playbackHandleKey);
+      }
+      _resumePlaybackIfEligible(source: 'widget_surface_allowed_after_refresh');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.shouldPlay || !_isSurfacePlaybackAllowed) {
+          return;
+        }
+        _resumePlaybackIfEligible(
+          source: 'widget_surface_allowed_after_refresh_post_frame',
+        );
+        _startPlaybackWhenReady(
+          source: 'widget_surface_allowed_after_refresh_post_frame',
+        );
+      });
     }
     _maybePreloadWarmVideoController(source: 'did_update_widget');
     _syncWarmPreloadFetchOwnership();
@@ -249,6 +293,43 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
       _videoAdapter?.value ?? const HLSVideoValue(),
       source: 'did_update_widget_post',
     );
+  }
+
+  void _releasePlaybackForModelRebind(T oldWidget) {
+    final oldPlaybackHandleKey = _playbackHandleKeyForWidget(oldWidget);
+    final newPlaybackHandleKey = playbackHandleKey;
+    final adapter = _videoAdapter;
+    debugPrint(
+      '[FeedPlaybackRebind] status=release_old '
+      'oldDoc=${oldWidget.model.docID} newDoc=${widget.model.docID} '
+      'oldKey=$oldPlaybackHandleKey newKey=$newPlaybackHandleKey '
+      'adapterBound=${adapter != null} shouldPlay=${widget.shouldPlay} '
+      'surfaceAllowed=$_isSurfacePlaybackAllowed',
+    );
+    _lazyInitTimer?.cancel();
+    _playbackRecoveryTimer?.cancel();
+    _cancelFeedStallWatchdog();
+    _autoplaySegmentGateTimer?.cancel();
+    _replayAdHideTimer?.cancel();
+    _releaseWarmPreloadFetchOwnership();
+    _warmPreloadInitQueued = false;
+    _feedRecoverInFlight = false;
+    _hasAutoPlayed = false;
+    _manualPauseRequested = false;
+    _lastAppliedPlaybackVolume = null;
+    _playbackIntentTracked = false;
+    _resetAutoplaySegmentGate();
+    _syncRuntimeHints(hasStableFocus: false);
+    try {
+      _playbackRuntimeService.unregisterPlaybackHandle(oldPlaybackHandleKey);
+    } catch (_) {}
+    if (adapter != null) {
+      _videoAdapter = null;
+      adapter.removeListener(_onVideoUpdate);
+      unawaited(adapterPool.release(adapter));
+    }
+    _keepAliveUpdateCallback?.call();
+    _markPostContentDirty();
   }
 
   void _handleDidPushNext() {
