@@ -20,6 +20,9 @@ bool _shouldLogFeedOnYukleme(String key) {
 extension AgendaControllerFeedPart on AgendaController {
   static const int _startupThumbnailPrefetchInitialCount = 5;
   static const int _startupThumbnailPrefetchRadius = 5;
+  static const int _feedUpcomingPosterAheadCount =
+      StartupPreloadPolicy.aheadFirstSegmentCount;
+  static const int _feedUpcomingPosterBehindCount = 1;
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
@@ -1195,8 +1198,11 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchUpcomingImages() {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final start = max(0, current - 1);
-    final end = (current + 4).clamp(0, agendaList.length);
+    final start = max(0, current - _feedUpcomingPosterBehindCount);
+    final end = min(
+      agendaList.length,
+      current + _feedUpcomingPosterAheadCount + 1,
+    );
     for (int i = start; i < end; i++) {
       final post = agendaList[i];
       _warmPostAvatar(post);

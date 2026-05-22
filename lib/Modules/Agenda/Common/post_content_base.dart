@@ -953,6 +953,12 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     return modelIndex >= 0 && modelIndex == centeredIndex;
   }
 
+  bool get _shouldPinPrimaryFeedPosterForOffCenterIos {
+    return defaultTargetPlatform == TargetPlatform.iOS &&
+        _isPrimaryFeedSurfaceInstance &&
+        !_isCurrentPrimaryFeedPlaybackTarget;
+  }
+
   bool get shouldAutoResumeInlinePlatformView {
     if (isStandalonePostInstance) return widget.shouldPlay;
     if (_useLegacyIosFeedBehavior) return widget.shouldPlay;
@@ -1349,6 +1355,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     HLSVideoValue value, {
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
+    if (_shouldPinPrimaryFeedPosterForOffCenterIos) {
+      return false;
+    }
     final shouldPinPosterWhileInactive = !isStandalonePostInstance &&
         (!widget.shouldPlay || !_isSurfacePlaybackAllowed);
     if (shouldPinPosterWhileInactive) {
@@ -1404,6 +1413,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     Duration visualReadyPositionThreshold = _stableFramePositionThreshold,
   }) {
     if (!_isFeedStyleInlineSurfaceInstance) return false;
+    if (_shouldPinPrimaryFeedPosterForOffCenterIos) return false;
     if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return false;
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return !shouldHidePlaybackPoster(
