@@ -79,7 +79,7 @@ extension AgendaControllerSupportPart on AgendaController {
       '[FeedApply] action=replace reason=$reason currentCount=${agendaList.length} '
       'nextCount=${items.length}',
     );
-    agendaList.assignAll(items);
+    agendaList.value = List<PostsModel>.from(items);
     _debugAgendaKinds(reason, agendaList);
     if (schedulePrefetch) {
       _scheduleFeedPrefetch();
@@ -397,6 +397,16 @@ extension AgendaControllerPublicApiPart on AgendaController {
       );
       return;
     }
+    if (_shouldSkipNetworkStartupSurfaceDuringFeedPlayback(networkType)) {
+      _lastStartupSurfacePreparedMutationEpoch = _feedMutationEpoch;
+      debugPrint(
+        '[FeedStartupSurface] status=skip_network_active_feed_playback '
+        'network=${networkType.name} agendaCount=${agendaList.length} '
+        'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized '
+        'currentOwner=${VideoStateManager.instance.currentPlayingDocID ?? ''}',
+      );
+      return;
+    }
     if (shouldRefreshStartupSurface) {
       _lastStartupSurfacePreparedMutationEpoch = _feedMutationEpoch;
       unawaited(
@@ -413,6 +423,19 @@ extension AgendaControllerPublicApiPart on AgendaController {
         'mutationEpoch=$_feedMutationEpoch finalized=$_startupHeadFinalized',
       );
     }
+  }
+
+  bool _shouldSkipNetworkStartupSurfaceDuringFeedPlayback(
+    NetworkType networkType,
+  ) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return false;
+    if (networkType == NetworkType.none) return false;
+    if (!_startupHeadFinalized || agendaList.isEmpty) return false;
+    final currentOwner =
+        VideoStateManager.instance.currentPlayingDocID?.trim() ?? '';
+    if (!currentOwner.startsWith('feed:')) return false;
+    return _lastStartupSurfacePreparedMutationEpoch != _feedMutationEpoch ||
+        _lastStartupSurfacePreparedNetwork != networkType;
   }
 
   Future<void> onPrimarySurfaceVisible() {

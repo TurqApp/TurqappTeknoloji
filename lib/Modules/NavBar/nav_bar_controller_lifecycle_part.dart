@@ -207,12 +207,27 @@ extension _NavBarControllerLifecyclePart on NavBarController {
   void _changeIndexImpl(int index) {
     final previous = selectedIndex.value;
     final tabLayout = _primaryTabLayout();
+    final isTabChange = index != previous;
 
-    if (index != previous) {
+    if (isTabChange) {
       _cancelShortSurfacePrimeImpl();
       try {
         FocusManager.instance.primaryFocus?.unfocus();
       } catch (_) {}
+    }
+
+    selectedIndex.value = index;
+    if (isTabChange && showBar.value != true) {
+      showBar.value = true;
+      debugPrint(
+        '[NavBarVisibility] source=tab_change show=true '
+        'from=$previous target=$index',
+      );
+    }
+    unawaited(_persistSelectedIndex(index));
+    unawaited(_persistStartupRouteHint(index));
+
+    if (isTabChange) {
       unawaited(
         _persistStartupSurfacesForIndexImpl(
           previous,
@@ -227,22 +242,13 @@ extension _NavBarControllerLifecyclePart on NavBarController {
           );
         } catch (_) {}
       }
-      _suspendFeedForTabExitImpl();
-      _pauseGlobalTabMediaImpl();
-    }
+      unawaited(Future<void>(() async {
+        if (previous == 0) {
+          _suspendFeedForTabExitImpl();
+        }
+        _pauseGlobalTabMediaImpl();
+      }));
 
-    selectedIndex.value = index;
-    if (index != previous && showBar.value != true) {
-      showBar.value = true;
-      debugPrint(
-        '[NavBarVisibility] source=tab_change show=true '
-        'from=$previous target=$index',
-      );
-    }
-    unawaited(_persistSelectedIndex(index));
-    unawaited(_persistStartupRouteHint(index));
-
-    if (index != previous) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
         _resetPrimaryTabSurfacesForTransitionImpl(

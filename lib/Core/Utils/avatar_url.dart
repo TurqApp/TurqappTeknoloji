@@ -39,7 +39,7 @@ String resolveAvatarUrl(
     'image',
   ];
   for (final key in keys) {
-    final raw = (data[key] ?? p[key] ?? '').toString().trim();
+    final raw = (p[key] ?? data[key] ?? '').toString().trim();
     if (!isDefaultAvatarUrl(raw) && raw.isNotEmpty) {
       return CdnUrlBuilder.toCdnUrl(raw);
     }

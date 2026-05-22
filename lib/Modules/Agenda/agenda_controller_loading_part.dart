@@ -544,6 +544,59 @@ extension AgendaControllerLoadingPart on AgendaController {
     required int expectedEpoch,
   }) {
     if (agendaList.isEmpty) return;
+    void scheduleRefreshLeadPlaybackReassert({
+      required int targetIndex,
+      required String targetDocId,
+      required String source,
+    }) {
+      if (defaultTargetPlatform != TargetPlatform.iOS || targetIndex != 0) {
+        return;
+      }
+      const delays = <Duration>[
+        Duration(milliseconds: 80),
+        Duration(milliseconds: 260),
+        Duration(milliseconds: 520),
+        Duration(milliseconds: 900),
+      ];
+      final playbackKey = _feedPlaybackHandleKeyForDoc(targetDocId);
+      for (final delay in delays) {
+        Future<void>.delayed(delay, () {
+          if (isClosed ||
+              agendaList.isEmpty ||
+              _feedMutationEpoch != expectedEpoch ||
+              !canClaimPlaybackNow ||
+              centeredIndex.value != targetIndex ||
+              targetIndex < 0 ||
+              targetIndex >= agendaList.length ||
+              agendaList[targetIndex].docID != targetDocId) {
+            return;
+          }
+          final manager = VideoStateManager.instance;
+          final currentOwner = manager.currentPlayingDocID ?? '';
+          if (currentOwner != playbackKey) {
+            debugPrint(
+              '[FeedRefreshResume] status=lead_reassert_claim '
+              'source=$source delayMs=${delay.inMilliseconds} '
+              'targetIndex=$targetIndex targetDocId=$targetDocId '
+              'currentOwner=$currentOwner',
+            );
+            _ensureFeedPlaybackForIndex(targetIndex);
+            return;
+          }
+          final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
+          debugPrint(
+            '[FeedRefreshResume] status=lead_reassert '
+            'source=$source delayMs=${delay.inMilliseconds} '
+            'targetIndex=$targetIndex targetDocId=$targetDocId '
+            'resumed=$resumed currentOwner=$currentOwner',
+          );
+          if (!resumed) {
+            _ensureFeedPlaybackForIndex(targetIndex);
+          }
+        });
+      }
+    }
+
     void attemptRefreshPlaybackKick(String source) {
       if (isClosed ||
           agendaList.isEmpty ||
@@ -591,6 +644,11 @@ extension AgendaControllerLoadingPart on AgendaController {
         reason: source,
       );
       _ensureFeedPlaybackForIndex(targetIndex);
+      scheduleRefreshLeadPlaybackReassert(
+        targetIndex: targetIndex,
+        targetDocId: targetPost.docID,
+        source: source,
+      );
       if (PlaybackSurfacePolicy.shouldScheduleFeedRefreshPlaybackReassert(
         platform: defaultTargetPlatform,
       )) {
@@ -1069,6 +1127,7 @@ extension AgendaControllerLoadingPart on AgendaController {
     Duration chunkDelay = _startupChunkApplyDelay,
     VoidCallback? onFirstChunkApplied,
     VoidCallback? onCompleted,
+    VoidCallback? onCancelled,
   }) {
     if (items.isEmpty) return;
 
@@ -1078,16 +1137,23 @@ extension AgendaControllerLoadingPart on AgendaController {
         items.take(_startupChunkApplySize).toList(growable: false);
     var appliedCount = 0;
     var chunkIndex = 0;
+    var terminalNotified = false;
 
     void cancelIfStale() {
       if (expectedMutationEpoch == _feedMutationEpoch) {
         _startupChunkApplyInFlight = false;
+      }
+      if (!terminalNotified) {
+        terminalNotified = true;
+        onCancelled?.call();
       }
     }
 
     void completeIfCurrent() {
       if (expectedMutationEpoch != _feedMutationEpoch || isClosed) return;
       _startupChunkApplyInFlight = false;
+      if (terminalNotified) return;
+      terminalNotified = true;
       onCompleted?.call();
       _reconcileFeedPageFetchTriggerToCurrentRunway(
         reason: '${reason}_chunk_complete',
@@ -2722,6 +2788,18 @@ extension AgendaControllerLoadingPart on AgendaController {
     bool forceNewLaunchSession = false,
     bool preservePlaybackTarget = true,
   }) async {
+    if (_feedRefreshInFlight || _startupChunkApplyInFlight || isLoading.value) {
+      debugPrint(
+        '[FeedRefreshGuard] status=skip_refresh_in_flight '
+        'refreshInFlight=$_feedRefreshInFlight '
+        'chunkInFlight=$_startupChunkApplyInFlight '
+        'isLoading=${isLoading.value} '
+        'forceNewLaunchSession=$forceNewLaunchSession '
+        'preservePlaybackTarget=$preservePlaybackTarget',
+      );
+      return;
+    }
+    _feedRefreshInFlight = true;
     final refreshEpoch = _feedMutationEpoch + 1;
     _feedMutationEpoch = refreshEpoch;
     try {
@@ -2800,6 +2878,8 @@ extension AgendaControllerLoadingPart on AgendaController {
       print("refreshAgenda error: $e");
       _feedRefreshInFlight = false;
       _resumeFeedPlaybackAfterRefresh(expectedEpoch: refreshEpoch);
+    } finally {
+      _feedRefreshInFlight = false;
     }
   }
 
@@ -2967,6 +3047,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         publicReshareEvents.clear();
         feedReshareEntries.clear();
         highlightDocIDs.clear();
+        final chunkApplyCompleter = Completer<void>();
         _applyStartupItemsInChunks(
           filteredMergedAgenda,
           reason: 'refresh_cold_start',
@@ -2977,7 +3058,18 @@ extension AgendaControllerLoadingPart on AgendaController {
               _applyStartupRenderStagesNow();
             }
           },
+          onCompleted: () {
+            if (!chunkApplyCompleter.isCompleted) {
+              chunkApplyCompleter.complete();
+            }
+          },
+          onCancelled: () {
+            if (!chunkApplyCompleter.isCompleted) {
+              chunkApplyCompleter.complete();
+            }
+          },
         );
+        await chunkApplyCompleter.future;
       } else {
         await visualWarmupFuture;
         await imageHintFuture;

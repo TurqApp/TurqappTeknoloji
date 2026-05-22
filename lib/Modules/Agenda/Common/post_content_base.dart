@@ -286,9 +286,13 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   /// Playback handle identity must be unique per mounted video surface.
   /// Otherwise feed card and SinglePost can fight over the same player slot.
   String get playbackHandleKey {
-    final instanceTag = widget.instanceTag?.trim() ?? '';
+    return _playbackHandleKeyForWidget(widget);
+  }
+
+  String _playbackHandleKeyForWidget(PostContentBase sourceWidget) {
+    final instanceTag = sourceWidget.instanceTag?.trim() ?? '';
     if (instanceTag.isNotEmpty) return instanceTag;
-    return 'feed:${widget.model.docID.trim()}';
+    return 'feed:${sourceWidget.model.docID.trim()}';
   }
 
   bool get isStandalonePostInstance =>
@@ -999,7 +1003,14 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
         return true;
       }
     }
-    if (_isTopTagSurfaceInstance || _isTagPostsSurfaceInstance) {
+    if (_isTagPostsSurfaceInstance) {
+      if (!_dependenciesReady) {
+        return true;
+      }
+      final route = ModalRoute.of(context);
+      return route?.isCurrent ?? false;
+    }
+    if (_isTopTagSurfaceInstance) {
       return true;
     }
     if (!_isProfileFamilySurfaceInstance) {

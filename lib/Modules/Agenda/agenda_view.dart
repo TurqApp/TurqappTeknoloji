@@ -52,15 +52,41 @@ class AgendaView extends StatelessWidget {
   static bool _feedEntryWarmQueued = false;
   static bool _primarySurfaceBootstrapQueued = false;
   static int _feedRefreshInvocationCount = 0;
+  static bool _feedRefreshInteractionInFlight = false;
   static final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
+  static bool get isFeedRefreshInteractionInFlight =>
+      _feedRefreshInteractionInFlight;
+
   static Future<bool> showFeedRefreshIndicator() async {
+    if (_feedRefreshInteractionInFlight) {
+      debugPrint('[FeedRefreshGuard] status=skip_indicator_in_flight');
+      return true;
+    }
     final state = _refreshIndicatorKey.currentState;
     if (state == null) return false;
     final beforeInvocation = _feedRefreshInvocationCount;
     await state.show();
     return _feedRefreshInvocationCount > beforeInvocation;
+  }
+
+  static Future<void> runFeedRefreshInteraction(
+    Future<void> Function() action, {
+    required String source,
+  }) async {
+    if (_feedRefreshInteractionInFlight) {
+      debugPrint(
+        '[FeedRefreshGuard] status=skip_interaction_in_flight source=$source',
+      );
+      return;
+    }
+    _feedRefreshInteractionInFlight = true;
+    try {
+      await action();
+    } finally {
+      _feedRefreshInteractionInFlight = false;
+    }
   }
 
   static void markFeedRefreshIndicatorInvoked() {
