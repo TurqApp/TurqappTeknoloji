@@ -21,9 +21,11 @@ private final class PlayerContainerView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        isUserInteractionEnabled = false
         snapshotView.contentMode = .scaleAspectFill
         snapshotView.clipsToBounds = true
         snapshotView.backgroundColor = .clear
+        snapshotView.isUserInteractionEnabled = false
         snapshotView.isHidden = true
         addSubview(snapshotView)
     }
@@ -36,6 +38,14 @@ private final class PlayerContainerView: UIView {
         super.layoutSubviews()
         linkedPlayerLayer?.frame = bounds
         snapshotView.frame = bounds
+    }
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        false
+    }
+
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        nil
     }
 }
 

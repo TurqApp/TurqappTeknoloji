@@ -435,34 +435,46 @@ extension _NavBarViewShellContentPart on NavBarView {
     _logNavTap(
       'tap index=$index selectedIndex=${controller.selectedIndex.value}',
     );
+    if (index == 0 && controller.selectedIndex.value != 0) {
+      final previous = controller.selectedIndex.value;
+      _logNavTap('home_return_to_feed from=$previous');
+      controller.changeIndex(index);
+      unawaited(() async {
+        await WidgetsBinding.instance.endOfFrame;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        final agendaCtrl = maybeFindAgendaController();
+        if (agendaCtrl == null) {
+          _logNavTap('home_return_scroll_skip reason=agenda_missing');
+          return;
+        }
+        await _scrollFeedToTop(
+          agendaCtrl,
+          source: 'home_return_to_feed',
+        );
+      }());
+      return;
+    }
     if (index == 0 && controller.selectedIndex.value == 0) {
       final agendaCtrl = maybeFindAgendaController();
       if (agendaCtrl != null) {
         unawaited(() async {
-          if (NavBarView._feedHomeTapTaskInFlight ||
-              AgendaView.isFeedRefreshInteractionInFlight ||
-              agendaCtrl.isFeedRefreshBusy) {
+          if (NavBarView._feedHomeTapTaskInFlight) {
             _logNavTap(
-              'skip_home_refresh_busy homeTask=${NavBarView._feedHomeTapTaskInFlight} '
-              'refreshInteraction=${AgendaView.isFeedRefreshInteractionInFlight} '
-              'feedBusy=${agendaCtrl.isFeedRefreshBusy}',
+              'skip_home_action_busy homeTask=${NavBarView._feedHomeTapTaskInFlight}',
             );
             return;
           }
           NavBarView._feedHomeTapTaskInFlight = true;
           try {
-            final scrollController = agendaCtrl.scrollController;
-            if (scrollController.hasClients) {
-              final currentOffset = scrollController.offset;
-              if (currentOffset > 8) {
-                await scrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOut,
-                );
-              } else {
-                scrollController.jumpTo(0);
-              }
+            await _scrollFeedToTop(agendaCtrl, source: 'home_same_tab');
+            if (AgendaView.isFeedRefreshInteractionInFlight ||
+                agendaCtrl.isFeedRefreshBusy) {
+              _logNavTap(
+                'skip_home_refresh_busy_after_scroll '
+                'refreshInteraction=${AgendaView.isFeedRefreshInteractionInFlight} '
+                'feedBusy=${agendaCtrl.isFeedRefreshBusy}',
+              );
+              return;
             }
             final didShowRefresh = await AgendaView.showFeedRefreshIndicator();
             if (!didShowRefresh) {
@@ -535,6 +547,32 @@ extension _NavBarViewShellContentPart on NavBarView {
     }
 
     await _openShortRoute();
+  }
+
+  Future<void> _scrollFeedToTop(
+    AgendaController agendaCtrl, {
+    required String source,
+  }) async {
+    final scrollController = agendaCtrl.scrollController;
+    if (!scrollController.hasClients) {
+      _logNavTap('scroll_feed_top_skip source=$source reason=no_clients');
+      return;
+    }
+    final currentOffset = scrollController.offset;
+    _logNavTap(
+      'scroll_feed_top_start source=$source '
+      'offset=${currentOffset.toStringAsFixed(1)}',
+    );
+    if (currentOffset > 8) {
+      await scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOut,
+      );
+    } else {
+      scrollController.jumpTo(0);
+    }
+    _logNavTap('scroll_feed_top_done source=$source');
   }
 
   Widget _buildProfileNavIcon({required bool isSelected}) {
