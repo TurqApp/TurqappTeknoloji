@@ -14,7 +14,10 @@ void main() {
 
     expect(source, contains('ProfileNavigationService'));
     expect(source, contains('ChatNavigationService'));
-    expect(source, contains('openSocialProfile(item.userId)'));
+    expect(
+      source,
+      matches(RegExp(r'openSocialProfile\(\s*item\.userId\s*,?\s*\)')),
+    );
     expect(source, contains('openChatListing()'));
     expect(source, isNot(contains('Get.to(() => SocialProfile')));
     expect(source, isNot(contains('Get.to(() => ChatListing')));

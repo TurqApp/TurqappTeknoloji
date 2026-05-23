@@ -11,7 +11,7 @@ void main() {
     ).readAsString();
 
     expect(source, contains('ProfileNavigationService'));
-    expect(source, contains('openSocialProfile(controller.userID)'));
+    expect(source, contains('openSocialProfile(model.userID)'));
     expect(source, contains('controller.getTakipStatus()'));
     expect(source, isNot(contains('Get.to(() => SocialProfile')));
     expect(

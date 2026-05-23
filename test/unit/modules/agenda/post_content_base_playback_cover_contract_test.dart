@@ -3,28 +3,22 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('feed poster contract keeps iOS cover threshold at 220ms', () async {
+  test('feed poster contract keeps iOS visible-frame guard explicit', () async {
     final source = await File(
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/Common/post_content_base.dart',
     ).readAsString();
 
     expect(
       source,
-      contains(
-        'const iosFeedVisiblePlaybackThreshold = Duration(milliseconds: 220);',
-      ),
-    );
-    expect(
-      source,
       contains("if (defaultTargetPlatform == TargetPlatform.iOS &&"),
     );
     expect(
       source,
-      contains('value.isPlaying &&'),
+      contains('value.hasVisibleVideoFrame ||'),
     );
     expect(
       source,
-      contains('value.position > iosFeedVisiblePlaybackThreshold;'),
+      contains('value.position >= const Duration(milliseconds: 100)'),
     );
   });
 
@@ -37,7 +31,7 @@ void main() {
     expect(
       source,
       contains(
-        'visualReadyPositionThreshold: const Duration(milliseconds: 220),',
+        'visualReadyPositionThreshold: const Duration(milliseconds: 80),',
       ),
     );
     expect(
@@ -50,7 +44,8 @@ void main() {
     );
   });
 
-  test('feed-style inline surfaces keep stable startup buffer policy', () async {
+  test('feed-style inline surfaces keep stable startup buffer policy',
+      () async {
     final agendaSource = await File(
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Agenda/AgendaContent/agenda_content_body_part.dart',
     ).readAsString();

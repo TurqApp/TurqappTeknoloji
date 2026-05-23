@@ -141,7 +141,7 @@ void main() {
           variant: WidgetHarnessVariants.phoneIos,
         );
 
-        expect(find.text('Uygulama dili'), findsOneWidget);
+        expect(find.text('Dil'), findsOneWidget);
         expect(find.text('Turkce'), findsOneWidget);
         expect(
           find.byIcon(CupertinoIcons.check_mark_circled_solid),

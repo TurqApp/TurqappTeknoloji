@@ -51,6 +51,7 @@ void main() {
         ],
         currentUid: 'u1',
         currentUserStory: _user('u1', minutesAgo: 5),
+        followingIds: const <String>{},
         isAllSeen: (user) => user.userID == 'u2',
       );
 

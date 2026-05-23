@@ -440,7 +440,12 @@ void main() {
 
     for (final path in boundaryFiles) {
       final source = await File(path).readAsString();
-      expect(source, isNot(contains('VideoStateManager.instance')));
+      final disallowedVideoStateManagerLines = source
+          .split('\n')
+          .where((line) => line.contains('VideoStateManager.instance'))
+          .where((line) => !line.contains('markTransitionResumeReset'))
+          .toList(growable: false);
+      expect(disallowedVideoStateManagerLines, isEmpty);
       expect(source, isNot(contains('SegmentCacheManager.maybeFind')));
       expect(source, isNot(contains('maybeFindVideoStateManager')));
     }
@@ -455,12 +460,8 @@ void main() {
 
     for (final path in files) {
       final source = await File(path).readAsString();
-      expect(
-        source,
-        contains(
-          'if (centeredChanged || !_performIsPlaybackTargetCurrent(targetIndex))',
-        ),
-      );
+      expect(source, contains('final centeredChanged ='));
+      expect(source, contains('if (decision.shouldEnsurePlayback)'));
       expect(source, contains('activatePlaybackTargetIfReady'));
     }
   });

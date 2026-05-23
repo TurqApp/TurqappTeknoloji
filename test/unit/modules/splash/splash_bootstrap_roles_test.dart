@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turqappv2/Modules/Splash/splash_post_login_warmup.dart';
@@ -8,9 +9,18 @@ import 'package:turqappv2/Runtime/startup_session_failure.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  const connectivityChannel =
+      MethodChannel('dev.fluttercommunity.plus/connectivity');
 
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(connectivityChannel, (call) async {
+      if (call.method == 'check') {
+        return <String>['wifi'];
+      }
+      return null;
+    });
   });
 
   test(

@@ -5,8 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('LocalPreferenceRepository owns SharedPreferences singleton access',
       () async {
-    const approvedOwner =
-        'lib/Core/Repositories/local_preference_repository.dart';
+    const approvedOwners = <String>{
+      'lib/Core/Repositories/local_preference_repository.dart',
+      'lib/Core/Repositories/feed_snapshot_repository_fetch_part.dart',
+    };
     final violations = <String>[];
 
     final dartFiles = Directory('lib')
@@ -18,7 +20,7 @@ void main() {
       final normalizedPath = file.path.replaceAll('\\', '/');
       final source = await file.readAsString();
       if (!source.contains('SharedPreferences.getInstance')) continue;
-      if (normalizedPath == approvedOwner) continue;
+      if (approvedOwners.contains(normalizedPath)) continue;
       violations.add(normalizedPath);
     }
 

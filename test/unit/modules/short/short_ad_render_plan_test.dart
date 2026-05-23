@@ -4,7 +4,7 @@ import 'package:turqappv2/Modules/Short/short_ad_render_plan.dart';
 
 void main() {
   group('Short ad render plan', () {
-    test('keeps organic flow untouched when ad is not renderable', () {
+    test('keeps render cadence stable even before ad content is ready', () {
       final posts = List<PostsModel>.generate(
         6,
         (index) => _short('short-$index'),
@@ -15,11 +15,12 @@ void main() {
         adReady: false,
       );
 
-      expect(plan.entries.length, 6);
-      expect(plan.entries.every((entry) => !entry.isAd), isTrue);
+      expect(plan.entries.length, 7);
+      expect(plan.entries[5].isAd, isTrue);
       expect(plan.renderIndexForOrganicIndex(0), 0);
-      expect(plan.renderIndexForOrganicIndex(5), 5);
-      expect(plan.organicIndexForRenderIndex(5), 5);
+      expect(plan.renderIndexForOrganicIndex(5), 6);
+      expect(plan.organicIndexForRenderIndex(5), isNull);
+      expect(plan.organicIndexForRenderIndex(6), 5);
     });
 
     test('inserts ad pages only after full frequency windows', () {

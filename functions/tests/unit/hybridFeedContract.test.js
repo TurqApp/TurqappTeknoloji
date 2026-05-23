@@ -29,9 +29,9 @@ test("client feed contract records the global primary opt-out explicitly", () =>
     "utf8",
   );
 
-  assert.match(clientContractSource, /feed_home_primary_global_v2/);
+  assert.match(clientContractSource, /feed_home_manifest_only_v1/);
   assert.match(clientContractSource, /primarySource: FeedHomePrimarySource\.globalApprovedPosts/);
-  assert.match(clientContractSource, /usesPrimaryFeedPaging: false/);
+  assert.match(clientContractSource, /usesPrimaryFeedPaging: true/);
   assert.match(clientContractSource, /primaryCollection: 'Posts'/);
   assert.match(clientContractSource, /primaryItemsSubcollection: ''/);
   assert.match(clientContractSource, /celebrityCollection: 'celebAccounts'/);

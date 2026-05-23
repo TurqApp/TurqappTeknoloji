@@ -46,14 +46,14 @@ void main() {
       );
     });
 
-    test('locks startup playable counts to mobile and wifi targets', () {
+    test('passes configured startup playable counts through unchanged', () {
       expect(
         PlaybackSurfacePolicy.feedStartupWarmPlayableCount(
           platform: TargetPlatform.android,
           isOnCellular: true,
           defaultCount: 99,
         ),
-        6,
+        99,
       );
       expect(
         PlaybackSurfacePolicy.feedStartupWarmPlayableCount(
@@ -61,7 +61,7 @@ void main() {
           isOnCellular: false,
           defaultCount: 99,
         ),
-        6,
+        99,
       );
     });
 
@@ -111,20 +111,20 @@ void main() {
       );
     });
 
-    test('prefers direct CDN for primary feed on Android and iOS', () {
+    test('keeps feed CDN routing behind the default media pipeline', () {
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForFeed(
           platform: TargetPlatform.android,
           isPrimaryFeedSurface: true,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForFeed(
           platform: TargetPlatform.iOS,
           isPrimaryFeedSurface: true,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForFeed(
@@ -137,14 +137,14 @@ void main() {
   });
 
   group('short playback surface policy', () {
-    test('keeps short forward warm horizon hot on mobile and wifi', () {
+    test('passes configured short forward warm horizon through unchanged', () {
       expect(
         PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
           platform: TargetPlatform.android,
           isOnCellular: true,
           defaultCount: 99,
         ),
-        6,
+        99,
       );
       expect(
         PlaybackSurfacePolicy.shortForwardWarmFirstSegmentAheadCount(
@@ -152,7 +152,7 @@ void main() {
           isOnCellular: false,
           defaultCount: 99,
         ),
-        6,
+        99,
       );
     });
 
@@ -202,14 +202,14 @@ void main() {
       );
     });
 
-    test('keeps iOS short neighbors at least two ready segments warm', () {
+    test('keeps tight iOS short neighbors on the first ready segment', () {
       expect(
         PlaybackSurfacePolicy.shortNeighborReadySegments(
           platform: TargetPlatform.iOS,
           useTightWarmProfile: true,
           defaultCount: 1,
         ),
-        2,
+        1,
       );
       expect(
         PlaybackSurfacePolicy.shortNeighborReadySegments(
@@ -221,12 +221,12 @@ void main() {
       );
     });
 
-    test('does not keep trimmed iOS short adapters warm', () {
+    test('keeps trimmed mobile short adapters warm', () {
       expect(
         PlaybackSurfacePolicy.shouldKeepTrimmedShortAdapterWarm(
           platform: TargetPlatform.iOS,
         ),
-        isFalse,
+        isTrue,
       );
       expect(
         PlaybackSurfacePolicy.shouldKeepTrimmedShortAdapterWarm(
@@ -236,18 +236,18 @@ void main() {
       );
     });
 
-    test('prefers direct CDN for short surfaces on Android and iOS', () {
+    test('keeps short CDN routing behind the default media pipeline', () {
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForShort(
           platform: TargetPlatform.android,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         PlaybackSurfacePolicy.preferDirectCdnForShort(
           platform: TargetPlatform.iOS,
         ),
-        isTrue,
+        isFalse,
       );
     });
 

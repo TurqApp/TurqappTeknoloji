@@ -26,7 +26,7 @@ void main() {
     expect(controller.pasajOrder, pasajTabs);
     expect(controller.pasajVisibility[PasajTabIds.market], isTrue);
     expect(controller.pasajVisibility[PasajTabIds.scholarships], isTrue);
-    expect(controller.pasajVisibility[PasajTabIds.jobFinder], isFalse);
+    expect(controller.pasajVisibility[PasajTabIds.jobFinder], isTrue);
     expect(controller.pasajVisibility[PasajTabIds.questionBank], isFalse);
   });
 

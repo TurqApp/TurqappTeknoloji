@@ -50,7 +50,7 @@ void main() {
     await pool.clear();
   });
 
-  test('Android warm pool trims warmed feed adapters to mobile budget',
+  test('Android warm pool trims warmed feed adapters to current mobile budget',
       () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final pool = GlobalVideoAdapterPool();
@@ -68,8 +68,8 @@ void main() {
     }
 
     final snapshot = pool.debugSnapshot();
-    expect(snapshot['maxWarmCount'], 2);
-    expect(snapshot['warmCount'], 2);
+    expect(snapshot['maxWarmCount'], 3);
+    expect(snapshot['warmCount'], 3);
     await pool.clear();
   });
 }

@@ -50,6 +50,7 @@ void main() {
                         textController: textController,
                         focusNode: focusNode,
                         avatarUrl: '',
+                        userId: 'accessibility-test-user',
                         replyingToNickname: 'tester',
                         selectedGifUrl: '',
                         onTextChanged: (_) {},

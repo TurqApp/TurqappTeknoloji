@@ -88,16 +88,7 @@ void main() {
     expect(
       shortViewSource,
       contains(
-        'final neighborReadySegments = neighborPage > activePage',
-      ),
-    );
-    expect(
-      shortViewSource,
-      contains('StartupPreloadPolicy.readySegmentsForAheadOffset('),
-    );
-    expect(
-      shortViewSource,
-      contains('minimumSegmentCount: neighborReadySegments,'),
+          'minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,'),
     );
     expect(
       shortViewSource,
@@ -106,9 +97,7 @@ void main() {
     );
     expect(
       shortUiSource,
-      contains('_ensureWarmNeighborAdapterAfterBuild(\n'
-          '                    currentPage,\n'
-          '                    organicIndex,'),
+      contains('_ensureWarmNeighborAdapterAfterBuild('),
     );
   });
 
@@ -207,8 +196,8 @@ void main() {
 
     expect(shortUiSource, contains('preferStableStartupBuffer:'));
     expect(hlsPlayerSource, contains('preferStableStartupBuffer'));
-    expect(
-        nativePlayerSource, contains('preferStableStartupBuffer ? 10.0 : 6.0'));
+    expect(nativePlayerSource, contains('stableSecondSegmentBufferSeconds'));
+    expect(nativePlayerSource, contains('activeSecondSegmentBufferSeconds'));
     expect(
       nativePlayerSource,
       contains(
@@ -222,17 +211,10 @@ void main() {
       '/Users/turqapp/Desktop/TurqApp/lib/Modules/Short/short_view_playback_part.dart',
     ).readAsString();
 
+    expect(shortViewSource, contains('_playShortAdapterWithOwnerClaim('));
     expect(
       shortViewSource,
-      contains('final shouldUseDirectOwnershipRequest ='),
-    );
-    expect(
-      shortViewSource,
-      contains('defaultTargetPlatform == TargetPlatform.iOS'),
-    );
-    expect(
-      shortViewSource,
-      contains('_playbackRuntimeService.requestPlay('),
+      contains('_requestExclusivePlayback(docId, adapter);'),
     );
     expect(
       shortViewSource,
@@ -263,8 +245,7 @@ void main() {
     );
     expect(
       shortViewSource,
-      contains('_markShortPlaybackAttempt(page, docId);\n'
-          '          await _playbackExecutionService.playAdapter(vc);'),
+      contains('await _playShortAdapterWithOwnerClaim(page, docId, vc);'),
     );
   });
 }

@@ -32,6 +32,7 @@ class _CommentsInputHarnessState extends State<_CommentsInputHarness> {
     return Scaffold(
       body: CommentComposerBar(
         avatarUrl: '',
+        userId: 'comment-test-user',
         textController: _controller,
         focusNode: _focusNode,
         replyingToNickname: _replyTo,
