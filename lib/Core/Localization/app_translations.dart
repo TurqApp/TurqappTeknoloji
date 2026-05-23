@@ -823,9 +823,9 @@ class AppTranslations extends Translations {
         'sign_in.auth_generic_error': 'Giriş sırasında hata oluştu.',
         'edit_post.comments_everyone': 'Herkes yorum yapabilir.',
         'nav.store_open_failed': 'Mağaza açılırken bir hata oluştu.',
-        'nav.rating_prompt_title': 'TurqApp’i Değerlendir',
+        'nav.rating_prompt_title': "Turqapp'ı Değerlendir",
         'nav.rating_prompt_body':
-            'Deneyimin iyiyse mağazada puan ve kısa bir değerlendirme bırakman TurqApp’in büyümesine ciddi katkı sağlar.',
+            "Turqapp'ı beğendiysen 5 yıldızla destek olur musun?",
         'nav.rating_prompt_cta': 'Mağazada Değerlendir',
         'nav.rating_prompt_later': 'Daha Sonra',
         'post.undo_reshare': 'Yeniden paylaşımı geri al',
@@ -4680,7 +4680,7 @@ class AppTranslations extends Translations {
         'nav.store_open_failed': 'An error occurred while opening the store.',
         'nav.rating_prompt_title': 'Rate TurqApp',
         'nav.rating_prompt_body':
-            'If your experience has been good, leaving a rating and short review in the store helps TurqApp grow a lot.',
+            'If you like Turqapp, would you support us with 5 stars?',
         'nav.rating_prompt_cta': 'Rate in the store',
         'nav.rating_prompt_later': 'Maybe later',
         'post.undo_reshare': 'Undo reshare',
@@ -8608,7 +8608,7 @@ class AppTranslations extends Translations {
             'Beim Öffnen des Stores ist ein Fehler aufgetreten.',
         'nav.rating_prompt_title': 'TurqApp bewerten',
         'nav.rating_prompt_body':
-            'Wenn deine Erfahrung gut war, hilft eine Bewertung und kurze Rezension im Store TurqApp beim Wachsen.',
+            'Wenn dir Turqapp gefällt, unterstützt du uns mit 5 Sternen?',
         'nav.rating_prompt_cta': 'Im Store bewerten',
         'nav.rating_prompt_later': 'Später',
         'post.undo_reshare': 'Erneutes Teilen zurücknehmen',

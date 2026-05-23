@@ -181,9 +181,6 @@ extension _NavBarControllerLifecyclePart on NavBarController {
     }
 
     if (state == AppLifecycleState.resumed && selectedIndex.value == 0) {
-      if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-        _scheduleRatingPromptImpl(const Duration(seconds: 12));
-      }
       _resumeFeedIfNeededImpl();
     }
 

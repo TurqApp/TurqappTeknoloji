@@ -7,6 +7,15 @@ const String _appVersionPromptCountKeyPrefix = 'app_version_prompt_count';
 const String _ratingFirstSeenAtKey = 'rating_prompt_first_seen_at';
 const String _ratingLastShownAtKey = 'rating_prompt_last_shown_at';
 const String _ratingLastStoreTapAtKey = 'rating_prompt_last_store_tap_at';
+const String _appUpdateRatingShownAtKeyPrefix = 'app_update_rating_shown_at';
+const String _appUpdateDialogDueAtKeyPrefix = 'app_update_dialog_due_at';
+const Duration _ratingPromptBeforeUpdateLead = Duration(minutes: 15);
+const int _appUpdatePromptStartHour = 9;
+const int _appUpdatePromptEndHour = 23;
+const Set<int> _appVersionCheckWeekdays = <int>{
+  DateTime.wednesday,
+  DateTime.saturday,
+};
 
 NavBarController ensureNavBarController() => _ensureNavBarController();
 
@@ -27,6 +36,9 @@ extension NavBarControllerFacadePart on NavBarController {
   void suspendFeedForTabExit() => _suspendFeedForTabExitImpl();
 
   void resumeFeedIfNeeded() => _resumeFeedIfNeededImpl();
+
+  Future<void> checkAppVersionAfterFeedOpened() =>
+      _checkAppVersionPeriodicImpl();
 
   void pushMediaOverlayLock() => _pushMediaOverlayLockImpl();
 

@@ -240,16 +240,6 @@ class _NavBarControllerSupportPart {
       });
     }));
     _controller._runAcilisAnimationImpl();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!_controller._isDisposed &&
-          !IntegrationTestMode.suppressPeriodicSideEffects) {
-        unawaited(_controller._checkAppVersionDailyImpl());
-      }
-    });
-    if (!IntegrationTestMode.suppressPeriodicSideEffects) {
-      _controller._scheduleRatingPromptImpl(const Duration(seconds: 25));
-    }
-
     if (!GetPlatform.isIOS &&
         !IntegrationTestMode.suppressPeriodicSideEffects) {
       _controller._startBackgroundCacheLoopImpl();
@@ -265,6 +255,8 @@ class _NavBarControllerSupportPart {
     _controller._uploadIndicatorTimer = null;
     _controller._ratingPromptTimer?.cancel();
     _controller._ratingPromptTimer = null;
+    _controller._updateDialogTimer?.cancel();
+    _controller._updateDialogTimer = null;
     _controller._feedResumeRetryTimer?.cancel();
     _controller._feedResumeRetryTimer = null;
     _controller._shortSurfacePrimeTimer?.cancel();

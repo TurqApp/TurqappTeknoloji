@@ -9,6 +9,7 @@ import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/feed_render_block_plan.dart';
 import 'package:turqappv2/Core/Services/global_video_adapter_pool.dart';
 import 'package:turqappv2/Core/Services/integration_test_keys.dart';
+import 'package:turqappv2/Core/Services/integration_test_mode.dart';
 import 'package:turqappv2/Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Core/Services/SegmentCache/prefetch_scheduler.dart';
@@ -23,6 +24,7 @@ import 'package:turqappv2/Modules/PostCreator/post_creator.dart';
 import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'package:turqappv2/Modules/Agenda/widgets/feed_create_fab.dart';
 import 'package:turqappv2/Modules/Agenda/widgets/feed_inbox_actions_row.dart';
+import 'package:turqappv2/Modules/NavBar/nav_bar_controller.dart';
 import 'package:turqappv2/Modules/Story/StoryRow/story_row.dart';
 import 'package:turqappv2/Services/current_user_service.dart';
 import 'package:turqappv2/Utils/empty_padding.dart';
@@ -50,6 +52,7 @@ class AgendaView extends StatelessWidget {
   static bool _loggedFirstBuild = false;
   static bool _androidVisibilityTuned = false;
   static bool _feedEntryWarmQueued = false;
+  static bool _feedVersionCheckQueued = false;
   static bool _primarySurfaceBootstrapQueued = false;
   static int _feedRefreshInvocationCount = 0;
   static bool _feedRefreshInteractionInFlight = false;
@@ -200,6 +203,18 @@ class AgendaView extends StatelessWidget {
     }
     if (!_feedEntryWarmQueued) {
       _queueFeedEntryWarmWhenReady();
+    }
+    if (!_feedVersionCheckQueued &&
+        !IntegrationTestMode.suppressPeriodicSideEffects) {
+      _feedVersionCheckQueued = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future<void>.delayed(const Duration(milliseconds: 700), () async {
+          final nav = maybeFindNavBarController();
+          if (nav == null || nav.selectedIndex.value != 0) return;
+          debugPrint('[AppUpdateCheck] source=feed_opened');
+          await nav.checkAppVersionAfterFeedOpened();
+        });
+      });
     }
     if (GetPlatform.isAndroid && !_androidVisibilityTuned) {
       // Feed'de fazla sık visibility callback'i scroll sırasında jank üretebiliyor.

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:turqappv2/Core/Repositories/config_repository.dart';
 import 'package:turqappv2/Core/Repositories/admin_approval_repository.dart';
 import 'package:turqappv2/Core/Repositories/admin_task_assignment_repository.dart';
@@ -101,6 +102,7 @@ class _SettingsViewState extends State<SettingsView> {
   final AdminApprovalRepository _adminApprovalRepository =
       AdminApprovalRepository.ensure();
   final AppLanguageService _languageService = ensureAppLanguageService();
+  late final Future<PackageInfo> _packageInfoFuture;
 
   // 🎯 Using CurrentUserService for optimized user data
   final userService = CurrentUserService.instance;
@@ -108,6 +110,7 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   void initState() {
     super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
     final existingSettingsController = maybeFindSettingsController();
     if (existingSettingsController != null) {
       controller = existingSettingsController;
@@ -155,6 +158,7 @@ class _SettingsViewState extends State<SettingsView> {
                       _buildAssignedTasksSection(),
                       _buildAdminSection(),
                       ..._buildSessionSection(),
+                      _buildVersionFooter(),
                       SizedBox(
                         height: systemNavigationAwareBottom(
                           context,

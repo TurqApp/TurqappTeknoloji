@@ -100,7 +100,7 @@ extension _NavBarControllerUpdatePart on NavBarController {
       );
 
       if (versionTooLow || buildTooLow) {
-        _showUpdateDialogImpl(
+        _handleRequiredAppUpdateImpl(
           requiredVersion: requiredVersion,
           requiredBuild: requiredBuild,
         );
@@ -108,11 +108,60 @@ extension _NavBarControllerUpdatePart on NavBarController {
     } catch (_) {}
   }
 
-  Future<void> _checkAppVersionDailyImpl() async {
+  bool _isAppVersionCheckWeekdayImpl(DateTime time) =>
+      _appVersionCheckWeekdays.contains(time.weekday);
+
+  DateTime _nextAppUpdatePromptWindowStartImpl(
+    DateTime from, {
+    Duration reserveBeforeEnd = Duration.zero,
+  }) {
+    for (var dayOffset = 0; dayOffset < 14; dayOffset++) {
+      final day = DateTime(from.year, from.month, from.day + dayOffset);
+      if (!_isAppVersionCheckWeekdayImpl(day)) continue;
+
+      final start = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        _appUpdatePromptStartHour,
+      );
+      final end = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        _appUpdatePromptEndHour,
+      ).subtract(reserveBeforeEnd);
+
+      if (dayOffset == 0) {
+        if (from.isBefore(start)) return start;
+        if (from.isBefore(end)) return from;
+        continue;
+      }
+      return start;
+    }
+
+    return DateTime(
+      from.year,
+      from.month,
+      from.day + 14,
+      _appUpdatePromptStartHour,
+    );
+  }
+
+  Future<void> _checkAppVersionPeriodicImpl() async {
     if (kDebugMode) return;
     try {
       final preferences = ensureLocalPreferenceRepository();
       final now = DateTime.now();
+      final nextWindow = _nextAppUpdatePromptWindowStartImpl(now);
+      if (nextWindow.isAfter(now)) {
+        debugPrint(
+          '[AppUpdateCheck] action=skip_check reason=outside_window '
+          'next=${nextWindow.toIso8601String()}',
+        );
+        return;
+      }
+
       final lastCheckedMs =
           await preferences.getInt(_appVersionLastCheckedAtKey) ?? 0;
       if (lastCheckedMs > 0) {
@@ -121,7 +170,9 @@ extension _NavBarControllerUpdatePart on NavBarController {
             lastChecked.month == now.month &&
             lastChecked.day == now.day;
         if (alreadyCheckedToday) {
-          debugPrint('[AppUpdateCheck] source=cache reason=daily_gate');
+          debugPrint(
+            '[AppUpdateCheck] source=cache reason=allowed_day_gate',
+          );
           await _checkAppVersionImpl(forceRefresh: false);
           return;
         }
@@ -165,11 +216,225 @@ extension _NavBarControllerUpdatePart on NavBarController {
         '${requiredVersion.isEmpty ? 'any' : requiredVersion}:$requiredBuild';
   }
 
+  String _appUpdateRatingShownAtKeyImpl(String updateKey) =>
+      '$_appUpdateRatingShownAtKeyPrefix:$updateKey';
+
+  String _appUpdateDialogDueAtKeyImpl(String updateKey) =>
+      '$_appUpdateDialogDueAtKeyPrefix:$updateKey';
+
+  void _handleRequiredAppUpdateImpl({
+    required String requiredVersion,
+    required int requiredBuild,
+  }) {
+    if (_isDisposed || _appUpdateFlowInFlight) return;
+    _appUpdateFlowInFlight = true;
+    unawaited(() async {
+      try {
+        await _runRequiredAppUpdateFlowImpl(
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+        );
+      } finally {
+        _appUpdateFlowInFlight = false;
+      }
+    }());
+  }
+
+  Future<void> _runRequiredAppUpdateFlowImpl({
+    required String requiredVersion,
+    required int requiredBuild,
+  }) async {
+    final preferences = ensureLocalPreferenceRepository();
+    final updateKey = _appUpdatePromptCountKeyImpl(
+      requiredVersion: requiredVersion,
+      requiredBuild: requiredBuild,
+    );
+    final ratingShownKey = _appUpdateRatingShownAtKeyImpl(updateKey);
+    final dialogDueKey = _appUpdateDialogDueAtKeyImpl(updateKey);
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final ratingShownAtMs = await preferences.getInt(ratingShownKey) ?? 0;
+    final dialogDueAtMs = await preferences.getInt(dialogDueKey) ?? 0;
+
+    if (_ratingPromptEnabled && ratingShownAtMs <= 0) {
+      final now = DateTime.now();
+      final nextRatingWindow = _nextAppUpdatePromptWindowStartImpl(
+        now,
+        reserveBeforeEnd: _ratingPromptBeforeUpdateLead,
+      );
+      if (nextRatingWindow.isAfter(now)) {
+        _scheduleRequiredAppUpdateRetryImpl(
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+          delay: nextRatingWindow.difference(now),
+          reason: 'outside_rating_window',
+        );
+        return;
+      }
+
+      final didShowRating = await _showRatingPromptBeforeUpdateImpl(
+        preferences: preferences,
+        ratingShownKey: ratingShownKey,
+        dialogDueKey: dialogDueKey,
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+      );
+      if (!didShowRating) {
+        _scheduleRequiredAppUpdateRetryImpl(
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+          delay: const Duration(seconds: 30),
+          reason: 'rating_not_ready',
+        );
+      }
+      return;
+    }
+
+    if (dialogDueAtMs > nowMs) {
+      _scheduleUpdateDialogImpl(
+        Duration(milliseconds: dialogDueAtMs - nowMs),
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+        reason: 'rating_lead_pending',
+      );
+      return;
+    }
+
+    _showUpdateDialogImpl(
+      requiredVersion: requiredVersion,
+      requiredBuild: requiredBuild,
+    );
+  }
+
+  Future<bool> _showRatingPromptBeforeUpdateImpl({
+    required LocalPreferenceRepository preferences,
+    required String ratingShownKey,
+    required String dialogDueKey,
+    required String requiredVersion,
+    required int requiredBuild,
+  }) async {
+    for (var attempt = 0; attempt < 48; attempt++) {
+      if (_isDisposed || _ratingSheetShownThisSession) return false;
+      final routeReady = Get.currentRoute.isEmpty ||
+          Get.currentRoute == '/NavBarView' ||
+          Get.currentRoute.contains('NavBar');
+      final feedReady = selectedIndex.value == 0;
+      final overlayFree =
+          Get.isBottomSheetOpen != true && Get.isDialogOpen != true;
+      if (Get.context != null && routeReady && feedReady && overlayFree) {
+        await WidgetsBinding.instance.endOfFrame;
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+        if (_isDisposed || Get.isDialogOpen == true) return false;
+        final displayNow = DateTime.now();
+        final nextRatingWindow = _nextAppUpdatePromptWindowStartImpl(
+          displayNow,
+          reserveBeforeEnd: _ratingPromptBeforeUpdateLead,
+        );
+        if (nextRatingWindow.isAfter(displayNow)) {
+          _scheduleRequiredAppUpdateRetryImpl(
+            requiredVersion: requiredVersion,
+            requiredBuild: requiredBuild,
+            delay: nextRatingWindow.difference(displayNow),
+            reason: 'rating_window_closed_before_show',
+          );
+          return true;
+        }
+
+        final nowMs = displayNow.millisecondsSinceEpoch;
+        final dueAtMs = nowMs + _ratingPromptBeforeUpdateLead.inMilliseconds;
+        await preferences.setInt(ratingShownKey, nowMs);
+        await preferences.setInt(dialogDueKey, dueAtMs);
+        _scheduleUpdateDialogImpl(
+          _ratingPromptBeforeUpdateLead,
+          requiredVersion: requiredVersion,
+          requiredBuild: requiredBuild,
+          reason: 'after_rating_prompt',
+        );
+        debugPrint(
+          '[RatingPrompt] action=show_before_update '
+          'updateInMs=${_ratingPromptBeforeUpdateLead.inMilliseconds} '
+          'attempt=$attempt',
+        );
+        await _maybeShowRatingPromptImpl(force: true);
+        return true;
+      }
+      if (attempt == 0 || attempt % 8 == 0) {
+        debugPrint(
+          '[RatingPrompt] action=defer_before_update attempt=$attempt '
+          'route=${Get.currentRoute} feedReady=$feedReady '
+          'overlayFree=$overlayFree',
+        );
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    debugPrint('[RatingPrompt] action=skip_before_update reason=not_ready');
+    return false;
+  }
+
+  void _scheduleRequiredAppUpdateRetryImpl({
+    required String requiredVersion,
+    required int requiredBuild,
+    required Duration delay,
+    required String reason,
+  }) {
+    _updateDialogTimer?.cancel();
+    final safeDelay = delay.isNegative ? Duration.zero : delay;
+    debugPrint(
+      '[AppUpdateCheck] action=schedule_update_flow_retry reason=$reason '
+      'delayMs=${safeDelay.inMilliseconds}',
+    );
+    _updateDialogTimer = Timer(safeDelay, () {
+      if (_isDisposed) return;
+      _handleRequiredAppUpdateImpl(
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+      );
+    });
+  }
+
+  void _scheduleUpdateDialogImpl(
+    Duration delay, {
+    required String requiredVersion,
+    required int requiredBuild,
+    required String reason,
+  }) {
+    _updateDialogTimer?.cancel();
+    final safeDelay = delay.isNegative ? Duration.zero : delay;
+    debugPrint(
+      '[AppUpdateCheck] action=schedule_update_dialog reason=$reason '
+      'delayMs=${safeDelay.inMilliseconds}',
+    );
+    if (safeDelay == Duration.zero) {
+      _showUpdateDialogImpl(
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+      );
+      return;
+    }
+    _updateDialogTimer = Timer(safeDelay, () {
+      if (_isDisposed) return;
+      _showUpdateDialogImpl(
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+      );
+    });
+  }
+
   void _showUpdateDialogImpl({
     required String requiredVersion,
     required int requiredBuild,
   }) {
     if (_isForceUpdateVisible) return;
+    final now = DateTime.now();
+    final nextWindow = _nextAppUpdatePromptWindowStartImpl(now);
+    if (nextWindow.isAfter(now)) {
+      _scheduleUpdateDialogImpl(
+        nextWindow.difference(now),
+        requiredVersion: requiredVersion,
+        requiredBuild: requiredBuild,
+        reason: 'outside_update_window',
+      );
+      return;
+    }
     _isForceUpdateVisible = true;
     unawaited(() async {
       try {
@@ -271,27 +536,35 @@ extension _NavBarControllerUpdatePart on NavBarController {
     }());
   }
 
-  void _scheduleRatingPromptImpl(Duration delay) {
+  void _scheduleRatingPromptImpl(
+    Duration delay, {
+    bool force = false,
+  }) {
     _ratingPromptTimer?.cancel();
     _ratingPromptTimer = Timer(delay, () {
       if (_isDisposed) return;
-      unawaited(_maybeShowRatingPromptImpl());
+      unawaited(_maybeShowRatingPromptImpl(force: force));
     });
   }
 
-  Future<void> _maybeShowRatingPromptImpl() async {
+  Future<void> _maybeShowRatingPromptImpl({bool force = false}) async {
     if (_isDisposed ||
         _isForceUpdateVisible ||
         _ratingSheetShownThisSession ||
-        selectedIndex.value != 0) {
+        (!force && selectedIndex.value != 0)) {
       return;
     }
-    await _loadAppVersionConfigImpl(forceRefresh: false);
-    if (!_ratingPromptEnabled) {
+    if (!force) {
+      await _loadAppVersionConfigImpl(forceRefresh: false);
+    }
+    if (!_ratingPromptEnabled && !force) {
       return;
     }
     if (Get.isBottomSheetOpen == true || Get.isDialogOpen == true) {
-      _scheduleRatingPromptImpl(const Duration(seconds: 45));
+      _scheduleRatingPromptImpl(
+        force ? const Duration(seconds: 3) : const Duration(seconds: 45),
+        force: force,
+      );
       return;
     }
 
@@ -302,145 +575,120 @@ extension _NavBarControllerUpdatePart on NavBarController {
     final lastStoreTapMs =
         await preferences.getInt(_ratingLastStoreTapAtKey) ?? 0;
 
-    if (firstSeenMs <= 0) {
+    if (!force && firstSeenMs <= 0) {
       await preferences.setInt(_ratingFirstSeenAtKey, nowMs);
       return;
     }
 
-    final firstSeenAt = DateTime.fromMillisecondsSinceEpoch(firstSeenMs);
-    if (DateTime.now().difference(firstSeenAt) < _ratingPromptEnabledAfter) {
-      return;
-    }
-
-    if (lastShownMs > 0) {
-      final lastShownAt = DateTime.fromMillisecondsSinceEpoch(lastShownMs);
-      if (DateTime.now().difference(lastShownAt) < _ratingPromptRepeatAfter) {
+    if (!force) {
+      final firstSeenAt = DateTime.fromMillisecondsSinceEpoch(firstSeenMs);
+      if (DateTime.now().difference(firstSeenAt) < _ratingPromptEnabledAfter) {
         return;
       }
-    }
 
-    if (lastStoreTapMs > 0) {
-      final lastStoreTapAt =
-          DateTime.fromMillisecondsSinceEpoch(lastStoreTapMs);
-      if (DateTime.now().difference(lastStoreTapAt) <
-          _ratingPromptStoreCooldown) {
-        return;
+      if (lastShownMs > 0) {
+        final lastShownAt = DateTime.fromMillisecondsSinceEpoch(lastShownMs);
+        if (DateTime.now().difference(lastShownAt) < _ratingPromptRepeatAfter) {
+          return;
+        }
+      }
+
+      if (lastStoreTapMs > 0) {
+        final lastStoreTapAt =
+            DateTime.fromMillisecondsSinceEpoch(lastStoreTapMs);
+        if (DateTime.now().difference(lastStoreTapAt) <
+            _ratingPromptStoreCooldown) {
+          return;
+        }
       }
     }
 
     _ratingSheetShownThisSession = true;
-    await preferences.setInt(_ratingLastShownAtKey, nowMs);
+    if (!force) {
+      await preferences.setInt(_ratingLastShownAtKey, nowMs);
+    }
 
-    await Get.bottomSheet(
-      isDismissible: true,
-      enableDrag: true,
-      barrierColor: Colors.black38,
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(26),
-            topRight: Radius.circular(26),
+    await Get.dialog<void>(
+      CupertinoAlertDialog(
+        title: Text(
+          'nav.rating_prompt_title'.tr,
+          style: const TextStyle(
+            fontSize: 15,
+            fontFamily: "MontserratBold",
+            color: Colors.black,
           ),
+          textAlign: TextAlign.center,
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (_) => const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 1.5),
+                    child: Icon(
+                      Icons.star_rounded,
+                      color: Color(0xFFFFC107),
+                      size: 27,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F1EA),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(
-                  Icons.star_rounded,
-                  color: Colors.black,
-                  size: 38,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'nav.rating_prompt_title'.tr,
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.black,
-                  fontFamily: 'MontserratBold',
-                ),
-                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
               Text(
                 'nav.rating_prompt_body'.tr,
                 style: const TextStyle(
                   fontSize: 15,
-                  color: Colors.black54,
-                  fontFamily: 'MontserratMedium',
-                  height: 1.5,
+                  fontFamily: "MontserratMedium",
+                  color: Colors.black,
+                  height: 1.25,
                 ),
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: TurqButtonTokens.height,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await preferences.setInt(
-                      _ratingLastStoreTapAtKey,
-                      nowMs,
-                    );
-                    if (Get.isBottomSheetOpen == true) {
-                      Get.back();
-                    }
-                    await _launchStoreImpl();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        TurqButtonTokens.radius,
-                      ),
-                    ),
-                  ),
-                  child: Text(
-                    'nav.rating_prompt_cta'.tr,
-                    style: TurqButtonTokens.primaryTextStyle,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: TurqButtonTokens.height,
-                child: TextButton(
-                  onPressed: () => Get.back(),
-                  child: Text(
-                    'nav.rating_prompt_later'.tr,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black54,
-                      fontFamily: 'MontserratMedium',
-                    ),
-                  ),
-                ),
               ),
             ],
           ),
         ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: Get.back<void>,
+            child: const Text(
+              'Sonra',
+              style: TextStyle(
+                fontSize: 15,
+                fontFamily: "Montserrat",
+                color: Colors.black,
+              ),
+            ),
+          ),
+          CupertinoDialogAction(
+            onPressed: () async {
+              await preferences.setInt(
+                _ratingLastStoreTapAtKey,
+                nowMs,
+              );
+              if (Get.isDialogOpen == true) {
+                Get.back<void>();
+              }
+              await _launchStoreImpl();
+            },
+            isDefaultAction: true,
+            child: const Text(
+              'Değerlendir',
+              style: TextStyle(
+                fontSize: 15,
+                fontFamily: "Montserrat",
+                color: CupertinoColors.destructiveRed,
+              ),
+            ),
+          ),
+        ],
       ),
+      barrierColor: Colors.black54,
+      barrierDismissible: true,
     );
   }
 

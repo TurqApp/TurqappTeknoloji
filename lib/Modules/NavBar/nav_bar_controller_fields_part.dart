@@ -17,6 +17,7 @@ class _NavBarControllerState {
   final uploadingPosts = false.obs;
   bool isDisposed = false;
   bool isForceUpdateVisible = false;
+  bool appUpdateFlowInFlight = false;
   bool ratingSheetShownThisSession = false;
   bool appUpdateCheckEnabled = true;
   String androidMinVersion = '';
@@ -34,6 +35,7 @@ class _NavBarControllerState {
   Timer? backgroundCacheTimer;
   Timer? uploadIndicatorTimer;
   Timer? ratingPromptTimer;
+  Timer? updateDialogTimer;
   Timer? feedResumeRetryTimer;
   Timer? shortSurfacePrimeTimer;
   int feedResumeRetryEpoch = 0;
@@ -63,6 +65,9 @@ extension NavBarControllerFieldsPart on NavBarController {
   set _isDisposed(bool value) => _state.isDisposed = value;
   bool get _isForceUpdateVisible => _state.isForceUpdateVisible;
   set _isForceUpdateVisible(bool value) => _state.isForceUpdateVisible = value;
+  bool get _appUpdateFlowInFlight => _state.appUpdateFlowInFlight;
+  set _appUpdateFlowInFlight(bool value) =>
+      _state.appUpdateFlowInFlight = value;
   bool get _ratingSheetShownThisSession => _state.ratingSheetShownThisSession;
   set _ratingSheetShownThisSession(bool value) =>
       _state.ratingSheetShownThisSession = value;
@@ -105,6 +110,8 @@ extension NavBarControllerFieldsPart on NavBarController {
       _state.uploadIndicatorTimer = value;
   Timer? get _ratingPromptTimer => _state.ratingPromptTimer;
   set _ratingPromptTimer(Timer? value) => _state.ratingPromptTimer = value;
+  Timer? get _updateDialogTimer => _state.updateDialogTimer;
+  set _updateDialogTimer(Timer? value) => _state.updateDialogTimer = value;
   Timer? get _feedResumeRetryTimer => _state.feedResumeRetryTimer;
   set _feedResumeRetryTimer(Timer? value) =>
       _state.feedResumeRetryTimer = value;

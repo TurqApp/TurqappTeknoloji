@@ -103,4 +103,28 @@ extension _SettingsViewShellHelpersPart on _SettingsViewState {
       ),
     );
   }
+
+  Widget _buildVersionFooter() {
+    return FutureBuilder<PackageInfo>(
+      future: _packageInfoFuture,
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final label = info?.version ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(top: 18, bottom: 4),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black38,
+                fontSize: 11,
+                fontFamily: "MontserratMedium",
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
