@@ -1066,25 +1066,32 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   void _warmFullscreenPosterWindowAround(
     int anchorIndex, {
-    int behindCount = 1,
-    int aheadCount = 5,
+    int behindCount = StartupPreloadPolicy.posterBehindCount,
+    int aheadCount = StartupPreloadPolicy.posterAheadCount,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final start = (safeAnchor - behindCount).clamp(0, shorts.length - 1);
-    final endExclusive = (safeAnchor + aheadCount + 1).clamp(
-      0,
-      shorts.length,
-    );
-    for (int i = start; i < endExclusive; i++) {
-      final post = shorts[i];
+    final warmedIndices = <int>{};
+
+    void warmIndex(int index) {
+      if (index < 0 || index >= shorts.length) return;
+      if (!warmedIndices.add(index)) return;
+      final post = shorts[index];
       final docId = post.docID.trim();
       if (docId.isEmpty || !_prefetchedFullscreenPosterDocIds.add(docId)) {
-        continue;
+        return;
       }
       for (final url in _fullscreenPosterWarmUrlsForPost(post)) {
         TurqImageCacheManager.warmUrl(url).ignore();
       }
+    }
+
+    warmIndex(safeAnchor);
+    for (int offset = 1; offset <= aheadCount; offset++) {
+      warmIndex(safeAnchor + offset);
+    }
+    for (int offset = 1; offset <= behindCount; offset++) {
+      warmIndex(safeAnchor - offset);
     }
   }
 

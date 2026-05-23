@@ -181,25 +181,10 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         cacheOnlyMode: CacheNetworkPolicy.cacheOnlyMode,
       );
 
-  bool get _usesWifiSurfaceWarmSettings => _isOnWiFi;
-
-  int get _breadthCount {
-    final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;
-    return _usesWifiSurfaceWarmSettings
-        ? base < _prefetchSchedulerWifiMinBreadthCount
-            ? _prefetchSchedulerWifiMinBreadthCount
-            : base
-        : base;
-  }
-
-  int get _depthCount {
-    final base = ReadBudgetRegistry.segmentPrefetchDepthCountValue;
-    return _usesWifiSurfaceWarmSettings
-        ? base < _prefetchSchedulerWifiMinDepthCount
-            ? _prefetchSchedulerWifiMinDepthCount
-            : base
-        : base;
-  }
+  bool get _usesWifiSurfaceWarmSettings => shouldUseWifiSurfaceWarmSettings(
+        isOnWiFi: _isOnWiFi,
+        isOnCellular: _isOnCellular,
+      );
 
   int get _maxConcurrent {
     if (_mobileSeedMode) return 1;

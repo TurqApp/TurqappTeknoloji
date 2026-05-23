@@ -112,6 +112,7 @@ void main() {
     expect(snapshot.allowBackgroundPrefetch, isTrue);
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.startupWindowSegments, 2);
+    expect(snapshot.maxConcurrentPrefetch, 4);
   });
 
   test('playback policy resolves cellular live mode without cache-only guard',
@@ -134,6 +135,7 @@ void main() {
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.startupWindowSegments, 2);
     expect(snapshot.aheadWindowSegments, 2);
+    expect(snapshot.maxConcurrentPrefetch, 4);
   });
 
   test('playback policy ignores old pause-on-cellular guard for playback', () {

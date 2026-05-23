@@ -14,6 +14,9 @@ class StartupPreloadPolicy {
 
   // Forward preload horizon
   static const int aheadFirstSegmentCount = 5;
+  static const int behindFirstSegmentCount = 2;
+  static const int posterAheadCount = 10;
+  static const int posterBehindCount = 10;
 
   static int readySegmentsForAheadOffset(int playableOffset) {
     if (playableOffset <= 0) {

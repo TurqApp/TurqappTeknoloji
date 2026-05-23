@@ -372,8 +372,8 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       final readySegments = _resolvedReadySegmentTarget(
         docID: focusedDocID,
         cacheManager: cacheManager,
-        fallback: 1,
-      ).clamp(1, 1);
+        fallback: HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+      );
       if (_shouldEnqueuePrefetchJob(readySegments)) {
         _queue.add(
           _PrefetchJob(
@@ -448,8 +448,21 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (docIDs.isEmpty) return;
     final safeCurrent = currentIndex.clamp(0, docIDs.length - 1);
     final currentDocId = docIDs[safeCurrent];
-    updatePriorityWindowContext(docIDs, safeCurrent);
+    final previousIndex = _lastShortCurrentIndex.clamp(0, docIDs.length - 1);
+    final directionalWindow = resolveDirectionalFeedWindowCounts(
+      previousIndex: previousIndex,
+      currentIndex: safeCurrent,
+    );
+    final priorityWindow = resolveFeedPriorityWindowContext(
+      docIDs: docIDs,
+      currentIndex: safeCurrent,
+    );
+    updatePriorityWindowContext(
+      priorityWindow.docIDs,
+      priorityWindow.currentIndex,
+    );
     _lastShortDocIDs = List<String>.from(docIDs);
+    _lastShortPreviousIndex = previousIndex;
     _lastShortCurrentIndex = safeCurrent;
     _abortStalePrefetchActivity(reason: 'short_window_update');
 
@@ -465,55 +478,30 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return;
     }
 
-    _queue.removeWhere((job) {
-      final shouldRemove = job.source != 'quota';
-      if (shouldRemove) _jobEnqueuedAt.remove(job.docID);
-      return shouldRemove;
-    });
-    final nonQuotaPendingDocIds = _pendingFollowUpJobs.entries
-        .where((entry) => entry.value.source != 'quota')
-        .map((entry) => entry.key)
-        .toList(growable: false);
-    for (final docID in nonQuotaPendingDocIds) {
-      _pendingFollowUpJobs.remove(docID);
-      _jobEnqueuedAt.remove(docID);
-    }
+    _queue.clear();
+    _pendingFollowUpJobs.clear();
+    _jobEnqueuedAt.clear();
+
+    final behindStart = (safeCurrent - directionalWindow.behindCount)
+        .clamp(0, docIDs.length - 1);
+    final aheadEnd = (safeCurrent + directionalWindow.aheadCount)
+        .clamp(0, docIDs.length - 1);
 
     final queued = <String>{};
     void addShortJob(int index, int priority) {
       if (index < 0 || index >= docIDs.length) return;
       final docID = docIDs[index];
       if (!queued.add(docID)) return;
-      final hasQuotaJob = _queue.any(
-            (job) => job.source == 'quota' && job.docID == docID,
-          ) ||
-          _pendingFollowUpJobs[docID]?.source == 'quota';
       final entry = cacheManager.getEntry(docID);
+      final readySegmentFallback = resolveFeedWindowReadySegments(
+        currentIndex: safeCurrent,
+        targetIndex: index,
+      );
       final readySegments = _resolvedReadySegmentTarget(
         docID: docID,
         cacheManager: cacheManager,
-        fallback: 1,
-      ).clamp(1, 1);
-      if (hasQuotaJob && readySegments <= 1) {
-        debugPrint(
-          '[ShortQuotaFill] status=keep_quota_first_segment '
-          'doc=$docID readySegments=$readySegments priority=$priority',
-        );
-        return;
-      }
-      var removedQuotaJob = false;
-      _queue.removeWhere((job) {
-        final shouldRemove = job.source == 'quota' && job.docID == docID;
-        if (shouldRemove) removedQuotaJob = true;
-        return shouldRemove;
-      });
-      if (_pendingFollowUpJobs[docID]?.source == 'quota') {
-        _pendingFollowUpJobs.remove(docID);
-        removedQuotaJob = true;
-      }
-      if (removedQuotaJob) {
-        _jobEnqueuedAt.remove(docID);
-      }
+        fallback: readySegmentFallback,
+      );
       if (entry != null && entry.isFullyCached) return;
       if (!_shouldEnqueuePrefetchJob(readySegments)) return;
       _queue.add(_PrefetchJob(
@@ -534,28 +522,15 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       _jobEnqueuedAt[docID] = DateTime.now();
     }
 
-    for (var i = 1; i <= _breadthCount; i++) {
-      final idx = safeCurrent + i;
-      if (idx >= docIDs.length) break;
-      addShortJob(idx, 0);
+    for (int i = safeCurrent; i <= aheadEnd; i++) {
+      final distanceAhead = i - safeCurrent;
+      final priority =
+          distanceAhead < _prefetchSchedulerFeedHardBoostCount ? 0 : 1;
+      addShortJob(i, priority);
     }
 
-    if (safeCurrent >= 0 && safeCurrent < docIDs.length) {
-      addShortJob(safeCurrent, 1);
-    }
-
-    for (var i = 1; i <= _depthCount - 1; i++) {
-      final idx = safeCurrent + i;
-      if (idx >= docIDs.length) break;
-      addShortJob(idx, 2);
-    }
-
-    for (var i = 1; i <= _prefetchSchedulerFeedRetainBehindCount; i++) {
-      final idx = safeCurrent - i;
-      if (idx < 0) break;
-      if (idx < docIDs.length) {
-        cacheManager.touchEntry(docIDs[idx]);
-      }
+    for (int i = safeCurrent - 1; i >= behindStart; i--) {
+      addShortJob(i, 1);
     }
 
     _queue.sort(_compareJobs);

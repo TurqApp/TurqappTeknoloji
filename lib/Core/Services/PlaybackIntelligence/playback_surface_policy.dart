@@ -284,9 +284,6 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required int defaultCount,
   }) {
-    if (platform == TargetPlatform.iOS) {
-      return 0;
-    }
     return defaultCount;
   }
 

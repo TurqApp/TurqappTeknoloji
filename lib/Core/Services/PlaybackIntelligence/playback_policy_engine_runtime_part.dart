@@ -59,8 +59,7 @@ PlaybackPolicySnapshot _resolvePlaybackPolicy(
       enableMobileSeedMode: false,
       startupWindowSegments: 2,
       aheadWindowSegments: 2,
-      maxConcurrentPrefetch:
-          context.cellularDataMode == DataUsageMode.low ? 2 : 3,
+      maxConcurrentPrefetch: 4,
       budgetProfile: budgetProfile,
     );
   }

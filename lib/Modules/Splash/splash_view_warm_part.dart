@@ -192,12 +192,12 @@ extension _SplashViewWarmPart on _SplashViewState {
         shorts.primeStartupReadyMagazine(
           0,
           count: _SplashViewState._mandatoryStartupVideoWarmCount,
-          minimumSegmentCount: 1,
+          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
         );
         await shorts.warmStartupFirstSegments(
           0,
           count: _SplashViewState._mandatoryStartupVideoWarmCount,
-          minimumSegmentCount: 1,
+          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
         );
         _primeShortVideoSegments(shorts);
       }
@@ -492,7 +492,8 @@ extension _SplashViewWarmPart on _SplashViewState {
           .take(_SplashViewState._mandatoryStartupVideoWarmCount)
           .toList(growable: false);
       final warmLogs = <String>[];
-      for (final post in startupWindow) {
+      for (var index = 0; index < startupWindow.length; index++) {
+        final post = startupWindow[index];
         final docId = post.docID.trim();
         final playbackUrl = post.playbackUrl.trim();
         if (cacheManager != null &&
@@ -502,11 +503,14 @@ extension _SplashViewWarmPart on _SplashViewState {
           cacheManager.cachePostCards(<PostsModel>[post]);
           cacheManager.cacheHlsEntry(docId, playbackUrl);
         }
+        final readySegments = index == 0
+            ? StartupPreloadPolicy.activeReadySegments
+            : StartupPreloadPolicy.neighborReadySegments;
         prefetch.boostDoc(
           post.docID,
-          readySegments: 1,
+          readySegments: readySegments,
         );
-        warmLogs.add('${post.docID}:segments=1');
+        warmLogs.add('${post.docID}:segments=$readySegments');
       }
       if (warmLogs.isNotEmpty) {
         debugPrint(
@@ -545,12 +549,16 @@ extension _SplashViewWarmPart on _SplashViewState {
         maxDocs: startupWindow.length,
       );
       final warmLogs = <String>[];
-      for (final post in startupWindow) {
+      for (var index = 0; index < startupWindow.length; index++) {
+        final post = startupWindow[index];
+        final readySegments = index == 0
+            ? StartupPreloadPolicy.activeReadySegments
+            : StartupPreloadPolicy.neighborReadySegments;
         prefetch.boostDoc(
           post.docID,
-          readySegments: 1,
+          readySegments: readySegments,
         );
-        warmLogs.add('${post.docID}:segments=1');
+        warmLogs.add('${post.docID}:segments=$readySegments');
       }
       if (warmLogs.isNotEmpty) {
         debugPrint(

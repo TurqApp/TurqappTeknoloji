@@ -3,27 +3,45 @@ part of 'single_short_view.dart';
 extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
   void _preloadRange(int center) {
     final len = shorts.length;
-    final start = center.clamp(0, len - 1);
-    final end = (center + 5).clamp(0, len - 1);
     _primeSingleShortPlaybackWindowReadySegments(center);
-    for (var i = start; i <= end; i++) {
-      _ensureController(i);
+
+    final safeCenter = center.clamp(0, len - 1);
+    final ensuredIndices = <int>{};
+    void ensureIndex(int index) {
+      if (index < 0 || index >= len) return;
+      if (!ensuredIndices.add(index)) return;
+      _ensureController(index);
+    }
+
+    ensureIndex(safeCenter);
+    for (var offset = 1;
+        offset <= StartupPreloadPolicy.aheadFirstSegmentCount;
+        offset++) {
+      ensureIndex(safeCenter + offset);
+    }
+    for (var offset = 1;
+        offset <= StartupPreloadPolicy.behindFirstSegmentCount;
+        offset++) {
+      ensureIndex(safeCenter - offset);
     }
   }
 
   void _primeSingleShortPlaybackWindowReadySegments(
     int anchorIndex, {
     int aheadCount = StartupPreloadPolicy.aheadFirstSegmentCount,
+    int behindCount = StartupPreloadPolicy.behindFirstSegmentCount,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    for (var offset = 0; offset <= aheadCount; offset++) {
-      final index = safeAnchor + offset;
-      if (index < 0 || index >= shorts.length) break;
+    final primedIndices = <int>{};
+
+    void primeIndex(int index) {
+      if (index < 0 || index >= shorts.length) return;
+      if (!primedIndices.add(index)) return;
       final post = shorts[index];
       final docId = post.docID.trim();
       final playbackUrl = post.playbackUrl.trim();
-      if (docId.isEmpty || playbackUrl.isEmpty) continue;
+      if (docId.isEmpty || playbackUrl.isEmpty) return;
       try {
         final cacheManager = maybeFindSegmentCacheManager();
         if (cacheManager != null && cacheManager.isReady) {
@@ -34,11 +52,19 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
       try {
         _segmentCacheRuntimeService.ensureMinimumReadySegments(
           docId,
-          minimumSegmentCount: offset == 0
+          minimumSegmentCount: index == safeAnchor
               ? StartupPreloadPolicy.activeReadySegments
               : StartupPreloadPolicy.neighborReadySegments,
         );
       } catch (_) {}
+    }
+
+    primeIndex(safeAnchor);
+    for (var offset = 1; offset <= aheadCount; offset++) {
+      primeIndex(safeAnchor + offset);
+    }
+    for (var offset = 1; offset <= behindCount; offset++) {
+      primeIndex(safeAnchor - offset);
     }
   }
 
@@ -129,8 +155,8 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
     if (list.isNotEmpty) {
       _warmFullscreenPosterWindowAround(
         initial,
-        behindCount: 0,
-        aheadCount: 5,
+        behindCount: StartupPreloadPolicy.posterBehindCount,
+        aheadCount: StartupPreloadPolicy.posterAheadCount,
       );
       _preloadRange(initial);
     }

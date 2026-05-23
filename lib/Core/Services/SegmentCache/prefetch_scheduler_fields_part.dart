@@ -29,6 +29,7 @@ class _PrefetchSchedulerState {
   int lastFeedCurrentIndex = 0;
   int lastFeedPreviousIndex = 0;
   int lastShortCurrentIndex = 0;
+  int lastShortPreviousIndex = 0;
   int lastFeedReadyCount = 0;
   int lastFeedWindowCount = 0;
   double lastFeedReadyRatio = 0.0;
@@ -100,6 +101,9 @@ extension _PrefetchSchedulerFieldsPart on PrefetchScheduler {
   set _lastFeedPreviousIndex(int value) => _state.lastFeedPreviousIndex = value;
   int get _lastShortCurrentIndex => _state.lastShortCurrentIndex;
   set _lastShortCurrentIndex(int value) => _state.lastShortCurrentIndex = value;
+  int get _lastShortPreviousIndex => _state.lastShortPreviousIndex;
+  set _lastShortPreviousIndex(int value) =>
+      _state.lastShortPreviousIndex = value;
   int get _lastFeedReadyCount => _state.lastFeedReadyCount;
   set _lastFeedReadyCount(int value) => _state.lastFeedReadyCount = value;
   int get _lastFeedWindowCount => _state.lastFeedWindowCount;

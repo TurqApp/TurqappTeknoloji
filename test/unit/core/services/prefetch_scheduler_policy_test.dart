@@ -145,6 +145,23 @@ void main() {
 
       expect(allowed, isFalse);
     });
+
+    test('uses wifi warm window sizing on cellular playback network', () {
+      expect(
+        shouldUseWifiSurfaceWarmSettings(
+          isOnWiFi: false,
+          isOnCellular: true,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldUseWifiSurfaceWarmSettings(
+          isOnWiFi: false,
+          isOnCellular: false,
+        ),
+        isFalse,
+      );
+    });
   });
 
   group('feed priority window helpers', () {
@@ -179,10 +196,10 @@ void main() {
       expect(context.currentIndex, 2);
     });
 
-    test('keeps one ready segment across the feed warm window', () {
+    test('keeps active doc deeper than adjacent feed warm window', () {
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 10),
-        1,
+        2,
       );
       expect(
         resolveFeedWindowReadySegments(currentIndex: 10, targetIndex: 11),

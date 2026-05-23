@@ -23,8 +23,10 @@ bool _shouldLogFeedOnYukleme(String key) {
 extension AgendaControllerFeedPart on AgendaController {
   static const int _startupThumbnailPrefetchInitialCount = 5;
   static const int _startupThumbnailPrefetchRadius = 5;
-  static const int _feedUpcomingPosterAheadCount = 10;
-  static const int _feedUpcomingPosterBehindCount = 10;
+  static const int _feedUpcomingPosterAheadCount =
+      StartupPreloadPolicy.posterAheadCount;
+  static const int _feedUpcomingPosterBehindCount =
+      StartupPreloadPolicy.posterBehindCount;
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
@@ -73,7 +75,7 @@ extension AgendaControllerFeedPart on AgendaController {
   int get _feedPlaybackBoostBehindForCurrentPlatform {
     return PlaybackSurfacePolicy.feedPlaybackBoostBehind(
       platform: defaultTargetPlatform,
-      defaultCount: 0,
+      defaultCount: StartupPreloadPolicy.behindFirstSegmentCount,
     );
   }
 
@@ -921,7 +923,7 @@ extension AgendaControllerFeedPart on AgendaController {
       return StartupPreloadPolicy.activeReadySegments;
     }
     if (index < centered) {
-      return 0;
+      return StartupPreloadPolicy.neighborReadySegments;
     }
     var playableOffset = 0;
     for (int candidate = centered + 1;
@@ -1302,13 +1304,20 @@ extension AgendaControllerFeedPart on AgendaController {
   void _prefetchUpcomingImages() {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
-    final start = max(0, current - _feedUpcomingPosterBehindCount);
-    final end = min(
-      agendaList.length,
-      current + _feedUpcomingPosterAheadCount + 1,
-    );
-    for (int i = start; i < end; i++) {
-      _warmPostVisuals(agendaList[i]);
+    final warmedIndices = <int>{};
+
+    void warmIndex(int index) {
+      if (index < 0 || index >= agendaList.length) return;
+      if (!warmedIndices.add(index)) return;
+      _warmPostVisuals(agendaList[index]);
+    }
+
+    warmIndex(current);
+    for (int offset = 1; offset <= _feedUpcomingPosterAheadCount; offset++) {
+      warmIndex(current + offset);
+    }
+    for (int offset = 1; offset <= _feedUpcomingPosterBehindCount; offset++) {
+      warmIndex(current - offset);
     }
   }
 

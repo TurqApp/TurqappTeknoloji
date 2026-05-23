@@ -74,8 +74,8 @@ class ShortController extends _ShortControllerBase {
 
   void warmPosterWindowAround(
     int anchorIndex, {
-    int behindCount = 1,
-    int aheadCount = 5,
+    int behindCount = StartupPreloadPolicy.posterBehindCount,
+    int aheadCount = StartupPreloadPolicy.posterAheadCount,
   }) =>
       _ShortControllerRuntimeX(this).warmPosterWindowAround(
         anchorIndex,

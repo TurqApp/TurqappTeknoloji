@@ -172,20 +172,30 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void warmPosterWindowAround(
     int anchorIndex, {
-    int behindCount = 1,
-    int aheadCount = _initialPreloadCount,
+    int behindCount = StartupPreloadPolicy.posterBehindCount,
+    int aheadCount = StartupPreloadPolicy.posterAheadCount,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final start = math.max(0, safeAnchor - behindCount);
-    final endExclusive = math.min(shorts.length, safeAnchor + aheadCount + 1);
-    for (int i = start; i < endExclusive; i++) {
-      final post = shorts[i];
-      if (!_prefetchedPosterDocIds.add(post.docID)) continue;
+    final warmedIndices = <int>{};
+
+    void warmIndex(int index) {
+      if (index < 0 || index >= shorts.length) return;
+      if (!warmedIndices.add(index)) return;
+      final post = shorts[index];
+      if (!_prefetchedPosterDocIds.add(post.docID)) return;
       _warmShortAvatar(post);
       for (final url in _posterWarmUrlsForPost(post)) {
         TurqImageCacheManager.warmUrl(url).ignore();
       }
+    }
+
+    warmIndex(safeAnchor);
+    for (int offset = 1; offset <= aheadCount; offset++) {
+      warmIndex(safeAnchor + offset);
+    }
+    for (int offset = 1; offset <= behindCount; offset++) {
+      warmIndex(safeAnchor - offset);
     }
   }
 
@@ -463,13 +473,13 @@ extension ShortControllerPublicApiPart on ShortController {
     if (shorts.isNotEmpty) {
       warmPosterWindowAround(
         _currentVisibleShortIndex(this),
-        behindCount: 0,
-        aheadCount: _initialPreloadCount,
+        behindCount: StartupPreloadPolicy.posterBehindCount,
+        aheadCount: StartupPreloadPolicy.posterAheadCount,
       );
       primeStartupReadyMagazine(
         _currentVisibleShortIndex(this),
         count: _startupReadyMagazineCount,
-        minimumSegmentCount: 1,
+        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
       );
       primePlaybackWindowReadySegments(
         _currentVisibleShortIndex(this),
@@ -479,7 +489,7 @@ extension ShortControllerPublicApiPart on ShortController {
         warmStartupFirstSegments(
           _currentVisibleShortIndex(this),
           count: _initialPreloadCount,
-          minimumSegmentCount: 1,
+          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
         ),
       );
       unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));

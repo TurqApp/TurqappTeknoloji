@@ -246,8 +246,8 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _preloadRange(currentPage);
     _warmFullscreenPosterWindowAround(
       currentPage,
-      behindCount: 1,
-      aheadCount: 5,
+      behindCount: StartupPreloadPolicy.posterBehindCount,
+      aheadCount: StartupPreloadPolicy.posterAheadCount,
     );
     _disposeOutsideRange(currentPage);
     setState(() {});

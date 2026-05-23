@@ -275,7 +275,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     }
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler == null) return;
-    if (isOnWiFi) {
+    if (currentNetwork != NetworkType.none) {
       if (scheduler.isPaused) {
         scheduler.resume();
       }

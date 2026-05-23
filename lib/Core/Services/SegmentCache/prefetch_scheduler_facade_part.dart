@@ -200,6 +200,8 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
 
     final safeCurrent =
         _lastShortCurrentIndex.clamp(0, _lastShortDocIDs.length - 1);
+    final previousIndex =
+        _lastShortPreviousIndex.clamp(0, _lastShortDocIDs.length - 1);
     final distance = targetIndex - safeCurrent;
     if (distance == 0) {
       return <String, dynamic>{
@@ -212,14 +214,43 @@ extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
       };
     }
 
-    final maxAhead = math.max(_breadthCount, _depthCount - 1);
-    if (distance > 0 && distance <= maxAhead) {
+    final scrollingBackward = safeCurrent < previousIndex;
+    final isMotionSide = scrollingBackward ? distance < 0 : distance > 0;
+    final absDistance = distance.abs();
+    final strongMotionLimit = _prefetchSchedulerFeedAheadCount;
+    final strongOppositeLimit = _prefetchSchedulerFeedBehindCount;
+    const int cacheOnlyOppositeLimit = 2;
+
+    if (isMotionSide && absDistance <= strongMotionLimit) {
       return <String, dynamic>{
         'targetIndex': targetIndex,
         'currentIndex': safeCurrent,
         'distance': distance,
-        'tier': 'ahead_prefetch',
+        'tier': 'motion_strong',
         'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    if (!isMotionSide && absDistance <= strongOppositeLimit) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'opposite_strong',
+        'allowedSegmentWarm': true,
+        'allowedCacheOnly': true,
+      };
+    }
+
+    if (!isMotionSide &&
+        absDistance <= strongOppositeLimit + cacheOnlyOppositeLimit) {
+      return <String, dynamic>{
+        'targetIndex': targetIndex,
+        'currentIndex': safeCurrent,
+        'distance': distance,
+        'tier': 'opposite_cache_only',
+        'allowedSegmentWarm': false,
         'allowedCacheOnly': true,
       };
     }

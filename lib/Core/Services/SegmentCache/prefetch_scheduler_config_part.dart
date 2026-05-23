@@ -9,10 +9,7 @@ const Map<String, String> _prefetchSchedulerCdnHeaders = {
 const int _prefetchSchedulerTargetReadySegments = 2;
 const int _prefetchSchedulerFeedLeadReadySegments = 1;
 const int _prefetchSchedulerPriorityWindowSize = 5;
-const int _prefetchSchedulerWifiMinBreadthCount = 5;
-const int _prefetchSchedulerWifiMinDepthCount = 3;
 const int _prefetchSchedulerWifiMinMaxConcurrent = 3;
-const int _prefetchSchedulerFeedRetainBehindCount = 2;
 const int _prefetchSchedulerFeedAheadCount = 5;
 const int _prefetchSchedulerFeedBehindCount = 2;
 const int _prefetchSchedulerFeedHardBoostCount = 3;
@@ -146,6 +143,14 @@ bool shouldAllowSurfacePrefetchNetwork({
     return canFetchOnDemand && canFetchPlaylist;
   }
   return canPrefetch;
+}
+
+@visibleForTesting
+bool shouldUseWifiSurfaceWarmSettings({
+  required bool isOnWiFi,
+  required bool isOnCellular,
+}) {
+  return isOnWiFi || isOnCellular;
 }
 
 @visibleForTesting
