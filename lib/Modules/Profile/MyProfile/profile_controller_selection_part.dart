@@ -609,22 +609,28 @@ extension ProfileControllerSelectionPart on ProfileController {
 
     final nextPost = mergedPosts[nextPlayableIndex]['post'];
     if (nextPost is! PostsModel) return;
-    final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(1);
-    maybeFindPrefetchScheduler()?.boostDoc(
-      nextPost.docID,
-      readySegments: readySegments,
-    );
-    for (final posterUrl in nextPost.preferredVideoPosterUrls) {
-      TurqImageCacheManager.warmUrl(posterUrl).ignore();
-    }
-    final preview = nextPost.primaryImageUrl.trim();
-    if (preview.isNotEmpty) {
-      TurqImageCacheManager.warmUrl(preview).ignore();
-    }
-    debugPrint(
-      '[ProfileNextWarm] status=boost surface=my_profile source=first_frame '
-      'anchor=$anchorIndex next=$nextPlayableIndex '
-      'doc=${nextPost.docID} segments=$readySegments',
+    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
+      surface: 'my_profile',
+      anchorKey: normalizedAnchorDocId,
+      warmNext: () {
+        const readySegments = StartupPreloadPolicy.activeReadySegments;
+        maybeFindPrefetchScheduler()?.boostDoc(
+          nextPost.docID,
+          readySegments: readySegments,
+        );
+        for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+          TurqImageCacheManager.warmUrl(posterUrl).ignore();
+        }
+        final preview = nextPost.primaryImageUrl.trim();
+        if (preview.isNotEmpty) {
+          TurqImageCacheManager.warmUrl(preview).ignore();
+        }
+        debugPrint(
+          '[ProfileNextWarm] status=boost surface=my_profile '
+          'source=playback_start anchor=$anchorIndex next=$nextPlayableIndex '
+          'doc=${nextPost.docID} segments=$readySegments',
+        );
+      },
     );
   }
 

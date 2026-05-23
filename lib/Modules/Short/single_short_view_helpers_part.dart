@@ -930,6 +930,7 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         (value.hasRenderedFirstFrame || value.isPlaying)) {
       _telemetryFirstFrame = true;
       VideoTelemetryService.instance.onFirstFrame(docId);
+      _primeImmediateNextAfterSingleShortPlaybackStart(currentPage);
     }
 
     if (value.isBuffering) {
@@ -992,6 +993,47 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         } catch (_) {}
       }
     }
+  }
+
+  void _primeImmediateNextAfterSingleShortPlaybackStart(int anchorIndex) {
+    if (shorts.isEmpty) return;
+    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
+    final nextIndex = safeAnchor + 1;
+    if (nextIndex < 0 || nextIndex >= shorts.length) return;
+    final anchorDocId = shorts[safeAnchor].docID.trim();
+    if (anchorDocId.isEmpty) return;
+    final nextPost = shorts[nextIndex];
+    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
+      surface: 'single_short',
+      anchorKey: anchorDocId,
+      warmNext: () {
+        _ensureController(nextIndex);
+        _primeSingleShortPlaybackWindowReadySegments(
+          nextIndex,
+          aheadCount: 1,
+          behindCount: 0,
+        );
+        try {
+          maybeFindPrefetchScheduler()?.boostDoc(
+            nextPost.docID,
+            readySegments: StartupPreloadPolicy.activeReadySegments,
+          );
+        } catch (_) {}
+        for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+          TurqImageCacheManager.warmUrl(posterUrl).ignore();
+        }
+        final preview = nextPost.primaryImageUrl.trim();
+        if (preview.isNotEmpty) {
+          TurqImageCacheManager.warmUrl(preview).ignore();
+        }
+        debugPrint(
+          '[ShortNextWarm] status=boost surface=single_short '
+          'source=playback_start anchor=$safeAnchor next=$nextIndex '
+          'doc=${nextPost.docID} '
+          'segments=${StartupPreloadPolicy.activeReadySegments}',
+        );
+      },
+    );
   }
 
   void _detachCompletionListener(int index, HLSVideoAdapter adapter) {

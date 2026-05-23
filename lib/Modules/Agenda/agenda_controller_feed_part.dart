@@ -841,32 +841,38 @@ extension AgendaControllerFeedPart on AgendaController {
     if (nextPlayableIndex < 0) return;
 
     final nextPost = agendaList[nextPlayableIndex];
-    final readySegments = StartupPreloadPolicy.readySegmentsForAheadOffset(1);
-    maybeFindPrefetchScheduler()?.boostDoc(
-      nextPost.docID,
-      readySegments: readySegments,
+    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
+      surface: 'feed',
+      anchorKey: normalizedAnchorDocId,
+      warmNext: () {
+        const readySegments = StartupPreloadPolicy.activeReadySegments;
+        maybeFindPrefetchScheduler()?.boostDoc(
+          nextPost.docID,
+          readySegments: readySegments,
+        );
+        _warmPostAvatar(nextPost);
+        for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+          TurqImageCacheManager.warmUrl(posterUrl).ignore();
+        }
+        final preview = nextPost.primaryImageUrl.trim();
+        if (preview.isNotEmpty) {
+          TurqImageCacheManager.warmUrl(preview).ignore();
+        }
+        debugPrint(
+          '[FeedNextWarm] status=boost source=playback_start '
+          'anchor=$anchorIndex next=$nextPlayableIndex '
+          'doc=${nextPost.docID} segments=$readySegments',
+        );
+        scheduleMicrotask(() {
+          if (isClosed || agendaList.isEmpty) return;
+          if (anchorIndex >= agendaList.length ||
+              agendaList[anchorIndex].docID != normalizedAnchorDocId) {
+            return;
+          }
+          _updateFeedPrefetchQueue(anchorIndex: anchorIndex);
+        });
+      },
     );
-    _warmPostAvatar(nextPost);
-    for (final posterUrl in nextPost.preferredVideoPosterUrls) {
-      TurqImageCacheManager.warmUrl(posterUrl).ignore();
-    }
-    final preview = nextPost.primaryImageUrl.trim();
-    if (preview.isNotEmpty) {
-      TurqImageCacheManager.warmUrl(preview).ignore();
-    }
-    debugPrint(
-      '[FeedNextWarm] status=boost source=playback_initialized '
-      'anchor=$anchorIndex next=$nextPlayableIndex '
-      'doc=${nextPost.docID} segments=$readySegments',
-    );
-    scheduleMicrotask(() {
-      if (isClosed || agendaList.isEmpty) return;
-      if (anchorIndex >= agendaList.length ||
-          agendaList[anchorIndex].docID != normalizedAnchorDocId) {
-        return;
-      }
-      _updateFeedPrefetchQueue(anchorIndex: anchorIndex);
-    });
   }
 
   List<int> _resolvePrioritizedPlayableFeedIndices({
