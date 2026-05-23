@@ -43,6 +43,38 @@ void main() {
     expect(target, 1);
   });
 
+  test('resolveEarlyForwardEntryIndex targets next playable card at 30 percent',
+      () {
+    final target = FeedPlaybackSelectionPolicy.resolveEarlyForwardEntryIndex(
+      visibleFractions: const <int, double>{
+        0: 0.70,
+        1: 0.30,
+      },
+      currentIndex: 0,
+      itemCount: 2,
+      canAutoplayIndex: (_) => true,
+    );
+
+    expect(target, 1);
+  });
+
+  test('resolveEarlyForwardEntryIndex does not skip over a non-playable card',
+      () {
+    final target = FeedPlaybackSelectionPolicy.resolveEarlyForwardEntryIndex(
+      visibleFractions: const <int, double>{
+        0: 0.34,
+        1: 0.68,
+        2: 0.35,
+        3: 0.32,
+      },
+      currentIndex: 1,
+      itemCount: 4,
+      canAutoplayIndex: (index) => index == 3,
+    );
+
+    expect(target, -1);
+  });
+
   test(
       'resolveCenteredIndex can keep dominant non-playable feed row from handing off to a neighboring video',
       () {
@@ -69,6 +101,7 @@ void main() {
     expect(FeedPlaybackSelectionPolicy.stopThreshold, 0.25);
     expect(FeedPlaybackSelectionPolicy.secondaryThreshold, 0.50);
     expect(FeedPlaybackSelectionPolicy.switchRetentionThreshold, 0.52);
+    expect(FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold, 0.30);
     expect(
       FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
       const Duration(milliseconds: 100),

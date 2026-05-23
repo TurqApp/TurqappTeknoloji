@@ -49,6 +49,9 @@ class FeedPlaybackSelectionPolicy {
 
   static double get switchDominanceMargin => _isAndroidPlatform ? 0.12 : 0.12;
 
+  static double get earlyForwardEntryThreshold =>
+      _isAndroidPlatform ? 0.30 : 0.30;
+
   static Duration get scrollSettleReassertDuration => _isAndroidPlatform
       ? const Duration(milliseconds: 140)
       : const Duration(milliseconds: 100);
@@ -306,6 +309,23 @@ class FeedPlaybackSelectionPolicy {
           currentIndex != targetIndex || !isPlaybackTargetCurrent(targetIndex),
       shouldPauseAll: false,
     );
+  }
+
+  static int resolveEarlyForwardEntryIndex({
+    required Map<int, double> visibleFractions,
+    required int currentIndex,
+    required int itemCount,
+    required bool Function(int index) canAutoplayIndex,
+    double? threshold,
+  }) {
+    if (itemCount <= 0 || currentIndex < 0 || currentIndex >= itemCount) {
+      return -1;
+    }
+    final entryThreshold = threshold ?? earlyForwardEntryThreshold;
+    final nextIndex = currentIndex + 1;
+    if (nextIndex >= itemCount || !canAutoplayIndex(nextIndex)) return -1;
+    final nextFraction = visibleFractions[nextIndex] ?? 0.0;
+    return nextFraction >= entryThreshold ? nextIndex : -1;
   }
 
   static int _findFirstPlayableIndex({

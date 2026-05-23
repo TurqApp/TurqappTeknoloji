@@ -1,6 +1,43 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
+  bool _applyEarlyForwardFeedPlaybackTarget() {
+    if (_qaScrollStartedAt == null) return false;
+    if (!scrollController.hasClients) return false;
+    if (scrollController.offset <= _qaScrollStartOffset + 1.0) return false;
+
+    final current = centeredIndex.value;
+    final targetIndex =
+        FeedPlaybackSelectionPolicy.resolveEarlyForwardEntryIndex(
+      visibleFractions: _visibleFractions,
+      currentIndex: current,
+      itemCount: agendaList.length,
+      canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
+    );
+    if (targetIndex < 0 || targetIndex >= agendaList.length) return false;
+
+    final targetFraction = _visibleFractions[targetIndex] ?? 0.0;
+    debugPrint(
+      '[FeedPlaybackDecision] action=early_forward_entry '
+      'current=$current target=$targetIndex '
+      'fraction=${targetFraction.toStringAsFixed(3)} '
+      'threshold=${FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold.toStringAsFixed(3)} '
+      'offset=${scrollController.offset.toStringAsFixed(1)} '
+      'start=${_qaScrollStartOffset.toStringAsFixed(1)}',
+    );
+    final centeredChanged = centeredIndex.value != targetIndex;
+    if (centeredChanged) {
+      centeredIndex.value = targetIndex;
+      _notifyPlaybackRowUpdates(targetIndex);
+    }
+    if (centeredChanged || !_isPlaybackTargetCurrent(targetIndex)) {
+      _ensureFeedPlaybackForIndex(targetIndex);
+    }
+    lastCenteredIndex = targetIndex;
+    _trackPlaybackWindow();
+    return true;
+  }
+
   bool _retainVisibleCurrentFeedOwner({
     required double stopThreshold,
   }) {
@@ -189,6 +226,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
+    if (_applyEarlyForwardFeedPlaybackTarget()) {
+      return;
+    }
     if (_retainVisibleCurrentFeedOwner(stopThreshold: stopThreshold)) {
       return;
     }
