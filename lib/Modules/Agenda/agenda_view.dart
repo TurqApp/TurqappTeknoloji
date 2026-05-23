@@ -53,6 +53,8 @@ class AgendaView extends StatelessWidget {
   static bool _primarySurfaceBootstrapQueued = false;
   static int _feedRefreshInvocationCount = 0;
   static bool _feedRefreshInteractionInFlight = false;
+  static const Duration _feedRefreshCooldown = Duration(seconds: 3);
+  static DateTime? _lastFeedRefreshCompletedAt;
   static final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
       GlobalKey<RefreshIndicatorState>();
 
@@ -62,6 +64,9 @@ class AgendaView extends StatelessWidget {
   static Future<bool> showFeedRefreshIndicator() async {
     if (_feedRefreshInteractionInFlight) {
       debugPrint('[FeedRefreshGuard] status=skip_indicator_in_flight');
+      return true;
+    }
+    if (_isFeedRefreshCooldownActive(source: 'show_indicator')) {
       return true;
     }
     final state = _refreshIndicatorKey.currentState;
@@ -81,16 +86,40 @@ class AgendaView extends StatelessWidget {
       );
       return;
     }
+    if (_isFeedRefreshCooldownActive(source: source)) {
+      return;
+    }
+    final startedAt = DateTime.now();
     _feedRefreshInteractionInFlight = true;
     try {
       await action();
     } finally {
       _feedRefreshInteractionInFlight = false;
+      _lastFeedRefreshCompletedAt = DateTime.now();
+      final elapsedMs =
+          _lastFeedRefreshCompletedAt!.difference(startedAt).inMilliseconds;
+      debugPrint(
+        '[FeedRefreshGuard] status=interaction_done source=$source '
+        'elapsedMs=$elapsedMs cooldownMs=${_feedRefreshCooldown.inMilliseconds}',
+      );
     }
   }
 
   static void markFeedRefreshIndicatorInvoked() {
     _feedRefreshInvocationCount += 1;
+  }
+
+  static bool _isFeedRefreshCooldownActive({required String source}) {
+    final completedAt = _lastFeedRefreshCompletedAt;
+    if (completedAt == null) return false;
+    final elapsed = DateTime.now().difference(completedAt);
+    final remaining = _feedRefreshCooldown - elapsed;
+    if (remaining.inMilliseconds <= 0) return false;
+    debugPrint(
+      '[FeedRefreshGuard] status=skip_cooldown source=$source '
+      'remainingMs=${remaining.inMilliseconds}',
+    );
+    return true;
   }
 
   AgendaController get controller {
