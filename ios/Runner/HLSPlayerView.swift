@@ -23,7 +23,7 @@ private final class PlayerContainerView: UIView {
         super.init(frame: frame)
         snapshotView.contentMode = .scaleAspectFill
         snapshotView.clipsToBounds = true
-        snapshotView.backgroundColor = .black
+        snapshotView.backgroundColor = .clear
         snapshotView.isHidden = true
         addSubview(snapshotView)
     }
@@ -149,8 +149,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         playbackHealthMonitor = PlaybackHealthMonitor(
             tag: "AVPlaybackHealth[\(viewId)]"
         )
-        _view.backgroundColor = .black
-        _view.isOpaque = true
+        _view.backgroundColor = .clear
+        _view.isOpaque = false
 
         super.init()
 
@@ -314,9 +314,10 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         // Create player layer
         playerLayer = AVPlayerLayer(player: player)
         playerLayer?.videoGravity = .resizeAspectFill
-        playerLayer?.backgroundColor = UIColor.black.cgColor
+        playerLayer?.backgroundColor = UIColor.clear.cgColor
         playerLayer?.needsDisplayOnBoundsChange = true
         playerLayer?.frame = _view.bounds
+        playerLayer?.isHidden = true
 
         if let playerLayer = playerLayer {
             _view.layer.insertSublayer(playerLayer, at: 0)
@@ -948,7 +949,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             CATransaction.setDisableActions(true)
             if let playerLayer = self.playerLayer {
                 playerLayer.player = self.player
-                playerLayer.isHidden = false
+                playerLayer.isHidden = !self.hasRenderablePlayerFrame()
                 playerLayer.frame = self._view.bounds
                 let needsAttach = playerLayer.superlayer == nil || playerLayer.superlayer !== self._view.layer
                 if needsAttach {
@@ -977,6 +978,8 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
             DispatchQueue.main.async {
                 guard layer.isReadyForDisplay, !self.didRenderFirstFrame else { return }
                 self.didRenderFirstFrame = true
+                self.playerLayer?.isHidden = false
+                self.setNativeSurfaceVisible(true, source: "firstFrame")
                 self.log("firstFrame url=\(self.currentUrl ?? "-")")
                 self.logVisualCheckpoint("firstFrame")
                 self.playbackHealthMonitor.onFirstFrameRendered()
@@ -1102,12 +1105,18 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastNativeVisualPhaseAtEpochMs = 0
     }
 
+    private func hasRenderablePlayerFrame() -> Bool {
+        didRenderFirstFrame || playerLayer?.isReadyForDisplay == true
+    }
+
     private func setNativeSurfaceVisible(_ visible: Bool, source: String) {
         if _view.isHidden != !visible {
             log("nativeSurfaceVisibility visible=\(visible) source=\(source) url=\(currentUrl ?? "-")")
         }
         _view.isHidden = !visible
         if !visible {
+            playerLayer?.isHidden = true
+        } else if !hasRenderablePlayerFrame() {
             playerLayer?.isHidden = true
         }
     }
