@@ -338,10 +338,29 @@ class PostsModel {
       urls.add(normalized);
     }
 
-    addUrl(thumbnail);
-    if (canonicalImageUrls.isNotEmpty) {
-      addUrl(canonicalImageUrls.first);
+    final selfPosterCandidates = hasVideoSignal
+        ? CdnUrlBuilder.buildThumbnailUrlCandidates(docID)
+            .map((url) => CdnUrlBuilder.toCdnUrl(url).trim())
+            .where((url) => url.isNotEmpty)
+            .toSet()
+        : const <String>{};
+
+    bool isSelfPosterCandidate(String url) {
+      final normalized = CdnUrlBuilder.toCdnUrl(url).trim();
+      return normalized.isNotEmpty && selfPosterCandidates.contains(normalized);
     }
+
+    final sourcePosterCandidates = <String>[];
+    final mediaPosterCandidates = <String>[];
+
+    void collectPosterCandidates(List<String> target, Iterable<String> values) {
+      for (final value in values) {
+        final normalized = CdnUrlBuilder.toCdnUrl(value).trim();
+        if (normalized.isEmpty || target.contains(normalized)) continue;
+        target.add(normalized);
+      }
+    }
+
     if (hasVideoSignal) {
       final sourcePostIds = <String>[
         originalPostID,
@@ -353,25 +372,42 @@ class PostsModel {
         if (normalizedSourcePostId.isEmpty || normalizedSourcePostId == docID) {
           continue;
         }
-        for (final candidate in CdnUrlBuilder.buildThumbnailUrlCandidates(
-          normalizedSourcePostId,
-        )) {
+        collectPosterCandidates(
+          sourcePosterCandidates,
+          CdnUrlBuilder.buildThumbnailUrlCandidates(normalizedSourcePostId),
+        );
+      }
+      collectPosterCandidates(
+        mediaPosterCandidates,
+        CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(hlsMasterUrl),
+      );
+      collectPosterCandidates(
+        mediaPosterCandidates,
+        CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(video),
+      );
+    }
+
+    final thumbnailIsSpeculativeSelfCandidate =
+        isSelfPosterCandidate(thumbnail) &&
+            [...sourcePosterCandidates, ...mediaPosterCandidates]
+                .any((url) => !isSelfPosterCandidate(url));
+    if (!thumbnailIsSpeculativeSelfCandidate) {
+      addUrl(thumbnail);
+    }
+    if (canonicalImageUrls.isNotEmpty) {
+      addUrl(canonicalImageUrls.first);
+    }
+    if (hasVideoSignal) {
+      for (final candidate in sourcePosterCandidates) {
+        addUrl(candidate);
+      }
+      for (final candidate in mediaPosterCandidates) {
+        addUrl(candidate);
+      }
+      if (urls.isEmpty) {
+        for (final candidate in selfPosterCandidates) {
           addUrl(candidate);
         }
-      }
-      for (final candidate
-          in CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(
-        hlsMasterUrl,
-      )) {
-        addUrl(candidate);
-      }
-      for (final candidate
-          in CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(video)) {
-        addUrl(candidate);
-      }
-      for (final candidate
-          in CdnUrlBuilder.buildThumbnailUrlCandidates(docID)) {
-        addUrl(candidate);
       }
     }
     return urls;
