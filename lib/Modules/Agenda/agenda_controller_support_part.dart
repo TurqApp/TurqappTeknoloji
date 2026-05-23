@@ -148,13 +148,36 @@ extension AgendaControllerSupportPart on AgendaController {
   }
 
   bool get canClaimPlaybackNow {
+    return _canClaimFeedPlayback();
+  }
+
+  bool _canClaimFeedPlayback({
+    bool allowFeedRefreshInFlight = false,
+    int? targetIndex,
+    String? targetDocId,
+  }) {
     final nav = maybeFindNavBarController();
     if (nav != null && nav.selectedIndex.value != 0) return false;
     if (nav?.mediaOverlayActive ?? false) return false;
-    if (_feedRefreshInFlight) return false;
     if (pauseAll.value) return false;
     if (playbackSuspended.value) return false;
     if (!isPrimaryFeedRouteVisible) return false;
+    if (_feedRefreshInFlight) {
+      if (!allowFeedRefreshInFlight ||
+          defaultTargetPlatform != TargetPlatform.iOS) {
+        return false;
+      }
+      final index = targetIndex;
+      final docId = targetDocId?.trim() ?? '';
+      if (index == null ||
+          index < 0 ||
+          index >= agendaList.length ||
+          docId.isEmpty ||
+          centeredIndex.value != index ||
+          agendaList[index].docID != docId) {
+        return false;
+      }
+    }
     return true;
   }
 

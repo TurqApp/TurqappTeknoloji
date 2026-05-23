@@ -528,7 +528,6 @@ extension ClassicContentBodyPart on _ClassicContentState {
     final frameAspectRatio =
         _isIzBirakPost ? 0.92 : _resolvedClassicFrameAspectRatio;
     const preferWarmPoolPauseOnAndroid = false;
-    final showInlinePlayer = videoController != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -555,6 +554,10 @@ extension ClassicContentBodyPart on _ClassicContentState {
                     instanceTag.startsWith('explore_series_') ||
                     instanceTag.startsWith('top_tag_') ||
                     instanceTag.startsWith('tag_post_');
+                final mountInlinePlayer = videoController != null &&
+                    (defaultTargetPlatform != TargetPlatform.iOS ||
+                        !isFeedStyleInlineSurface ||
+                        shouldAutoResumeInlinePlatformView);
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -565,7 +568,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                         right: 8,
                         child: buildUploadIndicator(),
                       ),
-                    ] else if (showInlinePlayer) ...[
+                    ] else if (mountInlinePlayer) ...[
                       IgnorePointer(
                         ignoring: true,
                         child: _isFullscreen
@@ -584,7 +587,6 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                         shouldSuppressGenericResumeThumbnail) ||
                                     (isProfileFamilySurface &&
                                         !isSocialProfileSurface),
-                                suppressPauseSnapshot: isFeedStyleInlineSurface,
                                 startupRecoveryWatchdogEnabled:
                                     shouldEnableStartupRecoveryWatchdog,
                                 preferStableStartupBuffer: PlaybackSurfacePolicy

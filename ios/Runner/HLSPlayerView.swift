@@ -212,6 +212,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         if let suppressPauseSnapshot = suppressPauseSnapshot {
             self.suppressPauseSnapshot = suppressPauseSnapshot
         }
+        setNativeSurfaceVisible(isAutoPlay, source: "loadVideo")
         let previousUrl = currentUrl ?? "-"
         let isSameUrl = currentUrl == url
         log(
@@ -336,6 +337,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Player Controls
     func play() {
+        setNativeSurfaceVisible(true, source: "play")
         log("play url=\(currentUrl ?? "-")")
         logVisualCheckpoint("play:entry")
         let now = CACurrentMediaTime()
@@ -508,9 +510,11 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         didRequestInitialPlay = false
         isAutoPlay = false
         if showOverlay && !suppressPauseSnapshot {
+            setNativeSurfaceVisible(true, source: "stopPlayback_snapshot")
             captureCurrentFrameSnapshot(showOverlay: true)
         } else {
             clearFrameSnapshot()
+            setNativeSurfaceVisible(false, source: "stopPlayback_no_overlay")
         }
 
         // Time observer kaldır
@@ -933,6 +937,13 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
     private func refreshPlayerLayer(forceReattach: Bool = false) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            let shouldShowSurface =
+                self.hasNativePlayIntent() ||
+                !self._view.snapshotView.isHidden
+            self.setNativeSurfaceVisible(
+                shouldShowSurface,
+                source: "refreshPlayerLayer"
+            )
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             if let playerLayer = self.playerLayer {
@@ -1091,6 +1102,16 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         lastNativeVisualPhaseAtEpochMs = 0
     }
 
+    private func setNativeSurfaceVisible(_ visible: Bool, source: String) {
+        if _view.isHidden != !visible {
+            log("nativeSurfaceVisibility visible=\(visible) source=\(source) url=\(currentUrl ?? "-")")
+        }
+        _view.isHidden = !visible
+        if !visible {
+            playerLayer?.isHidden = true
+        }
+    }
+
     private func recordNativeVisualPhase(
         phase: String,
         source: String
@@ -1199,6 +1220,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
         // Remove layer
         playerLayer?.removeFromSuperlayer()
+        setNativeSurfaceVisible(preserveFrameSnapshot, source: "cleanup")
 
         // Nullify references
         videoOutput = nil

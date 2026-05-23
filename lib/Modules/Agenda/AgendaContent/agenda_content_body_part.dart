@@ -313,12 +313,16 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                               instanceTag.startsWith(
                                                 'tag_post_',
                                               );
-                                      final showInlinePlayer =
-                                          videoController != null;
+                                      final mountInlinePlayer = videoController !=
+                                              null &&
+                                          (defaultTargetPlatform !=
+                                                  TargetPlatform.iOS ||
+                                              !isFeedStyleInlineSurface ||
+                                              shouldAutoResumeInlinePlatformView);
                                       return Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          !showInlinePlayer || _isFullscreen
+                                          !mountInlinePlayer || _isFullscreen
                                               ? const SizedBox.shrink()
                                               : videoController!.buildPlayer(
                                                   key: ValueKey(
@@ -338,8 +342,6 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                               shouldSuppressGenericResumeThumbnail) ||
                                                           (isProfileFamilySurface &&
                                                               !isSocialProfileSurface),
-                                                  suppressPauseSnapshot:
-                                                      isFeedStyleInlineSurface,
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:

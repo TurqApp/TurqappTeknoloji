@@ -405,17 +405,10 @@ extension AgendaControllerFeedPart on AgendaController {
     return agendaList.indexWhere((post) => post.docID == lockedDocId);
   }
 
-  void _ensureFeedPlaybackForIndex(int index) {
-    if (!canClaimPlaybackNow) {
-      debugPrint(
-        '[FeedPlaybackDecision] action=ensure_skip reason=cannot_claim '
-        'index=$index route=${Get.currentRoute} '
-        'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1} '
-        'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
-        'refresh=$_feedRefreshInFlight primary=$isPrimaryFeedRouteVisible',
-      );
-      return;
-    }
+  void _ensureFeedPlaybackForIndex(
+    int index, {
+    bool allowDuringFeedRefresh = false,
+  }) {
     if (index < 0 || index >= agendaList.length) {
       debugPrint(
         '[FeedPlaybackDecision] action=ensure_skip reason=index_out_of_range '
@@ -424,6 +417,28 @@ extension AgendaControllerFeedPart on AgendaController {
       return;
     }
     final post = agendaList[index];
+    final canClaim = _canClaimFeedPlayback(
+      allowFeedRefreshInFlight: allowDuringFeedRefresh,
+      targetIndex: index,
+      targetDocId: post.docID,
+    );
+    if (!canClaim) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=ensure_skip reason=cannot_claim '
+        'index=$index route=${Get.currentRoute} '
+        'nav=${maybeFindNavBarController()?.selectedIndex.value ?? -1} '
+        'pauseAll=${pauseAll.value} suspended=${playbackSuspended.value} '
+        'refresh=$_feedRefreshInFlight primary=$isPrimaryFeedRouteVisible '
+        'allowRefreshClaim=$allowDuringFeedRefresh',
+      );
+      return;
+    }
+    if (_feedRefreshInFlight && allowDuringFeedRefresh) {
+      debugPrint(
+        '[FeedPlaybackDecision] action=ensure_allow reason=refresh_target_claim '
+        'index=$index doc=${post.docID}',
+      );
+    }
     if (!_canAutoplayVideoPost(post)) {
       debugPrint(
         '[FeedPlaybackDecision] action=ensure_skip reason=not_playable '
@@ -1230,9 +1245,9 @@ extension AgendaControllerFeedPart on AgendaController {
     return true;
   }
 
-  void resumeFeedPlayback() {
-    if (!canClaimPlaybackNow) return;
+  void resumeFeedPlayback({bool allowDuringFeedRefresh = false}) {
     if (agendaList.isEmpty) return;
+    if (!allowDuringFeedRefresh && !canClaimPlaybackNow) return;
 
     pauseAll.value = false;
     final pendingCenteredDocId = _pendingCenteredDocId?.trim() ?? '';
@@ -1248,6 +1263,14 @@ extension AgendaControllerFeedPart on AgendaController {
     );
 
     if (target < 0 || target >= agendaList.length) return;
+    final targetPost = agendaList[target];
+    if (!_canClaimFeedPlayback(
+      allowFeedRefreshInFlight: allowDuringFeedRefresh,
+      targetIndex: target,
+      targetDocId: targetPost.docID,
+    )) {
+      return;
+    }
     lastCenteredIndex = target;
     final centeredChanged = centeredIndex.value != target;
     if (centeredChanged) {
@@ -1267,7 +1290,10 @@ extension AgendaControllerFeedPart on AgendaController {
     );
 
     if (!centeredChanged) {
-      _ensureFeedPlaybackForIndex(target);
+      _ensureFeedPlaybackForIndex(
+        target,
+        allowDuringFeedRefresh: allowDuringFeedRefresh,
+      );
     }
   }
 
@@ -1393,15 +1419,22 @@ extension AgendaControllerFeedPart on AgendaController {
     required String docId,
     required VideoStateManager manager,
     int attempt = 0,
+    bool allowDuringFeedRefresh = false,
   }) {
     _playbackReassertTimer?.cancel();
     _playbackReassertTimer = Timer(
       _playbackReassertDelayForAttempt(attempt),
       () {
-        if (!canClaimPlaybackNow) return;
         if (centeredIndex.value != index) return;
         if (index < 0 || index >= agendaList.length) return;
         if (agendaList[index].docID != docId) return;
+        if (!_canClaimFeedPlayback(
+          allowFeedRefreshInFlight: allowDuringFeedRefresh,
+          targetIndex: index,
+          targetDocId: docId,
+        )) {
+          return;
+        }
         final playbackKey = _feedPlaybackHandleKeyForDoc(docId);
         if (manager.isPlaybackTargetActive(playbackKey)) return;
         final pendingPlay = manager.hasPendingPlayFor(playbackKey);
@@ -1418,6 +1451,7 @@ extension AgendaControllerFeedPart on AgendaController {
               docId: docId,
               manager: manager,
               attempt: attempt + 1,
+              allowDuringFeedRefresh: allowDuringFeedRefresh,
             );
           }
           return;
@@ -1447,6 +1481,7 @@ extension AgendaControllerFeedPart on AgendaController {
             docId: docId,
             manager: manager,
             attempt: attempt + 1,
+            allowDuringFeedRefresh: allowDuringFeedRefresh,
           );
         }
       },

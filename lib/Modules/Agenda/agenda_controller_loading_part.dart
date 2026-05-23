@@ -564,11 +564,15 @@ extension AgendaControllerLoadingPart on AgendaController {
           if (isClosed ||
               agendaList.isEmpty ||
               _feedMutationEpoch != expectedEpoch ||
-              !canClaimPlaybackNow ||
               centeredIndex.value != targetIndex ||
               targetIndex < 0 ||
               targetIndex >= agendaList.length ||
-              agendaList[targetIndex].docID != targetDocId) {
+              agendaList[targetIndex].docID != targetDocId ||
+              !_canClaimFeedPlayback(
+                allowFeedRefreshInFlight: true,
+                targetIndex: targetIndex,
+                targetDocId: targetDocId,
+              )) {
             return;
           }
           final manager = VideoStateManager.instance;
@@ -580,7 +584,10 @@ extension AgendaControllerLoadingPart on AgendaController {
               'targetIndex=$targetIndex targetDocId=$targetDocId '
               'currentOwner=$currentOwner',
             );
-            _ensureFeedPlaybackForIndex(targetIndex);
+            _ensureFeedPlaybackForIndex(
+              targetIndex,
+              allowDuringFeedRefresh: true,
+            );
             return;
           }
           final resumed = manager.resumeCurrentPlaybackIfReady(playbackKey);
@@ -591,7 +598,10 @@ extension AgendaControllerLoadingPart on AgendaController {
             'resumed=$resumed currentOwner=$currentOwner',
           );
           if (!resumed) {
-            _ensureFeedPlaybackForIndex(targetIndex);
+            _ensureFeedPlaybackForIndex(
+              targetIndex,
+              allowDuringFeedRefresh: true,
+            );
           }
         });
       }
@@ -606,7 +616,15 @@ extension AgendaControllerLoadingPart on AgendaController {
       if (pauseAll.value) {
         pauseAll.value = false;
       }
-      if (!canClaimPlaybackNow) {
+      final targetIndex = centeredIndex.value;
+      final canClaimRefreshTarget = targetIndex >= 0 &&
+          targetIndex < agendaList.length &&
+          _canClaimFeedPlayback(
+            allowFeedRefreshInFlight: true,
+            targetIndex: targetIndex,
+            targetDocId: agendaList[targetIndex].docID,
+          );
+      if (!canClaimRefreshTarget) {
         debugPrint(
           '[FeedRefreshResume] status=skip_claim_blocked '
           'source=$source '
@@ -617,8 +635,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         );
         return;
       }
-      resumeFeedPlayback();
-      final targetIndex = centeredIndex.value;
+      resumeFeedPlayback(allowDuringFeedRefresh: true);
       if (targetIndex < 0 || targetIndex >= agendaList.length) {
         debugPrint(
           '[FeedRefreshResume] status=skip_no_target '
@@ -643,7 +660,10 @@ extension AgendaControllerLoadingPart on AgendaController {
         keepWarmFor: const Duration(milliseconds: 1400),
         reason: source,
       );
-      _ensureFeedPlaybackForIndex(targetIndex);
+      _ensureFeedPlaybackForIndex(
+        targetIndex,
+        allowDuringFeedRefresh: true,
+      );
       scheduleRefreshLeadPlaybackReassert(
         targetIndex: targetIndex,
         targetDocId: targetPost.docID,
@@ -656,6 +676,7 @@ extension AgendaControllerLoadingPart on AgendaController {
           index: targetIndex,
           docId: targetPost.docID,
           manager: VideoStateManager.instance,
+          allowDuringFeedRefresh: true,
         );
       }
     }

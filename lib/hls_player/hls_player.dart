@@ -119,7 +119,8 @@ class _HLSPlayerState extends State<HLSPlayer> {
         'autoPlay=${widget.autoPlay} '
         'loop=${widget.loop} '
         'primaryFeed=${widget.isPrimaryFeedSurface} '
-        'preferResumePoster=${widget.preferResumePoster}',
+        'preferResumePoster=${widget.preferResumePoster} '
+        'suppressPauseSnapshot=false',
       );
     }
     await widget.controller.loadVideo(
@@ -127,7 +128,7 @@ class _HLSPlayerState extends State<HLSPlayer> {
       autoPlay: widget.autoPlay,
       loop: widget.loop,
       preferResumePoster: widget.preferResumePoster,
-      suppressPauseSnapshot: widget.suppressPauseSnapshot,
+      suppressPauseSnapshot: false,
       debugSource: 'HLSPlayer.$reason',
     );
   }
