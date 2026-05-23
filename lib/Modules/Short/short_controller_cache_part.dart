@@ -28,8 +28,6 @@ extension ShortControllerCachePart on ShortController {
       StartupPreloadPolicy.startupWarmCount;
   static const int _onYuklemeAheadFirstSegmentCount =
       StartupPreloadPolicy.aheadFirstSegmentCount;
-  static const int _onYuklemeBehindFirstSegmentCount =
-      StartupPreloadPolicy.behindFirstSegmentCount;
   static const int _onYuklemeActiveReadySegments =
       StartupPreloadPolicy.activeReadySegments;
 
@@ -78,7 +76,6 @@ extension ShortControllerCachePart on ShortController {
   void primeOnYuklemeWindow(
     int anchorIndex, {
     int maxAheadPlayableCount = _onYuklemeAheadFirstSegmentCount,
-    int behindPlayableCount = _onYuklemeBehindFirstSegmentCount,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
@@ -103,18 +100,6 @@ extension ShortControllerCachePart on ShortController {
         'idx=$targetIndex offset=$offset doc=${shorts[targetIndex].docID} segments=$readySegments',
       );
     }
-    final safeBehindPlayableCount = math.max(0, behindPlayableCount);
-    for (int offset = 1; offset <= safeBehindPlayableCount; offset++) {
-      final targetIndex = safeAnchor - offset;
-      if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      _ensureReadySegmentsForIndex(
-        targetIndex,
-        minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
-      );
-      warmLogs.add(
-        'idx=$targetIndex offset=-$offset doc=${shorts[targetIndex].docID} segments=${StartupPreloadPolicy.neighborReadySegments}',
-      );
-    }
     final logMessage =
         '[ShortOnYukleme] reason=window anchor=$safeAnchor entries=${warmLogs.join(' | ')}';
     if (_shouldLogShortOnYukleme('window:$safeAnchor')) {
@@ -131,11 +116,8 @@ extension ShortControllerCachePart on ShortController {
     );
     final warmLogs = <String>[];
     for (int i = safeAnchor; i < endExclusive; i++) {
-      final readySegments = i == safeAnchor
-          ? StartupPreloadPolicy.activeReadySegments
-          : StartupPreloadPolicy.neighborReadySegments;
-      _ensureReadySegmentsForIndex(i, minimumSegmentCount: readySegments);
-      warmLogs.add('idx=$i doc=${shorts[i].docID} segments=$readySegments');
+      _ensureReadySegmentsForIndex(i, minimumSegmentCount: 1);
+      warmLogs.add('idx=$i doc=${shorts[i].docID} segments=1');
     }
     final logMessage =
         '[ShortOnYukleme] reason=startup anchor=$safeAnchor entries=${warmLogs.join(' | ')}';
@@ -149,30 +131,13 @@ extension ShortControllerCachePart on ShortController {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     final nextIndex = safeAnchor + 1;
     if (nextIndex < 0 || nextIndex >= shorts.length) return;
-    final anchorDocId = shorts[safeAnchor].docID.trim();
-    if (anchorDocId.isEmpty) return;
-    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
-      surface: 'short',
-      anchorKey: anchorDocId,
-      warmNext: () {
-        _ensureReadySegmentsForIndex(
-          nextIndex,
-          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
-        );
-        for (final posterUrl in shorts[nextIndex].preferredVideoPosterUrls) {
-          TurqImageCacheManager.warmUrl(posterUrl).ignore();
-        }
-        final preview = shorts[nextIndex].primaryImageUrl.trim();
-        if (preview.isNotEmpty) {
-          TurqImageCacheManager.warmUrl(preview).ignore();
-        }
-        debugPrint(
-          '[ShortNextWarm] status=boost source=playback_start '
-          'anchor=$safeAnchor next=$nextIndex '
-          'doc=${shorts[nextIndex].docID} '
-          'segments=${StartupPreloadPolicy.activeReadySegments}',
-        );
-      },
+    _ensureReadySegmentsForIndex(
+      nextIndex,
+      minimumSegmentCount: 1,
+    );
+    debugPrint(
+      '[ShortNextWarm] status=boost source=first_frame '
+      'anchor=$safeAnchor next=$nextIndex doc=${shorts[nextIndex].docID}',
     );
   }
 
@@ -319,7 +284,7 @@ extension ShortControllerCachePart on ShortController {
     final isImmediateForwardNeighbor = neighborIndex == safeActiveIndex + 1;
     _ensureReadySegmentsForIndex(
       neighborIndex,
-      minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+      minimumSegmentCount: 1,
     );
 
     final activeAdapter = cache[safeActiveIndex];
@@ -368,12 +333,9 @@ extension ShortControllerCachePart on ShortController {
     final hotIndices = window.hotIndices;
     final warmIndices = window.warmIndices;
     for (final i in hotIndices) {
-      final readySegments = i == currentIndex
-          ? StartupPreloadPolicy.activeReadySegments
-          : StartupPreloadPolicy.neighborReadySegments;
       _ensureReadySegmentsForIndex(
         i,
-        minimumSegmentCount: readySegments,
+        minimumSegmentCount: 1,
       );
     }
 
@@ -476,7 +438,7 @@ extension ShortControllerCachePart on ShortController {
   Future<void> warmStartupFirstSegments(
     int anchorIndex, {
     int count = _startupFirstVideoWindowCount,
-    int minimumSegmentCount = StartupPreloadPolicy.activeReadySegments,
+    int minimumSegmentCount = 1,
   }) async {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
@@ -484,12 +446,9 @@ extension ShortControllerCachePart on ShortController {
     final futures = <Future<void>>[];
 
     for (int i = safeAnchor; i < endExclusive; i++) {
-      final readySegments = i == safeAnchor
-          ? minimumSegmentCount
-          : StartupPreloadPolicy.neighborReadySegments;
       _ensureReadySegmentsForIndex(
         i,
-        minimumSegmentCount: readySegments,
+        minimumSegmentCount: minimumSegmentCount,
       );
 
       final existing = cache[i];
@@ -529,19 +488,16 @@ extension ShortControllerCachePart on ShortController {
   void primeStartupReadyMagazine(
     int anchorIndex, {
     int count = _startupReadyMagazineCount,
-    int minimumSegmentCount = StartupPreloadPolicy.activeReadySegments,
+    int minimumSegmentCount = 1,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     final safeCount = count.clamp(1, shorts.length);
     final endExclusive = math.min(shorts.length, safeAnchor + safeCount);
     for (int i = safeAnchor; i < endExclusive; i++) {
-      final readySegments = i == safeAnchor
-          ? minimumSegmentCount
-          : StartupPreloadPolicy.neighborReadySegments;
       _ensureReadySegmentsForIndex(
         i,
-        minimumSegmentCount: readySegments,
+        minimumSegmentCount: minimumSegmentCount,
       );
     }
   }
@@ -549,7 +505,7 @@ extension ShortControllerCachePart on ShortController {
   void primeForwardReadyMagazine(
     int anchorIndex, {
     int aheadCount = _startupReadyMagazineCount,
-    int minimumSegmentCount = StartupPreloadPolicy.activeReadySegments,
+    int minimumSegmentCount = 1,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
@@ -562,7 +518,7 @@ extension ShortControllerCachePart on ShortController {
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
       _ensureReadySegmentsForIndex(
         targetIndex,
-        minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+        minimumSegmentCount: 1,
       );
     }
     primeOnYuklemeWindow(
@@ -574,9 +530,9 @@ extension ShortControllerCachePart on ShortController {
   void primePlaybackWindowReadySegments(
     int anchorIndex, {
     int minimumSegmentCount = _shortActiveReadySegments,
-    int aheadCount = StartupPreloadPolicy.aheadFirstSegmentCount,
-    int hotBehindCount = StartupPreloadPolicy.behindFirstSegmentCount,
-    int warmBehindCount = StartupPreloadPolicy.behindFirstSegmentCount,
+    int aheadCount = 5,
+    int hotBehindCount = 3,
+    int warmBehindCount = 5,
   }) {
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
     _ensureReadySegmentsForIndex(
@@ -588,25 +544,12 @@ extension ShortControllerCachePart on ShortController {
       if (targetIndex < 0 || targetIndex >= shorts.length) break;
       _ensureReadySegmentsForIndex(
         targetIndex,
-        minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
-      );
-    }
-    final behindCount = math.min(
-      StartupPreloadPolicy.behindFirstSegmentCount,
-      math.min(hotBehindCount, warmBehindCount),
-    );
-    for (int offset = 1; offset <= behindCount; offset++) {
-      final targetIndex = safeAnchor - offset;
-      if (targetIndex < 0 || targetIndex >= shorts.length) break;
-      _ensureReadySegmentsForIndex(
-        targetIndex,
-        minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+        minimumSegmentCount: 1,
       );
     }
     primeOnYuklemeWindow(
       anchorIndex,
       maxAheadPlayableCount: aheadCount,
-      behindPlayableCount: behindCount,
     );
   }
 

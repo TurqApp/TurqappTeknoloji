@@ -21,7 +21,6 @@ import '../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../Core/Services/PlaybackIntelligence/startup_preload_policy.dart';
 import '../../Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
 import '../../Core/Services/feed_diversity_memory_service.dart';
-import '../../Core/Services/playback_start_handoff_service.dart';
 import '../../Core/Services/playback_execution_service.dart';
 import '../../Core/Services/integration_test_keys.dart';
 import '../../Core/Services/SegmentCache/cache_manager.dart';

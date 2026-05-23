@@ -284,9 +284,6 @@ extension ShortViewUiPart on _ShortViewState {
                     : (9 / 16);
                 final isActivePage = idx == _currentRenderPage;
                 final isWarmNeighbor = (idx - _currentRenderPage).abs() <= 1;
-                final shouldMountNativeVideo = isActivePage ||
-                    (isWarmNeighbor &&
-                        defaultTargetPlatform != TargetPlatform.iOS);
 
                 if (vp == null) {
                   if (isActivePage) {
@@ -300,7 +297,7 @@ extension ShortViewUiPart on _ShortViewState {
                   return _buildPendingShortSurface(post);
                 }
 
-                final videoWidget = shouldMountNativeVideo
+                final videoWidget = isActivePage || isWarmNeighbor
                     ? IgnorePointer(
                         ignoring: !isActivePage,
                         child: Opacity(
@@ -329,7 +326,7 @@ extension ShortViewUiPart on _ShortViewState {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (shouldMountNativeVideo) videoWidget,
+                      if (isActivePage || isWarmNeighbor) videoWidget,
                       if (isActivePage || isWarmNeighbor)
                         AnimatedBuilder(
                           animation: vp,
@@ -354,16 +351,9 @@ extension ShortViewUiPart on _ShortViewState {
                                     hasVisibleVideoFrame &&
                                     value.position <
                                         const Duration(milliseconds: 180);
-                            final holdIosPosterAtStart =
-                                defaultTargetPlatform == TargetPlatform.iOS &&
-                                    decision.shouldHidePoster &&
-                                    hasVisibleVideoFrame &&
-                                    value.position <
-                                        const Duration(milliseconds: 120);
                             final shouldHidePoster =
                                 decision.shouldHidePoster &&
-                                    !holdAndroidPosterAtStart &&
-                                    !holdIosPosterAtStart;
+                                    !holdAndroidPosterAtStart;
                             _reportStableShortFrameIfNeeded(
                               organicIndex,
                               vp,

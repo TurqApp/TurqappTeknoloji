@@ -3,7 +3,6 @@ part of 'short_controller.dart';
 enum _ShortSessionSourceMode {
   unresolved,
   wifiLive,
-  cellularLive,
   mobileCacheOnly,
   mobileNetworkFallback,
 }

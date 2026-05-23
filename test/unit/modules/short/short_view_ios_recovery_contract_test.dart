@@ -87,8 +87,7 @@ void main() {
     );
     expect(
       shortViewSource,
-      contains(
-          'minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,'),
+      contains('minimumSegmentCount: 1,'),
     );
     expect(
       shortViewSource,

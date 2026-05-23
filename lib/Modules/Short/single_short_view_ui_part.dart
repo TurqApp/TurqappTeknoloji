@@ -154,15 +154,8 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                     idx == currentPage &&
                     hasVisibleVideoFrame &&
                     injected.value.position < const Duration(milliseconds: 180);
-            final holdIosPosterAtStart =
-                defaultTargetPlatform == TargetPlatform.iOS &&
-                    decision.shouldHidePoster &&
-                    idx == currentPage &&
-                    hasVisibleVideoFrame &&
-                    injected.value.position < const Duration(milliseconds: 120);
-            final shouldHidePoster = decision.shouldHidePoster &&
-                !holdAndroidPosterAtStart &&
-                !holdIosPosterAtStart;
+            final shouldHidePoster =
+                decision.shouldHidePoster && !holdAndroidPosterAtStart;
             final thumb = shorts[idx].aspectRatio >= 0.8
                 ? Align(
                     alignment: Alignment.center,
@@ -224,12 +217,10 @@ extension SingleShortViewUiPart on _SingleShortViewState {
 
   Widget _buildManagedShortPage(int idx, String thumb, HLSVideoAdapter vp) {
     final isNear = (idx - currentPage).abs() <= 2;
-    final shouldMountNativeVideo =
-        idx == currentPage || defaultTargetPlatform != TargetPlatform.iOS;
     final preferResumePoster =
         idx == currentPage && _shouldPreferResumePosterForSingleShort(idx, vp);
     final thumbAr = shorts[idx].aspectRatio.toDouble();
-    final videoWidget = !isNear || !shouldMountNativeVideo
+    final videoWidget = !isNear
         ? Stack(
             fit: StackFit.expand,
             children: [
@@ -270,15 +261,8 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                           idx == currentPage &&
                           hasVisibleVideoFrame &&
                           vp.value.position < const Duration(milliseconds: 180);
-                  final holdIosPosterAtStart =
-                      defaultTargetPlatform == TargetPlatform.iOS &&
-                          decision.shouldHidePoster &&
-                          idx == currentPage &&
-                          hasVisibleVideoFrame &&
-                          vp.value.position < const Duration(milliseconds: 120);
-                  final shouldHidePoster = decision.shouldHidePoster &&
-                      !holdAndroidPosterAtStart &&
-                      !holdIosPosterAtStart;
+                  final shouldHidePoster =
+                      decision.shouldHidePoster && !holdAndroidPosterAtStart;
                   final overlay = shorts[idx].aspectRatio >= 0.8
                       ? Align(
                           alignment: Alignment.center,

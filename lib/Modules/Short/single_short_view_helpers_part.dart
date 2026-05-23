@@ -930,7 +930,6 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         (value.hasRenderedFirstFrame || value.isPlaying)) {
       _telemetryFirstFrame = true;
       VideoTelemetryService.instance.onFirstFrame(docId);
-      _primeImmediateNextAfterSingleShortPlaybackStart(currentPage);
     }
 
     if (value.isBuffering) {
@@ -993,47 +992,6 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
         } catch (_) {}
       }
     }
-  }
-
-  void _primeImmediateNextAfterSingleShortPlaybackStart(int anchorIndex) {
-    if (shorts.isEmpty) return;
-    final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final nextIndex = safeAnchor + 1;
-    if (nextIndex < 0 || nextIndex >= shorts.length) return;
-    final anchorDocId = shorts[safeAnchor].docID.trim();
-    if (anchorDocId.isEmpty) return;
-    final nextPost = shorts[nextIndex];
-    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
-      surface: 'single_short',
-      anchorKey: anchorDocId,
-      warmNext: () {
-        _ensureController(nextIndex);
-        _primeSingleShortPlaybackWindowReadySegments(
-          nextIndex,
-          aheadCount: 1,
-          behindCount: 0,
-        );
-        try {
-          maybeFindPrefetchScheduler()?.boostDoc(
-            nextPost.docID,
-            readySegments: StartupPreloadPolicy.activeReadySegments,
-          );
-        } catch (_) {}
-        for (final posterUrl in nextPost.preferredVideoPosterUrls) {
-          TurqImageCacheManager.warmUrl(posterUrl).ignore();
-        }
-        final preview = nextPost.primaryImageUrl.trim();
-        if (preview.isNotEmpty) {
-          TurqImageCacheManager.warmUrl(preview).ignore();
-        }
-        debugPrint(
-          '[ShortNextWarm] status=boost surface=single_short '
-          'source=playback_start anchor=$safeAnchor next=$nextIndex '
-          'doc=${nextPost.docID} '
-          'segments=${StartupPreloadPolicy.activeReadySegments}',
-        );
-      },
-    );
   }
 
   void _detachCompletionListener(int index, HLSVideoAdapter adapter) {
@@ -1108,32 +1066,25 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   void _warmFullscreenPosterWindowAround(
     int anchorIndex, {
-    int behindCount = StartupPreloadPolicy.posterBehindCount,
-    int aheadCount = StartupPreloadPolicy.posterAheadCount,
+    int behindCount = 1,
+    int aheadCount = 5,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final warmedIndices = <int>{};
-
-    void warmIndex(int index) {
-      if (index < 0 || index >= shorts.length) return;
-      if (!warmedIndices.add(index)) return;
-      final post = shorts[index];
+    final start = (safeAnchor - behindCount).clamp(0, shorts.length - 1);
+    final endExclusive = (safeAnchor + aheadCount + 1).clamp(
+      0,
+      shorts.length,
+    );
+    for (int i = start; i < endExclusive; i++) {
+      final post = shorts[i];
       final docId = post.docID.trim();
       if (docId.isEmpty || !_prefetchedFullscreenPosterDocIds.add(docId)) {
-        return;
+        continue;
       }
       for (final url in _fullscreenPosterWarmUrlsForPost(post)) {
         TurqImageCacheManager.warmUrl(url).ignore();
       }
-    }
-
-    warmIndex(safeAnchor);
-    for (int offset = 1; offset <= aheadCount; offset++) {
-      warmIndex(safeAnchor + offset);
-    }
-    for (int offset = 1; offset <= behindCount; offset++) {
-      warmIndex(safeAnchor - offset);
     }
   }
 

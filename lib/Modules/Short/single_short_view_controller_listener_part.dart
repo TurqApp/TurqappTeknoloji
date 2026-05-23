@@ -50,10 +50,8 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
 
   void _disposeOutsideRange(int center) {
     final len = shorts.length;
-    final start = (center - StartupPreloadPolicy.behindFirstSegmentCount)
-        .clamp(0, len - 1);
-    final end = (center + StartupPreloadPolicy.aheadFirstSegmentCount)
-        .clamp(0, len - 1);
+    final start = center.clamp(0, len - 1);
+    final end = (center + 5).clamp(0, len - 1);
     final keys = _videoControllers.keys.toList();
     for (var idx in keys) {
       if (idx < start || idx > end) {

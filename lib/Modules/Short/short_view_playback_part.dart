@@ -854,13 +854,13 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
     controller.warmPosterWindowAround(
       currentPage,
-      behindCount: StartupPreloadPolicy.posterBehindCount,
-      aheadCount: StartupPreloadPolicy.posterAheadCount,
+      behindCount: 1,
+      aheadCount: 5,
     );
     controller.primePlaybackWindowReadySegments(
       currentPage,
       minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
-      aheadCount: StartupPreloadPolicy.aheadFirstSegmentCount,
+      aheadCount: 5,
     );
     unawaited(
       controller.ensureShortMotorStageForViewedIndex(
@@ -1067,7 +1067,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         controller.primePlaybackWindowReadySegments(
           activePage,
           minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
-          aheadCount: StartupPreloadPolicy.aheadFirstSegmentCount,
+          aheadCount: 5,
         );
       });
     }
@@ -1464,7 +1464,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
         try {
           _segmentCacheRuntimeService.ensureMinimumReadySegments(
             neighborDocId,
-            minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+            minimumSegmentCount: 1,
           );
         } catch (_) {}
         final hadNeighborAdapter = controller.cache[neighborPage] != null;

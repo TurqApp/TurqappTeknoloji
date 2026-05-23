@@ -172,30 +172,20 @@ extension _ShortControllerRuntimeX on ShortController {
 
   void warmPosterWindowAround(
     int anchorIndex, {
-    int behindCount = StartupPreloadPolicy.posterBehindCount,
-    int aheadCount = StartupPreloadPolicy.posterAheadCount,
+    int behindCount = 1,
+    int aheadCount = _initialPreloadCount,
   }) {
     if (shorts.isEmpty) return;
     final safeAnchor = anchorIndex.clamp(0, shorts.length - 1);
-    final warmedIndices = <int>{};
-
-    void warmIndex(int index) {
-      if (index < 0 || index >= shorts.length) return;
-      if (!warmedIndices.add(index)) return;
-      final post = shorts[index];
-      if (!_prefetchedPosterDocIds.add(post.docID)) return;
+    final start = math.max(0, safeAnchor - behindCount);
+    final endExclusive = math.min(shorts.length, safeAnchor + aheadCount + 1);
+    for (int i = start; i < endExclusive; i++) {
+      final post = shorts[i];
+      if (!_prefetchedPosterDocIds.add(post.docID)) continue;
       _warmShortAvatar(post);
       for (final url in _posterWarmUrlsForPost(post)) {
         TurqImageCacheManager.warmUrl(url).ignore();
       }
-    }
-
-    warmIndex(safeAnchor);
-    for (int offset = 1; offset <= aheadCount; offset++) {
-      warmIndex(safeAnchor + offset);
-    }
-    for (int offset = 1; offset <= behindCount; offset++) {
-      warmIndex(safeAnchor - offset);
     }
   }
 
@@ -253,16 +243,14 @@ extension _ShortControllerRuntimeX on ShortController {
       return existing;
     }
     final networkService = NetworkAwarenessService.maybeFind();
-    final network = networkService?.currentNetworkRx.value ?? NetworkType.none;
-    final liveReadAllowed = networkService?.allowLiveRead ?? false;
-    _shortStartupNetworkType ??= network;
+    final network = networkService?.currentNetworkRx.value ?? NetworkType.wifi;
+    final liveReadAllowed = networkService?.allowLiveRead ?? true;
+    _shortStartupNetworkType ??= liveReadAllowed && network == NetworkType.none
+        ? NetworkType.cellular
+        : network;
     final offlineReadyCount = _offlineReadyShortPoolCount();
     final resolved = liveReadAllowed
-        ? switch (network) {
-            NetworkType.cellular => _ShortSessionSourceMode.cellularLive,
-            NetworkType.wifi => _ShortSessionSourceMode.wifiLive,
-            NetworkType.none => _ShortSessionSourceMode.mobileNetworkFallback,
-          }
+        ? _ShortSessionSourceMode.wifiLive
         : offlineReadyCount > 0
             ? _ShortSessionSourceMode.mobileCacheOnly
             : _ShortSessionSourceMode.mobileNetworkFallback;
@@ -329,17 +317,13 @@ extension _ShortControllerRuntimeX on ShortController {
     return true;
   }
 
-  bool _promoteShortSessionToLive({
-    required NetworkType networkType,
+  bool _promoteShortSessionToWifiLive({
     required String reason,
   }) {
-    final targetMode = networkType == NetworkType.cellular
-        ? _ShortSessionSourceMode.cellularLive
-        : _ShortSessionSourceMode.wifiLive;
-    if (_shortSessionSourceMode == targetMode) {
+    if (_shortSessionSourceMode == _ShortSessionSourceMode.wifiLive) {
       return false;
     }
-    _shortSessionSourceMode = targetMode;
+    _shortSessionSourceMode = _ShortSessionSourceMode.wifiLive;
     _renderWindowFrozenOnCellular = false;
     debugPrint(
       '[ShortSessionSource] status=promoted reason=$reason '
@@ -382,8 +366,7 @@ extension ShortControllerPublicApiPart on ShortController {
       return;
     }
     if (networkType != NetworkType.none &&
-        _promoteShortSessionToLive(
-          networkType: networkType,
+        _promoteShortSessionToWifiLive(
           reason: 'runtime_network_${networkType.name}',
         )) {
       debugPrint(
@@ -473,13 +456,13 @@ extension ShortControllerPublicApiPart on ShortController {
     if (shorts.isNotEmpty) {
       warmPosterWindowAround(
         _currentVisibleShortIndex(this),
-        behindCount: StartupPreloadPolicy.posterBehindCount,
-        aheadCount: StartupPreloadPolicy.posterAheadCount,
+        behindCount: 0,
+        aheadCount: _initialPreloadCount,
       );
       primeStartupReadyMagazine(
         _currentVisibleShortIndex(this),
         count: _startupReadyMagazineCount,
-        minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+        minimumSegmentCount: 1,
       );
       primePlaybackWindowReadySegments(
         _currentVisibleShortIndex(this),
@@ -489,7 +472,7 @@ extension ShortControllerPublicApiPart on ShortController {
         warmStartupFirstSegments(
           _currentVisibleShortIndex(this),
           count: _initialPreloadCount,
-          minimumSegmentCount: StartupPreloadPolicy.activeReadySegments,
+          minimumSegmentCount: 1,
         ),
       );
       unawaited(preloadRange(_currentVisibleShortIndex(this), range: 0));
