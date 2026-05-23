@@ -11,8 +11,8 @@ PlaybackPolicySnapshot _snapshotPlaybackPolicy({
   return resolvePlaybackPolicySnapshot(
     PlaybackPolicyContext(
       isConnected: network?.isConnected ?? false,
-      isOnWiFi: network?.isConnected ?? false,
-      isOnCellular: false,
+      isOnWiFi: network?.isOnWiFi ?? false,
+      isOnCellular: network?.isOnCellular ?? false,
       pauseOnCellular: network?.settings.pauseOnCellular ?? false,
       cellularDataMode:
           network?.settings.cellularDataMode ?? DataUsageMode.normal,
@@ -42,6 +42,25 @@ PlaybackPolicySnapshot _resolvePlaybackPolicy(
       startupWindowSegments: 0,
       aheadWindowSegments: 0,
       maxConcurrentPrefetch: 0,
+      budgetProfile: budgetProfile,
+    );
+  }
+
+  if (context.isOnCellular) {
+    return PlaybackPolicySnapshot(
+      mode: PlaybackMode.cellularGuard,
+      policyTag: context.isBootstrap ? 'bootstrap_cellular' : 'cellular_live',
+      reason:
+          context.isBootstrap ? 'startup_connected_cellular' : 'cellular_live',
+      allowBackgroundPrefetch: true,
+      allowOnDemandSegmentFetch: true,
+      allowPlaylistFetch: true,
+      cacheOnlyMode: false,
+      enableMobileSeedMode: false,
+      startupWindowSegments: 2,
+      aheadWindowSegments: 2,
+      maxConcurrentPrefetch:
+          context.cellularDataMode == DataUsageMode.low ? 2 : 3,
       budgetProfile: budgetProfile,
     );
   }

@@ -393,7 +393,7 @@ class PostLoginWarmup {
 
   static bool _defaultIsOnWiFiNow() {
     try {
-      return const NetworkRuntimeService().isConnected;
+      return const NetworkRuntimeService().isOnWiFi;
     } catch (error, stackTrace) {
       StartupSessionFailureReporter.defaultReporter.record(
         kind: StartupSessionFailureKind.backgroundWarmup,

@@ -34,7 +34,11 @@ class ContentPolicy {
     return NetworkAwarenessService.maybeFind()?.allowLiveRead ?? true;
   }
 
-  static bool get _usesWifiContentBehavior => isConnected;
+  static bool get _usesWifiContentBehavior {
+    final network = NetworkAwarenessService.maybeFind();
+    if (network == null) return false;
+    return network.isOnWiFi;
+  }
 
   static SurfacePolicy _surfacePolicy(ContentScreenKind screen) {
     switch (screen) {

@@ -1,6 +1,6 @@
 part of 'prefetch_scheduler.dart';
 
-/// Wi-Fi prefetch kuyruğu.
+/// Aktif ağ politikasına göre medya prefetch kuyruğu.
 ///
 /// Breadth-first strateji:
 /// 1. Sonraki videolarda ilk 2 segment hazır

@@ -819,7 +819,7 @@ extension _SplashViewWarmPart on _SplashViewState {
 
   bool _isOnWiFiNow() {
     try {
-      return _SplashViewState._networkRuntimeService.isConnected;
+      return _SplashViewState._networkRuntimeService.isOnWiFi;
     } catch (_) {
       return false;
     }

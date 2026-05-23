@@ -243,14 +243,16 @@ extension _ShortControllerRuntimeX on ShortController {
       return existing;
     }
     final networkService = NetworkAwarenessService.maybeFind();
-    final network = networkService?.currentNetworkRx.value ?? NetworkType.wifi;
-    final liveReadAllowed = networkService?.allowLiveRead ?? true;
-    _shortStartupNetworkType ??= liveReadAllowed && network == NetworkType.none
-        ? NetworkType.cellular
-        : network;
+    final network = networkService?.currentNetworkRx.value ?? NetworkType.none;
+    final liveReadAllowed = networkService?.allowLiveRead ?? false;
+    _shortStartupNetworkType ??= network;
     final offlineReadyCount = _offlineReadyShortPoolCount();
     final resolved = liveReadAllowed
-        ? _ShortSessionSourceMode.wifiLive
+        ? switch (network) {
+            NetworkType.cellular => _ShortSessionSourceMode.cellularLive,
+            NetworkType.wifi => _ShortSessionSourceMode.wifiLive,
+            NetworkType.none => _ShortSessionSourceMode.mobileNetworkFallback,
+          }
         : offlineReadyCount > 0
             ? _ShortSessionSourceMode.mobileCacheOnly
             : _ShortSessionSourceMode.mobileNetworkFallback;
@@ -317,13 +319,17 @@ extension _ShortControllerRuntimeX on ShortController {
     return true;
   }
 
-  bool _promoteShortSessionToWifiLive({
+  bool _promoteShortSessionToLive({
+    required NetworkType networkType,
     required String reason,
   }) {
-    if (_shortSessionSourceMode == _ShortSessionSourceMode.wifiLive) {
+    final targetMode = networkType == NetworkType.cellular
+        ? _ShortSessionSourceMode.cellularLive
+        : _ShortSessionSourceMode.wifiLive;
+    if (_shortSessionSourceMode == targetMode) {
       return false;
     }
-    _shortSessionSourceMode = _ShortSessionSourceMode.wifiLive;
+    _shortSessionSourceMode = targetMode;
     _renderWindowFrozenOnCellular = false;
     debugPrint(
       '[ShortSessionSource] status=promoted reason=$reason '
@@ -366,7 +372,8 @@ extension ShortControllerPublicApiPart on ShortController {
       return;
     }
     if (networkType != NetworkType.none &&
-        _promoteShortSessionToWifiLive(
+        _promoteShortSessionToLive(
+          networkType: networkType,
           reason: 'runtime_network_${networkType.name}',
         )) {
       debugPrint(

@@ -779,7 +779,7 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
         basePriority: priority,
         currentIndex: currentIndex,
         targetIndex: targetIndex,
-        isOnWiFi: _usesWifiPlaybackNetworkBehavior,
+        isOnWiFi: _isOnWiFi,
         mobileSeedMode: _mobileSeedMode,
         feedReadyRatio: _lastFeedReadyRatio,
         watchProgress: watchProgress,

@@ -114,7 +114,7 @@ void main() {
     expect(snapshot.startupWindowSegments, 2);
   });
 
-  test('playback policy treats cellular playback like wifi except quota fill',
+  test('playback policy resolves cellular live mode without cache-only guard',
       () {
     final snapshot = resolvePlaybackPolicySnapshot(
       const PlaybackPolicyContext(
@@ -128,8 +128,8 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.cellularGuard);
-    expect(snapshot.policyTag, 'cellular_wifi_equivalent');
-    expect(snapshot.reason, 'cellular_connected_wifi_equivalent');
+    expect(snapshot.policyTag, 'cellular_live');
+    expect(snapshot.reason, 'cellular_live');
     expect(snapshot.allowBackgroundPrefetch, isTrue);
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.startupWindowSegments, 2);
@@ -149,7 +149,7 @@ void main() {
     );
 
     expect(snapshot.mode, PlaybackMode.cellularGuard);
-    expect(snapshot.reason, 'cellular_connected_wifi_equivalent');
+    expect(snapshot.reason, 'cellular_live');
     expect(snapshot.allowOnDemandSegmentFetch, isTrue);
     expect(snapshot.cacheOnlyMode, isFalse);
   });

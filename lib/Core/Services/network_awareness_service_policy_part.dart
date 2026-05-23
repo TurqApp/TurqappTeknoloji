@@ -3,7 +3,6 @@ part of 'network_awareness_service.dart';
 extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   static const Duration _connectivityPollInterval = Duration(seconds: 3);
   static const Duration _offlineConfirmationDelay = Duration(seconds: 4);
-  static const bool _treatCellularAsWifi = true;
   static const MethodChannel _androidNetworkStateChannel = MethodChannel(
     'turqapp.network_state/method',
   );
@@ -58,17 +57,6 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     final previousNetwork = _currentNetwork.value;
     final resolvedFromConnectivity =
         _resolveNetworkTypeFromConnectivity(results);
-    if (defaultTargetPlatform == TargetPlatform.android &&
-        source == 'poll_check' &&
-        previousNetwork == NetworkType.wifi &&
-        resolvedFromConnectivity == NetworkType.cellular) {
-      debugPrint(
-        '[NetworkAwareness] source=sticky_wifi_ignore '
-        'results=${results.map((e) => e.name).join(",")} '
-        'previous=${previousNetwork.name}',
-      );
-      return;
-    }
     final resolved = await _reconcileNativeNetworkType(
       results: results,
       resolvedFromConnectivity: resolvedFromConnectivity,
@@ -194,8 +182,8 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
     final scheduler = maybeFindPrefetchScheduler();
     if (scheduler != null) {
       if (_currentNetwork.value != NetworkType.none) {
-        final enteredWifi = previousNetwork != NetworkType.wifi;
-        if (enteredWifi || scheduler.isPaused) {
+        final enteredConnectedNetwork = previousNetwork == NetworkType.none;
+        if (enteredConnectedNetwork || scheduler.isPaused) {
           scheduler.resume();
         }
       } else {
@@ -232,7 +220,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       return NetworkType.wifi;
     }
     if (results.contains(ConnectivityResult.mobile)) {
-      return _treatCellularAsWifi ? NetworkType.wifi : NetworkType.cellular;
+      return NetworkType.cellular;
     }
     if (results.any((r) => r != ConnectivityResult.none)) {
       return NetworkType.wifi;
@@ -255,8 +243,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
           .invokeMethod<String>('getDefaultTransport');
       final nativeResolved = switch (nativeTransport) {
         'wifi' => NetworkType.wifi,
-        'cellular' =>
-          _treatCellularAsWifi ? NetworkType.wifi : NetworkType.cellular,
+        'cellular' => NetworkType.cellular,
         'none' => NetworkType.none,
         _ => resolvedFromConnectivity,
       };

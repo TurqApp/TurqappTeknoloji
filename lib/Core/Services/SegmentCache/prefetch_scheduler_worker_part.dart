@@ -367,7 +367,14 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
 
   void resume() {
     _paused = false;
-    debugPrint('[Prefetch] Resumed (Wi-Fi)');
+    final networkLabel = _isOnWiFi
+        ? 'wifi'
+        : _isOnCellular
+            ? 'cellular'
+            : CacheNetworkPolicy.isConnected
+                ? 'connected'
+                : 'offline';
+    debugPrint('[Prefetch] Resumed ($networkLabel)');
     _publishPrefetchHealthIfNeeded(force: true);
     _processQueue();
   }
@@ -442,7 +449,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         'activeDownloads=$_activeDownloads activeFeed=$_hasActiveFeedPlaybackWindow '
         'activeShort=$_hasActiveShortPlaybackWindow '
         'activeProfile=$_hasActiveProfilePlaybackWindow '
-        '${_quotaFocusDebugLabel}';
+        '$_quotaFocusDebugLabel';
     if (_shouldLogShortQuotaFillWorker('worker_check')) {
       debugPrint(workerCheckLog);
     }
@@ -464,7 +471,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           'queue=${_queue.length} pending=${_pendingFollowUpJobs.length} '
           'quotaQueue=$quotaQueueCount quotaPending=$quotaPendingCount '
           'activeRefs=${_activeDocRefCounts.length} '
-          '${_quotaFocusDebugLabel}';
+          '$_quotaFocusDebugLabel';
       if (_shouldLogShortQuotaFillWorker('skip:$reason')) {
         debugPrint(skipLog);
       }

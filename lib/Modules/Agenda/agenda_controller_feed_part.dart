@@ -994,7 +994,9 @@ extension AgendaControllerFeedPart on AgendaController {
     );
   }
 
-  bool get _isOnCellularFeedWarmProfile => false;
+  bool get _isOnCellularFeedWarmProfile {
+    return NetworkAwarenessService.maybeFind()?.isOnCellular ?? false;
+  }
 
   void _prefetchCurrentPoster() {
     if (agendaList.isEmpty) return;

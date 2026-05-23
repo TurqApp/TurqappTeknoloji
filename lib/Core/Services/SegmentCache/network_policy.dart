@@ -5,13 +5,13 @@ import '../network_awareness_service.dart';
 /// NetworkAwarenessService'i sarmalayarak cache-specific kararlar verir.
 ///
 /// Politika:
-/// - Connected network: prefetch + on-demand CDN fetch
+/// - Wi-Fi: background prefetch + on-demand CDN fetch
+/// - Cellular: explicit cellular_live policy ile on-demand/CDN fetch
 /// - Offline: sadece cache'den serv et
 class CacheNetworkPolicy {
   static PlaybackPolicyEngine? get _engine => maybeFindPlaybackPolicyEngine();
 
-  /// Playback cache davranisi icin her bagli ag Wi-Fi gibi davranir.
-  /// Kota ve data usage tarafinda actual cellular bilgisi ayrica korunur.
+  /// Aktif ağ için background media warm izni.
   static bool get canPrefetch {
     final engine = _engine;
     if (engine != null) {
@@ -26,7 +26,7 @@ class CacheNetworkPolicy {
     return engine.snapshot();
   }
 
-  static bool get usesWifiPlaybackBehavior {
+  static bool get usesLivePlaybackBehavior {
     final engine = _engine;
     if (engine != null) {
       final snapshot = engine.snapshot();
@@ -35,8 +35,9 @@ class CacheNetworkPolicy {
     return NetworkAwarenessService.maybeFind()?.isConnected ?? false;
   }
 
+  static bool get usesWifiPlaybackBehavior => usesLivePlaybackBehavior;
+
   /// On-demand CDN fetch izni.
-  /// Her bagli agda oynatma akisini Wi-Fi gibi kilitsiz tut.
   static bool get canFetchOnDemand {
     final engine = _engine;
     if (engine != null) {

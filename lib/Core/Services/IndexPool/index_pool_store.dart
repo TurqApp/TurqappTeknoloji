@@ -97,10 +97,10 @@ class IndexPoolStore {
     try {
       final network = NetworkAwarenessService.maybeFind();
       if (network != null) {
-        return network.isConnected;
+        return network.isOnWiFi;
       }
     } catch (_) {}
-    return true;
+    return false;
   }
 
   static IndexPoolStore? maybeFind() {

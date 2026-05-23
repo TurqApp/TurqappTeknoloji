@@ -164,27 +164,24 @@ extension PrefetchSchedulerRuntimePart on PrefetchScheduler {
         return network.isOnWiFi;
       }
     } catch (_) {}
-    return CacheNetworkPolicy.canPrefetch;
+    return false;
   }
 
   bool get _isOnCellular => CacheNetworkPolicy.isOnCellular;
-
-  bool get _usesWifiPlaybackNetworkBehavior =>
-      CacheNetworkPolicy.usesWifiPlaybackBehavior;
 
   bool get _allowMobileQuotaFill => false;
 
   bool get _isSurfacePrefetchNetworkEligible =>
       shouldAllowSurfacePrefetchNetwork(
-        isOnWiFi: _usesWifiPlaybackNetworkBehavior,
-        isOnCellular: false,
+        isOnWiFi: _isOnWiFi,
+        isOnCellular: _isOnCellular,
         canPrefetch: CacheNetworkPolicy.canPrefetch,
         canFetchOnDemand: CacheNetworkPolicy.canFetchOnDemand,
         canFetchPlaylist: CacheNetworkPolicy.canFetchPlaylist,
         cacheOnlyMode: CacheNetworkPolicy.cacheOnlyMode,
       );
 
-  bool get _usesWifiSurfaceWarmSettings => _usesWifiPlaybackNetworkBehavior;
+  bool get _usesWifiSurfaceWarmSettings => _isOnWiFi;
 
   int get _breadthCount {
     final base = ReadBudgetRegistry.segmentPrefetchBreadthCountValue;
