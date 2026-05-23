@@ -257,6 +257,104 @@ extension ExploreControllerFeedPart on ExploreController {
     unawaited(fetchFloods());
   }
 
+  void _performHandleExploreFloodVisibilityChanged(
+    int modelIndex,
+    double visibleFraction,
+  ) {
+    if (modelIndex < 0 || modelIndex >= exploreFloods.length) return;
+    final previousFraction = _exploreFloodVisibleFractions[modelIndex];
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: previousFraction,
+      visibleFraction: visibleFraction,
+    )) {
+      return;
+    }
+
+    if (visibleFraction <= FeedPlaybackSelectionPolicy.stopThreshold) {
+      _exploreFloodVisibleFractions.remove(modelIndex);
+      if (modelIndex != floodsVisibleIndex.value) {
+        disposeFloodContentController(exploreFloods[modelIndex].docID);
+      }
+    } else {
+      _exploreFloodVisibleFractions[modelIndex] = visibleFraction;
+      capturePendingFloodEntry(preferredIndex: modelIndex);
+      _performScheduleExploreFloodPrefetchFromVisible(
+        preferredIndex: modelIndex,
+      );
+      _performFetchFloodsIfNearVisibleEnd(preferredIndex: modelIndex);
+    }
+
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = Timer(
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
+      _performEvaluateExploreFloodCenteredPlayback,
+    );
+  }
+
+  void _performEvaluateExploreFloodCenteredPlayback() {
+    if (exploreFloods.isEmpty) {
+      floodsVisibleIndex.value = -1;
+      lastFloodVisibleIndex = null;
+      _pendingFloodDocId = null;
+      return;
+    }
+
+    if (_exploreFloodVisibleFractions.isEmpty) {
+      final previousIndex = floodsVisibleIndex.value;
+      floodsVisibleIndex.value = -1;
+      lastFloodVisibleIndex = null;
+      _pendingFloodDocId = null;
+      if (previousIndex >= 0 && previousIndex < exploreFloods.length) {
+        disposeFloodContentController(exploreFloods[previousIndex].docID);
+      }
+      debugPrint('[ExploreSeries] status=centered_clear reason=no_visible');
+      return;
+    }
+
+    final nextIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+      visibleFractions: _exploreFloodVisibleFractions,
+      currentIndex: floodsVisibleIndex.value,
+      lastCenteredIndex: lastFloodVisibleIndex,
+      itemCount: exploreFloods.length,
+      canAutoplayIndex: (index) =>
+          index >= 0 &&
+          index < exploreFloods.length &&
+          exploreFloods[index].hasPlayableVideo,
+      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+      preferDominantVisibleIndexWhenNonPlayable: true,
+    );
+
+    if (nextIndex < 0 || nextIndex >= exploreFloods.length) {
+      final previousIndex = floodsVisibleIndex.value;
+      floodsVisibleIndex.value = -1;
+      lastFloodVisibleIndex = null;
+      _pendingFloodDocId = null;
+      if (previousIndex >= 0 && previousIndex < exploreFloods.length) {
+        disposeFloodContentController(exploreFloods[previousIndex].docID);
+      }
+      debugPrint('[ExploreSeries] status=centered_clear reason=no_playable');
+      return;
+    }
+
+    final previousIndex = floodsVisibleIndex.value;
+    if (previousIndex != nextIndex &&
+        previousIndex >= 0 &&
+        previousIndex < exploreFloods.length) {
+      disposeFloodContentController(exploreFloods[previousIndex].docID);
+    }
+
+    floodsVisibleIndex.value = nextIndex;
+    lastFloodVisibleIndex = nextIndex;
+    capturePendingFloodEntry(preferredIndex: nextIndex);
+    _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: nextIndex);
+    _performFetchFloodsIfNearVisibleEnd(preferredIndex: nextIndex);
+    debugPrint(
+      '[ExploreSeries] status=centered index=$nextIndex '
+      'doc=${exploreFloods[nextIndex].docID} '
+      'visible=${(_exploreFloodVisibleFractions[nextIndex] ?? 0.0).toStringAsFixed(2)}',
+    );
+  }
+
   void _performBoostFloodChildFirstSegments(
     PostsModel rootPost, {
     required PrefetchScheduler prefetch,
@@ -1079,6 +1177,9 @@ extension ExploreControllerFeedPart on ExploreController {
   Future<void> _performRefreshFloodsPreservingSurface() async {
     if (floodsIsLoading.value) return;
     final previousItems = List<PostsModel>.from(exploreFloods);
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = null;
+    _exploreFloodVisibleFractions.clear();
     final previousDocIds = previousItems
         .map((post) => post.docID.trim())
         .where((id) => id.isNotEmpty)

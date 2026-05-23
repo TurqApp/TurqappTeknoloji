@@ -15,6 +15,20 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       return;
     }
 
+    if (surfaceTag.startsWith('explore_series_')) {
+      final exploreController = maybeFindExploreController();
+      if (exploreController == null) return;
+      final exploreIndex = exploreController.exploreFloods
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (exploreIndex >= 0) {
+        exploreController.onExploreFloodVisibilityChanged(
+          exploreIndex,
+          visibleFraction,
+        );
+      }
+      return;
+    }
+
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
@@ -113,20 +127,6 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         if (visibleFraction >= 0.72) {
           tagPostsController.centeredIndex.value = tagPostIndex;
           tagPostsController.lastCenteredIndex = tagPostIndex;
-        }
-      }
-    }
-    final exploreController = maybeFindExploreController();
-    if (surfaceTag.startsWith('explore_series_') && exploreController != null) {
-      final exploreIndex = exploreController.exploreFloods
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (exploreIndex >= 0) {
-        exploreController.floodsVisibleIndex.value = exploreIndex;
-        exploreController.capturePendingFloodEntry(
-          preferredIndex: exploreIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          exploreController.lastFloodVisibleIndex = exploreIndex;
         }
       }
     }

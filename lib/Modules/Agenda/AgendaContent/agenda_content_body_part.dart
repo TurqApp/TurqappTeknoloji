@@ -287,32 +287,14 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                           aspectRatio: displayAspect,
                                         );
                                       }
-                                      final instanceTag =
-                                          widget.instanceTag?.trim() ?? '';
                                       const preferWarmPoolPauseOnAndroid =
                                           false;
                                       final isSocialProfileSurface =
-                                          instanceTag.startsWith('social_');
-                                      final isProfileFamilySurface = instanceTag
-                                              .startsWith('profile_') ||
-                                          instanceTag.startsWith('archives_') ||
-                                          instanceTag
-                                              .startsWith('liked_post_') ||
-                                          isSocialProfileSurface;
+                                          isSocialProfileSurfaceInstance;
+                                      final isProfileFamilySurface =
+                                          isProfileFamilySurfaceInstance;
                                       final isFeedStyleInlineSurface =
-                                          isPrimaryFeedSurfaceInstance ||
-                                              isProfileFamilySurface ||
-                                              instanceTag
-                                                  .startsWith('flood_') ||
-                                              instanceTag.startsWith(
-                                                'explore_series_',
-                                              ) ||
-                                              instanceTag.startsWith(
-                                                'top_tag_',
-                                              ) ||
-                                              instanceTag.startsWith(
-                                                'tag_post_',
-                                              );
+                                          isFeedStyleSurfaceInstance;
                                       final mountInlinePlayer = videoController !=
                                               null &&
                                           (defaultTargetPlatform !=

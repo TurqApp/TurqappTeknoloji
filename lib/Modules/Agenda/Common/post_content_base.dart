@@ -9,13 +9,17 @@ import '../../../main.dart';
 import '../../../hls_player/hls_video_adapter.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_kpi_service.dart';
 import '../../../Core/Services/PlaybackIntelligence/playback_surface_policy.dart';
+import '../../../Core/Services/PlaybackIntelligence/startup_preload_policy.dart';
 import '../../../Core/Services/feed_diversity_memory_service.dart';
+import '../../../Core/Services/playback_start_handoff_service.dart';
 import '../../../Core/Services/qa_lab_bridge.dart';
+import '../../../Core/Services/turq_image_cache_manager.dart';
 import '../../../Core/Services/video_telemetry_service.dart';
 import '../../../Core/Services/playback_handle.dart';
 import '../../../Core/Services/playback_execution_service.dart';
 import '../../../Core/Services/global_video_adapter_pool.dart';
 import '../../../Core/Services/SegmentCache/network_policy.dart';
+import '../../../Core/Services/SegmentCache/prefetch_scheduler.dart';
 import '../../../Core/Services/video_state_manager.dart';
 import '../../../Ads/admob_kare.dart';
 import '../../Agenda/agenda_controller.dart';
@@ -307,6 +311,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   bool get _isSocialProfileSurfaceInstance =>
       _surfaceInstanceTag.startsWith('social_');
 
+  bool get _isArchiveSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('archives_');
+
+  bool get _isLikedPostSurfaceInstance =>
+      _surfaceInstanceTag.startsWith('liked_post_');
+
+  bool get isFeedStyleSurfaceInstance => _isFeedStyleInlineSurfaceInstance;
+
+  bool get isProfileFamilySurfaceInstance => _isProfileFamilySurfaceInstance;
+
+  bool get isSocialProfileSurfaceInstance => _isSocialProfileSurfaceInstance;
+
   bool get _isOwnProfileSurfaceInstance {
     if (_isProfileSurfaceInstance) return true;
     if (!_isSocialProfileSurfaceInstance) return false;
@@ -341,8 +357,8 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
 
   bool get _isProfileFamilySurfaceInstance =>
       _surfaceInstanceTag.startsWith('profile_') ||
-      _surfaceInstanceTag.startsWith('archives_') ||
-      _surfaceInstanceTag.startsWith('liked_post_') ||
+      _isArchiveSurfaceInstance ||
+      _isLikedPostSurfaceInstance ||
       _surfaceInstanceTag.startsWith('social_');
 
   bool get _isFeedStyleInlineSurfaceInstance =>
@@ -509,6 +525,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.floods.length ?? 0;
     }
+    if (_isExploreSeriesSurfaceInstance) {
+      return maybeFindExploreController()?.exploreFloods.length ?? 0;
+    }
+    if (_isArchiveSurfaceInstance) {
+      return maybeFindArchiveController()?.list.length ?? 0;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return maybeFindLikedPostControllers()?.all.length ?? 0;
+    }
     if (_isProfileSurfaceInstance) {
       return ProfileController.maybeFind()?.mergedPosts.length ?? 0;
     }
@@ -527,6 +552,24 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int _surfaceModelIndex() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.floods.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
+    if (_isExploreSeriesSurfaceInstance) {
+      return maybeFindExploreController()?.exploreFloods.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
+    if (_isArchiveSurfaceInstance) {
+      return maybeFindArchiveController()?.list.indexWhere(
+                (p) => p.docID == widget.model.docID,
+              ) ??
+          -1;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return maybeFindLikedPostControllers()?.all.indexWhere(
                 (p) => p.docID == widget.model.docID,
               ) ??
           -1;
@@ -568,6 +611,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.centeredIndex.value ?? -1;
     }
+    if (_isExploreSeriesSurfaceInstance) {
+      return maybeFindExploreController()?.resolveFloodSeriesFocusIndex() ?? -1;
+    }
+    if (_isArchiveSurfaceInstance) {
+      return maybeFindArchiveController()?.centeredIndex.value ?? -1;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return maybeFindLikedPostControllers()?.centeredIndex.value ?? -1;
+    }
     if (_isProfileSurfaceInstance) {
       return ProfileController.maybeFind()?.centeredIndex.value ?? -1;
     }
@@ -594,6 +646,15 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   int? _surfacePreviousCenteredIndex() {
     if (_isFloodSurfaceInstance) {
       return maybeFindFloodListingController()?.lastCenteredIndex;
+    }
+    if (_isExploreSeriesSurfaceInstance) {
+      return maybeFindExploreController()?.lastFloodVisibleIndex;
+    }
+    if (_isArchiveSurfaceInstance) {
+      return maybeFindArchiveController()?.lastCenteredIndex;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return maybeFindLikedPostControllers()?.lastCenteredIndex;
     }
     if (_isProfileSurfaceInstance) {
       return ProfileController.maybeFind()?.lastCenteredIndex;
@@ -638,6 +699,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (posts == null || index >= posts.length) return false;
       return posts[index].hasPlayableVideo;
     }
+    if (_isExploreSeriesSurfaceInstance) {
+      final posts = maybeFindExploreController()?.exploreFloods;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
+    if (_isArchiveSurfaceInstance) {
+      final posts = maybeFindArchiveController()?.list;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      final posts = maybeFindLikedPostControllers()?.all;
+      if (posts == null || index >= posts.length) return false;
+      return posts[index].hasPlayableVideo;
+    }
     if (_isProfileSurfaceInstance) {
       final entries = ProfileController.maybeFind()?.mergedPosts;
       if (entries == null || index >= entries.length) return false;
@@ -677,6 +753,21 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       if (posts == null || index >= posts.length) return '';
       return posts[index].docID.trim();
     }
+    if (_isExploreSeriesSurfaceInstance) {
+      final posts = maybeFindExploreController()?.exploreFloods;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
+    if (_isArchiveSurfaceInstance) {
+      final posts = maybeFindArchiveController()?.list;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
+    if (_isLikedPostSurfaceInstance) {
+      final posts = maybeFindLikedPostControllers()?.all;
+      if (posts == null || index >= posts.length) return '';
+      return posts[index].docID.trim();
+    }
     if (_isProfileSurfaceInstance) {
       final entries = ProfileController.maybeFind()?.mergedPosts;
       if (entries == null || index >= entries.length) return '';
@@ -701,6 +792,118 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (index >= agendaController.agendaList.length) return '';
     return agendaController.agendaList[index].docID.trim();
+  }
+
+  List<PostsModel> _surfacePostsSnapshot() {
+    if (_isFloodSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindFloodListingController()?.floods ?? const <PostsModel>[],
+      );
+    }
+    if (_isExploreSeriesSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindExploreController()?.exploreFloods ?? const <PostsModel>[],
+      );
+    }
+    if (_isArchiveSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindArchiveController()?.list ?? const <PostsModel>[],
+      );
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindLikedPostControllers()?.all ?? const <PostsModel>[],
+      );
+    }
+    if (_isProfileSurfaceInstance) {
+      final entries = ProfileController.maybeFind()?.mergedPosts;
+      if (entries == null) return const <PostsModel>[];
+      return entries
+          .map((entry) => entry['post'])
+          .whereType<PostsModel>()
+          .toList(growable: false);
+    }
+    if (_isSocialProfileSurfaceInstance) {
+      final entries = _resolveSocialProfileController()?.combinedFeedEntries;
+      if (entries == null) return const <PostsModel>[];
+      return entries
+          .map((entry) => entry['post'])
+          .whereType<PostsModel>()
+          .toList(growable: false);
+    }
+    if (_isTopTagSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindTopTagsController()?.agendaList ?? const <PostsModel>[],
+      );
+    }
+    if (_isTagPostsSurfaceInstance) {
+      return List<PostsModel>.from(
+        maybeFindTagPostsController()?.list ?? const <PostsModel>[],
+      );
+    }
+    if (_isPrimaryFeedSurfaceInstance) {
+      return List<PostsModel>.from(agendaController.agendaList);
+    }
+    return const <PostsModel>[];
+  }
+
+  bool _canWarmSurfacePost(PostsModel post) {
+    return post.hasPlayableVideo && !post.deletedPost && !post.arsiv;
+  }
+
+  String get _feedFamilyHandoffSurfaceName {
+    if (_isPrimaryFeedSurfaceInstance) return 'feed';
+    if (_isProfileSurfaceInstance) return 'my_profile';
+    if (_isSocialProfileSurfaceInstance) return 'social_profile';
+    if (_isArchiveSurfaceInstance) return 'archives';
+    if (_isLikedPostSurfaceInstance) return 'liked_posts';
+    if (_isFloodSurfaceInstance) return 'flood';
+    if (_isExploreSeriesSurfaceInstance) return 'explore_series';
+    if (_isTopTagSurfaceInstance) return 'top_tag';
+    if (_isTagPostsSurfaceInstance) return 'tag_post';
+    return 'feed_family';
+  }
+
+  void _primeImmediateNextFeedFamilyAfterPlaybackStart(String anchorDocId) {
+    if (!_usesFeedPlaybackPolicy) return;
+    final posts = _surfacePostsSnapshot();
+    if (posts.isEmpty) return;
+    final anchorIndex = posts.indexWhere((post) => post.docID == anchorDocId);
+    if (anchorIndex < 0 || anchorIndex >= posts.length) return;
+
+    var nextPlayableIndex = -1;
+    for (var index = anchorIndex + 1; index < posts.length; index++) {
+      if (!_canWarmSurfacePost(posts[index])) continue;
+      nextPlayableIndex = index;
+      break;
+    }
+    if (nextPlayableIndex < 0) return;
+
+    final nextPost = posts[nextPlayableIndex];
+    final surfaceName = _feedFamilyHandoffSurfaceName;
+    PlaybackStartHandoffService.instance.notifyPlaybackStarted(
+      surface: surfaceName,
+      anchorKey: anchorDocId,
+      warmNext: () {
+        const readySegments = StartupPreloadPolicy.activeReadySegments;
+        maybeFindPrefetchScheduler()?.boostDoc(
+          nextPost.docID,
+          readySegments: readySegments,
+        );
+        for (final posterUrl in nextPost.preferredVideoPosterUrls) {
+          TurqImageCacheManager.warmUrl(posterUrl).ignore();
+        }
+        final preview = nextPost.primaryImageUrl.trim();
+        if (preview.isNotEmpty) {
+          TurqImageCacheManager.warmUrl(preview).ignore();
+        }
+        debugPrint(
+          '[FeedFamilyNextWarm] status=boost source=playback_start '
+          'surface=$surfaceName anchor=$anchorIndex next=$nextPlayableIndex '
+          'doc=${nextPost.docID} segments=$readySegments',
+        );
+      },
+    );
   }
 
   void _rememberFeedResumeActiveDoc() {
@@ -880,6 +1083,18 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return maybeFindFloodListingController()?.centeredIndex ??
           agendaController.centeredIndex;
     }
+    if (_isExploreSeriesSurfaceInstance) {
+      return maybeFindExploreController()?.floodsVisibleIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isArchiveSurfaceInstance) {
+      return maybeFindArchiveController()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
+    if (_isLikedPostSurfaceInstance) {
+      return maybeFindLikedPostControllers()?.centeredIndex ??
+          agendaController.centeredIndex;
+    }
     if (_isProfileSurfaceInstance) {
       return ProfileController.maybeFind()?.centeredIndex ??
           agendaController.centeredIndex;
@@ -993,6 +1208,10 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
       return route?.isCurrent ?? false;
     }
     if (_isExploreSeriesSurfaceInstance) {
+      final explore = maybeFindExploreController();
+      if (explore != null && explore.selection.value != 2) {
+        return false;
+      }
       final nav = maybeFindNavBarController();
       if (nav != null) {
         return nav.selectedIndex.value == 1;
@@ -1036,6 +1255,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   String get _qaSurfaceName {
     if (isStandalonePostInstance) return 'feed';
     if (_isFloodSurfaceInstance) return 'flood';
+    if (_isExploreSeriesSurfaceInstance) return 'explore_series';
     if (_isProfileFamilySurfaceInstance) return 'profile';
     return 'feed';
   }

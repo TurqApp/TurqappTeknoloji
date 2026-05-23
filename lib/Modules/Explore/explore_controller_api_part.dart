@@ -89,4 +89,13 @@ extension ExploreControllerApiX on ExploreController {
         preferredIndex: preferredIndex,
         model: model,
       );
+
+  void onExploreFloodVisibilityChanged(
+    int modelIndex,
+    double visibleFraction,
+  ) =>
+      _performHandleExploreFloodVisibilityChanged(
+        modelIndex,
+        visibleFraction,
+      );
 }

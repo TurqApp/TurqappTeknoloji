@@ -6,6 +6,9 @@ extension ExploreControllerSearchPart on ExploreController {
     floodsVisibleIndex.value = -1;
     lastFloodVisibleIndex = null;
     _pendingFloodDocId = null;
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = null;
+    _exploreFloodVisibleFractions.clear();
     showScrollToTop.value = false;
 
     void resetNow(ScrollController controller) {

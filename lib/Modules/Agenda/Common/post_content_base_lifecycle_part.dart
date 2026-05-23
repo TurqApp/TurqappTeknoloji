@@ -38,32 +38,22 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (widget.model.hasPlayableVideo && widget.shouldPlay) {
       final prefersImmediateVideoInit =
           isStandalonePostInstance || _isFeedStyleInlineSurfaceInstance;
-      final shouldEagerInitAndroidPrimaryFeed =
-          defaultTargetPlatform == TargetPlatform.android &&
-              _isPrimaryFeedSurfaceInstance;
-      final shouldEagerInitAndroidProfileFamily =
-          defaultTargetPlatform == TargetPlatform.android &&
-              (_isProfileSurfaceInstance || _isSocialProfileSurfaceInstance);
+      final shouldEagerInitFeedFamily = _isFeedStyleInlineSurfaceInstance;
       final delay = isStandalonePostInstance
           ? Duration.zero
           : (prefersImmediateVideoInit
-              ? (_isFeedStyleInlineSurfaceInstance &&
-                      defaultTargetPlatform == TargetPlatform.android &&
-                      !shouldEagerInitAndroidPrimaryFeed &&
-                      !shouldEagerInitAndroidProfileFamily
-                  ? const Duration(milliseconds: 220)
-                  : Duration.zero)
+              ? Duration.zero
               : const Duration(milliseconds: 150));
       _lazyInitTimer = Timer(delay, () {
         if (!mounted) return;
         if (widget.shouldPlay && _isSurfacePlaybackAllowed) {
           _initVideoController();
-          if (shouldEagerInitAndroidPrimaryFeed) {
+          if (shouldEagerInitFeedFamily) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
               if (!widget.shouldPlay || !_isSurfacePlaybackAllowed) return;
               _startPlaybackWhenReady(
-                source: 'init_eager_android_primary_feed',
+                source: 'init_eager_feed_family',
               );
             });
           }
@@ -808,7 +798,9 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     if (_isSocialProfileSurfaceInstance) {
       _resolveSocialProfileController()
           ?.primeImmediateNextProfileAfterPlaybackStart(docId);
+      return;
     }
+    _primeImmediateNextFeedFamilyAfterPlaybackStart(docId);
   }
 
   void _maybePreloadWarmVideoController({

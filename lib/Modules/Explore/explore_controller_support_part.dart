@@ -64,6 +64,9 @@ extension ExploreControllerPublicPart on ExploreController {
 
   void resetFloodSeriesListState() {
     exploreFloods.clear();
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = null;
+    _exploreFloodVisibleFractions.clear();
     lastFloodsDoc = null;
     _floodManifestStoreOffset = 0;
     _floodManifestStoreActive = true;
@@ -87,6 +90,9 @@ extension ExploreControllerPublicPart on ExploreController {
     exploreVideos.clear();
     explorePhotos.clear();
     exploreFloods.clear();
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = null;
+    _exploreFloodVisibleFractions.clear();
     lastExploreDoc = null;
     lastVideoDoc = null;
     lastPhotoDoc = null;

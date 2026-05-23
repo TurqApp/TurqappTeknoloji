@@ -540,20 +540,9 @@ extension ClassicContentBodyPart on _ClassicContentState {
             aspectRatio: frameAspectRatio,
             child: Builder(
               builder: (_) {
-                final instanceTag = widget.instanceTag ?? '';
-                final isSocialProfileSurface =
-                    instanceTag.startsWith('social_');
-                final isProfileFamilySurface =
-                    instanceTag.startsWith('profile_') ||
-                        instanceTag.startsWith('archives_') ||
-                        instanceTag.startsWith('liked_post_') ||
-                        isSocialProfileSurface;
-                final isFeedStyleInlineSurface = isPrimaryFeedSurfaceInstance ||
-                    isProfileFamilySurface ||
-                    instanceTag.startsWith('flood_') ||
-                    instanceTag.startsWith('explore_series_') ||
-                    instanceTag.startsWith('top_tag_') ||
-                    instanceTag.startsWith('tag_post_');
+                final isSocialProfileSurface = isSocialProfileSurfaceInstance;
+                final isProfileFamilySurface = isProfileFamilySurfaceInstance;
+                final isFeedStyleInlineSurface = isFeedStyleSurfaceInstance;
                 final mountInlinePlayer = videoController != null &&
                     (defaultTargetPlatform != TargetPlatform.iOS ||
                         !isFeedStyleInlineSurface ||
