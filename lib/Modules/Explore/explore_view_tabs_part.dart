@@ -104,6 +104,11 @@ extension _ExploreViewTabsPart on _ExploreViewState {
               onPageChanged: (idx) {
                 _resetExploreTabScroll(idx);
                 controller.selection.value = idx;
+                if (idx != 2) {
+                  controller.deactivateFloodSeriesPlayback(
+                    source: 'page_changed_$idx',
+                  );
+                }
                 syncPageLineBarSelection(
                   kExplorePageLineBarTag,
                   idx,
@@ -379,6 +384,9 @@ extension _ExploreViewTabsPart on _ExploreViewState {
   Widget _buildSeriesTab() {
     return Obx(() {
       final list = controller.exploreFloods;
+      final seriesTabSelected = controller.selection.value == 2 &&
+          !controller.isSearchMode.value &&
+          !controller.isKeyboardOpen.value;
       final focusedIndex = controller.resolveFloodSeriesFocusIndex();
       if (list.isEmpty && !controller.floodsIsLoading.value) {
         return AppStateView.empty(title: 'explore.no_series'.tr);
@@ -396,10 +404,10 @@ extension _ExploreViewTabsPart on _ExploreViewState {
           itemCount: list.length,
           itemBuilder: (c, i) {
             final p = list[i];
-            final shouldPlay =
+            final shouldPlay = seriesTabSelected &&
                 FeedPlaybackSelectionPolicy.shouldPlayCenteredItem(
-              isCentered: focusedIndex == i,
-            );
+                  isCentered: focusedIndex == i,
+                );
             return RepaintBoundary(
               child: Column(
                 children: [

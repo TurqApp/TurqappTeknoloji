@@ -355,6 +355,20 @@ extension ExploreControllerFeedPart on ExploreController {
     );
   }
 
+  void _performDeactivateFloodSeriesPlayback({required String source}) {
+    final previousIndex = floodsVisibleIndex.value;
+    floodsVisibleIndex.value = -1;
+    lastFloodVisibleIndex = null;
+    _pendingFloodDocId = null;
+    _exploreFloodVisibilityDebounce?.cancel();
+    _exploreFloodVisibilityDebounce = null;
+    _exploreFloodVisibleFractions.clear();
+    debugPrint(
+      '[ExploreSeries] status=deactivate source=$source '
+      'previousIndex=$previousIndex',
+    );
+  }
+
   void _performBoostFloodChildFirstSegments(
     PostsModel rootPost, {
     required PrefetchScheduler prefetch,
@@ -1376,6 +1390,9 @@ extension ExploreControllerFeedPart on ExploreController {
 
   void _performGoToPage(int index) {
     selection.value = index;
+    if (index != 2) {
+      _performDeactivateFloodSeriesPlayback(source: 'go_to_page_$index');
+    }
     if (index == 0 && trendingTags.isEmpty) {
       fetchTrendingTags();
     } else if (index == 1 && explorePosts.isEmpty && !exploreIsLoading.value) {

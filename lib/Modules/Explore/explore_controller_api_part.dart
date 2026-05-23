@@ -84,6 +84,9 @@ extension ExploreControllerApiX on ExploreController {
 
   void resetSurfaceForTabTransition() => _handleResetSurfaceForTabTransition();
 
+  void deactivateFloodSeriesPlayback({String source = 'unspecified'}) =>
+      _performDeactivateFloodSeriesPlayback(source: source);
+
   void capturePendingFloodEntry({int? preferredIndex, PostsModel? model}) =>
       _performCapturePendingFloodEntry(
         preferredIndex: preferredIndex,
