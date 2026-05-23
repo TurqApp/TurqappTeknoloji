@@ -195,6 +195,7 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
   Duration _stallWatchdogLastPosition = Duration.zero;
   int _stallWatchdogRetries = 0;
   int _stallWatchdogBufferingCycles = 0;
+  bool _surfaceLossStopAfterPosterFrameQueued = false;
   bool _dependenciesReady = false;
   VoidCallback? _keepAliveUpdateCallback;
 
@@ -1382,8 +1383,9 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStyleInlineSurfaceInstance) {
-      final hasStableIosFeedFrame = (value.hasRenderedFirstFrame ||
-              value.hasVisibleVideoFrame) &&
+      final hasStableIosFeedFrame = (value.hasVisibleVideoFrame ||
+              (value.hasRenderedFirstFrame &&
+                  value.position >= const Duration(milliseconds: 100))) &&
           widget.shouldPlay &&
           _isSurfacePlaybackAllowed &&
           (value.isPlaying || value.position > visualReadyPositionThreshold);

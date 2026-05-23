@@ -584,6 +584,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                                         shouldSuppressGenericResumeThumbnail) ||
                                     (isProfileFamilySurface &&
                                         !isSocialProfileSurface),
+                                suppressPauseSnapshot: isFeedStyleInlineSurface,
                                 startupRecoveryWatchdogEnabled:
                                     shouldEnableStartupRecoveryWatchdog,
                                 preferStableStartupBuffer: PlaybackSurfacePolicy
@@ -609,7 +610,7 @@ extension ClassicContentBodyPart on _ClassicContentState {
                             showStartupPlaceholder: showStartupPlaceholder,
                             source: 'classic_overlay',
                           );
-                          final posterFadeDuration = shouldHidePoster &&
+                          final posterFadeDuration = isFeedStyleInlineSurface &&
                                   defaultTargetPlatform == TargetPlatform.iOS
                               ? Duration.zero
                               : showStartupPlaceholder

@@ -3,6 +3,7 @@ part of 'network_awareness_service.dart';
 extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
   static const Duration _connectivityPollInterval = Duration(seconds: 3);
   static const Duration _offlineConfirmationDelay = Duration(seconds: 4);
+  static const bool _treatCellularAsWifi = true;
   static const MethodChannel _androidNetworkStateChannel = MethodChannel(
     'turqapp.network_state/method',
   );
@@ -231,7 +232,7 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
       return NetworkType.wifi;
     }
     if (results.contains(ConnectivityResult.mobile)) {
-      return NetworkType.cellular;
+      return _treatCellularAsWifi ? NetworkType.wifi : NetworkType.cellular;
     }
     if (results.any((r) => r != ConnectivityResult.none)) {
       return NetworkType.wifi;
@@ -254,7 +255,8 @@ extension NetworkAwarenessServicePolicyPart on NetworkAwarenessService {
           .invokeMethod<String>('getDefaultTransport');
       final nativeResolved = switch (nativeTransport) {
         'wifi' => NetworkType.wifi,
-        'cellular' => NetworkType.cellular,
+        'cellular' =>
+          _treatCellularAsWifi ? NetworkType.wifi : NetworkType.cellular,
         'none' => NetworkType.none,
         _ => resolvedFromConnectivity,
       };

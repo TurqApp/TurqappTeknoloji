@@ -23,9 +23,8 @@ bool _shouldLogFeedOnYukleme(String key) {
 extension AgendaControllerFeedPart on AgendaController {
   static const int _startupThumbnailPrefetchInitialCount = 5;
   static const int _startupThumbnailPrefetchRadius = 5;
-  static const int _feedUpcomingPosterAheadCount =
-      StartupPreloadPolicy.aheadFirstSegmentCount;
-  static const int _feedUpcomingPosterBehindCount = 1;
+  static const int _feedUpcomingPosterAheadCount = 10;
+  static const int _feedUpcomingPosterBehindCount = 10;
   String _feedPlaybackHandleKeyForDoc(String docId) => 'feed:${docId.trim()}';
 
   static const Duration _startupPlaybackLockDuration =
@@ -587,6 +586,9 @@ extension AgendaControllerFeedPart on AgendaController {
   void _bindCenteredIndexListener() {
     ever<int>(centeredIndex, (newIndex) {
       _markFeedSequencePassedBefore(newIndex);
+      if (newIndex >= 0 && newIndex < agendaList.length) {
+        _warmPlaybackHorizonVisualWindow(newIndex);
+      }
       final videoManager = VideoStateManager.instance;
       final preserveExternalPlayback = _hasExternalPlaybackOwner(
         videoManager.currentPlayingDocID,
@@ -753,19 +755,41 @@ extension AgendaControllerFeedPart on AgendaController {
 
   void _warmPlaybackHorizonVisualWindow(int centered) {
     if (agendaList.isEmpty) return;
-    final start = max(0, centered - 1);
-    final end = min(
-      agendaList.length,
-      centered + StartupPreloadPolicy.aheadFirstSegmentCount + 1,
+    final prioritizedIndices = _resolvePrioritizedPlayableFeedIndices(
+      centered: centered,
+      lookAheadPlayableCount: _feedUpcomingPosterAheadCount,
+      behindPlayableCount: _feedUpcomingPosterBehindCount,
     );
-    for (var index = start; index < end; index++) {
+    final signalEntries = <String>[];
+    for (final index in prioritizedIndices) {
       final post = agendaList[index];
-      if (!post.hasRenderableVideoCard) continue;
-      _warmPlaybackHorizonVisuals(post);
+      final offset = _resolvePlayableOffsetAroundCentered(
+        centered: centered,
+        targetIndex: index,
+      );
+      _warmPlaybackHorizonVisuals(
+        post,
+        source: 'poster_window',
+        playableOffset: offset,
+      );
+      if (signalEntries.length < 24) {
+        signalEntries.add('$offset:$index:${post.docID}');
+      }
+    }
+    if (signalEntries.isNotEmpty &&
+        _shouldLogFeedOnYukleme('poster_window:$centered')) {
+      debugPrint(
+        '[PosterWarmWindow] centered=$centered behind=$_feedUpcomingPosterBehindCount '
+        'ahead=$_feedUpcomingPosterAheadCount entries=${signalEntries.join(' | ')}',
+      );
     }
   }
 
-  void _warmPlaybackHorizonVisuals(PostsModel post) {
+  void _warmPlaybackHorizonVisuals(
+    PostsModel post, {
+    String source = 'playback_horizon',
+    int? playableOffset,
+  }) {
     final docId = post.docID.trim();
     if (docId.isEmpty) return;
     final now = DateTime.now();
@@ -781,7 +805,7 @@ extension AgendaControllerFeedPart on AgendaController {
             now.difference(warmAt) > _feedPlaybackHorizonVisualWarmTtl,
       );
     }
-    _warmPostVisuals(post);
+    _warmPostVisuals(post, source: source, playableOffset: playableOffset);
   }
 
   void primeImmediateNextFeedAfterPlaybackStart(String anchorDocId) {
@@ -920,6 +944,26 @@ extension AgendaControllerFeedPart on AgendaController {
     return -1;
   }
 
+  int _resolvePlayableOffsetAroundCentered({
+    required int centered,
+    required int targetIndex,
+  }) {
+    if (targetIndex == centered) return 0;
+    if (targetIndex > centered) {
+      return _resolvePlayableOffsetFromCentered(
+        centered: centered,
+        targetIndex: targetIndex,
+      );
+    }
+    var playableOffset = 0;
+    for (int candidate = centered - 1; candidate >= targetIndex; candidate--) {
+      if (!_canAutoplayVideoPost(agendaList[candidate])) continue;
+      playableOffset--;
+      if (candidate == targetIndex) return playableOffset;
+    }
+    return -1;
+  }
+
   int _feedStartupReadySegmentsForPlayableRank(int playableRank) {
     return StartupPreloadPolicy.startupWarmReadySegmentsForRank(
       playableRank,
@@ -941,14 +985,8 @@ extension AgendaControllerFeedPart on AgendaController {
     if (agendaList.isEmpty) return;
     final current = centeredIndex.value.clamp(0, agendaList.length - 1);
     final post = agendaList[current];
-    _warmPostAvatar(post);
-    for (final posterUrl in post.preferredVideoPosterUrls) {
-      TurqImageCacheManager.warmUrl(posterUrl).ignore();
-    }
-    final preview = post.primaryImageUrl.trim();
-    if (preview.isNotEmpty) {
-      TurqImageCacheManager.warmUrl(preview).ignore();
-    }
+    _warmPostVisuals(post);
+    _warmPlaybackHorizonVisualWindow(current);
   }
 
   void _updateFeedPrefetchQueue({int? anchorIndex}) {
@@ -1275,14 +1313,57 @@ extension AgendaControllerFeedPart on AgendaController {
     TurqAvatarCacheManager.warmUrl(avatarUrl).ignore();
   }
 
-  void _warmPostVisuals(PostsModel post) {
+  void _warmPostVisuals(
+    PostsModel post, {
+    String source = 'feed_visual',
+    int? playableOffset,
+  }) {
     _warmPostAvatar(post);
-    final preview = post.primaryImageUrl.trim();
-    if (preview.isNotEmpty) {
-      TurqImageCacheManager.warmUrl(preview).ignore();
+    final warmedUrls = <String>{};
+    void warmImageUrl(String rawUrl) {
+      final url = rawUrl.trim();
+      if (url.isEmpty || !warmedUrls.add(url)) return;
+      unawaited(
+        () async {
+          try {
+            final file = await TurqImageCacheManager.warmUrl(url);
+            if (source == 'poster_window' &&
+                _shouldLogFeedOnYukleme(
+                  'poster_result:${post.docID}:$playableOffset:$url',
+                )) {
+              debugPrint(
+                '[PosterWarmResult] status=${file.existsSync() ? 'ready' : 'missing'} '
+                'source=$source offset=$playableOffset doc=${post.docID} '
+                'url=$url path=${file.path}',
+              );
+            }
+          } catch (error) {
+            if (source == 'poster_window' &&
+                _shouldLogFeedOnYukleme(
+                  'poster_result_error:${post.docID}:$playableOffset:$url',
+                )) {
+              debugPrint(
+                '[PosterWarmResult] status=error source=$source '
+                'offset=$playableOffset doc=${post.docID} url=$url error=$error',
+              );
+            }
+          }
+        }(),
+      );
     }
+
+    final isVideoCard = post.hasPlayableVideo || post.hasRenderableVideoCard;
+    if (isVideoCard) {
+      for (final posterUrl in post.preferredVideoPosterUrls) {
+        warmImageUrl(posterUrl);
+      }
+      warmImageUrl(post.primaryImageUrl);
+      return;
+    }
+
+    warmImageUrl(post.primaryImageUrl);
     for (final posterUrl in post.preferredVideoPosterUrls) {
-      TurqImageCacheManager.warmUrl(posterUrl).ignore();
+      warmImageUrl(posterUrl);
     }
   }
 

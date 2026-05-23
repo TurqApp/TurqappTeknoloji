@@ -723,6 +723,41 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       }
       if (defaultTargetPlatform == TargetPlatform.iOS &&
           _usesFeedPlaybackPolicy) {
+        if (!_surfaceLossStopAfterPosterFrameQueued) {
+          _surfaceLossStopAfterPosterFrameQueued = true;
+          final current = v.value;
+          videoValueNotifier.value = HLSVideoValue(
+            isInitialized: current.isInitialized,
+            isPlaying: false,
+            isBuffering: false,
+            isCompleted: current.isCompleted,
+            hasRenderedFirstFrame: false,
+            hasVisibleVideoFrame: false,
+            awaitingFreshFrameAfterReattach: false,
+            position: current.position,
+            duration: current.duration,
+            size: current.size,
+            aspectRatio: current.aspectRatio,
+            buffered: current.buffered,
+          );
+          unawaited(v.setVolume(0.0));
+          debugPrint(
+            '[PosterOverlayDecision][${widget.model.docID}] '
+            'source=surface_loss_pre_stop surface=$_qaSurfaceName '
+            'hide=false placeholder=false reason=poster_frame_before_stop '
+            'shouldPlay=${widget.shouldPlay} allowed=$_isSurfacePlaybackAllowed '
+            'positionMs=${current.position.inMilliseconds}',
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _videoAdapter != v) {
+              _surfaceLossStopAfterPosterFrameQueued = false;
+              return;
+            }
+            _stopPlaybackForSurfaceLoss();
+            _surfaceLossStopAfterPosterFrameQueued = false;
+          });
+          return;
+        }
         v.suppressNextReattachResume(
           reason: 'ios_feed_surface_loss_stop',
         );

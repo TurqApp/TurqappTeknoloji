@@ -1084,6 +1084,9 @@ class FeedManifestRepository extends GetxService {
     final flags = item['flags'] is Map
         ? Map<String, dynamic>.from(item['flags'] as Map)
         : const <String, dynamic>{};
+    final reshareMap = item['reshareMap'] is Map
+        ? Map<String, dynamic>.from(item['reshareMap'] as Map)
+        : const <String, dynamic>{};
     final hlsMasterUrl = (item['hlsMasterUrl'] ?? '').toString().trim();
     final videoUrl = (item['video'] ?? '').toString().trim();
     final hasPlayableVideo = hlsMasterUrl.isNotEmpty || videoUrl.isNotEmpty;
@@ -1104,6 +1107,8 @@ class FeedManifestRepository extends GetxService {
       'authorAvatarUrl': item['authorAvatarUrl'],
       'rozet': item['rozet'],
       'metin': item['metin'],
+      'originalPostID': item['originalPostID'] ?? reshareMap['originalPostID'],
+      'originalUserID': item['originalUserID'] ?? reshareMap['originalUserID'],
       'thumbnail': resolvedThumbnail,
       'img': hasPlayableVideo ? const <String>[] : posters,
       'video': item['video'],
@@ -1129,6 +1134,7 @@ class FeedManifestRepository extends GetxService {
       'paylasGizliligi': flags['paylasGizliligi'] ?? 0,
       'isUploading': false,
       'stabilized': true,
+      'reshareMap': reshareMap,
     };
   }
 }

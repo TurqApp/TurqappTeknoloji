@@ -155,12 +155,10 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
             !(defaultTargetPlatform == TargetPlatform.android &&
                 preferWarmPoolPause));
     final resumeAt = shouldPreservePosition ? _value.position : Duration.zero;
-    final shouldPreserveRecoverySnapshot =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            _isFeedStyleSurface &&
-            (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame);
     await _performStopPlayback(
-      preserveFrameSnapshot: shouldPreserveRecoverySnapshot,
+      preserveFrameSnapshot: !_isFeedStyleSurface &&
+          defaultTargetPlatform == TargetPlatform.iOS &&
+          (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame),
     );
     await Future<void>.delayed(const Duration(milliseconds: 80));
     if (!shouldPreservePosition) {
@@ -449,12 +447,40 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
         await _hls.setVolume(0.0);
       }
     } catch (_) {}
-    final shouldPreserveResumeSnapshot =
-        defaultTargetPlatform == TargetPlatform.iOS &&
-            _isFeedStyleSurface &&
-            (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame);
+    if (defaultTargetPlatform == TargetPlatform.iOS && _isFeedStyleSurface) {
+      final current = _value;
+      _value = HLSVideoValue(
+        isInitialized: current.isInitialized,
+        isPlaying: false,
+        isBuffering: false,
+        isCompleted: current.isCompleted,
+        hasRenderedFirstFrame: false,
+        hasVisibleVideoFrame: false,
+        awaitingFreshFrameAfterReattach: false,
+        position: current.position,
+        duration: current.duration,
+        size: current.size,
+        aspectRatio: current.aspectRatio,
+        buffered: current.buffered,
+      );
+      _notifyAdapterListeners();
+      if (kDebugMode) {
+        debugPrint(
+          '[HLSAdapterControl] command=poster_before_stop '
+          'video=${_hls.telemetryVideoIdForDiagnostics ?? '-'} '
+          'isStopped=$_isStopped viewReady=$_viewReady '
+          'primaryFeedSurface=$_isPrimaryFeedSurface '
+          'feedStyleSurface=$_isFeedStyleSurface '
+          'positionMs=${current.position.inMilliseconds} url=$_effectiveUrl',
+        );
+      }
+      await WidgetsBinding.instance.endOfFrame;
+      if (_disposed) return;
+    }
     await _performStopPlayback(
-      preserveFrameSnapshot: shouldPreserveResumeSnapshot,
+      preserveFrameSnapshot: !_isFeedStyleSurface &&
+          defaultTargetPlatform == TargetPlatform.iOS &&
+          (_value.hasRenderedFirstFrame || _value.hasVisibleVideoFrame),
       sourceStack: sourceStack,
     );
   }

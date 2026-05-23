@@ -343,6 +343,32 @@ class PostsModel {
       addUrl(canonicalImageUrls.first);
     }
     if (hasVideoSignal) {
+      final sourcePostIds = <String>[
+        originalPostID,
+        (reshareMap['sourcePostID'] ?? '').toString(),
+        (reshareMap['originalPostID'] ?? '').toString(),
+      ];
+      for (final sourcePostId in sourcePostIds) {
+        final normalizedSourcePostId = sourcePostId.trim();
+        if (normalizedSourcePostId.isEmpty || normalizedSourcePostId == docID) {
+          continue;
+        }
+        for (final candidate in CdnUrlBuilder.buildThumbnailUrlCandidates(
+          normalizedSourcePostId,
+        )) {
+          addUrl(candidate);
+        }
+      }
+      for (final candidate
+          in CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(
+        hlsMasterUrl,
+      )) {
+        addUrl(candidate);
+      }
+      for (final candidate
+          in CdnUrlBuilder.buildThumbnailUrlCandidatesFromMediaUrl(video)) {
+        addUrl(candidate);
+      }
       for (final candidate
           in CdnUrlBuilder.buildThumbnailUrlCandidates(docID)) {
         addUrl(candidate);

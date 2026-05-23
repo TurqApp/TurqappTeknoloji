@@ -18,6 +18,8 @@ class CacheFirstNetworkImage extends StatefulWidget {
   final bool downloadBeforeRender;
   final bool eagerPrecache;
   final bool retryExhaustedCandidates;
+  final bool useFallbackWhileLoading;
+  final String debugLabel;
   final String Function(Iterable<String> urls)?
       rememberedResolvedFilePathForUrls;
   final void Function(String url, String filePath)? rememberResolvedFile;
@@ -34,6 +36,8 @@ class CacheFirstNetworkImage extends StatefulWidget {
     this.downloadBeforeRender = false,
     this.eagerPrecache = false,
     this.retryExhaustedCandidates = false,
+    this.useFallbackWhileLoading = true,
+    this.debugLabel = '',
     this.rememberedResolvedFilePathForUrls,
     this.rememberResolvedFile,
   });
@@ -50,6 +54,8 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
   bool _exhaustedCandidates = false;
   bool _advanceScheduled = false;
   bool _networkFetchInFlight = false;
+  bool _loggedLoadingFallbackSuppressed = false;
+  bool _loggedErrorFallback = false;
   Timer? _exhaustedRetryTimer;
   String _lastRememberRequestedUrl = '';
   String _lastPrecacheRequestedUrl = '';
@@ -98,6 +104,8 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
     _exhaustedCandidates = candidates.isEmpty;
     _advanceScheduled = false;
     _networkFetchInFlight = false;
+    _loggedLoadingFallbackSuppressed = false;
+    _loggedErrorFallback = false;
     _lastRememberRequestedUrl = '';
     _lastPrecacheRequestedUrl = '';
     _lastPrecacheRequestedFilePath = '';
@@ -106,6 +114,9 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
       setState(() {});
     }
     unawaited(_resolveLocalFile(candidates));
+    if (!widget.useFallbackWhileLoading && candidates.isNotEmpty) {
+      _ensureActiveCandidateDownloaded(candidates.first);
+    }
   }
 
   @override
@@ -226,8 +237,7 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
 
   void _ensureActiveCandidateDownloaded(String url) {
     final normalized = url.trim();
-    if (!widget.downloadBeforeRender ||
-        normalized.isEmpty ||
+    if (normalized.isEmpty ||
         _networkFetchInFlight ||
         _attemptedNetworkUrls.contains(normalized)) {
       return;
@@ -366,9 +376,26 @@ class _CacheFirstNetworkImageState extends State<CacheFirstNetworkImage> {
           _rememberRenderedCandidate(activeUrl);
           return child;
         }
+        if (!widget.useFallbackWhileLoading) {
+          if (!_loggedLoadingFallbackSuppressed) {
+            _loggedLoadingFallbackSuppressed = true;
+            debugPrint(
+              '[PosterFallbackSignal] event=loading_fallback_suppressed '
+              'label=${widget.debugLabel} url=$activeUrl',
+            );
+          }
+          return child;
+        }
         return widget.fallback;
       },
       errorBuilder: (_, __, ___) {
+        if (!_loggedErrorFallback) {
+          _loggedErrorFallback = true;
+          debugPrint(
+            '[PosterFallbackSignal] event=error_fallback '
+            'label=${widget.debugLabel} url=$activeUrl',
+          );
+        }
         _scheduleAdvanceCandidate();
         return widget.fallback;
       },

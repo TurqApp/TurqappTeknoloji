@@ -507,7 +507,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
         autoplayRequestWorkItem = nil
         didRequestInitialPlay = false
         isAutoPlay = false
-        if showOverlay {
+        if showOverlay && !suppressPauseSnapshot {
             captureCurrentFrameSnapshot(showOverlay: true)
         } else {
             clearFrameSnapshot()
@@ -1140,7 +1140,7 @@ class HLSPlayerView: NSObject, FlutterPlatformView {
 
     // MARK: - Cleanup
     private func cleanup(preserveFrameSnapshot: Bool = false) {
-        if preserveFrameSnapshot {
+        if preserveFrameSnapshot && !suppressPauseSnapshot {
             captureCurrentFrameSnapshot(showOverlay: true)
         }
 

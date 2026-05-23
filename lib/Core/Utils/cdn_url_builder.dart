@@ -89,12 +89,28 @@ class CdnUrlBuilder {
   static String buildThumbnailUrl(String docID) =>
       _buildStorageUrl('Posts/$docID/thumbnail.webp');
 
-  /// Post thumbnail için olası dosya uzantılarını döndürür.
+  /// Storage/CDN video URL'sinden post klasörünü çıkarıp thumbnail adaylarını üretir.
+  static List<String> buildThumbnailUrlCandidatesFromMediaUrl(String mediaUrl) {
+    final normalized = toCdnUrl(mediaUrl.trim());
+    if (normalized.isEmpty) return const <String>[];
+    try {
+      final parsed = Uri.parse(normalized);
+      final segments = parsed.pathSegments;
+      final postsIndex = segments.indexOf('Posts');
+      if (postsIndex < 0 || postsIndex + 1 >= segments.length) {
+        return const <String>[];
+      }
+      final postId = segments[postsIndex + 1].trim();
+      if (postId.isEmpty) return const <String>[];
+      return buildThumbnailUrlCandidates(postId);
+    } catch (_) {
+      return const <String>[];
+    }
+  }
+
+  /// Post thumbnail adayları. Storage standardı `thumbnail.webp`.
   static List<String> buildThumbnailUrlCandidates(String docID) => <String>[
         _buildStorageUrl('Posts/$docID/thumbnail.webp'),
-        _buildStorageUrl('Posts/$docID/thumbnail.jpg'),
-        _buildStorageUrl('Posts/$docID/thumbnail.jpeg'),
-        _buildStorageUrl('Posts/$docID/thumbnail.png'),
       ];
 
   /// Genel storage path'i CDN URL'sine çevirir.

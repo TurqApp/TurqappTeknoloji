@@ -338,6 +338,8 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                               shouldSuppressGenericResumeThumbnail) ||
                                                           (isProfileFamilySurface &&
                                                               !isSocialProfileSurface),
+                                                  suppressPauseSnapshot:
+                                                      isFeedStyleInlineSurface,
                                                   startupRecoveryWatchdogEnabled:
                                                       shouldEnableStartupRecoveryWatchdog,
                                                   preferStableStartupBuffer:
@@ -370,7 +372,7 @@ extension AgendaContentBodyPart on _AgendaContentState {
                                                 source: 'agenda_overlay',
                                               );
                                               final posterFadeDuration =
-                                                  shouldHidePoster &&
+                                                  isFeedStyleInlineSurface &&
                                                           defaultTargetPlatform ==
                                                               TargetPlatform.iOS
                                                       ? Duration.zero
