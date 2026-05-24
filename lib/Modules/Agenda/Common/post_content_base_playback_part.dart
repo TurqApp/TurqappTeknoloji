@@ -665,6 +665,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
   void _safePauseVideo() {
     final v = _videoAdapter;
     if (v != null) {
+      _logFeedBackgroundPlaybackDecision(
+        source: 'safe_pause',
+        action: 'force_silence',
+        adapter: v,
+      );
       if (defaultTargetPlatform == TargetPlatform.android &&
           _isPrimaryFeedSurfaceInstance) {
         debugPrint(
@@ -786,6 +791,11 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
         'modelIndex=${_surfaceModelIndex()} '
         'offset=${_feedPlaybackOffsetLabel()}',
       );
+      _logFeedBackgroundPlaybackDecision(
+        source: 'surface_loss',
+        action: 'stop_playback',
+        adapter: v,
+      );
       _playbackRecoveryTimer?.cancel();
       _playbackRecoveryTimer = null;
       _cancelFeedStallWatchdog();
@@ -801,6 +811,37 @@ extension PostContentBasePlaybackPart<T extends PostContentBase>
       _playbackIntentTracked = false;
       _syncRuntimeHints(hasStableFocus: false);
     }
+  }
+
+  void _logFeedBackgroundPlaybackDecision({
+    required String source,
+    required String action,
+    required HLSVideoAdapter adapter,
+  }) {
+    if (!_usesFeedPlaybackPolicy) return;
+    final modelIndex = _surfaceModelIndex();
+    final centeredIndex = _surfaceCurrentCenteredIndex();
+    final distance = modelIndex >= 0 && centeredIndex >= 0
+        ? modelIndex - centeredIndex
+        : null;
+    debugPrint(
+      '[FeedBackstopDecision] source=$source action=$action '
+      'doc=${widget.model.docID} key=$playbackHandleKey '
+      'modelIndex=$modelIndex centeredIndex=$centeredIndex '
+      'distance=${distance ?? 'unknown'} '
+      'offset=${_feedPlaybackOffsetLabel()} '
+      'shouldPlay=${widget.shouldPlay} '
+      'surfaceAllowed=$_isSurfacePlaybackAllowed '
+      'warmWindow=$_shouldKeepPrimaryFeedSurfaceAliveInWarmWindow '
+      'primary=$_isPrimaryFeedSurfaceInstance '
+      'isStopped=${adapter.isStopped} '
+      'playing=${adapter.value.isPlaying} '
+      'buffering=${adapter.value.isBuffering} '
+      'firstFrame=${adapter.value.hasRenderedFirstFrame} '
+      'visibleFrame=${adapter.value.hasVisibleVideoFrame} '
+      'positionMs=${adapter.value.position.inMilliseconds} '
+      'currentOwner=${_playbackRuntimeService.currentPlayingDocId ?? ''}',
+    );
   }
 
   bool _enforceBlockedSurfacePlaybackStop(

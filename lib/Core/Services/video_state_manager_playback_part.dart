@@ -695,6 +695,13 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
             }
           }
           if (handle is HLSAdapterPlaybackHandle) {
+            final feedBackstopSnapshot =
+                controllerSurface == 'feed' || allowedSurface == 'feed'
+                    ? _resolveFeedBackstopSnapshot(
+                        allowedKey: allowedDocID,
+                        stoppingKey: controllerKey,
+                      )
+                    : null;
             debugPrint(
               '[PlaybackStopTrace] source=pause_all_except '
               'allowed=$allowedDocID stopping=${entry.key} '
@@ -706,6 +713,26 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
               'stopPlayback=$shouldStopPlayback',
             );
             if (controllerSurface == 'feed' || allowedSurface == 'feed') {
+              debugPrint(
+                '[FeedBackstopDecision] source=pause_all_except '
+                'action=${shouldStopPlayback ? 'stop_playback' : 'force_silence'} '
+                'allowed=$allowedDocID stopping=${entry.key} '
+                'allowedSurface=$allowedSurface surface=$controllerSurface '
+                'centered=${feedBackstopSnapshot?.centeredIndex ?? -1} '
+                'centeredDoc=${feedBackstopSnapshot?.centeredDocId ?? ''} '
+                'allowedIndex=${feedBackstopSnapshot?.allowedIndex ?? -1} '
+                'allowedDistance=${feedBackstopSnapshot?.allowedDistance ?? 'unknown'} '
+                'stoppingIndex=${feedBackstopSnapshot?.stoppingIndex ?? -1} '
+                'stoppingDistance=${feedBackstopSnapshot?.stoppingDistance ?? 'unknown'} '
+                'listCount=${feedBackstopSnapshot?.listCount ?? -1} '
+                'stopPlayback=$shouldStopPlayback '
+                'surfaceKeepWarm=$keepWarmDuringSurfaceSwitch '
+                'refreshHandoff=$keepWarmDuringRefreshHandoff '
+                'preferWarm=${handle.adapter.preferWarmPoolPause} '
+                'playing=${handle.isPlaying} '
+                'buffering=${handle.adapter.value.isBuffering} '
+                'positionMs=${handle.adapter.value.position.inMilliseconds}',
+              );
               debugPrint(
                 '[FeedCdnProbe] signal=hidden_handle_decision '
                 'allowed=$allowedDocID stopping=${entry.key} '
@@ -761,6 +788,26 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
 
     _currentPlayingDocID = allowedDocID;
     _syncFocusedPrefetchDoc(allowedDocID);
+  }
+
+  FeedPlaybackBackstopSnapshot? _resolveFeedBackstopSnapshot({
+    required String? allowedKey,
+    required String stoppingKey,
+  }) {
+    final resolver = _feedBackstopSnapshotResolver;
+    if (resolver == null) return null;
+    try {
+      return resolver(
+        allowedKey: allowedKey,
+        stoppingKey: stoppingKey,
+      );
+    } catch (error) {
+      debugPrint(
+        '[FeedBackstopDecision] source=resolver_error '
+        'allowed=$allowedKey stopping=$stoppingKey error=$error',
+      );
+      return null;
+    }
   }
 
   void _verifyIosFeedHiddenHandleStopped({
@@ -1548,6 +1595,11 @@ extension VideoStateManagerFacadePart on VideoStateManager {
 
   void unregisterVideoController(String docID) =>
       VideoStateManagerPlaybackPart(this)._unregisterVideoController(docID);
+
+  void setFeedBackstopSnapshotResolver(
+    FeedPlaybackBackstopSnapshotResolver? resolver,
+  ) =>
+      _feedBackstopSnapshotResolver = resolver;
 
   void pauseAllExcept(String? allowedDocID) =>
       VideoStateManagerPlaybackPart(this)._pauseAllExcept(allowedDocID);

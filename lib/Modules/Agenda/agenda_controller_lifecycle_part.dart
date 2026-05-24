@@ -35,6 +35,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
   void _handleLifecycleInit() {
     scrollController.addListener(_onScroll);
     navBarController = ensureNavBarController();
+    _registerFeedBackstopSnapshotResolver();
     unawaited(DeviceSessionService.instance.warmDeviceKey());
     unawaited(FeedDiversityMemoryService.ensure().ensureReady());
     unawaited(_pruneConsumedFeedCachesOnSessionInit());
@@ -85,6 +86,7 @@ extension AgendaControllerLifecyclePart on AgendaController {
   }
 
   void _handleLifecycleClose() {
+    VideoStateManager.instance.setFeedBackstopSnapshotResolver(null);
     _mergedFeedWorker?.dispose();
     _filteredFeedWorker?.dispose();
     _renderFeedWorker?.dispose();
@@ -103,6 +105,47 @@ extension AgendaControllerLifecyclePart on AgendaController {
     _manifestWindowSyncTimer?.cancel();
     AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
     _disposeFeedScrollControllerSafely();
+  }
+
+  void _registerFeedBackstopSnapshotResolver() {
+    VideoStateManager.instance.setFeedBackstopSnapshotResolver(
+      ({
+        required String? allowedKey,
+        required String stoppingKey,
+      }) {
+        final count = agendaList.length;
+        final centered = centeredIndex.value;
+        final centeredDoc =
+            centered >= 0 && centered < count ? agendaList[centered].docID : '';
+        final allowedDoc = _normalizeFeedPlaybackKeyForBackstop(allowedKey);
+        final stoppingDoc = _normalizeFeedPlaybackKeyForBackstop(stoppingKey);
+        final allowedIndex = allowedDoc.isEmpty
+            ? -1
+            : agendaList.indexWhere((post) => post.docID == allowedDoc);
+        final stoppingIndex = stoppingDoc.isEmpty
+            ? -1
+            : agendaList.indexWhere((post) => post.docID == stoppingDoc);
+        return FeedPlaybackBackstopSnapshot(
+          allowedKey: allowedKey?.trim() ?? '',
+          stoppingKey: stoppingKey.trim(),
+          allowedDocId: allowedDoc,
+          stoppingDocId: stoppingDoc,
+          centeredIndex: centered,
+          centeredDocId: centeredDoc,
+          allowedIndex: allowedIndex,
+          stoppingIndex: stoppingIndex,
+          listCount: count,
+        );
+      },
+    );
+  }
+
+  String _normalizeFeedPlaybackKeyForBackstop(String? key) {
+    final trimmed = key?.trim() ?? '';
+    if (trimmed.startsWith('feed:')) {
+      return trimmed.substring('feed:'.length).trim();
+    }
+    return trimmed;
   }
 
   // ignore: unused_element

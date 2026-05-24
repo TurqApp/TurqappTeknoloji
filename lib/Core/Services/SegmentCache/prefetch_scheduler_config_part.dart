@@ -23,8 +23,10 @@ int resolvePrefetchReadySegmentsForPost(
   PostsModel? post, {
   int fallbackReadySegments = _prefetchSchedulerTargetReadySegments,
 }) {
-  final normalizedFallback =
-      fallbackReadySegments < 1 ? 1 : fallbackReadySegments;
+  final normalizedFallback = fallbackReadySegments.clamp(
+    1,
+    HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+  );
   if (post?.isFloodSeriesContent ?? false) {
     return 1;
   }

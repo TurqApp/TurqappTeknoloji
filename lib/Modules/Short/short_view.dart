@@ -190,6 +190,7 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   String _lastReportedStableFrameToken = '';
   int? _swipePreplayPage;
   String? _swipePreplayDocId;
+  String? _activeShortSegmentWarmDocId;
   String? _pendingActiveAdapterEnsureToken;
   final Set<String> _pendingWarmNeighborEnsureTokens = <String>{};
   int? _pendingPlayPage;
@@ -493,6 +494,10 @@ class _ShortViewState extends State<ShortView> with RouteAware {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
+    _abortActiveShortSegmentWarmIfNeeded(
+      docId: _docIdForShortAdapter(adapter),
+      reason: 'short_release_playback',
+    );
     await _playbackExecutionService.stopAdapter(adapter);
   }
 
@@ -569,6 +574,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _pendingPageActivation = false;
     _lastPrimaryPlayDocId = null;
     _lastPrimaryPlayAt = null;
+    _abortActiveShortSegmentWarmIfNeeded(
+      reason: 'short_route_pause',
+    );
     final vc = controller.cache[currentPage];
     if (vc != null) {
       _persistShortPlaybackState(currentPage, vc);
@@ -740,6 +748,9 @@ class _ShortViewState extends State<ShortView> with RouteAware {
     _stallWatchdogTimer?.cancel();
     _iosNativePlaybackGuardTimer?.cancel();
     _shortsWorker?.dispose();
+    _abortActiveShortSegmentWarmIfNeeded(
+      reason: 'short_dispose',
+    );
     AdmobKare.availabilityRevision
         .removeListener(_handleShortAdAvailabilityChanged);
     AdmobKare.setScrollCriticalLiveAdBindingPaused(false);

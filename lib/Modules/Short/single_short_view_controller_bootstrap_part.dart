@@ -52,6 +52,10 @@ extension SingleShortViewControllerBootstrapPart on _SingleShortViewState {
 
     final docId =
         (index >= 0 && index < shorts.length) ? shorts[index].docID : null;
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      docId: docId,
+      reason: 'single_short_release_controller',
+    );
     if (docId != null) {
       try {
         _playbackRuntimeService.unregisterPlaybackHandle(

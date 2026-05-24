@@ -4,7 +4,7 @@ import 'package:turqappv2/Models/posts_model.dart';
 
 void main() {
   group('resolvePrefetchReadySegmentsForPost', () {
-    test('keeps normal posts on fallback ready segment target', () {
+    test('caps normal posts at the second ready segment', () {
       final post = PostsModel.fromMap(
         <String, dynamic>{
           'playbackUrl': 'https://cdn.turqapp.com/Posts/doc-1/hls/master.m3u8',
@@ -18,7 +18,7 @@ void main() {
 
       final target = resolvePrefetchReadySegmentsForPost(
         post,
-        fallbackReadySegments: 2,
+        fallbackReadySegments: 4,
       );
 
       expect(target, 2);

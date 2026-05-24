@@ -316,7 +316,8 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
     if (liveReadySegments != null && liveReadySegments <= 0) {
       return;
     }
-    final targetReadySegments = liveReadySegments ?? followUpJob.maxSegments;
+    final targetReadySegments = (liveReadySegments ?? followUpJob.maxSegments)
+        .clamp(1, HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal);
     final entry = cacheManager.getEntry(docID);
     final cachedSegments = entry?.cachedSegmentCount ?? 0;
     final totalSegments = entry?.totalSegmentCount ?? 0;
@@ -823,8 +824,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
         final cacheOriginAtDispatch = quotaFillMode
             ? 'quota'
             : (ownerInfoAtDispatch['owner'] ?? job.source).toString();
-        if (isFeedPrefetchJob &&
-            segmentOrdinal != null &&
+        if (segmentOrdinal != null &&
             segmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
           debugPrint(
             '[SegmentWarmGuard] status=block_prefetch reason=max_segment_2 '
@@ -1013,8 +1013,7 @@ extension PrefetchSchedulerWorkerPart on PrefetchScheduler {
           _processQueue();
           return;
         }
-        if (cacheOrigin == 'feed' &&
-            segmentOrdinal != null &&
+        if (segmentOrdinal != null &&
             segmentOrdinal > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
           debugPrint(
             '[SegmentWarmGuard] status=drop_write reason=max_segment_2 '

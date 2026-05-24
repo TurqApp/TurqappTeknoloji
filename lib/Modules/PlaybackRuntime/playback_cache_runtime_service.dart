@@ -374,7 +374,10 @@ class SegmentCacheRuntimeService {
   }) {
     final normalizedDocId = HlsSegmentPolicy.normalizeDocId(docId);
     if (normalizedDocId == null) return;
-    final targetReadySegments = minimumSegmentCount.clamp(1, 99);
+    final targetReadySegments = minimumSegmentCount.clamp(
+      1,
+      HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+    );
     final entry = _readEntry(normalizedDocId);
     if (entry != null && entry.cachedSegmentCount >= targetReadySegments) {
       final lastRequested =
@@ -498,9 +501,15 @@ class SegmentCacheRuntimeService {
                 progress: normalized,
                 totalSegments: totalSegmentCount,
               ));
+    if (currentSegment >= HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+      return;
+    }
     final maxReady = maxReadySegments;
     var targetReadySegments =
         (currentSegment + lookAheadSegments).clamp(1, totalSegmentCount);
+    if (targetReadySegments > HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal) {
+      targetReadySegments = HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal;
+    }
     if (maxReady != null && maxReady > 0 && targetReadySegments > maxReady) {
       targetReadySegments = maxReady.clamp(1, totalSegmentCount);
     }

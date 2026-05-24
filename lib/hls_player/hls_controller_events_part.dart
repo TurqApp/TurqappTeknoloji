@@ -140,6 +140,7 @@ extension HLSControllerEventsPart on HLSController {
           case 'timeUpdate':
             final position = (event['position'] as num?)?.toDouble() ?? 0.0;
             final duration = (event['duration'] as num?)?.toDouble() ?? 0.0;
+            final previousPosition = _currentPosition;
             _currentPosition = position;
             _duration = duration;
             _emitPosition(
@@ -167,6 +168,26 @@ extension HLSControllerEventsPart on HLSController {
                     ? PlayerState.playing
                     : PlayerState.ready,
               );
+            }
+            final advancedWhilePlaybackWasExpected =
+                _hasPlaybackIntent &&
+                    _state != PlayerState.playing &&
+                    _state != PlayerState.buffering &&
+                    _state != PlayerState.completed &&
+                    position > 0 &&
+                    position > previousPosition + 0.08;
+            if (advancedWhilePlaybackWasExpected) {
+              if (kDebugMode) {
+                debugPrint(
+                  '[HLSStateBridge][video=${_telemetryVideoId ?? '-'}] '
+                  'action=infer_playing_from_time_update '
+                  'state=${_state.name} '
+                  'previous=${previousPosition.toStringAsFixed(3)} '
+                  'position=${position.toStringAsFixed(3)} '
+                  'duration=${duration.toStringAsFixed(3)}',
+                );
+              }
+              _updateState(PlayerState.playing);
             }
             final shouldSynthesizeFirstFrameFromProgress = position > 0.05 &&
                 (defaultTargetPlatform == TargetPlatform.android ||

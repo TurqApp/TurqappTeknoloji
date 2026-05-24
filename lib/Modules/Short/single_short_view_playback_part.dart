@@ -176,6 +176,12 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
     _cancelSingleShortAdAutoAdvance();
     final prev = _videoControllers[currentPage];
     if (prev != null) {
+      _abortActiveSingleShortSegmentWarmIfNeeded(
+        docId: previousPage >= 0 && previousPage < shorts.length
+            ? shorts[previousPage].docID
+            : null,
+        reason: 'single_short_page_exit',
+      );
       try {
         _releasePlayback(prev);
       } catch (_) {}
@@ -255,6 +261,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
 
   void _disposeSingleShortView() {
     _restoreInjectedFeedPlaybackHandleIfNeeded();
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      reason: 'single_short_dispose',
+    );
     if (_routeObserverSubscribed) {
       try {
         routeObserver.unsubscribe(this);
@@ -281,6 +290,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   void _handleDidPop() {
     final preserved = _fullscreenReturnPreservedController;
     _fullscreenReturnPreservedController = null;
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      reason: 'single_short_route_pop',
+    );
     try {
       if (currentPage >= 0 && currentPage < shorts.length) {
         final currentModel = shorts[currentPage];
@@ -304,6 +316,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidPushNext() {
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      reason: 'single_short_route_push_next',
+    );
     unawaited(_endActiveTelemetrySession());
     unawaited(_pauseAllControllers());
   }
@@ -324,6 +339,9 @@ extension SingleShortViewPlaybackPart on _SingleShortViewState {
   }
 
   void _handleDidStartUserGesture() {
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      reason: 'single_short_route_gesture',
+    );
     _pauseAllControllers();
   }
 

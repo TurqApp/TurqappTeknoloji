@@ -13,6 +13,7 @@ class _VideoStateManagerState {
   final Map<String, String> transitionResumeResetReasons = <String, String>{};
   final Map<String, DateTime> androidFeedResumeRecoverUntil =
       <String, DateTime>{};
+  FeedPlaybackBackstopSnapshotResolver? feedBackstopSnapshotResolver;
   String? currentPlayingDocID;
   String? targetPlaybackDocID;
   DateTime? targetPlaybackUpdatedAt;
@@ -47,6 +48,13 @@ extension VideoStateManagerFieldsPart on VideoStateManager {
 
   Map<String, DateTime> get _androidFeedResumeRecoverUntil =>
       _state.androidFeedResumeRecoverUntil;
+
+  FeedPlaybackBackstopSnapshotResolver? get _feedBackstopSnapshotResolver =>
+      _state.feedBackstopSnapshotResolver;
+  set _feedBackstopSnapshotResolver(
+    FeedPlaybackBackstopSnapshotResolver? value,
+  ) =>
+      _state.feedBackstopSnapshotResolver = value;
 
   String? get _currentPlayingDocID => _state.currentPlayingDocID;
   set _currentPlayingDocID(String? value) => _state.currentPlayingDocID = value;

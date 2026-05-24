@@ -21,6 +21,10 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
           position.inMilliseconds > 0) {
         _completionTriggered[index] = true;
         if (index >= 0 && index < shorts.length) {
+          _abortActiveSingleShortSegmentWarmIfNeeded(
+            docId: shorts[index].docID,
+            reason: 'single_short_completed',
+          );
           VideoTelemetryService.instance.onCompleted(shorts[index].docID);
         }
 

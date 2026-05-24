@@ -226,6 +226,7 @@ class _SingleShortViewState extends State<SingleShortView> with RouteAware {
   bool _telemetryFirstFrame = false;
   HLSVideoAdapter? _telemetryAdapter;
   String? _activeTelemetryVideoId;
+  String? _activeSingleShortSegmentWarmDocId;
   String? _lastExclusivePlayDocId;
   DateTime? _lastExclusivePlayAt;
   String? _lastSingleShortPlaybackAttemptToken;

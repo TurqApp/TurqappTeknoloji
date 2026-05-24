@@ -799,7 +799,12 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
     if (segmentUris.isEmpty) return const <String>[];
 
     final ordered = <String>[];
-    for (final uri in segmentUris) {
+    final segmentLimit = math.min(
+      segmentUris.length,
+      HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+    );
+    for (var index = 0; index < segmentLimit; index++) {
+      final uri = segmentUris[index];
       final key = '$variantDir$uri'.replaceFirst(hlsRoot, '');
       if (cacheManager.getSegmentFile(docID, key) != null) {
         continue;
@@ -821,8 +826,13 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       return const <String>[];
     }
 
-    final targetReadySegments =
-        desiredReadySegments.clamp(1, segmentUris.length);
+    final targetReadySegments = desiredReadySegments.clamp(
+      1,
+      math.min(
+        segmentUris.length,
+        HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal,
+      ),
+    );
     final ordered = <String>[];
     for (int seg = 1; seg <= targetReadySegments; seg++) {
       final uri = segmentUris[seg - 1];
@@ -850,8 +860,9 @@ extension PrefetchSchedulerQueuePart on PrefetchScheduler {
       watchProgress: watchProgress,
       totalSegments: total,
     );
-    final targetReadySegments =
-        (desiredReadySegments ?? (watchedSeg + 1)).clamp(1, total);
+    final targetReadySegments = (desiredReadySegments ?? (watchedSeg + 1))
+        .clamp(
+            1, math.min(total, HlsSegmentPolicy.playbackWarmMaxSegmentOrdinal));
 
     final ordered = <String>[];
     final seen = <int>{};
