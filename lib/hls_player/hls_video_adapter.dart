@@ -185,6 +185,9 @@ class HLSVideoAdapter extends ChangeNotifier {
 
   Future<void> play() => _performPlay();
 
+  Future<void> playMutedWithoutAudioFocus() =>
+      _performPlayMutedWithoutAudioFocus();
+
   Future<void> _playWithAudioFocus() => _performPlayWithAudioFocus();
 
   Future<void> pause() => _performPause();

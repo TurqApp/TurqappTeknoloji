@@ -44,6 +44,7 @@ part 'short_view_ui_part.dart';
 
 const Duration _shortPlayResumeDelay = Duration(milliseconds: 50);
 const Duration _shortPlayResumeDelayAndroid = Duration.zero;
+const Duration _shortStartupPosterHoldDuration = Duration(milliseconds: 100);
 const Duration _shortScrollDebounceAndroid = Duration(milliseconds: 24);
 const Duration _shortTierDebounceDelay = Duration(milliseconds: 70);
 const Duration _shortTierReconcileDelay = Duration(milliseconds: 220);
@@ -187,6 +188,8 @@ class _ShortViewState extends State<ShortView> with RouteAware {
   DateTime? _lastAutoplayBootstrapAt;
   String _currentScrollToken = '';
   String _lastReportedStableFrameToken = '';
+  int? _swipePreplayPage;
+  String? _swipePreplayDocId;
   String? _pendingActiveAdapterEnsureToken;
   final Set<String> _pendingWarmNeighborEnsureTokens = <String>{};
   int? _pendingPlayPage;

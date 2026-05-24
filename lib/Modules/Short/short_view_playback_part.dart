@@ -304,6 +304,70 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
   bool get _shouldBlockPlaybackForAdPage => _isAdPageActive;
 
+  void _clearShortSwipePreplayTracking() {
+    _swipePreplayPage = null;
+    _swipePreplayDocId = null;
+  }
+
+  void _settleShortSwipePreplay({required String reason}) {
+    final page = _swipePreplayPage;
+    final docId = _swipePreplayDocId;
+    _clearShortSwipePreplayTracking();
+    if (page == null || docId == null || page == currentPage) return;
+    final adapter = controller.cache[page];
+    if (adapter == null || adapter.isDisposed) return;
+    debugPrint(
+      '[ShortSwipePreplay] action=cancel reason=$reason '
+      'page=$page currentPage=$currentPage doc=$docId',
+    );
+    unawaited(adapter.forceSilence());
+  }
+
+  void _preplayWarmShortNeighborForSwipe(
+      ScrollUpdateNotification notification) {
+    if (!_isShortRoutePlaybackActive ||
+        _shouldBlockPlaybackForAdPage ||
+        isManuallyPaused ||
+        _cachedShorts.isEmpty ||
+        notification.dragDetails == null) {
+      return;
+    }
+    final delta = notification.scrollDelta ?? 0.0;
+    if (delta.abs() < 0.5) return;
+    final targetRenderPage = _currentRenderPage + (delta > 0 ? 1 : -1);
+    if (targetRenderPage < 0 || targetRenderPage >= _renderPlan.length) {
+      return;
+    }
+    final targetPage = _renderPlan.organicIndexForRenderIndex(
+      targetRenderPage,
+    );
+    if (targetPage == null ||
+        targetPage == currentPage ||
+        targetPage < 0 ||
+        targetPage >= _cachedShorts.length ||
+        (targetPage - currentPage).abs() != 1) {
+      return;
+    }
+    final docId = _cachedShorts[targetPage].docID.trim();
+    if (docId.isEmpty) return;
+    if (_swipePreplayPage == targetPage && _swipePreplayDocId == docId) {
+      return;
+    }
+    _settleShortSwipePreplay(reason: 'direction_changed');
+    final adapter = controller.cache[targetPage];
+    if (adapter == null || adapter.isDisposed) return;
+    _swipePreplayPage = targetPage;
+    _swipePreplayDocId = docId;
+    _applyShortPlaybackPresentation(targetPage, adapter);
+    debugPrint(
+      '[ShortSwipePreplay] action=start page=$targetPage '
+      'renderPage=$targetRenderPage from=$currentPage doc=$docId '
+      'delta=${delta.toStringAsFixed(2)} initialized=${adapter.value.isInitialized} '
+      'playing=${adapter.value.isPlaying} posMs=${adapter.value.position.inMilliseconds}',
+    );
+    unawaited(adapter.playMutedWithoutAudioFocus());
+  }
+
   void _markStartupPlaybackSettled() {
     if (_startupPlaybackSettled) return;
     _startupPlaybackSettled = true;
@@ -827,6 +891,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       currentPage = nextOrganicPage;
       _showOverlayControls = true;
     });
+    _settleShortSwipePreplay(reason: 'page_changed');
     _markShortSequencePassed(
       nextDocId,
       page: nextOrganicPage,

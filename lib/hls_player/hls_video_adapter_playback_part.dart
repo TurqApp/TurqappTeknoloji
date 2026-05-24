@@ -207,6 +207,34 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     return _playWithAudioFocus();
   }
 
+  Future<void> _performPlayMutedWithoutAudioFocus() async {
+    if (_disposed) return;
+    _logPlaybackControlCommand('play_muted_without_audio_focus');
+    _pendingVolume = 0.0;
+    _hasPendingVolume = true;
+    _refreshProxyUrlIfNeeded();
+    if (_isStopped) {
+      _wantPlay = true;
+      _wantPause = false;
+      await _performRestartStoppedPlayback(
+        autoPlay: true,
+        debugSource: 'adapter.playMutedWithoutAudioFocus',
+      );
+      return;
+    }
+    if (_viewReady) {
+      _wantPlay = false;
+      _wantPause = false;
+      await _hls.setVolume(0.0);
+      _hasPendingVolume = false;
+      _markNativePlayRequest();
+      await _hls.play();
+      return;
+    }
+    _wantPlay = true;
+    _wantPause = false;
+  }
+
   Future<void> _performClearFrameSnapshot({
     required String reason,
   }) async {

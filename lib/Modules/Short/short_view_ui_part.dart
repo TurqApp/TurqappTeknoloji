@@ -253,10 +253,14 @@ extension ShortViewUiPart on _ShortViewState {
 
           final pager = NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              if (notification is ScrollStartNotification ||
-                  notification is ScrollUpdateNotification) {
+              if (notification is ScrollStartNotification) {
+                _clearShortSwipePreplayTracking();
+                AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
+              } else if (notification is ScrollUpdateNotification) {
+                _preplayWarmShortNeighborForSwipe(notification);
                 AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
               } else if (notification is ScrollEndNotification) {
+                _settleShortSwipePreplay(reason: 'scroll_end');
                 AdmobKare.setScrollCriticalLiveAdBindingPaused(false);
               }
               return false;
@@ -344,16 +348,13 @@ extension ShortViewUiPart on _ShortViewState {
                                 defaultTargetPlatform != TargetPlatform.android
                                     ? value.hasRenderedFirstFrame
                                     : value.hasVisibleVideoFrame;
-                            final holdAndroidPosterAtStart =
-                                defaultTargetPlatform ==
-                                        TargetPlatform.android &&
-                                    decision.shouldHidePoster &&
+                            final holdPosterAtStart =
+                                decision.shouldHidePoster &&
                                     hasVisibleVideoFrame &&
                                     value.position <
-                                        const Duration(milliseconds: 180);
+                                        _shortStartupPosterHoldDuration;
                             final shouldHidePoster =
-                                decision.shouldHidePoster &&
-                                    !holdAndroidPosterAtStart;
+                                decision.shouldHidePoster && !holdPosterAtStart;
                             _reportStableShortFrameIfNeeded(
                               organicIndex,
                               vp,

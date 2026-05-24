@@ -45,6 +45,9 @@ part 'single_short_view_controller_sync_part.dart';
 part 'single_short_view_playback_part.dart';
 part 'single_short_view_ui_part.dart';
 
+const Duration _singleShortStartupPosterHoldDuration =
+    Duration(milliseconds: 100);
+
 class MomentumPageScrollPhysics extends PageScrollPhysics {
   const MomentumPageScrollPhysics({
     this.maxPagesPerFling = 1,

@@ -50,7 +50,7 @@ class FeedPlaybackSelectionPolicy {
   static double get switchDominanceMargin => _isAndroidPlatform ? 0.12 : 0.12;
 
   static double get earlyForwardEntryThreshold =>
-      _isAndroidPlatform ? 0.30 : 0.30;
+      _isAndroidPlatform ? 0.40 : 0.40;
 
   static Duration get scrollSettleReassertDuration => _isAndroidPlatform
       ? const Duration(milliseconds: 140)

@@ -43,12 +43,12 @@ void main() {
     expect(target, 1);
   });
 
-  test('resolveEarlyForwardEntryIndex targets next playable card at 30 percent',
+  test('resolveEarlyForwardEntryIndex targets next playable card at 40 percent',
       () {
     final target = FeedPlaybackSelectionPolicy.resolveEarlyForwardEntryIndex(
       visibleFractions: const <int, double>{
-        0: 0.70,
-        1: 0.30,
+        0: 0.60,
+        1: 0.40,
       },
       currentIndex: 0,
       itemCount: 2,
@@ -101,7 +101,7 @@ void main() {
     expect(FeedPlaybackSelectionPolicy.stopThreshold, 0.25);
     expect(FeedPlaybackSelectionPolicy.secondaryThreshold, 0.50);
     expect(FeedPlaybackSelectionPolicy.switchRetentionThreshold, 0.52);
-    expect(FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold, 0.30);
+    expect(FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold, 0.40);
     expect(
       FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
       const Duration(milliseconds: 100),

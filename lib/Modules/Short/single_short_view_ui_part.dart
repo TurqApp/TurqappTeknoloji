@@ -148,14 +148,12 @@ extension SingleShortViewUiPart on _SingleShortViewState {
             }
             final hasVisibleVideoFrame =
                 _hasStableSingleShortVisualFrame(idx, injected.value);
-            final holdAndroidPosterAtStart =
-                defaultTargetPlatform == TargetPlatform.android &&
-                    decision.shouldHidePoster &&
-                    idx == currentPage &&
-                    hasVisibleVideoFrame &&
-                    injected.value.position < const Duration(milliseconds: 180);
+            final holdPosterAtStart = decision.shouldHidePoster &&
+                idx == currentPage &&
+                hasVisibleVideoFrame &&
+                injected.value.position < _singleShortStartupPosterHoldDuration;
             final shouldHidePoster =
-                decision.shouldHidePoster && !holdAndroidPosterAtStart;
+                decision.shouldHidePoster && !holdPosterAtStart;
             final thumb = shorts[idx].aspectRatio >= 0.8
                 ? Align(
                     alignment: Alignment.center,
@@ -255,14 +253,12 @@ extension SingleShortViewUiPart on _SingleShortViewState {
                   }
                   final hasVisibleVideoFrame =
                       _hasStableSingleShortVisualFrame(idx, vp.value);
-                  final holdAndroidPosterAtStart =
-                      defaultTargetPlatform == TargetPlatform.android &&
-                          decision.shouldHidePoster &&
-                          idx == currentPage &&
-                          hasVisibleVideoFrame &&
-                          vp.value.position < const Duration(milliseconds: 180);
+                  final holdPosterAtStart = decision.shouldHidePoster &&
+                      idx == currentPage &&
+                      hasVisibleVideoFrame &&
+                      vp.value.position < _singleShortStartupPosterHoldDuration;
                   final shouldHidePoster =
-                      decision.shouldHidePoster && !holdAndroidPosterAtStart;
+                      decision.shouldHidePoster && !holdPosterAtStart;
                   final overlay = shorts[idx].aspectRatio >= 0.8
                       ? Align(
                           alignment: Alignment.center,
