@@ -812,7 +812,50 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
   Future<void> _releasePlayback(HLSVideoAdapter adapter) async {
     if (adapter.isDisposed) return;
+    _abortActiveSingleShortSegmentWarmIfNeeded(
+      docId: _docIdForSingleShortAdapter(adapter),
+      reason: 'single_short_release_playback',
+    );
     await _playbackExecutionService.stopAdapter(adapter);
+  }
+
+  String _docIdForSingleShortAdapter(HLSVideoAdapter adapter) {
+    for (final entry in _videoControllers.entries) {
+      if (!identical(entry.value, adapter)) continue;
+      final page = entry.key;
+      if (page < 0 || page >= shorts.length) return '';
+      return shorts[page].docID.trim();
+    }
+    if (widget.injectedController != null &&
+        identical(widget.injectedController, adapter) &&
+        currentPage >= 0 &&
+        currentPage < shorts.length) {
+      return shorts[currentPage].docID.trim();
+    }
+    return '';
+  }
+
+  void _markActiveSingleShortSegmentWarm(String docId) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    _activeSingleShortSegmentWarmDocId = normalizedDocId;
+  }
+
+  void _abortActiveSingleShortSegmentWarmIfNeeded({
+    String? docId,
+    required String reason,
+  }) {
+    final normalizedDocId =
+        (docId ?? _activeSingleShortSegmentWarmDocId ?? '').trim();
+    if (normalizedDocId.isEmpty) return;
+    if (_activeSingleShortSegmentWarmDocId != normalizedDocId) return;
+    _activeSingleShortSegmentWarmDocId = null;
+    try {
+      maybeFindPrefetchScheduler()?.abortShortSwipeBoundaryDoc(
+        normalizedDocId,
+        reason: reason,
+      );
+    } catch (_) {}
   }
 
   void _updateTelemetryHintsForCurrentPage({
@@ -940,16 +983,38 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
 
     final pos = value.position.inMilliseconds / 1000.0;
     final dur = value.duration.inMilliseconds / 1000.0;
+    final hasActivePlaybackContext = value.isPlaying ||
+        value.isBuffering ||
+        (value.hasRenderedFirstFrame && value.position > Duration.zero);
+    final shouldWarmNextSegment = _isSingleShortRoutePlaybackActive &&
+        !_isSingleShortAdPageActive &&
+        !adapter.isStopped &&
+        !value.isCompleted &&
+        hasActivePlaybackContext;
+    final shouldAbortNextSegmentWarm = !_isSingleShortRoutePlaybackActive ||
+        _isSingleShortAdPageActive ||
+        adapter.isStopped ||
+        value.isCompleted ||
+        !hasActivePlaybackContext;
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(docId, pos, dur);
       final progress = (pos / dur).clamp(0.0, 1.0);
-      try {
-        _segmentCacheRuntimeService.ensureNextSegmentReady(
-          docId,
-          progress,
-          positionSeconds: pos,
+      if (shouldWarmNextSegment) {
+        _markActiveSingleShortSegmentWarm(docId);
+        try {
+          _segmentCacheRuntimeService.ensureNextSegmentReady(
+            docId,
+            progress,
+            lookAheadSegments: 1,
+            positionSeconds: pos,
+          );
+        } catch (_) {}
+      } else if (shouldAbortNextSegmentWarm) {
+        _abortActiveSingleShortSegmentWarmIfNeeded(
+          docId: docId,
+          reason: 'single_short_next_segment_warm_stopped',
         );
-      } catch (_) {}
+      }
       final now = DateTime.now();
       final shouldPersistByTime = _lastProgressPersistAt == null ||
           now.difference(_lastProgressPersistAt!) >=
@@ -991,6 +1056,11 @@ extension SingleShortViewHelpersPart on _SingleShortViewState {
           _lastPersistedProgress = progress;
         } catch (_) {}
       }
+    } else if (shouldAbortNextSegmentWarm) {
+      _abortActiveSingleShortSegmentWarmIfNeeded(
+        docId: docId,
+        reason: 'single_short_next_segment_warm_stopped',
+      );
     }
   }
 

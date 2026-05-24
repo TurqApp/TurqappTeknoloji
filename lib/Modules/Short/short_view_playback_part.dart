@@ -60,6 +60,39 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
   }
 
+  String _docIdForShortAdapter(HLSVideoAdapter adapter) {
+    for (final entry in controller.cache.entries) {
+      if (!identical(entry.value, adapter)) continue;
+      final page = entry.key;
+      if (page < 0 || page >= _cachedShorts.length) return '';
+      return _cachedShorts[page].docID.trim();
+    }
+    return '';
+  }
+
+  void _markActiveShortSegmentWarm(String docId) {
+    final normalizedDocId = docId.trim();
+    if (normalizedDocId.isEmpty) return;
+    _activeShortSegmentWarmDocId = normalizedDocId;
+  }
+
+  void _abortActiveShortSegmentWarmIfNeeded({
+    String? docId,
+    required String reason,
+  }) {
+    final normalizedDocId =
+        (docId ?? _activeShortSegmentWarmDocId ?? '').trim();
+    if (normalizedDocId.isEmpty) return;
+    if (_activeShortSegmentWarmDocId != normalizedDocId) return;
+    _activeShortSegmentWarmDocId = null;
+    try {
+      maybeFindPrefetchScheduler()?.abortShortSwipeBoundaryDoc(
+        normalizedDocId,
+        reason: reason,
+      );
+    } catch (_) {}
+  }
+
   bool get _usesTightCellularShortProfile =>
       PlaybackSurfacePolicy.useTightAndroidWarmProfile(
         platform: defaultTargetPlatform,
@@ -239,6 +272,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     if (page < 0 || page >= _cachedShorts.length || adapter.isDisposed) {
       return;
     }
+    _abortActiveShortSegmentWarmIfNeeded(
+      docId: _cachedShorts[page].docID,
+      reason: 'short_page_exit',
+    );
     _persistShortPlaybackState(page, adapter);
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS) {
@@ -320,7 +357,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
       '[ShortSwipePreplay] action=cancel reason=$reason '
       'page=$page currentPage=$currentPage doc=$docId',
     );
-    unawaited(adapter.forceSilence());
+    _abortActiveShortSegmentWarmIfNeeded(
+      docId: docId,
+      reason: 'short_swipe_preplay_cancel_$reason',
+    );
   }
 
   void _preplayWarmShortNeighborForSwipe(
@@ -360,12 +400,18 @@ extension ShortViewPlaybackPart on _ShortViewState {
     _swipePreplayDocId = docId;
     _applyShortPlaybackPresentation(targetPage, adapter);
     debugPrint(
-      '[ShortSwipePreplay] action=start page=$targetPage '
+      '[ShortSwipePreplay] action=segment_warm page=$targetPage '
       'renderPage=$targetRenderPage from=$currentPage doc=$docId '
       'delta=${delta.toStringAsFixed(2)} initialized=${adapter.value.isInitialized} '
       'playing=${adapter.value.isPlaying} posMs=${adapter.value.position.inMilliseconds}',
     );
-    unawaited(adapter.playMutedWithoutAudioFocus());
+    try {
+      _markActiveShortSegmentWarm(docId);
+      _segmentCacheRuntimeService.ensureMinimumReadySegments(
+        docId,
+        minimumSegmentCount: StartupPreloadPolicy.neighborReadySegments,
+      );
+    } catch (_) {}
   }
 
   void _markStartupPlaybackSettled() {
@@ -604,6 +650,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     HLSVideoAdapter adapter,
   ) async {
     _cancelPendingShortPlaybackForManualPause(page, post, adapter);
+    _abortActiveShortSegmentWarmIfNeeded(
+      docId: post.docID,
+      reason: 'short_manual_pause',
+    );
     await _playbackExecutionService.pauseAdapter(adapter);
     if (!mounted || page != currentPage || adapter.isDisposed) return;
     _persistShortPlaybackState(page, adapter);
@@ -2326,6 +2376,10 @@ extension ShortViewPlaybackPart on _ShortViewState {
     );
 
     if (!_isTransitioning && v.isCompleted) {
+      _abortActiveShortSegmentWarmIfNeeded(
+        docId: videoId,
+        reason: 'short_completed',
+      );
       _handleVideoEndForAdapter(
         currentPage,
         vc,
@@ -2350,15 +2404,44 @@ extension ShortViewPlaybackPart on _ShortViewState {
 
     final pos = v.position.inMilliseconds / 1000.0;
     final dur = v.duration.inMilliseconds / 1000.0;
+    final hasActivePlaybackContext = v.isPlaying ||
+        v.isBuffering ||
+        (v.hasRenderedFirstFrame && v.position > Duration.zero);
+    final shouldWarmNextSegment = _isShortRoutePlaybackActive &&
+        !isManuallyPaused &&
+        !_shouldBlockPlaybackForAdPage &&
+        !vc.isStopped &&
+        !v.isCompleted &&
+        hasActivePlaybackContext;
+    final shouldAbortNextSegmentWarm = !_isShortRoutePlaybackActive ||
+        isManuallyPaused ||
+        _shouldBlockPlaybackForAdPage ||
+        vc.isStopped ||
+        v.isCompleted ||
+        !hasActivePlaybackContext;
     if (dur > 0) {
       VideoTelemetryService.instance.onPositionUpdate(videoId, pos, dur);
-      try {
-        _segmentCacheRuntimeService.ensureNextSegmentReady(
-          videoId,
-          (pos / dur).clamp(0.0, 1.0),
-          positionSeconds: pos,
+      if (shouldWarmNextSegment) {
+        _markActiveShortSegmentWarm(videoId);
+        try {
+          _segmentCacheRuntimeService.ensureNextSegmentReady(
+            videoId,
+            (pos / dur).clamp(0.0, 1.0),
+            lookAheadSegments: 1,
+            positionSeconds: pos,
+          );
+        } catch (_) {}
+      } else if (shouldAbortNextSegmentWarm) {
+        _abortActiveShortSegmentWarmIfNeeded(
+          docId: videoId,
+          reason: 'short_next_segment_warm_stopped',
         );
-      } catch (_) {}
+      }
+    } else if (shouldAbortNextSegmentWarm) {
+      _abortActiveShortSegmentWarmIfNeeded(
+        docId: videoId,
+        reason: 'short_next_segment_warm_stopped',
+      );
     }
   }
 

@@ -273,5 +273,28 @@ void main() {
         2,
       );
     });
+
+    test('does not hard recover an iOS short on the first late stall', () {
+      expect(
+        PlaybackSurfacePolicy.shouldRecoverFrozenShortOnStall(
+          platform: TargetPlatform.iOS,
+          hasRenderedFirstFrame: true,
+          isCompleted: false,
+          stallRetryCount: 1,
+          position: const Duration(seconds: 8),
+        ),
+        isFalse,
+      );
+      expect(
+        PlaybackSurfacePolicy.shouldRecoverFrozenShortOnStall(
+          platform: TargetPlatform.iOS,
+          hasRenderedFirstFrame: true,
+          isCompleted: false,
+          stallRetryCount: 2,
+          position: const Duration(seconds: 8),
+        ),
+        isTrue,
+      );
+    });
   });
 }

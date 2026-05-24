@@ -805,7 +805,8 @@ class PlaybackSurfacePolicy {
     return platform == TargetPlatform.iOS &&
         hasRenderedFirstFrame &&
         !isCompleted &&
-        (stallRetryCount > 1 || position >= const Duration(milliseconds: 2500));
+        stallRetryCount > 1 &&
+        position >= const Duration(milliseconds: 2500);
   }
 
   static bool shouldHardRestartShortAfterStall({
