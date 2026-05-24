@@ -760,6 +760,18 @@ class PlaybackSurfacePolicy {
     return platform == TargetPlatform.iOS && isWarmNeighbor;
   }
 
+  static bool shouldStopInactiveShortNetwork({
+    required TargetPlatform platform,
+    required int activeIndex,
+    required int candidateIndex,
+    int keepBehindCount = 2,
+  }) {
+    if (platform != TargetPlatform.iOS && platform != TargetPlatform.android) {
+      return false;
+    }
+    return candidateIndex < activeIndex - keepBehindCount;
+  }
+
   static bool shouldPreserveShortAdapterOnRouteReturn({
     required TargetPlatform platform,
     required bool forceResumePosterOnReturn,

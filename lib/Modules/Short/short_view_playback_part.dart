@@ -1371,6 +1371,7 @@ extension ShortViewPlaybackPart on _ShortViewState {
       final vc = entry.value;
       if (idx == activePage) continue;
       if (activeAdapter != null && identical(vc, activeAdapter)) continue;
+      if (idx > activePage) continue;
       final isWarmNeighbor = (idx - activePage).abs() <= 1;
       try {
         _applyShortPlaybackPresentation(idx, vc);
@@ -1382,7 +1383,22 @@ extension ShortViewPlaybackPart on _ShortViewState {
         }
         if (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS) {
-          unawaited(vc.forceSilence());
+          if (PlaybackSurfacePolicy.shouldStopInactiveShortNetwork(
+            platform: defaultTargetPlatform,
+            activeIndex: activePage,
+            candidateIndex: idx,
+          )) {
+            debugPrint(
+              '[ShortNetworkStop] source=enforce_single_active_audio '
+              'activePage=$activePage cacheIndex=$idx '
+              'distance=${(idx - activePage).abs()} '
+              'positionMs=${vc.value.position.inMilliseconds} '
+              'url=${vc.url}',
+            );
+            unawaited(vc.silenceAndStopPlayback());
+          } else {
+            unawaited(vc.forceSilence());
+          }
         } else {
           _releasePlayback(vc);
         }

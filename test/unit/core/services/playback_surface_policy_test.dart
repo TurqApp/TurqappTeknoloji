@@ -296,5 +296,32 @@ void main() {
         isTrue,
       );
     });
+
+    test('stops only short network entries older than the -2 window', () {
+      expect(
+        PlaybackSurfacePolicy.shouldStopInactiveShortNetwork(
+          platform: TargetPlatform.iOS,
+          activeIndex: 10,
+          candidateIndex: 7,
+        ),
+        isTrue,
+      );
+      expect(
+        PlaybackSurfacePolicy.shouldStopInactiveShortNetwork(
+          platform: TargetPlatform.iOS,
+          activeIndex: 10,
+          candidateIndex: 8,
+        ),
+        isFalse,
+      );
+      expect(
+        PlaybackSurfacePolicy.shouldStopInactiveShortNetwork(
+          platform: TargetPlatform.iOS,
+          activeIndex: 10,
+          candidateIndex: 15,
+        ),
+        isFalse,
+      );
+    });
   });
 }

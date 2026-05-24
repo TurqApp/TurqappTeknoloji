@@ -50,13 +50,13 @@ extension SingleShortViewControllerListenerPart on _SingleShortViewState {
 
   void _disposeOutsideRange(int center) {
     final len = shorts.length;
-    final start = center.clamp(0, len - 1);
+    final start = (center - 2).clamp(0, len - 1);
     final end = (center + 5).clamp(0, len - 1);
     final keys = _videoControllers.keys.toList();
     for (var idx in keys) {
       if (idx < start || idx > end) {
         if (!_externallyOwned.contains(idx)) {
-          unawaited(_releaseControllerAt(idx));
+          unawaited(_releaseControllerAt(idx, keepWarm: idx >= start));
         }
       }
     }
