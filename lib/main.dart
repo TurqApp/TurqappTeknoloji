@@ -14,6 +14,7 @@ import 'package:turqappv2/Core/Repositories/feed_manifest_repository.dart';
 import 'package:turqappv2/Core/Services/audio_focus_coordinator.dart';
 import 'package:turqappv2/Core/Services/feed_manifest_policy.dart';
 import 'package:turqappv2/Core/Services/integration_test_mode.dart';
+import 'package:turqappv2/Core/Services/media_runtime_cold_start_reset_service.dart';
 import 'package:turqappv2/Core/Services/qa_lab_bridge.dart';
 import 'package:turqappv2/Core/Services/qa_lab_mode.dart';
 import 'package:turqappv2/Core/Localization/app_language_service.dart';
@@ -30,7 +31,6 @@ import 'package:turqappv2/Modules/Agenda/agenda_controller.dart';
 import 'firebase_options.dart';
 import 'package:turqappv2/Core/Services/video_state_manager.dart';
 import 'package:turqappv2/Modules/Splash/splash_view.dart';
-import 'package:turqappv2/hls_player/hls_controller.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -52,9 +52,7 @@ Duration get _firebaseInitTimeout => IntegrationTestMode.enabled
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  if (kDebugMode) {
-    await HLSController.disposeAllNativePlayers();
-  }
+  await resetMediaRuntimeForColdStart();
   ensureQALabIfEnabled();
   if (QALabMode.freshStartOnLaunch && !IntegrationTestMode.enabled) {
     await prepareQALabFreshStartIfNeeded(trigger: 'app_launch').timeout(
@@ -85,16 +83,14 @@ Future<void> main() async {
   // cagrilip startup fallback ekranina dusuyordu.
   firebaseBootstrapFuture = _bootstrapFirebaseAndCrashlytics();
   unawaited(
-    firebaseBootstrapFuture
-        .timeout(
-          _startupBootstrapWait,
-          onTimeout: () {
-            debugPrint(
-              '[bootstrap] startup timed out after runApp; continuing.',
-            );
-          },
-        )
-        .catchError((_) {}),
+    firebaseBootstrapFuture.timeout(
+      _startupBootstrapWait,
+      onTimeout: () {
+        debugPrint(
+          '[bootstrap] startup timed out after runApp; continuing.',
+        );
+      },
+    ).catchError((_) {}),
   );
   _scheduleFeedManifestWarmOnAppLaunch();
 
@@ -141,41 +137,35 @@ bool _isFilteredSystemNavigationRoute(String route) {
 
 void _scheduleFeedManifestWarmOnAppLaunch() {
   unawaited(
-    firebaseBootstrapFuture
-        .then((_) async {
-          if (Firebase.apps.isEmpty) {
-            debugPrint(
-              '[FeedManifestWarm] status=skip reason=firebase_not_ready',
-            );
-            return;
-          }
-          final startedAt = DateTime.now();
-          debugPrint(
-            '[FeedManifestWarm] status=start source=app_launch '
-            'slotBudget=${FeedManifestPolicy.startupSlotLoadBudget}',
-          );
-          try {
-            await ensureFeedManifestRepository().warmStartupWindow(
-              maxSlotsToLoad: FeedManifestPolicy.startupSlotLoadBudget,
-            );
-            final elapsedMs = DateTime.now()
-                .difference(startedAt)
-                .inMilliseconds;
-            debugPrint(
-              '[FeedManifestWarm] status=done source=app_launch '
-              'elapsedMs=$elapsedMs',
-            );
-          } catch (error) {
-            final elapsedMs = DateTime.now()
-                .difference(startedAt)
-                .inMilliseconds;
-            debugPrint(
-              '[FeedManifestWarm] status=fail source=app_launch '
-              'elapsedMs=$elapsedMs error=$error',
-            );
-          }
-        })
-        .catchError((_) {}),
+    firebaseBootstrapFuture.then((_) async {
+      if (Firebase.apps.isEmpty) {
+        debugPrint(
+          '[FeedManifestWarm] status=skip reason=firebase_not_ready',
+        );
+        return;
+      }
+      final startedAt = DateTime.now();
+      debugPrint(
+        '[FeedManifestWarm] status=start source=app_launch '
+        'slotBudget=${FeedManifestPolicy.startupSlotLoadBudget}',
+      );
+      try {
+        await ensureFeedManifestRepository().warmStartupWindow(
+          maxSlotsToLoad: FeedManifestPolicy.startupSlotLoadBudget,
+        );
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[FeedManifestWarm] status=done source=app_launch '
+          'elapsedMs=$elapsedMs',
+        );
+      } catch (error) {
+        final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        debugPrint(
+          '[FeedManifestWarm] status=fail source=app_launch '
+          'elapsedMs=$elapsedMs error=$error',
+        );
+      }
+    }).catchError((_) {}),
   );
 }
 
@@ -304,16 +294,14 @@ Future<void> _activateFirebaseAppCheck() async {
     await FirebaseAppCheck.instance.activate(
       providerAndroid: kDebugMode
           ? AndroidDebugProvider(
-              debugToken: _appCheckDebugToken.isEmpty
-                  ? null
-                  : _appCheckDebugToken,
+              debugToken:
+                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
             )
           : const AndroidPlayIntegrityProvider(),
       providerApple: kDebugMode
           ? AppleDebugProvider(
-              debugToken: _appCheckDebugToken.isEmpty
-                  ? null
-                  : _appCheckDebugToken,
+              debugToken:
+                  _appCheckDebugToken.isEmpty ? null : _appCheckDebugToken,
             )
           : const AppleAppAttestWithDeviceCheckFallbackProvider(),
     );

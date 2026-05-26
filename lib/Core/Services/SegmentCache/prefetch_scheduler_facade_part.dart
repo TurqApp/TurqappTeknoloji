@@ -10,6 +10,41 @@ PrefetchScheduler ensurePrefetchScheduler({bool permanent = false}) =>
     Get.put(PrefetchScheduler(), permanent: permanent);
 
 extension PrefetchSchedulerReadFacadePart on PrefetchScheduler {
+  void resetRuntimeForColdStart({String source = 'app_launch'}) {
+    final queued = _queue.length;
+    final pending = _pendingFollowUpJobs.length;
+    final active = _activeDownloads;
+
+    pause();
+    _mobileSeedMode = false;
+    _pendingDownloadBytes = 0;
+    _lastPriorityDocIDs = const <String>[];
+    _lastPriorityCurrentIndex = 0;
+    _lastFeedDocIDs = const <String>[];
+    _lastFeedSurfaceVideoDocIDs = const <String>[];
+    _lastFeedBankDocIDs = const <String>[];
+    _lastShortDocIDs = const <String>[];
+    _focusedDocID = null;
+    _restrictToFocusedDoc = false;
+    _lastFeedCurrentIndex = 0;
+    _lastFeedPreviousIndex = 0;
+    _lastShortCurrentIndex = 0;
+    _lastShortPreviousIndex = 0;
+    _lastFeedReadyCount = 0;
+    _lastFeedWindowCount = 0;
+    _lastFeedReadyRatio = 0.0;
+    _queueLatencySamples = 0;
+    _avgQueueDispatchLatencyMs = 0.0;
+    _lastPrefetchHealthSignature = null;
+    resetWifiQuotaFillPlan();
+    resume();
+
+    debugPrint(
+      '[MediaColdStartReset] prefetch_reset source=$source '
+      'queued=$queued pending=$pending active=$active',
+    );
+  }
+
   List<String> currentFeedDocIds() =>
       List<String>.from(_lastFeedDocIDs, growable: false);
 

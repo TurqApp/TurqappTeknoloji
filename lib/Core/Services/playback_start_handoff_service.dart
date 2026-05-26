@@ -15,6 +15,14 @@ class PlaybackStartHandoffService {
 
   final Map<String, DateTime> _lastHandoffAtByKey = <String, DateTime>{};
 
+  void resetForColdStart({String source = 'app_launch'}) {
+    final cleared = _lastHandoffAtByKey.length;
+    _lastHandoffAtByKey.clear();
+    debugPrint(
+      '[MediaColdStartReset] handoff_reset source=$source cleared=$cleared',
+    );
+  }
+
   void notifyPlaybackStarted({
     required String surface,
     required String anchorKey,

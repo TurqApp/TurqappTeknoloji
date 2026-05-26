@@ -15,6 +15,38 @@ extension VideoStateManagerRuntimePart on VideoStateManager {
   String? get currentPlayingDocID => _currentPlayingDocID;
   String? get targetPlaybackDocID => _targetPlaybackDocID;
 
+  void resetRuntimeForColdStart({String source = 'app_launch'}) {
+    final trackedHandles = _allVideoControllers.length;
+    final savedStates = _videoStates.length;
+    final externalClaims = _externalOnDemandFetchClaims.length;
+    final transitionResets = _transitionResumeResetKeys.length;
+
+    VideoStateManagerPlaybackPart(this)._pauseAllVideos(force: true);
+    _pendingPlayTimer?.cancel();
+    _pendingPlayTimer = null;
+    _playRequestSeq++;
+
+    _allVideoControllers.clear();
+    _videoStates.clear();
+    _externalOnDemandFetchClaims.clear();
+    _transitionResumeResetKeys.clear();
+    _transitionResumeResetMarkedAt.clear();
+    _transitionResumeResetReasons.clear();
+    _androidFeedResumeRecoverUntil.clear();
+    _currentPlayingDocID = null;
+    _targetPlaybackDocID = null;
+    _targetPlaybackUpdatedAt = null;
+    _feedRefreshHandoffUntil = null;
+    _exclusiveMode = false;
+    _exclusiveDocID = null;
+
+    debugPrint(
+      '[MediaColdStartReset] video_state_reset source=$source '
+      'handles=$trackedHandles states=$savedStates '
+      'claims=$externalClaims transitionResets=$transitionResets',
+    );
+  }
+
   void claimExternalOnDemandFetch(String docID) {
     final normalizedDocID = HlsSegmentPolicy.normalizeDocId(docID);
     if (normalizedDocID == null || normalizedDocID.isEmpty) return;
