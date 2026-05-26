@@ -41,6 +41,32 @@ extension AgendaControllerPlaybackPart on AgendaController {
     return true;
   }
 
+  bool _retainDirectionalFeedPlaybackTargetDuringScroll() {
+    if (_qaScrollStartedAt == null) return false;
+    final direction = _feedScrollDirection;
+    if (direction == 0) return false;
+    final current = centeredIndex.value;
+    if (current < 0 || current >= agendaList.length) return false;
+    if (!_canAutoplayVideoPost(agendaList[current])) return false;
+    if (!_isPlaybackTargetCurrent(current)) return false;
+    final currentFraction = _visibleFractions[current] ?? 0.0;
+    if (currentFraction <
+        FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold) {
+      return false;
+    }
+    final oppositeIndex = current - direction;
+    final oppositeFraction = _visibleFractions[oppositeIndex] ?? 0.0;
+    debugPrint(
+      '[FeedPlaybackDecision] action=retain_directional_scroll_target '
+      'current=$current direction=${direction > 0 ? "forward" : "backward"} '
+      'fraction=${currentFraction.toStringAsFixed(3)} '
+      'opposite=$oppositeIndex oppositeFraction=${oppositeFraction.toStringAsFixed(3)}',
+    );
+    lastCenteredIndex = current;
+    _trackPlaybackWindow();
+    return true;
+  }
+
   bool _retainVisibleCurrentFeedOwner({
     required double stopThreshold,
   }) {
@@ -230,6 +256,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double stopThreshold,
   }) {
     if (_applyDirectionalFeedPlaybackTarget()) {
+      return;
+    }
+    if (_retainDirectionalFeedPlaybackTargetDuringScroll()) {
       return;
     }
     if (_retainVisibleCurrentFeedOwner(stopThreshold: stopThreshold)) {

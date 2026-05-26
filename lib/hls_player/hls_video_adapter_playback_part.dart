@@ -317,6 +317,17 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performForceSilence() async {
     if (_disposed) return;
+    if (_isStopped) {
+      _wantPlay = false;
+      _wantPause = true;
+      _pendingVolume = 0.0;
+      _hasPendingVolume = true;
+      _hls.cancelPendingResume();
+      if (kDebugMode) {
+        _logPlaybackControlCommand('force_silence_skip_already_stopped');
+      }
+      return;
+    }
     _logPlaybackControlCommand('force_silence');
     _wantPlay = false;
     _wantPause = true;
@@ -441,6 +452,19 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
     String? sourceStack,
   }) {
     if (_disposed) return Future.value();
+    if (_isStopped) {
+      _wantPlay = false;
+      _wantPause = false;
+      _pendingReloadOnReady = false;
+      _hls.cancelPendingResume();
+      if (kDebugMode) {
+        _logPlaybackControlCommand(
+          'stop_playback_skip_already_stopped'
+          ':preserveFrameSnapshot=$preserveFrameSnapshot',
+        );
+      }
+      return Future.value();
+    }
     final sourceSuffix = sourceStack == null || sourceStack.isEmpty
         ? ''
         : ' sourceStack=$sourceStack';
@@ -463,6 +487,17 @@ extension _HlsVideoAdapterPlaybackPart on HLSVideoAdapter {
 
   Future<void> _performSilenceAndStopPlayback() async {
     if (_disposed) return;
+    if (_isStopped) {
+      _wantPlay = false;
+      _wantPause = true;
+      _pendingVolume = 0.0;
+      _hasPendingVolume = true;
+      _hls.cancelPendingResume();
+      if (kDebugMode) {
+        _logPlaybackControlCommand('silence_stop_skip_already_stopped');
+      }
+      return;
+    }
     final sourceStack = _debugStackSource(depth: 8);
     _logPlaybackControlCommand('silence_before_stop');
     _wantPlay = false;
