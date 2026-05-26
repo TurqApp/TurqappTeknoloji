@@ -69,6 +69,7 @@ class _AgendaControllerState {
   DateTime? feedRefreshPlaybackLockedAt;
   DateTime? qaScrollStartedAt;
   double qaScrollStartOffset = 0.0;
+  int feedScrollDirection = 0;
   int qaScrollSequence = 0;
   String qaActiveScrollToken = '';
   String qaLatestScrollToken = '';
@@ -120,6 +121,7 @@ extension AgendaControllerFieldsPart on AgendaController {
   RxBool get playbackSuspended => _state.playbackSuspended;
   RxBool get feedScrollSettlingRx => _state.feedScrollSettling;
   bool get isFeedScrollSettling => _state.feedScrollSettling.value;
+  int get currentFeedScrollDirection => _state.feedScrollDirection;
   RxString get feedWarmPreloadAnchorKeyRx => _state.feedWarmPreloadAnchorKey;
   RxList<String> get startupWarmPreloadDocIdsRx =>
       _state.startupWarmPreloadDocIds;
@@ -282,6 +284,8 @@ extension AgendaControllerFieldsPart on AgendaController {
   set _qaScrollStartedAt(DateTime? value) => _state.qaScrollStartedAt = value;
   double get _qaScrollStartOffset => _state.qaScrollStartOffset;
   set _qaScrollStartOffset(double value) => _state.qaScrollStartOffset = value;
+  int get _feedScrollDirection => _state.feedScrollDirection;
+  set _feedScrollDirection(int value) => _state.feedScrollDirection = value;
   int get _qaScrollSequence => _state.qaScrollSequence;
   set _qaScrollSequence(int value) => _state.qaScrollSequence = value;
   String get _qaActiveScrollToken => _state.qaActiveScrollToken;

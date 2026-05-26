@@ -1592,7 +1592,8 @@ extension AgendaControllerFeedPart on AgendaController {
   void _onScroll() {
     final currentOffset = scrollController.offset;
     final now = DateTime.now();
-    final scrollDelta = (currentOffset - lastOffset).abs();
+    final signedScrollDelta = currentOffset - lastOffset;
+    final scrollDelta = signedScrollDelta.abs();
     final startupLockActive = _canRetainStartupPlaybackLock;
     // Ignore small cold-start layout/inset jitters on iOS while the initial
     // autoplay target is locked. A real user scroll quickly exceeds this.
@@ -1624,12 +1625,15 @@ extension AgendaControllerFeedPart on AgendaController {
         },
       );
     }
+    if (hasMeaningfulScrollMovement) {
+      _feedScrollDirection = signedScrollDelta > 0 ? 1 : -1;
+    }
     if (!feedScrollSettlingRx.value) {
       feedScrollSettlingRx.value = true;
       AdmobKare.setScrollCriticalLiveAdBindingPaused(true);
       debugPrint(
         '[FeedScrollSettling] status=start offset=${currentOffset.toStringAsFixed(1)} '
-        'centered=${centeredIndex.value}',
+        'centered=${centeredIndex.value} direction=$_feedScrollDirection',
       );
     }
     navBarController.updateVisibilityFromPrimaryScroll(
@@ -1734,6 +1738,7 @@ extension AgendaControllerFeedPart on AgendaController {
         _qaLatestScrollToken = _qaActiveScrollToken;
         _qaScrollStartedAt = null;
         _qaScrollStartOffset = 0.0;
+        _feedScrollDirection = 0;
         _qaActiveScrollToken = '';
         if (centered < 0 || centered >= agendaList.length) {
           resumeFeedPlayback();

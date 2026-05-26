@@ -1045,7 +1045,16 @@ mixin PostContentBaseState<T extends PostContentBase> on State<T>
     }
     if (_isPrimaryFeedSurfaceInstance &&
         agendaController.isFeedScrollSettling) {
-      return false;
+      final direction = agendaController.currentFeedScrollDirection;
+      final modelIndex = _surfaceModelIndex();
+      final centered = _surfaceSafeCenteredIndex();
+      final directionalNeighbor = direction != 0 &&
+          modelIndex >= 0 &&
+          centered >= 0 &&
+          modelIndex == centered + (direction > 0 ? 1 : -1);
+      if (!directionalNeighbor) {
+        return false;
+      }
     }
     if (_usesFeedPlaybackPolicy) {
       final modelIndex = _surfaceModelIndex();

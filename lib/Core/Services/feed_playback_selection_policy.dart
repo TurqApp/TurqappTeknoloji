@@ -318,14 +318,37 @@ class FeedPlaybackSelectionPolicy {
     required bool Function(int index) canAutoplayIndex,
     double? threshold,
   }) {
+    return resolveEarlyDirectionalEntryIndex(
+      visibleFractions: visibleFractions,
+      currentIndex: currentIndex,
+      direction: 1,
+      itemCount: itemCount,
+      canAutoplayIndex: canAutoplayIndex,
+      threshold: threshold,
+    );
+  }
+
+  static int resolveEarlyDirectionalEntryIndex({
+    required Map<int, double> visibleFractions,
+    required int currentIndex,
+    required int direction,
+    required int itemCount,
+    required bool Function(int index) canAutoplayIndex,
+    double? threshold,
+  }) {
     if (itemCount <= 0 || currentIndex < 0 || currentIndex >= itemCount) {
       return -1;
     }
+    if (direction == 0) return -1;
     final entryThreshold = threshold ?? earlyForwardEntryThreshold;
-    final nextIndex = currentIndex + 1;
-    if (nextIndex >= itemCount || !canAutoplayIndex(nextIndex)) return -1;
-    final nextFraction = visibleFractions[nextIndex] ?? 0.0;
-    return nextFraction >= entryThreshold ? nextIndex : -1;
+    final candidateIndex = currentIndex + (direction > 0 ? 1 : -1);
+    if (candidateIndex < 0 ||
+        candidateIndex >= itemCount ||
+        !canAutoplayIndex(candidateIndex)) {
+      return -1;
+    }
+    final candidateFraction = visibleFractions[candidateIndex] ?? 0.0;
+    return candidateFraction >= entryThreshold ? candidateIndex : -1;
   }
 
   static int _findFirstPlayableIndex({

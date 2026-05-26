@@ -29,7 +29,10 @@ extension PostContentBaseLifecyclePart<T extends PostContentBase>
     _feedScrollSettlingWorker ??= ever<bool>(
       agendaController.feedScrollSettlingRx,
       (isSettling) {
-        if (isSettling) return;
+        if (isSettling) {
+          _maybePreloadWarmVideoController(source: 'feed_scroll_started');
+          return;
+        }
         _keepAliveUpdateCallback?.call();
         _maybePreloadWarmVideoController(source: 'feed_scroll_settled');
       },

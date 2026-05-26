@@ -172,7 +172,7 @@ class PlaybackSurfacePolicy {
   static bool supportsImmediateFeedHandoff({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.iOS || platform == TargetPlatform.android;
   }
 
   static bool useLegacyIosFeedBehavior({
@@ -447,7 +447,8 @@ class PlaybackSurfacePolicy {
     required TargetPlatform platform,
     required bool readyForImmediateHandoff,
   }) {
-    return platform == TargetPlatform.iOS && readyForImmediateHandoff;
+    return readyForImmediateHandoff &&
+        (platform == TargetPlatform.iOS || platform == TargetPlatform.android);
   }
 
   static bool shouldScheduleFeedPlaybackReassertOnMiss({
@@ -460,7 +461,7 @@ class PlaybackSurfacePolicy {
   static bool shouldUseImmediateFeedResumeCapability({
     required TargetPlatform platform,
   }) {
-    return platform == TargetPlatform.iOS;
+    return platform == TargetPlatform.iOS || platform == TargetPlatform.android;
   }
 
   static bool shouldUseFeedStartupWarmPreload({

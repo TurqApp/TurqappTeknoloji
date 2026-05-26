@@ -910,8 +910,10 @@ extension VideoStateManagerPlaybackPart on VideoStateManager {
     _pendingPlayTimer?.cancel();
     final isIosFeedPlayback = defaultTargetPlatform == TargetPlatform.iOS &&
         _isFeedStylePlaybackKey(docID);
+    final isImmediateFeedStylePlayback =
+        _isFeedStylePlaybackKey(docID) && attempt == 0;
     final isAndroidFeedStylePlayback = _isAndroidFeedStyleResumeKey(docID);
-    final resumeDelay = isIosFeedPlayback && attempt == 0
+    final resumeDelay = isImmediateFeedStylePlayback
         ? Duration.zero
         : _videoStateManagerPlayResumeDelay;
     _pendingPlayTimer = Timer(resumeDelay, () {

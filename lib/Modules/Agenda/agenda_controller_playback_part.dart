@@ -1,16 +1,18 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
-  bool _applyEarlyForwardFeedPlaybackTarget() {
+  bool _applyDirectionalFeedPlaybackTarget() {
     if (_qaScrollStartedAt == null) return false;
     if (!scrollController.hasClients) return false;
-    if (scrollController.offset <= _qaScrollStartOffset + 1.0) return false;
+    final direction = _feedScrollDirection;
+    if (direction == 0) return false;
 
     final current = centeredIndex.value;
     final targetIndex =
-        FeedPlaybackSelectionPolicy.resolveEarlyForwardEntryIndex(
+        FeedPlaybackSelectionPolicy.resolveEarlyDirectionalEntryIndex(
       visibleFractions: _visibleFractions,
       currentIndex: current,
+      direction: direction,
       itemCount: agendaList.length,
       canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
     );
@@ -18,8 +20,9 @@ extension AgendaControllerPlaybackPart on AgendaController {
 
     final targetFraction = _visibleFractions[targetIndex] ?? 0.0;
     debugPrint(
-      '[FeedPlaybackDecision] action=early_forward_entry '
+      '[FeedPlaybackDecision] action=early_directional_entry '
       'current=$current target=$targetIndex '
+      'direction=${direction > 0 ? "forward" : "backward"} '
       'fraction=${targetFraction.toStringAsFixed(3)} '
       'threshold=${FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold.toStringAsFixed(3)} '
       'offset=${scrollController.offset.toStringAsFixed(1)} '
@@ -226,7 +229,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
-    if (_applyEarlyForwardFeedPlaybackTarget()) {
+    if (_applyDirectionalFeedPlaybackTarget()) {
       return;
     }
     if (_retainVisibleCurrentFeedOwner(stopThreshold: stopThreshold)) {

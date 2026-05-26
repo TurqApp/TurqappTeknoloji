@@ -2907,6 +2907,7 @@ extension AgendaControllerLoadingPart on AgendaController {
       _feedRefreshPlaybackLockedAt = null;
       _qaScrollStartedAt = null;
       _qaScrollStartOffset = 0.0;
+      _feedScrollDirection = 0;
       _qaActiveScrollToken = '';
       _qaLatestScrollToken = '';
       _lastPlaybackCommandDocId = null;
@@ -2927,6 +2928,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         scrollController.jumpTo(0);
       }
       lastOffset = 0.0;
+      _feedScrollDirection = 0;
 
       // Following/reshare verilerini yenile (SWR)
       final uid = CurrentUserService.instance.effectiveUserId;
