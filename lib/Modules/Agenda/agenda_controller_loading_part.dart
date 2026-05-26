@@ -1158,6 +1158,7 @@ extension AgendaControllerLoadingPart on AgendaController {
         items.take(_startupChunkApplySize).toList(growable: false);
     var appliedCount = 0;
     var chunkIndex = 0;
+    var deferredForScrollCount = 0;
     var terminalNotified = false;
 
     void cancelIfStale() {
@@ -1186,7 +1187,15 @@ extension AgendaControllerLoadingPart on AgendaController {
       }
     }
 
-    void scheduleNextChunk() {
+    bool shouldDeferForActiveScroll() {
+      if (feedScrollSettlingRx.value || _qaScrollStartedAt != null) {
+        return true;
+      }
+      if (!scrollController.hasClients) return false;
+      return scrollController.position.isScrollingNotifier.value;
+    }
+
+    void scheduleNextChunk({Duration? delay}) {
       if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
         cancelIfStale();
         return;
@@ -1195,23 +1204,65 @@ extension AgendaControllerLoadingPart on AgendaController {
         completeIfCurrent();
         return;
       }
-      Timer(chunkDelay, () {
+      Timer(delay ?? chunkDelay, () {
         if (expectedMutationEpoch != _feedMutationEpoch || isClosed) {
           cancelIfStale();
+          return;
+        }
+        if (shouldDeferForActiveScroll()) {
+          deferredForScrollCount++;
+          if (deferredForScrollCount <= 3 ||
+              deferredForScrollCount % 10 == 0) {
+            debugPrint(
+              '[FeedStartupPlanner] source=initial_bootstrap '
+              'status=chunk_apply_defer_scroll '
+              'deferCount=$deferredForScrollCount '
+              'applied=$appliedCount total=${items.length} '
+              'scrollSettling=${feedScrollSettlingRx.value} '
+              'qaScrollActive=${_qaScrollStartedAt != null}',
+            );
+          }
+          scheduleNextChunk(delay: chunkDelay);
           return;
         }
         final nextCount = min(
           items.length,
           appliedCount + _startupChunkApplySize,
         );
+        final appendedItems = items
+            .skip(appliedCount)
+            .take(nextCount - appliedCount)
+            .toList(growable: false);
+        var canAppendChunk = agendaList.length == appliedCount;
+        if (canAppendChunk) {
+          for (var index = 0; index < appliedCount; index++) {
+            if (agendaList[index].docID != items[index].docID) {
+              canAppendChunk = false;
+              break;
+            }
+          }
+        }
+        deferredForScrollCount = 0;
         chunkIndex++;
-        final nextItems = items.take(nextCount).toList(growable: false);
+        final chunkReason = '${reason}_chunk_$chunkIndex';
         debugPrint(
           '[FeedStartupPlanner] source=initial_bootstrap '
           'status=chunk_apply_progress chunk=$chunkIndex '
-          'applied=$nextCount total=${items.length}',
+          'applied=$nextCount total=${items.length} '
+          'mode=${canAppendChunk ? "append" : "replace"}',
         );
-        _replaceAgendaState(nextItems, reason: '${reason}_chunk_$chunkIndex');
+        if (canAppendChunk) {
+          debugPrint(
+            '[FeedApply] action=append_startup_chunk reason=$chunkReason '
+            'currentCount=${agendaList.length} '
+            'addCount=${appendedItems.length} nextCount=$nextCount',
+          );
+          agendaList.addAll(appendedItems);
+          _debugAgendaKinds(chunkReason, agendaList);
+        } else {
+          final nextItems = items.take(nextCount).toList(growable: false);
+          _replaceAgendaState(nextItems, reason: chunkReason);
+        }
         appliedCount = nextCount;
         scheduleNextChunk();
       });

@@ -77,6 +77,23 @@ extension FeedRenderCoordinatorPatchPart on FeedRenderCoordinator {
     RenderListPatch<Map<String, dynamic>> patch,
   ) {
     if (patch.isEmpty) return;
+    final appendItems = <Map<String, dynamic>>[];
+    var expectedAppendIndex = target.length;
+    var appendOnly = patch.operations.isNotEmpty;
+    for (final operation in patch.operations) {
+      if (operation.type != RenderPatchOperationType.insert ||
+          operation.item == null ||
+          operation.index != expectedAppendIndex) {
+        appendOnly = false;
+        break;
+      }
+      appendItems.add(operation.item!);
+      expectedAppendIndex++;
+    }
+    if (appendOnly) {
+      target.addAll(appendItems);
+      return;
+    }
     final next = target.toList(growable: true);
     for (final operation in patch.operations) {
       switch (operation.type) {
