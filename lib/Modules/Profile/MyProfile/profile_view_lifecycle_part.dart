@@ -220,18 +220,31 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       source: 'profile_${controller.postSelection.value}',
       offset: currentOffset,
     );
-    final scrollDelta =
-        (currentOffset - controller.lastObservedScrollOffset).abs();
+    final isPrimaryFeedSelection = controller.postSelection.value == 0;
+    final signedScrollDelta = isPrimaryFeedSelection
+        ? currentOffset - controller.lastObservedScrollOffset
+        : 0.0;
+    final scrollDelta = signedScrollDelta.abs();
     final startupLockActive =
         GetPlatform.isIOS && controller.hasStartupPlaybackLock;
     final startupUnlockThreshold = startupLockActive ? 12.0 : 1.0;
     final hasMeaningfulScrollMovement =
         currentOffset.abs() > startupUnlockThreshold ||
             scrollDelta > startupUnlockThreshold;
-    if (!controller.hasStartupScrollStarted && hasMeaningfulScrollMovement) {
-      controller.markStartupScrollBegan();
+    if (isPrimaryFeedSelection &&
+        !controller.hasStartupScrollStarted &&
+        hasMeaningfulScrollMovement) {
+      controller.markStartupScrollBegan(startOffset: currentOffset);
     }
-    controller.lastObservedScrollOffset = currentOffset;
+    if (isPrimaryFeedSelection && hasMeaningfulScrollMovement) {
+      controller.updateFeedScrollMotion(
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+    }
+    if (isPrimaryFeedSelection) {
+      controller.lastObservedScrollOffset = currentOffset;
+    }
     final activeFeedLength = controller.postSelection.value == 0
         ? controller.mergedPosts.length
         : controller.allPosts.length;
@@ -251,7 +264,7 @@ extension _ProfileViewLifecyclePart on _ProfileViewState {
       controller.fetchPhotos();
       controller.fetchVideos();
     }
-    if (controller.postSelection.value == 0) {
+    if (isPrimaryFeedSelection) {
       _scrollSettleDebounce?.cancel();
       _scrollSettleDebounce = Timer(
         FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,

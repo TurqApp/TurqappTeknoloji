@@ -63,13 +63,30 @@ extension ProfileControllerSupportPart on ProfileController {
 
   bool get hasStartupScrollStarted => _startupScrollStartedAt != null;
 
-  void markStartupScrollBegan() {
+  void markStartupScrollBegan({double startOffset = 0.0}) {
     _startupLockedIdentity = null;
     _startupScrollStartedAt = DateTime.now();
+    _feedScrollStartOffset = startOffset;
+    _feedScrollDirection = 0;
+  }
+
+  void updateFeedScrollMotion({
+    required double currentOffset,
+    required double signedScrollDelta,
+  }) {
+    _feedScrollDirection =
+        FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+      currentDirection: _feedScrollDirection,
+      scrollStartOffset: _feedScrollStartOffset,
+      currentOffset: currentOffset,
+      signedScrollDelta: signedScrollDelta,
+    );
   }
 
   void clearStartupScrollTracking() {
     _startupScrollStartedAt = null;
+    _feedScrollStartOffset = 0.0;
+    _feedScrollDirection = 0;
   }
 
   Future<void> animateCurrentSelectionToTop() =>

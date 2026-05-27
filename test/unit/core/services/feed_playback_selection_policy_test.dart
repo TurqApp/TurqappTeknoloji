@@ -76,6 +76,71 @@ void main() {
   });
 
   test(
+      'resolveDirectionalScrollDecision targets forward neighbor at 40 percent',
+      () {
+    final decision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
+      visibleFractions: const <int, double>{
+        0: 0.60,
+        1: 0.40,
+      },
+      currentIndex: 0,
+      scrollDirection: 1,
+      itemCount: 2,
+      canAutoplayIndex: (_) => true,
+      isPlaybackTargetCurrent: (_) => false,
+    );
+
+    expect(decision.action, 'early_directional_entry');
+    expect(decision.targetIndex, 1);
+    expect(decision.shouldEnsurePlayback, isTrue);
+  });
+
+  test(
+      'resolveDirectionalScrollDecision targets backward neighbor at 40 percent',
+      () {
+    final decision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
+      visibleFractions: const <int, double>{
+        0: 0.40,
+        1: 0.60,
+      },
+      currentIndex: 1,
+      scrollDirection: -1,
+      itemCount: 2,
+      canAutoplayIndex: (_) => true,
+      isPlaybackTargetCurrent: (_) => false,
+    );
+
+    expect(decision.action, 'early_directional_entry');
+    expect(decision.targetIndex, 0);
+    expect(decision.shouldEnsurePlayback, isTrue);
+  });
+
+  test('resolveDirectionalScrollDecision retains active target during scroll',
+      () {
+    final decision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
+      visibleFractions: const <int, double>{
+        0: 0.72,
+        1: 0.36,
+      },
+      currentIndex: 0,
+      scrollDirection: 1,
+      itemCount: 2,
+      canAutoplayIndex: (_) => true,
+      isPlaybackTargetCurrent: (index) => index == 0,
+    );
+
+    expect(decision.action, 'retain_directional_scroll_target');
+    expect(decision.targetIndex, 0);
+    expect(decision.shouldEnsurePlayback, isFalse);
+  });
+
+  test(
       'resolveCenteredIndex can keep dominant non-playable feed row from handing off to a neighboring video',
       () {
     final target = FeedPlaybackSelectionPolicy.resolveCenteredIndex(

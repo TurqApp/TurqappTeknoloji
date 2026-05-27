@@ -46,6 +46,11 @@ class _TagPostsControllerState {
   final Map<String, GlobalKey> agendaKeys = {};
   final Map<int, double> visibleFractions = <int, double>{};
   final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
+  Timer? scrollSettleDebounce;
+  DateTime? scrollStartedAt;
+  double scrollStartOffset = 0.0;
+  double lastObservedOffset = 0.0;
+  int scrollDirection = 0;
 }
 
 extension TagPostsControllerFieldsPart on TagPostsController {
@@ -66,4 +71,15 @@ extension TagPostsControllerFieldsPart on TagPostsController {
   Map<String, GlobalKey> get _agendaKeys => _state.agendaKeys;
   Map<int, double> get _visibleFractions => _state.visibleFractions;
   Map<int, DateTime> get _visibleUpdatedAt => _state.visibleUpdatedAt;
+  Timer? get _scrollSettleDebounce => _state.scrollSettleDebounce;
+  set _scrollSettleDebounce(Timer? value) =>
+      _state.scrollSettleDebounce = value;
+  DateTime? get _scrollStartedAt => _state.scrollStartedAt;
+  set _scrollStartedAt(DateTime? value) => _state.scrollStartedAt = value;
+  double get _scrollStartOffset => _state.scrollStartOffset;
+  set _scrollStartOffset(double value) => _state.scrollStartOffset = value;
+  double get _lastObservedOffset => _state.lastObservedOffset;
+  set _lastObservedOffset(double value) => _state.lastObservedOffset = value;
+  int get _scrollDirection => _state.scrollDirection;
+  set _scrollDirection(int value) => _state.scrollDirection = value;
 }

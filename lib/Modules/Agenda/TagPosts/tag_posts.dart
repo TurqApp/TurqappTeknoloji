@@ -48,6 +48,7 @@ class _TagPostsState extends State<TagPosts> {
   }
 
   void _onScroll() {
+    controller.recordScrollMotion(scrollController);
     _scheduleRenderedCenterSync();
   }
 
@@ -86,6 +87,7 @@ class _TagPostsState extends State<TagPosts> {
               else
                 NotificationListener<ScrollNotification>(
                   onNotification: (notification) {
+                    controller.recordScrollMotion(scrollController);
                     _scheduleRenderedCenterSync();
                     return false;
                   },

@@ -350,6 +350,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   void _handleOnClose() {
     _priorityPlanTimer?.cancel();
     _visibilityDebounce?.cancel();
+    _scrollSettleDebounce?.cancel();
     _visibleFractions.clear();
     _playableRawIndices.clear();
     _playableQueueIndexByRawIndex.clear();
@@ -363,6 +364,33 @@ extension FloodListingControllerRuntimePart on FloodListingController {
   void _onScroll() {
     if (!scrollController.hasClients || floods.isEmpty) return;
     final position = scrollController.position;
+    final currentOffset = position.pixels;
+    final signedScrollDelta = currentOffset - _lastObservedOffset;
+    final scrollDelta = signedScrollDelta.abs();
+    if (scrollDelta > 1.0) {
+      if (_scrollStartedAt == null) {
+        _scrollStartedAt = DateTime.now();
+        _scrollStartOffset = currentOffset;
+        _scrollDirection = 0;
+      }
+      _scrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _scrollDirection,
+        scrollStartOffset: _scrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          _scrollStartedAt = null;
+          _scrollStartOffset = 0.0;
+          _scrollDirection = 0;
+        },
+      );
+    }
+    _lastObservedOffset = currentOffset;
     if (position.pixels <= 0 && _visibleFractions.isEmpty) {
       currentVisibleIndex.value = 0;
       capturePendingCenteredEntry(preferredIndex: 0);
@@ -410,15 +438,27 @@ extension FloodListingControllerRuntimePart on FloodListingController {
       return;
     }
 
-    final nextIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+    final directionalDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: _visibleFractions.isNotEmpty,
       visibleFractions: _visibleFractions,
       currentIndex: centeredIndex.value,
-      lastCenteredIndex: lastCenteredIndex,
+      scrollDirection: _scrollDirection,
       itemCount: floods.length,
       canAutoplayIndex: (index) => _canAutoplayFloodPost(floods[index]),
-      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-      preferDominantVisibleIndexWhenNonPlayable: true,
+      isPlaybackTargetCurrent: (_) => false,
     );
+    final nextIndex = directionalDecision.hasTarget
+        ? directionalDecision.targetIndex
+        : FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+            visibleFractions: _visibleFractions,
+            currentIndex: centeredIndex.value,
+            lastCenteredIndex: lastCenteredIndex,
+            itemCount: floods.length,
+            canAutoplayIndex: (index) => _canAutoplayFloodPost(floods[index]),
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            preferDominantVisibleIndexWhenNonPlayable: true,
+          );
 
     if (nextIndex < 0 || nextIndex >= floods.length) {
       centeredIndex.value = -1;
@@ -437,7 +477,7 @@ extension FloodListingControllerRuntimePart on FloodListingController {
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
     debugPrint(
-      '[FloodSeries] status=centered index=$nextIndex doc=${floods[nextIndex].docID} visible=${(_visibleFractions[nextIndex] ?? 0.0).toStringAsFixed(2)}',
+      '[FloodSeries] status=centered action=${directionalDecision.hasTarget ? directionalDecision.action : "centered"} index=$nextIndex doc=${floods[nextIndex].docID} visible=${(_visibleFractions[nextIndex] ?? 0.0).toStringAsFixed(2)}',
     );
     capturePendingCenteredEntry(preferredIndex: nextIndex);
     _updateFloodPrefetchPriorityContext(nextIndex);

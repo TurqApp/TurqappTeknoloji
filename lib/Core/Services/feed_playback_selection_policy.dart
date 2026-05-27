@@ -19,6 +19,26 @@ class FeedPlaybackDecision {
   bool get hasTarget => targetIndex >= 0;
 }
 
+class FeedDirectionalScrollDecision {
+  const FeedDirectionalScrollDecision({
+    required this.action,
+    required this.targetIndex,
+    required this.shouldEnsurePlayback,
+  });
+
+  final String action;
+  final int targetIndex;
+  final bool shouldEnsurePlayback;
+
+  bool get hasTarget => targetIndex >= 0;
+
+  static const none = FeedDirectionalScrollDecision(
+    action: 'none',
+    targetIndex: -1,
+    shouldEnsurePlayback: false,
+  );
+}
+
 class FeedPlaybackSelectionPolicy {
   static bool get _isAndroidPlatform =>
       GetPlatform.isAndroid || defaultTargetPlatform == TargetPlatform.android;
@@ -71,6 +91,28 @@ class FeedPlaybackSelectionPolicy {
     return isCentered &&
         !isSurfacePlaybackSuspended &&
         !isOverlayBlockingPlayback;
+  }
+
+  static int resolveStableScrollDirection({
+    required int currentDirection,
+    required double scrollStartOffset,
+    required double currentOffset,
+    required double signedScrollDelta,
+    double cumulativeDirectionThreshold = 24.0,
+    double reversalThreshold = 48.0,
+  }) {
+    if (signedScrollDelta == 0) return currentDirection;
+    final cumulativeScrollDelta = currentOffset - scrollStartOffset;
+    final candidateDirection =
+        cumulativeScrollDelta.abs() >= cumulativeDirectionThreshold
+            ? (cumulativeScrollDelta > 0 ? 1 : -1)
+            : (signedScrollDelta > 0 ? 1 : -1);
+    if (currentDirection == 0 ||
+        (candidateDirection != currentDirection &&
+            cumulativeScrollDelta.abs() >= reversalThreshold)) {
+      return candidateDirection;
+    }
+    return currentDirection;
   }
 
   static double lingerThreshold({
@@ -328,6 +370,57 @@ class FeedPlaybackSelectionPolicy {
     );
   }
 
+  static FeedDirectionalScrollDecision resolveDirectionalScrollDecision({
+    required bool isScrollActive,
+    required Map<int, double> visibleFractions,
+    required int currentIndex,
+    required int scrollDirection,
+    required int itemCount,
+    required bool Function(int index) canAutoplayIndex,
+    required bool Function(int index) isPlaybackTargetCurrent,
+    double? threshold,
+  }) {
+    if (!isScrollActive ||
+        itemCount <= 0 ||
+        currentIndex < 0 ||
+        currentIndex >= itemCount) {
+      return FeedDirectionalScrollDecision.none;
+    }
+
+    final targetIndex = resolveEarlyDirectionalEntryIndex(
+      visibleFractions: visibleFractions,
+      currentIndex: currentIndex,
+      direction: scrollDirection,
+      itemCount: itemCount,
+      canAutoplayIndex: canAutoplayIndex,
+      threshold: threshold,
+    );
+    if (targetIndex >= 0 && targetIndex < itemCount) {
+      return FeedDirectionalScrollDecision(
+        action: 'early_directional_entry',
+        targetIndex: targetIndex,
+        shouldEnsurePlayback: currentIndex != targetIndex ||
+            !isPlaybackTargetCurrent(targetIndex),
+      );
+    }
+
+    if (!canAutoplayIndex(currentIndex) ||
+        !isPlaybackTargetCurrent(currentIndex)) {
+      return FeedDirectionalScrollDecision.none;
+    }
+    final currentFraction = visibleFractions[currentIndex] ?? 0.0;
+    final retainThreshold = threshold ?? earlyForwardEntryThreshold;
+    if (currentFraction < retainThreshold) {
+      return FeedDirectionalScrollDecision.none;
+    }
+
+    return FeedDirectionalScrollDecision(
+      action: 'retain_directional_scroll_target',
+      targetIndex: currentIndex,
+      shouldEnsurePlayback: false,
+    );
+  }
+
   static int resolveEarlyDirectionalEntryIndex({
     required Map<int, double> visibleFractions,
     required int currentIndex,
@@ -339,8 +432,25 @@ class FeedPlaybackSelectionPolicy {
     if (itemCount <= 0 || currentIndex < 0 || currentIndex >= itemCount) {
       return -1;
     }
-    if (direction == 0) return -1;
     final entryThreshold = threshold ?? earlyForwardEntryThreshold;
+    if (direction == 0) {
+      var bestIndex = -1;
+      var bestFraction = 0.0;
+      for (final candidateIndex in <int>[currentIndex - 1, currentIndex + 1]) {
+        if (candidateIndex < 0 ||
+            candidateIndex >= itemCount ||
+            !canAutoplayIndex(candidateIndex)) {
+          continue;
+        }
+        final candidateFraction = visibleFractions[candidateIndex] ?? 0.0;
+        if (candidateFraction >= entryThreshold &&
+            candidateFraction > bestFraction) {
+          bestIndex = candidateIndex;
+          bestFraction = candidateFraction;
+        }
+      }
+      return bestIndex;
+    }
     final candidateIndex = currentIndex + (direction > 0 ? 1 : -1);
     if (candidateIndex < 0 ||
         candidateIndex >= itemCount ||

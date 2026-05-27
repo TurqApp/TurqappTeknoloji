@@ -39,6 +39,7 @@ extension ExploreControllerRuntime on ExploreController {
 
     floodsScroll.addListener(() {
       _syncNavBarVisibilityForScroll('explore_floods', floodsScroll);
+      _trackFloodSeriesScrollMotion();
       _updateFloodVisibleIndex();
       _syncScrollToTopVisibility(floodsScroll.offset);
     });
@@ -83,6 +84,8 @@ extension ExploreControllerRuntime on ExploreController {
     _searchDebounce?.cancel();
     _exploreFloodVisibilityDebounce?.cancel();
     _exploreFloodVisibilityDebounce = null;
+    _exploreFloodScrollSettleDebounce?.cancel();
+    _exploreFloodScrollSettleDebounce = null;
     _exploreFloodVisibleFractions.clear();
     trendingScroll.dispose();
     exploreScroll.dispose();

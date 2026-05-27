@@ -55,17 +55,43 @@ extension TopTagsControllerScrollPart on _TopTagsControllerBase {
 
   void _onScroll() {
     final currentOffset = scrollController.offset;
+    final signedScrollDelta = currentOffset - _lastObservedOffset;
+    final scrollDelta = signedScrollDelta.abs();
+    if (scrollDelta > 1.0) {
+      if (_scrollStartedAt == null) {
+        _scrollStartedAt = DateTime.now();
+        _scrollStartOffset = currentOffset;
+        _scrollDirection = 0;
+      }
+      _scrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _scrollDirection,
+        scrollStartOffset: _scrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          _scrollStartedAt = null;
+          _scrollStartOffset = 0.0;
+          _scrollDirection = 0;
+        },
+      );
+    }
 
     navbar.updateVisibilityFromPrimaryScroll(
       source: 'top_tags',
       offset: currentOffset,
     );
-    _lastOffset = currentOffset;
+    _lastObservedOffset = currentOffset;
 
     if (scrollController.position.pixels >=
         scrollController.position.maxScrollExtent - 300) {
       fetchAgendaBigData();
     }
+    if (_visibleFractions.isNotEmpty) return;
 
     const itemHeight = 500.0;
     final newIndex =
@@ -90,6 +116,7 @@ extension TopTagsControllerScrollPart on _TopTagsControllerBase {
     BuildContext context,
   ) {
     if (agendaList.isEmpty) return;
+    if (_visibleFractions.isNotEmpty) return;
     if (metrics.pixels <= 0) {
       centeredIndex.value = 0;
       currentVisibleIndex.value = 0;
@@ -109,6 +136,98 @@ extension TopTagsControllerScrollPart on _TopTagsControllerBase {
     currentVisibleIndex.value = nextIndex;
     lastCenteredIndex = nextIndex;
     capturePendingCenteredEntry(preferredIndex: nextIndex);
+  }
+
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (modelIndex < 0 || modelIndex >= agendaList.length) return;
+    final previousFraction = _visibleFractions[modelIndex];
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: previousFraction,
+      visibleFraction: visibleFraction,
+    )) {
+      return;
+    }
+
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
+      if (modelIndex != centeredIndex.value) {
+        disposeAgendaContentController(agendaList[modelIndex].docID);
+      }
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+      _visibleUpdatedAt[modelIndex] = DateTime.now();
+      currentVisibleIndex.value = modelIndex;
+      capturePendingCenteredEntry(preferredIndex: modelIndex);
+    }
+
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
+      _evaluateCenteredPlayback,
+    );
+  }
+
+  void _evaluateCenteredPlayback() {
+    if (agendaList.isEmpty || _visibleFractions.isEmpty) return;
+    final current = centeredIndex.value;
+    final directionalDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
+      visibleFractions: _visibleFractions,
+      currentIndex: current,
+      scrollDirection: _scrollDirection,
+      itemCount: agendaList.length,
+      canAutoplayIndex: (index) =>
+          index >= 0 &&
+          index < agendaList.length &&
+          agendaList[index].hasPlayableVideo,
+      isPlaybackTargetCurrent: (_) => false,
+    );
+    final decision = directionalDecision.hasTarget
+        ? FeedPlaybackDecision(
+            action: directionalDecision.action,
+            targetIndex: directionalDecision.targetIndex,
+            shouldEnsurePlayback: directionalDecision.shouldEnsurePlayback,
+            shouldPauseAll: false,
+          )
+        : FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
+            visibleFractions: _visibleFractions,
+            visibleUpdatedAt: _visibleUpdatedAt,
+            currentIndex: current,
+            lastCenteredIndex: lastCenteredIndex,
+            itemCount: agendaList.length,
+            canAutoplayIndex: (index) =>
+                index >= 0 &&
+                index < agendaList.length &&
+                agendaList[index].hasPlayableVideo,
+            isPlaybackTargetCurrent: (_) => false,
+            playbackKeyForIndex: (index) => agendaInstanceTag(
+              agendaList[index].docID,
+            ),
+            lastCommandAt: null,
+            lastCommandDocId: null,
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            supportsSwitchRetention: false,
+            preferDominantVisibleIndexWhenNonPlayable: true,
+          );
+    if (!decision.hasTarget) {
+      centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
+      return;
+    }
+    final targetIndex = decision.targetIndex;
+    if (targetIndex < 0 || targetIndex >= agendaList.length) return;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex != targetIndex &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < agendaList.length) {
+      disposeAgendaContentController(agendaList[lastCenteredIndex!].docID);
+    }
+    centeredIndex.value = targetIndex;
+    currentVisibleIndex.value = targetIndex;
+    lastCenteredIndex = targetIndex;
+    capturePendingCenteredEntry(preferredIndex: targetIndex);
   }
 
   void disposeAgendaContentController(String docID) {

@@ -93,6 +93,9 @@ extension ExploreControllerApiX on ExploreController {
         model: model,
       );
 
+  void _trackFloodSeriesScrollMotion() =>
+      _performTrackFloodSeriesScrollMotion();
+
   void onExploreFloodVisibilityChanged(
     int modelIndex,
     double visibleFraction,

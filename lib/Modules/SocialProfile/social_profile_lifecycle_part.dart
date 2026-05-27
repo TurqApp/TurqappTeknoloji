@@ -87,6 +87,25 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
     if (controller.showScrollToTop.value != shouldShowScrollToTop) {
       controller.showScrollToTop.value = shouldShowScrollToTop;
     }
+    final currentOffset = scrollController.offset;
+    final isPrimaryFeedSelection = controller.postSelection.value == 0;
+    final signedScrollDelta = isPrimaryFeedSelection
+        ? currentOffset - controller.lastObservedScrollOffset
+        : 0.0;
+    final scrollDelta = signedScrollDelta.abs();
+    final hasMeaningfulScrollMovement = scrollDelta > 1.0;
+    if (isPrimaryFeedSelection && hasMeaningfulScrollMovement) {
+      if (!controller.hasFeedScrollStarted) {
+        controller.markFeedScrollBegan(startOffset: currentOffset);
+      }
+      controller.updateFeedScrollMotion(
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+    }
+    if (isPrimaryFeedSelection) {
+      controller.lastObservedScrollOffset = currentOffset;
+    }
 
     final activeFeedLength = controller.postSelection.value == 0
         ? controller.combinedFeedEntries.length
@@ -108,12 +127,13 @@ extension _SocialProfileLifecyclePart on _SocialProfileState {
       controller.getPhotos(initial: false);
     }
 
-    if (controller.postSelection.value == 0) {
+    if (isPrimaryFeedSelection) {
       _scrollSettleDebounce?.cancel();
       _scrollSettleDebounce = Timer(
         FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
         () {
           if (!mounted || controller.postSelection.value != 0) return;
+          controller.clearFeedScrollTracking();
           final centered = controller.centeredIndex.value;
           if (centered >= 0 &&
               centered < controller.combinedFeedEntries.length) {

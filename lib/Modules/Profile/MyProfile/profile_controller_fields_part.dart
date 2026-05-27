@@ -30,6 +30,8 @@ class _ProfileScrollState {
   String? pendingCenteredIdentity;
   String? startupLockedIdentity;
   DateTime? startupScrollStartedAt;
+  double feedScrollStartOffset = 0.0;
+  int feedScrollDirection = 0;
   double lastObservedOffset = 0.0;
   final Map<int, double> visibleFractions = <int, double>{};
   final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
@@ -158,6 +160,12 @@ extension ProfileControllerFieldsPart on ProfileController {
   DateTime? get _startupScrollStartedAt => _scrollState.startupScrollStartedAt;
   set _startupScrollStartedAt(DateTime? value) =>
       _scrollState.startupScrollStartedAt = value;
+  double get _feedScrollStartOffset => _scrollState.feedScrollStartOffset;
+  set _feedScrollStartOffset(double value) =>
+      _scrollState.feedScrollStartOffset = value;
+  int get _feedScrollDirection => _scrollState.feedScrollDirection;
+  set _feedScrollDirection(int value) =>
+      _scrollState.feedScrollDirection = value;
   double get _lastObservedOffset => _scrollState.lastObservedOffset;
   set _lastObservedOffset(double value) =>
       _scrollState.lastObservedOffset = value;

@@ -248,6 +248,39 @@ extension SocialProfileControllerFeedSelectionPart on SocialProfileController {
     final activeEntries = combinedFeedEntries;
     if (activeEntries.isEmpty) return;
     final current = centeredIndex.value;
+    final scrollDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: _feedScrollStartedAt != null,
+      visibleFractions: _visibleFractions,
+      currentIndex: current,
+      scrollDirection: _feedScrollDirection,
+      itemCount: activeEntries.length,
+      canAutoplayIndex: (index) =>
+          _performCanAutoplayCombinedEntry(activeEntries[index]),
+      isPlaybackTargetCurrent: _performIsPlaybackTargetCurrent,
+    );
+    if (scrollDecision.hasTarget) {
+      final targetIndex = scrollDecision.targetIndex;
+      debugPrint(
+        '[ProfilePlaybackDecision] action=${scrollDecision.action} '
+        'surface=social_profile current=$current target=$targetIndex '
+        'direction=$_feedScrollDirection '
+        'changed=${centeredIndex.value != targetIndex} '
+        'visible=${_visibleFractions.entries.map((e) => '${e.key}:${e.value.toStringAsFixed(2)}').join(',')}',
+      );
+      final centeredChanged = centeredIndex.value != targetIndex;
+      if (centeredChanged) {
+        centeredIndex.value = targetIndex;
+      }
+      currentVisibleIndex.value = targetIndex;
+      lastCenteredIndex = targetIndex;
+      _performCapturePendingCenteredEntry(preferredIndex: targetIndex);
+      if (scrollDecision.shouldEnsurePlayback) {
+        _performEnsureCenteredPlaybackForIndex(targetIndex);
+      }
+      return;
+    }
+
     final decision = FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
       visibleFractions: _visibleFractions,
       visibleUpdatedAt: _visibleUpdatedAt,

@@ -21,6 +21,10 @@ class _SocialProfileScrollState {
   String? lastStartupWarmSignature;
   String? lastPlaybackWarmSignature;
   String? pendingCenteredIdentity;
+  DateTime? feedScrollStartedAt;
+  double feedScrollStartOffset = 0.0;
+  double lastObservedOffset = 0.0;
+  int feedScrollDirection = 0;
   final Map<int, double> visibleFractions = <int, double>{};
   final Map<int, DateTime> visibleUpdatedAt = <int, DateTime>{};
   Timer? visibilityDebounce;
@@ -118,6 +122,18 @@ extension SocialProfileControllerFieldsPart on SocialProfileController {
   String? get _pendingCenteredIdentity => _scrollState.pendingCenteredIdentity;
   set _pendingCenteredIdentity(String? value) =>
       _scrollState.pendingCenteredIdentity = value;
+  DateTime? get _feedScrollStartedAt => _scrollState.feedScrollStartedAt;
+  set _feedScrollStartedAt(DateTime? value) =>
+      _scrollState.feedScrollStartedAt = value;
+  double get _feedScrollStartOffset => _scrollState.feedScrollStartOffset;
+  set _feedScrollStartOffset(double value) =>
+      _scrollState.feedScrollStartOffset = value;
+  double get _lastObservedOffset => _scrollState.lastObservedOffset;
+  set _lastObservedOffset(double value) =>
+      _scrollState.lastObservedOffset = value;
+  int get _feedScrollDirection => _scrollState.feedScrollDirection;
+  set _feedScrollDirection(int value) =>
+      _scrollState.feedScrollDirection = value;
   Map<int, double> get _visibleFractions => _scrollState.visibleFractions;
   Map<int, DateTime> get _visibleUpdatedAt => _scrollState.visibleUpdatedAt;
   Timer? get _visibilityDebounce => _scrollState.visibilityDebounce;

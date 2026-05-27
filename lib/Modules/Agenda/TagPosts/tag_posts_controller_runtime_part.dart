@@ -47,6 +47,7 @@ extension TagPostsControllerRuntimePart on TagPostsController {
     if (_activeTagPostsControllerTag == controllerTag) {
       _activeTagPostsControllerTag = null;
     }
+    _scrollSettleDebounce?.cancel();
     _visibleFractions.clear();
     _visibleUpdatedAt.clear();
   }
@@ -76,6 +77,37 @@ extension TagPostsControllerRuntimePart on TagPostsController {
     }
   }
 
+  void recordScrollMotion(ScrollController controller) {
+    if (!controller.hasClients) return;
+    final currentOffset = controller.offset;
+    final signedScrollDelta = currentOffset - _lastObservedOffset;
+    final scrollDelta = signedScrollDelta.abs();
+    if (scrollDelta > 1.0) {
+      if (_scrollStartedAt == null) {
+        _scrollStartedAt = DateTime.now();
+        _scrollStartOffset = currentOffset;
+        _scrollDirection = 0;
+      }
+      _scrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _scrollDirection,
+        scrollStartOffset: _scrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          _scrollStartedAt = null;
+          _scrollStartOffset = 0.0;
+          _scrollDirection = 0;
+        },
+      );
+    }
+    _lastObservedOffset = currentOffset;
+  }
+
   void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
     if (modelIndex < 0 || modelIndex >= list.length) return;
     final previousFraction = _visibleFractions[modelIndex];
@@ -100,22 +132,42 @@ extension TagPostsControllerRuntimePart on TagPostsController {
   void _evaluateVisiblePlaybackTarget() {
     if (list.isEmpty || _visibleFractions.isEmpty) return;
     final current = centeredIndex.value;
-    final decision = FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
+    final directionalDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
       visibleFractions: _visibleFractions,
-      visibleUpdatedAt: _visibleUpdatedAt,
       currentIndex: current,
-      lastCenteredIndex: lastCenteredIndex,
+      scrollDirection: _scrollDirection,
       itemCount: list.length,
       canAutoplayIndex: (index) =>
           index >= 0 && index < list.length && list[index].hasPlayableVideo,
       isPlaybackTargetCurrent: (_) => false,
-      playbackKeyForIndex: (index) => 'tag_post_${list[index].docID}',
-      lastCommandAt: null,
-      lastCommandDocId: null,
-      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-      supportsSwitchRetention: false,
-      preferDominantVisibleIndexWhenNonPlayable: true,
     );
+    final decision = directionalDecision.hasTarget
+        ? FeedPlaybackDecision(
+            action: directionalDecision.action,
+            targetIndex: directionalDecision.targetIndex,
+            shouldEnsurePlayback: directionalDecision.shouldEnsurePlayback,
+            shouldPauseAll: false,
+          )
+        : FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
+            visibleFractions: _visibleFractions,
+            visibleUpdatedAt: _visibleUpdatedAt,
+            currentIndex: current,
+            lastCenteredIndex: lastCenteredIndex,
+            itemCount: list.length,
+            canAutoplayIndex: (index) =>
+                index >= 0 &&
+                index < list.length &&
+                list[index].hasPlayableVideo,
+            isPlaybackTargetCurrent: (_) => false,
+            playbackKeyForIndex: (index) => 'tag_post_${list[index].docID}',
+            lastCommandAt: null,
+            lastCommandDocId: null,
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            supportsSwitchRetention: false,
+            preferDominantVisibleIndexWhenNonPlayable: true,
+          );
     if (!decision.hasTarget) return;
     final target = decision.targetIndex;
     if (target < 0 || target >= list.length) return;
@@ -157,6 +209,7 @@ extension TagPostsControllerRuntimePart on TagPostsController {
 
   void updateVisibleIndexByPosition(ScrollController controller) {
     if (!controller.hasClients || list.isEmpty) return;
+    if (_visibleFractions.isNotEmpty) return;
     final position = controller.position;
     if (position.pixels <= 0) {
       centeredIndex.value = 0;
@@ -187,6 +240,7 @@ extension TagPostsControllerRuntimePart on TagPostsController {
 
   void updateVisibleIndexByRenderedItems(BuildContext viewportContext) {
     if (list.isEmpty) return;
+    if (_visibleFractions.isNotEmpty) return;
     final viewportRenderObject = viewportContext.findRenderObject();
     if (viewportRenderObject is! RenderBox || !viewportRenderObject.hasSize) {
       return;

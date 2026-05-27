@@ -11,6 +11,11 @@ class _FloodListingControllerState {
   final Set<int> promotedSecondSegmentBatchStarts = <int>{};
   Timer? priorityPlanTimer;
   Timer? visibilityDebounce;
+  Timer? scrollSettleDebounce;
+  DateTime? scrollStartedAt;
+  double scrollStartOffset = 0.0;
+  double lastObservedOffset = 0.0;
+  int scrollDirection = 0;
   int? lastCenteredIndex;
   String? pendingCenteredDocId;
 }
@@ -30,6 +35,17 @@ extension FloodListingControllerFieldsPart on FloodListingController {
   set _priorityPlanTimer(Timer? value) => _state.priorityPlanTimer = value;
   Timer? get _visibilityDebounce => _state.visibilityDebounce;
   set _visibilityDebounce(Timer? value) => _state.visibilityDebounce = value;
+  Timer? get _scrollSettleDebounce => _state.scrollSettleDebounce;
+  set _scrollSettleDebounce(Timer? value) =>
+      _state.scrollSettleDebounce = value;
+  DateTime? get _scrollStartedAt => _state.scrollStartedAt;
+  set _scrollStartedAt(DateTime? value) => _state.scrollStartedAt = value;
+  double get _scrollStartOffset => _state.scrollStartOffset;
+  set _scrollStartOffset(double value) => _state.scrollStartOffset = value;
+  double get _lastObservedOffset => _state.lastObservedOffset;
+  set _lastObservedOffset(double value) => _state.lastObservedOffset = value;
+  int get _scrollDirection => _state.scrollDirection;
+  set _scrollDirection(int value) => _state.scrollDirection = value;
   int? get lastCenteredIndex => _state.lastCenteredIndex;
   set lastCenteredIndex(int? value) => _state.lastCenteredIndex = value;
   String? get _pendingCenteredDocId => _state.pendingCenteredDocId;

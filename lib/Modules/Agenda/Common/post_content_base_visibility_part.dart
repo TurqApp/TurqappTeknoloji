@@ -29,6 +29,48 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
       return;
     }
 
+    if (surfaceTag.startsWith('archives_')) {
+      final archiveController = maybeFindArchiveController();
+      if (archiveController == null) return;
+      final archiveIndex = archiveController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (archiveIndex >= 0) {
+        archiveController.onPostVisibilityChanged(
+          archiveIndex,
+          visibleFraction,
+        );
+      }
+      return;
+    }
+
+    if (surfaceTag.startsWith('top_tag_')) {
+      final topTagsController = maybeFindTopTagsController();
+      if (topTagsController == null) return;
+      final topTagsIndex = topTagsController.agendaList
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (topTagsIndex >= 0) {
+        topTagsController.onPostVisibilityChanged(
+          topTagsIndex,
+          visibleFraction,
+        );
+      }
+      return;
+    }
+
+    if (surfaceTag.startsWith('tag_post_')) {
+      final tagPostsController = maybeFindTagPostsController();
+      if (tagPostsController == null) return;
+      final tagPostIndex = tagPostsController.list
+          .indexWhere((p) => p.docID == widget.model.docID);
+      if (tagPostIndex >= 0) {
+        tagPostsController.onPostVisibilityChanged(
+          tagPostIndex,
+          visibleFraction,
+        );
+      }
+      return;
+    }
+
     final modelIndex = agendaController.agendaList
         .indexWhere((p) => p.docID == widget.model.docID);
     if (modelIndex >= 0) {
@@ -65,23 +107,6 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
 
     if (visibleFraction < 0.55) return;
 
-    if (surfaceTag.startsWith('archives_')) {
-      final archiveController = maybeFindArchiveController();
-      if (archiveController == null) return;
-      final archiveIndex = archiveController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (archiveIndex >= 0) {
-        archiveController.currentVisibleIndex.value = archiveIndex;
-        archiveController.capturePendingCenteredEntry(
-          preferredIndex: archiveIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          archiveController.centeredIndex.value = archiveIndex;
-          archiveController.lastCenteredIndex = archiveIndex;
-        }
-      }
-    }
-
     if (surfaceTag.startsWith('liked_post_')) {
       final likedController = maybeFindLikedPostControllers();
       if (likedController == null) return;
@@ -93,40 +118,6 @@ extension PostContentBaseVisibilityPart<T extends PostContentBase>
         if (visibleFraction >= 0.72) {
           likedController.centeredIndex.value = likedIndex;
           likedController.lastCenteredIndex = likedIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('top_tag_')) {
-      final topTagsController = maybeFindTopTagsController();
-      if (topTagsController == null) return;
-      final topTagsIndex = topTagsController.agendaList
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (topTagsIndex >= 0) {
-        topTagsController.currentVisibleIndex.value = topTagsIndex;
-        topTagsController.capturePendingCenteredEntry(
-          preferredIndex: topTagsIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          topTagsController.centeredIndex.value = topTagsIndex;
-          topTagsController.lastCenteredIndex = topTagsIndex;
-        }
-      }
-    }
-
-    if (surfaceTag.startsWith('tag_post_')) {
-      final tagPostsController = maybeFindTagPostsController();
-      if (tagPostsController == null) return;
-      final tagPostIndex = tagPostsController.list
-          .indexWhere((p) => p.docID == widget.model.docID);
-      if (tagPostIndex >= 0) {
-        tagPostsController.currentVisibleIndex.value = tagPostIndex;
-        tagPostsController.capturePendingCenteredEntry(
-          preferredIndex: tagPostIndex,
-        );
-        if (visibleFraction >= 0.72) {
-          tagPostsController.centeredIndex.value = tagPostIndex;
-          tagPostsController.lastCenteredIndex = tagPostIndex;
         }
       }
     }

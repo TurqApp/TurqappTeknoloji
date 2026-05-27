@@ -58,6 +58,36 @@ extension SocialProfileControllerSupportPart on SocialProfileController {
   void ensureCenteredPlaybackForCurrentSelection() =>
       _performEnsureCenteredPlaybackForIndex(centeredIndex.value);
 
+  bool get hasFeedScrollStarted => _feedScrollStartedAt != null;
+
+  double get lastObservedScrollOffset => _lastObservedOffset;
+  set lastObservedScrollOffset(double value) => _lastObservedOffset = value;
+
+  void markFeedScrollBegan({double startOffset = 0.0}) {
+    _feedScrollStartedAt = DateTime.now();
+    _feedScrollStartOffset = startOffset;
+    _feedScrollDirection = 0;
+  }
+
+  void updateFeedScrollMotion({
+    required double currentOffset,
+    required double signedScrollDelta,
+  }) {
+    _feedScrollDirection =
+        FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+      currentDirection: _feedScrollDirection,
+      scrollStartOffset: _feedScrollStartOffset,
+      currentOffset: currentOffset,
+      signedScrollDelta: signedScrollDelta,
+    );
+  }
+
+  void clearFeedScrollTracking() {
+    _feedScrollStartedAt = null;
+    _feedScrollStartOffset = 0.0;
+    _feedScrollDirection = 0;
+  }
+
   void bootstrapFeedPlaybackAfterDataChange() =>
       _performBootstrapFeedPlaybackAfterDataChange();
 

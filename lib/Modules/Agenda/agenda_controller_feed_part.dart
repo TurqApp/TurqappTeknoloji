@@ -1626,15 +1626,13 @@ extension AgendaControllerFeedPart on AgendaController {
       );
     }
     if (hasMeaningfulScrollMovement) {
-      final cumulativeScrollDelta = currentOffset - _qaScrollStartOffset;
-      final candidateDirection = cumulativeScrollDelta.abs() >= 24.0
-          ? (cumulativeScrollDelta > 0 ? 1 : -1)
-          : (signedScrollDelta > 0 ? 1 : -1);
-      if (_feedScrollDirection == 0 ||
-          (candidateDirection != _feedScrollDirection &&
-              cumulativeScrollDelta.abs() >= 48.0)) {
-        _feedScrollDirection = candidateDirection;
-      }
+      _feedScrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _feedScrollDirection,
+        scrollStartOffset: _qaScrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
     }
     if (!feedScrollSettlingRx.value) {
       feedScrollSettlingRx.value = true;

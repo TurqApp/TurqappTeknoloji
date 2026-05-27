@@ -50,6 +50,11 @@ class _ExploreControllerState {
   String? pendingFloodDocId;
   final exploreFloodVisibleFractions = <int, double>{};
   Timer? exploreFloodVisibilityDebounce;
+  Timer? exploreFloodScrollSettleDebounce;
+  DateTime? exploreFloodScrollStartedAt;
+  double exploreFloodScrollStartOffset = 0.0;
+  double exploreFloodLastObservedOffset = 0.0;
+  int exploreFloodScrollDirection = 0;
   int? preserveTabIndexOnNextReturn;
   final Set<int> preparedFloodChildChunkStarts = <int>{};
   final showScrollToTop = false.obs;
@@ -127,6 +132,25 @@ extension ExploreControllerFieldsPart on ExploreController {
       _state.exploreFloodVisibilityDebounce;
   set _exploreFloodVisibilityDebounce(Timer? value) =>
       _state.exploreFloodVisibilityDebounce = value;
+  Timer? get _exploreFloodScrollSettleDebounce =>
+      _state.exploreFloodScrollSettleDebounce;
+  set _exploreFloodScrollSettleDebounce(Timer? value) =>
+      _state.exploreFloodScrollSettleDebounce = value;
+  DateTime? get _exploreFloodScrollStartedAt =>
+      _state.exploreFloodScrollStartedAt;
+  set _exploreFloodScrollStartedAt(DateTime? value) =>
+      _state.exploreFloodScrollStartedAt = value;
+  double get _exploreFloodScrollStartOffset =>
+      _state.exploreFloodScrollStartOffset;
+  set _exploreFloodScrollStartOffset(double value) =>
+      _state.exploreFloodScrollStartOffset = value;
+  double get _exploreFloodLastObservedOffset =>
+      _state.exploreFloodLastObservedOffset;
+  set _exploreFloodLastObservedOffset(double value) =>
+      _state.exploreFloodLastObservedOffset = value;
+  int get _exploreFloodScrollDirection => _state.exploreFloodScrollDirection;
+  set _exploreFloodScrollDirection(int value) =>
+      _state.exploreFloodScrollDirection = value;
   int? get _preserveTabIndexOnNextReturn => _state.preserveTabIndexOnNextReturn;
   set _preserveTabIndexOnNextReturn(int? value) =>
       _state.preserveTabIndexOnNextReturn = value;

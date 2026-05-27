@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:turqappv2/Core/Services/feed_playback_selection_policy.dart';
 import 'package:turqappv2/Core/Services/read_budget_registry.dart';
 import 'package:turqappv2/Models/hashtag_model.dart';
 import 'package:turqappv2/Models/posts_model.dart';
@@ -35,6 +38,10 @@ abstract class _TopTagsControllerBase extends GetxController {
     scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _visibilityDebounce?.cancel();
+    _scrollSettleDebounce?.cancel();
+    _visibleFractions.clear();
+    _visibleUpdatedAt.clear();
     super.onClose();
   }
 }
@@ -62,6 +69,8 @@ extension TopTagsControllerFacadePart on _TopTagsControllerBase {
     agendaList.clear();
     centeredIndex.value = -1;
     currentVisibleIndex.value = -1;
+    _visibleFractions.clear();
+    _visibleUpdatedAt.clear();
   }
 
   String agendaInstanceTag(String docId) => 'top_tag_$docId';

@@ -1,29 +1,31 @@
 part of 'agenda_controller.dart';
 
 extension AgendaControllerPlaybackPart on AgendaController {
-  bool _applyDirectionalFeedPlaybackTarget() {
-    if (_qaScrollStartedAt == null) return false;
+  bool _applyFeedFamilyDirectionalScrollDecision() {
     if (!scrollController.hasClients) return false;
-    final direction = _feedScrollDirection;
-    if (direction == 0) return false;
-
-    final current = centeredIndex.value;
-    final targetIndex =
-        FeedPlaybackSelectionPolicy.resolveEarlyDirectionalEntryIndex(
+    final decision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: _qaScrollStartedAt != null,
       visibleFractions: _visibleFractions,
-      currentIndex: current,
-      direction: direction,
+      currentIndex: centeredIndex.value,
+      scrollDirection: _feedScrollDirection,
       itemCount: agendaList.length,
       canAutoplayIndex: (index) => _canAutoplayVideoPost(agendaList[index]),
+      isPlaybackTargetCurrent: _isPlaybackTargetCurrent,
     );
-    if (targetIndex < 0 || targetIndex >= agendaList.length) return false;
+    if (!decision.hasTarget) return false;
 
+    final current = centeredIndex.value;
+    final targetIndex = decision.targetIndex;
     final targetFraction = _visibleFractions[targetIndex] ?? 0.0;
+    final oppositeIndex = targetIndex - _feedScrollDirection;
+    final oppositeFraction = _visibleFractions[oppositeIndex] ?? 0.0;
     debugPrint(
-      '[FeedPlaybackDecision] action=early_directional_entry '
+      '[FeedPlaybackDecision] action=${decision.action} '
       'current=$current target=$targetIndex '
-      'direction=${direction > 0 ? "forward" : "backward"} '
+      'direction=${_feedScrollDirection > 0 ? "forward" : _feedScrollDirection < 0 ? "backward" : "inferred"} '
       'fraction=${targetFraction.toStringAsFixed(3)} '
+      'opposite=$oppositeIndex oppositeFraction=${oppositeFraction.toStringAsFixed(3)} '
       'threshold=${FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold.toStringAsFixed(3)} '
       'offset=${scrollController.offset.toStringAsFixed(1)} '
       'start=${_qaScrollStartOffset.toStringAsFixed(1)}',
@@ -33,36 +35,10 @@ extension AgendaControllerPlaybackPart on AgendaController {
       centeredIndex.value = targetIndex;
       _notifyPlaybackRowUpdates(targetIndex);
     }
-    if (centeredChanged || !_isPlaybackTargetCurrent(targetIndex)) {
+    if (decision.shouldEnsurePlayback) {
       _ensureFeedPlaybackForIndex(targetIndex);
     }
     lastCenteredIndex = targetIndex;
-    _trackPlaybackWindow();
-    return true;
-  }
-
-  bool _retainDirectionalFeedPlaybackTargetDuringScroll() {
-    if (_qaScrollStartedAt == null) return false;
-    final direction = _feedScrollDirection;
-    if (direction == 0) return false;
-    final current = centeredIndex.value;
-    if (current < 0 || current >= agendaList.length) return false;
-    if (!_canAutoplayVideoPost(agendaList[current])) return false;
-    if (!_isPlaybackTargetCurrent(current)) return false;
-    final currentFraction = _visibleFractions[current] ?? 0.0;
-    if (currentFraction <
-        FeedPlaybackSelectionPolicy.earlyForwardEntryThreshold) {
-      return false;
-    }
-    final oppositeIndex = current - direction;
-    final oppositeFraction = _visibleFractions[oppositeIndex] ?? 0.0;
-    debugPrint(
-      '[FeedPlaybackDecision] action=retain_directional_scroll_target '
-      'current=$current direction=${direction > 0 ? "forward" : "backward"} '
-      'fraction=${currentFraction.toStringAsFixed(3)} '
-      'opposite=$oppositeIndex oppositeFraction=${oppositeFraction.toStringAsFixed(3)}',
-    );
-    lastCenteredIndex = current;
     _trackPlaybackWindow();
     return true;
   }
@@ -255,10 +231,7 @@ extension AgendaControllerPlaybackPart on AgendaController {
     required double playThreshold,
     required double stopThreshold,
   }) {
-    if (_applyDirectionalFeedPlaybackTarget()) {
-      return;
-    }
-    if (_retainDirectionalFeedPlaybackTargetDuringScroll()) {
+    if (_applyFeedFamilyDirectionalScrollDecision()) {
       return;
     }
     if (_retainVisibleCurrentFeedOwner(stopThreshold: stopThreshold)) {

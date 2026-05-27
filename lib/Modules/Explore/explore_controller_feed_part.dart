@@ -141,6 +141,7 @@ extension ExploreControllerFeedPart on ExploreController {
       _performFetchFloodsIfNearVisibleEnd(preferredIndex: 0);
       return;
     }
+    if (_exploreFloodVisibleFractions.isNotEmpty) return;
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
       320.0,
       680.0,
@@ -161,6 +162,37 @@ extension ExploreControllerFeedPart on ExploreController {
     capturePendingFloodEntry(preferredIndex: nextIndex);
     _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: nextIndex);
     _performFetchFloodsIfNearVisibleEnd(preferredIndex: nextIndex);
+  }
+
+  void _performTrackFloodSeriesScrollMotion() {
+    if (!floodsScroll.hasClients) return;
+    final currentOffset = floodsScroll.offset;
+    final signedScrollDelta = currentOffset - _exploreFloodLastObservedOffset;
+    final scrollDelta = signedScrollDelta.abs();
+    if (scrollDelta > 1.0) {
+      if (_exploreFloodScrollStartedAt == null) {
+        _exploreFloodScrollStartedAt = DateTime.now();
+        _exploreFloodScrollStartOffset = currentOffset;
+        _exploreFloodScrollDirection = 0;
+      }
+      _exploreFloodScrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _exploreFloodScrollDirection,
+        scrollStartOffset: _exploreFloodScrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+      _exploreFloodScrollSettleDebounce?.cancel();
+      _exploreFloodScrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          _exploreFloodScrollStartedAt = null;
+          _exploreFloodScrollStartOffset = 0.0;
+          _exploreFloodScrollDirection = 0;
+        },
+      );
+    }
+    _exploreFloodLastObservedOffset = currentOffset;
   }
 
   int _performResolveFloodSeriesFocusIndex() {
@@ -311,18 +343,33 @@ extension ExploreControllerFeedPart on ExploreController {
       return;
     }
 
-    final nextIndex = FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+    final directionalDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
       visibleFractions: _exploreFloodVisibleFractions,
       currentIndex: floodsVisibleIndex.value,
-      lastCenteredIndex: lastFloodVisibleIndex,
+      scrollDirection: _exploreFloodScrollDirection,
       itemCount: exploreFloods.length,
       canAutoplayIndex: (index) =>
           index >= 0 &&
           index < exploreFloods.length &&
           exploreFloods[index].hasPlayableVideo,
-      stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
-      preferDominantVisibleIndexWhenNonPlayable: true,
+      isPlaybackTargetCurrent: (_) => false,
     );
+    final nextIndex = directionalDecision.hasTarget
+        ? directionalDecision.targetIndex
+        : FeedPlaybackSelectionPolicy.resolveCenteredIndex(
+            visibleFractions: _exploreFloodVisibleFractions,
+            currentIndex: floodsVisibleIndex.value,
+            lastCenteredIndex: lastFloodVisibleIndex,
+            itemCount: exploreFloods.length,
+            canAutoplayIndex: (index) =>
+                index >= 0 &&
+                index < exploreFloods.length &&
+                exploreFloods[index].hasPlayableVideo,
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            preferDominantVisibleIndexWhenNonPlayable: true,
+          );
 
     if (nextIndex < 0 || nextIndex >= exploreFloods.length) {
       final previousIndex = floodsVisibleIndex.value;
@@ -349,7 +396,7 @@ extension ExploreControllerFeedPart on ExploreController {
     _performScheduleExploreFloodPrefetchFromVisible(preferredIndex: nextIndex);
     _performFetchFloodsIfNearVisibleEnd(preferredIndex: nextIndex);
     debugPrint(
-      '[ExploreSeries] status=centered index=$nextIndex '
+      '[ExploreSeries] status=centered action=${directionalDecision.hasTarget ? directionalDecision.action : "centered"} index=$nextIndex '
       'doc=${exploreFloods[nextIndex].docID} '
       'visible=${(_exploreFloodVisibleFractions[nextIndex] ?? 0.0).toStringAsFixed(2)}',
     );

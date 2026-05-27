@@ -17,6 +17,96 @@ extension ArchiveControllerSupportPart on ArchiveController {
     }
   }
 
+  void onPostVisibilityChanged(int modelIndex, double visibleFraction) {
+    if (modelIndex < 0 || modelIndex >= list.length) return;
+    final previousFraction = _visibleFractions[modelIndex];
+    if (FeedPlaybackSelectionPolicy.shouldIgnoreVisibilityUpdate(
+      previousFraction: previousFraction,
+      visibleFraction: visibleFraction,
+    )) {
+      return;
+    }
+
+    if (visibleFraction <= 0.01) {
+      _visibleFractions.remove(modelIndex);
+      _visibleUpdatedAt.remove(modelIndex);
+      if (modelIndex != centeredIndex.value) {
+        disposeAgendaContentController(list[modelIndex].docID);
+      }
+    } else {
+      _visibleFractions[modelIndex] = visibleFraction;
+      _visibleUpdatedAt[modelIndex] = DateTime.now();
+      currentVisibleIndex.value = modelIndex;
+      capturePendingCenteredEntry(preferredIndex: modelIndex);
+    }
+
+    _visibilityDebounce?.cancel();
+    _visibilityDebounce = Timer(
+      FeedPlaybackSelectionPolicy.evaluationDebounceDuration,
+      _evaluateCenteredPlayback,
+    );
+  }
+
+  void _evaluateCenteredPlayback() {
+    if (list.isEmpty || _visibleFractions.isEmpty) return;
+    final current = centeredIndex.value;
+    final directionalDecision =
+        FeedPlaybackSelectionPolicy.resolveDirectionalScrollDecision(
+      isScrollActive: true,
+      visibleFractions: _visibleFractions,
+      currentIndex: current,
+      scrollDirection: _scrollDirection,
+      itemCount: list.length,
+      canAutoplayIndex: (index) =>
+          index >= 0 && index < list.length && list[index].hasPlayableVideo,
+      isPlaybackTargetCurrent: (_) => false,
+    );
+    final decision = directionalDecision.hasTarget
+        ? FeedPlaybackDecision(
+            action: directionalDecision.action,
+            targetIndex: directionalDecision.targetIndex,
+            shouldEnsurePlayback: directionalDecision.shouldEnsurePlayback,
+            shouldPauseAll: false,
+          )
+        : FeedPlaybackSelectionPolicy.resolvePlaybackDecision(
+            visibleFractions: _visibleFractions,
+            visibleUpdatedAt: _visibleUpdatedAt,
+            currentIndex: current,
+            lastCenteredIndex: lastCenteredIndex,
+            itemCount: list.length,
+            canAutoplayIndex: (index) =>
+                index >= 0 &&
+                index < list.length &&
+                list[index].hasPlayableVideo,
+            isPlaybackTargetCurrent: (_) => false,
+            playbackKeyForIndex: (index) => agendaInstanceTag(
+              list[index].docID,
+            ),
+            lastCommandAt: null,
+            lastCommandDocId: null,
+            stopThreshold: FeedPlaybackSelectionPolicy.stopThreshold,
+            supportsSwitchRetention: false,
+            preferDominantVisibleIndexWhenNonPlayable: true,
+          );
+    if (!decision.hasTarget) {
+      centeredIndex.value = -1;
+      currentVisibleIndex.value = -1;
+      return;
+    }
+    final targetIndex = decision.targetIndex;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    if (lastCenteredIndex != null &&
+        lastCenteredIndex != targetIndex &&
+        lastCenteredIndex! >= 0 &&
+        lastCenteredIndex! < list.length) {
+      disposeAgendaContentController(list[lastCenteredIndex!].docID);
+    }
+    centeredIndex.value = targetIndex;
+    currentVisibleIndex.value = targetIndex;
+    lastCenteredIndex = targetIndex;
+    capturePendingCenteredEntry(preferredIndex: targetIndex);
+  }
+
   void removeArchivedPost(String docId) {
     final normalizedDocId = docId.trim();
     if (normalizedDocId.isEmpty) return;

@@ -9,12 +9,43 @@ extension _ArchiveControllerLifecyclePart on ArchiveController {
   void handleOnClose() {
     scrollController.removeListener(_onScroll);
     scrollController.dispose();
+    _visibilityDebounce?.cancel();
+    _scrollSettleDebounce?.cancel();
+    _visibleFractions.clear();
+    _visibleUpdatedAt.clear();
     _authSub?.cancel();
   }
 
   void _onScroll() {
     if (!scrollController.hasClients) return;
     final position = scrollController.position;
+    final currentOffset = position.pixels;
+    final signedScrollDelta = currentOffset - _lastObservedOffset;
+    final scrollDelta = signedScrollDelta.abs();
+    if (scrollDelta > 1.0) {
+      if (_scrollStartedAt == null) {
+        _scrollStartedAt = DateTime.now();
+        _scrollStartOffset = currentOffset;
+        _scrollDirection = 0;
+      }
+      _scrollDirection =
+          FeedPlaybackSelectionPolicy.resolveStableScrollDirection(
+        currentDirection: _scrollDirection,
+        scrollStartOffset: _scrollStartOffset,
+        currentOffset: currentOffset,
+        signedScrollDelta: signedScrollDelta,
+      );
+      _scrollSettleDebounce?.cancel();
+      _scrollSettleDebounce = Timer(
+        FeedPlaybackSelectionPolicy.scrollSettleReassertDuration,
+        () {
+          _scrollStartedAt = null;
+          _scrollStartOffset = 0.0;
+          _scrollDirection = 0;
+        },
+      );
+    }
+    _lastObservedOffset = currentOffset;
     if (position.pixels >= position.maxScrollExtent - 300) {
       fetchData();
     }
@@ -26,6 +57,7 @@ extension _ArchiveControllerLifecyclePart on ArchiveController {
       capturePendingCenteredEntry(preferredIndex: 0);
       return;
     }
+    if (_visibleFractions.isNotEmpty) return;
     final estimatedItemExtent = (position.viewportDimension * 0.74).clamp(
       320.0,
       680.0,
